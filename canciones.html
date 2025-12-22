@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Canciones | Franilover</title>
-  <script type="module" crossorigin src="./assets/main-r56IXqzH.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/main-C1VaoceH.css">
+  <script type="module" crossorigin src="./assets/main-Bb-KG2Zm.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-By-ARIYW.css">
 </head>
 <body>
     <header class="header">
@@ -33,23 +33,30 @@
     </header>
 
     <main>
-        <section class="diseno-cuadricula">
+        <section class="galeria-cuadricula">
             
-            <article class="tarjeta animar-al-scroll bg-amarillo-claro">
-                <img src="/fotos/portada-girasol.jpg" class="tarjeta-img img-cuadrada" alt="Girasol">
-                
-                <div class="bloque-info">
-                    <h3 class="tarjeta-titulo">Girasol</h3>
-                    <p class="tarjeta-desc">Una canción muy especial...</p>
-                    
-                    <audio controls class="reproductor-audio">
-                        <source src="/musica/girasol.mp3" type="audio/mpeg">
-                        Tu navegador no soporta el audio.
-                    </audio>
-                </div>
-            </article>
+ <article class="targeta animate-on-scroll frani">
+    <img src="/fotos/portada-girasol.jpg" class="imagen music-cover" >
+    
+    <div class="music-content">
+        <h3 class="music-title">Girasol</h3>
+        
+        <audio id="audio-girasol">
+            <source src="/musica/girasol.mp3" type="audio/mpeg">
+        </audio>
 
-            </section>
+        <div class="custom-player">
+            <button class="play-btn" onclick="togglePlay('audio-girasol', this)">
+                <span class="icon">▶</span>
+            </button>
+            <div class="progress-container">
+                <div class="progress-bar"></div>
+            </div>
+        </div>
+    </div>
+</article>
+
+        </section>
     </main>
 
 </body>
