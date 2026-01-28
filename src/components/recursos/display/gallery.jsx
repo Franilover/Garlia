@@ -8,7 +8,6 @@ import { Sparkles } from 'lucide-react';
 export const GalleryGrid = ({ children, headerContent, className }) => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  // Inyectamos la función para ocultar el menú a los GalleryItems
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
       return React.cloneElement(child, { 
@@ -60,8 +59,8 @@ export const GalleryItem = ({ src, alt, children, onClick, onExpand, color, cont
   const tieneImagen = src && src.trim() !== "";
 
   const handleInteraction = () => {
-    if (onExpand) onExpand(); // Oculta cabecera
-    if (onClick) onClick();   // Abre lightbox/canción
+    if (onExpand) onExpand();
+    if (onClick) onClick();
   };
 
   return (
@@ -73,26 +72,22 @@ export const GalleryItem = ({ src, alt, children, onClick, onExpand, color, cont
       viewport={{ once: true }}
       className={cn(
         "relative aspect-[3/4] overflow-hidden rounded-[2.2rem] cursor-pointer transition-all duration-700 hover:-translate-y-2 hover:shadow-xl group",
-        tieneImagen ? "bg-white" : "bg-[#f0edf5]" // Fondo blanco si hay foto, morado ceniza si no
+        tieneImagen ? "bg-white" : "bg-[#f0edf5]" 
       )}
     >
+      {/* CAPA 1: FONDO (IMAGEN O ICONO) */}
       {tieneImagen ? (
-        <>
-          <Image 
-            src={src} 
-            alt={alt || "Archivo Visual"} 
-            fill 
-            sizes="(max-width: 768px) 50vw, 20vw"
-            className={cn(
-              "transition-all duration-700 group-hover:scale-105",
-              contain ? "object-contain p-8 mix-blend-multiply" : "object-cover grayscale-[0.2] group-hover:grayscale-0"
-            )}
-          />
-          {/* Degradado oscuro para que el texto blanco sea legible sobre la imagen */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-80" />
-        </>
+        <Image 
+          src={src} 
+          alt={alt || "Archivo Visual"} 
+          fill 
+          sizes="(max-width: 768px) 50vw, 20vw"
+          className={cn(
+            "transition-all duration-700 group-hover:scale-105",
+            contain ? "object-contain p-8 mix-blend-multiply" : "object-cover grayscale-[0.2] group-hover:grayscale-0"
+          )}
+        />
       ) : (
-        /* ESTADO VACÍO: MORADO CENIZA SUAVE CON ICONO OSCURO */
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
           <div className="relative mb-4 flex items-center justify-center">
             <div className="absolute w-16 h-16 rounded-full bg-[#d0cde1] blur-xl opacity-40 group-hover:opacity-100 transition-opacity" />
@@ -106,19 +101,20 @@ export const GalleryItem = ({ src, alt, children, onClick, onExpand, color, cont
         </div>
       )}
 
-      {/* TEXTOS (Children) */}
-      <div className={cn(
-        "absolute bottom-7 left-7 right-7 transition-all duration-500 z-30",
-        tieneImagen ? "text-white" : "text-[#4a4458]" // Texto oscuro sobre el morado ceniza
-      )}>
+      {/* CAPA 2: DEGRADADO MAESTRO (UNIVERSAL) */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 z-20" />
+
+      {/* CAPA 3: TEXTOS (FORZADOS A BLANCO POR EL DEGRADADO) */}
+      <div className="absolute bottom-7 left-7 right-7 transition-all duration-500 z-30 text-white">
         <div className="group-hover:translate-y-[-2px] transition-transform duration-500">
           {children}
         </div>
       </div>
 
+      {/* CAPA 4: DETALLE DE COLOR */}
       {color && (
         <div 
-          className="absolute top-0 w-full h-1.5 opacity-30" 
+          className="absolute top-0 w-full h-1.5 opacity-30 z-40" 
           style={{ backgroundColor: color }} 
         />
       )}
