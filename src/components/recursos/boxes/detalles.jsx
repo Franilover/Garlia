@@ -35,6 +35,7 @@ export default function DetalleMaestro({
 
   // Cargar Variantes
   const fetchVariantes = async (id) => {
+    if (!id) return;
     const { data: vars } = await supabase
       .from('criatura_variantes')
       .select('*')
@@ -42,37 +43,37 @@ export default function DetalleMaestro({
     setVariantes(vars || []);
   };
 
-  // Reset al cambiar de item
+  // Reset al cambiar de item o cerrar
   useEffect(() => {
     if (data) {
       setEditNombre(data.nombre || "");
       setEditDescripcion(data.sobre || data.descripcion || "");
       setEditMode(false);
       setVarianteActiva(null);
-      // Si no tiene img_url (personajes), buscamos variantes (criaturas)
       if (!data.img_url) fetchVariantes(data.id);
     }
   }, [data]);
 
   // Sincronizar edición según selección
   useEffect(() => {
-    if (editMode) return;
+    if (editMode || !data) return;
     if (varianteActiva) {
-      setEditNombre(data.nombre); // Mantenemos el nombre base
+      setEditNombre(data.nombre || ""); 
       setEditDescripcion(varianteActiva.descripcion_variante || "");
-    } else if (data) {
+    } else {
       setEditNombre(data.nombre || "");
       setEditDescripcion(data.sobre || data.descripcion || "");
     }
   }, [varianteActiva, editMode, data]);
 
-  if (!data) return null;
+  // Si no hay data o está cerrado, no renderizamos nada
+  if (!data || !isOpen) return null;
 
   const tablaPrincipal = data.img_url ? 'personajes' : 'criaturas';
   const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
 
-  // Música (Lógica original recuperada)
-  const listaLinks = Array.isArray(data.canciones) 
+  // Música con validación de nulidad
+  const listaLinks = Array.isArray(data?.canciones) 
     ? data.canciones.flatMap(item => typeof item === 'string' ? item.split(',') : item)
                    .map(link => link.trim())
                    .filter(link => link !== "")
@@ -95,6 +96,8 @@ export default function DetalleMaestro({
         };
         const { error } = await supabase.from(tablaPrincipal).update(updates).eq('id', data.id);
         if (error) throw error;
+        
+        // Actualización local (Nota: En una app real lo ideal es mutar el estado global o re-fetch)
         data.nombre = editNombre;
         if (data.sobre) data.sobre = editDescripcion; else data.descripcion = editDescripcion;
       }
@@ -111,7 +114,9 @@ export default function DetalleMaestro({
       {isOpen && (
         <motion.div 
           key={data.id}
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          exit={{ opacity: 0, y: -20 }}
           className="max-w-7xl mx-auto mb-16 relative pt-4 px-4"
         >
           <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[500px] relative">
@@ -140,7 +145,8 @@ export default function DetalleMaestro({
                 <div className="absolute inset-0 bg-primary/5 rounded-[4rem] rotate-3 scale-105" />
                 <motion.img 
                   key={imagenVisual}
-                  initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, scale: 0.95 }} 
+                  animate={{ opacity: 1, scale: 1 }}
                   src={imagenVisual} 
                   className="relative z-10 w-full h-full object-contain mix-blend-multiply rounded-[3.5rem]" 
                 />
@@ -194,7 +200,7 @@ export default function DetalleMaestro({
 
                   <h2 className="text-4xl md:text-6xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-6 break-words">
                     {varianteActiva 
-                    ? `${data.nombre} de ${varianteActiva.tipo.trim()}` 
+                    ? `${data?.nombre || 'Cargando...'} de ${varianteActiva.tipo?.trim()}` 
                     : editNombre}
                   </h2>
                   
@@ -203,7 +209,7 @@ export default function DetalleMaestro({
                   </p>
 
                   <div className="mb-8">
-                    <Relaciones nombrePersonaje={data.nombre} />
+                    {data?.nombre && <Relaciones nombrePersonaje={data.nombre} />}
                   </div>
 
                   {mostrarMusica && listaLinks.length > 0 && (
@@ -219,7 +225,7 @@ export default function DetalleMaestro({
                             whileHover={{ y: -3 }} className="flex items-center gap-3 bg-white border-2 border-primary/10 px-6 py-3 rounded-2xl shadow-sm"
                           >
                             <span className="text-sm font-black italic uppercase text-primary tracking-tighter">
-                              {data.nombre} Audio {index + 1}
+                              {data?.nombre} Audio {index + 1}
                             </span>
                             <Music size={16} className="text-primary/40" />
                           </motion.a>
