@@ -16,15 +16,12 @@ export default function DetalleMaestro({
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   
-  // Variantes
   const [variantes, setVariantes] = useState([]);
   const [varianteActiva, setVarianteActiva] = useState(null);
 
-  // Estados campos editables
   const [editNombre, setEditNombre] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
 
-  // Verificar admin
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -33,7 +30,6 @@ export default function DetalleMaestro({
     checkUser();
   }, []);
 
-  // Cargar Variantes
   const fetchVariantes = async (id) => {
     const { data: vars } = await supabase
       .from('criatura_variantes')
@@ -42,23 +38,20 @@ export default function DetalleMaestro({
     setVariantes(vars || []);
   };
 
-  // Reset al cambiar de item
   useEffect(() => {
     if (data) {
       setEditNombre(data.nombre || "");
       setEditDescripcion(data.sobre || data.descripcion || "");
       setEditMode(false);
       setVarianteActiva(null);
-      // Si no tiene img_url (personajes), buscamos variantes (criaturas)
       if (!data.img_url) fetchVariantes(data.id);
     }
   }, [data]);
 
-  // Sincronizar edición según selección
   useEffect(() => {
     if (editMode) return;
     if (varianteActiva) {
-      setEditNombre(data.nombre); // Mantenemos el nombre base
+      setEditNombre(data?.nombre || ""); 
       setEditDescripcion(varianteActiva.descripcion_variante || "");
     } else if (data) {
       setEditNombre(data.nombre || "");
@@ -66,13 +59,13 @@ export default function DetalleMaestro({
     }
   }, [varianteActiva, editMode, data]);
 
-  if (!data) return null;
+  // Si no hay data y no está abierto, no renderizamos nada fuera de AnimatePresence
+  if (!isOpen && !data) return null;
 
-  const tablaPrincipal = data.img_url ? 'personajes' : 'criaturas';
-  const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
+  const tablaPrincipal = data?.img_url ? 'personajes' : 'criaturas';
+  const imagenVisual = (varianteActiva?.imagen_url) || (data?.img_url || data?.imagen_url);
 
-  // Música (Lógica original recuperada)
-  const listaLinks = Array.isArray(data.canciones) 
+  const listaLinks = Array.isArray(data?.canciones) 
     ? data.canciones.flatMap(item => typeof item === 'string' ? item.split(',') : item)
                    .map(link => link.trim())
                    .filter(link => link !== "")
@@ -108,7 +101,7 @@ export default function DetalleMaestro({
 
   return (
     <AnimatePresence mode="wait">
-      {isOpen && (
+      {isOpen && data && (
         <motion.div 
           key={data.id}
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
@@ -116,7 +109,6 @@ export default function DetalleMaestro({
         >
           <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[500px] relative">
             
-            {/* BOTONES CONTROL */}
             <div className="absolute top-6 right-6 z-50 flex gap-2">
               {isAdmin && !editMode && (
                 <button onClick={() => setEditMode(true)} className="p-3 bg-primary text-white rounded-full shadow-lg hover:scale-110 transition-transform">
@@ -134,7 +126,6 @@ export default function DetalleMaestro({
               </button>
             </div>
             
-            {/* SECCIÓN IZQUIERDA: IMAGEN */}
             <div className="w-full lg:w-1/2 bg-gradient-to-br from-white to-primary/5 flex items-center justify-center p-10 lg:p-16 border-b lg:border-b-0 lg:border-r border-primary/5">
               <div className="relative w-full aspect-square max-w-[400px]">
                 <div className="absolute inset-0 bg-primary/5 rounded-[4rem] rotate-3 scale-105" />
@@ -147,10 +138,8 @@ export default function DetalleMaestro({
               </div>
             </div>
 
-            {/* SECCIÓN DERECHA: CONTENIDO */}
             <div className="w-full lg:w-1/2 p-8 md:p-12 lg:pl-10 lg:pr-16 flex flex-col justify-center bg-bg-main/5">
               
-              {/* SELECTOR VARIANTES */}
               {!editMode && variantes.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   <button onClick={() => setVarianteActiva(null)} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${!varianteActiva ? 'bg-primary text-white border-primary shadow-md' : 'border-primary/10 text-primary/40'}`}>Original</button>
@@ -194,7 +183,7 @@ export default function DetalleMaestro({
 
                   <h2 className="text-4xl md:text-6xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-6 break-words">
                     {varianteActiva 
-                      ? `${data.nombre} de ${varianteActiva.tipo.trim()}` 
+                      ? `${data?.nombre || ''} de ${varianteActiva.tipo.trim()}` 
                       : editNombre}
                   </h2>
                   
@@ -203,7 +192,7 @@ export default function DetalleMaestro({
                   </p>
 
                   <div className="mb-8">
-                    <Relaciones nombrePersonaje={data.nombre} />
+                    <Relaciones nombrePersonaje={data?.nombre || ""} />
                   </div>
 
                   {mostrarMusica && listaLinks.length > 0 && (
@@ -219,7 +208,7 @@ export default function DetalleMaestro({
                             whileHover={{ y: -3 }} className="flex items-center gap-3 bg-white border-2 border-primary/10 px-6 py-3 rounded-2xl shadow-sm"
                           >
                             <span className="text-sm font-black italic uppercase text-primary tracking-tighter">
-                              {data.nombre} Audio {index + 1}
+                              {data?.nombre || "Audio"} {index + 1}
                             </span>
                             <Music size={16} className="text-primary/40" />
                           </motion.a>
