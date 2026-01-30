@@ -1,5 +1,3 @@
-"use client";
-import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Music, Edit3, Save, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
