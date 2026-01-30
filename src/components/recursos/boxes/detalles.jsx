@@ -193,7 +193,7 @@ export default function DetalleMaestro({
                   </div>
 
                   <h2 className="text-4xl md:text-6xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-6 break-words">
-                    {varianteActiva ? `${data.nombre} [${varianteActiva.tipo}]` : editNombre}
+                  {varianteActiva ? `${data.nombre} de ${varianteActiva.tipo}` : editNombre}
                   </h2>
                   
                   <p className="text-primary/80 text-base md:text-lg italic leading-snug mb-8 whitespace-pre-wrap">
