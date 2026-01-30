@@ -33,14 +33,18 @@ export default function DetalleMaestro({
     checkUser();
   }, []);
 
-  // Cargar Variantes
+  // Cargar Variantes con validación de ID actual
   const fetchVariantes = async (id) => {
     if (!id) return;
-    const { data: vars } = await supabase
+    const { data: vars, error } = await supabase
       .from('criatura_variantes')
       .select('*')
       .eq('criatura_id', id);
-    setVariantes(vars || []);
+    
+    // Solo actualizamos si el ID solicitado sigue siendo el ID actual del componente
+    if (!error && data?.id === id) {
+      setVariantes(vars || []);
+    }
   };
 
   // Reset al cambiar de item o cerrar
@@ -50,7 +54,14 @@ export default function DetalleMaestro({
       setEditDescripcion(data.sobre || data.descripcion || "");
       setEditMode(false);
       setVarianteActiva(null);
-      if (!data.img_url) fetchVariantes(data.id);
+      
+      // FIX: Limpiar las variantes anteriores inmediatamente al cambiar de criatura
+      setVariantes([]); 
+      
+      // Solo buscamos variantes si no es un personaje con imagen directa
+      if (!data.img_url) {
+        fetchVariantes(data.id);
+      }
     }
   }, [data]);
 
@@ -97,7 +108,7 @@ export default function DetalleMaestro({
         const { error } = await supabase.from(tablaPrincipal).update(updates).eq('id', data.id);
         if (error) throw error;
         
-        // Actualización local (Nota: En una app real lo ideal es mutar el estado global o re-fetch)
+        // Actualización local
         data.nombre = editNombre;
         if (data.sobre) data.sobre = editDescripcion; else data.descripcion = editDescripcion;
       }
@@ -159,9 +170,18 @@ export default function DetalleMaestro({
               {/* SELECTOR VARIANTES */}
               {!editMode && variantes.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <button onClick={() => setVarianteActiva(null)} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${!varianteActiva ? 'bg-primary text-white border-primary shadow-md' : 'border-primary/10 text-primary/40'}`}>Original</button>
+                  <button 
+                    onClick={() => setVarianteActiva(null)} 
+                    className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${!varianteActiva ? 'bg-primary text-white border-primary shadow-md' : 'border-primary/10 text-primary/40'}`}
+                  >
+                    Original
+                  </button>
                   {variantes.map((v) => (
-                    <button key={v.id} onClick={() => setVarianteActiva(v)} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${varianteActiva?.id === v.id ? 'bg-primary text-white border-primary shadow-md' : 'border-primary/10 text-primary/40'}`}>
+                    <button 
+                      key={v.id} 
+                      onClick={() => setVarianteActiva(v)} 
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${varianteActiva?.id === v.id ? 'bg-primary text-white border-primary shadow-md' : 'border-primary/10 text-primary/40'}`}
+                    >
                       <Sparkles size={10} /> {v.tipo}
                     </button>
                   ))}
