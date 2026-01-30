@@ -1,3 +1,5 @@
+"use client";
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Music, Edit3, Save, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -192,8 +194,8 @@ export default function DetalleMaestro({
 
                   <h2 className="text-4xl md:text-6xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-6 break-words">
                     {varianteActiva 
-                      ? `${data.nombre} de ${varianteActiva.tipo.trim()}` 
-                      : editNombre}
+                    ? `${data.nombre} de ${varianteActiva.tipo.trim()}` 
+                    : editNombre}
                   </h2>
                   
                   <p className="text-primary/80 text-base md:text-lg italic leading-snug mb-8 whitespace-pre-wrap">
