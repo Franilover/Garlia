@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Music, Edit3, Save, Sparkles } from 'lucide-react';
+import { X, Music, Edit3, Save, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import Relaciones from './relaciones';
 
@@ -16,14 +16,15 @@ export default function DetalleMaestro({
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   
-  // Estados para variantes
+  // Variantes
   const [variantes, setVariantes] = useState([]);
   const [varianteActiva, setVarianteActiva] = useState(null);
 
-  // Estados para los campos editables
+  // Estados campos editables
   const [editNombre, setEditNombre] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
 
+  // Verificar admin
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -32,49 +33,71 @@ export default function DetalleMaestro({
     checkUser();
   }, []);
 
-  // Cargar variantes cuando cambia la criatura
-  useEffect(() => {
-    const fetchVariantes = async () => {
-      if (data && !data.img_url) { // Solo si es criatura (no personaje)
-        const { data: vars } = await supabase
-          .from('criatura_variantes')
-          .select('*')
-          .eq('criatura_id', data.id);
-        setVariantes(vars || []);
-      } else {
-        setVariantes([]);
-      }
-      setVarianteActiva(null);
-    };
+  // Cargar Variantes
+  const fetchVariantes = async (id) => {
+    const { data: vars } = await supabase
+      .from('criatura_variantes')
+      .select('*')
+      .eq('criatura_id', id);
+    setVariantes(vars || []);
+  };
 
+  // Reset al cambiar de item
+  useEffect(() => {
     if (data) {
       setEditNombre(data.nombre || "");
       setEditDescripcion(data.sobre || data.descripcion || "");
       setEditMode(false);
-      fetchVariantes();
+      setVarianteActiva(null);
+      // Si no tiene img_url (personajes), buscamos variantes (criaturas)
+      if (!data.img_url) fetchVariantes(data.id);
     }
   }, [data]);
 
+  // Sincronizar edición según selección
+  useEffect(() => {
+    if (editMode) return;
+    if (varianteActiva) {
+      setEditNombre(data.nombre); // Mantenemos el nombre base
+      setEditDescripcion(varianteActiva.descripcion_variante || "");
+    } else if (data) {
+      setEditNombre(data.nombre || "");
+      setEditDescripcion(data.sobre || data.descripcion || "");
+    }
+  }, [varianteActiva, editMode, data]);
+
   if (!data) return null;
 
-  const tabla = data.img_url ? 'personajes' : 'criaturas';
-  
-  // Lógica de visualización dinámica (Variante vs Base)
+  const tablaPrincipal = data.img_url ? 'personajes' : 'criaturas';
   const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
-  const nombreVisual = varianteActiva ? `${editNombre} [${varianteActiva.tipo}]` : editNombre;
-  const descripcionVisual = varianteActiva ? varianteActiva.descripcion_variante : editDescripcion;
+
+  // Música (Lógica original recuperada)
+  const listaLinks = Array.isArray(data.canciones) 
+    ? data.canciones.flatMap(item => typeof item === 'string' ? item.split(',') : item)
+                   .map(link => link.trim())
+                   .filter(link => link !== "")
+    : [];
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updates = {
-        nombre: editNombre,
-        [data.sobre ? 'sobre' : 'descripcion']: editDescripcion
-      };
-      const { error } = await supabase.from(tabla).update(updates).eq('id', data.id);
-      if (error) throw error;
-      data.nombre = editNombre;
-      if (data.sobre) data.sobre = editDescripcion; else data.descripcion = editDescripcion;
+      if (varianteActiva) {
+        const { error } = await supabase
+          .from('criatura_variantes')
+          .update({ descripcion_variante: editDescripcion })
+          .eq('id', varianteActiva.id);
+        if (error) throw error;
+        setVariantes(prev => prev.map(v => v.id === varianteActiva.id ? {...v, descripcion_variante: editDescripcion} : v));
+      } else {
+        const updates = {
+          nombre: editNombre,
+          [data.sobre ? 'sobre' : 'descripcion']: editDescripcion
+        };
+        const { error } = await supabase.from(tablaPrincipal).update(updates).eq('id', data.id);
+        if (error) throw error;
+        data.nombre = editNombre;
+        if (data.sobre) data.sobre = editDescripcion; else data.descripcion = editDescripcion;
+      }
       setEditMode(false);
     } catch (err) {
       alert("Error al guardar: " + err.message);
@@ -83,25 +106,17 @@ export default function DetalleMaestro({
     }
   };
 
-  const listaLinks = Array.isArray(data.canciones) 
-    ? data.canciones.flatMap(item => typeof item === 'string' ? item.split(',') : item)
-                   .map(link => link.trim())
-                   .filter(link => link !== "")
-    : [];
-
   return (
     <AnimatePresence mode="wait">
       {isOpen && (
         <motion.div 
           key={data.id}
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          exit={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
           className="max-w-7xl mx-auto mb-16 relative pt-4 px-4"
         >
           <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[500px] relative">
             
-            {/* BOTONES DE CONTROL */}
+            {/* BOTONES CONTROL */}
             <div className="absolute top-6 right-6 z-50 flex gap-2">
               {isAdmin && !editMode && (
                 <button onClick={() => setEditMode(true)} className="p-3 bg-primary text-white rounded-full shadow-lg hover:scale-110 transition-transform">
@@ -119,82 +134,74 @@ export default function DetalleMaestro({
               </button>
             </div>
             
-            {/* IMAGEN DINÁMICA */}
+            {/* SECCIÓN IZQUIERDA: IMAGEN */}
             <div className="w-full lg:w-1/2 bg-gradient-to-br from-white to-primary/5 flex items-center justify-center p-10 lg:p-16 border-b lg:border-b-0 lg:border-r border-primary/5">
               <div className="relative w-full aspect-square max-w-[400px]">
                 <div className="absolute inset-0 bg-primary/5 rounded-[4rem] rotate-3 scale-105" />
                 <motion.img 
                   key={imagenVisual}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                   src={imagenVisual} 
-                  alt={nombreVisual} 
                   className="relative z-10 w-full h-full object-contain mix-blend-multiply rounded-[3.5rem]" 
                 />
               </div>
             </div>
 
-            {/* CONTENIDO TEXTUAL */}
+            {/* SECCIÓN DERECHA: CONTENIDO */}
             <div className="w-full lg:w-1/2 p-8 md:p-12 lg:pl-10 lg:pr-16 flex flex-col justify-center bg-bg-main/5">
               
-              {/* SELECTOR DE VARIANTES (Si existen) */}
+              {/* SELECTOR VARIANTES */}
               {!editMode && variantes.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <button
-                    onClick={() => setVarianteActiva(null)}
-                    className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tighter transition-all border-2 ${!varianteActiva ? 'bg-primary text-white border-primary' : 'bg-transparent text-primary/40 border-primary/10'}`}
-                  >
-                    Base
-                  </button>
+                  <button onClick={() => setVarianteActiva(null)} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${!varianteActiva ? 'bg-primary text-white border-primary shadow-md' : 'border-primary/10 text-primary/40'}`}>Original</button>
                   {variantes.map((v) => (
-                    <button
-                      key={v.id}
-                      onClick={() => setVarianteActiva(v)}
-                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tighter transition-all border-2 ${varianteActiva?.id === v.id ? 'bg-primary text-white border-primary shadow-lg' : 'bg-transparent text-primary/40 border-primary/10'}`}
-                    >
-                      <Sparkles size={10} />
-                      {v.tipo}
+                    <button key={v.id} onClick={() => setVarianteActiva(v)} className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${varianteActiva?.id === v.id ? 'bg-primary text-white border-primary shadow-md' : 'border-primary/10 text-primary/40'}`}>
+                      <Sparkles size={10} /> {v.tipo}
                     </button>
                   ))}
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2 mb-4">
-                {tags.map((tag, i) => tag && (
-                  <span key={i} className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-lg tracking-widest">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
               {editMode ? (
                 <div className="space-y-4 mb-6">
+                  {varianteActiva && (
+                    <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-3 rounded-xl border border-amber-100 mb-2">
+                      <AlertCircle size={14} />
+                      <span className="text-[10px] font-black uppercase">Modo Variante: {varianteActiva.tipo}</span>
+                    </div>
+                  )}
                   <input 
                     value={editNombre}
+                    disabled={!!varianteActiva}
                     onChange={(e) => setEditNombre(e.target.value)}
-                    className="text-4xl md:text-5xl font-black uppercase italic text-primary w-full bg-white border-2 border-primary/20 p-4 rounded-2xl outline-none"
+                    className="text-4xl md:text-5xl font-black uppercase italic text-primary w-full bg-white border-2 border-primary/20 p-4 rounded-2xl outline-none focus:border-primary disabled:opacity-50"
                   />
                   <textarea 
                     value={editDescripcion}
                     onChange={(e) => setEditDescripcion(e.target.value)}
-                    className="text-primary/80 text-base italic leading-snug w-full bg-white border-2 border-primary/20 p-4 rounded-2xl outline-none min-h-[150px]"
+                    className="text-primary/80 text-base italic leading-snug w-full bg-white border-2 border-primary/20 p-4 rounded-2xl outline-none focus:border-primary min-h-[200px]"
                   />
                 </div>
               ) : (
                 <>
-                  <h2 className="text-4xl md:text-6xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-6 break-words">
-                    {nombreVisual}
-                  </h2>
-                  <p className="text-primary/80 text-base md:text-lg italic leading-snug mb-4 whitespace-pre-wrap">
-                    {descripcionVisual}
-                  </p>
-                </>
-              )}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {tags.map((tag, i) => tag && (
+                      <span key={i} className="px-3 py-1 bg-primary text-white text-[10px] font-black uppercase rounded-lg tracking-widest">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
 
-              {!editMode && (
-                <>
+                  <h2 className="text-4xl md:text-6xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-6 break-words">
+                    {varianteActiva ? `${data.nombre} [${varianteActiva.tipo}]` : editNombre}
+                  </h2>
+                  
+                  <p className="text-primary/80 text-base md:text-lg italic leading-snug mb-8 whitespace-pre-wrap">
+                    {varianteActiva ? varianteActiva.descripcion_variante : editDescripcion}
+                  </p>
+
                   <div className="mb-8">
-                    <Relaciones nombrePersonaje={editNombre} />
+                    <Relaciones nombrePersonaje={data.nombre} />
                   </div>
 
                   {mostrarMusica && listaLinks.length > 0 && (
@@ -206,15 +213,11 @@ export default function DetalleMaestro({
                       <div className="flex flex-wrap gap-3">
                         {listaLinks.map((link, index) => (
                           <motion.a
-                            key={index}
-                            href={link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            whileHover={{ y: -3, scale: 1.02 }}
-                            className="flex items-center gap-3 bg-white border-2 border-primary/10 px-6 py-3 rounded-2xl shadow-sm"
+                            key={index} href={link} target="_blank" rel="noopener noreferrer"
+                            whileHover={{ y: -3 }} className="flex items-center gap-3 bg-white border-2 border-primary/10 px-6 py-3 rounded-2xl shadow-sm"
                           >
                             <span className="text-sm font-black italic uppercase text-primary tracking-tighter">
-                              {editNombre} Track {index + 1}
+                              {data.nombre} Audio {index + 1}
                             </span>
                             <Music size={16} className="text-primary/40" />
                           </motion.a>
