@@ -10,7 +10,7 @@ import {
   User, LogOut, Plus, ChevronDown, Smile, 
   ImageIcon, Camera, Sparkles, 
   Users, CircleUser, Flower2, Sword,
-  Footprints, Package, Map, History, BookOpen
+  Footprints, Package, Map, BookOpen
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -72,7 +72,7 @@ const Navbar = () => {
       </button>
 
       <button onClick={() => setOpenSubmenu(openSubmenu === 'lore' ? null : 'lore')} className="flex-1 flex justify-center">
-        <Map size={22} className={['/mapa', '/cronologia', '/libros'].includes(currentPath) ? "text-[#6B5E70]" : "text-[#6B5E70]/30"} />
+        <Map size={22} className={['/mapa', '/libros'].includes(currentPath) ? "text-[#6B5E70]" : "text-[#6B5E70]/30"} />
       </button>
     </div>
   ), [currentPath, openSubmenu, user, puedeSubir, userMenuOpen]);
@@ -110,7 +110,7 @@ const Navbar = () => {
           <nav className="flex items-center gap-1 bg-[#6B5E70]/5 p-1 rounded-2xl border border-[#6B5E70]/10">
             <PCGroup label="Personal" active={['/sobre-mi', '/dibujos', '/fotos'].includes(currentPath)} items={[{ href: '/sobre-mi', label: 'Bio', icon: <Smile size={14}/> }, { href: '/dibujos', label: 'Dibujos', icon: <ImageIcon size={14}/> }, { href: '/fotos', label: 'Fotos', icon: <Camera size={14}/> }]} currentPath={currentPath} />
             <PCGroup label="Gremio" active={['/personajes', '/items', '/criaturas'].includes(currentPath)} items={[{ href: '/personajes', label: 'Personajes', icon: <Users size={14}/> }, { href: '/criaturas', label: 'Criaturas', icon: <Footprints size={14}/> }, { href: '/items', label: 'Items', icon: <Package size={14}/> }]} currentPath={currentPath} />
-            <PCGroup label="Bitácora" active={['/mapa', '/cronologia', '/libros'].includes(currentPath)} items={[{ href: '/mapa', label: 'Mapa', icon: <Map size={14}/> }, { href: '/cronologia', label: 'Historia', icon: <History size={14}/> }, { href: '/libros', label: 'Libros', icon: <BookOpen size={14}/> }]} currentPath={currentPath} />
+            <PCGroup label="Bitácora" active={['/mapa', '/libros'].includes(currentPath)} items={[{ href: '/mapa', label: 'Mapa', icon: <Map size={14}/> }, { href: '/libros', label: 'Libros', icon: <BookOpen size={14}/> }]} currentPath={currentPath} />
           </nav>
           
           <div className="flex items-center gap-6">
@@ -165,9 +165,8 @@ const Navbar = () => {
               )}
 
               {openSubmenu === 'lore' && (
-                <div className="grid grid-cols-3 gap-2"> 
+                <div className="grid grid-cols-2 gap-2"> 
                   <MobileSubItem href="/mapa" label="Mapa" active={currentPath === '/mapa'} icon={<Map size={18}/>} onClick={closeAll} />
-                  <MobileSubItem href="/cronologia" label="Historia" active={currentPath === '/cronologia'} icon={<History size={18}/>} onClick={closeAll} />
                   <MobileSubItem href="/libros" label="Libros" active={currentPath === '/libros'} icon={<BookOpen size={18}/>} onClick={closeAll} />
                 </div>
               )}
