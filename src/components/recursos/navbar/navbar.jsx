@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -20,7 +19,6 @@ const Navbar = () => {
   const [openSubmenu, setOpenSubmenu] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   
-  // Lógica para esconder/mostrar al deslizar
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -28,7 +26,6 @@ const Navbar = () => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
-      // Si bajamos más de 10px, ocultar. Si subimos, mostrar.
       if (currentScrollY > lastScrollY && currentScrollY > 50) {
         setIsVisible(false);
         setOpenSubmenu(null);
@@ -38,7 +35,6 @@ const Navbar = () => {
       }
       setLastScrollY(currentScrollY);
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
