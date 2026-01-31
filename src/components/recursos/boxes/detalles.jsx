@@ -220,7 +220,7 @@ export default function DetalleMaestro({
 
                   <h2 className="text-4xl md:text-6xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-6 break-words">
                     {varianteActiva 
-                    ? `${data?.nombre || 'Cargando...'} de ${varianteActiva.tipo?.trim()}` 
+                    ? `${data?.nombre || 'Cargando...'} ${varianteActiva.tipo?.trim()}` 
                     : editNombre}
                   </h2>
                   
