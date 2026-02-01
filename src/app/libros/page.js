@@ -134,7 +134,7 @@ const Biblioteca = () => {
       <div className="max-w-6xl mx-auto pt-16 px-6 mb-12 flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3">
-            <Book size={32} /> "BIBLIOTECA"
+            <Book size={32} /> BIBLIOTECA
           </h1>
           <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2">
             Explora los relatos del mundo
