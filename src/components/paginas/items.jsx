@@ -33,7 +33,7 @@ export default function Inventario() {
   const MiMenuInventario = (
     <header className="mb-16 text-center px-4 pt-10">
       <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter text-primary uppercase leading-none">
-        "Inventario"
+        Inventario
       </h1>
       <div className="h-1.5 w-24 bg-primary mx-auto mt-4 rounded-full opacity-20 mb-12" />
       

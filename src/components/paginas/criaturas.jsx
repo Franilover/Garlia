@@ -68,7 +68,7 @@ export default function Criaturas() {
     <div className="pt-16">
       <header className="mb-12 text-center px-4">
         <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter text-primary uppercase leading-none">
-          "Bestiario"
+          Bestiario
         </h1>
         <div className="h-1.5 w-24 bg-primary mx-auto mt-4 rounded-full opacity-20 mb-8" />
       </header>

@@ -34,7 +34,7 @@ export default function Diario() {
   const MiCabeceraDiario = (
     <header className="mb-16 text-center pt-10">
       <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter text-primary uppercase">
-        "Diario"
+        Diario
       </h1>
       <div className="h-1.5 w-24 bg-primary mx-auto mt-4 rounded-full opacity-20 mb-12" />
       

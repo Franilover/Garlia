@@ -51,7 +51,7 @@ export default function PersonajesGrid() {
   const MiMenuDeFiltros = (
     <header className="mb-16 text-center px-4 pt-10">
       <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter text-primary uppercase leading-none mb-12">
-        "Personajes"
+        Personajes
       </h1>
       
       <FiltrosMaestros 
