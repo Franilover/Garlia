@@ -89,3 +89,15 @@ export default function PersonajesGrid() {
     </main>
   );
 }
+
+/**
+ * Función para obtener mensajes de forma dinámica
+ * @param {string} tipo - 'LOADING' o 'EMPTY'
+ * @param {string} seccion - 'personajes', 'criaturas', etc.
+ */
+export function getMensaje(tipo, seccion) {
+  const grupo = MENSAJES[tipo];
+  if (!grupo) return "Cargando...";
+  
+  return grupo[seccion] || grupo.default || "Cargando...";
+}
