@@ -1,52 +1,47 @@
 "use client";
-import React, { useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState } from 'react';
 import { GalleryGrid, GalleryItem } from "@/components/recursos/display/gallery";
 import DetalleMaestro from "@/components/recursos/boxes/detalles";
-// Importamos el componente desde su nueva ubicación en boxes
 import FiltrosMaestros from "@/components/recursos/boxes/Filtros";
+import PageHeader from "@/components/recursos/common/PageHeader";
+import { LoadingState, EmptyState } from "@/components/recursos/common/StateComponents";
+
+// Hooks y Libs
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useFiltrosGenericos } from '@/hooks/useFiltrosGenericos';
+import { typography } from '@/lib/design-system';
+import { getMensaje } from '@/lib/constants';
 
 export default function Inventario() {
-  const [items, setItems] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState('TODOS');
 
-  useEffect(() => {
-    const fetchItems = async () => {
-      setLoading(true);
-      const { data } = await supabase.from('items').select('*').order('created_at', { ascending: false });
-      setItems(data || []);
-      setLoading(false);
-    };
-    fetchItems();
-  }, []);
+  // 1. Fetching (Ordenado por fecha de creación como tenías antes)
+  const { data: items, loading } = useSupabaseData('items', {
+    order: { campo: 'created_at', asc: false }
+  });
 
-  const categorias = useMemo(() => ['TODOS', ...new Set(items.map(i => i.categoria))], [items]);
-  const filtrados = useMemo(() => filtro === 'TODOS' ? items : items.filter(i => i.categoria === filtro), [items, filtro]);
+  // 2. Filtros (Extrae automáticamente las categorías de la columna 'categoria')
+  const {
+    filtros,
+    opciones,
+    itemsFiltrados,
+    actualizarFiltro
+  } = useFiltrosGenericos(items, {
+    campos: ['categoria'],
+    inicial: { categoria: 'TODOS' }
+  });
 
   const handleSelect = (item) => {
     setSelected(item);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  const MiMenuInventario = (
-    <header className="mb-16 text-center px-4 pt-10">
-      <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter text-primary uppercase leading-none">
-        Inventario
-      </h1>
-      <div className="h-1.5 w-24 bg-primary mx-auto mt-4 rounded-full opacity-20 mb-12" />
-      
-      <FiltrosMaestros 
-        config={{ categorías: categorias }}
-        filtrosActivos={{ categorías: filtro }}
-        onChange={(grupo, valor) => setFiltro(valor)}
-      />
-    </header>
-  );
+  if (loading) {
+    return <LoadingState mensaje={getMensaje('LOADING', 'items')} />;
+  }
 
   return (
-    <main className="min-h-screen bg-bg-main pb-20 font-sans">
+    <main className="min-h-screen bg-bg-main pb-20">
       
       <DetalleMaestro 
         isOpen={!!selected}
@@ -56,38 +51,39 @@ export default function Inventario() {
         mostrarMusica={false}
       />
 
-      {loading ? (
-        <div className="py-40 text-center opacity-20 font-black uppercase text-[10px] tracking-widest animate-pulse">
-          "Abriendo Almacén..."
-        </div>
-      ) : (
-        <GalleryGrid 
-          isDetailOpen={!!selected} 
-          headerContent={MiMenuInventario}
-        >
-          {filtrados.map(item => (
-            <GalleryItem 
-              key={item.id} 
-              src={item.imagen_url} 
-              contain={true} 
-              onClick={() => handleSelect(item)}
-            >
-              <p className="text-[8px] font-black text-white/50 uppercase tracking-[0.2em] mb-1">
-                {item.categoria}
-              </p>
-              <h3 className="text-lg font-black text-white uppercase italic leading-none tracking-tighter">
-                {item.nombre}
-              </h3>
-            </GalleryItem>
-          ))}
-          
-          {filtrados.length === 0 && (
-            <div className="col-span-full py-20 text-center text-primary/30 font-bold uppercase text-[10px] tracking-widest">
-              "No hay objetos en esta sección"
-            </div>
-          )}
-        </GalleryGrid>
-      )}
+      <GalleryGrid 
+        isDetailOpen={!!selected} 
+        headerContent={
+          <PageHeader titulo="Inventario">
+            <FiltrosMaestros 
+              // Usamos las opciones generadas automáticamente por el Hook
+              config={{ Categorías: opciones.categoria }}
+              filtrosActivos={{ Categorías: filtros.categoria }}
+              onChange={(grupo, valor) => actualizarFiltro('categoria', valor)}
+            />
+          </PageHeader>
+        }
+      >
+        {itemsFiltrados.map(item => (
+          <GalleryItem 
+            key={item.id} 
+            src={item.imagen_url} 
+            contain={true} // Mantenemos el ajuste para items
+            onClick={() => handleSelect(item)}
+          >
+            <p className={typography.tag + " mb-1"}>
+              {item.categoria}
+            </p>
+            <h3 className={typography.cardTitle}>
+              {item.nombre}
+            </h3>
+          </GalleryItem>
+        ))}
+        
+        {itemsFiltrados.length === 0 && (
+          <EmptyState mensaje={getMensaje('EMPTY', 'items')} />
+        )}
+      </GalleryGrid>
     </main>
   );
 }
