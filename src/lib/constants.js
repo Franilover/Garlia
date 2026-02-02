@@ -36,3 +36,10 @@ export const TABLAS_CONFIG = {
     filtros: ['categoria']
   }
 };
+
+export function getMensaje(tipo, seccion) {
+  const grupo = MENSAJES[tipo];
+  if (!grupo) return "Cargando...";
+  
+  return grupo[seccion] || grupo.default || "Cargando...";
+}

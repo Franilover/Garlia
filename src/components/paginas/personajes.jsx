@@ -10,23 +10,24 @@ import { useFiltrosGenericos } from '@/hooks/useFiltrosGenericos';
 import { typography } from '@/lib/design-system';
 import { TABLAS_CONFIG, getMensaje } from '@/lib/constants';
 
+
 export default function PersonajesGrid() {
   const [selected, setSelected] = useState(null);
 
-  // Fetch de datos
+  // 1. Usamos la configuración centralizada para el Fetch
   const { data: personajes, loading } = useSupabaseData(
     'personajes',
-    { order: { campo: 'id', asc: true } }
+    { order: TABLAS_CONFIG.personajes.orden }
   );
 
-  // Sistema de filtros
+  // 2. Usamos la configuración para los filtros
   const {
     filtros,
     opciones,
     itemsFiltrados,
     actualizarFiltro
   } = useFiltrosGenericos(personajes, {
-    campos: ['reino', 'especie']
+    campos: TABLAS_CONFIG.personajes.filtros
   });
 
   const handleSelect = (p) => {
@@ -34,7 +35,6 @@ export default function PersonajesGrid() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  // Loading state
   if (loading) {
     return <LoadingState mensaje={getMensaje('LOADING', 'personajes')} />;
   }
@@ -54,6 +54,7 @@ export default function PersonajesGrid() {
         headerContent={
           <PageHeader titulo="Personajes">
             <FiltrosMaestros
+              // Mapeo dinámico para evitar errores de undefined
               config={{
                 Reinos: opciones.reino || ['todos'],
                 Especies: opciones.especie || ['todos']
@@ -63,8 +64,9 @@ export default function PersonajesGrid() {
                 Especies: filtros.especie
               }}
               onChange={(grupo, valor) => {
-                const campo = grupo === 'Reinos' ? 'reino' : 'especie';
-                actualizarFiltro(campo, valor);
+                // Mapeamos el nombre visual al nombre del campo en la DB
+                const mapaCampos = { Reinos: 'reino', Especies: 'especie' };
+                actualizarFiltro(mapaCampos[grupo], valor);
               }}
             />
           </PageHeader>
@@ -88,16 +90,4 @@ export default function PersonajesGrid() {
       </GalleryGrid>
     </main>
   );
-}
-
-/**
- * Función para obtener mensajes de forma dinámica
- * @param {string} tipo - 'LOADING' o 'EMPTY'
- * @param {string} seccion - 'personajes', 'criaturas', etc.
- */
-export function getMensaje(tipo, seccion) {
-  const grupo = MENSAJES[tipo];
-  if (!grupo) return "Cargando...";
-  
-  return grupo[seccion] || grupo.default || "Cargando...";
 }
