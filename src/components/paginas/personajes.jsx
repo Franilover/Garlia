@@ -48,13 +48,11 @@ export default function PersonajesGrid() {
         tags={selected ? [selected.reino, selected.especie] : []}
         mostrarMusica={true}
       />
-
       <GalleryGrid
         isDetailOpen={!!selected}
         headerContent={
           <PageHeader titulo="Personajes">
             <FiltrosMaestros
-              // Mapeo dinámico para evitar errores de undefined
               config={{
                 Reinos: opciones.reino || ['todos'],
                 Especies: opciones.especie || ['todos']
@@ -64,7 +62,6 @@ export default function PersonajesGrid() {
                 Especies: filtros.especie
               }}
               onChange={(grupo, valor) => {
-                // Mapeamos el nombre visual al nombre del campo en la DB
                 const mapaCampos = { Reinos: 'reino', Especies: 'especie' };
                 actualizarFiltro(mapaCampos[grupo], valor);
               }}
@@ -72,21 +69,23 @@ export default function PersonajesGrid() {
           </PageHeader>
         }
       >
-        {itemsFiltrados.map(p => (
-          <GalleryItem
-            key={p.id}
-            src={p.img_url}
-            color={p.color_hex}
-            onClick={() => handleSelect(p)}
-          >
-            <p className={typography.tag + " mb-1"}>
-              {p.reino} • {p.especie}
-            </p>
-            <h3 className={typography.cardTitle}>
-              {p.nombre}
-            </h3>
-          </GalleryItem>
-        ))}
+        {itemsFiltrados
+          .filter(p => p.img_url && p.img_url.trim() !== "")  // ← AQUÍ
+          .map(p => (
+            <GalleryItem
+              key={p.id}
+              src={p.img_url}
+              color={p.color_hex}
+              onClick={() => handleSelect(p)}
+            >
+              <p className={typography.tag + " mb-1"}>
+                {p.reino} • {p.especie}
+              </p>
+              <h3 className={typography.cardTitle}>
+                {p.nombre}
+              </h3>
+            </GalleryItem>
+          ))}
       </GalleryGrid>
     </main>
   );
