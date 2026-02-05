@@ -10,16 +10,15 @@ import { useFiltrosGenericos } from '@/hooks/useFiltrosGenericos';
 import { typography } from '@/lib/design-system';
 import { TABLAS_CONFIG, getMensaje } from '@/lib/constants';
 
-
 export default function PersonajesGrid() {
   const [selected, setSelected] = useState(null);
-
+  
   // 1. Usamos la configuración centralizada para el Fetch
-  const { data: personajes, loading } = useSupabaseData(
+  const { data: personajes, loading, setData: setPersonajes } = useSupabaseData(
     'personajes',
     { order: TABLAS_CONFIG.personajes.orden }
   );
-
+  
   // 2. Usamos la configuración para los filtros
   const {
     filtros,
@@ -35,6 +34,19 @@ export default function PersonajesGrid() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  // ← NUEVO: Handler para actualizar cuando se edita
+  const handleUpdate = (updatedPersonaje) => {
+    // Actualiza el personaje seleccionado
+    setSelected(updatedPersonaje);
+    
+    // Actualiza la lista completa de personajes
+    setPersonajes(prevPersonajes => 
+      prevPersonajes.map(p => 
+        p.id === updatedPersonaje.id ? updatedPersonaje : p
+      )
+    );
+  };
+
   if (loading) {
     return <LoadingState mensaje={getMensaje('LOADING', 'personajes')} />;
   }
@@ -47,7 +59,9 @@ export default function PersonajesGrid() {
         data={selected}
         tags={selected ? [selected.reino, selected.especie] : []}
         mostrarMusica={true}
+        onUpdate={handleUpdate} // ← AGREGADO
       />
+
       <GalleryGrid
         isDetailOpen={!!selected}
         headerContent={
@@ -70,7 +84,7 @@ export default function PersonajesGrid() {
         }
       >
         {itemsFiltrados
-          .filter(p => p.img_url && p.img_url.trim() !== "")  // ← AQUÍ
+          .filter(p => p.img_url && p.img_url.trim() !== "")
           .map(p => (
             <GalleryItem
               key={p.id}

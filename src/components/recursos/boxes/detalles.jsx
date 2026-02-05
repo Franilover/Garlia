@@ -10,7 +10,8 @@ export default function DetalleMaestro({
   onClose, 
   data, 
   tags = [], 
-  mostrarMusica = true 
+  mostrarMusica = true,
+  onUpdate // ← NUEVO: Callback para actualizar datos
 }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -19,7 +20,7 @@ export default function DetalleMaestro({
   // Variantes
   const [variantes, setVariantes] = useState([]);
   const [varianteActiva, setVarianteActiva] = useState(null);
-
+  
   // Estados campos editables
   const [editNombre, setEditNombre] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
@@ -108,9 +109,15 @@ export default function DetalleMaestro({
         const { error } = await supabase.from(tablaPrincipal).update(updates).eq('id', data.id);
         if (error) throw error;
         
-        // Actualización local
-        data.nombre = editNombre;
-        if (data.sobre) data.sobre = editDescripcion; else data.descripcion = editDescripcion;
+        // ← FIX: Notificar al componente padre del cambio
+        if (onUpdate) {
+          const updatedData = {
+            ...data,
+            nombre: editNombre,
+            [data.sobre ? 'sobre' : 'descripcion']: editDescripcion
+          };
+          onUpdate(updatedData);
+        }
       }
       setEditMode(false);
     } catch (err) {
@@ -159,6 +166,7 @@ export default function DetalleMaestro({
                   initial={{ opacity: 0, scale: 0.95 }} 
                   animate={{ opacity: 1, scale: 1 }}
                   src={imagenVisual} 
+                  alt={editNombre}
                   className="relative z-10 w-full h-full object-contain mix-blend-multiply rounded-[3.5rem]" 
                 />
               </div>
@@ -217,11 +225,10 @@ export default function DetalleMaestro({
                       </span>
                     ))}
                   </div>
-
                   <h2 className="text-4xl md:text-6xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-6 break-words">
                     {varianteActiva 
-                    ? `${data?.nombre || 'Cargando...'} ${varianteActiva.tipo?.trim()}` 
-                    : editNombre}
+                      ? `${data?.nombre || 'Cargando...'} ${varianteActiva.tipo?.trim()}` 
+                      : editNombre}
                   </h2>
                   
                   <p className="text-primary/80 text-base md:text-lg italic leading-snug mb-8 whitespace-pre-wrap">
@@ -241,8 +248,12 @@ export default function DetalleMaestro({
                       <div className="flex flex-wrap gap-3">
                         {listaLinks.map((link, index) => (
                           <motion.a
-                            key={index} href={link} target="_blank" rel="noopener noreferrer"
-                            whileHover={{ y: -3 }} className="flex items-center gap-3 bg-white border-2 border-primary/10 px-6 py-3 rounded-2xl shadow-sm"
+                            key={index} 
+                            href={link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            whileHover={{ y: -3 }} 
+                            className="flex items-center gap-3 bg-white border-2 border-primary/10 px-6 py-3 rounded-2xl shadow-sm"
                           >
                             <span className="text-sm font-black italic uppercase text-primary tracking-tighter">
                               {data?.nombre} Audio {index + 1}
