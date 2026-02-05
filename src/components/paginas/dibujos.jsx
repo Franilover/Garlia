@@ -1,42 +1,34 @@
 "use client";
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLightbox } from "@/components/recursos/boxes/lightbox"; 
 import { GalleryGrid, GalleryItem } from "@/components/recursos/display/gallery";
-import { supabase } from '@/lib/supabase';
+import { useSupabaseData } from '@/hooks/useSupabaseData'; // Usamos el hook maestro
 import Newsletter from "@/components/recursos/boxes/newsletter";
 import FiltrosMaestros from "@/components/recursos/boxes/Filtros";
 
 export default function Drawings() {
   const { openLightbox } = useLightbox();
-  const [dibujos, setDibujos] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todos');
+
+  // 1. Usamos el Hook Maestro para la tabla 'dibujos'
+  // Esto ya gestiona el Loading, el Caché Global y el Real-time automáticamente
+  const { data: dibujos, loading, error } = useSupabaseData('dibujos', {
+    order: { campo: 'id', asc: false }
+  });
 
   const categorias = ['todos', 'fanart', 'original', 'bocetos'];
 
-  useEffect(() => {
-    const fetchDibujos = async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from('dibujos')
-        .select('id, url_imagen, titulo, categoria') 
-        .order('id', { ascending: false });
-      
-      setDibujos(data || []);
-      setLoading(false);
-    };
-    fetchDibujos();
-  }, []);
-
+  // 2. Filtrado inteligente basado en la caché
   const filtrados = useMemo(() => (
     filtro === 'todos' ? dibujos : dibujos.filter(d => d.categoria === filtro)
   ), [dibujos, filtro]);
 
+  // 3. Preparación de datos para el Lightbox
   const lbData = useMemo(() => (
     filtrados.map(d => ({ src: d.url_imagen, alt: d.titulo }))
   ), [filtrados]);
 
-  // --- CABECERA UNIFICADA ---
+  // --- CABECERA ---
   const MiCabecera = (
     <header className="mb-12 text-center px-4 pt-16">
       <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter text-primary uppercase leading-none">
@@ -52,12 +44,18 @@ export default function Drawings() {
     </header>
   );
 
+  if (error) return (
+    <div className="py-40 text-center text-red-500 font-black uppercase text-xs">
+      "Error al conectar con el archivo: {error}"
+    </div>
+  );
+
   return (
     <main className="min-h-screen bg-bg-main pb-20 font-sans">
       
       {loading ? (
         <div className="py-40 text-center text-primary/30 font-black uppercase text-[10px] tracking-widest animate-pulse">
-          "Desplegando Arte..."
+          "Sincronizando Archivos..."
         </div>
       ) : (
         <GalleryGrid headerContent={MiCabecera}>
@@ -79,7 +77,7 @@ export default function Drawings() {
           
           {filtrados.length === 0 && (
             <div className="col-span-full py-20 text-center text-primary/30 font-bold uppercase text-[10px] tracking-widest">
-              "Sin registros en esta sección"
+              "El lienzo está vacío por ahora"
             </div>
           )}
         </GalleryGrid>

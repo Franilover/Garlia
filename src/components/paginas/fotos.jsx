@@ -15,11 +15,13 @@ import { CATEGORIAS, getMensaje } from '@/lib/constants';
 export default function Diario() {
   const { openLightbox } = useLightbox();
 
-  // 1. Fetching de fotos (Usando el hook unificado)
-  const { data: entradas, loading } = useSupabaseData('diario_fotos', {
+  // 1. Fetching de fotos (Sincronizado con el Punto #13)
+  // Ahora manejamos también el 'error' por si falla la conexión
+  const { data: entradas, loading, error } = useSupabaseData('diario_fotos', {
     order: { campo: 'id', asc: false }
   });
 
+  // 2. Lógica de filtros
   const {
     filtros,
     itemsFiltrados,
@@ -29,11 +31,22 @@ export default function Diario() {
     inicial: { categoria: 'todos' }
   });
 
-  // 3. Preparar data para el Lightbox basada en los items filtrados
+  // 3. Preparar data para el Lightbox
   const lbData = useMemo(() => 
     itemsFiltrados.map(e => ({ src: e.url_imagen, alt: e.fecha })), 
     [itemsFiltrados]
   );
+
+  // Manejo de Error (Nuevo)
+  if (error) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-bg-main">
+        <p className="text-red-500 font-black uppercase text-xs tracking-widest">
+          "Error de Sincronización: {error}"
+        </p>
+      </main>
+    );
+  }
 
   if (loading) {
     return <LoadingState mensaje={getMensaje('LOADING', 'fotos')} />;
