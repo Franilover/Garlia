@@ -1,5 +1,7 @@
 import { LightboxProvider } from "@/components/recursos/boxes/lightbox"; 
 import { AuthProvider } from "@/components/recursos/control/authContext"; 
+// IMPORTANTE: Ruta basada en tu captura de pantalla
+import { DataProvider } from "@/components/recursos/control/DataContext"; 
 import AppLogic from "./AppLogic";
 import "@/components/tailwind.css"; 
 import { Montserrat } from 'next/font/google';
@@ -34,19 +36,22 @@ export default function RootLayout({ children }) {
     <html lang="es" className={montserrat.variable}>
       <body className={`${montserrat.className} antialiased bg-[#F0F0F0] min-h-screen flex flex-col`}>
         <AuthProvider>
-          <LightboxProvider>
-            <div className="flex-grow">
-              <AppLogic>
-                {children}
-              </AppLogic>
-            </div>
-            
-            <footer className="w-full py-6 mt-auto text-center border-t border-gray-300 bg-white/50 backdrop-blur-sm">
-              <p className="text-gray-600 text-[10px] sm:text-xs px-4">
-                © 2026 Franilover. Todos los derechos reservados. Queda estrictamente prohibido el uso o reproducción de las ilustraciones para fines comerciales o entrenamiento de modelos de IA sin autorización.
-              </p>
-            </footer>
-          </LightboxProvider>
+          {/* El DataProvider debe envolver a AppLogic y children */}
+          <DataProvider> 
+            <LightboxProvider>
+              <div className="flex-grow">
+                <AppLogic>
+                  {children}
+                </AppLogic>
+              </div>
+              
+              <footer className="w-full py-6 mt-auto text-center border-t border-gray-300 bg-white/50 backdrop-blur-sm">
+                <p className="text-gray-600 text-[10px] sm:text-xs px-4">
+                  © 2026 Franilover. Todos los derechos reservados. Queda estrictamente prohibido el uso o reproducción de las ilustraciones para fines comerciales o entrenamiento de modelos de IA sin autorización.
+                </p>
+              </footer>
+            </LightboxProvider>
+          </DataProvider>
         </AuthProvider>
       </body>
     </html>
