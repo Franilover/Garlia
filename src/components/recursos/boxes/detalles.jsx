@@ -109,8 +109,8 @@ export default function DetalleMaestro({
         const { error } = await supabase.from(tablaPrincipal).update(updates).eq('id', data.id);
         if (error) throw error;
         
-        // ← FIX: Notificar al componente padre del cambio
-        if (onUpdate) {
+        // ← FIX: Validar que onUpdate existe y es una función
+        if (onUpdate && typeof onUpdate === 'function') {
           const updatedData = {
             ...data,
             nombre: editNombre,
