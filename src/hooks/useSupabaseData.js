@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useDataCache } from '@/context/DataContext';
+import { useDataCache } from '@/control/DataContext';
 
 /**
  * HOOK MAESTRO: useSupabaseData (v13.0 - Realtime + Cache)
