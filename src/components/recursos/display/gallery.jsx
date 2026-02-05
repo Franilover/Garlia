@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
@@ -8,14 +8,22 @@ import { Sparkles } from 'lucide-react';
 export const GalleryGrid = ({ children, headerContent, className }) => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const childrenWithProps = React.Children.map(children, child => {
-    if (React.isValidElement(child)) {
-      return React.cloneElement(child, { 
-        onExpand: () => setIsDetailOpen(true) 
-      });
-    }
-    return child;
-  });
+  // Memoizamos el handler para abrir detalles
+  const handleOpenDetail = useCallback(() => {
+    setIsDetailOpen(true);
+  }, []);
+
+  // Clonamos los hijos inyectando la prop onExpand de forma eficiente
+  const childrenWithProps = useMemo(() => {
+    return React.Children.map(children, child => {
+      if (React.isValidElement(child)) {
+        return React.cloneElement(child, { 
+          onExpand: handleOpenDetail 
+        });
+      }
+      return child;
+    });
+  }, [children, handleOpenDetail]);
 
   return (
     <div className="w-full">
@@ -38,7 +46,10 @@ export const GalleryGrid = ({ children, headerContent, className }) => {
         "mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 p-4 md:p-8 max-w-[1600px]",
         className
       )}>
-        {childrenWithProps}
+        {/* AnimatePresence aquí permite que los items que se filtran se desvanezcan suavemente */}
+        <AnimatePresence mode="popLayout">
+          {childrenWithProps}
+        </AnimatePresence>
       </section>
 
       {isDetailOpen && (
@@ -55,21 +66,24 @@ export const GalleryGrid = ({ children, headerContent, className }) => {
   );
 };
 
-export const GalleryItem = ({ src, alt, children, onClick, onExpand, color, contain }) => {
+// --- GALLERY ITEM CON REACT.MEMO (Punto #4) ---
+export const GalleryItem = React.memo(({ src, alt, children, onClick, onExpand, color, contain }) => {
   const tieneImagen = src && src.trim() !== "";
 
-  const handleInteraction = () => {
+  // Memoizamos la interacción para evitar re-renders por funciones nuevas
+  const handleInteraction = useCallback(() => {
     if (onExpand) onExpand();
     if (onClick) onClick();
-  };
+  }, [onExpand, onClick]);
 
   return (
     <motion.div 
       layout
       onClick={handleInteraction}
       initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
       className={cn(
         "relative aspect-[3/4] overflow-hidden rounded-[2.2rem] cursor-pointer transition-all duration-700 hover:-translate-y-2 hover:shadow-xl group",
         tieneImagen ? "bg-white" : "bg-[#f0edf5]" 
@@ -101,10 +115,10 @@ export const GalleryItem = ({ src, alt, children, onClick, onExpand, color, cont
         </div>
       )}
 
-      {/* CAPA 2: DEGRADADO MAESTRO (UNIVERSAL) */}
+      {/* CAPA 2: DEGRADADO MAESTRO */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 z-20" />
 
-      {/* CAPA 3: TEXTOS (FORZADOS A BLANCO POR EL DEGRADADO) */}
+      {/* CAPA 3: TEXTOS */}
       <div className="absolute bottom-7 left-7 right-7 transition-all duration-500 z-30 text-white">
         <div className="group-hover:translate-y-[-2px] transition-transform duration-500">
           {children}
@@ -120,4 +134,6 @@ export const GalleryItem = ({ src, alt, children, onClick, onExpand, color, cont
       )}
     </motion.div>
   );
-};
+});
+
+GalleryItem.displayName = 'GalleryItem';

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Music, Edit3, Save, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -11,7 +11,7 @@ export default function DetalleMaestro({
   data, 
   tags = [], 
   mostrarMusica = true,
-  onUpdate // ← NUEVO: Callback para actualizar datos
+  onUpdate 
 }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -25,6 +25,9 @@ export default function DetalleMaestro({
   const [editNombre, setEditNombre] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
 
+  // --- PUNTO #5: REFERENCIA PARA EVITAR RE-FETCH INNECESARIO ---
+  const prevIdRef = useRef(null);
+
   // Verificar admin
   useEffect(() => {
     const checkUser = async () => {
@@ -34,7 +37,7 @@ export default function DetalleMaestro({
     checkUser();
   }, []);
 
-  // Cargar Variantes con validación de ID actual
+  // Cargar Variantes
   const fetchVariantes = async (id) => {
     if (!id) return;
     const { data: vars, error } = await supabase
@@ -48,37 +51,48 @@ export default function DetalleMaestro({
     }
   };
 
-  // Reset al cambiar de item o cerrar
+  // --- LÓGICA DE SINCRONIZACIÓN MAESTRA (Punto #5) ---
   useEffect(() => {
     if (data) {
-      setEditNombre(data.nombre || "");
-      setEditDescripcion(data.sobre || data.descripcion || "");
-      setEditMode(false);
-      setVarianteActiva(null);
-      
-      // FIX: Limpiar las variantes anteriores inmediatamente al cambiar de criatura
-      setVariantes([]); 
-      
-      // Solo buscamos variantes si no es un personaje con imagen directa
-      if (!data.img_url) {
-        fetchVariantes(data.id);
-      }
-    }
-  }, [data]);
+      // Comprobamos si realmente es un item diferente
+      const esNuevoItem = prevIdRef.current !== data.id;
 
-  // Sincronizar edición según selección
+      if (esNuevoItem) {
+        // RESET TOTAL: Solo ocurre cuando cambias de cromo en el grid
+        setEditNombre(data.nombre || "");
+        setEditDescripcion(data.sobre || data.descripcion || "");
+        setEditMode(false);
+        setVarianteActiva(null);
+        setVariantes([]); 
+        
+        if (!data.img_url) {
+          fetchVariantes(data.id);
+        }
+        // Actualizamos el registro del ID actual
+        prevIdRef.current = data.id;
+      } else {
+        // ACTUALIZACIÓN SILENCIOSA: Si es el mismo ID (después de un Guardar)
+        // Solo actualizamos si el usuario no está escribiendo activamente
+        if (!editMode) {
+          setEditNombre(data.nombre || "");
+          setEditDescripcion(data.sobre || data.descripcion || "");
+        }
+      }
+    } else {
+      prevIdRef.current = null;
+    }
+  }, [data, editMode]);
+
+  // Sincronizar descripción al cambiar entre variante/original
   useEffect(() => {
     if (editMode || !data) return;
     if (varianteActiva) {
-      setEditNombre(data.nombre || ""); 
       setEditDescripcion(varianteActiva.descripcion_variante || "");
     } else {
-      setEditNombre(data.nombre || "");
       setEditDescripcion(data.sobre || data.descripcion || "");
     }
   }, [varianteActiva, editMode, data]);
 
-  // Si no hay data o está cerrado, no renderizamos nada
   if (!data || !isOpen) return null;
 
   const tablaPrincipal = data.img_url ? 'personajes' : 'criaturas';
@@ -87,8 +101,8 @@ export default function DetalleMaestro({
   // Música con validación de nulidad
   const listaLinks = Array.isArray(data?.canciones) 
     ? data.canciones.flatMap(item => typeof item === 'string' ? item.split(',') : item)
-                   .map(link => link.trim())
-                   .filter(link => link !== "")
+                    .map(link => link.trim())
+                    .filter(link => link !== "")
     : [];
 
   const handleSave = async () => {
@@ -106,17 +120,18 @@ export default function DetalleMaestro({
           nombre: editNombre,
           [data.sobre ? 'sobre' : 'descripcion']: editDescripcion
         };
-        const { error } = await supabase.from(tablaPrincipal).update(updates).eq('id', data.id);
+        const { error, data: updatedDB } = await supabase
+          .from(tablaPrincipal)
+          .update(updates)
+          .eq('id', data.id)
+          .select()
+          .single();
+
         if (error) throw error;
         
-        // ← FIX: Validar que onUpdate existe y es una función
+        // Ejecutamos el callback para que la galería se actualice sin recargar
         if (onUpdate && typeof onUpdate === 'function') {
-          const updatedData = {
-            ...data,
-            nombre: editNombre,
-            [data.sobre ? 'sobre' : 'descripcion']: editDescripcion
-          };
-          onUpdate(updatedData);
+          onUpdate(updatedDB || { ...data, ...updates });
         }
       }
       setEditMode(false);

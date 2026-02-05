@@ -12,7 +12,7 @@ export const useLightbox = () => {
   return context;
 };
 
-// --- COMPONENTE: BOTÓN COMPARTIR ---
+// --- COMPONENTE: BOTÓN COMPARTIR (Sin cambios, funciona perfecto) ---
 const ShareButton = ({ url, titulo }) => {
   const [copiado, setCopiado] = useState(false);
   
@@ -38,27 +38,30 @@ const ShareButton = ({ url, titulo }) => {
   );
 };
 
-// --- VISUALIZADOR PRINCIPAL ---
+// --- VISUALIZADOR PRINCIPAL (Actualizado para Tabla Dinámica) ---
 const LightboxVisual = () => {
-  const { selectedImg, gallery, currentIndex, setCurrentIndex, closeLightbox, updateGalleryItem } = useLightbox();
+  const { 
+    selectedImg, 
+    gallery, 
+    currentIndex, 
+    setCurrentIndex, 
+    closeLightbox, 
+    updateGalleryItem,
+    tableContext // <-- NUEVO: Contexto de tabla dinámica
+  } = useLightbox();
   
   const [isAdmin, setIsAdmin] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // --- REFUERZO DE ADMIN ---
   useEffect(() => {
     const checkUser = async () => {
-      // Usamos getSession para una respuesta más inmediata
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log("Admin detectado en Lightbox");
-        setIsAdmin(true);
-      }
+      setIsAdmin(!!session);
     };
     checkUser();
-  }, [selectedImg]); // Re-verificar cada vez que abrimos una imagen
+  }, []); 
 
   useEffect(() => {
     if (selectedImg) {
@@ -74,9 +77,9 @@ const LightboxVisual = () => {
     setSaving(true);
     
     try {
-      // IMPORTANTE: Cambia 'dibujos' por el nombre real de tu tabla si es distinto
+      // USAMOS EL CONTEXTO DINÁMICO (Punto #3 del Checklist)
       const { error } = await supabase
-        .from('dibujos') 
+        .from(tableContext) 
         .update({ titulo: nuevoTitulo }) 
         .eq('id', selectedImg.id);
 
@@ -84,10 +87,9 @@ const LightboxVisual = () => {
 
       updateGalleryItem(currentIndex, nuevoTitulo);
       setEditMode(false);
-      console.log("Título actualizado correctamente");
     } catch (err) {
       console.error("Error Supabase:", err);
-      alert("No se pudo guardar. Revisa si la tabla se llama 'dibujos' y tienes permisos RLS.");
+      alert(`Error al guardar en la tabla ${tableContext}.`);
     } finally {
       setSaving(false);
     }
@@ -127,12 +129,10 @@ const LightboxVisual = () => {
               <h2 className="text-white text-[10px] font-black uppercase tracking-[0.4em] truncate max-w-[140px] md:max-w-md">
                 {selectedImg.alt || "Archivo Visual"}
               </h2>
-              {/* Forzamos que se vea si es admin */}
               {isAdmin && (
                 <button 
                   onClick={() => setEditMode(true)}
                   className="p-2 bg-white/5 hover:bg-white/20 rounded-lg transition-all text-white/60 hover:text-white"
-                  title="Editar Título"
                 >
                   <Edit3 size={14} />
                 </button>
@@ -140,7 +140,7 @@ const LightboxVisual = () => {
             </div>
           )}
           <span className="text-white/30 text-[9px] font-mono mt-1 uppercase tracking-widest">
-            Expediente {currentIndex + 1} de {gallery.length}
+            {tableContext.toUpperCase()} | {currentIndex + 1} de {gallery.length}
           </span>
         </div>
         
@@ -179,14 +179,16 @@ const LightboxVisual = () => {
   );
 };
 
-// --- PROVIDER (Asegúrate de copiarlo también) ---
+// --- PROVIDER ACTUALIZADO ---
 export const LightboxProvider = ({ children }) => {
   const [gallery, setGallery] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const [tableContext, setTableContext] = useState('dibujos'); // <-- Nuevo estado
 
-  const openLightbox = useCallback((index, images) => {
+  const openLightbox = useCallback((index, images, table = 'dibujos') => {
     setGallery(images);
     setCurrentIndex(index);
+    setTableContext(table); // <-- Guardamos la tabla al abrir
     if (typeof window !== 'undefined') document.body.style.overflow = 'hidden';
   }, []);
 
@@ -212,7 +214,8 @@ export const LightboxProvider = ({ children }) => {
       setCurrentIndex, 
       openLightbox, 
       closeLightbox,
-      updateGalleryItem
+      updateGalleryItem,
+      tableContext // <-- Exponemos el contexto de tabla
     }}>
       {children}
       <LightboxVisual />

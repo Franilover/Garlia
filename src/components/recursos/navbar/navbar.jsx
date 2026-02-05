@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils"; 
 import { useAuth } from '@/components/recursos/control/authContext'; 
 import { supabase } from '@/lib/supabase';
+import { useScrollVisibility } from '@/hooks/useScrollVisibility'; // <-- IMPORTANTE
 import { 
   User, LogOut, Plus, ChevronDown, Smile, 
   ImageIcon, Camera, Sparkles, 
@@ -19,25 +20,16 @@ const Navbar = () => {
   const [openSubmenu, setOpenSubmenu] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  // --- PUNTO #6: Lógica de Scroll extraída ---
+  const { isVisible } = useScrollVisibility(50);
 
+  // Efecto colateral: Cerrar menús si el navbar se oculta por scroll
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY > lastScrollY && currentScrollY > 50) {
-        setIsVisible(false);
-        setOpenSubmenu(null);
-        setUserMenuOpen(false);
-      } else if (currentScrollY < lastScrollY) {
-        setIsVisible(true);
-      }
-      setLastScrollY(currentScrollY);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+    if (!isVisible) {
+      setOpenSubmenu(null);
+      setUserMenuOpen(false);
+    }
+  }, [isVisible]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -182,6 +174,7 @@ const Navbar = () => {
   );
 };
 
+// Componentes internos (PCGroup y MobileSubItem) se mantienen iguales...
 const PCGroup = ({ label, items, active, currentPath }) => (
   <div className="relative group px-2">
     <button className={cn("px-3 py-2 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all rounded-xl", active ? "text-[#6B5E70]" : "text-[#6B5E70]/40 group-hover:text-[#6B5E70]")}>
