@@ -258,7 +258,7 @@ export default function DetalleMaestro({
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-primary/30 mb-2">
                         <Music size={14} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Archivos Sonoros</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Soliloquios</span>
                       </div>
                       <div className="flex flex-wrap gap-3">
                         {listaLinks.map((link, index) => (
