@@ -41,7 +41,7 @@ const Navbar = () => {
   // Helper para verificar si estamos en una sección
   const isInSection = (paths) => paths.some(path => currentPath?.startsWith(path));
 
-  navContent = useMemo(() => (
+  const navContent = useMemo(() => (
     <div className="flex w-full items-center justify-around px-2 h-full">
       <button onClick={() => user ? setUserMenuOpen(!userMenuOpen) : window.location.href="/login"} className="flex-1 flex justify-center">
         <User size={22} className={user || userMenuOpen ? "text-[#6B5E70]" : "text-[#6B5E70]/30"} />
