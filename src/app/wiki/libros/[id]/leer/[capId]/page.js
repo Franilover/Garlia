@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/api/supabase';
-import { ChevronLeft, ChevronRight, List, AlertCircle, Save, Edit3, X, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, List, Save, Edit3, X } from 'lucide-react';
 import { cn } from "@/lib/utils"; 
 
 export default function Lector() {
@@ -15,7 +15,6 @@ export default function Lector() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Estados de edición (Similares a LibroDetalle)
   const [isAdmin, setIsAdmin] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [nuevoContenido, setNuevoContenido] = useState("");
@@ -25,8 +24,9 @@ export default function Lector() {
     const fetchDatos = async () => {
       try {
         setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) setIsAdmin(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        const esAdmin = !!session;
+        setIsAdmin(esAdmin);
 
         const { data: capData } = await supabase
           .from('capitulos')
@@ -38,15 +38,28 @@ export default function Lector() {
           setError("Capítulo no encontrado");
           return;
         }
+
+        // SEGURIDAD: Bloqueo si el capítulo es futuro y no es admin
+        const hoy = new Date().toISOString().split('T')[0];
+        if (!esAdmin && capData.fecha_publicacion > hoy) {
+          setError("Este capítulo aún no ha sido revelado.");
+          setLoading(false);
+          return;
+        }
+
         setCapitulo(capData);
         setNuevoContenido(capData.contenido || ""); 
 
-        const { data: todosCaps } = await supabase
-          .from('capitulos')
-          .select('id, orden')
-          .eq('libro_id', id)
-          .order('orden', { ascending: true });
+        // LISTA DE NAVEGACIÓN (Solo capítulos permitidos)
+        let queryCaps = supabase.from('capitulos')
+          .select('id, orden, fecha_publicacion')
+          .eq('libro_id', id);
 
+        if (!esAdmin) {
+          queryCaps = queryCaps.lte('fecha_publicacion', hoy);
+        }
+
+        const { data: todosCaps } = await queryCaps.order('orden', { ascending: true });
         setListaCapitulos(todosCaps || []);
       } catch (err) {
         setError("Error al cargar la crónica");
@@ -81,15 +94,21 @@ export default function Lector() {
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
       <div className="animate-pulse text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
-        "Abriendo pergamino..."
+        Abriendo pergamino...
       </div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-[#FDFCFD] text-[#6B5E70] p-6 text-center">
+      <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">{error}</h2>
+      <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-[#6B5E70] pb-1">Volver al índice</button>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-[#FDFCFD] text-[#2C262E] pb-24">
       
-      {/* Botones Flotantes de Admin (Estilo similar al Plus de LibroDetalle) */}
       {isAdmin && (
         <div className="fixed bottom-10 right-6 z-[100] flex flex-col gap-3">
           {editMode ? (
@@ -113,10 +132,9 @@ export default function Lector() {
         </div>
       )}
 
-      {/* Navbar Superior (Limpio como el de Detalle) */}
       <nav className="sticky top-0 z-[50] bg-[#FDFCFD]/80 backdrop-blur-md border-b border-[#6B5E70]/5 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.push(`/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70]">
+          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70]">
             <ChevronLeft size={24} />
           </button>
           <div className="text-center">
@@ -127,7 +145,7 @@ export default function Lector() {
               Capítulo {capitulo.orden}
             </p>
           </div>
-          <button onClick={() => router.push(`/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70]">
+          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70]">
             <List size={24} />
           </button>
         </div>
@@ -159,25 +177,25 @@ export default function Lector() {
 
         {!editMode && (
           <footer className="mt-20 pt-10 border-t border-[#6B5E70]/10 flex flex-col items-center gap-8">
-            <button onClick={() => router.push(`/libros/${id}`)}
+            <button onClick={() => router.push(`/wiki/libros/${id}`)}
               className="flex items-center gap-2 text-[#6B5E70]/40 hover:text-[#6B5E70] font-black text-[10px] uppercase tracking-widest transition-all">
-              <List size={16} /> "Volver al Índice"
+              <List size={16} /> Volver al Índice
             </button>
             
             <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
               <button 
-                onClick={() => anteriorCap && router.push(`/libros/${id}/leer/${anteriorCap.id}`)}
+                onClick={() => anteriorCap && router.push(`/wiki/libros/${id}/leer/${anteriorCap.id}`)}
                 disabled={!anteriorCap}
                 className={cn(
                   "p-5 rounded-2xl border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all",
                   !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-[#6B5E70]/10 text-[#6B5E70]/60 active:scale-95"
                 )}
               >
-                <ChevronLeft size={14} /> "Anterior"
+                <ChevronLeft size={14} /> Anterior
               </button>
 
               <button 
-                onClick={() => siguienteCap ? router.push(`/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/libros/${id}`)}
+                onClick={() => siguienteCap ? router.push(`/wiki/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/libros/${id}`)}
                 className="p-5 rounded-2xl bg-[#6B5E70] text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
               >
                 {siguienteCap ? "Siguiente" : "Finalizar"} <ChevronRight size={14} />
