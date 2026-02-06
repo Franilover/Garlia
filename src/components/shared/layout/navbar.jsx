@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils"; 
 import { useAuth } from '@/components/features/control/authContext'; 
 import { supabase } from '@/lib/api/supabase';
-import { useScrollVisibility } from '@/hooks/useScrollVisibility'; // <-- IMPORTANTE
+import { useScrollVisibility } from '@/hooks/useScrollVisibility';
 import { 
   User, LogOut, Plus, ChevronDown, Smile, 
   ImageIcon, Camera, Sparkles, 
@@ -20,10 +20,8 @@ const Navbar = () => {
   const [openSubmenu, setOpenSubmenu] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   
-  // --- PUNTO #6: Lógica de Scroll extraída ---
   const { isVisible } = useScrollVisibility(50);
 
-  // Efecto colateral: Cerrar menús si el navbar se oculta por scroll
   useEffect(() => {
     if (!isVisible) {
       setOpenSubmenu(null);
@@ -40,14 +38,17 @@ const Navbar = () => {
   const puedeSubir = perfil?.rol === 'admin' || perfil?.rol === 'autor';
   const closeAll = () => { setOpenSubmenu(null); setUserMenuOpen(false); };
 
-  const navContent = useMemo(() => (
+  // Helper para verificar si estamos en una sección
+  const isInSection = (paths) => paths.some(path => currentPath?.startsWith(path));
+
+  navContent = useMemo(() => (
     <div className="flex w-full items-center justify-around px-2 h-full">
       <button onClick={() => user ? setUserMenuOpen(!userMenuOpen) : window.location.href="/login"} className="flex-1 flex justify-center">
         <User size={22} className={user || userMenuOpen ? "text-[#6B5E70]" : "text-[#6B5E70]/30"} />
       </button>
 
       <button onClick={() => setOpenSubmenu(openSubmenu === 'personal' ? null : 'personal')} className="flex-1 flex justify-center">
-        <Camera size={22} className={['/sobre-mi', '/dibujos', '/fotos'].includes(currentPath) ? "text-[#6B5E70]" : "text-[#6B5E70]/30"} />
+        <Camera size={22} className={isInSection(['/wiki/sobre-mi', '/wiki/dibujos', '/wiki/fotos']) ? "text-[#6B5E70]" : "text-[#6B5E70]/30"} />
       </button>
       
       <div className="flex-1 flex justify-center">
@@ -60,11 +61,11 @@ const Navbar = () => {
       </div>
 
       <button onClick={() => setOpenSubmenu(openSubmenu === 'enciclopedia' ? null : 'enciclopedia')} className="flex-1 flex justify-center">
-        <Sparkles size={22} className={['/personajes', '/items', '/criaturas'].includes(currentPath) ? "text-[#6B5E70]" : "text-[#6B5E70]/30"} />
+        <Sparkles size={22} className={isInSection(['/wiki/personajes', '/wiki/items', '/wiki/criaturas']) ? "text-[#6B5E70]" : "text-[#6B5E70]/30"} />
       </button>
 
       <button onClick={() => setOpenSubmenu(openSubmenu === 'lore' ? null : 'lore')} className="flex-1 flex justify-center">
-        <Map size={22} className={['/mapa', '/libros'].includes(currentPath) ? "text-[#6B5E70]" : "text-[#6B5E70]/30"} />
+        <Map size={22} className={isInSection(['/wiki/mapa', '/wiki/libros']) ? "text-[#6B5E70]" : "text-[#6B5E70]/30"} />
       </button>
     </div>
   ), [currentPath, openSubmenu, user, puedeSubir, userMenuOpen]);
@@ -100,9 +101,35 @@ const Navbar = () => {
           </div>
 
           <nav className="flex items-center gap-1 bg-[#6B5E70]/5 p-1 rounded-2xl border border-[#6B5E70]/10">
-            <PCGroup label="Personal" active={['/sobre-mi', '/dibujos', '/fotos'].includes(currentPath)} items={[{ href: '/sobre-mi', label: 'Bio', icon: <Smile size={14}/> }, { href: '/dibujos', label: 'Dibujos', icon: <ImageIcon size={14}/> }, { href: '/fotos', label: 'Fotos', icon: <Camera size={14}/> }]} currentPath={currentPath} />
-            <PCGroup label="Gremio" active={['/personajes', '/items', '/criaturas'].includes(currentPath)} items={[{ href: '/personajes', label: 'Personajes', icon: <Users size={14}/> }, { href: '/criaturas', label: 'Criaturas', icon: <Footprints size={14}/> }, { href: '/items', label: 'Items', icon: <Package size={14}/> }]} currentPath={currentPath} />
-            <PCGroup label="Bitácora" active={['/mapa', '/libros'].includes(currentPath)} items={[{ href: '/mapa', label: 'Mapa', icon: <Map size={14}/> }, { href: '/libros', label: 'Libros', icon: <BookOpen size={14}/> }]} currentPath={currentPath} />
+            <PCGroup 
+              label="Personal" 
+              active={isInSection(['/wiki/sobre-mi', '/wiki/dibujos', '/wiki/fotos'])} 
+              items={[
+                { href: '/wiki/sobre-mi', label: 'Bio', icon: <Smile size={14}/> }, 
+                { href: '/wiki/dibujos', label: 'Dibujos', icon: <ImageIcon size={14}/> }, 
+                { href: '/wiki/fotos', label: 'Fotos', icon: <Camera size={14}/> }
+              ]} 
+              currentPath={currentPath} 
+            />
+            <PCGroup 
+              label="Gremio" 
+              active={isInSection(['/wiki/personajes', '/wiki/items', '/wiki/criaturas'])} 
+              items={[
+                { href: '/wiki/personajes', label: 'Personajes', icon: <Users size={14}/> }, 
+                { href: '/wiki/criaturas', label: 'Criaturas', icon: <Footprints size={14}/> }, 
+                { href: '/wiki/items', label: 'Items', icon: <Package size={14}/> }
+              ]} 
+              currentPath={currentPath} 
+            />
+            <PCGroup 
+              label="Bitácora" 
+              active={isInSection(['/wiki/mapa', '/wiki/libros'])} 
+              items={[
+                { href: '/wiki/mapa', label: 'Mapa', icon: <Map size={14}/> }, 
+                { href: '/wiki/libros', label: 'Libros', icon: <BookOpen size={14}/> }
+              ]} 
+              currentPath={currentPath} 
+            />
           </nav>
           
           <div className="flex items-center gap-6">
@@ -142,24 +169,24 @@ const Navbar = () => {
 
               {openSubmenu === 'personal' && (
                 <div className="grid grid-cols-3 gap-2">
-                  <MobileSubItem href="/sobre-mi" label="Bio" active={currentPath === '/sobre-mi'} icon={<Smile size={18}/>} onClick={closeAll} />
-                  <MobileSubItem href="/dibujos" label="Dibujos" active={currentPath === '/dibujos'} icon={<ImageIcon size={18}/>} onClick={closeAll} />
-                  <MobileSubItem href="/fotos" label="Fotos" active={currentPath === '/fotos'} icon={<Camera size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/wiki/sobre-mi" label="Bio" active={currentPath === '/wiki/sobre-mi'} icon={<Smile size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/wiki/dibujos" label="Dibujos" active={currentPath === '/wiki/dibujos'} icon={<ImageIcon size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/wiki/fotos" label="Fotos" active={currentPath === '/wiki/fotos'} icon={<Camera size={18}/>} onClick={closeAll} />
                 </div>
               )}
 
               {openSubmenu === 'enciclopedia' && (
                 <div className="grid grid-cols-3 gap-2"> 
-                  <MobileSubItem href="/personajes" label="Personajes" active={currentPath === '/personajes'} icon={<Users size={18}/>} onClick={closeAll} />
-                  <MobileSubItem href="/criaturas" label="Criaturas" active={currentPath === '/criaturas'} icon={<Footprints size={18}/>} onClick={closeAll} />
-                  <MobileSubItem href="/items" label="Items" active={currentPath === '/items'} icon={<Package size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/wiki/personajes" label="Personajes" active={currentPath === '/wiki/personajes'} icon={<Users size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/wiki/criaturas" label="Criaturas" active={currentPath === '/wiki/criaturas'} icon={<Footprints size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/wiki/items" label="Items" active={currentPath === '/wiki/items'} icon={<Package size={18}/>} onClick={closeAll} />
                 </div>
               )}
 
               {openSubmenu === 'lore' && (
                 <div className="grid grid-cols-2 gap-2"> 
-                  <MobileSubItem href="/mapa" label="Mapa" active={currentPath === '/mapa'} icon={<Map size={18}/>} onClick={closeAll} />
-                  <MobileSubItem href="/libros" label="Libros" active={currentPath === '/libros'} icon={<BookOpen size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/wiki/mapa" label="Mapa" active={currentPath === '/wiki/mapa'} icon={<Map size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/wiki/libros" label="Libros" active={currentPath === '/wiki/libros'} icon={<BookOpen size={18}/>} onClick={closeAll} />
                 </div>
               )}
             </motion.div>
@@ -174,7 +201,6 @@ const Navbar = () => {
   );
 };
 
-// Componentes internos (PCGroup y MobileSubItem) se mantienen iguales...
 const PCGroup = ({ label, items, active, currentPath }) => (
   <div className="relative group px-2">
     <button className={cn("px-3 py-2 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all rounded-xl", active ? "text-[#6B5E70]" : "text-[#6B5E70]/40 group-hover:text-[#6B5E70]")}>
