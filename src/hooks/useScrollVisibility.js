@@ -17,7 +17,7 @@ export const useScrollVisibility = (threshold = 50) => {
         setIsScrolled(false);
       }
 
-      // 2. Detectar dirección para mostrar/ocultar (Smart Navbar)
+      // 2. Detectar direcciÃ³n para mostrar/ocultar (Smart Navbar)
       if (currentScrollY > lastScrollY && currentScrollY > 200) {
         setIsVisible(false); // Bajando: ocultar
       } else {

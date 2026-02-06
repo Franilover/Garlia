@@ -25,7 +25,7 @@ export default function PersonajesGrid() {
     { order: TABLAS_CONFIG.personajes.orden }
   );
   
-  // 2. Lógica de filtros automática
+  // 2. LÃ³gica de filtros automÃ¡tica
   const {
     filtros,
     opciones,
@@ -35,13 +35,13 @@ export default function PersonajesGrid() {
     campos: TABLAS_CONFIG.personajes.filtros
   });
 
-  // 3. Handler de selección con scroll suave
+  // 3. Handler de selecciÃ³n con scroll suave
   const handleSelect = (p) => {
     setSelected(p);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 4. Handler para actualización (Optimizado con useCallback)
+  // 4. Handler para actualizaciÃ³n (Optimizado con useCallback)
   const handleUpdate = useCallback((updatedPersonaje) => {
     // Actualiza el modal actual
     setSelected(updatedPersonaje);
@@ -83,7 +83,7 @@ export default function PersonajesGrid() {
                 Especie: filtros.especie
               }}
               onChange={(grupo, valor) => {
-                // Normalización automática: "Reino" -> "reino"
+                // NormalizaciÃ³n automÃ¡tica: "Reino" -> "reino"
                 const campo = grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 actualizarFiltro(campo, valor);
               }}
@@ -101,7 +101,7 @@ export default function PersonajesGrid() {
               onClick={() => handleSelect(p)}
             >
               <p className={typography.tag + " mb-1"}>
-                {p.reino} • {p.especie}
+                {p.reino} â¢ {p.especie}
               </p>
               <h3 className={typography.cardTitle}>
                 {p.nombre}

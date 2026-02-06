@@ -35,14 +35,14 @@ export default function Lector() {
           .maybeSingle();
 
         if (!capData) {
-          setError("Capítulo no encontrado");
+          setError("CapÃ­tulo no encontrado");
           return;
         }
 
-        // SEGURIDAD: Bloqueo si el capítulo es futuro y no es admin
+        // SEGURIDAD: Bloqueo si el capÃ­tulo es futuro y no es admin
         const hoy = new Date().toISOString().split('T')[0];
         if (!esAdmin && capData.fecha_publicacion > hoy) {
-          setError("Este capítulo aún no ha sido revelado.");
+          setError("Este capÃ­tulo aÃºn no ha sido revelado.");
           setLoading(false);
           return;
         }
@@ -50,7 +50,7 @@ export default function Lector() {
         setCapitulo(capData);
         setNuevoContenido(capData.contenido || ""); 
 
-        // LISTA DE NAVEGACIÓN (Solo capítulos permitidos)
+        // LISTA DE NAVEGACIÃN (Solo capÃ­tulos permitidos)
         let queryCaps = supabase.from('capitulos')
           .select('id, orden, fecha_publicacion')
           .eq('libro_id', id);
@@ -62,7 +62,7 @@ export default function Lector() {
         const { data: todosCaps } = await queryCaps.order('orden', { ascending: true });
         setListaCapitulos(todosCaps || []);
       } catch (err) {
-        setError("Error al cargar la crónica");
+        setError("Error al cargar la crÃ³nica");
       } finally {
         setLoading(false);
       }
@@ -102,7 +102,7 @@ export default function Lector() {
   if (error) return (
     <div className="h-screen flex flex-col items-center justify-center bg-[#FDFCFD] text-[#6B5E70] p-6 text-center">
       <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">{error}</h2>
-      <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-[#6B5E70] pb-1">Volver al índice</button>
+      <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-[#6B5E70] pb-1">Volver al Ã­ndice</button>
     </div>
   );
 
@@ -142,7 +142,7 @@ export default function Lector() {
               {capitulo.libros?.titulo}
             </h2>
             <p className="text-[11px] font-bold text-[#6B5E70] uppercase">
-              Capítulo {capitulo.orden}
+              CapÃ­tulo {capitulo.orden}
             </p>
           </div>
           <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70]">
@@ -153,7 +153,7 @@ export default function Lector() {
 
       <article className="max-w-2xl mx-auto px-6 py-12 md:py-20">
         <header className="mb-12 text-center">
-          <span className="text-[#6B5E70]/20 font-serif italic text-4xl block mb-2">§ {capitulo.orden}</span>
+          <span className="text-[#6B5E70]/20 font-serif italic text-4xl block mb-2">Â§ {capitulo.orden}</span>
           <h1 className="text-3xl md:text-4xl font-black text-[#6B5E70] tracking-tighter uppercase italic leading-none">
             {capitulo.titulo_capitulo}
           </h1>
@@ -165,7 +165,7 @@ export default function Lector() {
               value={nuevoContenido}
               onChange={(e) => setNuevoContenido(e.target.value)}
               className="w-full min-h-[60vh] p-6 bg-white border border-[#6B5E70]/10 rounded-[2rem] font-serif text-lg leading-relaxed text-[#2C262E] focus:outline-none focus:border-[#6B5E70]/30 shadow-inner"
-              placeholder="Escribe aquí el contenido..."
+              placeholder="Escribe aquÃ­ el contenido..."
               autoFocus
             />
           ) : (
@@ -179,7 +179,7 @@ export default function Lector() {
           <footer className="mt-20 pt-10 border-t border-[#6B5E70]/10 flex flex-col items-center gap-8">
             <button onClick={() => router.push(`/wiki/libros/${id}`)}
               className="flex items-center gap-2 text-[#6B5E70]/40 hover:text-[#6B5E70] font-black text-[10px] uppercase tracking-widest transition-all">
-              <List size={16} /> Volver al Índice
+              <List size={16} /> Volver al Ãndice
             </button>
             
             <div className="grid grid-cols-2 gap-4 w-full max-w-sm">

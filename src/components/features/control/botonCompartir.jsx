@@ -38,7 +38,7 @@ const ShareButton = ({ url, titulo }) => {
       `}
     >
       <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-        {copiado ? "¡Enlace Copiado!" : "Compartir"}
+        {copiado ? "Â¡Enlace Copiado!" : "Compartir"}
       </span>
       
       {copiado ? (

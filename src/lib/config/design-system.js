@@ -1,3 +1,8 @@
+/**
+ * SISTEMA DE DISEÑO - FRANILOVER
+ * Archivo centralizado de estilos, tipografía y animaciones.
+ */
+
 // === TIPOGRAFÍA ===
 export const typography = {
   // Títulos
@@ -35,9 +40,19 @@ export const components = {
 
 // === ANIMACIONES ===
 export const animations = {
-  fadeIn: { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } },
-  slideRight: { initial: { opacity: 0, x: -10 }, animate: { opacity: 1, x: 0 } },
-  scale: { initial: { scale: 0.95 }, animate: { scale: 1 } }
+  fadeIn: { 
+    initial: { opacity: 0, y: 20 }, 
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.5 } 
+  },
+  slideRight: { 
+    initial: { opacity: 0, x: -10 }, 
+    animate: { opacity: 1, x: 0 } 
+  },
+  scale: { 
+    initial: { scale: 0.95, opacity: 0 }, 
+    animate: { scale: 1, opacity: 1 } 
+  }
 };
 
 // === LAYOUT ===

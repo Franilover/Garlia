@@ -1,8 +1,8 @@
 export function initAnimations() {
-    // 🛡️ PROTECCIÓN INICIAL: Evita que el servidor explote
+    // ð¡ï¸ PROTECCIÃN INICIAL: Evita que el servidor explote
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
-    // 1. ANIMACIÓN DE APARICIÓN (Scroll)
+    // 1. ANIMACIÃN DE APARICIÃN (Scroll)
     const elementosAnimados = document.querySelectorAll(".animate-on-scroll");
     const observador = new IntersectionObserver(entradas => {
         entradas.forEach(entrada => {
@@ -15,7 +15,7 @@ export function initAnimations() {
     elementosAnimados.forEach(el => observador.observe(el));
 
     // 2. REPRODUCTOR GLOBAL
-    // Lo asignamos a window dentro de la función para que solo exista en el navegador
+    // Lo asignamos a window dentro de la funciÃ³n para que solo exista en el navegador
     window.togglePlay = function(id, btn) {
         const audio = document.getElementById(id);
         if (!audio) return;
@@ -25,10 +25,10 @@ export function initAnimations() {
 
         if (audio.paused) {
             audio.play();
-            icon.textContent = '⏸';
+            icon.textContent = 'â¸';
         } else {
             audio.pause();
-            icon.textContent = '▶';
+            icon.textContent = 'â¶';
         }
 
         audio.ontimeupdate = () => {
@@ -37,7 +37,7 @@ export function initAnimations() {
         };
         
         audio.onended = () => {
-            icon.textContent = '▶';
+            icon.textContent = 'â¶';
             if (progressBar) progressBar.style.width = '0%';
         };
     };

@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 export default function Personal({ datos }) {
   if (!datos) return null;
 
-  // --- OPTIMIZACIÓN: Clases unificadas para secciones ---
+  // --- OPTIMIZACIÃN: Clases unificadas para secciones ---
   const sectionTitleStyle = "text-[10px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-2";
   const emptyStateStyle = "text-primary/30 text-[10px] italic text-center py-10 uppercase font-black tracking-widest";
 
@@ -20,7 +20,7 @@ export default function Personal({ datos }) {
       
       {/* --- CABECERA DE PERFIL --- */}
       <section className="bg-white border border-primary/10 rounded-[3rem] p-12 md:p-16 shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
-        {/* Decoración de fondo usando el color primario con muy baja opacidad */}
+        {/* DecoraciÃ³n de fondo usando el color primario con muy baja opacidad */}
         <Stars className="absolute top-10 right-10 text-primary/5" size={120} />
         
         <div className="relative mb-8">
@@ -42,7 +42,7 @@ export default function Personal({ datos }) {
 
       <div className="grid md:grid-cols-2 gap-8">
         
-        {/* --- SECCIÓN INVENTARIO --- */}
+        {/* --- SECCIÃN INVENTARIO --- */}
         <section className="card-main !bg-white/40 backdrop-blur-sm p-8 md:p-10">
           <div className="flex items-center gap-4 mb-8">
             <h2 className={sectionTitleStyle}>
@@ -79,12 +79,12 @@ export default function Personal({ datos }) {
                 </div>
               ))
             ) : (
-              <p className={emptyStateStyle}>Mochila vacía</p>
+              <p className={emptyStateStyle}>Mochila vacÃ­a</p>
             )}
           </div>
         </section>
 
-        {/* --- SECCIÓN BESTIARIO / AVISTAMIENTOS --- */}
+        {/* --- SECCIÃN BESTIARIO / AVISTAMIENTOS --- */}
         <section className="card-main !bg-white/40 backdrop-blur-sm p-8 md:p-10">
           <div className="flex items-center gap-4 mb-8">
             <h2 className={sectionTitleStyle}>
@@ -100,7 +100,7 @@ export default function Personal({ datos }) {
                   key={i} 
                   className="char-card-base !aspect-auto bg-white p-6 text-center hover:shadow-lg transition-all"
                 >
-                  <div className="text-3xl mb-3 opacity-80 group-hover:scale-110 transition-transform">👾</div>
+                  <div className="text-3xl mb-3 opacity-80 group-hover:scale-110 transition-transform">ð¾</div>
                   <h3 className="text-[9px] font-black text-primary uppercase tracking-widest leading-tight">
                     {desc.criaturas.nombre}
                   </h3>

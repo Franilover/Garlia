@@ -1,5 +1,6 @@
 "use client";
 import { useMemo } from 'react';
+// IMPORTANTE: Cambiamos la ruta para usar el index.ts que creamos
 import { useLightbox } from "@/components/shared/modal/lightbox";
 import { GalleryGrid, GalleryItem } from "@/components/shared/display/gallery";
 import FiltrosMaestros from "@/components/shared/forms/Filtros";
@@ -15,8 +16,7 @@ import { CATEGORIAS, getMensaje } from '@/lib/config/constants';
 export default function Diario() {
   const { openLightbox } = useLightbox();
 
-  // 1. Fetching de fotos (Sincronizado con el Punto #13)
-  // Ahora manejamos también el 'error' por si falla la conexión
+  // 1. Fetching de fotos de la tabla 'diario_fotos'
   const { data: entradas, loading, error } = useSupabaseData('diario_fotos', {
     order: { campo: 'id', asc: false }
   });
@@ -31,16 +31,20 @@ export default function Diario() {
     inicial: { categoria: 'todos' }
   });
 
-  // 3. Preparar data para el Lightbox
+  // 3. Preparar data para el Lightbox (Incluimos id para que se pueda editar)
   const lbData = useMemo(() => 
-    itemsFiltrados.map(e => ({ src: e.url_imagen, alt: e.fecha })), 
+    itemsFiltrados.map(e => ({ 
+      src: e.url_imagen, 
+      alt: e.fecha,
+      id: e.id 
+    })), 
     [itemsFiltrados]
   );
 
-  // Manejo de Error (Nuevo)
+  // Manejo de Error corregido (sin caracteres extraños)
   if (error) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-bg-main">
+      <main className="min-h-screen flex items-center justify-center bg-[#F0F0F0]">
         <p className="text-red-500 font-black uppercase text-xs tracking-widest">
           "Error de Sincronización: {error}"
         </p>
@@ -53,14 +57,15 @@ export default function Diario() {
   }
 
   return (
-    <main className="min-h-screen bg-bg-main py-10 px-4 md:px-8">
+    <main className="min-h-screen bg-[#F0F0F0] py-10 px-4 md:px-8">
       
       <GalleryGrid 
         headerContent={
           <PageHeader titulo="Diario" subtitulo="Recuerdos">
             <FiltrosMaestros 
-              config={{ Categorías: CATEGORIAS.FOTOS }}
-              filtrosActivos={{ Categorías: filtros.categoria }}
+              // Corregido: 'CategorÃ­as' -> 'Categorias'
+              config={{ Categorias: CATEGORIAS.FOTOS }}
+              filtrosActivos={{ Categorias: filtros.categoria }}
               onChange={(grupo, valor) => actualizarFiltro('categoria', valor)}
             />
           </PageHeader>
@@ -70,9 +75,10 @@ export default function Diario() {
           <GalleryItem 
             key={e.id} 
             src={e.url_imagen} 
-            onClick={() => openLightbox(i, lbData)}
+            // Pasamos 'diario_fotos' para que el Admin pueda editar títulos en esta tabla
+            onClick={() => openLightbox(i, lbData, 'diario_fotos')}
           >
-            <p className={typography.tag + " mb-1"}>
+            <p className={`${typography.tag} mb-1`}>
               {e.categoria}
             </p>
             <h3 className={typography.cardTitle}>

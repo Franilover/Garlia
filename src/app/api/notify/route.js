@@ -25,7 +25,7 @@ export async function POST(request) {
     if (dbError) throw dbError;
 
     const payload = JSON.stringify({
-      title: dataReceived.title || "🎨 ¡Nuevo arte!",
+      title: dataReceived.title || "ð¨ Â¡Nuevo arte!",
       body: dataReceived.body || "Hay algo nuevo en el Atelier.",
       icon: "/icon.png",
       image: dataReceived.image,
@@ -35,7 +35,7 @@ export async function POST(request) {
     const results = await Promise.all(
       (subs || []).map(sub => 
         webpush.sendNotification(sub.subscription_data, payload)
-          .catch(err => console.error("Error envío:", err.endpoint))
+          .catch(err => console.error("Error envÃ­o:", err.endpoint))
       )
     );
 

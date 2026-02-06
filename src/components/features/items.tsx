@@ -15,7 +15,7 @@ import { getMensaje } from '@/lib/config/constants';
 export default function Inventario() {
   const [selected, setSelected] = useState(null);
 
-  // 1. Fetching con setData para actualizaciones reactivas
+  // 1. Fetching de la tabla 'items'
   const { 
     data: items, 
     setData: setItems, 
@@ -24,7 +24,7 @@ export default function Inventario() {
     order: { campo: 'created_at', asc: false }
   });
 
-  // 2. Filtros automáticos
+  // 2. Filtros automáticos (Corregido el encoding de 'categoría')
   const {
     filtros,
     opciones,
@@ -35,12 +35,9 @@ export default function Inventario() {
     inicial: { categoria: 'TODOS' }
   });
 
-  // 3. Handler de actualización local (Punto #2 del checklist)
+  // 3. Handler de actualización local sincronizada
   const handleUpdate = useCallback((updatedItem) => {
-    // Actualizamos el objeto en el panel de detalle
     setSelected(updatedItem);
-    
-    // Sincronizamos la lista global de items
     setItems(prev => 
       prev.map(i => i.id === updatedItem.id ? updatedItem : i)
     );
@@ -48,7 +45,6 @@ export default function Inventario() {
 
   const handleSelect = (item) => {
     setSelected(item);
-    // Cambiado a smooth para una mejor experiencia de usuario
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -57,9 +53,9 @@ export default function Inventario() {
   }
 
   return (
-    <main className="min-h-screen bg-bg-main pb-20 overflow-x-hidden">
+    <main className="min-h-screen bg-[#F0F0F0] pb-20 overflow-x-hidden">
       
-      {/* PANEL DE DETALLE */}
+      {/* PANEL DE DETALLE (Paso 4 del plan) */}
       <DetalleMaestro 
         isOpen={!!selected}
         onClose={() => setSelected(null)}
@@ -74,12 +70,10 @@ export default function Inventario() {
         headerContent={
           <PageHeader titulo="Inventario" subtitulo="Objetos recopilados por Liam">
             <FiltrosMaestros 
-              config={{ Categorías: opciones.categoria }}
-              filtrosActivos={{ Categorías: filtros.categoria }}
-              onChange={(grupo, valor) => {
-                // Mantenemos la consistencia con el resto de la app
-                actualizarFiltro('categoria', valor);
-              }}
+              // Corregido: 'CategorÃ­as' -> 'Categorias'
+              config={{ Categorias: opciones.categoria }}
+              filtrosActivos={{ Categorias: filtros.categoria }}
+              onChange={(grupo, valor) => actualizarFiltro('categoria', valor)}
             />
           </PageHeader>
         }
@@ -91,7 +85,7 @@ export default function Inventario() {
             contain={true} 
             onClick={() => handleSelect(item)}
           >
-            <p className={typography.tag + " mb-1"}>
+            <p className={`${typography.tag} mb-1`}>
               {item.categoria}
             </p>
             <h3 className={typography.cardTitle}>

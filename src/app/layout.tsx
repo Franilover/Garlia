@@ -1,9 +1,9 @@
-import { LightboxProvider } from "@/components/shared/modal/lightbox"; 
+import { LightboxProvider } from "@/components/shared/modal/lightbox/"; 
 import { AuthProvider } from "@/components/features/control/authContext"; 
-// IMPORTANTE: Ruta basada en tu captura de pantalla
 import { DataProvider } from "@/components/features/control/DataContext"; 
 import AppLogic from "./AppLogic";
-import "@/components/tailwind.css";
+import "../components/tailwind.css";
+
 import { Montserrat } from 'next/font/google';
 
 const montserrat = Montserrat({ 

@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // --- OPTIMIZACIÓN: Clases para formularios ---
+  // --- OPTIMIZACIÃN: Clases para formularios ---
   const labelStyle = "block text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 mb-2 ml-1";
 
   const handleAuth = async (e) => {
@@ -30,7 +30,7 @@ export default function LoginPage() {
         if (error) throw error;
         if (data.user) {
           await supabase.from('perfiles').upsert({ id: data.user.id, nombre: username });
-          setMensaje('¡Revisa tu correo para confirmar!');
+          setMensaje('Â¡Revisa tu correo para confirmar!');
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -55,7 +55,7 @@ export default function LoginPage() {
         className="w-full max-w-md card-main !bg-white shadow-2xl p-8 md:p-12"
       >
         <h1 className="text-3xl md:text-4xl font-black italic text-primary uppercase tracking-tighter text-center mb-10">
-          {isRegistering ? 'Crear Cuenta' : 'Iniciar Sesión'}
+          {isRegistering ? 'Crear Cuenta' : 'Iniciar SesiÃ³n'}
         </h1>
 
         <form onSubmit={handleAuth} className="space-y-6">
@@ -88,10 +88,10 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className={labelStyle}>Contraseña</label>
+            <label className={labelStyle}>ContraseÃ±a</label>
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input-brand"
@@ -114,7 +114,7 @@ export default function LoginPage() {
           onClick={() => { setIsRegistering(!isRegistering); setMensaje(''); }}
           className="w-full mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-all underline decoration-1 underline-offset-8"
         >
-          {isRegistering ? '¿Ya tienes cuenta? Entra aquí' : '¿No tienes cuenta? Regístrate'}
+          {isRegistering ? 'Â¿Ya tienes cuenta? Entra aquÃ­' : 'Â¿No tienes cuenta? RegÃ­strate'}
         </button>
       </motion.div>
     </main>

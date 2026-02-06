@@ -34,7 +34,7 @@ export default function Relaciones({ nombrePersonaje }) {
       <div className="flex flex-wrap gap-3">
         {lista.map((rel, index) => (
           <div key={index} className="bg-white border-2 border-primary/5 px-4 py-2 rounded-2xl flex flex-col shadow-sm min-w-[80px]">
-            {/* El vínculo (ej: AMIGOS) */}
+            {/* El vÃ­nculo (ej: AMIGOS) */}
             <span className="text-[9px] font-bold uppercase text-primary/40 tracking-wider mb-1">
               {rel.sus}
             </span>

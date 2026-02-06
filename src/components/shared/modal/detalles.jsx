@@ -51,7 +51,7 @@ export default function DetalleMaestro({
     }
   };
 
-  // --- LÓGICA DE SINCRONIZACIÓN MAESTRA (Punto #5) ---
+  // --- LÃGICA DE SINCRONIZACIÃN MAESTRA (Punto #5) ---
   useEffect(() => {
     if (data) {
       // Comprobamos si realmente es un item diferente
@@ -71,8 +71,8 @@ export default function DetalleMaestro({
         // Actualizamos el registro del ID actual
         prevIdRef.current = data.id;
       } else {
-        // ACTUALIZACIÓN SILENCIOSA: Si es el mismo ID (después de un Guardar)
-        // Solo actualizamos si el usuario no está escribiendo activamente
+        // ACTUALIZACIÃN SILENCIOSA: Si es el mismo ID (despuÃ©s de un Guardar)
+        // Solo actualizamos si el usuario no estÃ¡ escribiendo activamente
         if (!editMode) {
           setEditNombre(data.nombre || "");
           setEditDescripcion(data.sobre || data.descripcion || "");
@@ -83,7 +83,7 @@ export default function DetalleMaestro({
     }
   }, [data, editMode]);
 
-  // Sincronizar descripción al cambiar entre variante/original
+  // Sincronizar descripciÃ³n al cambiar entre variante/original
   useEffect(() => {
     if (editMode || !data) return;
     if (varianteActiva) {
@@ -98,7 +98,7 @@ export default function DetalleMaestro({
   const tablaPrincipal = data.img_url ? 'personajes' : 'criaturas';
   const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
 
-  // Música con validación de nulidad
+  // MÃºsica con validaciÃ³n de nulidad
   const listaLinks = Array.isArray(data?.canciones) 
     ? data.canciones.flatMap(item => typeof item === 'string' ? item.split(',') : item)
                     .map(link => link.trim())
@@ -129,7 +129,7 @@ export default function DetalleMaestro({
 
         if (error) throw error;
         
-        // Ejecutamos el callback para que la galería se actualice sin recargar
+        // Ejecutamos el callback para que la galerÃ­a se actualice sin recargar
         if (onUpdate && typeof onUpdate === 'function') {
           onUpdate(updatedDB || { ...data, ...updates });
         }
@@ -172,7 +172,7 @@ export default function DetalleMaestro({
               </button>
             </div>
             
-            {/* SECCIÓN IZQUIERDA: IMAGEN */}
+            {/* SECCIÃN IZQUIERDA: IMAGEN */}
             <div className="w-full lg:w-1/2 bg-gradient-to-br from-white to-primary/5 flex items-center justify-center p-10 lg:p-16 border-b lg:border-b-0 lg:border-r border-primary/5">
               <div className="relative w-full aspect-square max-w-[400px]">
                 <div className="absolute inset-0 bg-primary/5 rounded-[4rem] rotate-3 scale-105" />
@@ -187,7 +187,7 @@ export default function DetalleMaestro({
               </div>
             </div>
 
-            {/* SECCIÓN DERECHA: CONTENIDO */}
+            {/* SECCIÃN DERECHA: CONTENIDO */}
             <div className="w-full lg:w-1/2 p-8 md:p-12 lg:pl-10 lg:pr-16 flex flex-col justify-center bg-bg-main/5">
               
               {/* SELECTOR VARIANTES */}

@@ -6,13 +6,13 @@ export default function FiltrosMaestros({ config, filtrosActivos, onChange }) {
     <div className="max-w-5xl mx-auto mb-16 px-6 space-y-8">
       {Object.entries(config).map(([grupo, opciones]) => {
         
-        // --- ESTA ES LA LÓGICA DE ORDEN ---
+        // --- ESTA ES LA LÃGICA DE ORDEN ---
         const opcionesOrdenadas = [...opciones].sort((a, b) => {
           const valA = a.toLowerCase();
           const valB = b.toLowerCase();
           if (valA === 'todos') return -1; // "todos" va primero
-          if (valB === 'todos') return 1;  // si b es "todos", a va después
-          return valA.localeCompare(valB); // El resto en orden alfabético
+          if (valB === 'todos') return 1;  // si b es "todos", a va despuÃ©s
+          return valA.localeCompare(valB); // El resto en orden alfabÃ©tico
         });
 
         return (

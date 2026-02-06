@@ -59,7 +59,7 @@ export function EmptyState({
 // ============================================================
 
 export function ErrorState({
-  mensaje = "Algo salió mal",
+  mensaje = "Algo saliÃ³ mal",
   onRetry = null
 }) {
   return (

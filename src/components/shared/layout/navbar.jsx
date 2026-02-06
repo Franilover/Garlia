@@ -38,7 +38,7 @@ const Navbar = () => {
   const puedeSubir = perfil?.rol === 'admin' || perfil?.rol === 'autor';
   const closeAll = () => { setOpenSubmenu(null); setUserMenuOpen(false); };
 
-  // Helper para verificar si estamos en una sección
+  // Helper para verificar si estamos en una secciÃ³n
   const isInSection = (paths) => paths.some(path => currentPath?.startsWith(path));
 
   const navContent = useMemo(() => (
@@ -122,7 +122,7 @@ const Navbar = () => {
               currentPath={currentPath} 
             />
             <PCGroup 
-              label="Bitácora" 
+              label="BitÃ¡cora" 
               active={isInSection(['/wiki/mapa', '/wiki/libros'])} 
               items={[
                 { href: '/wiki/mapa', label: 'Mapa', icon: <Map size={14}/> }, 
@@ -140,7 +140,7 @@ const Navbar = () => {
         </div>
       </header>
 
-      {/* --- MÓVIL (ANIMADO) --- */}
+      {/* --- MÃVIL (ANIMADO) --- */}
       <motion.div 
         className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100vw-48px)] z-[1000]"
         initial={false}
@@ -162,7 +162,7 @@ const Navbar = () => {
                     <Sword size={18}/> Mi Personaje
                   </Link>
                   <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-600 rounded-[1.5rem] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    Cerrar Sesión <LogOut size={16}/>
+                    Cerrar SesiÃ³n <LogOut size={16}/>
                   </button>
                 </div>
               )}

@@ -1,4 +1,4 @@
-// === CATEGORÍAS ===
+// === CATEGORÃAS ===
 export const CATEGORIAS = {
   FOTOS: ['todos', 'yo', 'amigos', 'animales', 'paisajes'],
   DIBUJOS: ['todos', 'fanart', 'original', 'bocetos'],
@@ -12,16 +12,16 @@ export const MENSAJES = {
     criaturas: "Sincronizando Archivos...",
     dibujos: "Desplegando Arte...",
     fotos: "Cargando Memorias...",
-    items: "Abriendo Almacén..."
+    items: "Abriendo AlmacÃ©n..."
   },
   EMPTY: {
-    default: "No hay registros en esta sección",
-    fotos: "No hay fotos en esta categoría",
-    items: "No hay objetos en esta sección"
+    default: "No hay registros en esta secciÃ³n",
+    fotos: "No hay fotos en esta categorÃ­a",
+    items: "No hay objetos en esta secciÃ³n"
   }
 };
 
-// === CONFIGURACIÓN DE TABLAS ===
+// === CONFIGURACIÃN DE TABLAS ===
 export const TABLAS_CONFIG = {
   personajes: {
     orden: { campo: 'id', asc: true },

@@ -5,13 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 import { Sparkles } from 'lucide-react'; 
 
-// --- DEFINICIÓN DE TIPOS (Interfaces) ---
+// --- DEFINICIÃN DE TIPOS (Interfaces) ---
 
 interface GalleryGridProps {
   children: React.ReactNode;
   headerContent?: React.ReactNode;
   className?: string;
-  isDetailOpen?: boolean; // Prop que pedía criaturas.tsx
+  isDetailOpen?: boolean; // Prop que pedÃ­a criaturas.tsx
 }
 
 interface GalleryItemProps {
@@ -143,7 +143,7 @@ export const GalleryItem = React.memo(({
             </div>
           </div>
           <p className="text-[8px] font-black text-[#6b6681]/60 uppercase tracking-[0.4em]">
-            "Inédito"
+            "InÃ©dito"
           </p>
         </div>
       )}

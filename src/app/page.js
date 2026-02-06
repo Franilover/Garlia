@@ -1,4 +1,4 @@
-"use client"; // Añade esto si vas a usar animaciones o interactividad
+"use client"; // AÃ±ade esto si vas a usar animaciones o interactividad
 
 import SobreMi from '@/components/features/sobre-mi';
 import { motion } from 'framer-motion';

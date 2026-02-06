@@ -69,7 +69,7 @@ export default function LibroDetalle() {
       libro_id: id, 
       titulo_capitulo: nuevoTitulo.toUpperCase(), 
       orden: capitulos.length + 1, 
-      contenido: "Nueva crónica...",
+      contenido: "Nueva crÃ³nica...",
       fecha_publicacion: nuevaFecha 
     }]);
     if (!error) window.location.reload();
@@ -89,7 +89,7 @@ export default function LibroDetalle() {
   };
 
   const deleteCapitulo = async () => {
-    if (!confirm("¿Deseas eliminar permanentemente este capítulo?")) return;
+    if (!confirm("Â¿Deseas eliminar permanentemente este capÃ­tulo?")) return;
     setProcesando(true);
     const { error } = await supabase.from('capitulos').delete().eq('id', selectedCap.id);
     if (!error) window.location.reload();
@@ -115,9 +115,9 @@ export default function LibroDetalle() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10 text-center">
               <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nuevo Capítulo</h3>
+              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nuevo CapÃ­tulo</h3>
               <form onSubmit={handleCrearCapitulo} className="space-y-6">
-                <input autoFocus type="text" placeholder="TÍTULO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
+                <input autoFocus type="text" placeholder="TÃTULO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <div className="text-left">
                     <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Fecha de estreno</label>
                     <input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none" />
@@ -136,7 +136,7 @@ export default function LibroDetalle() {
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
               <button onClick={() => setShowEditCapModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
               <div className="text-center mb-8">
-                <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">Gestionar Capítulo</h3>
+                <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">Gestionar CapÃ­tulo</h3>
               </div>
               <form onSubmit={handleUpdateCapitulo} className="space-y-6">
                 <input autoFocus type="text" value={editCapTitle} onChange={(e) => setEditCapTitle(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
@@ -169,7 +169,7 @@ export default function LibroDetalle() {
           {libro?.fecha_proximo_capitulo && (
             <div className="mt-8 p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
                <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2">
-                 <Calendar size={12} /> Próximo Capitulo
+                 <Calendar size={12} /> PrÃ³ximo Capitulo
                </h4>
                <p className="text-[#6B5E70] font-bold text-sm">
                  {new Date(libro.fecha_proximo_capitulo).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
@@ -186,7 +186,7 @@ export default function LibroDetalle() {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-8 border-b border-[#6B5E70]/10 pb-4">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2"><ListOrdered size={16} /> Índice</h3>
+              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2"><ListOrdered size={16} /> Ãndice</h3>
               {isAdmin && (
                 <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"><Plus size={18} /></button>
               )}

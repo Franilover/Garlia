@@ -18,7 +18,7 @@ const CONFIG_ESTRUCTURA = {
   garden_of_sins: {
     label: 'Garden of Sins',
     tablas: {
-      criaturas: { label: 'Criaturas', icon: <Sparkles size={14} />, categorias: ['terrestres', 'voladoras', 'acuáticas'] },
+      criaturas: { label: 'Criaturas', icon: <Sparkles size={14} />, categorias: ['terrestres', 'voladoras', 'acuÃ¡ticas'] },
       personajes: { label: 'Personajes', icon: <UserCircle size={14} />, categorias: ['Caelistan', 'Greendom', 'Omnisia', 'Aelistan', 'Otros'] }
     }
   }
@@ -78,7 +78,7 @@ export default function UploadPage() {
         finalImageUrl = publicUrl;
       }
 
-      // 2. Inserción en la base de datos según la sección
+      // 2. InserciÃ³n en la base de datos segÃºn la secciÃ³n
       const insertData = seccion === 'personal' 
         ? { titulo: nombreObra, url_imagen: finalImageUrl, categoria }
         : { nombre: nombreObra, imagen_url: finalImageUrl, categoria };
@@ -86,19 +86,19 @@ export default function UploadPage() {
       const { error: dbError } = await supabase.from(tabla).insert([insertData]);
       if (dbError) throw dbError;
 
-      // 3. DISPARAR NOTIFICACIÓN PUSH (Llamada a tu nueva API)
+      // 3. DISPARAR NOTIFICACIÃN PUSH (Llamada a tu nueva API)
       try {
         const baseUrl = window.location.origin;
         await fetch(`${baseUrl}/api/notify`, { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
-        console.log("Notificación solicitada correctamente");
+        console.log("NotificaciÃ³n solicitada correctamente");
       } catch (pushError) {
         console.error("Error al conectar con la API de notificaciones:", pushError);
       }
 
-      alert("¡Publicado con éxito! ✨");
+      alert("Â¡Publicado con Ã©xito! â¨");
       
       // Limpiar formulario
       setNombreObra(''); 
@@ -125,7 +125,7 @@ export default function UploadPage() {
           <p className="text-[#6B5E70]/40 text-[9px] font-black uppercase tracking-widest mt-1">"Admin Panel"</p>
         </header>
 
-        {/* Selector de Sección */}
+        {/* Selector de SecciÃ³n */}
         <div className="flex gap-2 mb-8 bg-[#EBEBEB] p-1.5 rounded-2xl">
           {Object.keys(CONFIG_ESTRUCTURA).map((key) => (
             <button
@@ -164,7 +164,7 @@ export default function UploadPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest ml-4 mb-2 block">"NOMBRE / TÍTULO"</label>
+              <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest ml-4 mb-2 block">"NOMBRE / TÃTULO"</label>
               <input 
                 type="text" 
                 className="w-full bg-[#EBEBEB] border-none rounded-2xl px-6 py-4 text-[#6B5E70] font-black text-xs outline-none focus:ring-2 ring-[#6B5E70]/10 transition-all" 
@@ -176,7 +176,7 @@ export default function UploadPage() {
             </div>
 
             <div>
-              <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest ml-4 mb-2 block">"CATEGORÍA"</label>
+              <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest ml-4 mb-2 block">"CATEGORÃA"</label>
               <div className="relative">
                 <select 
                   value={categoria} 
@@ -193,7 +193,7 @@ export default function UploadPage() {
           </div>
 
           <div className="space-y-4 pt-4 border-t border-zinc-100">
-            {/* Método de subida */}
+            {/* MÃ©todo de subida */}
             <div className="flex justify-center gap-6">
               <button 
                 type="button" 

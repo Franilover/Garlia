@@ -31,7 +31,7 @@ export default async function Page() {
     return (
       <main className="min-h-screen pt-32 flex justify-center bg-bg-main">
         <div className="text-[#6B5E70]/50 font-black uppercase text-[10px] tracking-widest">
-          Error de conexión: {error.message}
+          Error de conexiÃ³n: {error.message}
         </div>
       </main>
     );

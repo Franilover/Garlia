@@ -28,7 +28,7 @@ export const useRecursos = (tabla) => {
     fetchRecursos();
   }, [fetchRecursos]);
 
-  // Esta función es la que pasaremos al onUpdate del DetalleMaestro
+  // Esta funciÃ³n es la que pasaremos al onUpdate del DetalleMaestro
   const updateLocalItem = useCallback((updatedItem) => {
     setItems(currentItems => 
       currentItems.map(item => item.id === updatedItem.id ? updatedItem : item)

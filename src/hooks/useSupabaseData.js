@@ -5,21 +5,21 @@ import { useDataCache } from '@/components/features/control/DataContext';
 
 /**
  * HOOK MAESTRO: useSupabaseData (v13.0 - Realtime + Cache)
- * Gestiona la sincronización total entre Supabase, el Cache Global y la UI.
+ * Gestiona la sincronizaciÃ³n total entre Supabase, el Cache Global y la UI.
  */
 export function useSupabaseData(tabla, opciones = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // 1. Estados locales sincronizados con el Caché Global
+  // 1. Estados locales sincronizados con el CachÃ© Global
   const [data, setData] = useState(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState(null);
 
   const opcionesKey = JSON.stringify(opciones);
 
-  // 2. Función de carga (Fetch) con soporte para forzar refresco
+  // 2. FunciÃ³n de carga (Fetch) con soporte para forzar refresco
   const fetchData = useCallback(async (forceRefresh = false) => {
-    // Si ya hay caché y no forzamos, salimos para evitar tráfico innecesario
+    // Si ya hay cachÃ© y no forzamos, salimos para evitar trÃ¡fico innecesario
     if (cache[tabla] && !forceRefresh) {
       setLoading(false);
       return;
@@ -57,19 +57,19 @@ export function useSupabaseData(tabla, opciones = {}) {
   useEffect(() => {
     fetchData(); // Carga inicial
 
-    // Creamos el canal de suscripción para la tabla
+    // Creamos el canal de suscripciÃ³n para la tabla
     const channel = supabase
       .channel(`custom-all-channel-${tabla}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: tabla },
         (payload) => {
-          console.log(`🔔 Cambio detectado en ${tabla}:`, payload);
+          console.log(`ð Cambio detectado en ${tabla}:`, payload);
           
           /**
            * Al detectar un cambio, forzamos un refetch suave.
            * Esto asegura que los filtros y el orden se mantengan perfectos
-           * según la lógica de la base de datos.
+           * segÃºn la lÃ³gica de la base de datos.
            */
           fetchData(true); 
         }

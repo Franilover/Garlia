@@ -54,7 +54,7 @@ export default function MapaInteractivo() {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    console.log(`📍 Coordenadas -> X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}`);
+    console.log(`ð Coordenadas -> X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}`);
     if (puntoSeleccionado) setPuntoSeleccionado(null);
   };
 
@@ -99,7 +99,7 @@ export default function MapaInteractivo() {
         </div>
       </QuickPinchZoom>
 
-      {/* TARJETA: Aquí mantenemos los bordes redondeados y el diseño elegante */}
+      {/* TARJETA: AquÃ­ mantenemos los bordes redondeados y el diseÃ±o elegante */}
       <AnimatePresence>
         {puntoSeleccionado && (
           <motion.div 

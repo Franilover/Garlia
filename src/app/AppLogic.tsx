@@ -11,7 +11,7 @@ export default function AppLogic({ children }) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // 1. Resetear el scroll al cambiar de página
+      // 1. Resetear el scroll al cambiar de pÃ¡gina
       window.scrollTo(0, 0); 
       
       // 2. Cerrar el lightbox al cambiar de ruta
@@ -19,18 +19,18 @@ export default function AppLogic({ children }) {
         closeLightbox();
       }
 
-      // 3. LÓGICA DE PROTECCIÓN TOTAL
+      // 3. LÃGICA DE PROTECCIÃN TOTAL
       const manejarEventos = (e) => {
-        // Bloquear Clic Derecho y Arrastre de imágenes
+        // Bloquear Clic Derecho y Arrastre de imÃ¡genes
         if (e.type === 'contextmenu' || e.type === 'dragstart') {
           e.preventDefault();
         }
 
         // Bloquear atajos de teclado:
-        // Ctrl+S (Guardar), Ctrl+P (Imprimir), Ctrl+U (Ver código fuente)
+        // Ctrl+S (Guardar), Ctrl+P (Imprimir), Ctrl+U (Ver cÃ³digo fuente)
         if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p' || e.key === 'u')) {
           e.preventDefault();
-          console.warn("Acción bloqueada por derechos de autor.");
+          console.warn("AcciÃ³n bloqueada por derechos de autor.");
         }
 
         // Opcional: Bloquear F12 (Herramientas de desarrollador)
@@ -44,7 +44,7 @@ export default function AppLogic({ children }) {
       document.addEventListener("dragstart", manejarEventos);
       document.addEventListener("keydown", manejarEventos);
 
-      // Limpieza al desmontar o cambiar de página
+      // Limpieza al desmontar o cambiar de pÃ¡gina
       return () => {
         document.removeEventListener("contextmenu", manejarEventos);
         document.removeEventListener("dragstart", manejarEventos);

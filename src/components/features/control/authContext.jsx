@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [perfil, setPerfil] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Función para obtener los datos detallados de la tabla "perfiles"
+  // FunciÃ³n para obtener los datos detallados de la tabla "perfiles"
   const fetchPerfil = async (userId, userEmail) => {
     try {
       const { data, error } = await supabase
@@ -23,14 +23,14 @@ export const AuthProvider = ({ children }) => {
         setPerfil(data);
         console.log("Perfil cargado correctamente:", data);
       } else {
-        // AUTO-CORRECCIÓN: Si el registro no existe en la tabla "perfiles", lo creamos
+        // AUTO-CORRECCIÃN: Si el registro no existe en la tabla "perfiles", lo creamos
         const nombreAuto = userEmail ? userEmail.split('@')[0] : "Usuario";
         
         // Objeto inicial para la base de datos
         const nuevoPerfil = { 
           id: userId, 
           email: userEmail,
-          username: nombreAuto, // Usamos 'username' según tu captura de pantalla
+          username: nombreAuto, // Usamos 'username' segÃºn tu captura de pantalla
           rol: 'usuario',       // Rol por defecto
           status: 'Explorador Novato'
         };
@@ -44,12 +44,12 @@ export const AuthProvider = ({ children }) => {
         }
       }
     } catch (err) {
-      console.error("Error crítico al cargar perfil:", err);
+      console.error("Error crÃ­tico al cargar perfil:", err);
     }
   };
 
   useEffect(() => {
-    // 1. Verificar sesión inicial al cargar la app
+    // 1. Verificar sesiÃ³n inicial al cargar la app
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     };
 
-    // 2. Escuchar cambios en el estado de autenticación (Login/Logout)
+    // 2. Escuchar cambios en el estado de autenticaciÃ³n (Login/Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user);

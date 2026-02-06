@@ -5,7 +5,7 @@ import { X, Bell, BellRing } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const urlBase64ToUint8Array = (base64String) => {
-  if (typeof window === 'undefined') return null; // Protección para el servidor
+  if (typeof window === 'undefined') return null; // ProtecciÃ³n para el servidor
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
@@ -30,7 +30,7 @@ export default function Newsletter() {
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     
     if (!publicKey) {
-      alert("Configuración incompleta: Falta la VAPID Key.");
+      alert("ConfiguraciÃ³n incompleta: Falta la VAPID Key.");
       return;
     }
 
@@ -39,7 +39,7 @@ export default function Newsletter() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        alert("¡Necesitas permitir las notificaciones!");
+        alert("Â¡Necesitas permitir las notificaciones!");
         setStatus('error');
         return;
       }
@@ -90,7 +90,7 @@ export default function Newsletter() {
           </button>
           <div className="text-center">
             <h2 className="text-3xl md:text-4xl font-black uppercase italic text-primary tracking-tighter leading-none mb-4">
-              "¿Quieres ver <br /> nuevos dibujos?"
+              "Â¿Quieres ver <br /> nuevos dibujos?"
             </h2>
             <p className="text-primary/50 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] mb-10">
               "Activa las notificaciones para no perderte nada del Atelier"

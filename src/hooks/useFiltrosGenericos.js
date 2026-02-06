@@ -7,7 +7,7 @@ export function useFiltrosGenericos(items, configuracion) {
     Object.fromEntries(configuracion.campos.map(c => [c, 'todos']))
   );
 
-  // Generar opciones únicas automáticamente
+  // Generar opciones Ãºnicas automÃ¡ticamente
   const opciones = useMemo(() => {
     const resultado = {};
     configuracion.campos.forEach(campo => {
