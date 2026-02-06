@@ -11,11 +11,9 @@ const Biblioteca = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   
-  // Modales
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   
-  // Estados de Formulario
   const [selectedLibro, setSelectedLibro] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [nuevoTitulo, setNuevoTitulo] = useState("");
@@ -23,7 +21,6 @@ const Biblioteca = () => {
 
   useEffect(() => {
     const checkUserAndFetch = async () => {
-      // Verificación robusta de sesión
       const { data: { session } } = await supabase.auth.getSession();
       if (session) setIsAdmin(true);
 
@@ -38,7 +35,6 @@ const Biblioteca = () => {
     checkUserAndFetch();
   }, []);
 
-  // --- ACCIONES ADMIN ---
   const openEditModal = (e, libro) => {
     e.preventDefault();
     e.stopPropagation();
@@ -84,7 +80,7 @@ const Biblioteca = () => {
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
       <div className="animate-pulse text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
-        "Abriendo Archivos..."
+        Abriendo Archivos...
       </div>
     </div>
   );
@@ -99,7 +95,7 @@ const Biblioteca = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
               <button onClick={() => setShowEditModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">"Modificar Título"</h3>
+              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Modificar Título</h3>
               <form onSubmit={handleUpdateLibro} className="space-y-6">
                 <input autoFocus type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20">
@@ -118,7 +114,7 @@ const Biblioteca = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
               <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">"Nueva Crónica"</h3>
+              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nueva Crónica</h3>
               <form onSubmit={handleAddLibro} className="space-y-6">
                 <input autoFocus type="text" placeholder="TÍTULO DEL LIBRO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20">
@@ -130,7 +126,6 @@ const Biblioteca = () => {
         )}
       </AnimatePresence>
 
-      {/* ENCABEZADO */}
       <div className="max-w-6xl mx-auto pt-16 px-6 mb-12 flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3">
@@ -150,12 +145,10 @@ const Biblioteca = () => {
         )}
       </div>
 
-      {/* GRID DE LIBROS */}
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
         {libros.map((libro) => (
           <div key={libro.id} className="relative group">
             
-            {/* BOTÓN EDITAR (Siempre visible para Admin) */}
             {isAdmin && (
               <button 
                 onClick={(e) => openEditModal(e, libro)}
@@ -165,9 +158,8 @@ const Biblioteca = () => {
               </button>
             )}
 
-            <Link href={`/libros/${libro.id}`}>
+            <Link href={`/wiki/libros/${libro.id}`}>
               <motion.div whileHover={{ y: -10 }} className="cursor-pointer">
-                {/* PORTADA */}
                 <div className="relative aspect-[3/4] rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-white">
                   <img 
                     src={libro.portada_url || "/placeholder-cover.jpg"} 
@@ -181,15 +173,13 @@ const Biblioteca = () => {
                   </div>
                 </div>
 
-                {/* TEXTO INFRA-PORTADA */}
                 <div className="mt-6 px-2">
                   <h2 className="text-[#6B5E70] font-black uppercase text-base group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tight">
                     {libro.titulo}
                   </h2>
                   
-                  {/* SINÓPSIS ABAJO */}
                   <p className="text-[#6B5E70]/50 text-xs mt-2 line-clamp-3 italic leading-relaxed font-medium">
-                    "{libro.sinopsis}"
+                    &quot;{libro.sinopsis}&quot;
                   </p>
 
                   <div className="flex items-center gap-4 mt-4 text-[#6B5E70]/30 font-bold text-[9px] uppercase tracking-widest">
