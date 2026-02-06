@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/api/supabase';
 
 export const useRecursos = (tabla) => {
   const [items, setItems] = useState([]);
