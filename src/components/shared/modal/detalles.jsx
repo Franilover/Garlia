@@ -271,7 +271,7 @@ export default function DetalleMaestro({
                             className="flex items-center gap-3 bg-white border-2 border-primary/10 px-6 py-3 rounded-2xl shadow-sm"
                           >
                             <span className="text-sm font-black italic uppercase text-primary tracking-tighter">
-                              {data?.nombre} Audio {index + 1}
+                              {data?.nombre} {index + 1}
                             </span>
                             <Music size={16} className="text-primary/40" />
                           </motion.a>
