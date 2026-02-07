@@ -292,9 +292,9 @@ const Canciones = () => {
       <div className="max-w-6xl mx-auto pt-16 px-6 mb-12 flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3">
-            <Music size={32} /> MIS CANCIONES
+            <Music size={32} /> Soliloquios
           </h1>
-          <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2">Letras que nacen del alma</p>
+          <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2">Cover y reflexiones</p>
         </div>
         {isAdmin && (
           <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white p-4 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all z-50">
