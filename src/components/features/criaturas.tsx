@@ -76,7 +76,7 @@ export default function Criaturas() {
       <GalleryGrid 
         isDetailOpen={!!selected} 
         headerContent={
-          <PageHeader titulo="Bestiario" subtitulo="Descubre criaturas unicas">
+          <PageHeader titulo="Bestiario">
             <FiltrosMaestros 
               config={{
                 Hábitat: opciones.habitat,

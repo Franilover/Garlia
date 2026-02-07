@@ -68,7 +68,7 @@ export default function Inventario() {
       <GalleryGrid 
         isDetailOpen={!!selected} 
         headerContent={
-          <PageHeader titulo="Inventario" subtitulo="Objetos recopilados por Liam">
+          <PageHeader titulo="Inventario">
             <FiltrosMaestros 
               // Corregido: 'CategorÃ­as' -> 'Categorias'
               config={{ Categorias: opciones.categoria }}

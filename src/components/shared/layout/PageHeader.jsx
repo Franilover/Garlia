@@ -2,8 +2,7 @@ import { motion } from 'framer-motion';
 import { typography, components, animations } from '@/lib/config/design-system';
 
 export default function PageHeader({ 
-  titulo, 
-  subtitulo, 
+  titulo,  
   mostrarDivider = true,
   children // Para filtros u otros elementos
 }) {
@@ -13,10 +12,6 @@ export default function PageHeader({
       
       {mostrarDivider && (
         <div className={components.dividerThick + " mb-12"} />
-      )}
-      
-      {subtitulo && (
-        <p className="text-lg text-primary/60 mt-4">{subtitulo}</p>
       )}
       
       {children}

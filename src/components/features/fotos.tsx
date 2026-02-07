@@ -61,7 +61,7 @@ export default function Diario() {
       
       <GalleryGrid 
         headerContent={
-          <PageHeader titulo="Diario" subtitulo="Recuerdos">
+          <PageHeader titulo="Diario">
             <FiltrosMaestros 
               // Corregido: 'CategorÃ­as' -> 'Categorias'
               config={{ Categorias: CATEGORIAS.FOTOS }}

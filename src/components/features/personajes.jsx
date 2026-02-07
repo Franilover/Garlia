@@ -72,7 +72,7 @@ export default function PersonajesGrid() {
       <GalleryGrid
         isDetailOpen={!!selected}
         headerContent={
-          <PageHeader titulo="Personajes" subtitulo="Conoce a los habitantes de este jardin">
+          <PageHeader titulo="Personajes" >
             <FiltrosMaestros
               config={{
                 Reino: opciones.reino,
