@@ -88,7 +88,7 @@ export default function Relaciones({
         <div className="flex items-center gap-3">
           <Users size={18} className="text-primary/40" />
           <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-primary/60">
-            Círculo Social
+            Relaciones
           </h3>
         </div>
         
