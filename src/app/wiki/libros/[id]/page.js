@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/api/supabase';
 import { ChevronLeft, Play, ListOrdered, Plus, Trash2, X, Edit3, Save, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SmartImage } from '@/components/shared/display/SmartImage';
 
 export default function LibroDetalle() {
   const params = useParams();
@@ -14,7 +15,6 @@ export default function LibroDetalle() {
   const [libro, setLibro] = useState(null);
   const [capitulos, setCapitulos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -27,52 +27,58 @@ export default function LibroDetalle() {
   const [editCapFecha, setEditCapFecha] = useState("");
   const [procesando, setProcesando] = useState(false);
 
-  useEffect(() => {
-    const fetchDatosLibro = async () => {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        const esAdmin = !!session;
-        setIsAdmin(esAdmin);
+  // Memorizamos el fetch para poder reutilizarlo sin bucles
+  const fetchData = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      const esAdmin = !!session;
+      setIsAdmin(esAdmin);
 
-        const { data: libroData, error: libroError } = await supabase.from('libros').select('*').eq('id', id);
-        if (libroError || !libroData?.length) throw new Error("Archivo no encontrado.");
-        setLibro(libroData[0]);
+      // 1. Obtener datos del libro
+      const { data: libroData } = await supabase.from('libros').select('*').eq('id', id).single();
+      if (libroData) setLibro(libroData);
 
-        const hoy = new Date().toISOString().split('T')[0];
-        let query = supabase.from('capitulos')
-          .select('id, titulo_capitulo, orden, fecha_publicacion')
-          .eq('libro_id', id);
+      // 2. Obtener capítulos con lógica de visibilidad
+      const hoy = new Date().toISOString().split('T')[0];
+      let query = supabase.from('capitulos').select('*').eq('libro_id', id);
 
-        // FILTRO DE FECHA: Si no es admin, solo ve lo publicado hasta hoy
-        if (!esAdmin) {
-          query = query.lte('fecha_publicacion', hoy);
-        }
-
-        const { data: capsData } = await query.order('orden', { ascending: true });
-        setCapitulos(capsData || []);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      if (!esAdmin) {
+        query = query.lte('fecha_publicacion', hoy);
       }
-    };
-    fetchDatosLibro();
+
+      const { data: capsData } = await query.order('orden', { ascending: true });
+      setCapitulos(capsData || []);
+    } catch (err) {
+      console.error("Error cargando detalle:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleCrearCapitulo = async (e) => {
     e.preventDefault();
     if (!nuevoTitulo.trim() || procesando) return;
     setProcesando(true);
+    
     const { error } = await supabase.from('capitulos').insert([{ 
       libro_id: id, 
       titulo_capitulo: nuevoTitulo.toUpperCase(), 
       orden: capitulos.length + 1, 
-      contenido: "Nueva crÃ³nica...",
+      contenido: "Nueva crónica...",
       fecha_publicacion: nuevaFecha 
     }]);
-    if (!error) window.location.reload();
+
+    if (!error) {
+      setShowAddModal(false);
+      setNuevoTitulo("");
+      fetchData(); // Refresco suave en lugar de reload()
+    }
     setProcesando(false);
   };
 
@@ -84,15 +90,22 @@ export default function LibroDetalle() {
         titulo_capitulo: editCapTitle.toUpperCase(),
         fecha_publicacion: editCapFecha 
     }).eq('id', selectedCap.id);
-    if (!error) window.location.reload();
+
+    if (!error) {
+      setShowEditCapModal(false);
+      fetchData();
+    }
     setProcesando(false);
   };
 
   const deleteCapitulo = async () => {
-    if (!confirm("Â¿Deseas eliminar permanentemente este capÃ­tulo?")) return;
+    if (!confirm("¿Deseas eliminar permanentemente este capítulo?")) return;
     setProcesando(true);
     const { error } = await supabase.from('capitulos').delete().eq('id', selectedCap.id);
-    if (!error) window.location.reload();
+    if (!error) {
+      setShowEditCapModal(false);
+      fetchData();
+    }
     setProcesando(false);
   };
 
@@ -104,20 +117,25 @@ export default function LibroDetalle() {
     setShowEditCapModal(true);
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-[#FDFCFD] text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">Consultando archivos...</div>;
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-[#FDFCFD] text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
+      Consultando archivos...
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20 relative">
       
+      {/* MODAL: NUEVO CAPÍTULO */}
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10 text-center">
               <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nuevo CapÃ­tulo</h3>
+              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nuevo Capítulo</h3>
               <form onSubmit={handleCrearCapitulo} className="space-y-6">
-                <input autoFocus type="text" placeholder="TÃTULO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
+                <input autoFocus type="text" placeholder="TÍTULO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <div className="text-left">
                     <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Fecha de estreno</label>
                     <input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none" />
@@ -129,6 +147,7 @@ export default function LibroDetalle() {
         )}
       </AnimatePresence>
 
+      {/* MODAL: GESTIONAR CAPÍTULO */}
       <AnimatePresence>
         {showEditCapModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
@@ -136,7 +155,7 @@ export default function LibroDetalle() {
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
               <button onClick={() => setShowEditCapModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
               <div className="text-center mb-8">
-                <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">Gestionar CapÃ­tulo</h3>
+                <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">Gestionar Capítulo</h3>
               </div>
               <form onSubmit={handleUpdateCapitulo} className="space-y-6">
                 <input autoFocus type="text" value={editCapTitle} onChange={(e) => setEditCapTitle(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
@@ -163,13 +182,17 @@ export default function LibroDetalle() {
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[320px_1fr] gap-16 mt-4">
         <aside>
           <div className="aspect-[3/4] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-white">
-            <img src={libro?.portada_url || "/placeholder-cover.jpg"} alt={libro?.titulo} className="w-full h-full object-cover" />
+            <SmartImage 
+              src={libro?.portada_url || "/placeholder-cover.jpg"} 
+              alt={libro?.titulo} 
+              className="w-full h-full"
+            />
           </div>
           
           {libro?.fecha_proximo_capitulo && (
             <div className="mt-8 p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
                <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2">
-                 <Calendar size={12} /> PrÃ³ximo Capitulo
+                 <Calendar size={12} /> Próximo Capítulo
                </h4>
                <p className="text-[#6B5E70] font-bold text-sm">
                  {new Date(libro.fecha_proximo_capitulo).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
@@ -186,7 +209,7 @@ export default function LibroDetalle() {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-8 border-b border-[#6B5E70]/10 pb-4">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2"><ListOrdered size={16} /> Ãndice</h3>
+              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2"><ListOrdered size={16} /> Índice</h3>
               {isAdmin && (
                 <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"><Plus size={18} /></button>
               )}
@@ -202,8 +225,8 @@ export default function LibroDetalle() {
                     <div className="flex flex-col gap-1">
                         <span className="text-[#6B5E70] font-black uppercase text-[12px]">{cap.orden}. {cap.titulo_capitulo}</span>
                         <span className="text-[#6B5E70]/40 font-bold text-[9px] uppercase tracking-wider">
-                           {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "} 
-                           {new Date(cap.fecha_publicacion).toLocaleDateString('es-ES')}
+                            {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "} 
+                            {new Date(cap.fecha_publicacion).toLocaleDateString('es-ES')}
                         </span>
                     </div>
                     

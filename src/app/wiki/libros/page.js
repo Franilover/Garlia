@@ -1,16 +1,20 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/api/supabase';
-import { Book, ChevronRight, Clock, Plus, Edit3, X, Save } from 'lucide-react';
+import { Book, ChevronRight, Clock, Plus, Edit3, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/api/supabase';
+import { useSupabaseData } from '@/hooks/useSupabaseData'; // <--- Usamos tu Hook Maestro
+import { SmartImage } from '@/components/shared/display/SmartImage'; // <--- Usamos SmartImage
 
 const Biblioteca = () => {
-  const [libros, setLibros] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // 1. Usamos tu Hook Maestro para tener Realtime y Cache automático
+  const { data: libros, loading, setData: setLibros } = useSupabaseData('libros', {
+    order: { campo: 'created_at', asc: false }
+  });
+
   const [isAdmin, setIsAdmin] = useState(false);
-  
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   
@@ -19,20 +23,11 @@ const Biblioteca = () => {
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  useEffect(() => {
-    const checkUserAndFetch = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+  // Verificación de Admin (Mantenemos la lógica de sesión)
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setIsAdmin(true);
-
-      const { data, error } = await supabase
-        .from('libros')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (!error) setLibros(data);
-      setLoading(false);
-    };
-    checkUserAndFetch();
+    });
   }, []);
 
   const openEditModal = (e, libro) => {
@@ -47,13 +42,15 @@ const Biblioteca = () => {
     e.preventDefault();
     if (!editTitle.trim() || isUpdating) return;
     setIsUpdating(true);
+
     const { error } = await supabase
       .from('libros')
       .update({ titulo: editTitle.toUpperCase() })
       .eq('id', selectedLibro.id);
 
     if (!error) {
-      setLibros(libros.map(l => l.id === selectedLibro.id ? { ...l, titulo: editTitle.toUpperCase() } : l));
+      // Actualizamos el estado local y el caché global simultáneamente
+      setLibros(prev => prev.map(l => l.id === selectedLibro.id ? { ...l, titulo: editTitle.toUpperCase() } : l));
       setShowEditModal(false);
     }
     setIsUpdating(false);
@@ -63,14 +60,15 @@ const Biblioteca = () => {
     e.preventDefault();
     if (!nuevoTitulo.trim() || isUpdating) return;
     setIsUpdating(true);
+
     const { data, error } = await supabase.from('libros').insert([{ 
       titulo: nuevoTitulo.toUpperCase(),
-      sinopsis: "Nueva crÃ³nica por escribir...",
+      sinopsis: "Nueva crónica por escribir...",
       estado: "EN PROCESO"
     }]).select();
 
-    if (!error) {
-      setLibros([data[0], ...libros]);
+    if (!error && data) {
+      setLibros(prev => [data[0], ...prev]);
       setShowAddModal(false);
       setNuevoTitulo("");
     }
@@ -88,14 +86,14 @@ const Biblioteca = () => {
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20">
       
-      {/* MODAL: EDITAR TÃTULO */}
+      {/* MODALES (Edit y Add) - Sin cambios mayores, solo limpieza de encoding */}
       <AnimatePresence>
         {showEditModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
               <button onClick={() => setShowEditModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Modificar TÃ­tulo</h3>
+              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Modificar Título</h3>
               <form onSubmit={handleUpdateLibro} className="space-y-6">
                 <input autoFocus type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20">
@@ -107,16 +105,15 @@ const Biblioteca = () => {
         )}
       </AnimatePresence>
 
-      {/* MODAL: AÃADIR LIBRO */}
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
               <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nueva CrÃ³nica</h3>
+              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nueva Crónica</h3>
               <form onSubmit={handleAddLibro} className="space-y-6">
-                <input autoFocus type="text" placeholder="TÃTULO DEL LIBRO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
+                <input autoFocus type="text" placeholder="TÍTULO DEL LIBRO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20">
                   {isUpdating ? "Sellando..." : "Crear Libro"}
                 </button>
@@ -161,12 +158,13 @@ const Biblioteca = () => {
             <Link href={`/wiki/libros/${libro.id}`}>
               <motion.div whileHover={{ y: -10 }} className="cursor-pointer">
                 <div className="relative aspect-[3/4] rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-white">
-                  <img 
+                  {/* Cambio: Usamos SmartImage en lugar de img nativa */}
+                  <SmartImage 
                     src={libro.portada_url || "/placeholder-cover.jpg"} 
                     alt={libro.titulo}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="w-full h-full"
                   />
-                  <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full border border-[#6B5E70]/10">
+                  <div className="absolute top-6 left-6 z-20 bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full border border-[#6B5E70]/10">
                     <span className="text-[9px] font-black uppercase text-[#6B5E70] tracking-widest">
                       {libro.estado}
                     </span>

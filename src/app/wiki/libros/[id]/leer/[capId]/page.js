@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/api/supabase';
 import { ChevronLeft, ChevronRight, List, Save, Edit3, X } from 'lucide-react';
 import { cn } from "@/lib/utils"; 
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Lector() {
   const { id, capId } = useParams(); 
@@ -35,14 +36,14 @@ export default function Lector() {
           .maybeSingle();
 
         if (!capData) {
-          setError("CapÃ­tulo no encontrado");
+          setError("Capítulo no encontrado");
           return;
         }
 
-        // SEGURIDAD: Bloqueo si el capÃ­tulo es futuro y no es admin
+        // SEGURIDAD: Bloqueo si el capítulo es futuro y no es admin
         const hoy = new Date().toISOString().split('T')[0];
         if (!esAdmin && capData.fecha_publicacion > hoy) {
-          setError("Este capÃ­tulo aÃºn no ha sido revelado.");
+          setError("Este capítulo aún no ha sido revelado.");
           setLoading(false);
           return;
         }
@@ -50,7 +51,7 @@ export default function Lector() {
         setCapitulo(capData);
         setNuevoContenido(capData.contenido || ""); 
 
-        // LISTA DE NAVEGACIÃN (Solo capÃ­tulos permitidos)
+        // LISTA DE NAVEGACIÓN (Solo capítulos permitidos)
         let queryCaps = supabase.from('capitulos')
           .select('id, orden, fecha_publicacion')
           .eq('libro_id', id);
@@ -62,7 +63,7 @@ export default function Lector() {
         const { data: todosCaps } = await queryCaps.order('orden', { ascending: true });
         setListaCapitulos(todosCaps || []);
       } catch (err) {
-        setError("Error al cargar la crÃ³nica");
+        setError("Error al cargar la crónica");
       } finally {
         setLoading(false);
       }
@@ -79,7 +80,7 @@ export default function Lector() {
       .eq('id', capId);
 
     if (error) {
-      alert("Error: " + error.message);
+      alert("Error al guardar: " + error.message);
     } else {
       setCapitulo({ ...capitulo, contenido: nuevoContenido });
       setEditMode(false);
@@ -102,39 +103,43 @@ export default function Lector() {
   if (error) return (
     <div className="h-screen flex flex-col items-center justify-center bg-[#FDFCFD] text-[#6B5E70] p-6 text-center">
       <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">{error}</h2>
-      <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-[#6B5E70] pb-1">Volver al Ã­ndice</button>
+      <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-[#6B5E70] pb-1">Volver al índice</button>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-[#FDFCFD] text-[#2C262E] pb-24">
       
+      {/* PANEL DE ADMIN FLOTANTE */}
       {isAdmin && (
         <div className="fixed bottom-10 right-6 z-[100] flex flex-col gap-3">
-          {editMode ? (
-            <>
-              <button onClick={() => { setEditMode(false); setNuevoContenido(capitulo.contenido); }}
-                className="bg-red-500 text-white p-4 rounded-full shadow-xl active:scale-95 transition-all">
-                <X size={24} />
+          <AnimatePresence>
+            {editMode ? (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="flex flex-col gap-3">
+                <button onClick={() => { setEditMode(false); setNuevoContenido(capitulo.contenido); }}
+                  className="bg-white text-red-500 p-4 rounded-full shadow-xl border border-red-100 active:scale-95 transition-all">
+                  <X size={24} />
+                </button>
+                <button onClick={handleSave} disabled={saving}
+                  className="bg-[#6B5E70] text-white p-4 rounded-full shadow-xl active:scale-95 transition-all flex items-center gap-2">
+                  <Save size={24} />
+                  <span className="font-black text-[10px] uppercase pr-1">{saving ? "..." : "Guardar"}</span>
+                </button>
+              </motion.div>
+            ) : (
+              <button onClick={() => setEditMode(true)}
+                className="bg-white text-[#6B5E70] p-5 rounded-full shadow-2xl active:scale-95 transition-all border border-[#6B5E70]/10">
+                <Edit3 size={24} />
               </button>
-              <button onClick={handleSave} disabled={saving}
-                className="bg-green-500 text-white p-4 rounded-full shadow-xl active:scale-95 transition-all flex items-center gap-2">
-                <Save size={24} />
-                <span className="font-black text-[10px] uppercase pr-1">{saving ? "..." : "Guardar"}</span>
-              </button>
-            </>
-          ) : (
-            <button onClick={() => setEditMode(true)}
-              className="bg-[#6B5E70] text-white p-5 rounded-full shadow-2xl active:scale-95 transition-all border-4 border-white">
-              <Edit3 size={24} />
-            </button>
-          )}
+            )}
+          </AnimatePresence>
         </div>
       )}
 
+      {/* NAVBAR SUPERIOR */}
       <nav className="sticky top-0 z-[50] bg-[#FDFCFD]/80 backdrop-blur-md border-b border-[#6B5E70]/5 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70]">
+          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors">
             <ChevronLeft size={24} />
           </button>
           <div className="text-center">
@@ -142,7 +147,7 @@ export default function Lector() {
               {capitulo.libros?.titulo}
             </h2>
             <p className="text-[11px] font-bold text-[#6B5E70] uppercase">
-              CapÃ­tulo {capitulo.orden}
+              Capítulo {capitulo.orden}
             </p>
           </div>
           <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70]">
@@ -151,9 +156,10 @@ export default function Lector() {
         </div>
       </nav>
 
+      {/* CONTENIDO DEL CAPÍTULO */}
       <article className="max-w-2xl mx-auto px-6 py-12 md:py-20">
         <header className="mb-12 text-center">
-          <span className="text-[#6B5E70]/20 font-serif italic text-4xl block mb-2">Â§ {capitulo.orden}</span>
+          <span className="text-[#6B5E70]/20 font-serif italic text-4xl block mb-2">§ {capitulo.orden}</span>
           <h1 className="text-3xl md:text-4xl font-black text-[#6B5E70] tracking-tighter uppercase italic leading-none">
             {capitulo.titulo_capitulo}
           </h1>
@@ -164,22 +170,23 @@ export default function Lector() {
             <textarea
               value={nuevoContenido}
               onChange={(e) => setNuevoContenido(e.target.value)}
-              className="w-full min-h-[60vh] p-6 bg-white border border-[#6B5E70]/10 rounded-[2rem] font-serif text-lg leading-relaxed text-[#2C262E] focus:outline-none focus:border-[#6B5E70]/30 shadow-inner"
-              placeholder="Escribe aquÃ­ el contenido..."
+              className="w-full min-h-[60vh] p-8 bg-white border border-[#6B5E70]/10 rounded-[2.5rem] font-serif text-lg leading-relaxed text-[#2C262E] focus:outline-none focus:border-[#6B5E70]/30 shadow-inner"
+              placeholder="Escribe aquí el contenido..."
               autoFocus
             />
           ) : (
-            <div className="text-lg md:text-xl leading-[2] text-[#2C262E]/80 font-serif whitespace-pre-line first-letter:text-6xl first-letter:font-black first-letter:text-[#6B5E70] first-letter:mr-3 first-letter:float-left first-letter:mt-2">
+            <div className="text-lg md:text-xl leading-[2.2] text-[#2C262E]/90 font-serif whitespace-pre-line first-letter:text-7xl first-letter:font-black first-letter:text-[#6B5E70] first-letter:mr-4 first-letter:float-left first-letter:mt-3">
               {capitulo.contenido}
             </div>
           )}
         </div>
 
+        {/* NAVEGACIÓN ENTRE CAPÍTULOS */}
         {!editMode && (
           <footer className="mt-20 pt-10 border-t border-[#6B5E70]/10 flex flex-col items-center gap-8">
             <button onClick={() => router.push(`/wiki/libros/${id}`)}
               className="flex items-center gap-2 text-[#6B5E70]/40 hover:text-[#6B5E70] font-black text-[10px] uppercase tracking-widest transition-all">
-              <List size={16} /> Volver al Ãndice
+              <List size={16} /> Volver al Índice
             </button>
             
             <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
@@ -188,7 +195,7 @@ export default function Lector() {
                 disabled={!anteriorCap}
                 className={cn(
                   "p-5 rounded-2xl border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all",
-                  !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-[#6B5E70]/10 text-[#6B5E70]/60 active:scale-95"
+                  !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-[#6B5E70]/10 text-[#6B5E70]/60 hover:bg-[#6B5E70]/5 active:scale-95"
                 )}
               >
                 <ChevronLeft size={14} /> Anterior
@@ -196,7 +203,7 @@ export default function Lector() {
 
               <button 
                 onClick={() => siguienteCap ? router.push(`/wiki/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/libros/${id}`)}
-                className="p-5 rounded-2xl bg-[#6B5E70] text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+                className="p-5 rounded-2xl bg-[#6B5E70] text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg hover:shadow-[#6B5E70]/30 active:scale-95 transition-all"
               >
                 {siguienteCap ? "Siguiente" : "Finalizar"} <ChevronRight size={14} />
               </button>

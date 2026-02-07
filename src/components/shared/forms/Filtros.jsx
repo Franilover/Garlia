@@ -1,18 +1,31 @@
 "use client";
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export default function FiltrosMaestros({ config, filtrosActivos, onChange }) {
+export default function FiltrosMaestros({ config, filtrosActivos, onChange, loading = false }) {
+  
+  // Skeleton de carga para cuando loading es true
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto mb-16 px-6 flex justify-center gap-3">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-8 w-20 bg-primary/5 animate-pulse rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto mb-16 px-6 space-y-8">
       {Object.entries(config).map(([grupo, opciones]) => {
         
-        // --- ESTA ES LA LÃGICA DE ORDEN ---
+        // Ordenar opciones: "Todos" siempre primero, luego alfabético
         const opcionesOrdenadas = [...opciones].sort((a, b) => {
-          const valA = a.toLowerCase();
-          const valB = b.toLowerCase();
-          if (valA === 'todos') return -1; // "todos" va primero
-          if (valB === 'todos') return 1;  // si b es "todos", a va despuÃ©s
-          return valA.localeCompare(valB); // El resto en orden alfabÃ©tico
+          const valA = (typeof a === 'string' ? a : a.label).toLowerCase();
+          const valB = (typeof b === 'string' ? b : b.label).toLowerCase();
+          if (valA === 'todos') return -1;
+          if (valB === 'todos') return 1;
+          return valA.localeCompare(valB);
         });
 
         return (
@@ -24,22 +37,33 @@ export default function FiltrosMaestros({ config, filtrosActivos, onChange }) {
             )}
             
             <div className="flex flex-wrap justify-center gap-2">
-              {opcionesOrdenadas.map(opt => {
-                const isActive = filtrosActivos[grupo]?.toLowerCase() === opt.toLowerCase();
-                return (
-                  <button
-                    key={opt}
-                    onClick={() => onChange(grupo, opt)}
-                    className={`px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase transition-all border ${
-                      isActive 
-                      ? 'bg-primary text-white shadow-lg scale-105 border-primary' 
-                      : 'bg-white/50 text-primary/60 border-transparent hover:border-primary/20'
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
+              <AnimatePresence mode="popLayout">
+                {opcionesOrdenadas.map(opt => {
+                  // Manejo flexible de strings o objetos {id, label}
+                  const id = typeof opt === 'string' ? opt : opt.id;
+                  const label = typeof opt === 'string' ? opt : opt.label;
+                  
+                  const isActive = filtrosActivos[grupo]?.toLowerCase() === id.toLowerCase();
+
+                  return (
+                    <motion.button
+                      layout
+                      key={id}
+                      onClick={() => onChange(grupo, id)}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase transition-all border ${
+                        isActive 
+                        ? 'bg-primary text-white shadow-lg border-primary' 
+                        : 'bg-white/50 text-primary/60 border-transparent hover:border-primary/20'
+                      }`}
+                    >
+                      {label}
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </div>
         );
