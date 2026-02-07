@@ -1,49 +1,77 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/api/supabase';
-import { Users, Plus, Trash2 } from 'lucide-react';
+import { Users, Plus, Trash2, X } from 'lucide-react';
 
-export default function Relaciones({ nombrePersonaje, editMode = false }) {
-  const [lista, setLista] = useState([]);
-  const [loading, setLoading] = useState(false);
+interface Relacion {
+  id?: string;
+  sus: string;
+  son: string[];
+  personaje: string; // Este es el campo que causaba el conflicto
+}
 
-  // 1. Cargar relaciones
+export default function Relaciones({ 
+  nombrePersonaje, 
+  editMode = false 
+}: { 
+  nombrePersonaje: string; 
+  editMode?: boolean; 
+}) {
+  const [lista, setLista] = useState<Relacion[]>([]);
+  const [todosLosPersonajes, setTodosLosPersonajes] = useState<string[]>([]);
+
+  // 1. Cargar datos iniciales
   useEffect(() => {
-    async function cargarRelaciones() {
+    async function cargarDatos() {
       if (!nombrePersonaje) return;
-      const { data, error } = await supabase
+      
+      const { data: rels } = await supabase
         .from('relaciones')
-        .select('id, sus, son') 
-        .eq('personaje', nombrePersonaje); 
-
-      if (!error && data) {
-        setLista(data);
+        .select('id, sus, son')
+        .eq('personaje', nombrePersonaje);
+      
+      if (rels) {
+        // CORRECCIÓN AQUÍ: Añadimos 'personaje: nombrePersonaje' manualmente
+        // para cumplir con la interfaz Relacion.
+        const formateadas: Relacion[] = rels.map(r => ({
+          id: r.id,
+          sus: r.sus,
+          son: Array.isArray(r.son) ? r.son : [r.son],
+          personaje: nombrePersonaje // <-- Esto soluciona el error 2345
+        }));
+        setLista(formateadas);
       }
+
+      const { data: perjs } = await supabase
+        .from('personajes')
+        .select('nombre');
+      if (perjs) setTodosLosPersonajes(perjs.map(p => p.nombre));
     }
-    cargarRelaciones();
+    cargarDatos();
   }, [nombrePersonaje]);
 
-  // 2. Manejar cambios en los inputs (solo localmente hasta que se guarde en el padre)
-  const handleChange = (index, campo, valor) => {
+  // 2. Funciones de manejo
+  const agregarNombreARelacion = (index: number, nombreSeleccionado: string) => {
     const nuevaLista = [...lista];
-    if (campo === 'son') {
-      // Guardamos temporalmente como array para que sea compatible
-      nuevaLista[index][campo] = valor.split(',').map(s => s.trim());
-    } else {
-      nuevaLista[index][campo] = valor;
+    if (!nuevaLista[index].son.includes(nombreSeleccionado)) {
+      nuevaLista[index].son = [...nuevaLista[index].son, nombreSeleccionado];
+      setLista(nuevaLista);
     }
+  };
+
+  const quitarNombreDeRelacion = (indexRel: number, nombreAQuitar: string) => {
+    const nuevaLista = [...lista];
+    nuevaLista[indexRel].son = nuevaLista[indexRel].son.filter(n => n !== nombreAQuitar);
     setLista(nuevaLista);
   };
 
-  // 3. Añadir nueva fila de relación
-  const añadirRelacion = () => {
-    setLista([...lista, { sus: "VÍNCULO", son: [], personaje: nombrePersonaje }]);
-  };
-
-  // 4. Eliminar relación
-  const eliminarRelacion = async (index, id) => {
+  const eliminarFilaCompleta = async (index: number, id?: string) => {
     if (id) {
-      await supabase.from('relaciones').delete().eq('id', id);
+      const { error } = await supabase.from('relaciones').delete().eq('id', id);
+      if (error) {
+        console.error("Error al borrar relación:", error);
+        return;
+      }
     }
     setLista(lista.filter((_, i) => i !== index));
   };
@@ -55,11 +83,12 @@ export default function Relaciones({ nombrePersonaje, editMode = false }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-primary/30">
           <Users size={14} />
-          <span className="text-[10px] font-black uppercase tracking-widest">Relaciones</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-primary">Relaciones</span>
         </div>
         {editMode && (
           <button 
-            onClick={añadirRelacion}
+            type="button"
+            onClick={() => setLista([...lista, { sus: "VÍNCULO", son: [], personaje: nombrePersonaje }])}
             className="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-colors"
           >
             <Plus size={12} />
@@ -69,46 +98,69 @@ export default function Relaciones({ nombrePersonaje, editMode = false }) {
       
       <div className="flex flex-wrap gap-3">
         {lista.map((rel, index) => (
-          <div key={index} className="bg-white border-2 border-primary/5 p-4 rounded-3xl flex flex-col shadow-sm min-w-[140px] relative group">
-            
+          <div 
+            key={index} 
+            className="bg-white border-2 border-primary/5 p-4 rounded-3xl flex flex-col shadow-sm min-w-50 relative group"
+          >
             {editMode ? (
-              /* --- MODO EDICIÓN --- */
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <button 
-                  onClick={() => eliminarRelacion(index, rel.id)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  type="button"
+                  onClick={() => eliminarFilaCompleta(index, rel.id)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
                 >
                   <Trash2 size={10} />
                 </button>
+
                 <input 
                   value={rel.sus}
-                  onChange={(e) => handleChange(index, 'sus', e.target.value)}
-                  className="text-[9px] font-bold uppercase text-slate-400 bg-transparent border-b border-primary/10 outline-none focus:border-primary w-full"
-                  placeholder="Ej: AMIGOS"
+                  onChange={(e) => {
+                    const nl = [...lista];
+                    nl[index].sus = e.target.value;
+                    setLista(nl);
+                  }}
+                  className="text-[9px] font-bold uppercase text-slate-400 bg-transparent border-b border-primary/10 outline-none w-full"
+                  placeholder="VÍNCULO"
                 />
-                <textarea 
-                  value={Array.isArray(rel.son) ? rel.son.join(", ") : rel.son}
-                  onChange={(e) => handleChange(index, 'son', e.target.value)}
-                  className="text-xs font-black uppercase italic text-slate-800 bg-transparent outline-none w-full min-h-[40px] resize-none"
-                  placeholder="Nombre 1, Nombre 2"
-                />
+
+                <div className="flex flex-wrap gap-1">
+                  {rel.son.map((n, i) => (
+                    <span key={i} className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
+                      {n}
+                      <button 
+                        type="button" 
+                        onClick={() => quitarNombreDeRelacion(index, n)}
+                        className="hover:text-red-500 transition-colors"
+                      >
+                        <X size={8} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+
+                <select 
+                  onChange={(e) => agregarNombreARelacion(index, e.target.value)}
+                  className="w-full text-xs font-black uppercase italic text-slate-800 bg-slate-50 p-2 rounded-xl outline-none cursor-pointer border-none"
+                  value=""
+                >
+                  <option value="" disabled>+ Añadir Personaje</option>
+                  {todosLosPersonajes
+                    .filter(nombre => nombre !== nombrePersonaje)
+                    .map(nombre => (
+                      <option key={nombre} value={nombre}>{nombre}</option>
+                    ))
+                  }
+                </select>
               </div>
             ) : (
-              /* --- MODO LECTURA --- */
               <>
-                <span className="text-[9px] font-bold uppercase text-primary/40 tracking-wider mb-1">
-                  {rel.sus}
-                </span>
+                <span className="text-[9px] font-bold uppercase text-primary/40 mb-1">{rel.sus}</span>
                 <div className="flex flex-col">
-                  {Array.isArray(rel.son) ? rel.son.map((nombre, i) => (
-                    <span key={i} className="text-xs font-black uppercase italic text-primary tracking-tighter leading-tight">
+                  {rel.son.map((nombre, i) => (
+                    <span key={i} className="text-xs font-black uppercase italic text-primary leading-tight">
                       {nombre}
                     </span>
-                  )) : (
-                    <span className="text-xs font-black uppercase italic text-primary tracking-tighter">
-                      {rel.son}
-                    </span>
-                  )}
+                  ))}
                 </div>
               </>
             )}
