@@ -11,7 +11,7 @@ import {
   User, LogOut, Plus, ChevronDown, Smile, 
   ImageIcon, Camera, Sparkles, 
   Users, CircleUser, Flower2, Sword,
-  Footprints, Package, Map, BookOpen
+  Footprints, Package, Map, BookOpen, Music // Importamos Music
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -40,7 +40,6 @@ const Navbar = () => {
 
   const isInSection = (paths) => paths.some(path => currentPath?.startsWith(path));
 
-  // Cambié los colores fijos por tus variables de tailwind.css
   const navContent = useMemo(() => (
     <div className="flex w-full items-center justify-around px-2 h-full">
       <button onClick={() => user ? setUserMenuOpen(!userMenuOpen) : window.location.href="/auth/login"} className="grow flex justify-center">
@@ -65,7 +64,7 @@ const Navbar = () => {
       </button>
 
       <button onClick={() => setOpenSubmenu(openSubmenu === 'lore' ? null : 'lore')} className="grow flex justify-center">
-        <Map size={22} className={isInSection(['/wiki/mapa', '/wiki/libros']) ? "text-primary" : "text-primary/30"} />
+        <Map size={22} className={isInSection(['/wiki/mapa', '/wiki/libros', '/wiki/canciones']) ? "text-primary" : "text-primary/30"} />
       </button>
     </div>
   ), [currentPath, openSubmenu, user, puedeSubir, userMenuOpen]);
@@ -123,10 +122,11 @@ const Navbar = () => {
             />
             <PCGroup 
               label="Extra" 
-              active={isInSection(['/wiki/mapa', '/wiki/libros'])} 
+              active={isInSection(['/wiki/mapa', '/wiki/libros', '/wiki/canciones'])} 
               items={[
                 { href: '/wiki/mapa', label: 'Mapa', icon: <Map size={14}/> }, 
-                { href: '/wiki/libros', label: 'Libros', icon: <BookOpen size={14}/> }
+                { href: '/wiki/libros', label: 'Libros', icon: <BookOpen size={14}/> },
+                { href: '/wiki/canciones', label: 'Canciones', icon: <Music size={14}/> } // Añadido en PC
               ]} 
               currentPath={currentPath} 
             />
@@ -184,9 +184,10 @@ const Navbar = () => {
               )}
 
               {openSubmenu === 'lore' && (
-                <div className="grid grid-cols-2 gap-2"> 
+                <div className="grid grid-cols-3 gap-2"> {/* Cambiado a 3 columnas para que quepan bien */}
                   <MobileSubItem href="/wiki/mapa" label="Mapa" active={currentPath === '/wiki/mapa'} icon={<Map size={18}/>} onClick={closeAll} />
                   <MobileSubItem href="/wiki/libros" label="Libros" active={currentPath === '/wiki/libros'} icon={<BookOpen size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/wiki/canciones" label="Canciones" active={currentPath === '/wiki/canciones'} icon={<Music size={18}/>} onClick={closeAll} />
                 </div>
               )}
             </motion.div>
@@ -207,7 +208,7 @@ const PCGroup = ({ label, items, active, currentPath }) => (
       {label} <ChevronDown size={10} className="group-hover:rotate-180 transition-transform" />
     </button>
     <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all">
-      <div className="bg-white border border-primary/10 p-2 rounded-2xl shadow-xl min-w-170px">
+      <div className="bg-white border border-primary/10 p-2 rounded-2xl shadow-xl min-w-[170px]">
         {items.map((item, i) => (
           <Link key={i} href={item.href} className={cn("flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase rounded-xl transition-all", currentPath === item.href ? "bg-primary text-white" : "text-primary/40 hover:bg-primary/5")}>
             {item.icon} {item.label}

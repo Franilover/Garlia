@@ -64,8 +64,7 @@ export default function CancionDetalle() {
         return;
       }
 
-      // LÓGICA DE PRIVACIDAD:
-      // Si la canción no es visible y no eres admin, bloqueamos el acceso
+      // LÓGICA DE PRIVACIDAD
       if (!cancionData.visible && !adminStatus) {
         setErrorAcceso(true);
         setLoading(false);
@@ -93,20 +92,28 @@ export default function CancionDetalle() {
     fetchData();
   }, [fetchData]);
 
-  // FUNCIONES DE GESTIÓN (SOLO ADMIN)
+  // FUNCIONES DE GESTIÓN (CORREGIDAS)
   const handleCrearSeccion = async (e) => {
     e.preventDefault();
     if (!nuevoNombre.trim() || !nuevaLetra.trim() || procesando) return;
     setProcesando(true);
     
-    const { error } = await supabase.from('secciones_cancion').insert([{ 
-      cancion_id: id, 
-      nombre_seccion: nuevoNombre.toUpperCase(), 
+    // Objeto de inserción explícito
+    const datosNuevos = {
+      cancion_id: id,
+      nombre_seccion: nuevoNombre.toUpperCase(),
       letra: nuevaLetra,
       orden: secciones.length + 1
-    }]);
+    };
 
-    if (!error) {
+    const { error } = await supabase
+      .from('secciones_cancion')
+      .insert([datosNuevos]);
+
+    if (error) {
+      console.error("Error de Supabase (400):", error.message, error.details);
+      alert("No se pudo guardar la letra. Revisa si la columna 'orden' existe en Supabase.");
+    } else {
       setShowAddModal(false);
       setNuevoNombre("");
       setNuevaLetra("");
@@ -128,7 +135,9 @@ export default function CancionDetalle() {
       })
       .eq('id', selectedSec.id);
 
-    if (!error) {
+    if (error) {
+      console.error("Error al actualizar:", error.message);
+    } else {
       setShowEditSecModal(false);
       fetchData();
     }
@@ -161,7 +170,6 @@ export default function CancionDetalle() {
     }
   };
 
-  // PANTALLA DE CARGA
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
       <div className="text-center">
@@ -169,13 +177,12 @@ export default function CancionDetalle() {
           <Music size={32} />
         </div>
         <div className="animate-pulse text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
-          Afinando instrumentos...
+          Afining instruments...
         </div>
       </div>
     </div>
   );
 
-  // PANTALLA DE ERROR / PRIVACIDAD
   if (errorAcceso) return (
     <div className="h-screen flex flex-col items-center justify-center bg-[#FDFCFD] px-6 text-center">
       <div className="bg-red-50 p-8 rounded-[3rem] border border-red-100 max-w-sm">
@@ -250,27 +257,16 @@ export default function CancionDetalle() {
         )}
       </AnimatePresence>
 
-      {/* BOTÓN VOLVER */}
-      <button 
-        onClick={() => router.push('/wiki/canciones')} 
-        className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase group transition-colors"
-      >
+      <button onClick={() => router.push('/wiki/canciones')} className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase group transition-colors">
         <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Volver al Cancionero
       </button>
 
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4">
-        
-        {/* COLUMNA IZQUIERDA: INFO */}
         <aside className="space-y-6">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/5 to-[#6B5E70]/20"
-          >
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/5 to-[#6B5E70]/20">
             <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo} className="w-full h-full object-cover" />
           </motion.div>
 
-          {/* INDICADOR OCULTO (Solo Admin) */}
           {isAdmin && !cancion?.visible && (
             <div className="p-4 bg-slate-800 text-white rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl">
               <EyeOff size={16} />
@@ -286,79 +282,44 @@ export default function CancionDetalle() {
 
           {cancion?.personaje && (
             <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
-              <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2">
-                <User size={12} /> Personaje
-              </h4>
+              <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2"><User size={12} /> Personaje</h4>
               <p className="text-[#6B5E70] font-bold text-sm">{cancion.personaje}</p>
             </div>
           )}
 
           {cancion?.inspiracion && (
             <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
-              <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2">
-                <Sparkles size={12} /> Inspiración
-              </h4>
-              <p className="text-[#6B5E70]/70 text-sm leading-relaxed italic font-medium">
-                &quot;{cancion.inspiracion}&quot;
-              </p>
+              <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2"><Sparkles size={12} /> Inspiración</h4>
+              <p className="text-[#6B5E70]/70 text-sm leading-relaxed italic font-medium">&quot;{cancion.inspiracion}&quot;</p>
             </div>
           )}
         </aside>
 
-        {/* COLUMNA DERECHA: LETRA */}
         <main>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-12"
-          >
-            <h1 className="text-5xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.9] mb-4 uppercase">
-              {cancion?.titulo}
-            </h1>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
+            <h1 className="text-5xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.9] mb-4 uppercase">{cancion?.titulo}</h1>
             <div className="h-1 w-20 bg-[#6B5E70]/10 rounded-full" />
           </motion.div>
 
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-8 border-b border-[#6B5E70]/10 pb-4">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2">
-                <List size={16} /> Letra y Estructura
-              </h3>
+              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2"><List size={16} /> Letra y Estructura</h3>
               {isAdmin && (
-                <button 
-                  onClick={() => setShowAddModal(true)} 
-                  className="bg-[#6B5E70] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform active:scale-90"
-                >
-                  <Plus size={18} />
-                </button>
+                <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform active:scale-90"><Plus size={18} /></button>
               )}
             </div>
 
             <div className="space-y-8">
               {secciones.map((seccion, index) => (
-                <motion.div 
-                  key={seccion.id} 
-                  initial={{ opacity: 0, y: 20 }} 
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="relative group"
-                >
+                <motion.div key={seccion.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="relative group">
                   <div className="bg-white border border-[#6B5E70]/5 rounded-3xl p-8 hover:border-[#6B5E70]/20 transition-all hover:shadow-xl hover:shadow-[#6B5E70]/5">
                     <div className="flex items-center justify-between mb-6">
-                      <span className="bg-[#6B5E70]/5 text-[#6B5E70] px-3 py-1 rounded-lg font-black text-[9px] tracking-widest uppercase">
-                        {seccion.nombre_seccion}
-                      </span>
+                      <span className="bg-[#6B5E70]/5 text-[#6B5E70] px-3 py-1 rounded-lg font-black text-[9px] tracking-widest uppercase">{seccion.nombre_seccion}</span>
                       {isAdmin && (
-                        <button 
-                          onClick={() => openEditSec(seccion)} 
-                          className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <Edit3 size={14} />
-                        </button>
+                        <button onClick={() => openEditSec(seccion)} className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"><Edit3 size={14} /></button>
                       )}
                     </div>
-                    <div className="text-[#6B5E70] text-base md:text-lg leading-loose font-medium whitespace-pre-wrap font-serif italic">
-                      {seccion.letra}
-                    </div>
+                    <div className="text-[#6B5E70] text-base md:text-lg leading-loose font-medium whitespace-pre-wrap font-serif italic">{seccion.letra}</div>
                   </div>
                 </motion.div>
               ))}
@@ -367,16 +328,9 @@ export default function CancionDetalle() {
             {secciones.length === 0 && (
               <div className="text-center py-20 bg-[#6B5E70]/5 rounded-[3rem] border-2 border-dashed border-[#6B5E70]/10">
                 <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
-                <p className="text-[#6B5E70]/40 font-bold uppercase text-sm tracking-widest mb-6">
-                  El lienzo está en blanco
-                </p>
+                <p className="text-[#6B5E70]/40 font-bold uppercase text-sm tracking-widest mb-6">El lienzo está en blanco</p>
                 {isAdmin && (
-                  <button 
-                    onClick={() => setShowAddModal(true)} 
-                    className="bg-[#6B5E70] text-white px-8 py-3 rounded-full font-black uppercase text-[10px] shadow-lg hover:scale-105 transition-transform"
-                  >
-                    Escribir primer verso
-                  </button>
+                  <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white px-8 py-3 rounded-full font-black uppercase text-[10px] shadow-lg hover:scale-105 transition-transform">Escribir primer verso</button>
                 )}
               </div>
             )}
