@@ -1,0 +1,379 @@
+"use client";
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { Music, ChevronRight, Plus, Edit3, X, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/api/supabase';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { SmartImage } from '@/components/shared/display/SmartImage';
+
+const Canciones = () => {
+  const { data: canciones, loading, setData: setCanciones } = useSupabaseData('canciones', {
+    order: { campo: 'created_at', asc: false }
+  });
+
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  
+  const [selectedCancion, setSelectedCancion] = useState(null);
+  const [editTitulo, setEditTitulo] = useState("");
+  const [editPersonaje, setEditPersonaje] = useState("");
+  const [editEstado, setEditEstado] = useState("BORRADOR");
+  const [editInspiracion, setEditInspiracion] = useState("");
+  
+  const [nuevoTitulo, setNuevoTitulo] = useState("");
+  const [nuevoPersonaje, setNuevoPersonaje] = useState("");
+  const [nuevaInspiracion, setNuevaInspiracion] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setIsAdmin(true);
+    });
+  }, []);
+
+  const openEditModal = (e, cancion) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedCancion(cancion);
+    setEditTitulo(cancion.titulo);
+    setEditPersonaje(cancion.personaje || "");
+    setEditEstado(cancion.estado || "BORRADOR");
+    setEditInspiracion(cancion.inspiracion || "");
+    setShowEditModal(true);
+  };
+
+  const handleUpdateCancion = async (e) => {
+    e.preventDefault();
+    if (!editTitulo.trim() || isUpdating) return;
+    setIsUpdating(true);
+
+    const { error } = await supabase
+      .from('canciones')
+      .update({ 
+        titulo: editTitulo.toUpperCase(),
+        personaje: editPersonaje,
+        estado: editEstado,
+        inspiracion: editInspiracion
+      })
+      .eq('id', selectedCancion.id);
+
+    if (!error) {
+      setCanciones(prev => prev.map(c => 
+        c.id === selectedCancion.id 
+          ? { ...c, titulo: editTitulo.toUpperCase(), personaje: editPersonaje, estado: editEstado, inspiracion: editInspiracion } 
+          : c
+      ));
+      setShowEditModal(false);
+    }
+    setIsUpdating(false);
+  };
+
+  const handleAddCancion = async (e) => {
+    e.preventDefault();
+    if (!nuevoTitulo.trim() || isUpdating) return;
+    setIsUpdating(true);
+
+    const { data, error } = await supabase.from('canciones').insert([{ 
+      titulo: nuevoTitulo.toUpperCase(),
+      personaje: nuevoPersonaje || null,
+      inspiracion: nuevaInspiracion || "Nueva canción en proceso...",
+      estado: "BORRADOR",
+      portada_url: "/placeholder-cover.jpg"
+    }]).select();
+
+    if (!error && data) {
+      setCanciones(prev => [data[0], ...prev]);
+      setShowAddModal(false);
+      setNuevoTitulo("");
+      setNuevoPersonaje("");
+      setNuevaInspiracion("");
+    }
+    setIsUpdating(false);
+  };
+
+  const getEstadoColor = (estado) => {
+    switch(estado) {
+      case 'TERMINADA': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
+      case 'EN PROCESO': return 'bg-amber-50 text-amber-600 border-amber-200';
+      default: return 'bg-slate-50 text-slate-600 border-slate-200';
+    }
+  };
+
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
+      <div className="animate-pulse text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
+        Abriendo Partituras...
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#FDFCFD] pb-20">
+      
+      {/* MODAL: EDITAR CANCIÓN */}
+      <AnimatePresence>
+        {showEditModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setShowEditModal(false)} 
+              className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }} 
+              className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10"
+            >
+              <button 
+                onClick={() => setShowEditModal(false)} 
+                className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"
+              >
+                <X size={20} />
+              </button>
+              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">
+                Modificar Canción
+              </h3>
+              <form onSubmit={handleUpdateCancion} className="space-y-6">
+                <div>
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Título</label>
+                  <input 
+                    autoFocus 
+                    type="text" 
+                    value={editTitulo} 
+                    onChange={(e) => setEditTitulo(e.target.value)} 
+                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" 
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Personaje</label>
+                  <input 
+                    type="text" 
+                    value={editPersonaje} 
+                    onChange={(e) => setEditPersonaje(e.target.value)} 
+                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70]" 
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Estado</label>
+                  <select 
+                    value={editEstado} 
+                    onChange={(e) => setEditEstado(e.target.value)}
+                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase"
+                  >
+                    <option value="BORRADOR">BORRADOR</option>
+                    <option value="EN PROCESO">EN PROCESO</option>
+                    <option value="TERMINADA">TERMINADA</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Inspiración</label>
+                  <textarea 
+                    value={editInspiracion} 
+                    onChange={(e) => setEditInspiracion(e.target.value)} 
+                    rows={3}
+                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none" 
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20"
+                >
+                  {isUpdating ? "Guardando..." : "Actualizar Canción"}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: NUEVA CANCIÓN */}
+      <AnimatePresence>
+        {showAddModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setShowAddModal(false)} 
+              className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }} 
+              className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10"
+            >
+              <button 
+                onClick={() => setShowAddModal(false)} 
+                className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"
+              >
+                <X size={20} />
+              </button>
+              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">
+                Nueva Canción
+              </h3>
+              <form onSubmit={handleAddCancion} className="space-y-6">
+                <div>
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Título</label>
+                  <input 
+                    autoFocus 
+                    type="text" 
+                    placeholder="TÍTULO DE LA CANCIÓN..." 
+                    value={nuevoTitulo} 
+                    onChange={(e) => setNuevoTitulo(e.target.value)} 
+                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" 
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Personaje (opcional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="¿A quién pertenece?" 
+                    value={nuevoPersonaje} 
+                    onChange={(e) => setNuevoPersonaje(e.target.value)} 
+                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70]" 
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Inspiración (opcional)</label>
+                  <textarea 
+                    placeholder="¿Qué te inspiró a escribirla?" 
+                    value={nuevaInspiracion} 
+                    onChange={(e) => setNuevaInspiracion(e.target.value)} 
+                    rows={3}
+                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none" 
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20"
+                >
+                  {isUpdating ? "Creando..." : "Crear Canción"}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* HEADER */}
+      <div className="max-w-6xl mx-auto pt-16 px-6 mb-12 flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3">
+            <Music size={32} /> MIS CANCIONES
+          </h1>
+          <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2">
+            Letras que nacen del alma
+          </p>
+        </div>
+        {isAdmin && (
+          <button 
+            onClick={() => setShowAddModal(true)} 
+            className="bg-[#6B5E70] text-white p-4 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all z-50"
+          >
+            <Plus size={24} />
+          </button>
+        )}
+      </div>
+
+      {/* GRID DE CANCIONES */}
+      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+        {canciones.map((cancion) => (
+          <div key={cancion.id} className="relative group">
+            
+            {isAdmin && (
+              <button 
+                onClick={(e) => openEditModal(e, cancion)}
+                className="absolute top-4 right-4 z-[100] bg-white text-[#6B5E70] p-4 rounded-full shadow-2xl border-2 border-[#6B5E70]/10 hover:scale-110 active:scale-90 transition-all flex items-center justify-center"
+              >
+                <Edit3 size={18} />
+              </button>
+            )}
+
+            <Link href={`/wiki/canciones/${cancion.id}`}>
+              <motion.div whileHover={{ y: -10 }} className="cursor-pointer">
+                <div className="relative aspect-square rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/5 to-[#6B5E70]/20">
+                  <SmartImage 
+                    src={cancion.portada_url || "/placeholder-cover.jpg"} 
+                    alt={cancion.titulo}
+                    className="w-full h-full object-cover"
+                  />
+                  
+                  {/* Badge de estado */}
+                  <div className={`absolute top-6 left-6 z-20 backdrop-blur-md px-4 py-1.5 rounded-full border ${getEstadoColor(cancion.estado)}`}>
+                    <span className="text-[9px] font-black uppercase tracking-widest">
+                      {cancion.estado}
+                    </span>
+                  </div>
+
+                  {/* Badge de personaje */}
+                  {cancion.personaje && (
+                    <div className="absolute top-6 right-6 z-20 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#6B5E70]/10 flex items-center gap-1.5">
+                      <User size={10} className="text-[#6B5E70]" />
+                      <span className="text-[9px] font-bold text-[#6B5E70]">
+                        {cancion.personaje}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 px-2">
+                  <h2 className="text-[#6B5E70] font-black uppercase text-base group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tight">
+                    {cancion.titulo}
+                  </h2>
+                  
+                  {cancion.inspiracion && (
+                    <p className="text-[#6B5E70]/50 text-xs mt-2 line-clamp-2 italic leading-relaxed font-medium">
+                      &quot;{cancion.inspiracion}&quot;
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-4 mt-4 text-[#6B5E70]/30 font-bold text-[9px] uppercase tracking-widest">
+                    <span className="flex items-center gap-1.5">
+                      <Music size={12} /> Ver Letra
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <ChevronRight size={12} /> Abrir
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            </Link>
+          </div>
+        ))}
+      </div>
+
+      {canciones.length === 0 && (
+        <div className="text-center mt-20">
+          <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
+          <p className="text-[#6B5E70]/40 font-bold uppercase text-sm tracking-widest">
+            Aún no hay canciones
+          </p>
+          {isAdmin && (
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="mt-6 bg-[#6B5E70] text-white px-8 py-3 rounded-full font-black uppercase text-[10px] shadow-lg hover:scale-105 transition-transform"
+            >
+              Crear Primera Canción
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Canciones;
