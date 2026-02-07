@@ -67,7 +67,7 @@ export default function MapaInteractivo() {
 
   return (
     /* MAPA: Bordes rectos y sin sombras exteriores */
-    <div className="relative w-full h-auto min-h-[500px] overflow-hidden bg-[#F8F5F2] border-b border-[#6B5E70]/10">
+    <div className="relative w-full h-auto min-h-500px overflow-hidden bg-[#F8F5F2] border-b border-[#6B5E70]/10">
       
       <QuickPinchZoom 
         onUpdate={onUpdate} 
@@ -106,9 +106,9 @@ export default function MapaInteractivo() {
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.95 }}
-            className="absolute bottom-6 left-6 right-6 md:left-1/2 md:-translate-x-1/2 md:w-[650px] bg-white border border-[#6B5E70]/20 rounded-[2.5rem] z-50 overflow-hidden shadow-[0_20px_50px_rgba(107,94,112,0.3)]"
+            className="absolute bottom-6 left-6 right-6 md:left-1/2 md:-translate-x-1/2 md:w-650px bg-white border border-[#6B5E70]/20 rounded-[2.5rem] z-50 overflow-hidden shadow-[0_20px_50px_rgba(107,94,112,0.3)]"
           >
-            <div className="flex flex-col md:flex-row min-h-[240px]">
+            <div className="flex flex-col md:flex-row min-h-240px">
               
               {/* IMAGEN DEL REINO (Izquierda) */}
               <div className="w-full md:w-2/5 h-44 md:h-auto bg-[#6B5E70]/5 relative">
@@ -128,7 +128,7 @@ export default function MapaInteractivo() {
                 </button>
 
                 <div className="mb-2 flex items-center gap-2">
-                   <div className="h-[1px] w-4 bg-[#6B5E70]/30" />
+                   <div className="h-1px w-4 bg-[#6B5E70]/30" />
                    <span className="text-[8px] font-black text-[#6B5E70]/40 uppercase tracking-widest">Territorio de Omnisia</span>
                 </div>
 

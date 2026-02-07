@@ -10,7 +10,11 @@ export const ArtCard = ({ src, title, subtitle, color, onClick }) => {
       color={color} 
       onClick={onClick}
     >
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-5">
+      {/* Ajuste: He bajado la intensidad del gradiente aquí porque 
+          GalleryItem ya tiene su propio overlay. 
+          Así evitamos que la imagen se vea demasiado oscura.
+      */}
+      <div className="flex flex-col justify-end h-full">
         <p className="text-[8px] font-black text-white/50 uppercase tracking-[0.2em] mb-1">
           {subtitle}
         </p>
@@ -20,4 +24,4 @@ export const ArtCard = ({ src, title, subtitle, color, onClick }) => {
       </div>
     </GalleryItem>
   );
-};
+}

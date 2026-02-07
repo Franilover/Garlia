@@ -1,17 +1,17 @@
 "use client";
 import React, { useState, useCallback, useMemo } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 import { Sparkles } from 'lucide-react'; 
+import { SmartImage } from './SmartImage'; // <--- Importamos tu nuevo componente
 
-// --- DEFINICIÃN DE TIPOS (Interfaces) ---
+// --- DEFINICIÓN DE TIPOS ---
 
 interface GalleryGridProps {
   children: React.ReactNode;
   headerContent?: React.ReactNode;
   className?: string;
-  isDetailOpen?: boolean; // Prop que pedÃ­a criaturas.tsx
+  isDetailOpen?: boolean;
 }
 
 interface GalleryItemProps {
@@ -30,11 +30,9 @@ export const GalleryGrid = ({
   children, 
   headerContent, 
   className,
-  isDetailOpen: isDetailOpenExternal // Recibimos la prop del padre si existe
+  isDetailOpen: isDetailOpenExternal 
 }: GalleryGridProps) => {
   const [isDetailOpenInternal, setIsDetailOpenInternal] = useState(false);
-
-  // Usamos el estado externo si viene definido, si no, el interno
   const isDetailOpen = isDetailOpenExternal !== undefined ? isDetailOpenExternal : isDetailOpenInternal;
 
   const handleOpenDetail = useCallback(() => {
@@ -92,7 +90,7 @@ export const GalleryGrid = ({
   );
 };
 
-// --- GALLERY ITEM ---
+// --- GALLERY ITEM (Optimizado con SmartImage) ---
 
 export const GalleryItem = React.memo(({ 
   src, 
@@ -124,14 +122,13 @@ export const GalleryItem = React.memo(({
       )}
     >
       {tieneImagen ? (
-        <Image 
+        <SmartImage 
           src={src as string} 
           alt={alt || "Archivo Visual"} 
-          fill 
-          sizes="(max-width: 768px) 50vw, 20vw"
+          contain={contain}
           className={cn(
-            "transition-all duration-700 group-hover:scale-105",
-            contain ? "object-contain p-8 mix-blend-multiply" : "object-cover grayscale-[0.2] group-hover:grayscale-0"
+            "w-full h-full transition-all duration-700 group-hover:scale-110",
+            contain ? "p-8 mix-blend-multiply" : "grayscale-[0.2] group-hover:grayscale-0"
           )}
         />
       ) : (
@@ -143,12 +140,13 @@ export const GalleryItem = React.memo(({
             </div>
           </div>
           <p className="text-[8px] font-black text-[#6b6681]/60 uppercase tracking-[0.4em]">
-            "InÃ©dito"
+            "Inédito"
           </p>
         </div>
       )}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 z-20" />
+      {/* Overlay gradiente para legibilidad del texto */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-60 group-hover:opacity-80 transition-opacity z-20 pointer-events-none" />
 
       <div className="absolute bottom-7 left-7 right-7 transition-all duration-500 z-30 text-white">
         <div className="group-hover:translate-y-[-2px] transition-transform duration-500">

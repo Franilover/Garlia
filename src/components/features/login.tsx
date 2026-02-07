@@ -1,41 +1,62 @@
 "use client";
-import React, { useState } from 'react';
-import { supabase } from '@/lib/api/supabase';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from "react";
+import { supabase } from "@/lib/api/supabase";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState(''); 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState(""); 
   const [isRegistering, setIsRegistering] = useState(false);
-  const [mensaje, setMensaje] = useState('');
+  const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // --- OPTIMIZACIÃN: Clases para formularios ---
+  // --- ESTILOS ---
   const labelStyle = "block text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 mb-2 ml-1";
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    setMensaje('');
+    setMensaje("");
     setLoading(true);
 
     try {
       if (isRegistering) {
+        // 1. Registro en Supabase Auth
         const { data, error } = await supabase.auth.signUp({ 
-          email, password,
-          options: { data: { display_name: username }, emailRedirectTo: window.location.origin }
+          email, 
+          password,
+          options: { 
+            data: { display_name: username }, 
+            emailRedirectTo: window.location.origin 
+          }
         });
+
         if (error) throw error;
+
+        // 2. Creación del perfil en la tabla 'perfiles'
+        // Cambiado 'nombre' por 'username' para coincidir con tu captura de pantalla
         if (data.user) {
-          await supabase.from('perfiles').upsert({ id: data.user.id, nombre: username });
-          setMensaje('Â¡Revisa tu correo para confirmar!');
+          const { error: profileError } = await supabase
+            .from("perfiles")
+            .upsert({ 
+              id: data.user.id, 
+              username: username, 
+              email: email,
+              status: "Explorador Novato", // Valor por defecto según tu imagen
+              rol: "user" // O el rol por defecto que prefieras
+            });
+          
+          if (profileError) throw profileError;
+          setMensaje("¡Revisa tu correo para confirmar tu cuenta!");
         }
       } else {
+        // Inicio de sesión
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.push('/');
+        
+        router.push("/");
         router.refresh();
       }
     } catch (err) {
@@ -46,22 +67,24 @@ export default function LoginPage() {
   };
 
   return (
-    // bg-bg-main unificado
     <main className="min-h-screen flex items-center justify-center bg-bg-main px-4">
       <motion.div 
         initial={{ opacity: 0, y: 20 }} 
         animate={{ opacity: 1, y: 0 }}
-        // Reemplazamos card-franilover por card-main y forzamos bg-white para legibilidad
-        className="w-full max-w-md card-main !bg-white shadow-2xl p-8 md:p-12"
+        className="w-full max-w-md card-main bg-white shadow-2xl p-8 md:p-12"
       >
         <h1 className="text-3xl md:text-4xl font-black italic text-primary uppercase tracking-tighter text-center mb-10">
-          {isRegistering ? 'Crear Cuenta' : 'Iniciar SesiÃ³n'}
+          {isRegistering ? "Crear Cuenta" : "Iniciar Sesión"}
         </h1>
 
         <form onSubmit={handleAuth} className="space-y-6">
           <AnimatePresence mode="popLayout">
             {isRegistering && (
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                exit={{ opacity: 0, x: 10 }}
+              >
                 <label className={labelStyle}>Nombre de Usuario</label>
                 <input
                   type="text"
@@ -88,10 +111,10 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className={labelStyle}>ContraseÃ±a</label>
+            <label className={labelStyle}>Contraseña</label>
             <input
               type="password"
-              placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input-brand"
@@ -99,22 +122,29 @@ export default function LoginPage() {
             />
           </div>
           
-          <button disabled={loading} className="btn-brand w-full mt-4 uppercase text-xs tracking-widest">
-            {loading ? 'Procesando...' : isRegistering ? 'Registrarse' : 'Entrar'}
+          <button 
+            disabled={loading} 
+            className="btn-brand w-full mt-4 uppercase text-xs tracking-widest disabled:opacity-50"
+          >
+            {loading ? "Procesando..." : isRegistering ? "Registrarse" : "Entrar"}
           </button>
         </form>
 
         {mensaje && (
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 text-[10px] text-center text-primary font-black uppercase italic border-t border-primary/10 pt-4">
+          <motion.p 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            className="mt-6 text-[10px] text-center text-primary font-black uppercase italic border-t border-primary/10 pt-4"
+          >
             {mensaje}
           </motion.p>
         )}
 
         <button 
-          onClick={() => { setIsRegistering(!isRegistering); setMensaje(''); }}
+          onClick={() => { setIsRegistering(!isRegistering); setMensaje(""); }}
           className="w-full mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-all underline decoration-1 underline-offset-8"
         >
-          {isRegistering ? 'Â¿Ya tienes cuenta? Entra aquÃ­' : 'Â¿No tienes cuenta? RegÃ­strate'}
+          {isRegistering ? "¿Ya tienes cuenta? Entra aquí" : "¿No tienes cuenta? Regístrate"}
         </button>
       </motion.div>
     </main>

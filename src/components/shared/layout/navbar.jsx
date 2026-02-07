@@ -147,7 +147,7 @@ const Navbar = () => {
         animate={{ y: isVisible ? 0 : 120, opacity: isVisible ? 1 : 0 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
-        <nav className="bg-bg-main/95 backdrop-blur-xl border border-primary/20 shadow-2xl h-[60px] rounded-4xl flex items-center justify-center overflow-hidden w-full">
+        <nav className="bg-bg-main/95 backdrop-blur-xl border border-primary/20 shadow-2xl h-60px rounded-4xl flex items-center justify-center overflow-hidden w-full">
           {navContent}
         </nav>
 
@@ -207,7 +207,7 @@ const PCGroup = ({ label, items, active, currentPath }) => (
       {label} <ChevronDown size={10} className="group-hover:rotate-180 transition-transform" />
     </button>
     <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all">
-      <div className="bg-white border border-primary/10 p-2 rounded-2xl shadow-xl min-w-[170px]">
+      <div className="bg-white border border-primary/10 p-2 rounded-2xl shadow-xl min-w-170px">
         {items.map((item, i) => (
           <Link key={i} href={item.href} className={cn("flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase rounded-xl transition-all", currentPath === item.href ? "bg-primary text-white" : "text-primary/40 hover:bg-primary/5")}>
             {item.icon} {item.label}

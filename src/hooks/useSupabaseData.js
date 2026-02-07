@@ -1,26 +1,29 @@
 "use client";
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/api/supabase';
 import { useDataCache } from '@/components/features/control/DataContext';
 
 /**
- * HOOK MAESTRO: useSupabaseData (v13.0 - Realtime + Cache)
- * Gestiona la sincronizaciÃ³n total entre Supabase, el Cache Global y la UI.
+ * HOOK MAESTRO: useSupabaseData (v13.1 - Optimizado)
+ * Gestiona la sincronización total entre Supabase, el Cache Global y la UI.
  */
 export function useSupabaseData(tabla, opciones = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // 1. Estados locales sincronizados con el CachÃ© Global
+  // 1. Estados locales sincronizados
   const [data, setData] = useState(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState(null);
 
-  const opcionesKey = JSON.stringify(opciones);
+  // Serializamos las opciones para comparar valores reales, no referencias de objetos
+  const opcionesKey = useMemo(() => JSON.stringify(opciones), [opciones]);
 
-  // 2. FunciÃ³n de carga (Fetch) con soporte para forzar refresco
+  // 2. Función de carga (Fetch)
+  // Quitamos 'cache' de las dependencias de useCallback para evitar bucles, 
+  // ya que solo lo necesitamos para la validación inicial del estado.
   const fetchData = useCallback(async (forceRefresh = false) => {
-    // Si ya hay cachÃ© y no forzamos, salimos para evitar trÃ¡fico innecesario
-    if (cache[tabla] && !forceRefresh) {
+    // Si ya hay datos en caché y no forzamos, no hacemos nada
+    if (cache[tabla] && !forceRefresh && !loading) {
       setLoading(false);
       return;
     }
@@ -29,11 +32,13 @@ export function useSupabaseData(tabla, opciones = {}) {
     setError(null);
     
     try {
-      let query = supabase.from(tabla).select(opciones.select || '*');
+      // Parseamos opcionesKey para obtener los valores actuales
+      const opt = JSON.parse(opcionesKey);
+      let query = supabase.from(tabla).select(opt.select || '*');
       
-      if (opciones.order) {
-        query = query.order(opciones.order.campo, { 
-          ascending: opciones.order.asc ?? true 
+      if (opt.order) {
+        query = query.order(opt.order.campo, { 
+          ascending: opt.order.asc ?? true 
         });
       }
       
@@ -51,38 +56,31 @@ export function useSupabaseData(tabla, opciones = {}) {
     } finally {
       setLoading(false);
     }
-  }, [tabla, opcionesKey, cache, updateCache]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabla, opcionesKey, updateCache]); 
 
-  // 3. EFECTO REAL-TIME: Escucha cambios en la DB (INSERT, UPDATE, DELETE)
+  // 3. EFECTO DE CARGA Y REAL-TIME
   useEffect(() => {
-    fetchData(); // Carga inicial
+    fetchData(); // Se dispara si cambia la tabla o las opciones (opcionesKey)
 
-    // Creamos el canal de suscripciÃ³n para la tabla
     const channel = supabase
       .channel(`custom-all-channel-${tabla}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: tabla },
         (payload) => {
-          console.log(`ð Cambio detectado en ${tabla}:`, payload);
-          
-          /**
-           * Al detectar un cambio, forzamos un refetch suave.
-           * Esto asegura que los filtros y el orden se mantengan perfectos
-           * segÃºn la lÃ³gica de la base de datos.
-           */
-          fetchData(true); 
+          console.log(`🔔 Cambio detectado en ${tabla}:`, payload);
+          fetchData(true); // Refetch suave ante cambios en la DB
         }
       )
       .subscribe();
 
-    // Limpieza al desmontar el componente
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchData, tabla]);
+  }, [fetchData, tabla]); // fetchData ya incluye la sensibilidad a opcionesKey
 
-  // 4. Actualizador manual sincronizado con el Cache Maestro
+  // 4. Actualizador manual sincronizado
   const setSyncedData = useCallback((newDataOrFn) => {
     setData(prev => {
       const resolvedData = typeof newDataOrFn === 'function' ? newDataOrFn(prev) : newDataOrFn;
