@@ -112,7 +112,7 @@ const Navbar = () => {
               currentPath={currentPath} 
             />
             <PCGroup 
-              label="Gremio" 
+              label="Wiki" 
               active={isInSection(['/wiki/personajes', '/wiki/items', '/wiki/criaturas'])} 
               items={[
                 { href: '/wiki/personajes', label: 'Personajes', icon: <Users size={14}/> }, 
@@ -122,7 +122,7 @@ const Navbar = () => {
               currentPath={currentPath} 
             />
             <PCGroup 
-              label="Bitácora" 
+              label="Extra" 
               active={isInSection(['/wiki/mapa', '/wiki/libros'])} 
               items={[
                 { href: '/wiki/mapa', label: 'Mapa', icon: <Map size={14}/> }, 
