@@ -14,7 +14,6 @@ export default function DetalleMaestro({
   mostrarMusica = true, 
   onUpdate 
 }) {
-  // Ahora extraemos también editCanciones y setEditCanciones del Hook
   const {
     isAdmin,
     editMode,
@@ -43,7 +42,7 @@ export default function DetalleMaestro({
         initial={{ opacity: 0, y: 20 }} 
         animate={{ opacity: 1, y: 0 }} 
         exit={{ opacity: 0, y: -20 }}
-        className="max-w-7xl mx-auto mb-16 relative pt-24 px-4" // Añadido pt-24 para la Navbar
+        className="max-w-7xl mx-auto mb-16 relative pt-24 px-4"
       >
         <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl flex flex-col lg:flex-row min-h-[500px] relative">
           
@@ -87,7 +86,7 @@ export default function DetalleMaestro({
           <div className="w-full lg:w-1/2 p-8 md:p-12 lg:pl-10 lg:pr-16 flex flex-col justify-center bg-bg-main/5">
             
             {editMode ? (
-              /* --- VISTA EDICIÓN --- */
+              /* --- VISTA EDICIÓN CORREGIDA --- */
               <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-primary/40 ml-2">Nombre del Sujeto</label>
@@ -95,7 +94,7 @@ export default function DetalleMaestro({
                     value={editNombre}
                     disabled={!!varianteActiva}
                     onChange={(e) => setEditNombre(e.target.value)}
-                    className="text-3xl font-black uppercase italic text-primary w-full bg-white border-2 border-primary/10 p-4 rounded-2xl outline-none focus:border-primary"
+                    className="text-3xl font-black uppercase italic text-slate-900 w-full bg-white border-2 border-primary/10 p-4 rounded-2xl outline-none focus:border-primary"
                   />
                 </div>
 
@@ -104,28 +103,28 @@ export default function DetalleMaestro({
                   <textarea 
                     value={editDescripcion}
                     onChange={(e) => setEditDescripcion(e.target.value)}
-                    className="text-primary/80 text-base italic leading-snug w-full bg-white border-2 border-primary/10 p-4 rounded-2xl outline-none focus:border-primary min-h-[150px]"
+                    className="text-slate-800 text-base italic leading-snug w-full bg-white border-2 border-primary/10 p-4 rounded-2xl outline-none focus:border-primary min-h-[150px]"
                   />
                 </div>
 
-                {/* EDITAR CANCIONES (Solo si no es variante) */}
+                {/* EDITAR CANCIONES - Mejorado para visibilidad */}
                 {!varianteActiva && (
-                  <div className="space-y-2 bg-primary/5 p-4 rounded-[2rem] border border-primary/10">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="space-y-2 bg-slate-50 p-5 rounded-[2.5rem] border border-primary/10">
+                    <div className="flex items-center gap-2 mb-1 px-1">
                       <Music size={14} className="text-primary" />
-                      <label className="text-[10px] font-black uppercase text-primary">Temas Musicales (URLs)</label>
+                      <label className="text-[10px] font-black uppercase text-primary/60">Temas Musicales (URLs)</label>
                     </div>
                     <textarea 
                       value={editCanciones}
                       onChange={(e) => setEditCanciones(e.target.value)}
                       placeholder="/wiki/canciones/nombre, /wiki/canciones/otro"
-                      className="w-full text-[11px] font-mono p-3 bg-white border border-primary/10 rounded-xl outline-none focus:border-primary"
+                      className="w-full text-[12px] font-mono p-4 bg-white border border-primary/10 rounded-2xl outline-none focus:border-primary text-slate-900 min-h-[90px] shadow-inner"
                     />
-                    <p className="text-[8px] text-primary/40 uppercase font-bold italic">* Separa varios enlaces con una coma (,)</p>
+                    <p className="text-[9px] text-primary/40 uppercase font-black italic px-2">* Separa los links con comas (,)</p>
                   </div>
                 )}
 
-                {/* EDITAR RELACIONES (Pasamos editMode para que el componente relaciones.js sepa qué mostrar) */}
+                {/* EDITAR RELACIONES */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-primary/40 ml-2 tracking-tighter">Panel de Conexiones</label>
                   <div className="p-4 bg-white border-2 border-primary/5 rounded-[2rem]">
