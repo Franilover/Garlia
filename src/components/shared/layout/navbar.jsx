@@ -43,7 +43,7 @@ const Navbar = () => {
   // Cambié los colores fijos por tus variables de tailwind.css
   const navContent = useMemo(() => (
     <div className="flex w-full items-center justify-around px-2 h-full">
-      <button onClick={() => user ? setUserMenuOpen(!userMenuOpen) : window.location.href="/wiki/login"} className="grow flex justify-center">
+      <button onClick={() => user ? setUserMenuOpen(!userMenuOpen) : window.location.href="/auth/login"} className="grow flex justify-center">
         <User size={22} className={user || userMenuOpen ? "text-primary" : "text-primary/30"} />
       </button>
 
@@ -97,7 +97,7 @@ const Navbar = () => {
                   )}
                 </AnimatePresence>
               </div>
-            ) : <Link href="/wiki/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">Entrar</Link>}
+            ) : <Link href="/auth/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">Entrar</Link>}
           </div>
 
           <nav className="flex items-center gap-1 bg-primary/5 p-1 rounded-2xl border border-primary/10">
