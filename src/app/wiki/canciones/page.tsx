@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Music, ChevronRight, Plus, Edit3, X, User } from 'lucide-react';
+import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/api/supabase';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { SmartImage } from '@/components/shared/display/SmartImage';
 
 const Canciones = () => {
+  // Cargamos los datos de Supabase
   const { data: canciones, loading, setData: setCanciones } = useSupabaseData('canciones', {
     order: { campo: 'created_at', asc: false }
   });
@@ -17,12 +18,15 @@ const Canciones = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   
+  // Estados para la edición
   const [selectedCancion, setSelectedCancion] = useState(null);
   const [editTitulo, setEditTitulo] = useState("");
   const [editPersonaje, setEditPersonaje] = useState("");
   const [editEstado, setEditEstado] = useState("BORRADOR");
   const [editInspiracion, setEditInspiracion] = useState("");
+  const [editVisible, setEditVisible] = useState(false); // Nuevo campo de visibilidad
   
+  // Estados para nueva canción
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [nuevoPersonaje, setNuevoPersonaje] = useState("");
   const [nuevaInspiracion, setNuevaInspiracion] = useState("");
@@ -34,6 +38,12 @@ const Canciones = () => {
     });
   }, []);
 
+  // LÓGICA DE FILTRADO: 
+  // Si es Admin ve todas. Si no, solo las que tengan visible: true
+  const cancionesAMostrar = isAdmin 
+    ? canciones 
+    : canciones.filter(c => c.visible === true);
+
   const openEditModal = (e, cancion) => {
     e.preventDefault();
     e.stopPropagation();
@@ -42,6 +52,7 @@ const Canciones = () => {
     setEditPersonaje(cancion.personaje || "");
     setEditEstado(cancion.estado || "BORRADOR");
     setEditInspiracion(cancion.inspiracion || "");
+    setEditVisible(cancion.visible || false); // Cargamos el valor de visibilidad
     setShowEditModal(true);
   };
 
@@ -56,14 +67,15 @@ const Canciones = () => {
         titulo: editTitulo.toUpperCase(),
         personaje: editPersonaje,
         estado: editEstado,
-        inspiracion: editInspiracion
+        inspiracion: editInspiracion,
+        visible: editVisible // Actualizamos visibilidad
       })
       .eq('id', selectedCancion.id);
 
     if (!error) {
       setCanciones(prev => prev.map(c => 
         c.id === selectedCancion.id 
-          ? { ...c, titulo: editTitulo.toUpperCase(), personaje: editPersonaje, estado: editEstado, inspiracion: editInspiracion } 
+          ? { ...c, titulo: editTitulo.toUpperCase(), personaje: editPersonaje, estado: editEstado, inspiracion: editInspiracion, visible: editVisible } 
           : c
       ));
       setShowEditModal(false);
@@ -81,7 +93,8 @@ const Canciones = () => {
       personaje: nuevoPersonaje || null,
       inspiracion: nuevaInspiracion || "Nueva canción en proceso...",
       estado: "BORRADOR",
-      portada_url: "/placeholder-cover.jpg"
+      portada_url: "/placeholder-cover.jpg",
+      visible: false // Por defecto ocultas al crear
     }]).select();
 
     if (!error && data) {
@@ -140,6 +153,25 @@ const Canciones = () => {
                 Modificar Canción
               </h3>
               <form onSubmit={handleUpdateCancion} className="space-y-6">
+                
+                {/* Switch de Visibilidad */}
+                <div className="flex items-center justify-between p-4 bg-[#6B5E70]/5 rounded-2xl border border-[#6B5E70]/10">
+                  <div className="flex items-center gap-3">
+                    {editVisible ? <Eye size={18} className="text-emerald-500"/> : <EyeOff size={18} className="text-slate-400"/>}
+                    <span className="text-[10px] font-black text-[#6B5E70] uppercase tracking-wider">Pública</span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setEditVisible(!editVisible)}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editVisible ? 'bg-[#6B5E70]' : 'bg-slate-300'}`}
+                  >
+                    <motion.div 
+                      animate={{ x: editVisible ? 24 : 4 }}
+                      className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                    />
+                  </button>
+                </div>
+
                 <div>
                   <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Título</label>
                   <input 
@@ -172,16 +204,6 @@ const Canciones = () => {
                     <option value="EN PROCESO">EN PROCESO</option>
                     <option value="TERMINADA">TERMINADA</option>
                   </select>
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Inspiración</label>
-                  <textarea 
-                    value={editInspiracion} 
-                    onChange={(e) => setEditInspiracion(e.target.value)} 
-                    rows={3}
-                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none" 
-                  />
                 </div>
 
                 <button 
@@ -291,20 +313,28 @@ const Canciones = () => {
 
       {/* GRID DE CANCIONES */}
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-        {canciones.map((cancion) => (
+        {cancionesAMostrar.map((cancion) => (
           <div key={cancion.id} className="relative group">
             
             {isAdmin && (
-              <button 
-                onClick={(e) => openEditModal(e, cancion)}
-                className="absolute top-4 right-4 z-[100] bg-white text-[#6B5E70] p-4 rounded-full shadow-2xl border-2 border-[#6B5E70]/10 hover:scale-110 active:scale-90 transition-all flex items-center justify-center"
-              >
-                <Edit3 size={18} />
-              </button>
+              <div className="absolute top-4 right-4 z-[100] flex gap-2">
+                {/* Indicador de oculto para el admin */}
+                {!cancion.visible && (
+                  <div className="bg-[#6B5E70] text-white p-2 px-3 rounded-full text-[8px] font-black uppercase flex items-center gap-1.5 shadow-xl border border-white/20">
+                    <EyeOff size={12} /> Oculto
+                  </div>
+                )}
+                <button 
+                  onClick={(e) => openEditModal(e, cancion)}
+                  className="bg-white text-[#6B5E70] p-4 rounded-full shadow-2xl border-2 border-[#6B5E70]/10 hover:scale-110 active:scale-90 transition-all flex items-center justify-center"
+                >
+                  <Edit3 size={18} />
+                </button>
+              </div>
             )}
 
             <Link href={`/wiki/canciones/${cancion.id}`}>
-              <motion.div whileHover={{ y: -10 }} className="cursor-pointer">
+              <motion.div whileHover={{ y: -10 }} className={`cursor-pointer ${!cancion.visible && isAdmin ? 'opacity-70' : ''}`}>
                 <div className="relative aspect-square rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/5 to-[#6B5E70]/20">
                   <SmartImage 
                     src={cancion.portada_url || "/placeholder-cover.jpg"} 
@@ -356,11 +386,11 @@ const Canciones = () => {
         ))}
       </div>
 
-      {canciones.length === 0 && (
+      {cancionesAMostrar.length === 0 && (
         <div className="text-center mt-20">
           <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
           <p className="text-[#6B5E70]/40 font-bold uppercase text-sm tracking-widest">
-            Aún no hay canciones
+            {isAdmin ? "Aún no hay canciones" : "No hay canciones publicadas"}
           </p>
           {isAdmin && (
             <button 
