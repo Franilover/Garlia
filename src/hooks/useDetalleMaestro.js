@@ -13,6 +13,9 @@ export function useDetalleMaestro(data, onUpdate) {
   const [editNombre, setEditNombre] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
   const [editCanciones, setEditCanciones] = useState(""); 
+  
+  // NUEVO: Estado para capturar las relaciones desde el componente hijo
+  const [editRelaciones, setEditRelaciones] = useState([]);
 
   const prevIdRef = useRef(null);
 
@@ -33,12 +36,10 @@ export function useDetalleMaestro(data, onUpdate) {
     if (!error && data?.id === id) setVariantes(vars || []);
   };
 
-  // Sincronización corregida: Se ejecuta al cambiar data O al entrar en editMode
   useEffect(() => {
     if (data) {
       const esNuevoItem = prevIdRef.current !== data.id;
 
-      // Si es nuevo o si acabamos de activar el modo edición, rellenamos los campos
       if (esNuevoItem || editMode) {
         setEditNombre(data.nombre || "");
         setEditDescripcion(data.sobre || data.descripcion || "");
@@ -63,6 +64,7 @@ export function useDetalleMaestro(data, onUpdate) {
       const tablaPrincipal = data.img_url ? 'personajes' : 'criaturas';
 
       if (varianteActiva) {
+        // --- GUARDAR EN VARIANTE ---
         await supabase
           .from('criatura_variantes')
           .update({ descripcion_variante: editDescripcion })
@@ -72,10 +74,11 @@ export function useDetalleMaestro(data, onUpdate) {
           v.id === varianteActiva.id ? {...v, descripcion_variante: editDescripcion} : v
         ));
       } else {
+        // --- GUARDAR EN PERSONAJE/CRIATURA PRINCIPAL ---
         const cancionesArray = editCanciones
           .split(',')
           .map(link => link.trim())
-          .filter(link => link !== "");
+          .filter(link => link !== "" && link.includes('/'));
 
         const updates = {
           nombre: editNombre,
@@ -91,6 +94,29 @@ export function useDetalleMaestro(data, onUpdate) {
           .single();
 
         if (error) throw error;
+
+        // --- GUARDAR RELACIONES (Lógica de Upsert) ---
+        if (editRelaciones.length > 0) {
+          for (const rel of editRelaciones) {
+            if (rel.id) {
+              // Si ya tiene ID, actualizamos
+              await supabase
+                .from('relaciones')
+                .update({ sus: rel.sus, son: rel.son })
+                .eq('id', rel.id);
+            } else {
+              // Si no tiene ID, es nueva
+              await supabase
+                .from('relaciones')
+                .insert({ 
+                  personaje: data.nombre, 
+                  sus: rel.sus, 
+                  son: rel.son 
+                });
+            }
+          }
+        }
+
         if (onUpdate) onUpdate(updatedDB || { ...data, ...updates });
       }
       setEditMode(false);
@@ -105,6 +131,7 @@ export function useDetalleMaestro(data, onUpdate) {
     isAdmin, editMode, setEditMode, saving, handleSave,
     variantes, varianteActiva, setVarianteActiva,
     editNombre, setEditNombre, editDescripcion, setEditDescripcion,
-    editCanciones, setEditCanciones
+    editCanciones, setEditCanciones,
+    setEditRelaciones // Lo exportamos para que DetalleMaestro pueda usarlo
   };
 }

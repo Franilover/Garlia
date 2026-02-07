@@ -7,16 +7,21 @@ interface Relacion {
   id?: string;
   sus: string;
   son: string[];
-  personaje: string; // Este es el campo que causaba el conflicto
+  personaje: string;
+}
+
+interface RelacionesProps {
+  nombrePersonaje: string;
+  editMode?: boolean;
+  // Añadimos esta prop para avisar al padre de los cambios
+  onChange?: (lista: Relacion[]) => void;
 }
 
 export default function Relaciones({ 
   nombrePersonaje, 
-  editMode = false 
-}: { 
-  nombrePersonaje: string; 
-  editMode?: boolean; 
-}) {
+  editMode = false,
+  onChange 
+}: RelacionesProps) {
   const [lista, setLista] = useState<Relacion[]>([]);
   const [todosLosPersonajes, setTodosLosPersonajes] = useState<string[]>([]);
 
@@ -31,13 +36,11 @@ export default function Relaciones({
         .eq('personaje', nombrePersonaje);
       
       if (rels) {
-        // CORRECCIÓN AQUÍ: Añadimos 'personaje: nombrePersonaje' manualmente
-        // para cumplir con la interfaz Relacion.
         const formateadas: Relacion[] = rels.map(r => ({
           id: r.id,
           sus: r.sus,
           son: Array.isArray(r.son) ? r.son : [r.son],
-          personaje: nombrePersonaje // <-- Esto soluciona el error 2345
+          personaje: nombrePersonaje
         }));
         setLista(formateadas);
       }
@@ -50,7 +53,15 @@ export default function Relaciones({
     cargarDatos();
   }, [nombrePersonaje]);
 
-  // 2. Funciones de manejo
+  // 2. NOTIFICAR AL PADRE: Cada vez que la lista cambie localmente, 
+  // enviamos la copia actualizada al padre si estamos en modo edición.
+  useEffect(() => {
+    if (editMode && onChange) {
+      onChange(lista);
+    }
+  }, [lista, editMode, onChange]);
+
+  // 3. Funciones de manejo
   const agregarNombreARelacion = (index: number, nombreSeleccionado: string) => {
     const nuevaLista = [...lista];
     if (!nuevaLista[index].son.includes(nombreSeleccionado)) {
@@ -66,6 +77,7 @@ export default function Relaciones({
   };
 
   const eliminarFilaCompleta = async (index: number, id?: string) => {
+    // Si tiene ID, lo borramos de la DB directamente
     if (id) {
       const { error } = await supabase.from('relaciones').delete().eq('id', id);
       if (error) {
@@ -119,7 +131,7 @@ export default function Relaciones({
                     nl[index].sus = e.target.value;
                     setLista(nl);
                   }}
-                  className="text-[9px] font-bold uppercase text-slate-400 bg-transparent border-b border-primary/10 outline-none w-full"
+                  className="text-[9px] font-bold uppercase text-slate-800 bg-transparent border-b border-primary/10 outline-none w-full"
                   placeholder="VÍNCULO"
                 />
 
