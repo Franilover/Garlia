@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link'; // Importado para navegación interna
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Music, Edit3, Save, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/api/supabase';
@@ -25,7 +26,7 @@ export default function DetalleMaestro({
   const [editNombre, setEditNombre] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
 
-  // --- PUNTO #5: REFERENCIA PARA EVITAR RE-FETCH INNECESARIO ---
+  // Referencia para evitar re-fetch innecesario
   const prevIdRef = useRef(null);
 
   // Verificar admin
@@ -45,20 +46,17 @@ export default function DetalleMaestro({
       .select('*')
       .eq('criatura_id', id);
     
-    // Solo actualizamos si el ID solicitado sigue siendo el ID actual del componente
     if (!error && data?.id === id) {
       setVariantes(vars || []);
     }
   };
 
-  // --- LÃGICA DE SINCRONIZACIÃN MAESTRA (Punto #5) ---
+  // Lógica de sincronización maestra
   useEffect(() => {
     if (data) {
-      // Comprobamos si realmente es un item diferente
       const esNuevoItem = prevIdRef.current !== data.id;
 
       if (esNuevoItem) {
-        // RESET TOTAL: Solo ocurre cuando cambias de cromo en el grid
         setEditNombre(data.nombre || "");
         setEditDescripcion(data.sobre || data.descripcion || "");
         setEditMode(false);
@@ -68,11 +66,8 @@ export default function DetalleMaestro({
         if (!data.img_url) {
           fetchVariantes(data.id);
         }
-        // Actualizamos el registro del ID actual
         prevIdRef.current = data.id;
       } else {
-        // ACTUALIZACIÃN SILENCIOSA: Si es el mismo ID (despuÃ©s de un Guardar)
-        // Solo actualizamos si el usuario no estÃ¡ escribiendo activamente
         if (!editMode) {
           setEditNombre(data.nombre || "");
           setEditDescripcion(data.sobre || data.descripcion || "");
@@ -83,7 +78,7 @@ export default function DetalleMaestro({
     }
   }, [data, editMode]);
 
-  // Sincronizar descripciÃ³n al cambiar entre variante/original
+  // Sincronizar descripción al cambiar entre variante/original
   useEffect(() => {
     if (editMode || !data) return;
     if (varianteActiva) {
@@ -98,7 +93,7 @@ export default function DetalleMaestro({
   const tablaPrincipal = data.img_url ? 'personajes' : 'criaturas';
   const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
 
-  // MÃºsica con validaciÃ³n de nulidad
+  // Música: Extraemos los links (rutas internas como /wiki/canciones/id)
   const listaLinks = Array.isArray(data?.canciones) 
     ? data.canciones.flatMap(item => typeof item === 'string' ? item.split(',') : item)
                     .map(link => link.trim())
@@ -129,7 +124,6 @@ export default function DetalleMaestro({
 
         if (error) throw error;
         
-        // Ejecutamos el callback para que la galerÃ­a se actualice sin recargar
         if (onUpdate && typeof onUpdate === 'function') {
           onUpdate(updatedDB || { ...data, ...updates });
         }
@@ -172,7 +166,7 @@ export default function DetalleMaestro({
               </button>
             </div>
             
-            {/* SECCIÃN IZQUIERDA: IMAGEN */}
+            {/* SECCIÓN IZQUIERDA: IMAGEN */}
             <div className="w-full lg:w-1/2 bg-gradient-to-br from-white to-primary/5 flex items-center justify-center p-10 lg:p-16 border-b lg:border-b-0 lg:border-r border-primary/5">
               <div className="relative w-full aspect-square max-w-[400px]">
                 <div className="absolute inset-0 bg-primary/5 rounded-[4rem] rotate-3 scale-105" />
@@ -187,10 +181,9 @@ export default function DetalleMaestro({
               </div>
             </div>
 
-            {/* SECCIÃN DERECHA: CONTENIDO */}
+            {/* SECCIÓN DERECHA: CONTENIDO */}
             <div className="w-full lg:w-1/2 p-8 md:p-12 lg:pl-10 lg:pr-16 flex flex-col justify-center bg-bg-main/5">
               
-              {/* SELECTOR VARIANTES */}
               {!editMode && variantes.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   <button 
@@ -262,19 +255,21 @@ export default function DetalleMaestro({
                       </div>
                       <div className="flex flex-wrap gap-3">
                         {listaLinks.map((link, index) => (
-                          <motion.a
+                          <Link 
                             key={index} 
                             href={link} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            whileHover={{ y: -3 }} 
-                            className="flex items-center gap-3 bg-white border-2 border-primary/10 px-6 py-3 rounded-2xl shadow-sm"
+                            className="no-underline"
                           >
-                            <span className="text-sm font-black italic uppercase text-primary tracking-tighter">
-                              {data?.nombre} {index + 1}
-                            </span>
-                            <Music size={16} className="text-primary/40" />
-                          </motion.a>
+                            <motion.div
+                              whileHover={{ y: -3 }} 
+                              className="flex items-center gap-3 bg-white border-2 border-primary/10 px-6 py-3 rounded-2xl shadow-sm cursor-pointer"
+                            >
+                              <span className="text-sm font-black italic uppercase text-primary tracking-tighter">
+                                {data?.nombre} - Ver Letra {index + 1}
+                              </span>
+                              <Music size={16} className="text-primary/40" />
+                            </motion.div>
+                          </Link>
                         ))}
                       </div>
                     </div>
