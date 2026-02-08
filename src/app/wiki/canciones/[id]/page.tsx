@@ -36,6 +36,7 @@ export default function CancionDetalle() {
   // Estados Links
   const [nuevoLinkTitulo, setNuevoLinkTitulo] = useState("");
   const [nuevoLinkUrl, setNuevoLinkUrl] = useState("");
+  const [linkEditandoIndex, setLinkEditandoIndex] = useState(null); // null = nuevo, número = index editando
   
   const [procesando, setProcesando] = useState(false);
 
@@ -84,13 +85,22 @@ export default function CancionDetalle() {
     fetchData();
   }, [fetchData]);
 
-  // --- LÓGICA DE LINKS ---
-  const handleAddLink = async (e) => {
+  // --- LÓGICA DE LINKS (Añadir y Editar) ---
+  const handleSaveLink = async (e) => {
     e.preventDefault();
     if (!nuevoLinkTitulo.trim() || !nuevoLinkUrl.trim() || procesando) return;
     setProcesando(true);
 
-    const nuevosLinks = [...(cancion.links || []), { titulo: nuevoLinkTitulo, url: nuevoLinkUrl }];
+    // Aseguramos que tratamos links como un array
+    let nuevosLinks = Array.isArray(cancion.links) ? [...cancion.links] : [];
+
+    if (linkEditandoIndex !== null) {
+      // Editar existente
+      nuevosLinks[linkEditandoIndex] = { titulo: nuevoLinkTitulo, url: nuevoLinkUrl };
+    } else {
+      // Añadir nuevo
+      nuevosLinks.push({ titulo: nuevoLinkTitulo, url: nuevoLinkUrl });
+    }
 
     try {
       const { error } = await supabase
@@ -100,16 +110,31 @@ export default function CancionDetalle() {
 
       if (error) throw error;
       setCancion(prev => ({ ...prev, links: nuevosLinks }));
-      setNuevoLinkTitulo("");
-      setNuevoLinkUrl("");
+      
+      // Limpiar y cerrar modo edición
+      cancelarEdicionLink();
     } catch (error) {
-      alert("Error al añadir link: " + error.message);
+      alert("Error al guardar enlace: " + error.message);
     } finally {
       setProcesando(false);
     }
   };
 
+  const prepararEdicionLink = (index) => {
+    const link = cancion.links[index];
+    setNuevoLinkTitulo(link.titulo);
+    setNuevoLinkUrl(link.url);
+    setLinkEditandoIndex(index);
+  };
+
+  const cancelarEdicionLink = () => {
+    setNuevoLinkTitulo("");
+    setNuevoLinkUrl("");
+    setLinkEditandoIndex(null);
+  };
+
   const removeLink = async (index) => {
+    if (!confirm("¿Eliminar este enlace?")) return;
     const filtrados = cancion.links.filter((_, i) => i !== index);
     try {
       const { error } = await supabase
@@ -118,6 +143,7 @@ export default function CancionDetalle() {
         .eq('id', id);
       if (error) throw error;
       setCancion(prev => ({ ...prev, links: filtrados }));
+      if (linkEditandoIndex === index) cancelarEdicionLink();
     } catch (error) {
       alert("Error al borrar link");
     }
@@ -129,9 +155,7 @@ export default function CancionDetalle() {
       setCancion(prev => ({ ...prev, estado: nuevoEstado }));
       const { error } = await supabase.from('canciones').update({ estado: nuevoEstado }).eq('id', id);
       if (error) throw error;
-    } catch (error) {
-      fetchData();
-    }
+    } catch (error) { fetchData(); }
   };
 
   const handleCrearSeccion = async (e) => {
@@ -150,9 +174,7 @@ export default function CancionDetalle() {
       setShowAddModal(false);
       setNuevoNombre("");
       setNuevaLetra("");
-    } catch (error) {
-      alert("Error al guardar");
-    } finally { setProcesando(false); }
+    } catch (error) { alert("Error al guardar"); } finally { setProcesando(false); }
   };
 
   const handleUpdateSeccion = async (e) => {
@@ -203,22 +225,36 @@ export default function CancionDetalle() {
       <AnimatePresence>
         {showLinksModal && (
           <div className="fixed inset-0 z-[130] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowLinksModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setShowLinksModal(false); cancelarEdicionLink(); }} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
-              <button onClick={() => setShowLinksModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">Gestionar Enlaces</h3>
+              <button onClick={() => { setShowLinksModal(false); cancelarEdicionLink(); }} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors"><X size={20} /></button>
               
-              <form onSubmit={handleAddLink} className="space-y-4 mb-8">
+              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">
+                {linkEditandoIndex !== null ? "Editar Enlace" : "Gestionar Enlaces"}
+              </h3>
+              
+              <form onSubmit={handleSaveLink} className="space-y-4 mb-8">
                 <input type="text" placeholder="TÍTULO (EJ: COVER YOUTUBE)" value={nuevoLinkTitulo} onChange={(e) => setNuevoLinkTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b border-[#6B5E70]/10 py-3 text-sm font-bold text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <input type="url" placeholder="URL DEL ENLACE..." value={nuevoLinkUrl} onChange={(e) => setNuevoLinkUrl(e.target.value)} className="w-full bg-[#FDFCFD] border-b border-[#6B5E70]/10 py-3 text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70]" />
-                <button type="submit" className="w-full bg-[#6B5E70] text-white py-3 rounded-xl font-black uppercase text-[9px] shadow-md hover:bg-[#5A4D5F]">Añadir Link</button>
+                
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 bg-[#6B5E70] text-white py-3 rounded-xl font-black uppercase text-[9px] shadow-md hover:bg-[#5A4D5F] transition-colors">
+                    {linkEditandoIndex !== null ? "Guardar Cambios" : "Añadir Link"}
+                  </button>
+                  {linkEditandoIndex !== null && (
+                    <button type="button" onClick={cancelarEdicionLink} className="px-4 bg-gray-100 text-[#6B5E70] rounded-xl font-black uppercase text-[8px]">Cancelar</button>
+                  )}
+                </div>
               </form>
 
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                 {cancion?.links?.map((link, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-[#6B5E70]/5 rounded-xl border border-[#6B5E70]/10">
+                  <div key={i} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${linkEditandoIndex === i ? 'bg-[#6B5E70]/10 border-[#6B5E70]' : 'bg-[#6B5E70]/5 border-[#6B5E70]/10'}`}>
                     <span className="text-[10px] font-black text-[#6B5E70] truncate uppercase italic">{link.titulo}</span>
-                    <button onClick={() => removeLink(i)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14}/></button>
+                    <div className="flex gap-1">
+                      <button onClick={() => prepararEdicionLink(i)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] p-1"><Edit3 size={14}/></button>
+                      <button onClick={() => removeLink(i)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14}/></button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -238,7 +274,7 @@ export default function CancionDetalle() {
               <form onSubmit={handleCrearSeccion} className="space-y-6">
                 <input autoFocus type="text" placeholder="ESTROFA, CORO, PUENTE..." value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <textarea placeholder="Escribe aquí los versos..." value={nuevaLetra} onChange={(e) => setNuevaLetra(e.target.value)} rows={8} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none font-medium leading-relaxed italic" />
-                <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg">
+                <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg hover:bg-[#5A4D5F] transition-colors">
                   {procesando ? "Guardando..." : "Agregar Sección"}
                 </button>
               </form>
@@ -259,8 +295,8 @@ export default function CancionDetalle() {
                 <input type="text" value={editSecNombre} onChange={(e) => setEditSecNombre(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <textarea value={editSecLetra} onChange={(e) => setEditSecLetra(e.target.value)} rows={8} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none font-medium leading-relaxed italic" />
                 <div className="grid grid-cols-2 gap-3">
-                  <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 shadow-lg"><Save size={14} /> Guardar</button>
-                  <button type="button" onClick={deleteSeccion} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100"><Trash2 size={14} /> Borrar</button>
+                  <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 shadow-lg hover:bg-[#5A4D5F] transition-colors"><Save size={14} /> Guardar</button>
+                  <button type="button" onClick={deleteSeccion} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 hover:bg-red-100 transition-colors"><Trash2 size={14} /> Borrar</button>
                 </div>
               </form>
             </motion.div>
@@ -374,7 +410,7 @@ export default function CancionDetalle() {
                 <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
                 <p className="text-[#6B5E70]/40 font-bold uppercase text-sm tracking-widest mb-6 italic">El lienzo está en blanco</p>
                 {isAdmin && (
-                  <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white px-8 py-3 rounded-full font-black uppercase text-[10px] shadow-lg">Escribir primer verso</button>
+                  <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white px-8 py-3 rounded-full font-black uppercase text-[10px] shadow-lg hover:bg-[#5A4D5F] transition-colors">Escribir primer verso</button>
                 )}
               </div>
             )}
