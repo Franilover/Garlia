@@ -20,14 +20,16 @@ export default function CancionDetalle() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [errorAcceso, setErrorAcceso] = useState(false);
-  const [idiomaLectura, setIdiomaLectura] = useState('es'); // 'es', 'en', 'jp', 'romaji'
+  
+  // CAMBIO: Ahora manejamos múltiples idiomas activos para la vista dividida
+  const [idiomasActivos, setIdiomasActivos] = useState(['es']); 
 
   // Estados Modales
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditSecModal, setShowEditSecModal] = useState(false);
   const [showLinksModal, setShowLinksModal] = useState(false);
   
-  // Estados Edición/Creación Secciones (Multidioma)
+  // Estados Edición/Creación Secciones
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevaLetraEs, setNuevaLetraEs] = useState("");
   const [nuevaLetraEn, setNuevaLetraEn] = useState("");
@@ -41,7 +43,7 @@ export default function CancionDetalle() {
   const [editSecJp, setEditSecJp] = useState("");
   const [editSecRomaji, setEditSecRomaji] = useState("");
   
-  // Estados Links (Tus estados originales)
+  // Estados Links
   const [nuevoLinkTitulo, setNuevoLinkTitulo] = useState("");
   const [nuevoLinkUrl, setNuevoLinkUrl] = useState("");
   const [linkEditandoIndex, setLinkEditandoIndex] = useState(null);
@@ -93,7 +95,21 @@ export default function CancionDetalle() {
     fetchData();
   }, [fetchData]);
 
-  // --- TU LÓGICA DE LINKS ORIGINAL (INTEGRA) ---
+  // Lógica para alternar idiomas (Máximo 2)
+  const toggleIdioma = (idm) => {
+    setIdiomasActivos(prev => {
+      if (prev.includes(idm)) {
+        if (prev.length === 1) return prev; 
+        return prev.filter(i => i !== idm);
+      }
+      if (prev.length >= 2) {
+        return [prev[1], idm];
+      }
+      return [...prev, idm];
+    });
+  };
+
+  // --- LÓGICA DE LINKS ---
   const handleSaveLink = async (e) => {
     e.preventDefault();
     if (!nuevoLinkTitulo.trim() || !nuevoLinkUrl.trim() || procesando) return;
@@ -228,7 +244,7 @@ export default function CancionDetalle() {
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20 relative">
       
-      {/* MODAL: GESTIÓN DE LINKS (TUYO ORIGINAL) */}
+      {/* MODAL: GESTIÓN DE LINKS */}
       <AnimatePresence>
         {showLinksModal && (
           <div className="fixed inset-0 z-[130] flex items-center justify-center p-6">
@@ -264,7 +280,7 @@ export default function CancionDetalle() {
         )}
       </AnimatePresence>
 
-      {/* MODAL: NUEVA SECCIÓN (EXTENDIDO A 4 IDIOMAS) */}
+      {/* MODAL: NUEVA SECCIÓN */}
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
@@ -301,7 +317,7 @@ export default function CancionDetalle() {
         )}
       </AnimatePresence>
 
-      {/* MODAL: EDITAR SECCIÓN (EXTENDIDO A 4 IDIOMAS) */}
+      {/* MODAL: EDITAR SECCIÓN */}
       <AnimatePresence>
         {showEditSecModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
@@ -356,7 +372,6 @@ export default function CancionDetalle() {
             </div>
           )}
 
-          {/* ESTADO EDITABLE (TU LÓGICA ORIGINAL) */}
           {cancion?.estado && (
             <div className={`relative p-4 rounded-[2rem] border text-center ${getEstadoColor(cancion.estado)} shadow-sm transition-all`}>
               {isAdmin ? (
@@ -374,16 +389,30 @@ export default function CancionDetalle() {
             </div>
           )}
 
-          {/* SELECTOR DE IDIOMA (KARAOKE) */}
+          {/* SELECTOR DUAL (MODIFICADO) */}
           <div className="p-6 bg-[#6B5E70] rounded-[2.5rem] shadow-xl shadow-[#6B5E70]/20">
-            <h4 className="text-white/40 font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic">Cantar en...</h4>
+            <h4 className="text-white/40 font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic">Vista Comparativa</h4>
             <div className="grid grid-cols-2 gap-2">
-              {['es', 'en', 'jp', 'romaji'].map((l) => (
-                <button key={l} onClick={() => setIdiomaLectura(l)} className={`py-2 rounded-xl font-black text-[9px] transition-all uppercase ${idiomaLectura === l ? 'bg-white text-[#6B5E70] scale-105' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}>
-                  {l === 'romaji' ? 'RO' : l}
+              {[
+                {id: 'es', label: 'ES'}, 
+                {id: 'en', label: 'EN'}, 
+                {id: 'jp', label: 'JP'}, 
+                {id: 'romaji', label: 'RO'}
+              ].map((l) => (
+                <button 
+                  key={l.id} 
+                  onClick={() => toggleIdioma(l.id)} 
+                  className={`py-2 rounded-xl font-black text-[9px] transition-all uppercase border-2 ${
+                    idiomasActivos.includes(l.id) 
+                    ? 'bg-white text-[#6B5E70] border-white scale-105' 
+                    : 'bg-transparent text-white/40 border-white/10 hover:border-white/30'
+                  }`}
+                >
+                  {l.label}
                 </button>
               ))}
             </div>
+            <p className="text-white/20 text-[7px] text-center mt-3 font-bold uppercase tracking-widest">Selecciona hasta 2</p>
           </div>
 
           {cancion?.personaje && (
@@ -393,7 +422,6 @@ export default function CancionDetalle() {
             </div>
           )}
 
-          {/* SECCIÓN DE LINKS VISUAL (TUYA ORIGINAL) */}
           <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] flex items-center gap-2 italic"><Link2 size={12} /> Enlaces</h4>
@@ -433,22 +461,24 @@ export default function CancionDetalle() {
                       {isAdmin && <button onClick={() => openEditSec(seccion)} className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"><Edit3 size={14} /></button>}
                     </div>
                     
-                    {/* VISUALIZACIÓN DE LETRA DINÁMICA */}
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={idiomaLectura}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className="text-[#6B5E70] text-xl md:text-2xl leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90"
-                      >
-                        {idiomaLectura === 'es' && seccion.letra_es}
-                        {idiomaLectura === 'en' && (seccion.letra_en || "Lyrics not available")}
-                        {idiomaLectura === 'jp' && (seccion.letra_jp || "歌詞がありません")}
-                        {idiomaLectura === 'romaji' && (seccion.letra_romaji || "No romaji lyrics")}
-                      </motion.div>
-                    </AnimatePresence>
+                    {/* GRID DINÁMICO DE LETRAS */}
+                    <div className={`grid gap-12 ${idiomasActivos.length > 1 ? 'md:grid-cols-2 divide-x-2 divide-[#6B5E70]/5' : 'grid-cols-1'}`}>
+                      {idiomasActivos.map((lang, i) => (
+                        <div key={lang} className={`${i > 0 ? 'md:pl-12' : ''}`}>
+                          {idiomasActivos.length > 1 && (
+                            <span className="text-[7px] font-black text-[#6B5E70]/20 uppercase tracking-[0.3em] block mb-4 italic">
+                              {lang === 'romaji' ? 'Reading' : lang}
+                            </span>
+                          )}
+                          <div className="text-[#6B5E70] text-xl md:text-2xl leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90">
+                            {lang === 'es' && (seccion.letra_es || "---")}
+                            {lang === 'en' && (seccion.letra_en || "---")}
+                            {lang === 'jp' && (seccion.letra_jp || "---")}
+                            {lang === 'romaji' && (seccion.letra_romaji || "---")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               ))}
