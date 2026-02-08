@@ -6,7 +6,7 @@ import Relaciones from './relaciones';
 import { useDetalleMaestro } from '@/hooks/useDetalleMaestro'; 
 import { SeccionMusica } from './SeccionMusica';
 // IMPORTANTE: Importamos el nuevo selector (asegúrate de que la ruta sea correcta)
-import { SelectorCancionesMusica } from './SelectorCancionesMusica';
+import { SelectorCancionesMusica } from './SeccionMusica';
 
 export default function DetalleMaestro({ 
   isOpen, onClose, data, tags = [], mostrarMusica = true, onUpdate 
