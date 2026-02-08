@@ -59,29 +59,29 @@ export default function DetalleMaestro({
           </div>
 
           {/* --- SECCIÓN SUPERIOR: IDENTIDAD --- */}
-          <div className="flex flex-col lg:flex-row min-h-[650px] items-stretch">
+          <div className="flex flex-col lg:flex-row items-stretch">
             
-            {/* IZQUIERDA: EL MEDALLÓN */}
-            <div className="w-full lg:w-5/12 bg-gradient-to-br from-slate-50 to-primary/5 p-12 lg:p-20 flex items-center justify-center relative overflow-hidden">
+            {/* IZQUIERDA: EL MEDALLÓN (Ajustado para menos espacio) */}
+            <div className="w-full lg:w-[45%] bg-gradient-to-br from-slate-50 to-primary/5 p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-[500px]">
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none italic font-black text-[25rem] flex items-center justify-center text-primary select-none">
                 {data.nombre[0]}
               </div>
               
-              <div className="relative w-full aspect-square max-w-[420px] rounded-full overflow-hidden border-[8px] border-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] bg-white group">
-                <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_0_50px_rgba(0,0,0,0.1)] rounded-full" />
+              {/* Contenedor de imagen más grande con borde fino */}
+              <div className="relative w-full aspect-square max-w-[480px] rounded-full overflow-hidden border-4 border-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] bg-white group">
+                <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_0_40px_rgba(0,0,0,0.1)] rounded-full" />
                 <motion.img 
                   key={imagenVisual}
-                  initial={{ opacity: 0, scale: 1.15 }} 
-                  animate={{ opacity: 1, scale: 1.05 }}
+                  initial={{ opacity: 0, scale: 1.1 }} 
+                  animate={{ opacity: 1, scale: 1 }}
                   src={imagenVisual} 
                   className="relative z-10 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                 />
-                <div className="absolute inset-0 z-30 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none" />
               </div>
             </div>
 
             {/* DERECHA: BIO Y NOMBRE */}
-            <div className="w-full lg:w-7/12 p-10 lg:p-24 flex flex-col justify-center bg-white">
+            <div className="w-full lg:w-[55%] p-10 lg:p-16 flex flex-col justify-center bg-white border-l border-slate-50">
               {editMode ? (
                 <div className="space-y-8">
                   <div className="space-y-2">
@@ -100,7 +100,7 @@ export default function DetalleMaestro({
                 </div>
               ) : (
                 <div className="relative">
-                  <div className="flex flex-wrap gap-3 mb-8">
+                  <div className="flex flex-wrap gap-3 mb-6">
                     {tags.map((tag, i) => tag && (
                       <span key={i} className="px-5 py-2 bg-primary text-white text-[10px] font-black uppercase rounded-full tracking-widest shadow-md">
                         {tag}
@@ -108,18 +108,18 @@ export default function DetalleMaestro({
                     ))}
                   </div>
 
-                  <h2 className="text-7xl lg:text-9xl font-black uppercase italic text-primary leading-[0.75] tracking-tighter mb-12">
+                  <h2 className="text-7xl lg:text-8xl font-black uppercase italic text-primary leading-[0.8] tracking-tighter mb-8">
                     {varianteActiva ? `${data.nombre} ${varianteActiva.tipo}` : data.nombre}
                   </h2>
                   
-                  <div className="h-[2px] w-24 bg-primary/10 mb-10" />
+                  <div className="h-[2px] w-16 bg-primary/10 mb-8" />
 
-                  <p className="text-slate-500 text-xl lg:text-2xl italic leading-relaxed whitespace-pre-wrap max-w-[90%]">
+                  <p className="text-slate-500 text-lg lg:text-xl italic leading-relaxed whitespace-pre-wrap max-w-prose">
                     {varianteActiva ? varianteActiva.descripcion_variante : editDescripcion}
                   </p>
 
                   {variantes.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-12">
+                    <div className="flex flex-wrap gap-2 mt-10">
                       <button onClick={() => setVarianteActiva(null)} className={`px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all ${!varianteActiva ? 'bg-primary text-white' : 'bg-slate-100 text-primary/40 hover:bg-slate-200'}`}>Base</button>
                       {variantes.map((v) => (
                         <button key={v.id} onClick={() => setVarianteActiva(v)} className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all ${varianteActiva?.id === v.id ? 'bg-primary text-white shadow-lg' : 'bg-slate-100 text-primary/40 hover:bg-slate-200'}`}>
@@ -136,7 +136,6 @@ export default function DetalleMaestro({
           {/* --- SECCIÓN INFERIOR: GRID DE CONTENIDO --- */}
           <div className="bg-slate-50/50 p-10 lg:p-20 border-t border-slate-100 grid grid-cols-1 xl:grid-cols-2 gap-20">
             
-            {/* COLUMNA 1: RELACIONES */}
             <div className="space-y-6">
               <div className="flex items-center gap-4 mb-8">
                 <div className="h-[1px] flex-1 bg-primary/10" />
@@ -150,7 +149,6 @@ export default function DetalleMaestro({
               />
             </div>
 
-            {/* COLUMNA 2: MÚSICA */}
             <div className="space-y-6">
               <div className="flex items-center gap-4 mb-8">
                 <div className="h-[1px] flex-1 bg-primary/10" />
