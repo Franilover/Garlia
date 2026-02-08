@@ -2,40 +2,42 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Music, PlayCircle } from 'lucide-react';
+import { PlayCircle } from 'lucide-react';
 
-/**
- * Componente rediseñado para una visualización premium de la música.
- */
 export const SeccionMusica = ({ listaLinks, nombre }) => {
-  // 1. Limpieza de links mejorada (Memoizada internamente para evitar saltos)
   const linksLimpios = React.useMemo(() => {
     if (!listaLinks) return [];
     
-    // Si es un string (ej: de un textarea), lo convertimos en array
+    // Convertimos a array si viene como string
     const base = Array.isArray(listaLinks) ? listaLinks : [listaLinks];
     
     return base
-      .flatMap(item => typeof item === 'string' ? item.split(',') : item)
-      .map(link => typeof link === 'string' ? link.trim() : link)
-      .filter(link => link && typeof link === 'string' && link.startsWith('http'));
+      .flatMap(item => (typeof item === 'string' ? item.split(',') : item))
+      .map(link => (typeof link === 'string' ? link.trim() : link))
+      .filter(link => link && link.length > 0) // Quitamos el startsWith('http') por ahora para debuggear
+      .map(link => {
+        // Si no es una URL completa, asumimos que es un ID de YouTube y la construimos
+        if (typeof link === 'string' && !link.startsWith('http')) {
+          return `https://www.youtube.com/watch?v=${link}`;
+        }
+        return link;
+      });
   }, [listaLinks]);
 
-  // Si no hay música, no ocupamos espacio
-  if (linksLimpios.length === 0) return null;
+  if (linksLimpios.length === 0) return (
+    <div className="p-8 text-center bg-slate-50/50 rounded-[2rem] border border-dashed border-primary/10">
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/20">No hay canciones registradas</p>
+    </div>
+  );
 
   return (
     <div className="w-full mt-4">
-      {/* Contenedor con min-height: 
-         Esto asegura que si los links tardan un suspiro en procesarse, 
-         el diseño no 'vibre'.
-      */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[100px]">
         {linksLimpios.map((link, index) => (
           <Link 
             key={`${link}-${index}`} 
             href={link} 
-            target="_blank" // Abrir en pestaña nueva para no sacar al usuario de la app
+            target="_blank" 
             rel="noopener noreferrer"
             className="no-underline group"
           >
@@ -44,12 +46,10 @@ export const SeccionMusica = ({ listaLinks, nombre }) => {
               whileTap={{ scale: 0.98 }}
               className="flex items-center gap-6 p-6 bg-white border border-primary/5 rounded-[2.5rem] shadow-sm group-hover:shadow-xl group-hover:border-primary/20 transition-all cursor-pointer relative overflow-hidden"
             >
-              {/* Número de track de fondo */}
               <span className="absolute -right-4 -bottom-6 text-7xl font-black text-primary/5 italic group-hover:text-primary/10 transition-colors select-none">
                 {String(index + 1).padStart(2, '0')}
               </span>
 
-              {/* Indicador de número frontal */}
               <div className="text-2xl font-black text-primary/20 group-hover:text-primary transition-colors italic w-8 select-none">
                 {String(index + 1).padStart(2, '0')}
               </div>

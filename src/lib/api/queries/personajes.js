@@ -2,8 +2,8 @@
 import { supabase } from '../supabase';
 
 /**
- * Nota: He ajustado la relación para que use 'personaje_id' como clave foránea.
- * También mantenemos el '*' para traer 'canciones' que es un array de texto.
+ * Nota: Se utiliza 'relaciones!personaje_id' para forzar la relación 
+ * mediante la columna de ID numérico, evitando errores de ambigüedad.
  */
 
 export const personajesQueries = {
@@ -13,7 +13,7 @@ export const personajesQueries = {
       .select(`
         *,
         relaciones:relaciones!personaje_id (*)
-      `); // Forzamos el uso de personaje_id para vincular los datos
+      `); 
     
     if (opciones.order) {
       query = query.order(opciones.order.campo, { 
@@ -36,6 +36,8 @@ export const personajesQueries = {
   },
   
   update: async (id, datos) => {
+    // Al actualizar, devolvemos el objeto completo con sus relaciones 
+    // para que la UI se refresque instantáneamente.
     return supabase
       .from('personajes')
       .update(datos)

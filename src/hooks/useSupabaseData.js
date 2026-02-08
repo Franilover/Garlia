@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/api/supabase';
 import { useDataCache } from '@/components/features/control/DataContext';
 
-// Ajusta esta ruta si no renombraste la carpeta a 'queries'
+// Importación de queries personalizadas
 import { personajesQueries } from '@/lib/api/queries/personajes';
 import { criaturasQueries } from '@/lib/api/queries/criaturas';
 
@@ -15,16 +15,17 @@ const QUERIES_MAP = {
 export function useSupabaseData(tabla, opciones = {}) {
   const { cache, updateCache } = useDataCache();
   
+  // Inicializamos con el caché si existe
   const [data, setData] = useState(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState(null);
 
-  // Evitamos recrear la key en cada render
   const opcionesKey = useMemo(() => JSON.stringify(opciones), [opciones]);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    // Si ya hay datos en el estado local y no es un refetch, evitamos la carga
-    if (!forceRefresh && data.length > 0) {
+    // Si hay caché y no forzamos refresco, nos saltamos la carga inicial pesada
+    if (cache[tabla] && !forceRefresh && data.length > 0) {
+      setLoading(false);
       return;
     }
 
@@ -36,11 +37,13 @@ export function useSupabaseData(tabla, opciones = {}) {
       let resultado;
       let errorFetch;
 
+      // Usamos la query personalizada (que ya trae las relaciones corregidas)
       if (QUERIES_MAP[tabla]) {
         const { data: res, error: err } = await QUERIES_MAP[tabla].getAll(opt);
         resultado = res;
         errorFetch = err;
       } else {
+        // Fallback genérico
         let query = supabase.from(tabla).select(opt.select || '*');
         if (opt.order) {
           query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
@@ -62,16 +65,17 @@ export function useSupabaseData(tabla, opciones = {}) {
     } finally {
       setLoading(false);
     }
-    // NOTA: Quitamos 'cache' de las dependencias para romper el bucle infinito
-  }, [tabla, opcionesKey, updateCache, data.length]); 
+  }, [tabla, opcionesKey, updateCache, cache, data.length]); 
 
   useEffect(() => {
     fetchData();
 
+    // Suscripción a cambios en tiempo real
     const channel = supabase
       .channel(`db-changes-${tabla}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: tabla }, 
-        () => fetchData(true)
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: tabla }, 
+        () => fetchData(true) // Refrescar cuando algo cambie en la DB
       )
       .subscribe();
 
@@ -80,6 +84,7 @@ export function useSupabaseData(tabla, opciones = {}) {
     };
   }, [fetchData, tabla]);
 
+  // Función para actualizar datos manualmente y sincronizar con el Contexto/Caché
   const setSyncedData = useCallback((newDataOrFn) => {
     setData(prev => {
       const resolved = typeof newDataOrFn === 'function' ? newDataOrFn(prev) : newDataOrFn;
@@ -88,5 +93,11 @@ export function useSupabaseData(tabla, opciones = {}) {
     });
   }, [tabla, updateCache]);
 
-  return { data, setData: setSyncedData, loading, error, refetch: () => fetchData(true) };
+  return { 
+    data, 
+    setData: setSyncedData, 
+    loading, 
+    error, 
+    refetch: () => fetchData(true) 
+  };
 }
