@@ -36,7 +36,7 @@ export default function CancionDetalle() {
   // Estados Links
   const [nuevoLinkTitulo, setNuevoLinkTitulo] = useState("");
   const [nuevoLinkUrl, setNuevoLinkUrl] = useState("");
-  const [linkEditandoIndex, setLinkEditandoIndex] = useState(null); // null = nuevo, número = index editando
+  const [linkEditandoIndex, setLinkEditandoIndex] = useState(null);
   
   const [procesando, setProcesando] = useState(false);
 
@@ -85,36 +85,46 @@ export default function CancionDetalle() {
     fetchData();
   }, [fetchData]);
 
-  // --- LÓGICA DE LINKS (Añadir y Editar) ---
+  // --- LÓGICA DE LINKS (REFORZADA) ---
   const handleSaveLink = async (e) => {
     e.preventDefault();
     if (!nuevoLinkTitulo.trim() || !nuevoLinkUrl.trim() || procesando) return;
     setProcesando(true);
 
-    // Aseguramos que tratamos links como un array
-    let nuevosLinks = Array.isArray(cancion.links) ? [...cancion.links] : [];
-
-    if (linkEditandoIndex !== null) {
-      // Editar existente
-      nuevosLinks[linkEditandoIndex] = { titulo: nuevoLinkTitulo, url: nuevoLinkUrl };
-    } else {
-      // Añadir nuevo
-      nuevosLinks.push({ titulo: nuevoLinkTitulo, url: nuevoLinkUrl });
-    }
-
     try {
+      // 1. Obtenemos la data más fresca de la DB para no pisar nada
+      const { data: freshData } = await supabase
+        .from('canciones')
+        .select('links')
+        .eq('id', id)
+        .single();
+
+      // 2. Nos aseguramos de que links sea un Array
+      let linksActuales = Array.isArray(freshData?.links) ? [...freshData.links] : [];
+      const nuevoLink = { titulo: nuevoLinkTitulo.trim(), url: nuevoLinkUrl.trim() };
+
+      // 3. Insertamos o Editamos
+      if (linkEditandoIndex !== null) {
+        linksActuales[linkEditandoIndex] = nuevoLink;
+      } else {
+        linksActuales.push(nuevoLink);
+      }
+
+      // 4. Update en Supabase
       const { error } = await supabase
         .from('canciones')
-        .update({ links: nuevosLinks })
+        .update({ links: linksActuales })
         .eq('id', id);
 
       if (error) throw error;
-      setCancion(prev => ({ ...prev, links: nuevosLinks }));
-      
-      // Limpiar y cerrar modo edición
+
+      // 5. Actualizamos estado local y limpiamos
+      setCancion(prev => ({ ...prev, links: linksActuales }));
       cancelarEdicionLink();
+      
     } catch (error) {
-      alert("Error al guardar enlace: " + error.message);
+      console.error("Error en links:", error);
+      alert("No se pudo guardar el link: " + error.message);
     } finally {
       setProcesando(false);
     }
@@ -135,12 +145,20 @@ export default function CancionDetalle() {
 
   const removeLink = async (index) => {
     if (!confirm("¿Eliminar este enlace?")) return;
-    const filtrados = cancion.links.filter((_, i) => i !== index);
     try {
+      const { data: freshData } = await supabase
+        .from('canciones')
+        .select('links')
+        .eq('id', id)
+        .single();
+      
+      const filtrados = (freshData?.links || []).filter((_, i) => i !== index);
+      
       const { error } = await supabase
         .from('canciones')
         .update({ links: filtrados })
         .eq('id', id);
+
       if (error) throw error;
       setCancion(prev => ({ ...prev, links: filtrados }));
       if (linkEditandoIndex === index) cancelarEdicionLink();
@@ -149,7 +167,7 @@ export default function CancionDetalle() {
     }
   };
 
-  // --- RESTO DE FUNCIONES (ESTADO, SECCIONES) ---
+  // --- SECCIONES Y ESTADO ---
   const handleUpdateEstado = async (nuevoEstado) => {
     try {
       setCancion(prev => ({ ...prev, estado: nuevoEstado }));
@@ -238,8 +256,8 @@ export default function CancionDetalle() {
                 <input type="url" placeholder="URL DEL ENLACE..." value={nuevoLinkUrl} onChange={(e) => setNuevoLinkUrl(e.target.value)} className="w-full bg-[#FDFCFD] border-b border-[#6B5E70]/10 py-3 text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70]" />
                 
                 <div className="flex gap-2">
-                  <button type="submit" className="flex-1 bg-[#6B5E70] text-white py-3 rounded-xl font-black uppercase text-[9px] shadow-md hover:bg-[#5A4D5F] transition-colors">
-                    {linkEditandoIndex !== null ? "Guardar Cambios" : "Añadir Link"}
+                  <button type="submit" disabled={procesando} className="flex-1 bg-[#6B5E70] text-white py-3 rounded-xl font-black uppercase text-[9px] shadow-md hover:bg-[#5A4D5F] transition-colors">
+                    {procesando ? "Guardando..." : (linkEditandoIndex !== null ? "Guardar Cambios" : "Añadir Link")}
                   </button>
                   {linkEditandoIndex !== null && (
                     <button type="button" onClick={cancelarEdicionLink} className="px-4 bg-gray-100 text-[#6B5E70] rounded-xl font-black uppercase text-[8px]">Cancelar</button>
