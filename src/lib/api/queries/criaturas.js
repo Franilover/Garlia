@@ -3,17 +3,12 @@ import { supabase } from '../supabase';
 
 export const criaturasQueries = {
   getAll: async (opciones = {}) => {
-    // MODIFICACIÓN: Usamos 'criatura_variantes' que es el nombre real en tu DB
     let query = supabase
       .from('criaturas')
       .select(`
         *,
-        relaciones (*),
         variantes: criatura_variantes (*) 
-      `); 
-    
-    // El alias 'variantes:' nos permite seguir usando el mismo nombre de prop 
-    // en el DetalleMaestro aunque en la DB se llame 'criatura_variantes'
+      `); // Eliminamos relaciones(*) porque no existe ese vínculo en la DB
     
     if (opciones.order) {
       query = query.order(opciones.order.campo, { 
@@ -27,7 +22,7 @@ export const criaturasQueries = {
   getById: async (id) => {
     return supabase
       .from('criaturas')
-      .select('*, relaciones(*), variantes: criatura_variantes(*)')
+      .select('*, variantes: criatura_variantes(*)') // Quitamos relaciones(*) aquí también
       .eq('id', id)
       .single();
   }
