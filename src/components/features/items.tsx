@@ -15,7 +15,7 @@ import { getMensaje } from '@/lib/config/constants';
 export default function Inventario() {
   const [selected, setSelected] = useState(null);
 
-  // 1. Fetching de la tabla 'items'
+  // 1. Fetching con caché y tiempo real (conectado a itemsQueries automáticamente)
   const { 
     data: items, 
     setData: setItems, 
@@ -24,7 +24,7 @@ export default function Inventario() {
     order: { campo: 'created_at', asc: false }
   });
 
-  // 2. Filtros automáticos (Corregido el encoding de 'categoría')
+  // 2. Filtros automáticos
   const {
     filtros,
     opciones,
@@ -32,10 +32,9 @@ export default function Inventario() {
     actualizarFiltro
   } = useFiltrosGenericos(items, {
     campos: ['categoria'],
-    inicial: { categoria: 'TODOS' }
+    inicial: { categoria: 'Todos' } // Coincide con la estética de tus botones
   });
 
-  // 3. Handler de actualización local sincronizada
   const handleUpdate = useCallback((updatedItem) => {
     setSelected(updatedItem);
     setItems(prev => 
@@ -48,14 +47,11 @@ export default function Inventario() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (loading) {
-    return <LoadingState mensaje={getMensaje('LOADING', 'items')} />;
-  }
+  if (loading) return <LoadingState mensaje={getMensaje('LOADING', 'items')} />;
 
   return (
-    <main className="min-h-screen bg-[#F0F0F0] pb-20 overflow-x-hidden">
+    <main className="min-h-screen bg-white pb-20 overflow-x-hidden">
       
-      {/* PANEL DE DETALLE (Paso 4 del plan) */}
       <DetalleMaestro 
         isOpen={!!selected}
         onClose={() => setSelected(null)}
@@ -70,10 +66,9 @@ export default function Inventario() {
         headerContent={
           <PageHeader titulo="Inventario">
             <FiltrosMaestros 
-              // Corregido: 'CategorÃ­as' -> 'Categorias'
-              config={{ Categorias: opciones.categoria }}
-              filtrosActivos={{ Categorias: filtros.categoria }}
-              onChange={(grupo, valor) => actualizarFiltro('categoria', valor)}
+              opciones={opciones.categoria} 
+              filtroActivo={filtros.categoria}
+              onChange={(valor) => actualizarFiltro('categoria', valor)}
             />
           </PageHeader>
         }
@@ -85,17 +80,18 @@ export default function Inventario() {
             contain={true} 
             onClick={() => handleSelect(item)}
           >
-            <p className={`${typography.tag} mb-1`}>
+            {/* Texto de la tarjeta alineado con la estética de 'Espíritu' */}
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 mb-1 italic">
               {item.categoria}
             </p>
-            <h3 className={typography.cardTitle}>
+            <h3 className="text-sm font-bold text-slate-800 uppercase italic leading-tight">
               {item.nombre}
             </h3>
           </GalleryItem>
         ))}
         
         {itemsFiltrados.length === 0 && (
-          <div className="col-span-full py-20">
+          <div className="col-span-full py-20 text-center">
             <EmptyState mensaje={getMensaje('EMPTY', 'items')} />
           </div>
         )}

@@ -1,28 +1,44 @@
 import { useState, useMemo } from 'react';
 
 export function useFiltrosGenericos(items, configuracion) {
-  // configuracion = { campos: ['categoria', 'tipo'], inicial: {...} }
-  const [filtros, setFiltros] = useState(
-    configuracion.inicial || 
-    Object.fromEntries(configuracion.campos.map(c => [c, 'todos']))
-  );
+  // 1. Inicializamos siempre en minúsculas para evitar errores de comparación
+  const [filtros, setFiltros] = useState(() => {
+    if (configuracion.inicial) return configuracion.inicial;
+    return Object.fromEntries(configuracion.campos.map(c => [c, 'Todos']));
+  });
 
-  // Generar opciones Ãºnicas automÃ¡ticamente
+  // 2. Generar opciones únicas basadas en los items reales
   const opciones = useMemo(() => {
     const resultado = {};
     configuracion.campos.forEach(campo => {
-      const valores = items.map(item => item[campo]).filter(Boolean);
-      resultado[campo] = ['todos', ...new Set(valores)].sort();
+      // Obtenemos valores, filtramos nulos y aplanamos si es un array (como los tags)
+      const valores = items
+        .flatMap(item => item[campo]) 
+        .filter(Boolean);
+      
+      // Guardamos con la primera letra mayúscula para la estética de los botones
+      const unicos = [...new Set(valores)].sort();
+      resultado[campo] = ['Todos', ...unicos];
     });
     return resultado;
   }, [items, configuracion.campos]);
 
-  // Filtrar items
+  // 3. Filtrar items (Insensible a mayúsculas y soporte para arrays)
   const itemsFiltrados = useMemo(() => {
     return items.filter(item => {
-      return Object.entries(filtros).every(([campo, valor]) => {
-        if (valor === 'todos') return true;
-        return item[campo] === valor;
+      return Object.entries(filtros).every(([campo, valorFiltro]) => {
+        // Si el filtro es 'todos', pasa siempre
+        if (valorFiltro.toLowerCase() === 'todos') return true;
+
+        const valorItem = item[campo];
+
+        // Si el campo del item es un array (como tags)
+        if (Array.isArray(valorItem)) {
+          return valorItem.some(v => v.toLowerCase() === valorFiltro.toLowerCase());
+        }
+
+        // Si es un string normal
+        return valorItem?.toLowerCase() === valorFiltro.toLowerCase();
       });
     });
   }, [items, filtros]);
@@ -32,7 +48,7 @@ export function useFiltrosGenericos(items, configuracion) {
   };
 
   const resetearFiltros = () => {
-    setFiltros(Object.fromEntries(configuracion.campos.map(c => [c, 'todos'])));
+    setFiltros(Object.fromEntries(configuracion.campos.map(c => [c, 'Todos'])));
   };
 
   return {

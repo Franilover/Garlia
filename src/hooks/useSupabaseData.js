@@ -6,16 +6,17 @@ import { useDataCache } from '@/components/features/control/DataContext';
 // Importación de queries personalizadas
 import { personajesQueries } from '@/lib/api/queries/personajes';
 import { criaturasQueries } from '@/lib/api/queries/criaturas';
+import { itemsQueries } from '@/lib/api/queries/items'; 
 
 const QUERIES_MAP = {
   'personajes': personajesQueries,
-  'criaturas': criaturasQueries
+  'criaturas': criaturasQueries,
+  'items': itemsQueries 
 };
 
 export function useSupabaseData(tabla, opciones = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // Inicializamos con el caché si existe
   const [data, setData] = useState(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState(null);
@@ -23,7 +24,6 @@ export function useSupabaseData(tabla, opciones = {}) {
   const opcionesKey = useMemo(() => JSON.stringify(opciones), [opciones]);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    // Si hay caché y no forzamos refresco, nos saltamos la carga inicial pesada
     if (cache[tabla] && !forceRefresh && data.length > 0) {
       setLoading(false);
       return;
@@ -37,13 +37,12 @@ export function useSupabaseData(tabla, opciones = {}) {
       let resultado;
       let errorFetch;
 
-      // Usamos la query personalizada (que ya trae las relaciones corregidas)
+      // El hook ahora detecta si 'items' está en el mapa y usa sus queries optimizadas
       if (QUERIES_MAP[tabla]) {
         const { data: res, error: err } = await QUERIES_MAP[tabla].getAll(opt);
         resultado = res;
         errorFetch = err;
       } else {
-        // Fallback genérico
         let query = supabase.from(tabla).select(opt.select || '*');
         if (opt.order) {
           query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
@@ -70,12 +69,11 @@ export function useSupabaseData(tabla, opciones = {}) {
   useEffect(() => {
     fetchData();
 
-    // Suscripción a cambios en tiempo real
     const channel = supabase
       .channel(`db-changes-${tabla}`)
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: tabla }, 
-        () => fetchData(true) // Refrescar cuando algo cambie en la DB
+        () => fetchData(true)
       )
       .subscribe();
 
@@ -84,7 +82,6 @@ export function useSupabaseData(tabla, opciones = {}) {
     };
   }, [fetchData, tabla]);
 
-  // Función para actualizar datos manualmente y sincronizar con el Contexto/Caché
   const setSyncedData = useCallback((newDataOrFn) => {
     setData(prev => {
       const resolved = typeof newDataOrFn === 'function' ? newDataOrFn(prev) : newDataOrFn;
