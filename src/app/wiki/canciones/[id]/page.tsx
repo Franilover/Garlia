@@ -21,15 +21,12 @@ export default function CancionDetalle() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [errorAcceso, setErrorAcceso] = useState(false);
   
-  // CAMBIO: Ahora manejamos múltiples idiomas activos para la vista dividida
   const [idiomasActivos, setIdiomasActivos] = useState(['es']); 
 
-  // Estados Modales
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditSecModal, setShowEditSecModal] = useState(false);
   const [showLinksModal, setShowLinksModal] = useState(false);
   
-  // Estados Edición/Creación Secciones
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevaLetraEs, setNuevaLetraEs] = useState("");
   const [nuevaLetraEn, setNuevaLetraEn] = useState("");
@@ -43,7 +40,6 @@ export default function CancionDetalle() {
   const [editSecJp, setEditSecJp] = useState("");
   const [editSecRomaji, setEditSecRomaji] = useState("");
   
-  // Estados Links
   const [nuevoLinkTitulo, setNuevoLinkTitulo] = useState("");
   const [nuevoLinkUrl, setNuevoLinkUrl] = useState("");
   const [linkEditandoIndex, setLinkEditandoIndex] = useState(null);
@@ -95,7 +91,6 @@ export default function CancionDetalle() {
     fetchData();
   }, [fetchData]);
 
-  // Lógica para alternar idiomas (Máximo 2)
   const toggleIdioma = (idm) => {
     setIdiomasActivos(prev => {
       if (prev.includes(idm)) {
@@ -109,7 +104,6 @@ export default function CancionDetalle() {
     });
   };
 
-  // --- LÓGICA DE LINKS ---
   const handleSaveLink = async (e) => {
     e.preventDefault();
     if (!nuevoLinkTitulo.trim() || !nuevoLinkUrl.trim() || procesando) return;
@@ -160,7 +154,6 @@ export default function CancionDetalle() {
     } catch (error) { alert("Error al borrar link"); }
   };
 
-  // --- SECCIONES Y ESTADO ---
   const handleUpdateEstado = async (nuevoEstado) => {
     try {
       setCancion(prev => ({ ...prev, estado: nuevoEstado }));
@@ -244,7 +237,6 @@ export default function CancionDetalle() {
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20 relative">
       
-      {/* MODAL: GESTIÓN DE LINKS */}
       <AnimatePresence>
         {showLinksModal && (
           <div className="fixed inset-0 z-[130] flex items-center justify-center p-6">
@@ -280,7 +272,6 @@ export default function CancionDetalle() {
         )}
       </AnimatePresence>
 
-      {/* MODAL: NUEVA SECCIÓN */}
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
@@ -317,7 +308,6 @@ export default function CancionDetalle() {
         )}
       </AnimatePresence>
 
-      {/* MODAL: EDITAR SECCIÓN */}
       <AnimatePresence>
         {showEditSecModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
@@ -359,7 +349,8 @@ export default function CancionDetalle() {
         <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Volver al Cancionero
       </button>
 
-      <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4">
+      {/* MODIFICACIÓN: Ancho dinámico del contenedor */}
+      <div className={`mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4 transition-all duration-500 ${idiomasActivos.length > 1 ? 'max-w-7xl' : 'max-w-5xl'}`}>
         <aside className="space-y-6">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10">
             <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo} className="w-full h-full object-cover" />
@@ -389,7 +380,6 @@ export default function CancionDetalle() {
             </div>
           )}
 
-          {/* SELECTOR DUAL (MODIFICADO) */}
           <div className="p-6 bg-[#6B5E70] rounded-[2.5rem] shadow-xl shadow-[#6B5E70]/20">
             <h4 className="text-white/40 font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic">Vista Comparativa</h4>
             <div className="grid grid-cols-2 gap-2">
@@ -455,14 +445,15 @@ export default function CancionDetalle() {
             <div className="space-y-12">
               {secciones.map((seccion, index) => (
                 <motion.div key={seccion.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="relative group">
-                  <div className="bg-white border border-[#6B5E70]/5 rounded-[2.5rem] p-10 hover:border-[#6B5E70]/20 transition-all hover:shadow-2xl hover:shadow-[#6B5E70]/5">
+                  {/* MODIFICACIÓN: Ajuste de padding dinámico */}
+                  <div className={`bg-white border border-[#6B5E70]/5 rounded-[2.5rem] transition-all hover:border-[#6B5E70]/20 hover:shadow-2xl hover:shadow-[#6B5E70]/5 ${idiomasActivos.length > 1 ? 'p-8 md:p-12' : 'p-10'}`}>
                     <div className="flex items-center justify-between mb-8">
                       <span className="bg-[#F1F5F9] text-[#6B5E70]/60 px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase italic">{seccion.nombre_seccion}</span>
                       {isAdmin && <button onClick={() => openEditSec(seccion)} className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"><Edit3 size={14} /></button>}
                     </div>
                     
-                    {/* GRID DINÁMICO DE LETRAS */}
-                    <div className={`grid gap-12 ${idiomasActivos.length > 1 ? 'md:grid-cols-2 divide-x-2 divide-[#6B5E70]/5' : 'grid-cols-1'}`}>
+                    {/* MODIFICACIÓN: Ajuste de gap y bordes en grid */}
+                    <div className={`grid gap-x-12 gap-y-8 ${idiomasActivos.length > 1 ? 'md:grid-cols-2 divide-x-2 divide-[#6B5E70]/5' : 'grid-cols-1'}`}>
                       {idiomasActivos.map((lang, i) => (
                         <div key={lang} className={`${i > 0 ? 'md:pl-12' : ''}`}>
                           {idiomasActivos.length > 1 && (
@@ -470,7 +461,8 @@ export default function CancionDetalle() {
                               {lang === 'romaji' ? 'Reading' : lang}
                             </span>
                           )}
-                          <div className="text-[#6B5E70] text-xl md:text-2xl leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90">
+                          {/* MODIFICACIÓN: Fuente adaptable para evitar wrap temprano */}
+                          <div className={`text-[#6B5E70] leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90 transition-all ${idiomasActivos.length > 1 ? 'text-lg md:text-xl' : 'text-xl md:text-2xl'}`}>
                             {lang === 'es' && (seccion.letra_es || "---")}
                             {lang === 'en' && (seccion.letra_en || "---")}
                             {lang === 'jp' && (seccion.letra_jp || "---")}
