@@ -140,7 +140,7 @@ export default function DetalleMaestro({
             <div className="space-y-6">
               <div className="flex items-center gap-4 mb-8">
                 <div className="h-[1px] flex-1 bg-primary/10" />
-                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/30 italic">Círculo Social</span>
+                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/30 italic">Vinculos</span>
                 <div className="h-[1px] flex-1 bg-primary/10" />
               </div>
               <Relaciones 
@@ -154,7 +154,7 @@ export default function DetalleMaestro({
             <div className="space-y-6">
               <div className="flex items-center gap-4 mb-8">
                 <div className="h-[1px] flex-1 bg-primary/10" />
-                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/30 italic">Playlist Oficial</span>
+                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/30 italic">Soliloquios</span>
                 <div className="h-[1px] flex-1 bg-primary/10" />
               </div>
               {editMode && !varianteActiva ? (

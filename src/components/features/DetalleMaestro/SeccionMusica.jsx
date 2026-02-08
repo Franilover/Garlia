@@ -25,14 +25,6 @@ export const SeccionMusica = ({ listaLinks, nombre }) => {
         <div className="p-3 bg-primary/5 rounded-2xl text-primary">
           <Music size={20} />
         </div>
-        <div>
-          <h3 className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/60 leading-none">
-            Playlist Oficial
-          </h3>
-          <p className="text-[10px] font-bold text-primary/30 uppercase mt-1">
-            Soliloquios y Temas de {nombre}
-          </p>
-        </div>
         <div className="h-[1px] flex-1 bg-primary/5 ml-4" />
       </div>
 
@@ -60,10 +52,10 @@ export const SeccionMusica = ({ listaLinks, nombre }) => {
 
               <div className="flex-1 z-10">
                 <span className="text-[9px] text-primary/40 font-black uppercase tracking-widest block mb-1">
-                  Ver Letra y Análisis
+                  Ver Letra 
                 </span>
                 <span className="text-xl font-black italic uppercase text-slate-800 group-hover:text-primary transition-colors tracking-tighter block leading-none">
-                  {nombre} <span className="text-primary/20">/</span> Tema {index + 1}
+                  {nombre} <span className="text-primary/20">/</span> {index + 1}
                 </span>
               </div>
 
