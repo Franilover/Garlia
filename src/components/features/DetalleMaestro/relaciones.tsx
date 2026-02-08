@@ -84,14 +84,7 @@ export default function Relaciones({
   return (
     <div className="w-full">
       {/* CABECERA CON BOTÓN AÑADIR */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <Users size={18} className="text-primary/40" />
-          <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-primary/60">
-            Relaciones
-          </h3>
-        </div>
-        
+      <div className="flex items-center justify-between mb-8">        
         {editMode && (
           <button 
             type="button"
