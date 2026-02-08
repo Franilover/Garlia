@@ -5,6 +5,8 @@ import { X, Edit3, Save, Plus, Trash2, Music, Users, Image as ImageIcon, Zap } f
 import Relaciones from './relaciones'; 
 import { useDetalleMaestro } from '@/hooks/useDetalleMaestro'; 
 import { SeccionMusica } from './SeccionMusica';
+// IMPORTANTE: Importamos el nuevo selector (asegúrate de que la ruta sea correcta)
+import { SelectorCancionesMusica } from './SelectorCancionesMusica';
 
 export default function DetalleMaestro({ 
   isOpen, onClose, data, tags = [], mostrarMusica = true, onUpdate 
@@ -63,7 +65,7 @@ export default function DetalleMaestro({
         <div className="bg-white rounded-[4rem] overflow-hidden shadow-2xl relative border border-primary/10">
           
           {/* --- CONTROLES SUPERIORES --- */}
-          <div className="absolute top-8 right-8 z-50 flex gap-3">
+          <div className="absolute top-8 right-8 z-[100] flex gap-3">
             {isAdmin && (
               <button 
                 onClick={editMode ? handleSave : () => setEditMode(true)} 
@@ -197,7 +199,7 @@ export default function DetalleMaestro({
                   )}
                 </div>
               ) : (
-                /* --- VISTA NORMAL (Texto ajustado aquí) --- */
+                /* --- VISTA NORMAL --- */
                 <div className="relative">
                   <div className="flex flex-wrap gap-3 mb-6">
                     {tags.map((tag, i) => tag && (
@@ -207,7 +209,6 @@ export default function DetalleMaestro({
                     ))}
                   </div>
                   
-                  {/* TAMAÑO REDUCIDO DE 8XL A 6XL */}
                   <h2 className="text-5xl lg:text-6xl font-black uppercase italic text-primary leading-[0.9] tracking-tighter mb-8">
                     {varianteActiva ? `${data.nombre} ${varianteActiva.tipo}` : editNombre}
                   </h2>
@@ -265,12 +266,13 @@ export default function DetalleMaestro({
                   <div className="h-px flex-1 bg-primary/10" />
                 </div>
                 {editMode ? (
-                  <textarea 
-                    value={editCanciones} 
-                    onChange={(e) => setEditCanciones(e.target.value)} 
-                    placeholder="IDs de YouTube..." 
-                    className="w-full text-sm font-mono p-6 bg-white border border-primary/10 text-primary rounded-[2.5rem] outline-none min-h-37.5 shadow-inner focus:ring-4 ring-primary/5" 
-                  />
+                  /* CAMBIO AQUÍ: Sustituimos el textarea por el Selector de Canciones */
+                  <div className="min-h-50">
+                    <SelectorCancionesMusica 
+                      idsSeleccionados={editCanciones || []} 
+                      onChange={(nuevosIds) => setEditCanciones(nuevosIds)} 
+                    />
+                  </div>
                 ) : (
                   <div className="min-h-50">
                     {mostrarMusica && <SeccionMusica listaLinks={data?.canciones || []} nombre={data.nombre} />}
