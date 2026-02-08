@@ -9,7 +9,6 @@ import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { SmartImage } from '@/components/shared/display/SmartImage';
 
 const Canciones = () => {
-  // Cargamos los datos de Supabase usando tu hook
   const { data: canciones, loading, setData: setCanciones } = useSupabaseData('canciones', {
     order: { campo: 'created_at', asc: false }
   });
@@ -20,21 +19,16 @@ const Canciones = () => {
   
   const [listaPersonajes, setListaPersonajes] = useState([]);
   
-  // Estados para la edición
   const [selectedCancion, setSelectedCancion] = useState(null);
   const [editTitulo, setEditTitulo] = useState("");
   const [editPersonaje, setEditPersonaje] = useState("");
   const [editEstado, setEditEstado] = useState("BORRADOR");
-  const [editInspiracion, setEditInspiracion] = useState("");
   const [editVisible, setEditVisible] = useState(false);
   
-  // Estados para nueva canción
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [nuevoPersonaje, setNuevoPersonaje] = useState("");
-  const [nuevaInspiracion, setNuevaInspiracion] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Verificar Admin y Cargar Personajes
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setIsAdmin(true);
@@ -61,12 +55,10 @@ const Canciones = () => {
     setEditTitulo(cancion.titulo);
     setEditPersonaje(cancion.personaje || "");
     setEditEstado(cancion.estado || "BORRADOR");
-    setEditInspiracion(cancion.inspiracion || "");
     setEditVisible(cancion.visible || false);
     setShowEditModal(true);
   };
 
-  // --- LÓGICA DE ACTUALIZACIÓN CORREGIDA ---
   const handleUpdateCancion = async (e) => {
     e.preventDefault();
     if (!editTitulo.trim() || isUpdating) return;
@@ -74,21 +66,17 @@ const Canciones = () => {
 
     const linkWiki = `/wiki/canciones/${selectedCancion.id}`;
 
-    // 1. Actualizar tabla de Canciones
     const { error: updateError } = await supabase
       .from('canciones')
       .update({ 
         titulo: editTitulo.toUpperCase(),
         personaje: editPersonaje,
         estado: editEstado,
-        inspiracion: editInspiracion,
         visible: editVisible 
       })
       .eq('id', selectedCancion.id);
 
     if (!updateError) {
-      // 2. Sincronización de Personajes (Limpieza de duplicados y cambios)
-      // Borrar link del personaje anterior si cambió
       if (selectedCancion.personaje && selectedCancion.personaje !== editPersonaje) {
         const pAnterior = listaPersonajes.find(p => p.nombre === selectedCancion.personaje);
         if (pAnterior) {
@@ -97,7 +85,6 @@ const Canciones = () => {
         }
       }
 
-      // Añadir link al nuevo personaje (sin duplicar)
       if (editPersonaje) {
         const personajeElegido = listaPersonajes.find(p => p.nombre === editPersonaje);
         if (personajeElegido) {
@@ -113,7 +100,7 @@ const Canciones = () => {
 
       setCanciones(prev => prev.map(c => 
         c.id === selectedCancion.id 
-          ? { ...c, titulo: editTitulo.toUpperCase(), personaje: editPersonaje, estado: editEstado, inspiracion: editInspiracion, visible: editVisible } 
+          ? { ...c, titulo: editTitulo.toUpperCase(), personaje: editPersonaje, estado: editEstado, visible: editVisible } 
           : c
       ));
       setShowEditModal(false);
@@ -129,7 +116,6 @@ const Canciones = () => {
     const { data, error } = await supabase.from('canciones').insert([{ 
       titulo: nuevoTitulo.toUpperCase(),
       personaje: nuevoPersonaje || null,
-      inspiracion: nuevaInspiracion || "Nueva canción en proceso...",
       estado: "BORRADOR",
       portada_url: "/placeholder-cover.jpg",
       visible: false 
@@ -152,16 +138,15 @@ const Canciones = () => {
       setShowAddModal(false);
       setNuevoTitulo("");
       setNuevoPersonaje("");
-      setNuevaInspiracion("");
     }
     setIsUpdating(false);
   };
 
   const getEstadoColor = (estado) => {
     switch(estado) {
-      case 'TERMINADA': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
-      case 'EN PROCESO': return 'bg-amber-50 text-amber-600 border-amber-200';
-      default: return 'bg-slate-50 text-slate-600 border-slate-200';
+      case 'TERMINADA': return 'bg-[#6B5E70]/10 text-[#6B5E70] border-[#6B5E70]/20';
+      case 'EN PROCESO': return 'bg-[#FDFCFD] text-[#6B5E70]/80 border-[#6B5E70]/10';
+      default: return 'bg-[#F4F4F5] text-[#6B5E70]/60 border-[#E4E4E7]';
     }
   };
 
@@ -188,7 +173,7 @@ const Canciones = () => {
               <form onSubmit={handleUpdateCancion} className="space-y-6">
                 <div className="flex items-center justify-between p-4 bg-[#6B5E70]/5 rounded-2xl border border-[#6B5E70]/10">
                   <div className="flex items-center gap-3">
-                    {editVisible ? <Eye size={18} className="text-emerald-500"/> : <EyeOff size={18} className="text-slate-400"/>}
+                    {editVisible ? <Eye size={18} className="text-[#6B5E70]"/> : <EyeOff size={18} className="text-slate-400"/>}
                     <span className="text-[10px] font-black text-[#6B5E70] uppercase tracking-wider italic">Pública</span>
                   </div>
                   <button type="button" onClick={() => setEditVisible(!editVisible)} className={`w-12 h-6 rounded-full transition-colors relative ${editVisible ? 'bg-[#6B5E70]' : 'bg-slate-300'}`}>
@@ -237,7 +222,6 @@ const Canciones = () => {
                   <option value="">SIN PERSONAJE</option>
                   {listaPersonajes.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre.toUpperCase()}</option>)}
                 </select>
-                <textarea placeholder="Inspiración..." value={nuevaInspiracion} onChange={(e) => setNuevaInspiracion(e.target.value)} rows={3} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none" />
                 <button type="submit" disabled={isUpdating} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg">
                   {isUpdating ? "Creando..." : "Crear Canción"}
                 </button>
@@ -247,7 +231,6 @@ const Canciones = () => {
         )}
       </AnimatePresence>
 
-      {/* HEADER */}
       <div className="max-w-6xl mx-auto pt-16 px-6 mb-12 flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3 uppercase">
@@ -262,7 +245,6 @@ const Canciones = () => {
         )}
       </div>
 
-      {/* GRID DE CANCIONES */}
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
         {cancionesAMostrar.map((cancion) => (
           <div key={cancion.id} className="relative group">

@@ -11,12 +11,12 @@ import {
   Edit3, 
   Save, 
   User, 
-  Sparkles, 
   List, 
   Music,
   EyeOff,
   AlertCircle,
-  Loader2
+  Loader2,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SmartImage } from '@/components/shared/display/SmartImage';
@@ -26,14 +26,12 @@ export default function CancionDetalle() {
   const id = params?.id;
   const router = useRouter();
   
-  // --- ESTADOS PRINCIPALES ---
   const [cancion, setCancion] = useState(null);
   const [secciones, setSecciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [errorAcceso, setErrorAcceso] = useState(false);
 
-  // --- ESTADOS DE MODALES Y EDICIÓN ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditSecModal, setShowEditSecModal] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
@@ -43,12 +41,10 @@ export default function CancionDetalle() {
   const [editSecLetra, setEditSecLetra] = useState("");
   const [procesando, setProcesando] = useState(false);
 
-  // --- CARGA DE DATOS (RESTAURADA) ---
   const fetchData = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
-      
       const { data: { session } } = await supabase.auth.getSession();
       const adminStatus = !!session;
       setIsAdmin(adminStatus);
@@ -64,7 +60,6 @@ export default function CancionDetalle() {
         return;
       }
 
-      // Validación estricta de visibilidad
       if (!cancionData.visible && !adminStatus) {
         setErrorAcceso(true);
         return;
@@ -91,13 +86,25 @@ export default function CancionDetalle() {
     fetchData();
   }, [fetchData]);
 
-  // --- GESTIÓN DE SECCIONES (LÓGICA COMPLETA) ---
+  // --- NUEVA FUNCIÓN: ACTUALIZAR ESTADO ---
+  const handleUpdateEstado = async (nuevoEstado) => {
+    try {
+      setCancion(prev => ({ ...prev, estado: nuevoEstado }));
+      const { error } = await supabase
+        .from('canciones')
+        .update({ estado: nuevoEstado })
+        .eq('id', id);
+      if (error) throw error;
+    } catch (error) {
+      alert("Error al actualizar estado: " + error.message);
+      fetchData(); // Revertir si falla
+    }
+  };
 
   const handleCrearSeccion = async (e) => {
     e.preventDefault();
     if (!nuevoNombre.trim() || !nuevaLetra.trim() || procesando) return;
     setProcesando(true);
-    
     try {
       const { data, error } = await supabase
         .from('secciones_cancion')
@@ -108,9 +115,7 @@ export default function CancionDetalle() {
           orden: secciones.length + 1
         }])
         .select();
-
       if (error) throw error;
-
       setSecciones(prev => [...prev, data[0]]);
       setShowAddModal(false);
       setNuevoNombre("");
@@ -126,7 +131,6 @@ export default function CancionDetalle() {
     e.preventDefault();
     if (!editSecNombre.trim() || !editSecLetra.trim() || procesando) return;
     setProcesando(true);
-    
     try {
       const { error } = await supabase
         .from('secciones_cancion')
@@ -135,9 +139,7 @@ export default function CancionDetalle() {
           letra: editSecLetra 
         })
         .eq('id', selectedSec.id);
-
       if (error) throw error;
-
       setSecciones(prev => prev.map(s => 
         s.id === selectedSec.id 
           ? { ...s, nombre_seccion: editSecNombre.toUpperCase(), letra: editSecLetra } 
@@ -157,7 +159,6 @@ export default function CancionDetalle() {
     try {
       const { error } = await supabase.from('secciones_cancion').delete().eq('id', selectedSec.id);
       if (error) throw error;
-      
       setSecciones(prev => prev.filter(s => s.id !== selectedSec.id));
       setShowEditSecModal(false);
     } catch (error) {
@@ -174,7 +175,6 @@ export default function CancionDetalle() {
     setShowEditSecModal(true);
   };
 
-  // --- HELPER DE COLORES (RESTAURADO Y CORREGIDO) ---
   const getEstadoColor = (estado) => {
     switch(estado) {
       case 'TERMINADA': return 'bg-[#6B5E70]/10 text-[#6B5E70] border-[#6B5E70]/20';
@@ -257,7 +257,6 @@ export default function CancionDetalle() {
             <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo} className="w-full h-full object-cover" />
           </motion.div>
 
-          {/* BOTÓN OCULTO: COLOR OSCURO DE LA CAPTURA (#1C2433) */}
           {isAdmin && !cancion?.visible && (
             <div className="p-4 bg-[#604b68] text-white rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl">
               <EyeOff size={16} />
@@ -265,9 +264,25 @@ export default function CancionDetalle() {
             </div>
           )}
 
+          {/* ESTADO EDITABLE */}
           {cancion?.estado && (
-            <div className={`p-4 rounded-[2rem] border text-center ${getEstadoColor(cancion.estado)} shadow-sm`}>
-              <h4 className="font-black uppercase text-[9px] tracking-[0.2em]">{cancion.estado}</h4>
+            <div className={`relative p-4 rounded-[2rem] border text-center ${getEstadoColor(cancion.estado)} shadow-sm transition-all`}>
+              {isAdmin ? (
+                <div className="flex items-center justify-center gap-2">
+                  <select 
+                    value={cancion.estado} 
+                    onChange={(e) => handleUpdateEstado(e.target.value)}
+                    className="bg-transparent font-black uppercase text-[9px] tracking-[0.2em] outline-none cursor-pointer appearance-none text-center w-full"
+                  >
+                    <option value="BORRADOR">BORRADOR</option>
+                    <option value="EN PROCESO">EN PROCESO</option>
+                    <option value="TERMINADA">TERMINADA</option>
+                  </select>
+                  <ChevronDown size={10} className="absolute right-6 opacity-40" />
+                </div>
+              ) : (
+                <h4 className="font-black uppercase text-[9px] tracking-[0.2em]">{cancion.estado}</h4>
+              )}
             </div>
           )}
 
@@ -275,13 +290,6 @@ export default function CancionDetalle() {
             <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
               <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic"><User size={12} /> Personaje</h4>
               <p className="text-[#6B5E70] font-bold text-sm italic">{cancion.personaje}</p>
-            </div>
-          )}
-
-          {cancion?.inspiracion && (
-            <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
-              <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic"><Sparkles size={12} /> Inspiración</h4>
-              <p className="text-[#6B5E70]/70 text-sm leading-relaxed italic font-medium">&quot;{cancion.inspiracion}&quot;</p>
             </div>
           )}
         </aside>
@@ -316,7 +324,6 @@ export default function CancionDetalle() {
                         <button onClick={() => openEditSec(seccion)} className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"><Edit3 size={14} /></button>
                       )}
                     </div>
-                    {/* LETRA AMPLIDADA PARA LECTURA A DISTANCIA: text-2xl */}
                     <div className="text-[#6B5E70] text-xl md:text-2xl leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90">
                       {seccion.letra}
                     </div>
