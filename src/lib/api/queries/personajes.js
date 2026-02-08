@@ -1,10 +1,9 @@
-// src/lib/api/queris/personajes.js
+// src/lib/api/queries/personajes.js
 import { supabase } from '../supabase';
 
 /**
- * Nota: He eliminado 'canciones (*)' del select porque en tu captura
- * se ve que 'canciones' es una columna de texto[] dentro de la misma tabla,
- * no una tabla relacionada aparte. Al usar '*', ya las traes.
+ * Nota: He ajustado la relación para que use 'personaje_id' como clave foránea.
+ * También mantenemos el '*' para traer 'canciones' que es un array de texto.
  */
 
 export const personajesQueries = {
@@ -13,8 +12,8 @@ export const personajesQueries = {
       .from('personajes')
       .select(`
         *,
-        relaciones (*)
-      `); // Trae personajes y sus vínculos vinculados por ID
+        relaciones:relaciones!personaje_id (*)
+      `); // Forzamos el uso de personaje_id para vincular los datos
     
     if (opciones.order) {
       query = query.order(opciones.order.campo, { 
@@ -30,7 +29,7 @@ export const personajesQueries = {
       .from('personajes')
       .select(`
         *,
-        relaciones (*)
+        relaciones:relaciones!personaje_id (*)
       `)
       .eq('id', id)
       .single();
@@ -43,7 +42,7 @@ export const personajesQueries = {
       .eq('id', id)
       .select(`
         *,
-        relaciones (*)
+        relaciones:relaciones!personaje_id (*)
       `)
       .single();
   }
