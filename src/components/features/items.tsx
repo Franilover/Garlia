@@ -6,7 +6,7 @@ import FiltrosMaestros from "@/components/shared/forms/Filtros";
 import PageHeader from "@/components/shared/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/components/shared/feedback/StateComponents";
 
-// Hooks y Libs
+// Hooks y Libs unificadas
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useFiltrosGenericos } from '@/hooks/useFiltrosGenericos';
 import { typography } from '@/lib/config/design-system';
@@ -15,16 +15,16 @@ import { getMensaje } from '@/lib/config/constants';
 export default function Inventario() {
   const [selected, setSelected] = useState(null);
 
-  // 1. Fetching de datos (Tabla 'items')
+  // 1. FETCHING: Sincronizado con tu config global
   const { 
     data: items, 
     setData: setItems, 
     loading 
   } = useSupabaseData('items', {
-    order: { campo: 'created_at', asc: false }
+    order: { campo: 'nombre', asc: true } // O el orden que prefieras
   });
 
-  // 2. Lógica de filtros
+  // 2. FILTROS: Usando la lógica genérica
   const {
     filtros,
     opciones,
@@ -35,7 +35,6 @@ export default function Inventario() {
     inicial: { categoria: 'Todos' }
   });
 
-  // 3. Manejadores de estado
   const handleUpdate = useCallback((updatedItem) => {
     setSelected(updatedItem);
     setItems(prev => 
@@ -45,30 +44,31 @@ export default function Inventario() {
 
   const handleSelect = (item) => {
     setSelected(item);
-    // Scroll suave al inicio para ver el detalle si es necesario
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) return <LoadingState mensaje={getMensaje('LOADING', 'items')} />;
 
   return (
-    <main className="min-h-screen bg-white pb-20 overflow-x-hidden">
+    // CAMBIO: bg-bg-main para la estética unificada
+    <main className="min-h-screen bg-bg-main pb-20 overflow-x-hidden">
       
-      {/* DETALLE DEL ITEM */}
       <DetalleMaestro 
         isOpen={!!selected}
         onClose={() => setSelected(null)}
         data={selected}
         onUpdate={handleUpdate} 
-        tags={[selected?.categoria].filter(Boolean)}
-        mostrarMusica={false} // El inventario usualmente no lleva música
+        tags={[
+          selected?.categoria,
+          selected?.rareza // Si tienes rareza en la DB, aparecerá como tag
+        ].filter(Boolean)}
+        mostrarMusica={false}
       />
 
       <GalleryGrid 
         isDetailOpen={!!selected} 
         headerContent={
-          <PageHeader titulo="Inventario">
-            {/* CORRECCIÓN AQUÍ: Agregamos el "_" para saltar el nombre del grupo */}
+          <PageHeader titulo="Almacén de Objetos">
             <FiltrosMaestros 
               opciones={opciones.categoria} 
               filtroActivo={filtros.categoria}
@@ -81,19 +81,19 @@ export default function Inventario() {
           <GalleryItem 
             key={item.id} 
             src={item.imagen_url} 
-            contain={true} // Los items suelen verse mejor sin recortar
+            contain={true} 
             onClick={() => handleSelect(item)}
           >
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 mb-1 italic">
+            {/* CAMBIO: Usando typography.tag y typography.cardTitle para consistencia */}
+            <p className={typography.tag + " mb-1"}>
               {item.categoria}
             </p>
-            <h3 className="text-sm font-bold text-slate-800 uppercase italic leading-tight">
+            <h3 className={typography.cardTitle}>
               {item.nombre}
             </h3>
           </GalleryItem>
         ))}
         
-        {/* ESTADO VACÍO */}
         {itemsFiltrados.length === 0 && (
           <div className="col-span-full py-20 text-center">
             <EmptyState mensaje={getMensaje('EMPTY', 'items')} />
