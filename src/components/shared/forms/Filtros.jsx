@@ -2,15 +2,15 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// He añadido "?" a las props para que TypeScript no se queje si faltan
+// Ponemos "?" para que sean opcionales y "=" para darles un valor por defecto
 export default function FiltrosMaestros({ 
-  config,           // opcional
-  filtrosActivos,   // opcional
-  opciones,         // opcional
-  filtroActivo,     // opcional
+  config = null,           
+  filtrosActivos = null,   
+  opciones = null,         
+  filtroActivo = null,     
   onChange 
 }) {
-  // Normalizamos la entrada de datos
+  // Ahora el componente no se queja si falta alguna prop
   const grupos = config 
     ? Object.entries(config) 
     : [["Categoría", opciones || []]];
@@ -25,7 +25,7 @@ export default function FiltrosMaestros({
       {grupos.map(([nombreGrupo, listaOpciones]) => (
         <div key={nombreGrupo} className="flex flex-col items-center space-y-5">
           <div className="flex items-center gap-4 w-full max-w-xs">
-            <div className="h-px flex-1 bg-primary/10" /> {/* Actualizado a h-px por Tailwind v4 */}
+            <div className="h-px flex-1 bg-primary/10" />
             <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/30 italic">
               {nombreGrupo}
             </span>
