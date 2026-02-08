@@ -22,10 +22,7 @@ export const SeccionMusica = ({ listaLinks, nombre }) => {
     <div className="w-full mt-12">
       {/* CABECERA DE LA SECCIÓN */}
       <div className="flex items-center gap-4 mb-8">
-        <div className="p-3 bg-primary/5 rounded-2xl text-primary">
-          <Music size={20} />
-        </div>
-        <div className="h-[1px] flex-1 bg-primary/5 ml-4" />
+     
       </div>
 
       {/* LISTA DE TRACKS ESTILO ÁLBUM */}
