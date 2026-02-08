@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff } from 'lucide-react';
+import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/api/supabase';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { SmartImage } from '@/components/shared/display/SmartImage';
 
 const Canciones = () => {
-  // Cargamos los datos de Supabase
+  // Cargamos los datos de Supabase usando tu hook
   const { data: canciones, loading, setData: setCanciones } = useSupabaseData('canciones', {
     order: { campo: 'created_at', asc: false }
   });
@@ -18,7 +18,6 @@ const Canciones = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   
-  // Lista de personajes para los selectores
   const [listaPersonajes, setListaPersonajes] = useState([]);
   
   // Estados para la edición
@@ -67,13 +66,16 @@ const Canciones = () => {
     setShowEditModal(true);
   };
 
+  // --- LÓGICA DE ACTUALIZACIÓN CORREGIDA ---
   const handleUpdateCancion = async (e) => {
     e.preventDefault();
     if (!editTitulo.trim() || isUpdating) return;
     setIsUpdating(true);
 
+    const linkWiki = `/wiki/canciones/${selectedCancion.id}`;
+
     // 1. Actualizar tabla de Canciones
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from('canciones')
       .update({ 
         titulo: editTitulo.toUpperCase(),
@@ -84,14 +86,22 @@ const Canciones = () => {
       })
       .eq('id', selectedCancion.id);
 
-    if (!error) {
-      // 2. Opción A: Sincronizar con tabla Personajes
+    if (!updateError) {
+      // 2. Sincronización de Personajes (Limpieza de duplicados y cambios)
+      // Borrar link del personaje anterior si cambió
+      if (selectedCancion.personaje && selectedCancion.personaje !== editPersonaje) {
+        const pAnterior = listaPersonajes.find(p => p.nombre === selectedCancion.personaje);
+        if (pAnterior) {
+          const nuevosLinks = (pAnterior.canciones || []).filter(l => l !== linkWiki);
+          await supabase.from('personajes').update({ canciones: nuevosLinks }).eq('nombre', pAnterior.nombre);
+        }
+      }
+
+      // Añadir link al nuevo personaje (sin duplicar)
       if (editPersonaje) {
         const personajeElegido = listaPersonajes.find(p => p.nombre === editPersonaje);
         if (personajeElegido) {
-          const linkWiki = `/wiki/canciones/${selectedCancion.id}`;
           const cancionesActuales = personajeElegido.canciones || [];
-          
           if (!cancionesActuales.includes(linkWiki)) {
             await supabase
               .from('personajes')
@@ -125,12 +135,12 @@ const Canciones = () => {
       visible: false 
     }]).select();
 
-    if (!error && data) {
-      // Sincronización rápida para nueva canción si tiene personaje
+    if (!error && data?.[0]) {
+      const nuevaCancion = data[0];
       if (nuevoPersonaje) {
         const p = listaPersonajes.find(per => per.nombre === nuevoPersonaje);
         if (p) {
-          const linkWiki = `/wiki/canciones/${data[0].id}`;
+          const linkWiki = `/wiki/canciones/${nuevaCancion.id}`;
           await supabase
             .from('personajes')
             .update({ canciones: [...(p.canciones || []), linkWiki] })
@@ -138,7 +148,7 @@ const Canciones = () => {
         }
       }
 
-      setCanciones(prev => [data[0], ...prev]);
+      setCanciones(prev => [nuevaCancion, ...prev]);
       setShowAddModal(false);
       setNuevoTitulo("");
       setNuevoPersonaje("");
@@ -157,8 +167,9 @@ const Canciones = () => {
 
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
-      <div className="animate-pulse text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
-        Abriendo Partituras...
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="animate-spin text-[#6B5E70]" size={32} />
+        <div className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">Abriendo Partituras...</div>
       </div>
     </div>
   );
@@ -170,64 +181,41 @@ const Canciones = () => {
       <AnimatePresence>
         {showEditModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-              onClick={() => setShowEditModal(false)} 
-              className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} 
-              className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10"
-            >
-              <button onClick={() => setShowEditModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]">
-                <X size={20} />
-              </button>
-              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Modificar Canción</h3>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
+              <button onClick={() => setShowEditModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
+              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">Modificar Canción</h3>
               <form onSubmit={handleUpdateCancion} className="space-y-6">
-                
                 <div className="flex items-center justify-between p-4 bg-[#6B5E70]/5 rounded-2xl border border-[#6B5E70]/10">
                   <div className="flex items-center gap-3">
                     {editVisible ? <Eye size={18} className="text-emerald-500"/> : <EyeOff size={18} className="text-slate-400"/>}
-                    <span className="text-[10px] font-black text-[#6B5E70] uppercase tracking-wider">Pública</span>
+                    <span className="text-[10px] font-black text-[#6B5E70] uppercase tracking-wider italic">Pública</span>
                   </div>
-                  <button type="button" onClick={() => setEditVisible(!editVisible)}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editVisible ? 'bg-[#6B5E70]' : 'bg-slate-300'}`}>
+                  <button type="button" onClick={() => setEditVisible(!editVisible)} className={`w-12 h-6 rounded-full transition-colors relative ${editVisible ? 'bg-[#6B5E70]' : 'bg-slate-300'}`}>
                     <motion.div animate={{ x: editVisible ? 24 : 4 }} className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>
-
                 <div>
-                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Título</label>
-                  <input type="text" value={editTitulo} onChange={(e) => setEditTitulo(e.target.value)} 
-                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Título</label>
+                  <input type="text" value={editTitulo} onChange={(e) => setEditTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 </div>
-                
                 <div>
-                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Personaje</label>
-                  <select 
-                    value={editPersonaje} 
-                    onChange={(e) => setEditPersonaje(e.target.value)}
-                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70] appearance-none cursor-pointer"
-                  >
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Personaje</label>
+                  <select value={editPersonaje} onChange={(e) => setEditPersonaje(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70] appearance-none cursor-pointer">
                     <option value="">SIN PERSONAJE</option>
-                    {listaPersonajes.map(p => (
-                      <option key={p.nombre} value={p.nombre}>{p.nombre.toUpperCase()}</option>
-                    ))}
+                    {listaPersonajes.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre.toUpperCase()}</option>)}
                   </select>
                 </div>
-
                 <div>
-                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Estado</label>
-                  <select value={editEstado} onChange={(e) => setEditEstado(e.target.value)}
-                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase">
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Estado</label>
+                  <select value={editEstado} onChange={(e) => setEditEstado(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase">
                     <option value="BORRADOR">BORRADOR</option>
                     <option value="EN PROCESO">EN PROCESO</option>
                     <option value="TERMINADA">TERMINADA</option>
                   </select>
                 </div>
-
-                <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20">
-                  {isUpdating ? "Guardando..." : "Actualizar Canción"}
+                <button type="submit" disabled={isUpdating} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg flex justify-center items-center gap-2">
+                  {isUpdating ? <Loader2 className="animate-spin" size={14}/> : "Actualizar Canción"}
                 </button>
               </form>
             </motion.div>
@@ -239,47 +227,18 @@ const Canciones = () => {
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-              onClick={() => setShowAddModal(false)} 
-              className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} 
-              className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10"
-            >
-              <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]">
-                <X size={20} />
-              </button>
-              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nueva Canción</h3>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
+              <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
+              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">Nueva Canción</h3>
               <form onSubmit={handleAddCancion} className="space-y-6">
-                <div>
-                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Título</label>
-                  <input type="text" placeholder="TÍTULO DE LA CANCIÓN..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} 
-                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
-                </div>
-                
-                <div>
-                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Personaje (opcional)</label>
-                  <select 
-                    value={nuevoPersonaje} 
-                    onChange={(e) => setNuevoPersonaje(e.target.value)}
-                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70] appearance-none cursor-pointer"
-                  >
-                    <option value="">SIN PERSONAJE</option>
-                    {listaPersonajes.map(p => (
-                      <option key={p.nombre} value={p.nombre}>{p.nombre.toUpperCase()}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Inspiración (opcional)</label>
-                  <textarea placeholder="¿Qué te inspiró?" value={nuevaInspiracion} onChange={(e) => setNuevaInspiracion(e.target.value)} rows={3}
-                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none" />
-                </div>
-
-                <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20">
+                <input type="text" placeholder="TÍTULO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
+                <select value={nuevoPersonaje} onChange={(e) => setNuevoPersonaje(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70]">
+                  <option value="">SIN PERSONAJE</option>
+                  {listaPersonajes.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre.toUpperCase()}</option>)}
+                </select>
+                <textarea placeholder="Inspiración..." value={nuevaInspiracion} onChange={(e) => setNuevaInspiracion(e.target.value)} rows={3} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none" />
+                <button type="submit" disabled={isUpdating} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg">
                   {isUpdating ? "Creando..." : "Crear Canción"}
                 </button>
               </form>
@@ -291,10 +250,10 @@ const Canciones = () => {
       {/* HEADER */}
       <div className="max-w-6xl mx-auto pt-16 px-6 mb-12 flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3">
+          <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3 uppercase">
             <Music size={32} /> Soliloquios
           </h1>
-          <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2">Cover y reflexiones</p>
+          <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2 italic">Partituras de Nadiria</p>
         </div>
         {isAdmin && (
           <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white p-4 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all z-50">
@@ -308,43 +267,39 @@ const Canciones = () => {
         {cancionesAMostrar.map((cancion) => (
           <div key={cancion.id} className="relative group">
             {isAdmin && (
-              <div className="absolute top-4 right-4 z-[100] flex gap-2">
+              <div className="absolute top-4 right-4 z-[50] flex gap-2">
                 {!cancion.visible && (
-                  <div className="bg-[#6B5E70] text-white p-2 px-3 rounded-full text-[8px] font-black uppercase flex items-center gap-1.5 shadow-xl border border-white/20">
+                  <div className="bg-[#6B5E70] text-white p-2 px-3 rounded-full text-[8px] font-black uppercase flex items-center gap-1.5 shadow-xl">
                     <EyeOff size={12} /> Oculto
                   </div>
                 )}
-                <button onClick={(e) => openEditModal(e, cancion)}
-                  className="bg-white text-[#6B5E70] p-4 rounded-full shadow-2xl border-2 border-[#6B5E70]/10 hover:scale-110 transition-all">
-                  <Edit3 size={18} />
+                <button onClick={(e) => openEditModal(e, cancion)} className="bg-white text-[#6B5E70] p-3 rounded-full shadow-2xl border border-[#6B5E70]/10 hover:scale-110 transition-all">
+                  <Edit3 size={16} />
                 </button>
               </div>
             )}
 
             <Link href={`/wiki/canciones/${cancion.id}`}>
-              <motion.div whileHover={{ y: -10 }} className={`cursor-pointer ${!cancion.visible && isAdmin ? 'opacity-70' : ''}`}>
-                <div className="relative aspect-square rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/5 to-[#6B5E70]/20">
+              <motion.div whileHover={{ y: -10 }} className="cursor-pointer">
+                <div className={`relative aspect-square rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/5 to-[#6B5E70]/20 ${!cancion.visible && isAdmin ? 'grayscale-[0.4] opacity-80' : ''}`}>
                   <SmartImage src={cancion.portada_url || "/placeholder-cover.jpg"} alt={cancion.titulo} className="w-full h-full object-cover" />
                   <div className={`absolute top-6 left-6 z-20 backdrop-blur-md px-4 py-1.5 rounded-full border ${getEstadoColor(cancion.estado)}`}>
                     <span className="text-[9px] font-black uppercase tracking-widest">{cancion.estado}</span>
                   </div>
                   {cancion.personaje && (
-                    <div className="absolute top-6 right-6 z-20 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#6B5E70]/10 flex items-center gap-1.5">
+                    <div className="absolute bottom-6 right-6 z-20 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#6B5E70]/10 flex items-center gap-1.5">
                       <User size={10} className="text-[#6B5E70]" />
-                      <span className="text-[9px] font-bold text-[#6B5E70]">{cancion.personaje}</span>
+                      <span className="text-[9px] font-bold text-[#6B5E70] italic">{cancion.personaje}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="mt-6 px-2">
-                  <h2 className="text-[#6B5E70] font-black uppercase text-base group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tight">
+                <div className="mt-6 px-2 text-center sm:text-left">
+                  <h2 className="text-[#6B5E70] font-black uppercase text-base group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tight italic">
                     {cancion.titulo}
                   </h2>
-                  {cancion.inspiracion && (
-                    <p className="text-[#6B5E70]/50 text-xs mt-2 line-clamp-2 italic leading-relaxed font-medium">&quot;{cancion.inspiracion}&quot;</p>
-                  )}
-                  <div className="flex items-center gap-4 mt-4 text-[#6B5E70]/30 font-bold text-[9px] uppercase tracking-widest">
-                    <span className="flex items-center gap-1.5"><Music size={12} /> Ver Letra</span>
+                  <div className="flex items-center gap-4 mt-4 text-[#6B5E70]/30 font-bold text-[9px] uppercase tracking-widest justify-center sm:justify-start">
+                    <span className="flex items-center gap-1.5"><Music size={12} /> Letra</span>
                     <span className="flex items-center gap-1.5"><ChevronRight size={12} /> Abrir</span>
                   </div>
                 </div>
@@ -353,15 +308,6 @@ const Canciones = () => {
           </div>
         ))}
       </div>
-
-      {cancionesAMostrar.length === 0 && (
-        <div className="text-center mt-20">
-          <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
-          <p className="text-[#6B5E70]/40 font-bold uppercase text-sm tracking-widest">
-            {isAdmin ? "Aún no hay canciones" : "No hay canciones publicadas"}
-          </p>
-        </div>
-      )}
     </div>
   );
 };
