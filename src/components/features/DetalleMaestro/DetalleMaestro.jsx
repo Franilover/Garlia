@@ -83,11 +83,11 @@ export default function DetalleMaestro({
 
           <div className="flex flex-col lg:flex-row items-stretch border-b border-primary/5">
             {/* --- PANEL IZQUIERDO: IMAGEN --- */}
-            <div className="w-full lg:w-[45%] bg-gradient-to-br from-primary/5 to-white p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-[500px]">
+            <div className="w-full lg:w-[45%] bg-linear-to-br from-primary/5 to-white p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-125">
               <div className="absolute inset-0 opacity-[0.05] pointer-events-none italic font-black text-[25rem] flex items-center justify-center text-primary select-none">
                 {data.nombre[0]}
               </div>
-              <div className="relative w-full aspect-square max-w-[480px] rounded-full overflow-hidden border-4 border-white shadow-2xl bg-white group">
+              <div className="relative w-full aspect-square max-w-120 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-white group">
                 <motion.img 
                   key={imagenVisual} 
                   initial={{ opacity: 0 }} 
@@ -108,7 +108,7 @@ export default function DetalleMaestro({
                       <input 
                         value={editNombre} 
                         onChange={(e) => setEditNombre(e.target.value)} 
-                        className="text-4xl font-black uppercase italic text-primary w-full bg-primary/5 border border-primary/10 p-6 rounded-[2rem] outline-none focus:ring-4 ring-primary/5 shadow-inner" 
+                        className="text-2xl font-black uppercase italic text-primary w-full bg-primary/5 border border-primary/10 p-5 rounded-4xl outline-none focus:ring-4 ring-primary/5 shadow-inner" 
                       />
                     </div>
                     <div>
@@ -116,12 +116,12 @@ export default function DetalleMaestro({
                       <textarea 
                         value={editDescripcion} 
                         onChange={(e) => setEditDescripcion(e.target.value)} 
-                        className="text-slate-600 text-lg italic leading-relaxed w-full bg-primary/5 border border-primary/10 p-8 rounded-[2rem] outline-none min-h-[180px] resize-none focus:ring-4 ring-primary/5 shadow-inner" 
+                        className="text-slate-600 text-lg italic leading-relaxed w-full bg-primary/5 border border-primary/10 p-8 rounded-4xl outline-none min-h-45 resize-none focus:ring-4 ring-primary/5 shadow-inner" 
                       />
                     </div>
                   </div>
 
-                  {/* SECCIÓN VARIANTES - ESTÉTICA MORADA */}
+                  {/* SECCIÓN VARIANTES */}
                   {esCriatura && (
                     <div className="pt-6 border-t border-primary/10">
                       <div className="flex items-center justify-between mb-6">
@@ -137,7 +137,7 @@ export default function DetalleMaestro({
                         </button>
                       </div>
 
-                      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
+                      <div className="space-y-4 max-h-125 overflow-y-auto pr-4 custom-scrollbar">
                         {variantes.map((v, index) => (
                           <motion.div 
                             key={v.id || index}
@@ -145,7 +145,7 @@ export default function DetalleMaestro({
                             animate={{ opacity: 1, y: 0 }}
                             className="flex flex-col md:flex-row gap-6 p-6 bg-primary/5 rounded-[2.5rem] border border-primary/10 relative group"
                           >
-                            <div className="w-full md:w-32 h-32 rounded-3xl overflow-hidden bg-white flex-shrink-0 border-2 border-white shadow-md">
+                            <div className="w-full md:w-32 h-32 rounded-3xl overflow-hidden bg-white shrink-0 border-2 border-white shadow-md">
                               {v.imagen_url ? (
                                 <img src={v.imagen_url} className="w-full h-full object-cover" alt="preview" />
                               ) : (
@@ -180,7 +180,7 @@ export default function DetalleMaestro({
                                 onChange={(e) => {
                                   const n = [...variantes]; n[index].descripcion_variante = e.target.value; setVariantes(n);
                                 }}
-                                className="w-full bg-white p-4 rounded-2xl text-xs italic text-slate-500 border border-primary/10 outline-none min-h-[80px] resize-none"
+                                className="w-full bg-white p-4 rounded-2xl text-xs italic text-slate-500 border border-primary/10 outline-none min-h-20 resize-none"
                               />
                             </div>
 
@@ -197,7 +197,7 @@ export default function DetalleMaestro({
                   )}
                 </div>
               ) : (
-                /* --- VISTA NORMAL --- */
+                /* --- VISTA NORMAL (Texto ajustado aquí) --- */
                 <div className="relative">
                   <div className="flex flex-wrap gap-3 mb-6">
                     {tags.map((tag, i) => tag && (
@@ -207,7 +207,8 @@ export default function DetalleMaestro({
                     ))}
                   </div>
                   
-                  <h2 className="text-7xl lg:text-8xl font-black uppercase italic text-primary leading-[0.8] tracking-tighter mb-8">
+                  {/* TAMAÑO REDUCIDO DE 8XL A 6XL */}
+                  <h2 className="text-5xl lg:text-6xl font-black uppercase italic text-primary leading-[0.9] tracking-tighter mb-8">
                     {varianteActiva ? `${data.nombre} ${varianteActiva.tipo}` : editNombre}
                   </h2>
                   
@@ -215,7 +216,7 @@ export default function DetalleMaestro({
                     {varianteActiva ? varianteActiva.descripcion_variante : editDescripcion}
                   </p>
                   
-                  {/* SELECTOR DE VARIANTES MORADO */}
+                  {/* SELECTOR DE VARIANTES */}
                   {variantes.length > 0 && (
                     <div className="flex flex-wrap gap-3 mt-12">
                       <button 
@@ -246,33 +247,32 @@ export default function DetalleMaestro({
 
           {/* Bloque Inferior */}
           {tieneContenidoInferior && (
-            <div className="bg-primary/[0.02] p-10 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-20 items-start border-t border-primary/5">
-              {/* ... Resto del contenido inferior igual, pero con toques de primary ... */}
+            <div className="bg-primary/2 p-10 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-20 items-start border-t border-primary/5">
               <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-4">
                   <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/20 italic flex items-center gap-2">
                     <Users size={14} /> Vínculos
                   </span>
-                  <div className="h-[1px] flex-1 bg-primary/10" />
+                  <div className="h-px flex-1 bg-primary/10" />
                 </div>
-                {loadingRelaciones ? <div className="h-20 bg-white rounded-[2rem] w-full animate-pulse border border-primary/5" /> : <Relaciones nombrePersonaje={data.nombre} personajeId={data.id} datosRelaciones={data.relaciones || []} editMode={editMode} onChange={setEditRelaciones} />}
+                {loadingRelaciones ? <div className="h-20 bg-white rounded-4xl w-full animate-pulse border border-primary/5" /> : <Relaciones nombrePersonaje={data.nombre} personajeId={data.id} datosRelaciones={data.relaciones || []} editMode={editMode} onChange={setEditRelaciones} />}
               </div>
               <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-4">
                   <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/20 italic flex items-center gap-2">
                     <Music size={14} /> Soliloquios
                   </span>
-                  <div className="h-[1px] flex-1 bg-primary/10" />
+                  <div className="h-px flex-1 bg-primary/10" />
                 </div>
                 {editMode ? (
                   <textarea 
                     value={editCanciones} 
                     onChange={(e) => setEditCanciones(e.target.value)} 
                     placeholder="IDs de YouTube..." 
-                    className="w-full text-sm font-mono p-6 bg-white border border-primary/10 text-primary rounded-[2.5rem] outline-none min-h-[150px] shadow-inner focus:ring-4 ring-primary/5" 
+                    className="w-full text-sm font-mono p-6 bg-white border border-primary/10 text-primary rounded-[2.5rem] outline-none min-h-37.5 shadow-inner focus:ring-4 ring-primary/5" 
                   />
                 ) : (
-                  <div className="min-h-[200px]">
+                  <div className="min-h-50">
                     {mostrarMusica && <SeccionMusica listaLinks={data?.canciones || []} nombre={data.nombre} />}
                   </div>
                 )}
