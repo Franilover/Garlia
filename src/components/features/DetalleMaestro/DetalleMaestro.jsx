@@ -14,7 +14,6 @@ export default function DetalleMaestro({
   mostrarMusica = true, 
   onUpdate 
 }) {
-  // Extraemos la lógica del hook personalizado
   const {
     isAdmin, editMode, setEditMode, saving, handleSave,
     variantes, varianteActiva, setVarianteActiva,
@@ -23,17 +22,14 @@ export default function DetalleMaestro({
   } = useDetalleMaestro(data, onUpdate);
 
   /**
-   * 1. LÓGICA DE DETECCIÓN Y VISIBILIDAD
-   * esCriatura: Determina si el objeto actual es una criatura basándose en campos únicos.
-   * tieneContenidoInferior: Si es criatura, ocultamos el bloque de vínculos y música (salvo en editMode).
+   * LÓGICA DE CONTEXTO (Criatura vs Personaje)
    */
   const esCriatura = data && (!data.hasOwnProperty('canciones') || 'puntos_vida' in data);
-  const tieneContenidoInferior = (!esCriatura && (data?.relaciones?.length > 0 || data?.canciones?.length > 0)) || editMode;
+  
+  // CORRECCIÓN: Solo mostramos contenido inferior si NO es criatura.
+  // Si es criatura, el bloque inferior no existe ni en modo lectura ni en edición.
+  const tieneContenidoInferior = !esCriatura && (editMode || data?.relaciones?.length > 0 || data?.canciones?.length > 0);
 
-  /**
-   * 2. GESTIÓN DEL ESTADO DE CARGA
-   * Evitamos el esqueleto de carga infinito en criaturas ya que no poseen relaciones.
-   */
   const [loadingRelaciones, setLoadingRelaciones] = useState(!esCriatura && !data?.relaciones);
 
   useEffect(() => {
@@ -41,7 +37,6 @@ export default function DetalleMaestro({
       if (esCriatura || data?.relaciones) {
         setLoadingRelaciones(false);
       } else {
-        // Pequeño fallback por si la data tarda un poco en propagarse
         const timer = setTimeout(() => setLoadingRelaciones(false), 400);
         return () => clearTimeout(timer);
       }
@@ -50,7 +45,6 @@ export default function DetalleMaestro({
 
   if (!data || !isOpen) return null;
 
-  // Priorizamos la imagen de la variante activa si existe
   const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
 
   return (
@@ -64,7 +58,7 @@ export default function DetalleMaestro({
       >
         <div className="bg-white rounded-[4rem] overflow-hidden shadow-2xl relative border border-primary/5">
           
-          {/* --- CONTROLES SUPERIORES (Edit/Save/Close) --- */}
+          {/* --- CONTROLES SUPERIORES --- */}
           <div className="absolute top-8 right-8 z-50 flex gap-3">
             {isAdmin && (
               <button 
@@ -90,9 +84,9 @@ export default function DetalleMaestro({
             </button>
           </div>
 
-          {/* --- CABECERA: IMAGEN Y BIOGRAFÍA --- */}
+          {/* --- CABECERA --- */}
           <div className="flex flex-col lg:flex-row items-stretch border-b border-slate-50">
-            {/* Contenedor Visual */}
+            {/* Imagen */}
             <div className="w-full lg:w-[45%] bg-gradient-to-br from-slate-50 to-primary/5 p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-[500px]">
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none italic font-black text-[25rem] flex items-center justify-center text-primary select-none">
                 {data.nombre[0]}
@@ -108,20 +102,31 @@ export default function DetalleMaestro({
               </div>
             </div>
 
-            {/* Contenedor Información */}
+            {/* Información y Edición */}
             <div className="w-full lg:w-[55%] p-10 lg:p-16 flex flex-col justify-center bg-white">
               {editMode ? (
                 <div className="space-y-6">
-                  <input 
-                    value={editNombre}
-                    onChange={(e) => setEditNombre(e.target.value)}
-                    className="text-5xl font-black uppercase italic text-slate-900 w-full bg-slate-50 border-none p-6 rounded-[2rem] outline-none focus:ring-4 ring-primary/5"
-                  />
-                  <textarea 
-                    value={editDescripcion}
-                    onChange={(e) => setEditDescripcion(e.target.value)}
-                    className="text-slate-600 text-lg italic leading-relaxed w-full bg-slate-50 border-none p-8 rounded-[2rem] outline-none min-h-[250px] resize-none"
-                  />
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-primary/40 ml-4 mb-2 block italic">
+                      Nombre del Sujeto
+                    </label>
+                    <input 
+                      value={editNombre}
+                      onChange={(e) => setEditNombre(e.target.value)}
+                      className="text-5xl font-black uppercase italic text-slate-900 w-full bg-slate-50 border-none p-6 rounded-[2rem] outline-none focus:ring-4 ring-primary/5"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-primary/40 ml-4 mb-2 block italic">
+                      {esCriatura ? 'Descripción de la Especie' : 'Biografía del Personaje'}
+                    </label>
+                    <textarea 
+                      value={editDescripcion}
+                      onChange={(e) => setEditDescripcion(e.target.value)}
+                      className="text-slate-600 text-lg italic leading-relaxed w-full bg-slate-50 border-none p-8 rounded-[2rem] outline-none min-h-[250px] resize-none focus:ring-4 ring-primary/5"
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="relative">
@@ -140,7 +145,7 @@ export default function DetalleMaestro({
                     {varianteActiva ? varianteActiva.descripcion_variante : editDescripcion}
                   </p>
                   
-                  {/* SELECTOR DE VARIANTES: Priorizamos data.variantes para evitar lag de carga */}
+                  {/* Selector Variantes */}
                   {(variantes.length > 0 || data.variantes?.length > 0) && (
                     <div className="flex flex-wrap gap-2 mt-10">
                       <button 
@@ -163,11 +168,10 @@ export default function DetalleMaestro({
             </div>
           </div>
 
-          {/* --- BLOQUE INFERIOR: VÍNCULOS Y MÚSICA --- */}
+          {/* --- BLOQUE INFERIOR (Solo para Personajes) --- */}
           {tieneContenidoInferior && (
             <div className="bg-slate-50/50 p-10 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-20 items-start">
-              
-              {/* VÍNCULOS */}
+              {/* Vínculos */}
               <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-4">
                   <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/30 italic flex items-center gap-2">
@@ -175,11 +179,8 @@ export default function DetalleMaestro({
                   </span>
                   <div className="h-[1px] flex-1 bg-primary/10" />
                 </div>
-
                 {loadingRelaciones ? (
-                  <div className="space-y-4 animate-pulse p-4">
-                    <div className="h-20 bg-white/50 rounded-[2rem] w-full border border-primary/5" />
-                  </div>
+                  <div className="h-20 bg-white/50 rounded-[2rem] w-full animate-pulse" />
                 ) : (
                   <Relaciones 
                     nombrePersonaje={data.nombre} 
@@ -191,7 +192,7 @@ export default function DetalleMaestro({
                 )}
               </div>
 
-              {/* MÚSICA (SOLILOQUIOS) */}
+              {/* Música */}
               <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-4">
                   <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/30 italic flex items-center gap-2">
