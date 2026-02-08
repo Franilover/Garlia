@@ -14,42 +14,61 @@ interface RelacionesProps {
   nombrePersonaje: string;
   editMode?: boolean;
   onChange?: (lista: Relacion[]) => void;
+  datosRelaciones?: any[]; // <-- NUEVA PROP: Datos precargados
 }
 
 export default function Relaciones({ 
   nombrePersonaje, 
   editMode = false,
-  onChange 
+  onChange,
+  datosRelaciones // <-- Recibimos los datos del padre
 }: RelacionesProps) {
   const [lista, setLista] = useState<Relacion[]>([]);
   const [todosLosPersonajes, setTodosLosPersonajes] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function cargarDatos() {
       if (!nombrePersonaje) return;
       
-      const { data: rels } = await supabase
-        .from('relaciones')
-        .select('id, sus, son')
-        .eq('personaje', nombrePersonaje);
-      
-      if (rels) {
-        const formateadas: Relacion[] = rels.map(r => ({
+      // 1. LÓGICA DE OPTIMIZACIÓN: Si ya vienen los datos, no consultamos a Supabase
+      if (datosRelaciones && datosRelaciones.length > 0) {
+        const formateadas: Relacion[] = datosRelaciones.map(r => ({
           id: r.id,
           sus: r.sus,
           son: Array.isArray(r.son) ? r.son : [r.son],
           personaje: nombrePersonaje
         }));
         setLista(formateadas);
+        setLoading(false);
+      } else {
+        // Solo si no hay datos precargados, hacemos el fetch (para compatibilidad)
+        const { data: rels } = await supabase
+          .from('relaciones')
+          .select('id, sus, son')
+          .eq('personaje', nombrePersonaje);
+        
+        if (rels) {
+          const formateadas: Relacion[] = rels.map(r => ({
+            id: r.id,
+            sus: r.sus,
+            son: Array.isArray(r.son) ? r.son : [r.son],
+            personaje: nombrePersonaje
+          }));
+          setLista(formateadas);
+        }
+        setLoading(false);
       }
 
+      // 2. Cargamos la lista de nombres para el selector (esto es rápido)
       const { data: perjs } = await supabase
         .from('personajes')
         .select('nombre');
       if (perjs) setTodosLosPersonajes(perjs.map(p => p.nombre));
     }
+
     cargarDatos();
-  }, [nombrePersonaje]);
+  }, [nombrePersonaje, datosRelaciones]); // Escuchamos cambios en la prop
 
   useEffect(() => {
     if (editMode && onChange) {
@@ -57,6 +76,7 @@ export default function Relaciones({
     }
   }, [lista, editMode, onChange]);
 
+  // ... (Resto de funciones: agregarNombreARelacion, quitarNombreDeRelacion, eliminarFilaCompleta se mantienen igual)
   const agregarNombreARelacion = (index: number, nombreSeleccionado: string) => {
     const nuevaLista = [...lista];
     if (!nuevaLista[index].son.includes(nombreSeleccionado)) {
@@ -108,7 +128,6 @@ export default function Relaciones({
             }`}
           >
             {editMode ? (
-              /* --- MODO EDICIÓN --- */
               <div className="space-y-4">
                 <button 
                   type="button"
@@ -117,7 +136,6 @@ export default function Relaciones({
                 >
                   <Trash2 size={14} />
                 </button>
-
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-primary/40 uppercase ml-1">Tipo de relación</label>
                   <input 
@@ -131,7 +149,6 @@ export default function Relaciones({
                     placeholder="EJ: MEJOR AMIGO"
                   />
                 </div>
-
                 <div className="space-y-1">
                   <label className="text-[9px] font-black text-primary/40 uppercase ml-1">Personajes vinculados</label>
                   <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-xl min-h-[40px]">
@@ -145,7 +162,6 @@ export default function Relaciones({
                     ))}
                   </div>
                 </div>
-
                 <select 
                   onChange={(e) => agregarNombreARelacion(index, e.target.value)}
                   className="w-full text-[10px] font-black uppercase bg-primary/5 p-3 rounded-xl outline-none cursor-pointer border-none text-primary"
@@ -161,7 +177,6 @@ export default function Relaciones({
                 </select>
               </div>
             ) : (
-              /* --- MODO LECTURA --- */
               <div className="flex flex-col h-full">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/30 mb-3 border-b border-primary/5 pb-2">
                   {rel.sus}

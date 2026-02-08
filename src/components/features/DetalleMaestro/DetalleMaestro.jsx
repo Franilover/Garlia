@@ -22,21 +22,27 @@ export default function DetalleMaestro({
     editCanciones, setEditCanciones, setEditRelaciones
   } = useDetalleMaestro(data, onUpdate);
 
-  // Estado para el esqueleto de carga de relaciones
-  const [loadingRelaciones, setLoadingRelaciones] = useState(true);
+  // 1. ELIMINAMOS EL TIMER: Ahora el estado depende de si existen datos
+  // Si 'data' tiene 'relaciones', no necesitamos mostrar carga.
+  const isDataReady = data && data.relaciones;
+  const [loadingRelaciones, setLoadingRelaciones] = useState(!isDataReady);
 
   useEffect(() => {
     if (isOpen) {
-      setLoadingRelaciones(true);
-      // Sincronizamos la carga visual con la aparición del modal
-      const timer = setTimeout(() => setLoadingRelaciones(false), 1000);
-      return () => clearTimeout(timer);
+      // Si la data ya viene con relaciones (gracias al deep fetch), quitamos el loading al instante
+      if (data?.relaciones) {
+        setLoadingRelaciones(false);
+      } else {
+        // Por si acaso algún componente no trae la data precargada
+        setLoadingRelaciones(true);
+        const timer = setTimeout(() => setLoadingRelaciones(false), 800);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [isOpen, data?.id]);
+  }, [isOpen, data]);
 
   if (!data || !isOpen) return null;
 
-  // Prioridad de imagen: Variante > Imagen Base
   const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
 
   return (
@@ -74,13 +80,10 @@ export default function DetalleMaestro({
 
           {/* --- CABECERA: MEDALLÓN Y BIO --- */}
           <div className="flex flex-col lg:flex-row items-stretch border-b border-slate-50">
-            
-            {/* LADO IMAGEN */}
             <div className="w-full lg:w-[45%] bg-gradient-to-br from-slate-50 to-primary/5 p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-[500px]">
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none italic font-black text-[25rem] flex items-center justify-center text-primary select-none">
                 {data.nombre[0]}
               </div>
-              
               <div className="relative w-full aspect-square max-w-[480px] rounded-full overflow-hidden border-4 border-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] bg-white group">
                 <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_0_40px_rgba(0,0,0,0.1)] rounded-full" />
                 <motion.img 
@@ -93,7 +96,6 @@ export default function DetalleMaestro({
               </div>
             </div>
 
-            {/* LADO TEXTO / EDICIÓN */}
             <div className="w-full lg:w-[55%] p-10 lg:p-16 flex flex-col justify-center bg-white">
               {editMode ? (
                 <div className="space-y-6">
@@ -117,26 +119,19 @@ export default function DetalleMaestro({
                       <span key={i} className="px-5 py-2 bg-primary text-white text-[10px] font-black uppercase rounded-full tracking-widest shadow-md">{tag}</span>
                     ))}
                   </div>
-
                   <h2 className="text-7xl lg:text-8xl font-black uppercase italic text-primary leading-[0.8] tracking-tighter mb-8">
                     {varianteActiva ? `${data.nombre} ${varianteActiva.tipo}` : editNombre}
                   </h2>
-                  
                   <div className="h-[2px] w-16 bg-primary/10 mb-8" />
-
                   <p className="text-slate-500 text-lg lg:text-xl italic leading-relaxed whitespace-pre-wrap max-w-prose">
                     {varianteActiva ? varianteActiva.descripcion_variante : editDescripcion}
                   </p>
-
-                  {/* Selector de Variantes */}
                   {variantes.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-10">
                       <button 
                         onClick={() => setVarianteActiva(null)} 
                         className={`px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all ${!varianteActiva ? 'bg-primary text-white shadow-lg scale-105' : 'bg-slate-100 text-primary/40 hover:bg-slate-200'}`}
-                      >
-                        Base
-                      </button>
+                      >Base</button>
                       {variantes.map((v) => (
                         <button 
                           key={v.id} 
@@ -175,6 +170,7 @@ export default function DetalleMaestro({
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
                   <Relaciones 
                     nombrePersonaje={data.nombre} 
+                    datosRelaciones={data.relaciones} // <-- PASAMOS LA DATA PRECARGADA
                     editMode={editMode} 
                     onChange={setEditRelaciones} 
                   />
@@ -201,11 +197,11 @@ export default function DetalleMaestro({
                 />
               ) : (
                 <div className="min-h-[200px]">
+                  {/* Pasamos data.canciones que ya vendrá precargado también */}
                   {mostrarMusica && <SeccionMusica listaLinks={data?.canciones || []} nombre={data.nombre} />}
                 </div>
               )}
             </div>
-
           </div>
         </div>
       </motion.div>

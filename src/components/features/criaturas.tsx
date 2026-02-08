@@ -15,7 +15,8 @@ import { TABLAS_CONFIG, getMensaje } from '@/lib/config/constants';
 export default function Criaturas() {
   const [selected, setSelected] = useState(null);
 
-  // 1. FETCHING (Punto #7): Usando el hook centralizado con orden de constantes
+  // 1. FETCHING: Ahora traerá el objeto "profundo" (con relaciones/variantes) 
+  // siempre que hayas actualizado el archivo personajes.js o el hook useSupabaseData
   const { 
     data: criaturas, 
     setData: setCriaturas, 
@@ -25,7 +26,6 @@ export default function Criaturas() {
     { order: TABLAS_CONFIG.criaturas.orden }
   );
 
-  // 2. FILTROS (Punto #3): Lógica automática basada en la configuración de la tabla
   const {
     filtros,
     opciones,
@@ -35,12 +35,8 @@ export default function Criaturas() {
     campos: TABLAS_CONFIG.criaturas.filtros 
   });
 
-  // 3. HANDLER DE ACTUALIZACIÓN (Punto #2 y #5): Estabilidad total
   const handleUpdate = useCallback((updatedCriatura) => {
-    // Actualizamos el modal para que los cambios se vean reflejados inmediatamente
     setSelected(updatedCriatura);
-    
-    // Actualización local de la lista para que el grid cambie sin parpadeos de red
     setCriaturas(prev => 
       prev.map(c => c.id === updatedCriatura.id ? updatedCriatura : c)
     );
@@ -48,7 +44,8 @@ export default function Criaturas() {
 
   const handleSelect = (c) => {
     setSelected(c);
-    // Scroll suave al inicio del detalle para mejorar UX en móvil
+    // Nota: window.scrollTo puede ser un poco agresivo al abrir un modal, 
+    // pero si lo prefieres para la UX, lo mantenemos.
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -59,11 +56,14 @@ export default function Criaturas() {
   return (
     <main className="min-h-screen bg-bg-main pb-20 overflow-x-hidden">
       
-      {/* PANEL DE DETALLE (Puntos #2, #5) */}
+      {/* DETALLE MAESTRO: 
+          Al pasarle 'selected', y como 'selected' ahora viene de una query 
+          que trae relaciones y variantes, el modal se llenará al instante.
+      */}
       <DetalleMaestro 
         isOpen={!!selected}
         onClose={() => setSelected(null)}
-        data={selected}
+        data={selected} // <-- Este objeto ahora es "pesado" y completo
         onUpdate={handleUpdate}
         tags={[
           selected?.habitat, 
@@ -72,7 +72,6 @@ export default function Criaturas() {
         mostrarMusica={false} 
       />
 
-      {/* GRID DE GALERÍA (Punto #4) */}
       <GalleryGrid 
         isDetailOpen={!!selected} 
         headerContent={
@@ -89,7 +88,6 @@ export default function Criaturas() {
                 Alma: filtros.alma
               }}
               onChange={(grupo, valor) => {
-                // Normalización de etiquetas para coincidir con campos de DB
                 const campo = grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 actualizarFiltro(campo, valor);
               }}
