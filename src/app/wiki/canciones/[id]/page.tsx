@@ -43,6 +43,7 @@ export default function CancionDetalle() {
   const [editSecLetra, setEditSecLetra] = useState("");
   const [procesando, setProcesando] = useState(false);
 
+  // --- CARGA DE DATOS ---
   const fetchData = useCallback(async () => {
     if (!id) return;
     try {
@@ -63,6 +64,7 @@ export default function CancionDetalle() {
         return;
       }
 
+      // Validación de visibilidad para usuarios no admin
       if (!cancionData.visible && !adminStatus) {
         setErrorAcceso(true);
         return;
@@ -84,9 +86,11 @@ export default function CancionDetalle() {
     }
   }, [id]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  // --- GESTIÓN DE SECCIONES (OPTIMIZADA) ---
+  // --- GESTIÓN DE SECCIONES ---
 
   const handleCrearSeccion = async (e) => {
     e.preventDefault();
@@ -106,7 +110,6 @@ export default function CancionDetalle() {
 
       if (error) throw error;
 
-      // Actualización optimista: añadir al estado sin recargar todo
       setSecciones(prev => [...prev, data[0]]);
       setShowAddModal(false);
       setNuevoNombre("");
@@ -252,15 +255,16 @@ export default function CancionDetalle() {
             <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo} className="w-full h-full object-cover" />
           </motion.div>
 
+          {/* BOTÓN OCULTO: COLOR OSCURO DE LA CAPTURA */}
           {isAdmin && !cancion?.visible && (
-            <div className="p-4 bg-slate-800 text-white rounded-[1.5rem] flex items-center justify-center gap-3">
+            <div className="p-4 bg-[#1C2433] text-white rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl">
               <EyeOff size={16} />
               <span className="font-black uppercase text-[9px] tracking-widest italic">Oculto</span>
             </div>
           )}
 
           {cancion?.estado && (
-            <div className={`p-4 rounded-[2rem] border text-center ${getEstadoColor(cancion.estado)}`}>
+            <div className={`p-4 rounded-[2rem] border text-center ${getEstadoColor(cancion.estado)} shadow-sm`}>
               <h4 className="font-black uppercase text-[9px] tracking-[0.2em]">{cancion.estado}</h4>
             </div>
           )}
@@ -282,8 +286,8 @@ export default function CancionDetalle() {
 
         <main>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
-            <h1 className="text-5xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.9] mb-4 uppercase">{cancion?.titulo}</h1>
-            <div className="h-1 w-20 bg-[#6B5E70]/10 rounded-full" />
+            <h1 className="text-6xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.85] mb-6 uppercase">{cancion?.titulo}</h1>
+            <div className="h-1.5 w-24 bg-[#6B5E70]/10 rounded-full" />
           </motion.div>
 
           <div className="space-y-6">
@@ -294,24 +298,27 @@ export default function CancionDetalle() {
               )}
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-12">
               {secciones.map((seccion, index) => (
                 <motion.div key={seccion.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="relative group">
-                  <div className="bg-white border border-[#6B5E70]/5 rounded-3xl p-8 hover:border-[#6B5E70]/20 transition-all hover:shadow-xl hover:shadow-[#6B5E70]/5">
-                    <div className="flex items-center justify-between mb-6">
-                      <span className="bg-[#6B5E70]/5 text-[#6B5E70] px-3 py-1 rounded-lg font-black text-[9px] tracking-widest uppercase italic">{seccion.nombre_seccion}</span>
+                  <div className="bg-white border border-[#6B5E70]/5 rounded-[2.5rem] p-10 hover:border-[#6B5E70]/20 transition-all hover:shadow-2xl hover:shadow-[#6B5E70]/5">
+                    <div className="flex items-center justify-between mb-8">
+                      <span className="bg-[#F1F5F9] text-[#6B5E70]/60 px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase italic">{seccion.nombre_seccion}</span>
                       {isAdmin && (
                         <button onClick={() => openEditSec(seccion)} className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"><Edit3 size={14} /></button>
                       )}
                     </div>
-                    <div className="text-[#6B5E70] text-base md:text-lg leading-loose font-medium whitespace-pre-wrap italic font-serif">{seccion.letra}</div>
+                    {/* LETRA AMPLIDADA PARA LECTURA A DISTANCIA */}
+                    <div className="text-[#6B5E70] text-xl md:text-2xl leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90">
+                      {seccion.letra}
+                    </div>
                   </div>
                 </motion.div>
               ))}
             </div>
 
             {secciones.length === 0 && (
-              <div className="text-center py-20 bg-[#6B5E70]/5 rounded-[3rem] border-2 border-dashed border-[#6B5E70]/10">
+              <div className="text-center py-24 bg-[#6B5E70]/5 rounded-[3rem] border-2 border-dashed border-[#6B5E70]/10">
                 <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
                 <p className="text-[#6B5E70]/40 font-bold uppercase text-sm tracking-widest mb-6 italic">El lienzo está en blanco</p>
                 {isAdmin && (
