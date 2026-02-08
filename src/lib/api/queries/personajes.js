@@ -1,17 +1,20 @@
-// lib/api/queries/personajes.js
+// src/lib/api/queris/personajes.js
 import { supabase } from '../supabase';
+
+/**
+ * Nota: He eliminado 'canciones (*)' del select porque en tu captura
+ * se ve que 'canciones' es una columna de texto[] dentro de la misma tabla,
+ * no una tabla relacionada aparte. Al usar '*', ya las traes.
+ */
 
 export const personajesQueries = {
   getAll: async (opciones = {}) => {
-    // MODIFICACIÓN: En lugar de '*', pedimos todo el árbol de relaciones
     let query = supabase
       .from('personajes')
       .select(`
         *,
-        relaciones (*),
-        variantes (*),
-        canciones (*)
-      `);
+        relaciones (*)
+      `); // Trae personajes y sus vínculos vinculados por ID
     
     if (opciones.order) {
       query = query.order(opciones.order.campo, { 
@@ -27,9 +30,7 @@ export const personajesQueries = {
       .from('personajes')
       .select(`
         *,
-        relaciones (*),
-        variantes (*),
-        canciones (*)
+        relaciones (*)
       `)
       .eq('id', id)
       .single();
@@ -42,37 +43,8 @@ export const personajesQueries = {
       .eq('id', id)
       .select(`
         *,
-        relaciones (*),
-        variantes (*)
+        relaciones (*)
       `)
-      .single();
-  }
-};
-
-
-// --- NUEVA SECCIÓN PARA CRIATURAS ---
-export const criaturasQueries = {
-  getAll: async (opciones = {}) => {
-    let query = supabase.from('criaturas').select(`
-      *,
-      relaciones (*),
-      variantes (*)
-    `); // Si las criaturas no tienen canciones, quitamos esa tabla del select
-    
-    if (opciones.order) {
-      query = query.order(opciones.order.campo, { 
-        ascending: opciones.order.asc ?? true 
-      });
-    }
-    
-    return query;
-  },
-
-  getById: async (id) => {
-    return supabase
-      .from('criaturas')
-      .select('*, relaciones(*), variantes(*)')
-      .eq('id', id)
       .single();
   }
 };
