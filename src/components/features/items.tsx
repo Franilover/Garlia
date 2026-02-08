@@ -15,7 +15,7 @@ import { getMensaje } from '@/lib/config/constants';
 export default function Inventario() {
   const [selected, setSelected] = useState(null);
 
-  // 1. Fetching con caché y tiempo real (conectado a itemsQueries automáticamente)
+  // 1. Fetching de datos (Tabla 'items')
   const { 
     data: items, 
     setData: setItems, 
@@ -24,7 +24,7 @@ export default function Inventario() {
     order: { campo: 'created_at', asc: false }
   });
 
-  // 2. Filtros automáticos
+  // 2. Lógica de filtros
   const {
     filtros,
     opciones,
@@ -32,9 +32,10 @@ export default function Inventario() {
     actualizarFiltro
   } = useFiltrosGenericos(items, {
     campos: ['categoria'],
-    inicial: { categoria: 'Todos' } // Coincide con la estética de tus botones
+    inicial: { categoria: 'Todos' }
   });
 
+  // 3. Manejadores de estado
   const handleUpdate = useCallback((updatedItem) => {
     setSelected(updatedItem);
     setItems(prev => 
@@ -44,6 +45,7 @@ export default function Inventario() {
 
   const handleSelect = (item) => {
     setSelected(item);
+    // Scroll suave al inicio para ver el detalle si es necesario
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -52,23 +54,25 @@ export default function Inventario() {
   return (
     <main className="min-h-screen bg-white pb-20 overflow-x-hidden">
       
+      {/* DETALLE DEL ITEM */}
       <DetalleMaestro 
         isOpen={!!selected}
         onClose={() => setSelected(null)}
         data={selected}
         onUpdate={handleUpdate} 
         tags={[selected?.categoria].filter(Boolean)}
-        mostrarMusica={false}
+        mostrarMusica={false} // El inventario usualmente no lleva música
       />
 
       <GalleryGrid 
         isDetailOpen={!!selected} 
         headerContent={
           <PageHeader titulo="Inventario">
+            {/* CORRECCIÓN AQUÍ: Agregamos el "_" para saltar el nombre del grupo */}
             <FiltrosMaestros 
               opciones={opciones.categoria} 
               filtroActivo={filtros.categoria}
-              onChange={(valor) => actualizarFiltro('categoria', valor)}
+              onChange={(_, valor) => actualizarFiltro('categoria', valor)}
             />
           </PageHeader>
         }
@@ -77,10 +81,9 @@ export default function Inventario() {
           <GalleryItem 
             key={item.id} 
             src={item.imagen_url} 
-            contain={true} 
+            contain={true} // Los items suelen verse mejor sin recortar
             onClick={() => handleSelect(item)}
           >
-            {/* Texto de la tarjeta alineado con la estética de 'Espíritu' */}
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 mb-1 italic">
               {item.categoria}
             </p>
@@ -90,6 +93,7 @@ export default function Inventario() {
           </GalleryItem>
         ))}
         
+        {/* ESTADO VACÍO */}
         {itemsFiltrados.length === 0 && (
           <div className="col-span-full py-20 text-center">
             <EmptyState mensaje={getMensaje('EMPTY', 'items')} />
