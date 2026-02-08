@@ -26,14 +26,14 @@ export default function CancionDetalle() {
   const id = params?.id;
   const router = useRouter();
   
-  // ESTADOS PRINCIPALES
+  // --- ESTADOS PRINCIPALES ---
   const [cancion, setCancion] = useState(null);
   const [secciones, setSecciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [errorAcceso, setErrorAcceso] = useState(false);
 
-  // ESTADOS DE MODALES Y EDICIÓN
+  // --- ESTADOS DE MODALES Y EDICIÓN ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditSecModal, setShowEditSecModal] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
@@ -43,7 +43,7 @@ export default function CancionDetalle() {
   const [editSecLetra, setEditSecLetra] = useState("");
   const [procesando, setProcesando] = useState(false);
 
-  // --- CARGA DE DATOS ---
+  // --- CARGA DE DATOS (RESTAURADA) ---
   const fetchData = useCallback(async () => {
     if (!id) return;
     try {
@@ -64,7 +64,7 @@ export default function CancionDetalle() {
         return;
       }
 
-      // Validación de visibilidad para usuarios no admin
+      // Validación estricta de visibilidad
       if (!cancionData.visible && !adminStatus) {
         setErrorAcceso(true);
         return;
@@ -72,12 +72,13 @@ export default function CancionDetalle() {
 
       setCancion(cancionData);
 
-      const { data: seccionesData } = await supabase
+      const { data: seccionesData, error: errorS } = await supabase
         .from('secciones_cancion')
         .select('*')
         .eq('cancion_id', id)
         .order('orden', { ascending: true });
       
+      if (errorS) throw errorS;
       setSecciones(seccionesData || []);
     } catch (err) {
       console.error("Error en la carga:", err);
@@ -90,7 +91,7 @@ export default function CancionDetalle() {
     fetchData();
   }, [fetchData]);
 
-  // --- GESTIÓN DE SECCIONES ---
+  // --- GESTIÓN DE SECCIONES (LÓGICA COMPLETA) ---
 
   const handleCrearSeccion = async (e) => {
     e.preventDefault();
@@ -173,11 +174,12 @@ export default function CancionDetalle() {
     setShowEditSecModal(true);
   };
 
+  // --- HELPER DE COLORES (RESTAURADO Y CORREGIDO) ---
   const getEstadoColor = (estado) => {
     switch(estado) {
-      case 'TERMINADA': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
-      case 'EN PROCESO': return 'bg-amber-50 text-amber-600 border-amber-200';
-      default: return 'bg-slate-50 text-slate-600 border-slate-200';
+      case 'TERMINADA': return 'bg-[#6B5E70]/10 text-[#6B5E70] border-[#6B5E70]/20';
+      case 'EN PROCESO': return 'bg-[#FDFCFD] text-[#6B5E70]/80 border-[#6B5E70]/10';
+      default: return 'bg-[#F4F4F5] text-[#6B5E70]/60 border-[#E4E4E7]';
     }
   };
 
@@ -210,12 +212,12 @@ export default function CancionDetalle() {
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-lg rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
-              <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
+              <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors"><X size={20} /></button>
               <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">Nueva Sección</h3>
               <form onSubmit={handleCrearSeccion} className="space-y-6">
                 <input autoFocus type="text" placeholder="ESTROFA, CORO, PUENTE..." value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <textarea placeholder="Escribe aquí los versos..." value={nuevaLetra} onChange={(e) => setNuevaLetra(e.target.value)} rows={8} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none font-medium leading-relaxed italic" />
-                <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg">
+                <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg hover:bg-[#5A4D5F] transition-colors">
                   {procesando ? "Guardando..." : "Agregar Sección"}
                 </button>
               </form>
@@ -236,8 +238,8 @@ export default function CancionDetalle() {
                 <input type="text" value={editSecNombre} onChange={(e) => setEditSecNombre(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <textarea value={editSecLetra} onChange={(e) => setEditSecLetra(e.target.value)} rows={8} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none font-medium leading-relaxed italic" />
                 <div className="grid grid-cols-2 gap-3">
-                  <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 shadow-lg"><Save size={14} /> Guardar</button>
-                  <button type="button" onClick={deleteSeccion} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 transition-colors"><Trash2 size={14} /> Borrar</button>
+                  <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 shadow-lg hover:bg-[#5A4D5F] transition-colors"><Save size={14} /> Guardar</button>
+                  <button type="button" onClick={deleteSeccion} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 transition-colors hover:bg-red-100"><Trash2 size={14} /> Borrar</button>
                 </div>
               </form>
             </motion.div>
@@ -255,7 +257,7 @@ export default function CancionDetalle() {
             <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo} className="w-full h-full object-cover" />
           </motion.div>
 
-          {/* BOTÓN OCULTO: COLOR OSCURO DE LA CAPTURA */}
+          {/* BOTÓN OCULTO: COLOR OSCURO DE LA CAPTURA (#1C2433) */}
           {isAdmin && !cancion?.visible && (
             <div className="p-4 bg-[#1C2433] text-white rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl">
               <EyeOff size={16} />
@@ -300,7 +302,13 @@ export default function CancionDetalle() {
 
             <div className="space-y-12">
               {secciones.map((seccion, index) => (
-                <motion.div key={seccion.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="relative group">
+                <motion.div 
+                  key={seccion.id} 
+                  initial={{ opacity: 0, y: 20 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  transition={{ delay: index * 0.1 }} 
+                  className="relative group"
+                >
                   <div className="bg-white border border-[#6B5E70]/5 rounded-[2.5rem] p-10 hover:border-[#6B5E70]/20 transition-all hover:shadow-2xl hover:shadow-[#6B5E70]/5">
                     <div className="flex items-center justify-between mb-8">
                       <span className="bg-[#F1F5F9] text-[#6B5E70]/60 px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase italic">{seccion.nombre_seccion}</span>
@@ -308,7 +316,7 @@ export default function CancionDetalle() {
                         <button onClick={() => openEditSec(seccion)} className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"><Edit3 size={14} /></button>
                       )}
                     </div>
-                    {/* LETRA AMPLIDADA PARA LECTURA A DISTANCIA */}
+                    {/* LETRA AMPLIDADA PARA LECTURA A DISTANCIA: text-2xl */}
                     <div className="text-[#6B5E70] text-xl md:text-2xl leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90">
                       {seccion.letra}
                     </div>
