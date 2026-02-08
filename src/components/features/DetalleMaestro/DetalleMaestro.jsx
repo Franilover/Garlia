@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Edit3, Save, Sparkles, Music, Users, Plus, Trash2 } from 'lucide-react';
+import { X, Edit3, Save, Plus, Trash2, Music, Users, Image as ImageIcon, Zap } from 'lucide-react';
 import Relaciones from './relaciones'; 
 import { useDetalleMaestro } from '@/hooks/useDetalleMaestro'; 
 import { SeccionMusica } from './SeccionMusica';
@@ -82,112 +82,166 @@ export default function DetalleMaestro({
           </div>
 
           <div className="flex flex-col lg:flex-row items-stretch border-b border-slate-50">
-            {/* Imagen Izquierda */}
-            <div className="w-full lg:w-[45%] bg-gradient-to-br from-slate-100 to-slate-200 p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-[500px]">
+            {/* --- PANEL IZQUIERDO: IMAGEN --- */}
+            <div className="w-full lg:w-[45%] bg-gradient-to-br from-slate-50 to-slate-100 p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-[500px]">
               <div className="absolute inset-0 opacity-[0.05] pointer-events-none italic font-black text-[25rem] flex items-center justify-center text-primary select-none">
                 {data.nombre[0]}
               </div>
               <div className="relative w-full aspect-square max-w-[480px] rounded-full overflow-hidden border-4 border-white shadow-2xl bg-white group">
-                <motion.img key={imagenVisual} initial={{ opacity: 0 }} animate={{ opacity: 1 }} src={imagenVisual} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <motion.img 
+                  key={imagenVisual} 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  src={imagenVisual} 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                />
               </div>
             </div>
 
-            {/* Información Derecha */}
+            {/* --- PANEL DERECHO: INFO/EDITOR --- */}
             <div className="w-full lg:w-[55%] p-10 lg:p-16 flex flex-col justify-center bg-white">
               {editMode ? (
-                <div className="space-y-6">
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4 mb-2 block italic">Nombre del Sujeto</label>
-                    <input 
-                      value={editNombre} 
-                      onChange={(e) => setEditNombre(e.target.value)} 
-                      className="text-4xl font-black uppercase italic text-slate-900 w-full bg-slate-50 border border-slate-200 p-6 rounded-[2rem] outline-none focus:ring-4 ring-primary/5 shadow-inner" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4 mb-2 block italic">{esCriatura ? 'Descripción de la Especie' : 'Biografía del Personaje'}</label>
-                    <textarea 
-                      value={editDescripcion} 
-                      onChange={(e) => setEditDescripcion(e.target.value)} 
-                      className="text-slate-700 text-lg italic leading-relaxed w-full bg-slate-50 border border-slate-200 p-8 rounded-[2rem] outline-none min-h-[200px] resize-none focus:ring-4 ring-primary/5 shadow-inner" 
-                    />
+                <div className="space-y-8">
+                  {/* Nombre y Bio Principal */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-4 mb-2 block italic">Nombre del Sujeto</label>
+                      <input 
+                        value={editNombre} 
+                        onChange={(e) => setEditNombre(e.target.value)} 
+                        className="text-4xl font-black uppercase italic text-slate-900 w-full bg-slate-50 border border-slate-200 p-6 rounded-[2rem] outline-none focus:ring-4 ring-primary/5 shadow-inner" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-4 mb-2 block italic">{esCriatura ? 'Descripción de la Especie' : 'Biografía del Personaje'}</label>
+                      <textarea 
+                        value={editDescripcion} 
+                        onChange={(e) => setEditDescripcion(e.target.value)} 
+                        className="text-slate-700 text-lg italic leading-relaxed w-full bg-slate-50 border border-slate-200 p-8 rounded-[2rem] outline-none min-h-[180px] resize-none focus:ring-4 ring-primary/5 shadow-inner" 
+                      />
+                    </div>
                   </div>
 
-                  {/* EDICIÓN DE VARIANTES (Solo Criaturas) */}
+                  {/* SECCIÓN VARIANTES REDISEÑADA */}
                   {esCriatura && (
-                    <div className="mt-8 space-y-6">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-black uppercase italic text-primary flex items-center gap-2">
-                          <Sparkles size={16} /> Variantes Genéticas
-                        </h3>
+                    <div className="pt-6 border-t border-slate-100">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                            <Zap size={16} fill="currentColor" />
+                          </div>
+                          <h3 className="text-sm font-black uppercase tracking-widest italic text-slate-800">Variantes Genéticas</h3>
+                        </div>
                         <button 
                           onClick={agregarVariante}
-                          className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase hover:bg-primary hover:text-white transition-all"
+                          className="px-6 py-2 bg-slate-900 text-white rounded-full text-[10px] font-black uppercase hover:bg-primary transition-all shadow-lg flex items-center gap-2"
                         >
-                          <Plus size={14} /> Añadir Variante
+                          <Plus size={14} /> Nueva Variante
                         </button>
                       </div>
 
-                      <div className="grid gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
                         {variantes.map((v, index) => (
-                          <div key={v.id || index} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-200 relative group">
+                          <motion.div 
+                            key={v.id || index}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="flex flex-col md:flex-row gap-6 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-200 relative group hover:border-primary/20 transition-colors"
+                          >
+                            {/* Previsualización de Imagen Mini */}
+                            <div className="w-full md:w-32 h-32 rounded-3xl overflow-hidden bg-slate-200 flex-shrink-0 border-2 border-white shadow-md">
+                              {v.imagen_url ? (
+                                <img src={v.imagen_url} className="w-full h-full object-cover" alt="preview" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                  <ImageIcon size={24} />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Campos de la Variante */}
+                            <div className="flex-1 space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input 
+                                  placeholder="Nombre de la Variante" 
+                                  value={v.tipo} 
+                                  onChange={(e) => {
+                                    const n = [...variantes]; n[index].tipo = e.target.value; setVariantes(n);
+                                  }}
+                                  className="bg-white px-4 py-2 rounded-xl text-xs font-bold text-slate-800 border border-slate-200 focus:ring-2 ring-primary/10 outline-none"
+                                />
+                                <input 
+                                  placeholder="URL de Imagen" 
+                                  value={v.imagen_url} 
+                                  onChange={(e) => {
+                                    const n = [...variantes]; n[index].imagen_url = e.target.value; setVariantes(n);
+                                  }}
+                                  className="bg-white px-4 py-2 rounded-xl text-[10px] font-mono text-slate-500 border border-slate-200 focus:ring-2 ring-primary/10 outline-none"
+                                />
+                              </div>
+                              <textarea 
+                                placeholder="Describe esta variante..."
+                                value={v.descripcion_variante}
+                                onChange={(e) => {
+                                  const n = [...variantes]; n[index].descripcion_variante = e.target.value; setVariantes(n);
+                                }}
+                                className="w-full bg-white p-4 rounded-2xl text-xs italic text-slate-600 border border-slate-200 focus:ring-2 ring-primary/10 outline-none min-h-[80px] resize-none"
+                              />
+                            </div>
+
                             <button 
                               onClick={() => eliminarVariante(index)}
-                              className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors"
+                              className="md:absolute md:-top-2 md:-right-2 bg-white text-slate-300 hover:text-red-500 p-2 rounded-full shadow-md border border-slate-100 transition-all opacity-0 group-hover:opacity-100"
                             >
                               <Trash2 size={16} />
                             </button>
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                              <input 
-                                placeholder="Tipo (ej: Fuego)" 
-                                value={v.tipo} 
-                                onChange={(e) => {
-                                  const n = [...variantes]; n[index].tipo = e.target.value; setVariantes(n);
-                                }}
-                                className="bg-white p-3 rounded-xl text-xs font-bold text-slate-800 outline-none border border-slate-200 focus:border-primary/40 shadow-sm"
-                              />
-                              <input 
-                                placeholder="URL Imagen" 
-                                value={v.imagen_url} 
-                                onChange={(e) => {
-                                  const n = [...variantes]; n[index].imagen_url = e.target.value; setVariantes(n);
-                                }}
-                                className="bg-white p-3 rounded-xl text-[10px] font-mono text-slate-500 outline-none border border-slate-200 focus:border-primary/40 shadow-sm"
-                              />
-                            </div>
-                            <textarea 
-                              placeholder="Descripción de la variante..."
-                              value={v.descripcion_variante}
-                              onChange={(e) => {
-                                const n = [...variantes]; n[index].descripcion_variante = e.target.value; setVariantes(n);
-                              }}
-                              className="w-full bg-white p-4 rounded-xl text-xs italic text-slate-600 outline-none border border-slate-200 focus:border-primary/40 min-h-[80px] resize-none shadow-sm"
-                            />
-                          </div>
+                          </motion.div>
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
+                /* --- VISTA NORMAL (LECTURA) --- */
                 <div className="relative">
                   <div className="flex flex-wrap gap-3 mb-6">
-                    {tags.map((tag, i) => tag && <span key={i} className="px-5 py-2 bg-primary text-white text-[10px] font-black uppercase rounded-full tracking-widest shadow-md">{tag}</span>)}
+                    {tags.map((tag, i) => tag && (
+                      <span key={i} className="px-5 py-2 bg-slate-900 text-white text-[10px] font-black uppercase rounded-full tracking-widest shadow-lg">
+                        {tag}
+                      </span>
+                    ))}
                   </div>
+                  
                   <h2 className="text-7xl lg:text-8xl font-black uppercase italic text-primary leading-[0.8] tracking-tighter mb-8">
                     {varianteActiva ? `${data.nombre} ${varianteActiva.tipo}` : editNombre}
                   </h2>
+                  
+                  <div className="h-[2px] w-20 bg-primary/10 mb-8" />
+                  
                   <p className="text-slate-500 text-lg lg:text-xl italic leading-relaxed whitespace-pre-wrap max-w-prose">
                     {varianteActiva ? varianteActiva.descripcion_variante : editDescripcion}
                   </p>
                   
-                  {/* Selector Variantes */}
+                  {/* SELECTOR DE VARIANTES BONITO */}
                   {variantes.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-10">
-                      <button onClick={() => setVarianteActiva(null)} className={`px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all ${!varianteActiva ? 'bg-primary text-white shadow-lg scale-105' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>Base</button>
+                    <div className="flex flex-wrap gap-3 mt-12">
+                      <button 
+                        onClick={() => setVarianteActiva(null)} 
+                        className={`px-8 py-3 rounded-2xl text-[11px] font-black uppercase transition-all duration-300 ${!varianteActiva ? 'bg-primary text-white shadow-xl -translate-y-1' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                      >
+                        Forma Base
+                      </button>
                       {variantes.map((v, i) => (
-                        <button key={v.id || i} onClick={() => setVarianteActiva(v)} className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all ${varianteActiva?.id === v.id || (varianteActiva === v) ? 'bg-primary text-white shadow-lg scale-105' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
-                          <Sparkles size={12} /> {v.tipo || 'Nueva'}
+                        <button 
+                          key={v.id || i} 
+                          onClick={() => setVarianteActiva(v)} 
+                          className={`flex items-center gap-2 px-8 py-3 rounded-2xl text-[11px] font-black uppercase transition-all duration-300 ${
+                            (varianteActiva?.id === v.id && v.id) || (varianteActiva === v) 
+                              ? 'bg-primary text-white shadow-xl -translate-y-1' 
+                              : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                          }`}
+                        >
+                          {v.tipo || 'Variante'}
                         </button>
                       ))}
                     </div>
@@ -197,22 +251,48 @@ export default function DetalleMaestro({
             </div>
           </div>
 
-          {/* Bloque Inferior */}
+          {/* --- BLOQUE INFERIOR (Solo Personajes) --- */}
           {tieneContenidoInferior && (
             <div className="bg-slate-50 p-10 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-20 items-start">
-              <div className="space-y-6 text-slate-800">
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="text-[12px] font-black uppercase tracking-[0.4em] text-slate-300 italic flex items-center gap-2"><Users size={14} /> Vinculos</span>
-                  <div className="h-[1px] flex-1 bg-slate-200" />
-                </div>
-                {loadingRelaciones ? <div className="h-20 bg-white rounded-[2rem] w-full animate-pulse border border-slate-100" /> : <Relaciones nombrePersonaje={data.nombre} personajeId={data.id} datosRelaciones={data.relaciones || []} editMode={editMode} onChange={setEditRelaciones} />}
-              </div>
               <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-4">
-                  <span className="text-[12px] font-black uppercase tracking-[0.4em] text-slate-300 italic flex items-center gap-2"><Music size={14} /> Soliloquios</span>
+                  <span className="text-[12px] font-black uppercase tracking-[0.4em] text-slate-300 italic flex items-center gap-2">
+                    <Users size={14} /> Vinculos
+                  </span>
                   <div className="h-[1px] flex-1 bg-slate-200" />
                 </div>
-                {editMode ? <textarea value={editCanciones} onChange={(e) => setEditCanciones(e.target.value)} placeholder="Ej: dQw4w9WgXcQ, ..." className="w-full text-sm font-mono p-6 bg-white border border-slate-200 text-slate-700 rounded-[2.5rem] outline-none min-h-[150px] shadow-inner focus:ring-4 ring-primary/5" /> : <div className="min-h-[200px]">{mostrarMusica && <SeccionMusica listaLinks={data?.canciones || []} nombre={data.nombre} />}</div>}
+                {loadingRelaciones ? (
+                  <div className="h-20 bg-white rounded-[2rem] w-full animate-pulse border border-slate-100" />
+                ) : (
+                  <Relaciones 
+                    nombrePersonaje={data.nombre} 
+                    personajeId={data.id} 
+                    datosRelaciones={data.relaciones || []} 
+                    editMode={editMode} 
+                    onChange={setEditRelaciones} 
+                  />
+                )}
+              </div>
+              
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="text-[12px] font-black uppercase tracking-[0.4em] text-slate-300 italic flex items-center gap-2">
+                    <Music size={14} /> Soliloquios
+                  </span>
+                  <div className="h-[1px] flex-1 bg-slate-200" />
+                </div>
+                {editMode ? (
+                  <textarea 
+                    value={editCanciones} 
+                    onChange={(e) => setEditCanciones(e.target.value)} 
+                    placeholder="IDs de YouTube..." 
+                    className="w-full text-sm font-mono p-6 bg-white border border-slate-200 text-slate-700 rounded-[2.5rem] outline-none min-h-[150px] shadow-inner focus:ring-4 ring-primary/5" 
+                  />
+                ) : (
+                  <div className="min-h-[200px]">
+                    {mostrarMusica && <SeccionMusica listaLinks={data?.canciones || []} nombre={data.nombre} />}
+                  </div>
+                )}
               </div>
             </div>
           )}
