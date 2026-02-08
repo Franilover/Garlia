@@ -14,7 +14,6 @@ export default function DetalleMaestro({
   mostrarMusica = true, 
   onUpdate 
 }) {
-  // Lógica de estados y persistencia
   const {
     isAdmin, editMode, setEditMode, saving, handleSave,
     variantes, varianteActiva, setVarianteActiva,
@@ -22,20 +21,18 @@ export default function DetalleMaestro({
     editCanciones, setEditCanciones, setEditRelaciones
   } = useDetalleMaestro(data, onUpdate);
 
-  // 1. ELIMINAMOS EL TIMER: Ahora el estado depende de si existen datos
-  // Si 'data' tiene 'relaciones', no necesitamos mostrar carga.
-  const isDataReady = data && data.relaciones;
-  const [loadingRelaciones, setLoadingRelaciones] = useState(!isDataReady);
+  // Detección automática: Si no tiene canciones o tiene campos de criatura, ocultamos secciones de personajes
+  const esCriatura = data && (!data.hasOwnProperty('canciones') || 'puntos_vida' in data);
+  const tieneContenidoInferior = (!esCriatura && (data?.relaciones?.length > 0 || data?.canciones?.length > 0)) || editMode;
+
+  const [loadingRelaciones, setLoadingRelaciones] = useState(!data?.relaciones);
 
   useEffect(() => {
     if (isOpen) {
-      // Si la data ya viene con relaciones (gracias al deep fetch), quitamos el loading al instante
       if (data?.relaciones) {
         setLoadingRelaciones(false);
       } else {
-        // Por si acaso algún componente no trae la data precargada
-        setLoadingRelaciones(true);
-        const timer = setTimeout(() => setLoadingRelaciones(false), 800);
+        const timer = setTimeout(() => setLoadingRelaciones(false), 400);
         return () => clearTimeout(timer);
       }
     }
@@ -78,37 +75,35 @@ export default function DetalleMaestro({
             </button>
           </div>
 
-          {/* --- CABECERA: MEDALLÓN Y BIO --- */}
+          {/* --- CABECERA --- */}
           <div className="flex flex-col lg:flex-row items-stretch border-b border-slate-50">
+            {/* Contenedor Imagen */}
             <div className="w-full lg:w-[45%] bg-gradient-to-br from-slate-50 to-primary/5 p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-[500px]">
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none italic font-black text-[25rem] flex items-center justify-center text-primary select-none">
                 {data.nombre[0]}
               </div>
-              <div className="relative w-full aspect-square max-w-[480px] rounded-full overflow-hidden border-4 border-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] bg-white group">
-                <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_0_40px_rgba(0,0,0,0.1)] rounded-full" />
+              <div className="relative w-full aspect-square max-w-[480px] rounded-full overflow-hidden border-4 border-white shadow-2xl bg-white group">
                 <motion.img 
                   key={imagenVisual}
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   src={imagenVisual} 
-                  className="relative z-10 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                 />
               </div>
             </div>
 
+            {/* Contenedor Info */}
             <div className="w-full lg:w-[55%] p-10 lg:p-16 flex flex-col justify-center bg-white">
               {editMode ? (
                 <div className="space-y-6">
                   <input 
                     value={editNombre}
                     onChange={(e) => setEditNombre(e.target.value)}
-                    placeholder="Nombre del personaje..."
-                    className="text-5xl font-black uppercase italic text-slate-900 w-full bg-slate-50 border-none p-6 rounded-[2rem] outline-none focus:ring-4 ring-primary/5"
+                    className="text-5xl font-black uppercase italic text-slate-900 w-full bg-slate-50 border-none p-6 rounded-[2rem] outline-none"
                   />
                   <textarea 
                     value={editDescripcion}
                     onChange={(e) => setEditDescripcion(e.target.value)}
-                    placeholder="Escribe su historia aquí..."
                     className="text-slate-600 text-lg italic leading-relaxed w-full bg-slate-50 border-none p-8 rounded-[2rem] outline-none min-h-[250px] resize-none"
                   />
                 </div>
@@ -122,10 +117,11 @@ export default function DetalleMaestro({
                   <h2 className="text-7xl lg:text-8xl font-black uppercase italic text-primary leading-[0.8] tracking-tighter mb-8">
                     {varianteActiva ? `${data.nombre} ${varianteActiva.tipo}` : editNombre}
                   </h2>
-                  <div className="h-[2px] w-16 bg-primary/10 mb-8" />
                   <p className="text-slate-500 text-lg lg:text-xl italic leading-relaxed whitespace-pre-wrap max-w-prose">
                     {varianteActiva ? varianteActiva.descripcion_variante : editDescripcion}
                   </p>
+                  
+                  {/* Variantes - Crucial para Criaturas */}
                   {variantes.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-10">
                       <button 
@@ -136,7 +132,7 @@ export default function DetalleMaestro({
                         <button 
                           key={v.id} 
                           onClick={() => setVarianteActiva(v)} 
-                          className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all ${varianteActiva?.id === v.id ? 'bg-primary text-white shadow-lg scale-105' : 'bg-slate-100 text-primary/40 hover:bg-slate-200'}`}
+                          className={`flex items-center gap-2 px-6 py-2 rounded-full text-[10px] font-black uppercase transition-all ${varianteActiva?.id === v.id ? 'bg-primary text-white shadow-lg scale-105' : 'bg-slate-100 text-primary/40'}`}
                         >
                           <Sparkles size={12} /> {v.tipo}
                         </button>
@@ -148,61 +144,48 @@ export default function DetalleMaestro({
             </div>
           </div>
 
-          {/* --- BLOQUE INFERIOR: CONTENIDO DINÁMICO --- */}
-          <div className="bg-slate-50/50 p-10 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-20 items-start min-h-[500px]">
-            
-            {/* COLUMNA: VINCULOS */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="h-[1px] flex-1 bg-primary/10" />
-                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/30 italic flex items-center gap-2">
-                   <Users size={14} /> Vinculos
-                </span>
-                <div className="h-[1px] flex-1 bg-primary/10" />
-              </div>
-
-              {loadingRelaciones ? (
-                <div className="space-y-4 animate-pulse p-4">
-                  <div className="h-20 bg-white/50 rounded-[2rem] w-full border border-primary/5" />
-                  <div className="h-20 bg-white/50 rounded-[2rem] w-full border border-primary/5" />
+          {/* --- BLOQUE INFERIOR DINÁMICO --- */}
+          {tieneContenidoInferior && (
+            <div className="bg-slate-50/50 p-10 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-20 items-start">
+              
+              {/* COLUMNA: VINCULOS */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/30 italic flex items-center gap-2">
+                     <Users size={14} /> Vinculos
+                  </span>
+                  <div className="h-[1px] flex-1 bg-primary/10" />
                 </div>
-              ) : (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-                  <Relaciones 
-                    nombrePersonaje={data.nombre} 
-                    datosRelaciones={data.relaciones} // <-- PASAMOS LA DATA PRECARGADA
-                    editMode={editMode} 
-                    onChange={setEditRelaciones} 
-                  />
-                </motion.div>
-              )}
-            </div>
-
-            {/* COLUMNA: MÚSICA */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="h-[1px] flex-1 bg-primary/10" />
-                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/30 italic flex items-center gap-2">
-                  <Music size={14} /> Soliloquios
-                </span>
-                <div className="h-[1px] flex-1 bg-primary/10" />
-              </div>
-
-              {editMode && !varianteActiva ? (
-                <textarea 
-                  value={editCanciones}
-                  onChange={(e) => setEditCanciones(e.target.value)}
-                  placeholder="Pega aquí los links de YouTube separados por comas..."
-                  className="w-full text-sm font-mono p-8 bg-white border-2 border-primary/5 rounded-[2.5rem] outline-none min-h-[200px] shadow-inner focus:ring-4 ring-primary/5 transition-all"
+                <Relaciones 
+                  nombrePersonaje={data.nombre} 
+                  personajeId={data.id}
+                  datosRelaciones={data.relaciones} 
+                  editMode={editMode} 
+                  onChange={setEditRelaciones} 
                 />
-              ) : (
-                <div className="min-h-[200px]">
-                  {/* Pasamos data.canciones que ya vendrá precargado también */}
-                  {mostrarMusica && <SeccionMusica listaLinks={data?.canciones || []} nombre={data.nombre} />}
+              </div>
+
+              {/* COLUMNA: MÚSICA */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/30 italic flex items-center gap-2">
+                    <Music size={14} /> Soliloquios
+                  </span>
+                  <div className="h-[1px] flex-1 bg-primary/10" />
                 </div>
-              )}
+                {editMode ? (
+                  <textarea 
+                    value={editCanciones}
+                    onChange={(e) => setEditCanciones(e.target.value)}
+                    placeholder="IDs de YouTube separados por comas..."
+                    className="w-full text-sm font-mono p-6 bg-white border-2 border-primary/5 rounded-[2.5rem] outline-none min-h-[150px]"
+                  />
+                ) : (
+                  <SeccionMusica listaLinks={data?.canciones || []} nombre={data.nombre} />
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </motion.div>
     </AnimatePresence>
