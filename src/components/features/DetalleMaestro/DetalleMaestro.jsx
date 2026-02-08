@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit3, Save, Plus, Trash2, Music, Users, Image as ImageIcon, Zap } from 'lucide-react';
 import Relaciones from './relaciones'; 
 import { useDetalleMaestro } from '@/hooks/useDetalleMaestro'; 
-import { SeccionMusica } from './SeccionMusica';
-// IMPORTANTE: Importamos el nuevo selector (asegúrate de que la ruta sea correcta)
-import { SelectorCancionesMusica } from './SeccionMusica';
+
+// IMPORTANTE: Importamos ambos componentes del mismo archivo
+import { SeccionMusica, SelectorMusicaAdmin } from './SeccionMusica';
 
 export default function DetalleMaestro({ 
   isOpen, onClose, data, tags = [], mostrarMusica = true, onUpdate 
@@ -65,7 +65,7 @@ export default function DetalleMaestro({
         <div className="bg-white rounded-[4rem] overflow-hidden shadow-2xl relative border border-primary/10">
           
           {/* --- CONTROLES SUPERIORES --- */}
-          <div className="absolute top-8 right-8 z-[100] flex gap-3">
+          <div className="absolute top-8 right-8 z-50 flex gap-3">
             {isAdmin && (
               <button 
                 onClick={editMode ? handleSave : () => setEditMode(true)} 
@@ -265,17 +265,16 @@ export default function DetalleMaestro({
                   </span>
                   <div className="h-px flex-1 bg-primary/10" />
                 </div>
+                
                 {editMode ? (
-                  /* CAMBIO AQUÍ: Sustituimos el textarea por el Selector de Canciones */
-                  <div className="min-h-50">
-                    <SelectorCancionesMusica 
-                      idsSeleccionados={editCanciones || []} 
-                      onChange={(nuevosIds) => setEditCanciones(nuevosIds)} 
-                    />
-                  </div>
+                  /* REEMPLAZADO: Ahora usamos el Selector Admin */
+                  <SelectorMusicaAdmin 
+                    idsSeleccionados={editCanciones} 
+                    onChange={setEditCanciones} 
+                  />
                 ) : (
                   <div className="min-h-50">
-                    {mostrarMusica && <SeccionMusica listaLinks={data?.canciones || []} nombre={data.nombre} />}
+                    {mostrarMusica && <SeccionMusica listaLinks={data?.canciones || []} />}
                   </div>
                 )}
               </div>
