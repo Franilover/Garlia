@@ -67,7 +67,7 @@ export default function DetalleMaestro({
                 {data.nombre[0]}
               </div>
               
-              <div className="relative w-full aspect-square max-w-[420px] rounded-full overflow-hidden border-[16px] border-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] bg-white group">
+              <div className="relative w-full aspect-square max-w-[420px] rounded-full overflow-hidden border-[8px] border-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] bg-white group">
                 <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_0_50px_rgba(0,0,0,0.1)] rounded-full" />
                 <motion.img 
                   key={imagenVisual}
