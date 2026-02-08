@@ -259,7 +259,7 @@ export default function CancionDetalle() {
 
           {/* BOTÓN OCULTO: COLOR OSCURO DE LA CAPTURA (#1C2433) */}
           {isAdmin && !cancion?.visible && (
-            <div className="p-4 bg-[#1C2433] text-white rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl">
+            <div className="p-4 bg-[#604b68] text-white rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl">
               <EyeOff size={16} />
               <span className="font-black uppercase text-[9px] tracking-widest italic">Oculto</span>
             </div>
