@@ -102,9 +102,9 @@ const Navbar = () => {
                         <Sword size={14} /> "Mi Personaje"
                       </Link>
 
-                      {/* PC: DESTACADO CON INTENSIDAD */}
+                      {/* PC: IGUAL AL RESTO DE LINKS */}
                       {esFranilover && (
-                        <Link href="/wiki/recetas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-violet-600 bg-violet-50/50 hover:bg-violet-100/70 rounded-xl transition-all border-t border-violet-100/30">
+                        <Link href="/wiki/recetas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all border-t border-primary/5">
                           <Utensils size={14} /> "Mis Recetas"
                         </Link>
                       )}
@@ -160,7 +160,7 @@ const Navbar = () => {
         </div>
       </header>
 
-      {/* --- MÓVIL (ANIMADO) --- */}
+      {/* --- MÓVIL --- */}
       <motion.div 
         className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100vw-48px)] z-1000"
         initial={false}
@@ -182,19 +182,19 @@ const Navbar = () => {
                     <Sword size={18}/> "Mi Personaje"
                   </Link>
 
-                  {/* MÓVIL: INTENSO Y DESTACADO SOBRE LOS DEMÁS */}
+                  {/* MÓVIL: EXACTAMENTE IGUAL A MI PERSONAJE */}
                   {esFranilover && (
-                    <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-violet-100 text-violet-700 border border-violet-200 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3 shadow-sm shadow-violet-100">
+                    <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                       <Utensils size={18}/> "Mis Recetas"
                     </Link>
                   )}
 
-                  <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-500 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                  <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-400 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                     "Cerrar Sesión" <LogOut size={16}/>
                   </button>
                 </div>
               )}
-
+              {/* RESTO DE SUBMENUS... */}
               {openSubmenu === "personal" && (
                 <div className="grid grid-cols-3 gap-2">
                   <MobileSubItem href="/wiki/sobre-mi" label="Bio" active={currentPath === "/wiki/sobre-mi"} icon={<Smile size={18}/>} onClick={closeAll} />
@@ -230,7 +230,7 @@ const Navbar = () => {
   );
 };
 
-// Componentes Auxiliares
+// Componentes Auxiliares (Sin cambios)
 const PCGroup = ({ label, items, active, currentPath }: any) => (
   <div className="relative group px-2">
     <button className={cn("px-3 py-2 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all rounded-xl", active ? "text-primary" : "text-primary/40 group-hover:text-primary")}>
