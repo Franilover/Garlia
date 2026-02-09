@@ -12,7 +12,8 @@ export function useDetalleMaestro(data, onUpdate) {
   
   const [editNombre, setEditNombre] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
-  const [editCanciones, setEditCanciones] = useState(""); 
+  // Ahora editCanciones guarda un ARRAY de IDs numéricos, no un string
+  const [editCanciones, setEditCanciones] = useState([]); 
   const [editRelaciones, setEditRelaciones] = useState([]);
 
   const prevIdRef = useRef(null);
@@ -26,7 +27,7 @@ export function useDetalleMaestro(data, onUpdate) {
     checkUser();
   }, []);
 
-  // Cargar variantes de la base de datos
+  // Cargar variantes
   const fetchVariantes = async (id) => {
     if (!id) return;
     const { data: vars, error } = await supabase
@@ -36,7 +37,7 @@ export function useDetalleMaestro(data, onUpdate) {
     if (!error) setVariantes(vars || []);
   };
 
-  // Sincronizar datos cuando cambia el personaje/criatura seleccionado
+  // Sincronizar datos
   useEffect(() => {
     if (data) {
       const esNuevoItem = prevIdRef.current !== data.id;
@@ -45,16 +46,19 @@ export function useDetalleMaestro(data, onUpdate) {
         setEditNombre(data.nombre || "");
         setEditDescripcion(data.sobre || data.descripcion || "");
         
-        const cancionesArray = data.canciones || [];
-        setEditCanciones(Array.isArray(cancionesArray) ? cancionesArray.join(", ") : "");
+        // CORRECCIÓN: Si data.canciones es un array de objetos, extraemos solo los IDs
+        const cancionesData = data.canciones || [];
+        const idsIniciales = Array.isArray(cancionesData) 
+          ? cancionesData.map(c => typeof c === 'object' ? c.id : c) 
+          : [];
+        setEditCanciones(idsIniciales);
       }
 
       if (esNuevoItem) {
         setEditMode(false);
         setVarianteActiva(null);
-        setVariantes(data.variantes || []); // Si vienen en la query inicial, las usamos
+        setVariantes(data.variantes || []);
         
-        // Si no vienen variantes, las buscamos
         if (!data.variantes || data.variantes.length === 0) {
           fetchVariantes(data.id);
         }
@@ -69,52 +73,61 @@ export function useDetalleMaestro(data, onUpdate) {
       const esCriatura = !data.hasOwnProperty('canciones') || 'puntos_vida' in data;
       const tablaPrincipal = !esCriatura ? 'personajes' : 'criaturas';
 
-      // 1. --- GUARDAR DATOS PRINCIPALES ---
-      const cancionesArray = editCanciones
-        .split(',')
-        .map(link => link.trim())
-        .filter(link => link !== "");
-
+      // 1. --- ACTUALIZAR PERSONAJE / CRIATURA ---
       const updates = {
         nombre: editNombre,
-        [data.sobre ? 'sobre' : 'descripcion']: editDescripcion,
-        ...(!esCriatura && { canciones: cancionesArray }) // Solo guardar canciones si es personaje
+        [data.sobre ? 'sobre' : 'descripcion']: editDescripcion
+        // IMPORTANTE: Ya no enviamos la columna "canciones" aquí porque fue borrada
       };
 
-      const { error: mainError, data: updatedDB } = await supabase
+      const { error: mainError } = await supabase
         .from(tablaPrincipal)
         .update(updates)
-        .eq('id', data.id)
-        .select()
-        .single();
+        .eq('id', data.id);
 
       if (mainError) throw mainError;
 
-      // 2. --- GUARDAR VARIANTES (Si es Criatura) ---
+      // 2. --- LÓGICA DE CANCIONES (Solo si es personaje) ---
+      if (!esCriatura) {
+        // A. Desvincular canciones antiguas que apuntaban a este personaje
+        await supabase
+          .from('canciones')
+          .update({ personaje: null })
+          .eq('personaje', data.nombre);
+
+        // B. Vincular las nuevas canciones seleccionadas por ID
+        if (editCanciones.length > 0) {
+          const { error: musicError } = await supabase
+            .from('canciones')
+            .update({ personaje: editNombre })
+            .in('id', editCanciones);
+          
+          if (musicError) throw musicError;
+        }
+      }
+
+      // 3. --- GUARDAR VARIANTES (Si es Criatura) ---
       if (esCriatura && variantes.length > 0) {
-        // Upsert: Si tiene ID actualiza, si no tiene inserta.
         const { error: varError } = await supabase
           .from('criatura_variantes')
           .upsert(
             variantes.map(v => ({
               ...v,
-              criatura_id: data.id // Aseguramos el vínculo
+              criatura_id: data.id 
             })),
-            { onConflict: 'id' } // Basado en la PK 'id'
+            { onConflict: 'id' }
           );
         
         if (varError) throw varError;
-        // Refrescamos variantes locales tras el guardado
         await fetchVariantes(data.id);
       }
 
-      // 3. --- GUARDAR RELACIONES (Si es Personaje) ---
+      // 4. --- GUARDAR RELACIONES ---
       if (!esCriatura && editRelaciones.length > 0) {
-        // Tu lógica actual de relaciones se mantiene igual aquí
-        // ... (insert/update de relaciones)
+        // Tu lógica de relaciones se mantiene aquí
       }
 
-      if (onUpdate) onUpdate(updatedDB || { ...data, ...updates });
+      if (onUpdate) onUpdate(); // Refrescar la vista
       setEditMode(false);
       alert("¡Guardado correctamente!");
 
@@ -128,7 +141,7 @@ export function useDetalleMaestro(data, onUpdate) {
 
   return {
     isAdmin, editMode, setEditMode, saving, handleSave,
-    variantes, setVariantes, // Exportamos setVariantes para poder añadir/quitar desde el JSX
+    variantes, setVariantes,
     varianteActiva, setVarianteActiva,
     editNombre, setEditNombre, editDescripcion, setEditDescripcion,
     editCanciones, setEditCanciones,
