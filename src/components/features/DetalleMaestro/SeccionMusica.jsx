@@ -6,6 +6,10 @@ import { supabase } from '@/lib/api/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlayCircle, Check, ChevronsUpDown, X, Music } from 'lucide-react';
 
+/**
+ * COMPONENTE: SelectorMusicaAdmin
+ * Se usa en el formulario de edición para vincular/desvincular canciones.
+ */
 export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
   const [todas, setTodas] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -16,10 +20,11 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
   useEffect(() => {
     const cargar = async () => {
       try {
+        // Traemos todas las canciones disponibles en la base de datos
         const { data } = await supabase.from('canciones').select('id, titulo').order('titulo');
         if (data) setTodas(data);
       } catch (err) {
-        console.error("Error en Supabase:", err);
+        console.error("Error cargando canciones para selector:", err);
       } finally {
         setLoading(false);
       }
@@ -39,12 +44,17 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
     setIsOpen(!isOpen);
   };
 
-  const safeIds = Array.isArray(idsSeleccionados) ? idsSeleccionados : [];
+  // Aseguramos que idsSeleccionados sea siempre un array de números
+  const safeIds = useMemo(() => {
+    if (!Array.isArray(idsSeleccionados)) return [];
+    return idsSeleccionados.map(id => typeof id === 'object' ? id.id : Number(id));
+  }, [idsSeleccionados]);
   
   const toggle = (id) => {
-    const nuevos = safeIds.includes(id) 
-      ? safeIds.filter(i => i !== id) 
-      : [...safeIds, id];
+    const numericId = Number(id);
+    const nuevos = safeIds.includes(numericId) 
+      ? safeIds.filter(i => i !== numericId) 
+      : [...safeIds, numericId];
     onChange(nuevos);
   };
 
@@ -63,7 +73,7 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
               const item = todas.find(c => c.id === id);
               return (
                 <span key={id} className="bg-primary text-white text-[9px] font-black px-4 py-2 rounded-full flex items-center gap-2 uppercase italic tracking-wider shadow-sm border border-white/10">
-                  {item?.titulo || '...'}
+                  {item?.titulo || `ID: ${id}`}
                   <X 
                     size={12} 
                     onClick={(e) => { e.stopPropagation(); toggle(id); }} 
@@ -85,7 +95,6 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
           <motion.div 
             initial={{ opacity: 0, y: -10 }} 
             animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: -10 }}
             style={{ 
               position: 'absolute', 
               top: coords.top + 10, 
@@ -121,23 +130,32 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
   );
 };
 
+/**
+ * COMPONENTE: SeccionMusica
+ * Renderiza los iconos de Play para los links de música del personaje.
+ */
 export const SeccionMusica = ({ listaLinks = [] }) => {
   const linksLimpios = useMemo(() => {
     if (!listaLinks || !Array.isArray(listaLinks)) return [];
 
     return listaLinks
       .map(item => {
-        // Si es un objeto (viniendo de la tabla canciones), buscamos el campo de URL
+        // Manejo de objeto canción completo (nueva query)
         if (typeof item === 'object' && item !== null) {
-          // Extraemos la URL del primer objeto en el JSONB 'links' o de la columna 'url'
-          return item.links?.[0]?.url || item.url || null;
+          // 1. Intentar con el array 'links' (JSONB de Supabase)
+          if (item.links && Array.isArray(item.links) && item.links.length > 0) {
+            return item.links[0].url || item.links[0];
+          }
+          // 2. Intentar con columna 'url' directa
+          return item.url || null;
         }
+        // 3. Si ya es un string
         return item;
       })
       .filter(link => typeof link === 'string' && link.trim().length > 0)
       .map(link => {
         const l = link.trim();
-        // Si no es una URL completa, asumimos que es un ID de YouTube
+        // Normalización básica de IDs de YouTube
         return !l.startsWith('http') ? `https://www.youtube.com/watch?v=${l}` : l;
       });
   }, [listaLinks]);

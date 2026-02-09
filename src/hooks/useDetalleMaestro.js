@@ -42,20 +42,28 @@ export function useDetalleMaestro(data, onUpdate) {
     }
   };
 
-  // 3. --- SINCRONIZACIÓN DE ESTADOS ---
+  // 3. --- SINCRONIZACIÓN DE ESTADOS (CORREGIDO) ---
   useEffect(() => {
     if (data) {
       const esNuevoItem = prevIdRef.current !== data.id;
 
       if (esNuevoItem || editMode) {
         setEditNombre(data.nombre || "");
-        // Sincronización inteligente de columnas según la tabla
         setEditDescripcion(data.sobre || data.descripcion || "");
         
+        // CORRECCIÓN CRÍTICA: Extracción robusta de IDs para el Selector
         const cancionesData = data.canciones || [];
         const idsIniciales = Array.isArray(cancionesData) 
-          ? cancionesData.map(c => typeof c === 'object' ? c.id : c) 
+          ? cancionesData
+              .map(c => {
+                if (typeof c === 'object' && c !== null) return c.id;
+                if (typeof c === 'number') return c;
+                if (typeof c === 'string' && !isNaN(c)) return parseInt(c);
+                return null;
+              })
+              .filter(id => id !== null)
           : [];
+          
         setEditCanciones(idsIniciales);
         setEditRelaciones(data.relaciones || []);
       }
@@ -73,7 +81,7 @@ export function useDetalleMaestro(data, onUpdate) {
     }
   }, [data, editMode]);
 
-  // 4. --- LÓGICA DE GUARDADO MAESTRA (LA SOLUCIÓN AL ERROR) ---
+  // 4. --- LÓGICA DE GUARDADO MAESTRA ---
   const handleSave = async () => {
     if (!editNombre.trim()) {
       alert("El nombre no puede estar vacío");
@@ -82,7 +90,6 @@ export function useDetalleMaestro(data, onUpdate) {
 
     setSaving(true);
     try {
-      // Detección basada en la estructura real de tu base de datos
       const esPersonaje = 'sobre' in data; 
       const tablaPrincipal = esPersonaje ? 'personajes' : 'criaturas';
       const columnaTexto = esPersonaje ? 'sobre' : 'descripcion';
@@ -102,11 +109,16 @@ export function useDetalleMaestro(data, onUpdate) {
 
       // B. ACTUALIZAR CANCIONES (Solo Personajes)
       if (esPersonaje) {
+        console.log("Sincronizando canciones para:", editNombre);
+        
+        // 1. Desvincular canciones que tenían el nombre antiguo o el actual
+        // (Usamos tanto el nombre previo como el nuevo para asegurar limpieza)
         await supabase
           .from('canciones')
           .update({ personaje: null })
-          .eq('personaje', data.nombre);
+          .or(`personaje.eq."${data.nombre}",personaje.eq."${editNombre}"`);
 
+        // 2. Vincular las nuevas canciones seleccionadas
         if (editCanciones.length > 0) {
           const { error: musicError } = await supabase
             .from('canciones')
@@ -133,12 +145,13 @@ export function useDetalleMaestro(data, onUpdate) {
         await fetchVariantes(data.id);
       }
 
+      // IMPORTANTE: Refrescar la UI
       if (onUpdate) await onUpdate(); 
       setEditMode(false);
       alert("Sincronización con el Archivo exitosa.");
 
     } catch (err) {
-      console.error("Error crítico:", err);
+      console.error("Error crítico en handleSave:", err);
       alert("Error de esquema: " + err.message);
     } finally {
       setSaving(false);
