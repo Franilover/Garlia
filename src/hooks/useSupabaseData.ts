@@ -3,18 +3,19 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/lib/api/supabase";
 import { useDataCache } from "@/components/features/control/DataContext";
 
-// Importación de queries personalizadas
+// ... (tus importaciones se mantienen igual)
 import { personajesQueries } from "@/lib/api/queries/personajes";
 import { criaturasQueries } from "@/lib/api/queries/criaturas";
 import { itemsQueries } from "@/lib/api/queries/items"; 
-import { librosQueries } from "@/lib/api/queries/libros"; // <--- Nueva importación
+import { librosQueries } from "@/lib/api/queries/libros";
+import { recetasQueries } from "@/lib/api/queries/recetas";
 
-// Mapeo de tablas a sus queries específicas
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
   "criaturas": criaturasQueries,
   "items": itemsQueries,
-  "libros": librosQueries // <--- Añadido al mapa
+  "libros": librosQueries,
+  "recetas": recetasQueries
 };
 
 interface UseSupabaseOptions {
@@ -26,11 +27,12 @@ interface UseSupabaseOptions {
   [key: string]: any;
 }
 
-export function useSupabaseData(tabla: string, opciones: UseSupabaseOptions = {}) {
+// ✅ CAMBIO 1: Añadir <T = any> aquí
+export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // Tipamos la data como array de cualquier cosa por ahora (any[])
-  const [data, setData] = useState<any[]>(cache[tabla] || []);
+  // ✅ CAMBIO 2: Usar T[] en lugar de any[]
+  const [data, setData] = useState<T[]>(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState<string | null>(null);
   
@@ -39,7 +41,6 @@ export function useSupabaseData(tabla: string, opciones: UseSupabaseOptions = {}
   const opcionesKey = useMemo(() => JSON.stringify(opciones), [opciones]);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    // Si ya hay datos en caché y no forzamos refresh, no hacemos petición
     if (cache[tabla] && !forceRefresh && data.length > 0) {
       if (isMounted.current) setLoading(false);
       return;
@@ -55,15 +56,12 @@ export function useSupabaseData(tabla: string, opciones: UseSupabaseOptions = {}
       let resultado;
       let errorFetch;
 
-      // Si existe una query personalizada en el MAP, la usamos
       if (QUERIES_MAP[tabla]) {
-        // getAll es el estándar que estamos usando en nuestras queries
         const res = await QUERIES_MAP[tabla].getAll(opt);
         resultado = res?.data !== undefined ? res.data : (Array.isArray(res) ? res : []);
         errorFetch = res?.error !== undefined ? res.error : null;
       } 
       else {
-        // Query genérica de Supabase si no hay lógica personalizada
         let query = supabase.from(tabla).select(opt.select || "*");
         if (opt.order) {
           query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
@@ -75,7 +73,8 @@ export function useSupabaseData(tabla: string, opciones: UseSupabaseOptions = {}
 
       if (errorFetch) throw errorFetch;
 
-      const finalData = resultado || [];
+      // ✅ CAMBIO 3: Asegurar que el resultado se trate como T[]
+      const finalData = (resultado || []) as T[];
       
       if (isMounted.current) {
         setData(finalData);
@@ -92,7 +91,9 @@ export function useSupabaseData(tabla: string, opciones: UseSupabaseOptions = {}
     }
   }, [tabla, opcionesKey, updateCache, cache, data.length]); 
 
-  // --- REALTIME Y MONTAJE ---
+  // --- El resto del código (useEffect, setSyncedData) se mantiene igual ---
+  // Solo asegúrate de que setData dentro de setSyncedData use el tipo correcto
+
   useEffect(() => {
     isMounted.current = true;
     fetchData();
@@ -102,7 +103,6 @@ export function useSupabaseData(tabla: string, opciones: UseSupabaseOptions = {}
       .on("postgres_changes", 
         { event: "*", schema: "public", table: tabla }, 
         () => {
-          console.log(`"Evento Realtime en ${tabla}. Sincronizando..."`);
           fetchData(true);
         }
       )
@@ -118,7 +118,6 @@ export function useSupabaseData(tabla: string, opciones: UseSupabaseOptions = {}
     setData(prev => {
       const resolved = typeof newDataOrFn === "function" ? newDataOrFn(prev) : newDataOrFn;
       if (!Array.isArray(resolved)) return prev;
-      
       updateCache(tabla, resolved); 
       return resolved;
     });
