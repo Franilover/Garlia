@@ -1,11 +1,12 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Edit3, Save, Plus, Trash2, Music, Users, Image as ImageIcon, Zap } from 'lucide-react';
+import { 
+  X, Edit3, Save, Plus, Trash2, Music, Users, 
+  Image as ImageIcon, Zap, Info, Shield, Binary, Sparkles 
+} from 'lucide-react';
 import Relaciones from './relaciones'; 
 import { useDetalleMaestro } from '@/hooks/useDetalleMaestro'; 
-
-// IMPORTANTE: Estos componentes ahora manejan la lógica de la tabla independiente 'canciones'
 import { SeccionMusica, SelectorMusicaAdmin } from './SeccionMusica';
 
 export default function DetalleMaestro({ 
@@ -19,10 +20,9 @@ export default function DetalleMaestro({
     editCanciones, setEditCanciones, setEditRelaciones
   } = useDetalleMaestro(data, onUpdate);
 
-  // Lógica para detectar si es criatura o personaje (ajustada para la nueva DB)
-  const esCriatura = data && (!data.hasOwnProperty('nombre') || 'puntos_vida' in data);
+  // Detección de tipo de entidad
+  const esCriatura = data && (!data.hasOwnProperty('sobre') || 'puntos_vida' in data);
   
-  // Ahora comprobamos si hay canciones en el array (viniendo del join de Supabase)
   const tieneContenidoInferior = !esCriatura && (
     editMode || 
     (data?.relaciones && data.relaciones.length > 0) || 
@@ -65,149 +65,168 @@ export default function DetalleMaestro({
     <AnimatePresence mode="wait">
       <motion.div 
         key={data.id}
-        initial={{ opacity: 0, scale: 0.95 }} 
-        animate={{ opacity: 1, scale: 1 }} 
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="max-w-7xl mx-auto mb-16 relative pt-24 px-4"
+        initial={{ opacity: 0, scale: 0.9, y: 30 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        exit={{ opacity: 0, scale: 0.9, y: 30 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="max-w-7xl mx-auto mb-32 relative pt-24 px-4"
       >
-        <div className="bg-white rounded-[4rem] overflow-hidden shadow-2xl relative border border-primary/10">
+        {/* EFECTO DE RESPLANDOR DE FONDO */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[80%] bg-primary/5 blur-[150px] rounded-full -z-10" />
+
+        <div className="bg-white rounded-[5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] relative border border-primary/10">
           
-          {/* --- CONTROLES SUPERIORES --- */}
-          <div className="absolute top-8 right-8 z-50 flex gap-3">
+          {/* --- PANEL DE ACCIONES FLOTANTE --- */}
+          <div className="absolute top-10 right-10 z-50 flex items-center gap-4">
             {isAdmin && (
-              <button 
+              <motion.button 
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={editMode ? handleSave : () => setEditMode(true)} 
                 disabled={saving}
-                className={`p-4 text-white rounded-full shadow-xl hover:scale-110 transition-all flex items-center gap-3 px-7 ${
-                  editMode ? 'bg-green-600' : 'bg-primary'
+                className={`group p-5 text-white rounded-full shadow-2xl transition-all flex items-center gap-4 px-10 ${
+                  editMode ? 'bg-green-600 hover:bg-green-700' : 'bg-primary hover:bg-primary/90'
                 }`}
               >
-                {editMode ? <Save size={22} /> : <Edit3 size={22} />}
-                {editMode && (
-                  <span className="text-xs font-black uppercase tracking-widest text-white">
-                    {saving ? 'Guardando...' : 'Guardar'}
-                  </span>
-                )}
-              </button>
+                {editMode ? <Save size={24} className="animate-pulse" /> : <Edit3 size={24} />}
+                <span className="text-[11px] font-black uppercase tracking-[0.25em] text-white">
+                  {saving ? 'Procesando...' : (editMode ? 'Confirmar Cambios' : 'Modificar Registro')}
+                </span>
+              </motion.button>
             )}
             <button 
               onClick={onClose} 
-              className="p-4 bg-primary/5 text-primary rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-primary/10"
+              className="p-5 bg-white/90 backdrop-blur-md text-primary rounded-full hover:bg-red-500 hover:text-white transition-all shadow-xl border border-primary/5 group"
             >
-              <X size={22} />
+              <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
             </button>
           </div>
 
+          {/* --- SECCIÓN SUPERIOR: VISUALIZACIÓN --- */}
           <div className="flex flex-col lg:flex-row items-stretch border-b border-primary/5">
-            {/* --- PANEL IZQUIERDO: IMAGEN --- */}
-            <div className="w-full lg:w-[45%] bg-linear-to-br from-primary/5 to-white p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-125">
-              <div className="absolute inset-0 opacity-[0.05] pointer-events-none italic font-black text-[25rem] flex items-center justify-center text-primary select-none">
-                {data.nombre ? data.nombre[0] : '?'}
+            
+            {/* CONTENEDOR DE IMAGEN (IZQUIERDA) */}
+            <div className="w-full lg:w-[48%] bg-slate-50 p-10 lg:p-24 flex items-center justify-center relative overflow-hidden min-h-[550px] lg:min-h-[800px]">
+              {/* Marca de agua dinámica */}
+              <div className="absolute inset-0 opacity-[0.04] pointer-events-none italic font-black text-[35rem] flex items-center justify-center text-primary select-none leading-none translate-y-10">
+                {data.nombre ? data.nombre[0] : 'A'}
               </div>
-              <div className="relative w-full aspect-square max-w-120 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-white group">
-                <motion.img 
-                  key={imagenVisual} 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  src={imagenVisual} 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                />
+              
+              <div className="relative w-full aspect-square max-w-140 group">
+                <div className="absolute inset-0 bg-primary/10 rounded-full blur-[80px] group-hover:blur-[100px] transition-all duration-1000 opacity-60" />
+                <motion.div 
+                  layoutId="hero-img"
+                  className="relative w-full h-full rounded-full overflow-hidden border-[16px] border-white shadow-[0_40px_80px_-15px_rgba(0,0,0,0.35)] bg-white"
+                >
+                  <motion.img 
+                    key={imagenVisual} 
+                    initial={{ opacity: 0, scale: 1.2 }} 
+                    animate={{ opacity: 1, scale: 1 }} 
+                    transition={{ duration: 1.2, ease: "easeOut" }}
+                    src={imagenVisual} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s] ease-out" 
+                  />
+                </motion.div>
+                
+                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white px-12 py-5 rounded-[2rem] shadow-2xl border border-primary/5 flex items-center gap-4 whitespace-nowrap">
+                  <Sparkles size={16} className="text-primary animate-pulse" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/70 italic">
+                    {esCriatura ? 'Entidad Biológica Clasificada' : 'Registro Civil del Sujeto'}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* --- PANEL DERECHO: INFO/EDITOR --- */}
-            <div className="w-full lg:w-[55%] p-10 lg:p-16 flex flex-col justify-center bg-white">
+            {/* CONTENEDOR DE INFORMACIÓN (DERECHA) */}
+            <div className="w-full lg:w-[52%] p-14 lg:p-28 flex flex-col justify-center bg-white relative">
               {editMode ? (
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 ml-4 mb-2 block italic">Nombre del Sujeto</label>
+                <div className="space-y-12 max-w-2xl w-full">
+                  <div className="flex items-center gap-4 text-primary/30">
+                    <Binary size={20} />
+                    <span className="text-[11px] font-black uppercase tracking-[0.4em] italic">Consola de Edición de Datos</span>
+                  </div>
+
+                  <div className="space-y-8">
+                    <div className="group">
+                      <label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40 ml-8 mb-4 block italic group-focus-within:text-primary transition-colors">Descriptor Nominal</label>
                       <input 
                         value={editNombre} 
                         onChange={(e) => setEditNombre(e.target.value)} 
-                        className="text-2xl font-black uppercase italic text-primary w-full bg-primary/5 border border-primary/10 p-5 rounded-4xl outline-none focus:ring-4 ring-primary/5 shadow-inner" 
+                        className="text-4xl font-black uppercase italic text-primary w-full bg-primary/5 border-2 border-transparent focus:border-primary/10 p-8 rounded-[3rem] outline-none transition-all shadow-inner" 
                       />
                     </div>
-                    <div>
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 ml-4 mb-2 block italic">
-                        {esCriatura ? 'Descripción de la Especie' : 'Biografía del Personaje'}
+
+                    <div className="group">
+                      <label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40 ml-8 mb-4 block italic group-focus-within:text-primary transition-colors">
+                        {esCriatura ? 'Especificaciones Técnicas' : 'Archivo Histórico / Biografía'}
                       </label>
                       <textarea 
                         value={editDescripcion} 
                         onChange={(e) => setEditDescripcion(e.target.value)} 
-                        className="text-slate-600 text-lg italic leading-relaxed w-full bg-primary/5 border border-primary/10 p-8 rounded-4xl outline-none min-h-45 resize-none focus:ring-4 ring-primary/5 shadow-inner" 
+                        className="text-slate-600 text-xl italic leading-relaxed w-full bg-primary/5 border-2 border-transparent focus:border-primary/10 p-12 rounded-[3.5rem] outline-none min-h-[400px] resize-none transition-all shadow-inner custom-scrollbar" 
                       />
                     </div>
                   </div>
 
-                  {/* VARIANTES (Sólo para criaturas) */}
                   {esCriatura && (
-                    <div className="pt-6 border-t border-primary/10">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-2">
-                          <Zap size={16} className="text-primary" fill="currentColor" />
-                          <h3 className="text-sm font-black uppercase tracking-widest italic text-primary">Variantes Genéticas</h3>
+                    <div className="pt-12 border-t border-primary/5">
+                      <div className="flex items-center justify-between mb-10">
+                        <div className="flex items-center gap-3">
+                          <Zap size={22} className="text-primary/40" />
+                          <h3 className="text-[12px] font-black uppercase tracking-[0.3em] italic text-primary">Variantes Registradas</h3>
                         </div>
                         <button 
                           onClick={agregarVariante}
-                          className="px-6 py-2 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase hover:bg-primary hover:text-white transition-all shadow-md flex items-center gap-2"
+                          className="px-10 py-4 bg-primary text-white rounded-[1.5rem] text-[10px] font-black uppercase hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center gap-4"
                         >
-                          <Plus size={14} /> Nueva Variante
+                          <Plus size={18} /> Nueva Cepa
                         </button>
                       </div>
 
-                      <div className="space-y-4 max-h-125 overflow-y-auto pr-4 custom-scrollbar">
+                      <div className="space-y-8 max-h-[550px] overflow-y-auto pr-6 custom-scrollbar p-2">
                         {variantes.map((v, index) => (
                           <motion.div 
-                            key={v.id || index}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex flex-col md:flex-row gap-6 p-6 bg-primary/5 rounded-[2.5rem] border border-primary/10 relative group"
+                            key={v.id || index} 
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="p-10 bg-slate-50 rounded-[3.5rem] border border-primary/5 relative group transition-all hover:bg-white hover:shadow-2xl"
                           >
-                            <div className="w-full md:w-32 h-32 rounded-3xl overflow-hidden bg-white shrink-0 border-2 border-white shadow-md">
-                              {v.imagen_url ? (
-                                <img src={v.imagen_url} className="w-full h-full object-cover" alt="preview" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-primary/20">
-                                  <ImageIcon size={24} />
+                            <div className="flex flex-col md:flex-row gap-8 items-start">
+                              <div className="w-32 h-32 rounded-3xl overflow-hidden bg-white shrink-0 shadow-lg border-4 border-white">
+                                {v.imagen_url ? (
+                                  <img src={v.imagen_url} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-primary/10"><ImageIcon size={32} /></div>
+                                )}
+                              </div>
+                              <div className="flex-1 space-y-4 w-full">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <input 
+                                    placeholder="Nombre de la Forma" 
+                                    value={v.tipo} 
+                                    onChange={(e) => { const n = [...variantes]; n[index].tipo = e.target.value; setVariantes(n); }}
+                                    className="bg-white px-6 py-4 rounded-2xl text-xs font-bold text-primary border border-primary/5"
+                                  />
+                                  <input 
+                                    placeholder="Enlace de Imagen" 
+                                    value={v.imagen_url} 
+                                    onChange={(e) => { const n = [...variantes]; n[index].imagen_url = e.target.value; setVariantes(n); }}
+                                    className="bg-white px-6 py-4 rounded-2xl text-[10px] font-mono text-slate-400 border border-primary/5"
+                                  />
                                 </div>
-                              )}
-                            </div>
-
-                            <div className="flex-1 space-y-3">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input 
-                                  placeholder="Tipo de Variante" 
-                                  value={v.tipo} 
-                                  onChange={(e) => {
-                                    const n = [...variantes]; n[index].tipo = e.target.value; setVariantes(n);
-                                  }}
-                                  className="bg-white px-4 py-2 rounded-xl text-xs font-bold text-primary border border-primary/10 outline-none focus:ring-2 ring-primary/5"
-                                />
-                                <input 
-                                  placeholder="URL Imagen" 
-                                  value={v.imagen_url} 
-                                  onChange={(e) => {
-                                    const n = [...variantes]; n[index].imagen_url = e.target.value; setVariantes(n);
-                                  }}
-                                  className="bg-white px-4 py-2 rounded-xl text-[10px] font-mono text-slate-400 border border-primary/10 outline-none focus:ring-2 ring-primary/5"
+                                <textarea 
+                                  placeholder="Descripción de la variante..."
+                                  value={v.descripcion_variante}
+                                  onChange={(e) => { const n = [...variantes]; n[index].descripcion_variante = e.target.value; setVariantes(n); }}
+                                  className="w-full bg-white p-6 rounded-[2rem] text-xs italic text-slate-500 resize-none min-h-[100px] border border-primary/5"
                                 />
                               </div>
-                              <textarea 
-                                placeholder="Descripción..."
-                                value={v.descripcion_variante}
-                                onChange={(e) => {
-                                  const n = [...variantes]; n[index].descripcion_variante = e.target.value; setVariantes(n);
-                                }}
-                                className="w-full bg-white p-4 rounded-2xl text-xs italic text-slate-500 border border-primary/10 outline-none min-h-20 resize-none"
-                              />
                             </div>
-
                             <button 
-                              onClick={() => eliminarVariante(index)}
-                              className="md:absolute md:-top-2 md:-right-2 bg-white text-primary/20 hover:text-red-500 p-2 rounded-full shadow-md border border-primary/5 transition-all opacity-0 group-hover:opacity-100"
+                              onClick={() => eliminarVariante(index)} 
+                              className="absolute -top-4 -right-4 bg-red-500 text-white p-4 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={20} />
                             </button>
                           </motion.div>
                         ))}
@@ -216,42 +235,44 @@ export default function DetalleMaestro({
                   )}
                 </div>
               ) : (
-                /* --- VISTA NORMAL --- */
                 <div className="relative">
-                  <div className="flex flex-wrap gap-3 mb-6">
+                  {/* TAGS DE CATEGORÍA */}
+                  <div className="flex flex-wrap gap-4 mb-10">
                     {tags.map((tag, i) => tag && (
-                      <span key={i} className="px-5 py-2 bg-primary text-white text-[10px] font-black uppercase rounded-full tracking-widest shadow-lg">
+                      <span key={i} className="px-7 py-3 bg-primary text-white text-[11px] font-black uppercase rounded-full tracking-[0.3em] shadow-[0_15px_30px_-5px_rgba(0,0,0,0.2)]">
                         {tag}
                       </span>
                     ))}
                   </div>
                   
-                  <h2 className="text-5xl lg:text-6xl font-black uppercase italic text-primary leading-[0.9] tracking-tighter mb-8">
-                    {varianteActiva ? `${data.nombre} ${varianteActiva.tipo}` : editNombre}
+                  {/* TÍTULO Y TEXTO DINÁMICO */}
+                  <h2 className="text-6xl lg:text-8xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-12">
+                    {varianteActiva ? (
+                      <>
+                        <span className="block text-3xl opacity-40 mb-2">{data.nombre}</span>
+                        <span>{varianteActiva.tipo}</span>
+                      </>
+                    ) : editNombre}
                   </h2>
                   
-                  <p className="text-slate-500 text-lg lg:text-xl italic leading-relaxed whitespace-pre-wrap max-w-prose">
+                  <p className="text-slate-500 text-xl lg:text-2xl italic leading-relaxed whitespace-pre-wrap max-w-2xl border-l-4 border-primary/5 pl-10">
                     {varianteActiva ? varianteActiva.descripcion_variante : editDescripcion}
                   </p>
                   
                   {/* SELECTOR DE VARIANTES VISUAL */}
                   {variantes.length > 0 && (
-                    <div className="flex flex-wrap gap-3 mt-12">
+                    <div className="flex flex-wrap gap-4 mt-16">
                       <button 
                         onClick={() => setVarianteActiva(null)} 
-                        className={`px-8 py-3 rounded-2xl text-[11px] font-black uppercase transition-all duration-300 ${!varianteActiva ? 'bg-primary text-white shadow-xl -translate-y-1' : 'bg-primary/5 text-primary hover:bg-primary/10'}`}
+                        className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all duration-500 ${!varianteActiva ? 'bg-primary text-white shadow-2xl -translate-y-2' : 'bg-primary/5 text-primary hover:bg-primary/10'}`}
                       >
-                        Forma Base
+                        Fenotipo Base
                       </button>
                       {variantes.map((v, i) => (
                         <button 
-                          key={v.id || i} 
+                          key={i} 
                           onClick={() => setVarianteActiva(v)} 
-                          className={`flex items-center gap-2 px-8 py-3 rounded-2xl text-[11px] font-black uppercase transition-all duration-300 ${
-                            (varianteActiva?.id === v.id && v.id) || (varianteActiva === v) 
-                              ? 'bg-primary text-white shadow-xl -translate-y-1' 
-                              : 'bg-primary/5 text-primary hover:bg-primary/10'
-                          }`}
+                          className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all duration-500 ${varianteActiva === v ? 'bg-primary text-white shadow-2xl -translate-y-2' : 'bg-primary/5 text-primary hover:bg-primary/10'}`}
                         >
                           {v.tipo}
                         </button>
@@ -263,20 +284,23 @@ export default function DetalleMaestro({
             </div>
           </div>
 
-          {/* Bloque Inferior: Vínculos y Música */}
+          {/* --- SECCIÓN INFERIOR: VÍNCULOS Y MÚSICA --- */}
           {tieneContenidoInferior && (
-            <div className="bg-primary/2 p-10 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-20 items-start border-t border-primary/5">
-              
-              {/* VÍNCULOS / RELACIONES */}
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/20 italic flex items-center gap-2">
-                    <Users size={14} /> Vínculos
-                  </span>
-                  <div className="h-px flex-1 bg-primary/10" />
+            <div className="bg-slate-50 p-12 lg:p-24 grid grid-cols-1 xl:grid-cols-2 gap-24 items-start border-t border-primary/5 relative">
+              {/* Decoración central */}
+              <div className="hidden xl:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-[70%] bg-primary/10" />
+
+              {/* COLUMNA RELACIONES */}
+              <div className="space-y-10">
+                <div className="flex items-center gap-6 mb-4">
+                  <div className="p-4 bg-primary/5 rounded-2xl text-primary"><Users size={24} /></div>
+                  <div>
+                    <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30 italic">Red de Contactos</h4>
+                    <p className="text-xs font-bold text-primary/60 uppercase">Vínculos y Lealtades</p>
+                  </div>
                 </div>
                 {loadingRelaciones ? (
-                  <div className="h-20 bg-white rounded-4xl w-full animate-pulse border border-primary/5" />
+                  <div className="h-40 bg-white rounded-[3rem] w-full animate-pulse border border-primary/5" />
                 ) : (
                   <Relaciones 
                     nombrePersonaje={data.nombre} 
@@ -288,28 +312,26 @@ export default function DetalleMaestro({
                 )}
               </div>
               
-              {/* SOLILOQUIOS / MÚSICA */}
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/20 italic flex items-center gap-2">
-                    <Music size={14} /> Soliloquios
-                  </span>
-                  <div className="h-px flex-1 bg-primary/10" />
+              {/* COLUMNA MÚSICA */}
+              <div className="space-y-10">
+                <div className="flex items-center gap-6 mb-4">
+                  <div className="p-4 bg-primary/5 rounded-2xl text-primary"><Music size={24} /></div>
+                  <div>
+                    <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30 italic">Frecuencias Acústicas</h4>
+                    <p className="text-xs font-bold text-primary/60 uppercase">Soliloquios Registrados</p>
+                  </div>
                 </div>
                 
                 {editMode ? (
-                  <SelectorMusicaAdmin 
-                    idsSeleccionados={editCanciones} 
-                    onChange={setEditCanciones} 
-                  />
+                  <div className="bg-white p-8 rounded-[3rem] shadow-inner border border-primary/5">
+                    <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} />
+                  </div>
                 ) : (
-                  <div className="min-h-50">
-                    {/* SeccionMusica ahora recibe el array de objetos directamente */}
+                  <div className="min-h-[250px] bg-white p-8 rounded-[3rem] shadow-xl border border-primary/5">
                     {mostrarMusica && <SeccionMusica listaLinks={data?.canciones || []} />}
                   </div>
                 )}
               </div>
-
             </div>
           )}
         </div>

@@ -12,13 +12,12 @@ export function useDetalleMaestro(data, onUpdate) {
   
   const [editNombre, setEditNombre] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
-  // Ahora editCanciones guarda un ARRAY de IDs numéricos, no un string
   const [editCanciones, setEditCanciones] = useState([]); 
   const [editRelaciones, setEditRelaciones] = useState([]);
 
   const prevIdRef = useRef(null);
 
-  // Verificar admin
+  // 1. --- VERIFICACIÓN DE PERMISOS ---
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -27,57 +26,76 @@ export function useDetalleMaestro(data, onUpdate) {
     checkUser();
   }, []);
 
-  // Cargar variantes
+  // 2. --- CARGA DETALLADA DE VARIANTES ---
   const fetchVariantes = async (id) => {
     if (!id) return;
-    const { data: vars, error } = await supabase
-      .from('criatura_variantes')
-      .select('*')
-      .eq('criatura_id', id);
-    if (!error) setVariantes(vars || []);
+    try {
+      const { data: vars, error } = await supabase
+        .from('criatura_variantes')
+        .select('*')
+        .eq('criatura_id', id)
+        .order('id', { ascending: true });
+        
+      if (!error) setVariantes(vars || []);
+    } catch (err) {
+      console.error("Error fetching variantes:", err);
+    }
   };
 
-  // Sincronizar datos
+  // 3. --- SINCRONIZACIÓN DE ESTADOS (MAESTRO-DETALLE) ---
   useEffect(() => {
     if (data) {
       const esNuevoItem = prevIdRef.current !== data.id;
 
+      // Sincronizar campos de edición si cambiamos de item o entramos en editMode
       if (esNuevoItem || editMode) {
         setEditNombre(data.nombre || "");
         setEditDescripcion(data.sobre || data.descripcion || "");
         
-        // CORRECCIÓN: Si data.canciones es un array de objetos, extraemos solo los IDs
+        // Normalización de canciones (Extraer IDs si vienen como objetos de Supabase)
         const cancionesData = data.canciones || [];
         const idsIniciales = Array.isArray(cancionesData) 
           ? cancionesData.map(c => typeof c === 'object' ? c.id : c) 
           : [];
         setEditCanciones(idsIniciales);
+        
+        // Sincronizar relaciones si existen
+        setEditRelaciones(data.relaciones || []);
       }
 
+      // Resetear estados visuales al cambiar de personaje/criatura
       if (esNuevoItem) {
         setEditMode(false);
         setVarianteActiva(null);
-        setVariantes(data.variantes || []);
         
+        // Si el fetch inicial no trajo las variantes, las buscamos manualmente
         if (!data.variantes || data.variantes.length === 0) {
           fetchVariantes(data.id);
+        } else {
+          setVariantes(data.variantes);
         }
         prevIdRef.current = data.id;
       }
     }
   }, [data, editMode]);
 
+  // 4. --- LÓGICA DE GUARDADO MAESTRA ---
   const handleSave = async () => {
+    if (!editNombre.trim()) {
+      alert("El nombre no puede estar vacío");
+      return;
+    }
+
     setSaving(true);
     try {
+      // Detección de tabla destino
       const esCriatura = !data.hasOwnProperty('canciones') || 'puntos_vida' in data;
       const tablaPrincipal = !esCriatura ? 'personajes' : 'criaturas';
 
-      // 1. --- ACTUALIZAR PERSONAJE / CRIATURA ---
+      // A. ACTUALIZAR ENTIDAD PRINCIPAL
       const updates = {
         nombre: editNombre,
         [data.sobre ? 'sobre' : 'descripcion']: editDescripcion
-        // IMPORTANTE: Ya no enviamos la columna "canciones" aquí porque fue borrada
       };
 
       const { error: mainError } = await supabase
@@ -87,15 +105,15 @@ export function useDetalleMaestro(data, onUpdate) {
 
       if (mainError) throw mainError;
 
-      // 2. --- LÓGICA DE CANCIONES (Solo si es personaje) ---
+      // B. ACTUALIZAR CANCIONES (Solo Personajes)
       if (!esCriatura) {
-        // A. Desvincular canciones antiguas que apuntaban a este personaje
+        // Primero "limpiamos" el nombre antiguo de todas las canciones vinculadas
         await supabase
           .from('canciones')
           .update({ personaje: null })
           .eq('personaje', data.nombre);
 
-        // B. Vincular las nuevas canciones seleccionadas por ID
+        // Luego vinculamos las nuevas por su ID
         if (editCanciones.length > 0) {
           const { error: musicError } = await supabase
             .from('canciones')
@@ -106,8 +124,9 @@ export function useDetalleMaestro(data, onUpdate) {
         }
       }
 
-      // 3. --- GUARDAR VARIANTES (Si es Criatura) ---
-      if (esCriatura && variantes.length > 0) {
+      // C. ACTUALIZAR VARIANTES (Solo Criaturas)
+      if (esCriatura) {
+        // Upsert maneja creación de nuevas y actualización de existentes
         const { error: varError } = await supabase
           .from('criatura_variantes')
           .upsert(
@@ -122,29 +141,43 @@ export function useDetalleMaestro(data, onUpdate) {
         await fetchVariantes(data.id);
       }
 
-      // 4. --- GUARDAR RELACIONES ---
+      // D. ACTUALIZAR RELACIONES (Lógica delegada)
       if (!esCriatura && editRelaciones.length > 0) {
-        // Tu lógica de relaciones se mantiene aquí
+        // Aquí podrías añadir lógica adicional de sincronización si fuera necesario
       }
 
-      if (onUpdate) onUpdate(); // Refrescar la vista
+      // 5. --- FINALIZACIÓN ---
+      if (onUpdate) await onUpdate(); // Avisar al padre para refrescar datos
+      
       setEditMode(false);
-      alert("¡Guardado correctamente!");
+      // Feedback visual opcional: podrías usar un toast aquí
+      console.log("Sincronización completa con Supabase");
 
     } catch (err) {
-      console.error(err);
-      alert("Error al guardar: " + err.message);
+      console.error("Error crítico en handleSave:", err);
+      alert("Error al sincronizar con el Archivo: " + err.message);
     } finally {
       setSaving(false);
     }
   };
 
   return {
-    isAdmin, editMode, setEditMode, saving, handleSave,
-    variantes, setVariantes,
-    varianteActiva, setVarianteActiva,
-    editNombre, setEditNombre, editDescripcion, setEditDescripcion,
-    editCanciones, setEditCanciones,
+    isAdmin, 
+    editMode, 
+    setEditMode, 
+    saving, 
+    handleSave,
+    variantes, 
+    setVariantes,
+    varianteActiva, 
+    setVarianteActiva,
+    editNombre, 
+    setEditNombre, 
+    editDescripcion, 
+    setEditDescripcion,
+    editCanciones, 
+    setEditCanciones,
+    editRelaciones,
     setEditRelaciones
   };
 }
