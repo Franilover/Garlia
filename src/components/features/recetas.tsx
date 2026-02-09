@@ -5,23 +5,88 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/useSupabaseData"; 
 import { Receta, NuevaReceta } from "@/lib/types/recetas";
 import { recetasQueries } from "@/lib/api/queries/recetas"; 
-import { 
-  Utensils, 
-  Clock, 
-  ChevronRight, 
+import {  
+  Utensils,  
+  Clock,  
+  ChevronRight,  
   Search,
   ChefHat,
   Flame,
   Plus,
-  X
+  X,
+  ArrowLeft
 } from "lucide-react";
 
-const RecetasPage = () => {
+// 1. Añadimos la interfaz de Props para que TypeScript no se queje
+interface RecetasPageProps {
+  selectedRecipeId?: string;
+}
+
+const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   const [filter, setFilter] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const { data: recipes, loading, error, refetch } = useSupabaseData<Receta>("recetas");
 
+  // 2. Lógica para mostrar el DETALLE de una receta
+  if (selectedRecipeId) {
+    const receta = recipes.find(r => String(r.id) === selectedRecipeId);
+
+    if (loading) return <div className="p-20 text-center font-black uppercase text-primary animate-pulse">"Abriendo Grimorio..."</div>;
+    
+    if (!receta) return (
+      <div className="p-20 text-center">
+        <p className="font-black text-primary uppercase">"Receta no encontrada"</p>
+        <Link href="/wiki/recetas" className="text-[10px] text-primary/40 underline uppercase mt-4 block">"Volver a la biblioteca"</Link>
+      </div>
+    );
+
+    return (
+      <div className="min-h-screen bg-bg-main p-6">
+        <div className="max-w-4xl mx-auto">
+          <Link href="/wiki/recetas" className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors mb-8">
+            <ArrowLeft size={14} /> "Volver a Recetas"
+          </Link>
+          
+          <div className="bg-white rounded-[40px] border border-primary/10 overflow-hidden shadow-2xl">
+            <div className="h-64 bg-primary/5 relative">
+               {receta.imagen_url && <img src={receta.imagen_url} className="w-full h-full object-cover" />}
+               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            </div>
+            <div className="p-10">
+              <span className="text-[10px] font-black uppercase text-primary/30 tracking-[0.2em]">{receta.categoria}</span>
+              <h1 className="text-4xl font-black uppercase text-primary italic mt-2 mb-6 tracking-tighter">"{receta.nombre}"</h1>
+              
+              <div className="flex gap-8 mb-10 border-y border-primary/5 py-6">
+                <div className="flex items-center gap-2">
+                  <Clock className="text-primary/30" size={18} />
+                  <span className="text-[11px] font-bold uppercase text-primary">{receta.tiempo}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ChefHat className="text-primary/30" size={18} />
+                  <span className="text-[11px] font-bold uppercase text-primary">{receta.dificultad}</span>
+                </div>
+              </div>
+
+              {/* Aquí puedes expandir con ingredientes e instrucciones de tu BD */}
+              <div className="grid md:grid-cols-2 gap-12 text-primary">
+                <div>
+                  <h3 className="font-black uppercase text-xs mb-4 tracking-widest text-primary/40 italic">"Ingredientes"</h3>
+                  <p className="text-sm leading-relaxed opacity-70">"Contenido en desarrollo..."</p>
+                </div>
+                <div>
+                  <h3 className="font-black uppercase text-xs mb-4 tracking-widest text-primary/40 italic">"Preparación"</h3>
+                  <p className="text-sm leading-relaxed opacity-70">"Contenido en desarrollo..."</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Lógica original de la LISTA (Se muestra si no hay selectedRecipeId)
   const filteredRecipes = recipes.filter((r) => 
     r.nombre.toLowerCase().includes(filter.toLowerCase()) ||
     r.categoria.toLowerCase().includes(filter.toLowerCase())
@@ -29,14 +94,8 @@ const RecetasPage = () => {
 
   return (
     <div className="min-h-screen bg-bg-main pb-32">
-      {/* --- HEADER --- */}
       <header className="pt-12 pb-8 px-6 max-w-7xl mx-auto">
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }} 
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-4 mb-4"
-        >
-          {/* Icono Principal con el Primary de la App */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-primary/10 text-primary rounded-2xl">
             <Utensils size={28} />
           </div>
@@ -44,13 +103,10 @@ const RecetasPage = () => {
             <h1 className="text-3xl font-black uppercase tracking-tighter text-primary">
               "MIS"<span className="text-primary/30">"RECETAS"</span>
             </h1>
-            <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">
-              "El grimorio culinario de Franilover"
-            </p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">"El grimorio culinario de Franilover"</p>
           </div>
         </motion.div>
 
-        {/* Barra de búsqueda integrada */}
         <div className="relative mt-8">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={18} />
           <input 
@@ -63,11 +119,8 @@ const RecetasPage = () => {
         </div>
       </header>
 
-      {/* --- GRID DE RECETAS --- */}
       <main className="px-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-          {/* Botón Nueva Receta: Estilo Standard de la App */}
           <motion.button 
             onClick={() => setIsModalOpen(true)}
             whileHover={{ scale: 1.02 }}
@@ -96,7 +149,6 @@ const RecetasPage = () => {
         </div>
       </main>
 
-      {/* --- MODAL FORMULARIO --- */}
       <AnimatePresence>
         {isModalOpen && (
           <ModalAddReceta 
@@ -112,7 +164,7 @@ const RecetasPage = () => {
   );
 };
 
-/* --- COMPONENTE MODAL --- */
+/* --- COMPONENTE MODAL (Sin cambios) --- */
 const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<NuevaReceta>({
@@ -155,7 +207,6 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
 
         <form onSubmit={handleSubmit} className="p-10">
           <h2 className="text-2xl font-black uppercase tracking-tighter mb-8 text-primary italic">"Nueva"<span className="text-primary/30">"Receta"</span></h2>
-          
           <div className="space-y-6">
             <div>
               <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-primary tracking-widest">"Nombre del plato"</label>
@@ -166,7 +217,6 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                 onChange={e => setFormData({...formData, nombre: e.target.value})}
               />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-primary tracking-widest">"Categoría"</label>
@@ -192,7 +242,6 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
               </div>
             </div>
           </div>
-
           <button 
             disabled={loading}
             type="submit"
