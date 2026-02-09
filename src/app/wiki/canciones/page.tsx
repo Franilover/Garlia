@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '@/lib/api/supabase';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { SmartImage } from '@/components/shared/display/SmartImage';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/lib/api/supabase";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { SmartImage } from "@/components/shared/display/SmartImage";
 
 const Canciones = () => {
-  // Asegúrate de que useSupabaseData devuelva 'setData' y que este actualice el estado 'data'
-  const { data: canciones = [], loading, setData: setCanciones } = useSupabaseData('canciones', {
-    order: { campo: 'created_at', asc: false }
+  const { data: canciones = [], loading, setData: setCanciones } = useSupabaseData("canciones", {
+    order: { campo: "created_at", asc: false }
   });
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -36,16 +35,21 @@ const Canciones = () => {
     });
 
     const fetchPersonajes = async () => {
-      const { data } = await supabase
-        .from('personajes')
-        .select('nombre, canciones')
-        .order('nombre', { ascending: true });
-      if (data) setListaPersonajes(data);
+      // CORRECCIÓN: Solo pedimos el nombre porque la columna 'canciones' no existe en esta tabla
+      const { data, error } = await supabase
+        .from("personajes")
+        .select("nombre")
+        .order("nombre", { ascending: true });
+      
+      if (error) {
+        console.error("Error cargando personajes:", error);
+      } else if (data) {
+        setListaPersonajes(data);
+      }
     };
     fetchPersonajes();
   }, []);
 
-  // Filtrado reactivo basado en el estado actual de 'canciones'
   const cancionesAMostrar = isAdmin 
     ? canciones 
     : canciones.filter(c => c.visible === true);
@@ -66,49 +70,29 @@ const Canciones = () => {
     if (!editTitulo.trim() || isUpdating) return;
     setIsUpdating(true);
 
-    const linkWiki = `/wiki/canciones/${selectedCancion.id}`;
     const nuevoTituloUpper = editTitulo.toUpperCase();
 
+    // Actualizamos solo la tabla canciones. 
+    // La vinculación se hace automáticamente por el nombre del personaje.
     const { error: updateError } = await supabase
-      .from('canciones')
+      .from("canciones")
       .update({ 
         titulo: nuevoTituloUpper,
         personaje: editPersonaje || null,
         estado: editEstado,
         visible: editVisible 
       })
-      .eq('id', selectedCancion.id);
+      .eq("id", selectedCancion.id);
 
     if (!updateError) {
-      // Lógica de actualización de personajes (se mantiene igual pero con await asegurado)
-      if (selectedCancion.personaje && selectedCancion.personaje !== editPersonaje) {
-        const pAnterior = listaPersonajes.find(p => p.nombre === selectedCancion.personaje);
-        if (pAnterior) {
-          const nuevosLinks = (pAnterior.canciones || []).filter(l => l !== linkWiki);
-          await supabase.from('personajes').update({ canciones: nuevosLinks }).eq('nombre', pAnterior.nombre);
-        }
-      }
-
-      if (editPersonaje) {
-        const personajeElegido = listaPersonajes.find(p => p.nombre === editPersonaje);
-        if (personajeElegido) {
-          const cancionesActuales = personajeElegido.canciones || [];
-          if (!cancionesActuales.includes(linkWiki)) {
-            await supabase
-              .from('personajes')
-              .update({ canciones: [...cancionesActuales, linkWiki] })
-              .eq('nombre', editPersonaje);
-          }
-        }
-      }
-
-      // ACTUALIZACIÓN LOCAL: Crucial para que se vea el cambio sin refrescar
       setCanciones(prev => prev.map(c => 
         c.id === selectedCancion.id 
           ? { ...c, titulo: nuevoTituloUpper, personaje: editPersonaje, estado: editEstado, visible: editVisible } 
           : c
       ));
       setShowEditModal(false);
+    } else {
+      console.error("Error al actualizar:", updateError);
     }
     setIsUpdating(false);
   };
@@ -118,7 +102,7 @@ const Canciones = () => {
     if (!nuevoTitulo.trim() || isUpdating) return;
     setIsUpdating(true);
 
-    const { data, error } = await supabase.from('canciones').insert([{ 
+    const { data, error } = await supabase.from("canciones").insert([{ 
       titulo: nuevoTitulo.toUpperCase(),
       personaje: nuevoPersonaje || null,
       estado: "BORRADOR",
@@ -126,22 +110,8 @@ const Canciones = () => {
       visible: false 
     }]).select();
 
-    if (!error && data && data.length > 0) {
-      const nuevaCancion = data[0];
-      
-      if (nuevoPersonaje) {
-        const p = listaPersonajes.find(per => per.nombre === nuevoPersonaje);
-        if (p) {
-          const linkWiki = `/wiki/canciones/${nuevaCancion.id}`;
-          await supabase
-            .from('personajes')
-            .update({ canciones: [...(p.canciones || []), linkWiki] })
-            .eq('nombre', nuevoPersonaje);
-        }
-      }
-
-      // ACTUALIZACIÓN LOCAL: Insertar la nueva canción al principio de la lista
-      setCanciones(prev => [nuevaCancion, ...prev]);
+    if (!error && data?.length > 0) {
+      setCanciones(prev => [data[0], ...prev]);
       setShowAddModal(false);
       setNuevoTitulo("");
       setNuevoPersonaje("");
@@ -151,9 +121,9 @@ const Canciones = () => {
 
   const getEstadoColor = (estado) => {
     switch(estado) {
-      case 'TERMINADA': return 'bg-[#6B5E70]/10 text-[#6B5E70] border-[#6B5E70]/20';
-      case 'EN PROCESO': return 'bg-[#FDFCFD] text-[#6B5E70]/80 border-[#6B5E70]/10';
-      default: return 'bg-[#F4F4F5] text-[#6B5E70]/60 border-[#E4E4E7]';
+      case "TERMINADA": return "bg-[#6B5E70]/10 text-[#6B5E70] border-[#6B5E70]/20";
+      case "EN PROCESO": return "bg-[#FDFCFD] text-[#6B5E70]/80 border-[#6B5E70]/10";
+      default: return "bg-[#F4F4F5] text-[#6B5E70]/60 border-[#E4E4E7]";
     }
   };
 
@@ -183,7 +153,7 @@ const Canciones = () => {
                     {editVisible ? <Eye size={18} className="text-[#6B5E70]"/> : <EyeOff size={18} className="text-slate-400"/>}
                     <span className="text-[10px] font-black text-[#6B5E70] uppercase tracking-wider italic">Pública</span>
                   </div>
-                  <button type="button" onClick={() => setEditVisible(!editVisible)} className={`w-12 h-6 rounded-full transition-colors relative ${editVisible ? 'bg-[#6B5E70]' : 'bg-slate-300'}`}>
+                  <button type="button" onClick={() => setEditVisible(!editVisible)} className={`w-12 h-6 rounded-full transition-colors relative ${editVisible ? "bg-[#6B5E70]" : "bg-slate-300"}`}>
                     <motion.div animate={{ x: editVisible ? 24 : 4 }} className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
                   </button>
                 </div>
@@ -270,7 +240,7 @@ const Canciones = () => {
 
             <Link href={`/wiki/canciones/${cancion.id}`}>
               <motion.div whileHover={{ y: -10 }} className="cursor-pointer">
-                <div className={`relative aspect-square rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/5 to-[#6B5E70]/20 ${!cancion.visible && isAdmin ? 'grayscale-[0.4] opacity-80' : ''}`}>
+                <div className={`relative aspect-square rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/5 to-[#6B5E70]/20 ${!cancion.visible && isAdmin ? "grayscale-[0.4] opacity-80" : ""}`}>
                   <SmartImage src={cancion.portada_url || "/placeholder-cover.jpg"} alt={cancion.titulo} className="w-full h-full object-cover" />
                   <div className={`absolute top-6 left-6 z-20 backdrop-blur-md px-4 py-1.5 rounded-full border ${getEstadoColor(cancion.estado)}`}>
                     <span className="text-[9px] font-black uppercase tracking-widest">{cancion.estado}</span>
