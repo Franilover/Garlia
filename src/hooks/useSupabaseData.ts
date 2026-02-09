@@ -3,19 +3,24 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/lib/api/supabase";
 import { useDataCache } from "@/components/features/control/DataContext";
 
-// ... (tus importaciones se mantienen igual)
 import { personajesQueries } from "@/lib/api/queries/personajes";
 import { criaturasQueries } from "@/lib/api/queries/criaturas";
 import { itemsQueries } from "@/lib/api/queries/items"; 
 import { librosQueries } from "@/lib/api/queries/libros";
 import { recetasQueries } from "@/lib/api/queries/recetas";
+// ✅ NUEVAS IMPORTACIONES
+import { tareasQueries } from "@/lib/api/queries/tareas";
+import { eventosQueries } from "@/lib/api/queries/eventos";
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
   "criaturas": criaturasQueries,
   "items": itemsQueries,
   "libros": librosQueries,
-  "recetas": recetasQueries
+  "recetas": recetasQueries,
+  // ✅ NUEVOS REGISTROS
+  "tareas": tareasQueries,
+  "eventos": eventosQueries
 };
 
 interface UseSupabaseOptions {
@@ -90,9 +95,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       if (isMounted.current) setLoading(false);
     }
   }, [tabla, opcionesKey, updateCache, cache, data.length]); 
-
-  // --- El resto del código (useEffect, setSyncedData) se mantiene igual ---
-  // Solo asegúrate de que setData dentro de setSyncedData use el tipo correcto
 
   useEffect(() => {
     isMounted.current = true;

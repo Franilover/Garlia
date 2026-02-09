@@ -12,7 +12,7 @@ import {
   ImageIcon, Camera, Sparkles, 
   Users, CircleUser, Flower2, Sword,
   Footprints, Package, Map, BookOpen, Music,
-  Utensils 
+  Utensils, CheckSquare 
 } from "lucide-react";
 
 const Navbar = () => {
@@ -33,7 +33,7 @@ const Navbar = () => {
   }, [isVisible]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut()
     localStorage.clear();
     window.location.href = "/"; 
   };
@@ -103,12 +103,17 @@ const Navbar = () => {
                       </Link>
 
                       {esFranilover && (
-                        <Link href="/wiki/recetas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all border-t border-primary/5">
-                          <Utensils size={14} /> Mis Recetas
-                        </Link>
+                        <>
+                          <Link href="/wiki/recetas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all border-t border-primary/5">
+                            <Utensils size={14} /> Mis Recetas
+                          </Link>
+                          <Link href="/wiki/tareas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all border-t border-primary/5">
+                            <CheckSquare size={14} /> Mi Agenda
+                          </Link>
+                        </>
                       )}
 
-                      <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase text-red-400 hover:bg-red-50 rounded-xl transition-all">
+                      <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase text-red-400 hover:bg-red-50 rounded-xl transition-all border-t border-primary/5">
                         <LogOut size={14} /> Salir
                       </button>
                     </motion.div>
@@ -182,9 +187,14 @@ const Navbar = () => {
                   </Link>
 
                   {esFranilover && (
-                    <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                      <Utensils size={18}/> Mis Recetas
-                    </Link>
+                    <>
+                      <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                        <Utensils size={18}/> Mis Recetas
+                      </Link>
+                      <Link href="/wiki/tareas" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                        <CheckSquare size={18}/> Mi Agenda
+                      </Link>
+                    </>
                   )}
 
                   <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-400 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
