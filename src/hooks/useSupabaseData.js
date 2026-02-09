@@ -1,54 +1,56 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/lib/api/supabase';
-import { useDataCache } from '@/components/features/control/DataContext';
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { supabase } from "@/lib/api/supabase";
+import { useDataCache } from "@/components/features/control/DataContext";
 
 // Importación de queries personalizadas
-import { personajesQueries } from '@/lib/api/queries/personajes';
-import { criaturasQueries } from '@/lib/api/queries/criaturas';
-import { itemsQueries } from '@/lib/api/queries/items'; 
+import { personajesQueries } from "@/lib/api/queries/personajes";
+import { criaturasQueries } from "@/lib/api/queries/criaturas";
+import { itemsQueries } from "@/lib/api/queries/items"; 
 
 const QUERIES_MAP = {
-  'personajes': personajesQueries,
-  'criaturas': criaturasQueries,
-  'items': itemsQueries 
+  "personajes": personajesQueries,
+  "criaturas": criaturasQueries,
+  "items": itemsQueries 
 };
 
 export function useSupabaseData(tabla, opciones = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // 1. CARGA INSTANTÁNEA: Si existe en caché, el usuario ve los datos de inmediato
   const [data, setData] = useState(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState(null);
+  
+  // Ref para evitar actualizaciones en componentes desmontados
+  const isMounted = useRef(true);
 
   const opcionesKey = useMemo(() => JSON.stringify(opciones), [opciones]);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    // Si ya hay datos en caché y no es un refresco forzado (Realtime), no disparamos la red
+    // Si ya hay datos y no forzamos, salimos para evitar loops
     if (cache[tabla] && !forceRefresh && data.length > 0) {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    if (isMounted.current) {
+      setLoading(true);
+      setError(null);
+    }
     
     try {
       const opt = JSON.parse(opcionesKey);
       let resultado;
       let errorFetch;
 
-      // 2. DISPATCHER: ¿Tiene esta tabla una query optimizada (como Personajes + Canciones)?
       if (QUERIES_MAP[tabla]) {
-        console.log(`"Ejecutando lógica optimizada para: ${tabla}"`);
         const res = await QUERIES_MAP[tabla].getAll(opt);
-        resultado = res.data !== undefined ? res.data : res;
-        errorFetch = res.error !== undefined ? res.error : null;
+        // Blindaje: nos aseguramos de que resultado sea un array
+        resultado = res?.data !== undefined ? res.data : (Array.isArray(res) ? res : []);
+        errorFetch = res?.error !== undefined ? res.error : null;
       } 
-      // 3. FALLBACK: Query estándar para tablas simples
       else {
-        let query = supabase.from(tabla).select(opt.select || '*');
+        let query = supabase.from(tabla).select(opt.select || "*");
         if (opt.order) {
           query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
         }
@@ -61,50 +63,57 @@ export function useSupabaseData(tabla, opciones = {}) {
 
       const finalData = resultado || [];
       
-      // 4. SINCRONIZACIÓN: Actualizamos estado local y caché global del contexto
-      setData(finalData);
-      updateCache(tabla, finalData); 
+      if (isMounted.current) {
+        setData(finalData);
+        updateCache(tabla, finalData); 
+      }
 
     } catch (err) {
-      setError(err.message);
-      console.error(`"Error fetching ${tabla}:"`, err);
+      if (isMounted.current) {
+        setError(err.message);
+        console.error(`"Error fetching ${tabla}:"`, err);
+      }
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabla, opcionesKey, updateCache, cache]); 
+  }, [tabla, opcionesKey, updateCache, cache, data.length]); 
 
-  // --- 5. REALTIME: Escucha cambios en Supabase y refresca automáticamente ---
+  // --- REALTIME Y MONTAJE ---
   useEffect(() => {
+    isMounted.current = true;
     fetchData();
 
     const channel = supabase
       .channel(`db-changes-${tabla}`)
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: tabla }, 
+      .on("postgres_changes", 
+        { event: "*", schema: "public", table: tabla }, 
         (payload) => {
-          console.log(`"Evento [${payload.eventType}] en ${tabla}. Refrescando..."`);
-          fetchData(true); // El true fuerza el salto de la caché
+          // Si el componente está en medio de un guardado, el Realtime puede esperar
+          console.log(`"Evento Realtime en ${tabla}. Sincronizando..."`);
+          fetchData(true);
         }
       )
       .subscribe();
 
     return () => {
+      isMounted.current = false;
       supabase.removeChannel(channel);
     };
   }, [fetchData, tabla]);
 
-  // --- 6. SETTER SINCRONIZADO: Para actualizaciones locales manuales ---
   const setSyncedData = useCallback((newDataOrFn) => {
     setData(prev => {
-      const resolved = typeof newDataOrFn === 'function' ? newDataOrFn(prev) : newDataOrFn;
+      const resolved = typeof newDataOrFn === "function" ? newDataOrFn(prev) : newDataOrFn;
+      // Protección: si por error llega algo que no es array, lo ignoramos
+      if (!Array.isArray(resolved)) return prev;
+      
       updateCache(tabla, resolved); 
       return resolved;
     });
   }, [tabla, updateCache]);
 
   return { 
-    data, 
+    data: data || [], // Siempre devolvemos un array vacío por defecto
     setData: setSyncedData, 
     loading, 
     error, 
