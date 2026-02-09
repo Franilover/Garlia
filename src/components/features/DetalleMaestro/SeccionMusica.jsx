@@ -6,18 +6,16 @@ import { supabase } from "@/lib/api/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlayCircle, Check, ChevronsUpDown, X, Music } from "lucide-react";
 
-/**
- * COMPONENTE ADMIN: Selector de canciones para modo edición
- * ✅ Blindado contra IDs inexistentes
- */
 export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
   const [todas, setTodas] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false); // NUEVO: Control de montaje
   const buttonRef = useRef(null);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
+    setMounted(true); // Marcamos como montado para el Portal
     const cargar = async () => {
       try {
         const { data } = await supabase
@@ -47,7 +45,6 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
     setIsOpen(!isOpen);
   };
 
-  // Aseguramos que siempre sea un array de números limpios
   const safeIds = useMemo(() => 
     Array.isArray(idsSeleccionados) 
       ? idsSeleccionados.filter(id => id !== null && id !== undefined) 
@@ -74,7 +71,7 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
           {safeIds.length > 0 ? (
             safeIds.map(id => {
               const item = todas.find(c => c && c.id === id);
-              if (!item) return null; // Si no encuentra la canción en la lista, no renderiza el tag corrupto
+              if (!item) return null;
               return (
                 <span 
                   key={id} 
@@ -94,24 +91,35 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
         <ChevronsUpDown size={18} className="text-primary/30" />
       </div>
 
-      {isOpen && typeof document !== "undefined" && createPortal(
+      {/* FIX: Solo intentamos el Portal si estamos montados en el cliente */}
+      {isOpen && mounted && typeof document !== "undefined" && createPortal(
         <>
           <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
           <motion.div 
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} 
-            style={{ position: "absolute", top: coords.top + 10, left: coords.left, width: coords.width, zIndex: 9999 }}
+            style={{ 
+              position: "absolute", 
+              top: coords.top + 10, 
+              left: coords.left, 
+              width: coords.width, 
+              zIndex: 9999 
+            }}
             className="bg-white border border-primary/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] max-h-72 overflow-y-auto p-4 custom-scrollbar"
           >
-            {todas.map(c => (
-              <div 
-                key={c?.id} 
-                onClick={() => c?.id && toggle(c.id)} 
-                className={`p-4 rounded-2xl cursor-pointer mb-1.5 flex justify-between items-center transition-all ${safeIds.includes(c?.id) ? "bg-primary text-white shadow-lg translate-x-1" : "hover:bg-primary/5 text-primary/60 hover:translate-x-1"}`}
-              >
-                <span className="text-[11px] font-black uppercase italic tracking-tight">{c?.titulo}</span>
-                {safeIds.includes(c?.id) && <Check size={16} />}
-              </div>
-            ))}
+            {todas.map(c => {
+              if (!c?.id) return null; // Seguridad extra
+              const isSelected = safeIds.includes(c.id);
+              return (
+                <div 
+                  key={c.id} 
+                  onClick={() => toggle(c.id)} 
+                  className={`p-4 rounded-2xl cursor-pointer mb-1.5 flex justify-between items-center transition-all ${isSelected ? "bg-primary text-white shadow-lg translate-x-1" : "hover:bg-primary/5 text-primary/60 hover:translate-x-1"}`}
+                >
+                  <span className="text-[11px] font-black uppercase italic tracking-tight">{c.titulo}</span>
+                  {isSelected && <Check size={16} />}
+                </div>
+              );
+            })}
           </motion.div>
         </>,
         document.body
@@ -120,15 +128,11 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
   );
 };
 
-/**
- * COMPONENTE PRINCIPAL: Muestra las canciones vinculadas
- * ✅ Blindaje total contra "undefined" y "null"
- */
 export const SeccionMusica = ({ listaLinks = [] }) => {
   const cancionesValidas = useMemo(() => {
+    // Blindaje contra listaLinks nulo o no array
     if (!listaLinks || !Array.isArray(listaLinks)) return [];
 
-    // Filtramos agresivamente cualquier cosa que no sea un objeto con ID
     return listaLinks.filter(cancion => 
       cancion !== null && 
       typeof cancion === "object" && 
@@ -149,11 +153,11 @@ export const SeccionMusica = ({ listaLinks = [] }) => {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
       {cancionesValidas.map((cancion, index) => {
-        // Doble seguro antes del return del JSX
-        if (!cancion?.id) return null;
+        // ID de respaldo por si acaso
+        const key = cancion.id || `temp-${index}`;
 
         return (
-          <Link key={cancion.id} href={`/wiki/canciones/${cancion.id}`} className="group no-underline">
+          <Link key={key} href={`/wiki/canciones/${cancion.id}`} className="group no-underline">
             <motion.div 
               whileHover={{ scale: 1.05, y: -8 }} 
               className="relative flex flex-col items-center justify-center p-10 bg-white border border-primary/5 rounded-[3rem] aspect-square overflow-hidden shadow-sm hover:shadow-xl transition-all"

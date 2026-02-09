@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react'; // Agregamos useMemo
 import { supabase } from '@/lib/api/supabase';
 import { Plus, Trash2, X } from 'lucide-react';
 
@@ -25,38 +25,53 @@ export default function Relaciones({
 }: RelacionesProps) {
   const [lista, setLista] = useState<Relacion[]>([]);
   const [todosLosPersonajes, setTodosLosPersonajes] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false); // FIX: Guard de Hidratación
 
+  // 1. Control de montaje para evitar errores de Vercel
   useEffect(() => {
-    if (datosRelaciones) {
+    setMounted(true);
+  }, []);
+
+  // 2. Formateo de datos seguro
+  useEffect(() => {
+    if (datosRelaciones && Array.isArray(datosRelaciones)) {
       const formateadas: Relacion[] = datosRelaciones.map(r => ({
         id: r.id,
         sus: r.sus || "VÍNCULO",
         son: Array.isArray(r.son) ? r.son : [],
-        personaje: nombrePersonaje
+        personaje: nombrePersonaje || ""
       }));
       setLista(formateadas);
+    } else if (!editMode) {
+      setLista([]); // Limpiar si no hay datos y no estamos editando
     }
-  }, [datosRelaciones, nombrePersonaje]);
+  }, [datosRelaciones, nombrePersonaje, editMode]);
 
+  // 3. Carga de personajes para el selector
   useEffect(() => {
-    if (editMode) {
+    if (editMode && mounted) {
       const cargarNombres = async () => {
-        const { data } = await supabase.from('personajes').select('nombre');
-        if (data) setTodosLosPersonajes(data.map(p => p.nombre));
+        try {
+          const { data } = await supabase.from('personajes').select('nombre');
+          if (data) setTodosLosPersonajes(data.map(p => p.nombre));
+        } catch (err) {
+          console.error("Error cargando personajes para relaciones:", err);
+        }
       };
       cargarNombres();
     }
-  }, [editMode]);
+  }, [editMode, mounted]);
 
+  // 4. Notificar cambios al padre de forma segura
   useEffect(() => {
-    if (editMode && onChange) {
+    if (editMode && onChange && mounted) {
       onChange(lista);
     }
-  }, [lista, editMode, onChange]);
+  }, [lista, editMode, onChange, mounted]);
 
   const agregarNombreARelacion = (index: number, nombreSeleccionado: string) => {
     const nuevaLista = [...lista];
-    if (!nuevaLista[index].son.includes(nombreSeleccionado)) {
+    if (nuevaLista[index] && !nuevaLista[index].son.includes(nombreSeleccionado)) {
       nuevaLista[index].son = [...nuevaLista[index].son, nombreSeleccionado];
       setLista(nuevaLista);
     }
@@ -64,14 +79,18 @@ export default function Relaciones({
 
   const quitarNombreDeRelacion = (indexRel: number, nombreAQuitar: string) => {
     const nuevaLista = [...lista];
-    nuevaLista[indexRel].son = nuevaLista[indexRel].son.filter(n => n !== nombreAQuitar);
-    setLista(nuevaLista);
+    if (nuevaLista[indexRel]) {
+      nuevaLista[indexRel].son = nuevaLista[indexRel].son.filter(n => n !== nombreAQuitar);
+      setLista(nuevaLista);
+    }
   };
 
   const eliminarFilaCompleta = (index: number) => {
     setLista(lista.filter((_, i) => i !== index));
   };
 
+  // SI NO ESTÁ MONTADO, no renderizamos nada para evitar el crash de hidratación
+  if (!mounted) return null;
   if (lista.length === 0 && !editMode) return null;
 
   return (
@@ -91,8 +110,7 @@ export default function Relaciones({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {lista.map((rel, index) => (
           <div 
-            key={index} 
-            // CORRECCIÓN LÍNEA 82: Aseguramos que el ternario devuelva strings vacíos "" en lugar de booleano false
+            key={rel.id || `rel-${index}`} // Usar ID o fallback seguro
             className={`relative group p-6 rounded-[2.5rem] transition-all duration-300 ${
               editMode 
                 ? "bg-white border-2 border-dashed border-primary/20 shadow-inner" 
@@ -124,7 +142,7 @@ export default function Relaciones({
 
                 <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-xl min-h-[40px]">
                   {rel.son.map((n, i) => (
-                    <span key={i} className="bg-primary text-white text-[10px] px-3 py-1 rounded-lg flex items-center gap-2 font-black italic">
+                    <span key={`${n}-${i}`} className="bg-primary text-white text-[10px] px-3 py-1 rounded-lg flex items-center gap-2 font-black italic">
                       {n} 
                       <button type="button" onClick={() => quitarNombreDeRelacion(index, n)}><X size={10} /></button>
                     </span>
@@ -139,7 +157,7 @@ export default function Relaciones({
                   <option value="" disabled>+ Vincular a...</option>
                   {todosLosPersonajes
                     .filter(n => n !== nombrePersonaje && !rel.son.includes(n))
-                    .map(n => <option key={n} value={n}>{n}</option>)
+                    .map(n => <option key={`opt-${n}`} value={n}>{n}</option>)
                   }
                 </select>
               </div>
@@ -150,7 +168,7 @@ export default function Relaciones({
                 </span>
                 <div className="flex flex-col gap-2">
                   {rel.son.map((nombre, i) => (
-                    <div key={i} className="flex items-center gap-2">
+                    <div key={`${nombre}-${i}`} className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
                       <span className="text-xl font-black uppercase italic text-primary leading-none tracking-tighter">
                         {nombre}

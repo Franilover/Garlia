@@ -1,10 +1,10 @@
 "use client";
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Shield, Flame, Droplets } from 'lucide-react';
 
 /**
- * Mapeo de iconos opcional para darle más personalidad a cada tipo
+ * Mapeo de iconos opcional
  */
 const ICONOS_TIPO = {
   "Hielo": <Droplets size={14} />,
@@ -13,7 +13,14 @@ const ICONOS_TIPO = {
   "default": <Sparkles size={14} />
 };
 
-export const SelectorVariantes = ({ variantes, varianteActiva, onSeleccionar }) => {
+export const SelectorVariantes = ({ variantes = [], varianteActiva, onSeleccionar }) => {
+  const [mounted, setMounted] = useState(false);
+
+  // FIX: Solo activamos las animaciones cuando el cliente está listo
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (!variantes || variantes.length === 0) return null;
 
   return (
@@ -28,7 +35,8 @@ export const SelectorVariantes = ({ variantes, varianteActiva, onSeleccionar }) 
         }`}
       >
         <span className="relative z-10">Original</span>
-        {!varianteActiva && (
+        {/* Solo renderizamos el layoutId si estamos montados para evitar crash en SSR */}
+        {!varianteActiva && mounted && (
           <motion.div 
             layoutId="activeTab" 
             className="absolute inset-0 bg-primary"
@@ -38,30 +46,35 @@ export const SelectorVariantes = ({ variantes, varianteActiva, onSeleccionar }) 
       </button>
 
       {/* Mapeo de Variantes de la BD */}
-      {variantes.map((v) => (
-        <button
-          key={v.id}
-          onClick={() => onSeleccionar(v)}
-          className={`group relative flex items-center gap-2 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-            varianteActiva?.id === v.id 
-              ? 'bg-primary text-white shadow-[0_10px_20px_-5px_rgba(var(--primary-rgb),0.4)]' 
-              : 'bg-slate-100 text-primary/40 hover:bg-slate-200'
-          }`}
-        >
-          <span className="relative z-10 flex items-center gap-2">
-            {ICONOS_TIPO[v.tipo] || ICONOS_TIPO.default}
-            {v.tipo}
-          </span>
-          
-          {varianteActiva?.id === v.id && (
-            <motion.div 
-              layoutId="activeTab" 
-              className="absolute inset-0 bg-primary rounded-full"
-              transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-            />
-          )}
-        </button>
-      ))}
+      {variantes.map((v) => {
+        if (!v || !v.id) return null; // Seguridad extra contra datos corruptos
+        const isActive = varianteActiva?.id === v.id;
+
+        return (
+          <button
+            key={v.id}
+            onClick={() => onSeleccionar(v)}
+            className={`group relative flex items-center gap-2 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+              isActive 
+                ? 'bg-primary text-white shadow-[0_10px_20px_-5px_rgba(var(--primary-rgb),0.4)]' 
+                : 'bg-slate-100 text-primary/40 hover:bg-slate-200'
+            }`}
+          >
+            <span className="relative z-10 flex items-center gap-2">
+              {ICONOS_TIPO[v.tipo] || ICONOS_TIPO.default}
+              {v.tipo}
+            </span>
+            
+            {isActive && mounted && (
+              <motion.div 
+                layoutId="activeTab" 
+                className="absolute inset-0 bg-primary rounded-full"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 };
