@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/useSupabaseData"; 
 import { Receta, NuevaReceta } from "@/lib/types/recetas";
-import { recetasQueries } from "@/lib/api/queries/recetas"; // Importamos para guardar
+import { recetasQueries } from "@/lib/api/queries/recetas"; 
 import { 
   Utensils, 
   Clock, 
@@ -20,7 +20,6 @@ const RecetasPage = () => {
   const [filter, setFilter] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // "Hook potente con caché y realtime"
   const { data: recipes, loading, error, refetch } = useSupabaseData<Receta>("recetas");
 
   const filteredRecipes = recipes.filter((r) => 
@@ -37,7 +36,8 @@ const RecetasPage = () => {
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-4 mb-4"
         >
-          <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl">
+          {/* Cambio a Morado */}
+          <div className="p-3 bg-violet-100 text-violet-600 rounded-2xl">
             <Utensils size={28} />
           </div>
           <div>
@@ -55,7 +55,7 @@ const RecetasPage = () => {
           <input 
             type="text"
             placeholder='"BUSCAR RECETA..."'
-            className="w-full bg-white border border-primary/10 rounded-2xl py-4 pl-12 pr-4 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary/5 transition-all"
+            className="w-full bg-white border border-primary/10 rounded-2xl py-4 pl-12 pr-4 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-all"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
@@ -64,33 +64,36 @@ const RecetasPage = () => {
 
       {/* --- GRID DE RECETAS --- */}
       <main className="px-6 max-w-7xl mx-auto">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 opacity-20">
-            <ChefHat size={40} className="animate-bounce" />
-            <p className="text-[10px] font-black uppercase mt-4">"Cocinando contenido..."</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          {/* Botón Nueva Receta (Fuera del loading para evitar parpadeo) */}
+          <motion.button 
+            onClick={() => setIsModalOpen(true)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="border-2 border-dashed border-violet-200 rounded-[40px] flex flex-col items-center justify-center p-10 min-h-[250px] bg-white/50 hover:bg-violet-50 transition-colors group order-last"
+          >
+            <div className="p-4 bg-violet-100 text-violet-400 group-hover:text-violet-600 rounded-full transition-colors">
+              <Plus size={32} />
+            </div>
+            <span className="text-[10px] font-black uppercase mt-4 text-violet-400">"Nueva Receta"</span>
+          </motion.button>
+
+          {loading ? (
+            // Skeletons para carga suave
+            <>
+              {[1, 2].map((n) => (
+                <div key={n} className="h-[250px] rounded-[40px] bg-primary/5 animate-pulse" />
+              ))}
+            </>
+          ) : (
             <AnimatePresence mode="popLayout">
               {filteredRecipes.map((receta, index) => (
                 <RecipeCard key={receta.id || index} receta={receta} index={index} />
               ))}
             </AnimatePresence>
-
-            {/* "Botón para abrir el Modal" */}
-            <motion.button 
-              onClick={() => setIsModalOpen(true)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="border-2 border-dashed border-primary/10 rounded-[40px] flex flex-col items-center justify-center p-10 min-h-[200px] hover:bg-primary/5 transition-colors group"
-            >
-              <div className="p-4 bg-primary/5 text-primary/20 group-hover:text-primary/40 rounded-full transition-colors">
-                <Plus size={32} />
-              </div>
-              <span className="text-[10px] font-black uppercase mt-4 text-primary/30">"Nueva Receta"</span>
-            </motion.button>
-          </div>
-        )}
+          )}
+        </div>
       </main>
 
       {/* --- MODAL FORMULARIO --- */}
@@ -100,7 +103,7 @@ const RecetasPage = () => {
             onClose={() => setIsModalOpen(false)} 
             onSuccess={() => {
               setIsModalOpen(false);
-              refetch(); // Forzamos actualización aunque el realtime debería hacerlo
+              refetch();
             }}
           />
         )}
@@ -140,25 +143,25 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-primary/20 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-violet-900/20 backdrop-blur-sm"
     >
       <motion.div 
         initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-        className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden relative"
+        className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden relative border border-violet-100"
       >
-        <button onClick={onClose} className="absolute top-6 right-6 text-primary/20 hover:text-primary transition-colors">
+        <button onClick={onClose} className="absolute top-6 right-6 text-violet-300 hover:text-violet-600 transition-colors">
           <X size={24} />
         </button>
 
         <form onSubmit={handleSubmit} className="p-10">
-          <h2 className="text-2xl font-black uppercase tracking-tighter mb-8 text-primary">"Nueva"<span className="opacity-30">"Receta"</span></h2>
+          <h2 className="text-2xl font-black uppercase tracking-tighter mb-8 text-primary">"Nueva"<span className="text-violet-500 opacity-60">"Receta"</span></h2>
           
           <div className="space-y-4">
             <div>
-              <label className="text-[9px] font-black uppercase opacity-40 ml-2">"Nombre del plato"</label>
+              <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-violet-900">"Nombre del plato"</label>
               <input 
                 required
-                className="w-full bg-bg-main border-none rounded-2xl p-4 text-[11px] font-bold uppercase"
+                className="w-full bg-violet-50/50 border-none rounded-2xl p-4 text-[11px] font-bold uppercase focus:ring-2 focus:ring-violet-500/10 transition-all"
                 value={formData.nombre}
                 onChange={e => setFormData({...formData, nombre: e.target.value})}
               />
@@ -166,9 +169,9 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[9px] font-black uppercase opacity-40 ml-2">"Categoría"</label>
+                <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-violet-900">"Categoría"</label>
                 <select 
-                  className="w-full bg-bg-main border-none rounded-2xl p-4 text-[11px] font-bold uppercase"
+                  className="w-full bg-violet-50/50 border-none rounded-2xl p-4 text-[11px] font-bold uppercase focus:ring-2 focus:ring-violet-500/10"
                   value={formData.categoria}
                   onChange={e => setFormData({...formData, categoria: e.target.value as any})}
                 >
@@ -179,10 +182,10 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                 </select>
               </div>
               <div>
-                <label className="text-[9px] font-black uppercase opacity-40 ml-2">"Tiempo"</label>
+                <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-violet-900">"Tiempo"</label>
                 <input 
                   placeholder='"Ej: 30 min"'
-                  className="w-full bg-bg-main border-none rounded-2xl p-4 text-[11px] font-bold uppercase"
+                  className="w-full bg-violet-50/50 border-none rounded-2xl p-4 text-[11px] font-bold uppercase focus:ring-2 focus:ring-violet-500/10"
                   value={formData.tiempo}
                   onChange={e => setFormData({...formData, tiempo: e.target.value})}
                 />
@@ -193,7 +196,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
           <button 
             disabled={loading}
             type="submit"
-            className="w-full mt-10 p-5 bg-primary text-white rounded-3xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all disabled:opacity-50"
+            className="w-full mt-10 p-5 bg-violet-600 text-white rounded-3xl text-[10px] font-black uppercase tracking-widest hover:bg-violet-700 shadow-lg shadow-violet-200 transition-all disabled:opacity-50"
           >
             {loading ? '"Escribiendo en el grimorio..."' : '"Guardar Receta"'}
           </button>
@@ -210,15 +213,15 @@ const RecipeCard = ({ receta, index }: { receta: Receta; index: number }) => (
     layout
     className="bg-white border border-primary/5 rounded-[40px] overflow-hidden shadow-sm hover:shadow-xl transition-all group"
   >
-    <div className="h-48 bg-primary/5 relative overflow-hidden">
+    <div className="h-48 bg-violet-50 relative overflow-hidden">
       {receta.imagen_url ? (
         <img src={receta.imagen_url} alt={receta.nombre} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
       ) : (
-        <div className="w-full h-full flex items-center justify-center text-primary/10">
+        <div className="w-full h-full flex items-center justify-center text-violet-200">
           <Flame size={48} />
         </div>
       )}
-      <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[9px] font-black uppercase text-primary">
+      <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[9px] font-black uppercase text-violet-600 border border-violet-100">
         {receta.categoria}
       </div>
     </div>
@@ -227,9 +230,9 @@ const RecipeCard = ({ receta, index }: { receta: Receta; index: number }) => (
       <h3 className="text-lg font-black uppercase tracking-tight text-primary mb-2 italic">"{receta.nombre}"</h3>
       <div className="flex items-center justify-center gap-4 text-primary/40 mb-6">
         <div className="flex items-center gap-1 text-[10px] font-bold"><Clock size={12} /> {receta.tiempo}</div>
-        <div className="flex items-center gap-1 text-[10px] font-bold"><ChefHat size={12} /> {receta.dificultad}</div>
+        <div className="flex items-center gap-1 text-[10px] font-bold text-violet-400"><ChefHat size={12} /> {receta.dificultad}</div>
       </div>
-      <Link href={`/wiki/recetas/${receta.id}`} className="flex items-center justify-between w-full p-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest group-hover:bg-primary/90 transition-colors">
+      <Link href={`/wiki/recetas/${receta.id}`} className="flex items-center justify-between w-full p-4 bg-violet-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-violet-700 transition-colors shadow-md shadow-violet-100">
         "Ver Preparación" <ChevronRight size={14} />
       </Link>
     </div>
