@@ -35,7 +35,6 @@ const Canciones = () => {
     });
 
     const fetchPersonajes = async () => {
-      // CORRECCIÓN: Solo pedimos el nombre porque la columna 'canciones' no existe en esta tabla
       const { data, error } = await supabase
         .from("personajes")
         .select("nombre")
@@ -70,31 +69,32 @@ const Canciones = () => {
     if (!editTitulo.trim() || isUpdating) return;
     setIsUpdating(true);
 
-    const nuevoTituloUpper = editTitulo.toUpperCase();
+    try {
+      const nuevoTituloUpper = editTitulo.toUpperCase();
+      const { error: updateError } = await supabase
+        .from("canciones")
+        .update({ 
+          titulo: nuevoTituloUpper,
+          personaje: editPersonaje || null,
+          estado: editEstado,
+          visible: editVisible 
+        })
+        .eq("id", selectedCancion.id);
 
-    // Actualizamos solo la tabla canciones. 
-    // La vinculación se hace automáticamente por el nombre del personaje.
-    const { error: updateError } = await supabase
-      .from("canciones")
-      .update({ 
-        titulo: nuevoTituloUpper,
-        personaje: editPersonaje || null,
-        estado: editEstado,
-        visible: editVisible 
-      })
-      .eq("id", selectedCancion.id);
+      if (updateError) throw updateError;
 
-    if (!updateError) {
       setCanciones(prev => prev.map(c => 
         c.id === selectedCancion.id 
           ? { ...c, titulo: nuevoTituloUpper, personaje: editPersonaje, estado: editEstado, visible: editVisible } 
           : c
       ));
       setShowEditModal(false);
-    } else {
-      console.error("Error al actualizar:", updateError);
+    } catch (error) {
+      console.error("Error al actualizar:", error);
+      alert("No se pudo actualizar la canción");
+    } finally {
+      setIsUpdating(false);
     }
-    setIsUpdating(false);
   };
 
   const handleAddCancion = async (e) => {
@@ -102,21 +102,29 @@ const Canciones = () => {
     if (!nuevoTitulo.trim() || isUpdating) return;
     setIsUpdating(true);
 
-    const { data, error } = await supabase.from("canciones").insert([{ 
-      titulo: nuevoTitulo.toUpperCase(),
-      personaje: nuevoPersonaje || null,
-      estado: "BORRADOR",
-      portada_url: "/placeholder-cover.jpg",
-      visible: false 
-    }]).select();
+    try {
+      const { data, error } = await supabase.from("canciones").insert([{ 
+        titulo: nuevoTitulo.toUpperCase(),
+        personaje: nuevoPersonaje || null,
+        estado: "BORRADOR",
+        portada_url: "/placeholder-cover.jpg",
+        visible: false 
+      }]).select();
 
-    if (!error && data?.length > 0) {
-      setCanciones(prev => [data[0], ...prev]);
-      setShowAddModal(false);
-      setNuevoTitulo("");
-      setNuevoPersonaje("");
+      if (error) throw error;
+
+      if (data?.length > 0) {
+        setCanciones(prev => [data[0], ...prev]);
+        setShowAddModal(false);
+        setNuevoTitulo("");
+        setNuevoPersonaje("");
+      }
+    } catch (error) {
+      console.error("Error al crear:", error);
+      alert("Error al crear la canción");
+    } finally {
+      setIsUpdating(false);
     }
-    setIsUpdating(false);
   };
 
   const getEstadoColor = (estado) => {
