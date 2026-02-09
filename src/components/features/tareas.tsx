@@ -126,7 +126,7 @@ export const GestionPersonal = () => {
               value={nuevaTarea}
               onChange={(e) => setNuevaTarea(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddTarea()}
-              placeholder="¿Qué tienes que hacer?"
+              placeholder="Añadir una tarea"
               className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/10 focus:bg-white rounded-2xl py-4 px-6 text-sm text-primary transition-all outline-none font-bold placeholder:text-primary/30"
             />
             <button 

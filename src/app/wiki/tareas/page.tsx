@@ -8,7 +8,7 @@ export default function TareasPage() {
       <header className="mb-10">
         <h1 className="text-3xl font-black italic tracking-tighter text-primary flex items-center gap-3 uppercase">
           <Clock className="opacity-40" size={28} />
-          <span>Gestión <span className="text-primary/40 text-2xl">Franilover</span></span>
+          <span>Agenda <span className="text-primary/40 text-2xl">Personal</span></span>
         </h1>
       </header>
 
