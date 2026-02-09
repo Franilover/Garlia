@@ -2,8 +2,6 @@ import { supabase } from "../supabase";
 
 export const personajesQueries = {
   getAll: async (opciones = {}) => {
-    // 1. Consultar Personajes y sus relaciones
-    // Usamos * para traer id, nombre, img_url, sobre, reino, etc.
     let query = supabase
       .from("personajes")
       .select(`
@@ -20,18 +18,16 @@ export const personajesQueries = {
     const { data: personajes, error: pError } = await query;
     if (pError) throw pError;
 
-    // 2. Consultar canciones (CORREGIDO: quitamos 'links' que no existe en tu tabla)
     const { data: canciones, error: cError } = await supabase
       .from("canciones")
       .select("id, titulo, personaje, portada_url");
 
     if (cError) {
       console.error("Error cargando canciones vinculadas:", cError);
-      return { data: personajes, error: null };
+      return { data: personajes || [], error: null };
     }
 
-    // 3. Vincular en memoria basándonos en el NOMBRE del personaje
-    const personajesConCanciones = personajes.map(personaje => ({
+    const personajesConCanciones = (personajes || []).map(personaje => ({
       ...personaje,
       canciones: canciones.filter(cancion => cancion.personaje === personaje.nombre)
     }));
@@ -40,6 +36,8 @@ export const personajesQueries = {
   },
   
   getById: async (id) => {
+    if (!id) throw new Error("ID no proporcionado");
+
     const { data: personaje, error: pError } = await supabase
       .from("personajes")
       .select(`
@@ -47,11 +45,11 @@ export const personajesQueries = {
         relaciones:relaciones!personaje_id (*)
       `)
       .eq("id", id)
-      .single();
+      .maybeSingle(); // Usamos maybeSingle para evitar excepciones pesadas
 
     if (pError) throw pError;
+    if (!personaje) return { data: null, error: "No encontrado" };
 
-    // CORREGIDO: Seleccionamos columnas existentes
     const { data: canciones, error: cError } = await supabase
       .from("canciones")
       .select("id, titulo, personaje, portada_url")
@@ -68,45 +66,58 @@ export const personajesQueries = {
     };
   },
 
-  /**
-   * ACTUALIZADO: Maneja la relación lógica entre tablas
-   */
   update: async (id, datos) => {
+    if (!id) throw new Error("ID de personaje requerido para actualizar");
+
     const { canciones, ...datosParaUpdate } = datos;
 
-    // A. Actualizar datos base del personaje
+    // 1. Actualizar datos base
     const { data: personajeActualizado, error: uError } = await supabase
       .from("personajes")
       .update(datosParaUpdate)
       .eq("id", id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (uError) throw uError;
+    if (!personajeActualizado) throw new Error("No se pudo encontrar el personaje para actualizar");
 
-    // B. Sincronizar canciones por ID
+    // 2. Sincronizar canciones
     if (canciones && Array.isArray(canciones)) {
-      // Limpiar vinculaciones previas del nombre antiguo/actual
+      // Limpiar vinculaciones previas
       await supabase
         .from("canciones")
         .update({ personaje: null })
         .eq("personaje", personajeActualizado.nombre);
 
       if (canciones.length > 0) {
-        // Extraemos solo los IDs si vienen como objetos
-        const idsCanciones = canciones.map(c => typeof c === "object" ? c.id : c);
+        const idsCanciones = canciones.map(c => 
+          (typeof c === "object" && c !== null) ? c.id : c
+        ).filter(Boolean);
 
-        const { error: musicError } = await supabase
-          .from("canciones")
-          .update({ personaje: personajeActualizado.nombre })
-          .in("id", idsCanciones);
-          
-        if (musicError) throw musicError;
+        if (idsCanciones.length > 0) {
+          const { error: musicError } = await supabase
+            .from("canciones")
+            .update({ personaje: personajeActualizado.nombre })
+            .in("id", idsCanciones);
+            
+          if (musicError) throw musicError;
+        }
       }
     }
 
-    // C. RESPUESTA FINAL
-    const respuestaDetallada = await personajesQueries.getById(id);
-    return respuestaDetallada.data; 
+    // 3. RESPUESTA DE SEGURIDAD
+    // En lugar de llamar a getById (que hace otra petición), 
+    // construimos la respuesta con lo que ya tenemos para ser instantáneos.
+    const { data: relacionesRecientes } = await supabase
+      .from("relaciones")
+      .select("*")
+      .eq("personaje_id", id);
+
+    return {
+      ...personajeActualizado,
+      relaciones: relacionesRecientes || [],
+      canciones: canciones || [] // Mantenemos las que acabamos de setear
+    }; 
   }
-};
+};;
