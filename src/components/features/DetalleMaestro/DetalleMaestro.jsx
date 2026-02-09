@@ -95,12 +95,7 @@ export default function DetalleMaestro({
                     className="w-full h-full object-cover" 
                   />
                 </motion.div>
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white px-12 py-5 rounded-[2rem] shadow-2xl border border-primary/5 flex items-center gap-4">
-                  <Sparkles size={16} className="text-primary animate-pulse" />
-                  <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary/70 italic">
-                    {esCriatura ? 'Entidad Biológica Clasificada' : 'Registro Civil del Sujeto'}
-                  </span>
-                </div>
+                {/* Se ha eliminado el bloque del mensaje decorativo inferior aquí */}
               </div>
             </div>
 
