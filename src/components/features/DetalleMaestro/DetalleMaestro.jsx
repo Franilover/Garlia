@@ -12,9 +12,23 @@ import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 export default function DetalleMaestro({ 
   isOpen, onClose, data, tags = [], mostrarMusica = true, onUpdate 
 }) {
-  // 1. EL FIX CRÍTICO: Si no hay data o no está abierto, abortamos antes de ejecutar hooks
-  if (!isOpen || !data) return null;
+  // --- 1. ADUANA DE SEGURIDAD ---
+  // Si no hay data o no está abierto, no renderizamos nada.
+  // Esto evita que los hooks internos se ejecuten con datos nulos.
+  if (!isOpen || !data || !data.id) return null;
 
+  return (
+    <DetalleContenido 
+      data={data} 
+      onClose={onClose} 
+      tags={tags} 
+      onUpdate={onUpdate} 
+    />
+  );
+}
+
+// Sub-componente para aislar la lógica y evitar errores de "undefined" durante re-renders
+function DetalleContenido({ data, onClose, tags, onUpdate }) {
   const {
     isAdmin, editMode, setEditMode, saving, handleSave,
     variantes, setVariantes,
@@ -23,7 +37,6 @@ export default function DetalleMaestro({
     editCanciones, setEditCanciones, setEditRelaciones
   } = useDetalleMaestro(data, onUpdate);
 
-  // 2. Protecciones de tipo y datos
   const esPersonaje = data && typeof data === "object" && "sobre" in data;
   const esCriatura = data && !esPersonaje;
   
@@ -35,9 +48,8 @@ export default function DetalleMaestro({
 
   const [loadingRelaciones, setLoadingRelaciones] = useState(true);
 
-  // 3. Manejo del ciclo de vida de los datos
   useEffect(() => {
-    if (isOpen && data?.id) {
+    if (data?.id) {
       setLoadingRelaciones(true);
       if (esCriatura || (data?.relaciones && data.relaciones.length > 0)) {
         setLoadingRelaciones(false);
@@ -46,7 +58,7 @@ export default function DetalleMaestro({
         return () => clearTimeout(timer);
       }
     }
-  }, [isOpen, data?.id, esCriatura]);
+  }, [data?.id, esCriatura]);
 
   const agregarVariante = () => {
     if (!data?.id) return;
@@ -56,10 +68,6 @@ export default function DetalleMaestro({
       imagen_url: "", 
       criatura_id: data.id 
     }]);
-  };
-
-  const eliminarVariante = (index) => {
-    setVariantes(variantes.filter((_, i) => i !== index));
   };
 
   const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
@@ -75,17 +83,10 @@ export default function DetalleMaestro({
       >
         <div className="bg-white rounded-[5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] relative border border-primary/10">
           
-          {/* BOTONES DE ACCIÓN SUPERIORES */}
           <div className="absolute top-10 right-10 z-50 flex items-center gap-4">
             {isAdmin && (
               <motion.button 
-                onClick={editMode ? async () => {
-                  try {
-                    await handleSave();
-                  } catch (err) {
-                    console.error("Error al guardar:", err);
-                  }
-                } : () => setEditMode(true)} 
+                onClick={editMode ? handleSave : () => setEditMode(true)} 
                 disabled={saving}
                 className={`group p-5 text-white rounded-full shadow-2xl transition-all flex items-center gap-4 px-10 ${
                   editMode ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90"
@@ -103,7 +104,6 @@ export default function DetalleMaestro({
           </div>
 
           <div className="flex flex-col lg:flex-row items-stretch">
-            {/* SECCIÓN IZQUIERDA: IMAGEN */}
             <div className="w-full lg:w-[48%] bg-slate-50 p-10 lg:p-24 flex items-center justify-center relative overflow-hidden min-h-[550px] lg:min-h-[800px]">
               <div className="relative w-full aspect-square max-w-140 group">
                 <motion.div className="relative w-full h-full rounded-full overflow-hidden border-[16px] border-white shadow-[0_40px_80px_-15px_rgba(0,0,0,0.35)]">
@@ -111,13 +111,12 @@ export default function DetalleMaestro({
                     key={imagenVisual} 
                     src={imagenVisual} 
                     className="w-full h-full object-cover" 
-                    alt={editNombre || "Imagen descriptiva"}
+                    alt={editNombre || "Visual"}
                   />
                 </motion.div>
               </div>
             </div>
 
-            {/* SECCIÓN DERECHA: TEXTO / EDICIÓN */}
             <div className="w-full lg:w-[52%] p-14 lg:p-28 flex flex-col justify-center bg-white">
               {editMode ? (
                 <div className="space-y-12 w-full">
@@ -143,8 +142,8 @@ export default function DetalleMaestro({
                         <Plus size={18} /> Nueva Cepa
                       </button>
                       <div className="space-y-8 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
-                        {variantes.map((v, index) => (
-                          <div key={index} className="p-8 bg-slate-50 rounded-[3rem] relative">
+                        {variantes && variantes.map((v, index) => (
+                          <div key={v.id || index} className="p-8 bg-slate-50 rounded-[3rem] relative">
                             <input 
                               placeholder="Nombre Forma" 
                               value={v.tipo || ""} 
@@ -165,7 +164,12 @@ export default function DetalleMaestro({
                               }} 
                               className="w-full p-4 rounded-xl border border-primary/10 resize-none h-24" 
                             />
-                            <button onClick={() => eliminarVariante(index)} className="absolute -top-3 -right-3 bg-red-500 text-white p-3 rounded-full"><Trash2 size={16} /></button>
+                            <button 
+                              onClick={() => setVariantes(variantes.filter((_, i) => i !== index))} 
+                              className="absolute -top-3 -right-3 bg-red-500 text-white p-3 rounded-full"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -187,7 +191,7 @@ export default function DetalleMaestro({
                   <p className="text-slate-500 text-xl lg:text-2xl italic leading-relaxed whitespace-pre-wrap border-l-4 border-primary/5 pl-10">
                     {varianteActiva ? (varianteActiva.descripcion_variante || "Sin descripción") : editDescripcion}
                   </p>
-                  {esCriatura && variantes.length > 0 && (
+                  {esCriatura && variantes && variantes.length > 0 && (
                     <div className="flex flex-wrap gap-4 mt-16">
                       <button onClick={() => setVarianteActiva(null)} className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all ${!varianteActiva ? "bg-primary text-white shadow-2xl" : "bg-primary/5 text-primary"}`}>Fenotipo Base</button>
                       {variantes.map((v, i) => (
@@ -200,7 +204,6 @@ export default function DetalleMaestro({
             </div>
           </div>
 
-          {/* SECCIÓN INFERIOR: RELACIONES Y MÚSICA */}
           {tieneContenidoInferior && (
             <div className="bg-slate-50 p-12 lg:p-24 grid grid-cols-1 xl:grid-cols-2 gap-24 border-t border-primary/5">
               <div className="space-y-10">

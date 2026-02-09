@@ -42,10 +42,13 @@ export function useDetalleMaestro(data, onUpdate) {
     }
   };
 
-  // 3. --- SINCRONIZACIÓN DE ESTADOS ---
+  // 3. --- SINCRONIZACIÓN DE ESTADOS (ULTRA-PROTEGIDA) ---
   useEffect(() => {
-    // Si no hay data, no hacemos nada (esto evita el error del ID)
-    if (!data || !data.id) return;
+    // Si data es null o undefined, reseteamos las referencias y salimos
+    if (!data || !data.id) {
+      prevIdRef.current = null;
+      return;
+    }
 
     const esNuevoItem = prevIdRef.current !== data.id;
 
@@ -83,8 +86,8 @@ export function useDetalleMaestro(data, onUpdate) {
 
   // 4. --- LÓGICA DE GUARDADO MAESTRA ---
   const handleSave = async () => {
-    // Verificación de seguridad extra al inicio
-    if (!data || !data.id) return;
+    // Verificación de existencia de data para evitar el crash al intentar leer .id
+    if (!data?.id) return;
     
     if (!editNombre.trim()) {
       alert("El nombre no puede estar vacío");
@@ -110,13 +113,13 @@ export function useDetalleMaestro(data, onUpdate) {
 
       // B. ACTUALIZAR CANCIONES (Solo Personajes)
       if (esPersonaje) {
-        // Limpiamos referencias previas
+        // Limpiamos referencias previas con el nombre original almacenado
         await supabase
           .from("canciones")
           .update({ personaje: null })
-          .or(`personaje.eq."${data.nombre}",personaje.eq."${editNombre}"`);
+          .eq("personaje", data.nombre);
 
-        // Vincular las nuevas
+        // Vincular las nuevas canciones al nuevo nombre
         if (editCanciones.length > 0) {
           const { error: musicError } = await supabase
             .from("canciones")
@@ -140,16 +143,20 @@ export function useDetalleMaestro(data, onUpdate) {
           );
         
         if (varError) throw varError;
-        await fetchVariantes(data.id);
       }
 
-      // IMPORTANTE: Primero cambiamos el modo edición, luego notificamos al padre
+      // --- PASOS DE SALIDA CRÍTICOS ---
       setEditMode(false);
+      
       if (onUpdate) {
         await onUpdate(); 
       }
       
-      alert("Sincronización con el Archivo exitosa.");
+      // El timeout permite que React termine de procesar el renderizado
+      // antes de que el alert bloquee la pantalla.
+      setTimeout(() => {
+        alert("Sincronización con el Archivo exitosa.");
+      }, 150);
 
     } catch (err) {
       console.error("Error crítico en handleSave:", err);
