@@ -99,24 +99,23 @@ const Navbar = () => {
                       className="absolute top-full left-0 mt-3 w-48 bg-white border border-primary/10 rounded-2xl shadow-xl p-2 z-1001"
                     >
                       <Link href="/wiki/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
-                        <Sword size={14} /> "Mi Personaje"
+                        <Sword size={14} /> Mi Personaje
                       </Link>
 
-                      {/* PC: IGUAL AL RESTO DE LINKS */}
                       {esFranilover && (
                         <Link href="/wiki/recetas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all border-t border-primary/5">
-                          <Utensils size={14} /> "Mis Recetas"
+                          <Utensils size={14} /> Mis Recetas
                         </Link>
                       )}
 
                       <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase text-red-400 hover:bg-red-50 rounded-xl transition-all">
-                        <LogOut size={14} /> "Salir"
+                        <LogOut size={14} /> Salir
                       </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-            ) : <Link href="/auth/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">"Entrar"</Link>}
+            ) : <Link href="/auth/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">Entrar</Link>}
           </div>
 
           <nav className="flex items-center gap-1 bg-primary/5 p-1 rounded-2xl border border-primary/10">
@@ -154,7 +153,7 @@ const Navbar = () => {
           
           <div className="flex items-center gap-6">
             <Link href="/" className="text-xl font-black italic tracking-tighter text-primary flex items-center gap-2">
-              <Flower2 size={20} /> <span>"FRANI"<span className="text-violet-500 opacity-40">"LOVER"</span></span>
+              <Flower2 size={20} /> <span>FRANI<span className="text-primary opacity-40">LOVER</span></span>
             </Link>
           </div>
         </div>
@@ -179,22 +178,21 @@ const Navbar = () => {
               {userMenuOpen && user && (
                 <div className="flex flex-col gap-2">
                   <Link href="/wiki/personal" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    <Sword size={18}/> "Mi Personaje"
+                    <Sword size={18}/> Mi Personaje
                   </Link>
 
-                  {/* MÓVIL: EXACTAMENTE IGUAL A MI PERSONAJE */}
                   {esFranilover && (
                     <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                      <Utensils size={18}/> "Mis Recetas"
+                      <Utensils size={18}/> Mis Recetas
                     </Link>
                   )}
 
                   <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-400 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    "Cerrar Sesión" <LogOut size={16}/>
+                    Cerrar Sesión <LogOut size={16}/>
                   </button>
                 </div>
               )}
-              {/* RESTO DE SUBMENUS... */}
+
               {openSubmenu === "personal" && (
                 <div className="grid grid-cols-3 gap-2">
                   <MobileSubItem href="/wiki/sobre-mi" label="Bio" active={currentPath === "/wiki/sobre-mi"} icon={<Smile size={18}/>} onClick={closeAll} />
@@ -224,13 +222,12 @@ const Navbar = () => {
       </motion.div>
 
       {(openSubmenu || userMenuOpen) && (
-        <div className="fixed inset-0 z-999 bg-violet-900/5 backdrop-blur-[2px]" onClick={closeAll} />
+        <div className="fixed inset-0 z-999 bg-primary/5 backdrop-blur-[2px]" onClick={closeAll} />
       )}
     </>
   );
 };
 
-// Componentes Auxiliares (Sin cambios)
 const PCGroup = ({ label, items, active, currentPath }: any) => (
   <div className="relative group px-2">
     <button className={cn("px-3 py-2 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all rounded-xl", active ? "text-primary" : "text-primary/40 group-hover:text-primary")}>
