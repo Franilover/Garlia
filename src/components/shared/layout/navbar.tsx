@@ -102,9 +102,9 @@ const Navbar = () => {
                         <Sword size={14} /> "Mi Personaje"
                       </Link>
 
-                      {/* VIOLETA 600 PARA COHERENCIA */}
+                      {/* PC: REDUCIDA LA OPACIDAD PARA QUE NO SALTE TANTO */}
                       {esFranilover && (
-                        <Link href="/wiki/recetas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-violet-600/70 hover:bg-violet-50 rounded-xl transition-all border-t border-primary/5">
+                        <Link href="/wiki/recetas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-violet-500/60 hover:text-violet-600 hover:bg-violet-50/50 rounded-xl transition-all border-t border-primary/5">
                           <Utensils size={14} /> "Mis Recetas"
                         </Link>
                       )}
@@ -154,7 +154,7 @@ const Navbar = () => {
           
           <div className="flex items-center gap-6">
             <Link href="/" className="text-xl font-black italic tracking-tighter text-primary flex items-center gap-2">
-              <Flower2 size={20} /> <span>"FRANI"<span className="text-violet-500 opacity-40">"LOVER"</span></span>
+              <Flower2 size={20} /> <span>"FRANI"<span className="text-violet-500/30">"LOVER"</span></span>
             </Link>
           </div>
         </div>
@@ -182,15 +182,15 @@ const Navbar = () => {
                     <Sword size={18}/> "Mi Personaje"
                   </Link>
 
-                  {/* VIOLETA 600 Y FONDO VIOLETA 50 PARA EL GRIMORIO */}
+                  {/* MÓVIL: FONDO MUCHO MÁS SUAVE (violet-50/30) Y TEXTO MENOS SATURADO */}
                   {esFranilover && (
-                    <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-violet-50 text-violet-600 border border-violet-100 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                      <Utensils size={18}/> "Mis Recetas"
+                    <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-violet-50/30 text-violet-500/70 border border-violet-100/50 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                      <Utensils size={18} className="opacity-60"/> "Mis Recetas"
                     </Link>
                   )}
 
-                  <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-600 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    "Cerrar Sesión" <LogOut size={16}/>
+                  <button onClick={handleLogout} className="w-full p-4 bg-red-50/50 text-red-400 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                    "Cerrar Sesión" <LogOut size={16} className="opacity-60"/>
                   </button>
                 </div>
               )}
