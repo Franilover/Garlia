@@ -168,7 +168,7 @@ export default function DetalleMaestro({
               <div className="space-y-10">
                 <div className="flex items-center gap-6">
                   <Users size={24} className="text-primary/30" />
-                  <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Red de Contactos</h4>
+                  <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Relaciones</h4>
                 </div>
                 {loadingRelaciones ? <div className="h-40 bg-white rounded-[3rem] animate-pulse" /> : (
                   <Relaciones nombrePersonaje={data.nombre} personajeId={data.id} datosRelaciones={data.relaciones || []} editMode={editMode} onChange={setEditRelaciones} />
@@ -177,7 +177,7 @@ export default function DetalleMaestro({
               <div className="space-y-10">
                 <div className="flex items-center gap-6">
                   <Music size={24} className="text-primary/30" />
-                  <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Frecuencias Acústicas</h4>
+                  <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Soliloquios</h4>
                 </div>
                 {editMode ? (
                   <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} />
