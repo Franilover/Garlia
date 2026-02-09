@@ -6,24 +6,32 @@ import {
   Binary 
 } from "lucide-react";
 import Relaciones from "./relaciones"; 
-import { useDetalleMaestro } from "@/hooks/useDetalleMaestro"; 
+// Importamos useDetalleMaestro y sus interfaces exportadas
+import { useDetalleMaestro, type Variante } from "@/hooks/useDetalleMaestro"; 
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 
+// --- YA NO NECESITAMOS DECLARAR LAS INTERFACES AQUÍ, LAS TRAEMOS DEL HOOK ---
+
+interface DetalleMaestroProps {
+  isOpen: boolean;
+  onClose: () => void;
+  data: any;
+  tags?: string[];
+  mostrarMusica?: boolean;
+  onUpdate?: () => Promise<void>;
+}
+
 export default function DetalleMaestro({ 
-  isOpen, onClose, data, tags = [], mostrarMusica = true, onUpdate 
-}) {
-  // Estado interno para mantener data estable durante actualizaciones
+  isOpen, onClose, data, tags = [], onUpdate 
+}: DetalleMaestroProps) {
   const [internalData, setInternalData] = useState(data);
 
-  // Sincronizar data solo cuando cambia y es válido
   useEffect(() => {
     if (data && data.id) {
       setInternalData(data);
     }
-  }, [data?.id]); // Solo actualizar cuando cambie el ID
+  }, [data?.id]);
 
-  // --- 1. ADUANA DE SEGURIDAD ---
-  // Si no hay data o no está abierto, no renderizamos nada.
   if (!isOpen || !internalData || !internalData.id) return null;
 
   return (
@@ -36,8 +44,7 @@ export default function DetalleMaestro({
   );
 }
 
-// Sub-componente para aislar la lógica y evitar errores de "undefined" durante re-renders
-function DetalleContenido({ data, onClose, tags, onUpdate }) {
+function DetalleContenido({ data, onClose, tags, onUpdate }: any) {
   const {
     isAdmin, editMode, setEditMode, saving, handleSave,
     variantes, setVariantes,
@@ -71,12 +78,14 @@ function DetalleContenido({ data, onClose, tags, onUpdate }) {
 
   const agregarVariante = () => {
     if (!data?.id) return;
-    setVariantes([...variantes, { 
+    // Usamos la interfaz Variante importada
+    const nueva: Variante = { 
       tipo: "Nueva Variante", 
       descripcion_variante: "", 
       imagen_url: "", 
-      criatura_id: data.id 
-    }]);
+      criatura_id: Number(data.id) 
+    };
+    setVariantes([...variantes, nueva]);
   };
 
   const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
@@ -151,7 +160,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate }) {
                         <Plus size={18} /> Nueva Cepa
                       </button>
                       <div className="space-y-8 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
-                        {variantes && variantes.map((v, index) => (
+                        {variantes && variantes.map((v: Variante, index: number) => (
                           <div key={v.id || index} className="p-8 bg-slate-50 rounded-[3rem] relative">
                             <input 
                               placeholder="Nombre Forma" 
@@ -195,15 +204,15 @@ function DetalleContenido({ data, onClose, tags, onUpdate }) {
                     ))}
                   </div>
                   <h2 className="text-6xl lg:text-8xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-12">
-                    {varianteActiva ? varianteActiva.tipo : editNombre}
+                    {varianteActiva ? (varianteActiva as Variante).tipo : editNombre}
                   </h2>
                   <p className="text-slate-500 text-xl lg:text-2xl italic leading-relaxed whitespace-pre-wrap border-l-4 border-primary/5 pl-10">
-                    {varianteActiva ? (varianteActiva.descripcion_variante || "Sin descripción") : editDescripcion}
+                    {varianteActiva ? ((varianteActiva as Variante).descripcion_variante || "Sin descripción") : editDescripcion}
                   </p>
                   {esCriatura && variantes && variantes.length > 0 && (
                     <div className="flex flex-wrap gap-4 mt-16">
                       <button onClick={() => setVarianteActiva(null)} className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all ${!varianteActiva ? "bg-primary text-white shadow-2xl" : "bg-primary/5 text-primary"}`}>Fenotipo Base</button>
-                      {variantes.map((v, i) => (
+                      {variantes.map((v: Variante, i: number) => (
                         <button key={i} onClick={() => setVarianteActiva(v)} className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all ${varianteActiva === v ? "bg-primary text-white shadow-2xl" : "bg-primary/5 text-primary"}`}>{v.tipo}</button>
                       ))}
                     </div>
@@ -217,7 +226,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate }) {
             <div className="bg-slate-50 p-12 lg:p-24 grid grid-cols-1 xl:grid-cols-2 gap-24 border-t border-primary/5">
               <div className="space-y-10">
                 <div className="flex items-center gap-6">
-                  <Users size={24} className="text-primary/30" />
+                  <span className="text-primary/30"><Users size={24} /></span>
                   <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Relaciones</h4>
                 </div>
                 {loadingRelaciones ? (
@@ -225,7 +234,6 @@ function DetalleContenido({ data, onClose, tags, onUpdate }) {
                 ) : (
                   <Relaciones 
                     nombrePersonaje={data.nombre} 
-                    personajeId={data.id} 
                     datosRelaciones={data.relaciones || []} 
                     editMode={editMode} 
                     onChange={setEditRelaciones} 
@@ -234,7 +242,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate }) {
               </div>
               <div className="space-y-10">
                 <div className="flex items-center gap-6">
-                  <Music size={24} className="text-primary/30" />
+                  <span className="text-primary/30"><Music size={24} /></span>
                   <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Soliloquios</h4>
                 </div>
                 {editMode ? (

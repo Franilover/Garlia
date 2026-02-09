@@ -2,20 +2,37 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/api/supabase";
 
-export function useDetalleMaestro(data, onUpdate) {
+// 1. EXPORTAMOS LAS INTERFACES para que el componente las pueda importar
+export interface Relacion {
+  id?: string;
+  sus: string;
+  son: string[];
+  personaje: string;
+}
+
+export interface Variante {
+  id?: number;
+  tipo: string;
+  descripcion?: string;          // Opcional
+  descripcion_variante?: string; // FIX: Agregado para coincidir con la base de datos
+  imagen_url?: string;           // FIX: Agregado para las imágenes de cepas
+  criatura_id?: number;
+}
+
+export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   
-  const [variantes, setVariantes] = useState([]);
-  const [varianteActiva, setVarianteActiva] = useState(null);
+  const [variantes, setVariantes] = useState<Variante[]>([]);
+  const [varianteActiva, setVarianteActiva] = useState<Variante | null>(null);
   
   const [editNombre, setEditNombre] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
-  const [editCanciones, setEditCanciones] = useState([]); 
-  const [editRelaciones, setEditRelaciones] = useState([]);
+  const [editCanciones, setEditCanciones] = useState<number[]>([]); 
+  const [editRelaciones, setEditRelaciones] = useState<Relacion[]>([]);
 
-  const prevIdRef = useRef(null);
+  const prevIdRef = useRef<number | string | null>(null);
 
   // 1. --- VERIFICACIÓN DE PERMISOS ---
   useEffect(() => {
@@ -27,13 +44,16 @@ export function useDetalleMaestro(data, onUpdate) {
   }, []);
 
   // 2. --- CARGA DETALLADA DE VARIANTES ---
-  const fetchVariantes = async (id) => {
+  const fetchVariantes = async (id: any) => {
     if (!id) return;
     try {
+      const idNumerico = Number(id);
+      if (isNaN(idNumerico)) return;
+
       const { data: vars, error } = await supabase
         .from("criatura_variantes")
         .select("*")
-        .eq("criatura_id", id)
+        .eq("criatura_id", idNumerico)
         .order("id", { ascending: true });
         
       if (!error) setVariantes(vars || []);
@@ -42,9 +62,8 @@ export function useDetalleMaestro(data, onUpdate) {
     }
   };
 
-  // 3. --- SINCRONIZACIÓN DE ESTADOS (ULTRA-PROTEGIDA) ---
+  // 3. --- SINCRONIZACIÓN DE ESTADOS ---
   useEffect(() => {
-    // Si data es null o undefined, reseteamos las referencias y salimos
     if (!data || !data.id) {
       prevIdRef.current = null;
       return;
@@ -60,12 +79,12 @@ export function useDetalleMaestro(data, onUpdate) {
       const idsIniciales = Array.isArray(cancionesData) 
         ? cancionesData
             .map(c => {
-              if (typeof c === "object" && c !== null) return c.id;
+              if (typeof c === "object" && c !== null) return Number(c.id);
               if (typeof c === "number") return c;
-              if (typeof c === "string" && !isNaN(c)) return parseInt(c);
+              if (typeof c === "string" && !isNaN(Number(c))) return parseInt(c);
               return null;
             })
-            .filter(id => id !== null)
+            .filter((id): id is number => id !== null)
         : [];
         
       setEditCanciones(idsIniciales);
@@ -75,6 +94,7 @@ export function useDetalleMaestro(data, onUpdate) {
     if (esNuevoItem) {
       setEditMode(false);
       setVarianteActiva(null);
+      // Solo buscamos variantes si es una criatura (no tiene el campo 'sobre')
       if (!data.sobre && (!data.variantes || data.variantes.length === 0)) {
         fetchVariantes(data.id);
       } else {
@@ -86,9 +106,14 @@ export function useDetalleMaestro(data, onUpdate) {
 
   // 4. --- LÓGICA DE GUARDADO MAESTRA ---
   const handleSave = async () => {
-    // Verificación de existencia de data para evitar el crash al intentar leer .id
     if (!data?.id) return;
     
+    const targetId = Number(data.id);
+    if (isNaN(targetId)) {
+      alert("Error: ID de entidad no válido");
+      return;
+    }
+
     if (!editNombre.trim()) {
       alert("El nombre no puede estar vacío");
       return;
@@ -107,19 +132,17 @@ export function useDetalleMaestro(data, onUpdate) {
           nombre: editNombre,
           [columnaTexto]: editDescripcion
         })
-        .eq("id", data.id);
+        .eq("id", targetId);
 
       if (mainError) throw mainError;
 
       // B. ACTUALIZAR CANCIONES (Solo Personajes)
       if (esPersonaje) {
-        // Limpiamos referencias previas con el nombre original almacenado
         await supabase
           .from("canciones")
           .update({ personaje: null })
           .eq("personaje", data.nombre);
 
-        // Vincular las nuevas canciones al nuevo nombre
         if (editCanciones.length > 0) {
           const { error: musicError } = await supabase
             .from("canciones")
@@ -137,7 +160,7 @@ export function useDetalleMaestro(data, onUpdate) {
           .upsert(
             variantes.map(v => ({
               ...v,
-              criatura_id: data.id 
+              criatura_id: targetId 
             })),
             { onConflict: "id" }
           );
@@ -145,24 +168,20 @@ export function useDetalleMaestro(data, onUpdate) {
         if (varError) throw varError;
       }
 
-      // --- PASOS DE SALIDA CRÍTICOS ---
       setEditMode(false);
-      setSaving(false); // Marcar como guardado ANTES de onUpdate
+      setSaving(false);
       
-      // Esperar un tick para que React procese el cambio de estado
       await new Promise(resolve => setTimeout(resolve, 100));
       
       if (onUpdate) {
         await onUpdate(); 
       }
       
-      // El timeout permite que React termine de procesar el renderizado
-      // antes de que el alert bloquee la pantalla.
       setTimeout(() => {
         alert("Sincronización con el Archivo exitosa.");
       }, 150);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error crítico en handleSave:", err);
       alert("Error de esquema: " + err.message);
       setSaving(false);
@@ -175,6 +194,6 @@ export function useDetalleMaestro(data, onUpdate) {
     varianteActiva, setVarianteActiva,
     editNombre, setEditNombre, editDescripcion, setEditDescripcion,
     editCanciones, setEditCanciones,
-    editRelaciones, setEditRelaciones
+    editRelaciones, setEditRelaciones, 
   };
 }
