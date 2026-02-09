@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/api/supabase';
 import { useDataCache } from '@/components/features/control/DataContext';
 
-// Importación de queries personalizadas (Asegúrate de que las rutas sean correctas)
+// Importación de queries personalizadas
 import { personajesQueries } from '@/lib/api/queries/personajes';
 import { criaturasQueries } from '@/lib/api/queries/criaturas';
 import { itemsQueries } from '@/lib/api/queries/items'; 
@@ -17,16 +17,15 @@ const QUERIES_MAP = {
 export function useSupabaseData(tabla, opciones = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // Inicializamos con lo que haya en caché para una carga instantánea (Optimistic UI)
+  // 1. CARGA INSTANTÁNEA: Si existe en caché, el usuario ve los datos de inmediato
   const [data, setData] = useState(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState(null);
 
-  // Memorizamos las opciones para evitar re-ejecuciones innecesarias del fetch
   const opcionesKey = useMemo(() => JSON.stringify(opciones), [opciones]);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    // Si tenemos datos en caché y no forzamos refresco, detenemos el loading
+    // Si ya hay datos en caché y no es un refresco forzado (Realtime), no disparamos la red
     if (cache[tabla] && !forceRefresh && data.length > 0) {
       setLoading(false);
       return;
@@ -40,15 +39,14 @@ export function useSupabaseData(tabla, opciones = {}) {
       let resultado;
       let errorFetch;
 
-      // 1. Usar Query Optimizada si existe en el mapa (como la de Personajes + Canciones)
+      // 2. DISPATCHER: ¿Tiene esta tabla una query optimizada (como Personajes + Canciones)?
       if (QUERIES_MAP[tabla]) {
-        console.log(`"Usando query optimizada para: ${tabla}"`);
+        console.log(`"Ejecutando lógica optimizada para: ${tabla}"`);
         const res = await QUERIES_MAP[tabla].getAll(opt);
-        // Manejamos tanto si la query devuelve {data, error} como si devuelve el array directo
         resultado = res.data !== undefined ? res.data : res;
         errorFetch = res.error !== undefined ? res.error : null;
       } 
-      // 2. Query genérica de Supabase si no hay lógica personalizada
+      // 3. FALLBACK: Query estándar para tablas simples
       else {
         let query = supabase.from(tabla).select(opt.select || '*');
         if (opt.order) {
@@ -63,7 +61,7 @@ export function useSupabaseData(tabla, opciones = {}) {
 
       const finalData = resultado || [];
       
-      // Actualizamos estado local y caché global
+      // 4. SINCRONIZACIÓN: Actualizamos estado local y caché global del contexto
       setData(finalData);
       updateCache(tabla, finalData); 
 
@@ -76,18 +74,17 @@ export function useSupabaseData(tabla, opciones = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabla, opcionesKey, updateCache, cache]); 
 
-  // --- EFECTO DE CARGA INICIAL Y REALTIME ---
+  // --- 5. REALTIME: Escucha cambios en Supabase y refresca automáticamente ---
   useEffect(() => {
     fetchData();
 
-    // Suscripción a cambios en tiempo real
     const channel = supabase
       .channel(`db-changes-${tabla}`)
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: tabla }, 
         (payload) => {
-          console.log(`"Cambio detectado en ${tabla}, refrescando..."`, payload.eventType);
-          fetchData(true);
+          console.log(`"Evento [${payload.eventType}] en ${tabla}. Refrescando..."`);
+          fetchData(true); // El true fuerza el salto de la caché
         }
       )
       .subscribe();
@@ -97,7 +94,7 @@ export function useSupabaseData(tabla, opciones = {}) {
     };
   }, [fetchData, tabla]);
 
-  // Función para actualizar datos localmente y sincronizar con la caché
+  // --- 6. SETTER SINCRONIZADO: Para actualizaciones locales manuales ---
   const setSyncedData = useCallback((newDataOrFn) => {
     setData(prev => {
       const resolved = typeof newDataOrFn === 'function' ? newDataOrFn(prev) : newDataOrFn;

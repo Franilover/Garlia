@@ -8,7 +8,7 @@ import { PlayCircle, Check, ChevronsUpDown, X, Music } from 'lucide-react';
 
 /**
  * COMPONENTE: SelectorMusicaAdmin
- * Se usa en el formulario de edición para vincular/desvincular canciones.
+ * Mantiene la lógica de selección de IDs para el panel de administración.
  */
 export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
   const [todas, setTodas] = useState([]);
@@ -20,7 +20,6 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
   useEffect(() => {
     const cargar = async () => {
       try {
-        // Traemos todas las canciones disponibles en la base de datos
         const { data } = await supabase.from('canciones').select('id, titulo').order('titulo');
         if (data) setTodas(data);
       } catch (err) {
@@ -44,7 +43,6 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
     setIsOpen(!isOpen);
   };
 
-  // Aseguramos que idsSeleccionados sea siempre un array de números
   const safeIds = useMemo(() => {
     if (!Array.isArray(idsSeleccionados)) return [];
     return idsSeleccionados.map(id => typeof id === 'object' ? id.id : Number(id));
@@ -131,36 +129,28 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
 };
 
 /**
- * COMPONENTE: SeccionMusica
- * Renderiza los iconos de Play para los links de música del personaje.
+ * COMPONENTE: SeccionMusica (ACTUALIZADO PARA RUTAS INTERNAS)
+ * Ahora navega a /wiki/canciones/{id} usando objetos completos de la DB.
  */
 export const SeccionMusica = ({ listaLinks = [] }) => {
-  const linksLimpios = useMemo(() => {
+  const cancionesValidas = useMemo(() => {
     if (!listaLinks || !Array.isArray(listaLinks)) return [];
 
     return listaLinks
       .map(item => {
-        // Manejo de objeto canción completo (nueva query)
-        if (typeof item === 'object' && item !== null) {
-          // 1. Intentar con el array 'links' (JSONB de Supabase)
-          if (item.links && Array.isArray(item.links) && item.links.length > 0) {
-            return item.links[0].url || item.links[0];
-          }
-          // 2. Intentar con columna 'url' directa
-          return item.url || null;
+        // Si es un objeto (viniendo de la nueva query de personajes)
+        if (typeof item === 'object' && item !== null && item.id) {
+          return {
+            id: item.id,
+            titulo: item.titulo || "Registro Sonoro"
+          };
         }
-        // 3. Si ya es un string
-        return item;
+        return null;
       })
-      .filter(link => typeof link === 'string' && link.trim().length > 0)
-      .map(link => {
-        const l = link.trim();
-        // Normalización básica de IDs de YouTube
-        return !l.startsWith('http') ? `https://www.youtube.com/watch?v=${l}` : l;
-      });
+      .filter(c => c !== null); // Solo permitimos objetos con ID
   }, [listaLinks]);
 
-  if (linksLimpios.length === 0) return (
+  if (cancionesValidas.length === 0) return (
     <div className="p-16 border-4 border-dashed border-primary/5 rounded-[4rem] flex flex-col items-center justify-center opacity-20 italic">
        <Music size={40} className="mb-4 text-primary" />
        <span className="text-[12px] font-black uppercase tracking-[0.5em]">Sin registros</span>
@@ -169,8 +159,9 @@ export const SeccionMusica = ({ listaLinks = [] }) => {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
-      {linksLimpios.map((link, index) => (
-        <Link key={index} href={link} target="_blank" className="group no-underline">
+      {cancionesValidas.map((cancion, index) => (
+        // CAMBIO: Navegación interna sin target="_blank"
+        <Link key={cancion.id} href={`/wiki/canciones/${cancion.id}`} className="group no-underline">
           <motion.div 
             whileHover={{ scale: 1.05, y: -8 }} 
             className="relative flex flex-col items-center justify-center p-10 bg-white border border-primary/5 rounded-[3rem] aspect-square overflow-hidden shadow-sm"
@@ -180,11 +171,16 @@ export const SeccionMusica = ({ listaLinks = [] }) => {
               {String(index + 1).padStart(2, '0')}
             </span>
             
-            {/* Play e indicadores */}
-            <div className="relative z-10 text-5xl font-black text-primary/10 group-hover:text-primary transition-colors italic mb-2">
-              {String(index + 1).padStart(2, '0')}
+            {/* Título de la canción y número frontal */}
+            <div className="relative z-10 flex flex-col items-center text-center w-full">
+              <span className="text-[10px] font-black text-primary/40 group-hover:text-primary uppercase mb-1 truncate w-full transition-colors">
+                {cancion.titulo}
+              </span>
+              <div className="text-5xl font-black text-primary/10 group-hover:text-primary transition-colors italic mb-2">
+                {String(index + 1).padStart(2, '0')}
+              </div>
+              <PlayCircle size={40} className="relative z-20 text-primary/20 group-hover:text-primary transition-all" />
             </div>
-            <PlayCircle size={40} className="relative z-20 text-primary/20 group-hover:text-primary transition-all" />
           </motion.div>
         </Link>
       ))}

@@ -42,7 +42,7 @@ export function useDetalleMaestro(data, onUpdate) {
     }
   };
 
-  // 3. --- SINCRONIZACIÓN DE ESTADOS (CORREGIDO) ---
+  // 3. --- SINCRONIZACIÓN DE ESTADOS (OPTIMIZADO PARA RUTAS INTERNAS) ---
   useEffect(() => {
     if (data) {
       const esNuevoItem = prevIdRef.current !== data.id;
@@ -51,7 +51,7 @@ export function useDetalleMaestro(data, onUpdate) {
         setEditNombre(data.nombre || "");
         setEditDescripcion(data.sobre || data.descripcion || "");
         
-        // CORRECCIÓN CRÍTICA: Extracción robusta de IDs para el Selector
+        // Extraemos solo los IDs para que el SelectorMusicaAdmin pueda marcarlos
         const cancionesData = data.canciones || [];
         const idsIniciales = Array.isArray(cancionesData) 
           ? cancionesData
@@ -95,30 +95,25 @@ export function useDetalleMaestro(data, onUpdate) {
       const columnaTexto = esPersonaje ? 'sobre' : 'descripcion';
 
       // A. ACTUALIZAR ENTIDAD PRINCIPAL
-      const updates = {
-        nombre: editNombre,
-        [columnaTexto]: editDescripcion
-      };
-
       const { error: mainError } = await supabase
         .from(tablaPrincipal)
-        .update(updates)
+        .update({
+          nombre: editNombre,
+          [columnaTexto]: editDescripcion
+        })
         .eq('id', data.id);
 
       if (mainError) throw mainError;
 
       // B. ACTUALIZAR CANCIONES (Solo Personajes)
       if (esPersonaje) {
-        console.log("Sincronizando canciones para:", editNombre);
-        
-        // 1. Desvincular canciones que tenían el nombre antiguo o el actual
-        // (Usamos tanto el nombre previo como el nuevo para asegurar limpieza)
+        // 1. Desvincular canciones antiguas (por nombre viejo y nuevo para seguridad)
         await supabase
           .from('canciones')
           .update({ personaje: null })
           .or(`personaje.eq."${data.nombre}",personaje.eq."${editNombre}"`);
 
-        // 2. Vincular las nuevas canciones seleccionadas
+        // 2. Vincular las nuevas canciones seleccionadas al nombre actual
         if (editCanciones.length > 0) {
           const { error: musicError } = await supabase
             .from('canciones')
@@ -130,7 +125,7 @@ export function useDetalleMaestro(data, onUpdate) {
       }
 
       // C. ACTUALIZAR VARIANTES (Solo Criaturas)
-      if (!esPersonaje) {
+      if (!esPersonaje && variantes.length > 0) {
         const { error: varError } = await supabase
           .from('criatura_variantes')
           .upsert(
@@ -145,7 +140,6 @@ export function useDetalleMaestro(data, onUpdate) {
         await fetchVariantes(data.id);
       }
 
-      // IMPORTANTE: Refrescar la UI
       if (onUpdate) await onUpdate(); 
       setEditMode(false);
       alert("Sincronización con el Archivo exitosa.");
