@@ -102,7 +102,7 @@ const Navbar = () => {
                         <Sword size={14} /> "Mi Personaje"
                       </Link>
 
-                      {/* ACTUALIZADO A MORADO PARA FRANILOVER EN PC */}
+                      {/* VIOLETA 600 PARA COHERENCIA */}
                       {esFranilover && (
                         <Link href="/wiki/recetas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-violet-600/70 hover:bg-violet-50 rounded-xl transition-all border-t border-primary/5">
                           <Utensils size={14} /> "Mis Recetas"
@@ -182,9 +182,9 @@ const Navbar = () => {
                     <Sword size={18}/> "Mi Personaje"
                   </Link>
 
-                  {/* ACTUALIZADO A MORADO PARA FRANILOVER EN MÓVIL */}
+                  {/* VIOLETA 600 Y FONDO VIOLETA 50 PARA EL GRIMORIO */}
                   {esFranilover && (
-                    <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-violet-50 text-violet-700 border border-violet-100 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                    <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-violet-50 text-violet-600 border border-violet-100 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                       <Utensils size={18}/> "Mis Recetas"
                     </Link>
                   )}
@@ -224,7 +224,7 @@ const Navbar = () => {
       </motion.div>
 
       {(openSubmenu || userMenuOpen) && (
-        <div className="fixed inset-0 z-999 bg-violet-900/10 backdrop-blur-sm" onClick={closeAll} />
+        <div className="fixed inset-0 z-999 bg-violet-900/5 backdrop-blur-[2px]" onClick={closeAll} />
       )}
     </>
   );
