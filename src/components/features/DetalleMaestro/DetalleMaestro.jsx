@@ -1,13 +1,13 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Edit3, Save, Plus, Trash2, Music, Users, 
   Image as ImageIcon, Zap, Binary, Sparkles 
-} from 'lucide-react';
-import Relaciones from './relaciones'; 
-import { useDetalleMaestro } from '@/hooks/useDetalleMaestro'; 
-import { SeccionMusica, SelectorMusicaAdmin } from './SeccionMusica';
+} from "lucide-react";
+import Relaciones from "./relaciones"; 
+import { useDetalleMaestro } from "@/hooks/useDetalleMaestro"; 
+import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 
 export default function DetalleMaestro({ 
   isOpen, onClose, data, tags = [], mostrarMusica = true, onUpdate 
@@ -20,7 +20,10 @@ export default function DetalleMaestro({
     editCanciones, setEditCanciones, setEditRelaciones
   } = useDetalleMaestro(data, onUpdate);
 
-  const esPersonaje = data && ('sobre' in data);
+  // Validación de seguridad para evitar errores de propiedad en nulo
+  if (!data || !isOpen) return null;
+
+  const esPersonaje = data && ("sobre" in data);
   const esCriatura = data && !esPersonaje;
   
   const tieneContenidoInferior = !esCriatura && (
@@ -29,18 +32,19 @@ export default function DetalleMaestro({
     (data?.canciones && data.canciones.length > 0)
   );
 
-  const [loadingRelaciones, setLoadingRelaciones] = useState(!esCriatura && !data?.relaciones);
+  const [loadingRelaciones, setLoadingRelaciones] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
-      if (esCriatura || data?.relaciones) {
+      setLoadingRelaciones(true);
+      if (esCriatura || (data?.relaciones && data.relaciones.length > 0)) {
         setLoadingRelaciones(false);
       } else {
         const timer = setTimeout(() => setLoadingRelaciones(false), 400);
         return () => clearTimeout(timer);
       }
     }
-  }, [isOpen, data, esCriatura]);
+  }, [isOpen, data?.id, esCriatura]); // Usamos data.id para ser más específicos
 
   const agregarVariante = () => {
     setVariantes([...variantes, { tipo: "Nueva Variante", descripcion_variante: "", imagen_url: "", criatura_id: data.id }]);
@@ -49,8 +53,6 @@ export default function DetalleMaestro({
   const eliminarVariante = (index) => {
     setVariantes(variantes.filter((_, i) => i !== index));
   };
-
-  if (!data || !isOpen) return null;
 
   const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
 
@@ -68,15 +70,23 @@ export default function DetalleMaestro({
           <div className="absolute top-10 right-10 z-50 flex items-center gap-4">
             {isAdmin && (
               <motion.button 
-                onClick={editMode ? handleSave : () => setEditMode(true)} 
+                onClick={editMode ? async () => {
+                  try {
+                    await handleSave();
+                    // El editMode se suele desactivar dentro del hook, 
+                    // pero si falla, la excepción ocurre aquí.
+                  } catch (err) {
+                    console.error("Error al guardar:", err);
+                  }
+                } : () => setEditMode(true)} 
                 disabled={saving}
                 className={`group p-5 text-white rounded-full shadow-2xl transition-all flex items-center gap-4 px-10 ${
-                  editMode ? 'bg-green-600 hover:bg-green-700' : 'bg-primary hover:bg-primary/90'
+                  editMode ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90"
                 }`}
               >
-                {editMode ? <Save size={24} className="animate-pulse" /> : <Edit3 size={24} />}
+                {editMode ? <Save size={24} className={saving ? "animate-spin" : "animate-pulse"} /> : <Edit3 size={24} />}
                 <span className="text-[11px] font-black uppercase tracking-[0.25em]">
-                  {saving ? 'Procesando...' : (editMode ? 'Confirmar Cambios' : 'Modificar Registro')}
+                  {saving ? "Procesando..." : (editMode ? "Confirmar Cambios" : "Modificar Registro")}
                 </span>
               </motion.button>
             )}
@@ -93,9 +103,9 @@ export default function DetalleMaestro({
                     key={imagenVisual} 
                     src={imagenVisual} 
                     className="w-full h-full object-cover" 
+                    alt={editNombre}
                   />
                 </motion.div>
-                {/* Se ha eliminado el bloque del mensaje decorativo inferior aquí */}
               </div>
             </div>
 
@@ -108,12 +118,12 @@ export default function DetalleMaestro({
                   </div>
                   <div className="space-y-8">
                     <input 
-                      value={editNombre} 
+                      value={editNombre || ""} 
                       onChange={(e) => setEditNombre(e.target.value)} 
                       className="text-4xl font-black uppercase italic text-primary w-full bg-primary/5 p-8 rounded-[3rem] outline-none" 
                     />
                     <textarea 
-                      value={editDescripcion} 
+                      value={editDescripcion || ""} 
                       onChange={(e) => setEditDescripcion(e.target.value)} 
                       className="text-slate-600 text-xl italic leading-relaxed w-full bg-primary/5 p-12 rounded-[3.5rem] outline-none min-h-[400px] resize-none" 
                     />
@@ -126,8 +136,26 @@ export default function DetalleMaestro({
                       <div className="space-y-8 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
                         {variantes.map((v, index) => (
                           <div key={index} className="p-8 bg-slate-50 rounded-[3rem] relative">
-                            <input placeholder="Nombre Forma" value={v.tipo} onChange={(e) => { const n = [...variantes]; n[index].tipo = e.target.value; setVariantes(n); }} className="w-full mb-4 p-4 rounded-xl border border-primary/10" />
-                            <textarea placeholder="Descripción..." value={v.descripcion_variante} onChange={(e) => { const n = [...variantes]; n[index].descripcion_variante = e.target.value; setVariantes(n); }} className="w-full p-4 rounded-xl border border-primary/10 resize-none h-24" />
+                            <input 
+                              placeholder="Nombre Forma" 
+                              value={v.tipo || ""} 
+                              onChange={(e) => { 
+                                const n = [...variantes]; 
+                                n[index].tipo = e.target.value; 
+                                setVariantes(n); 
+                              }} 
+                              className="w-full mb-4 p-4 rounded-xl border border-primary/10" 
+                            />
+                            <textarea 
+                              placeholder="Descripción..." 
+                              value={v.descripcion_variante || ""} 
+                              onChange={(e) => { 
+                                const n = [...variantes]; 
+                                n[index].descripcion_variante = e.target.value; 
+                                setVariantes(n); 
+                              }} 
+                              className="w-full p-4 rounded-xl border border-primary/10 resize-none h-24" 
+                            />
                             <button onClick={() => eliminarVariante(index)} className="absolute -top-3 -right-3 bg-red-500 text-white p-3 rounded-full"><Trash2 size={16} /></button>
                           </div>
                         ))}
@@ -138,7 +166,7 @@ export default function DetalleMaestro({
               ) : (
                 <div className="relative">
                   <div className="flex flex-wrap gap-4 mb-10">
-                    {tags.map((tag, i) => tag && (
+                    {tags?.map((tag, i) => tag && (
                       <span key={i} className="px-7 py-3 bg-primary text-white text-[11px] font-black uppercase rounded-full tracking-[0.3em]">
                         {tag}
                       </span>
@@ -152,9 +180,9 @@ export default function DetalleMaestro({
                   </p>
                   {esCriatura && variantes.length > 0 && (
                     <div className="flex flex-wrap gap-4 mt-16">
-                      <button onClick={() => setVarianteActiva(null)} className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all ${!varianteActiva ? 'bg-primary text-white shadow-2xl' : 'bg-primary/5 text-primary'}`}>Fenotipo Base</button>
+                      <button onClick={() => setVarianteActiva(null)} className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all ${!varianteActiva ? "bg-primary text-white shadow-2xl" : "bg-primary/5 text-primary"}`}>Fenotipo Base</button>
                       {variantes.map((v, i) => (
-                        <button key={i} onClick={() => setVarianteActiva(v)} className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all ${varianteActiva === v ? 'bg-primary text-white shadow-2xl' : 'bg-primary/5 text-primary'}`}>{v.tipo}</button>
+                        <button key={i} onClick={() => setVarianteActiva(v)} className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all ${varianteActiva === v ? "bg-primary text-white shadow-2xl" : "bg-primary/5 text-primary"}`}>{v.tipo}</button>
                       ))}
                     </div>
                   )}
@@ -171,7 +199,13 @@ export default function DetalleMaestro({
                   <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Relaciones</h4>
                 </div>
                 {loadingRelaciones ? <div className="h-40 bg-white rounded-[3rem] animate-pulse" /> : (
-                  <Relaciones nombrePersonaje={data.nombre} personajeId={data.id} datosRelaciones={data.relaciones || []} editMode={editMode} onChange={setEditRelaciones} />
+                  <Relaciones 
+                    nombrePersonaje={data.nombre} 
+                    personajeId={data.id} 
+                    datosRelaciones={data.relaciones || []} 
+                    editMode={editMode} 
+                    onChange={setEditRelaciones} 
+                  />
                 )}
               </div>
               <div className="space-y-10">
@@ -180,7 +214,7 @@ export default function DetalleMaestro({
                   <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Soliloquios</h4>
                 </div>
                 {editMode ? (
-                  <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} />
+                  <SelectorMusicaAdmin idsSeleccionados={editCanciones || []} onChange={setEditCanciones} />
                 ) : (
                   <SeccionMusica listaLinks={data?.canciones || []} />
                 )}
@@ -191,4 +225,4 @@ export default function DetalleMaestro({
       </motion.div>
     </AnimatePresence>
   );
-};
+}
