@@ -15,18 +15,40 @@ import {
 } from "lucide-react";
 
 export const GestionPersonal = () => {
-  // 1. Datos en tiempo real
+  // 1. Datos de Supabase
   const { data: tareas, loading: tLoading, setData: setTareas } = useSupabaseData<any>("tareas");
   const { data: eventos, loading: eLoading } = useSupabaseData<any>("eventos");
 
-  // 2. Estados locales
+  // 2. Estados de Tareas
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [isAdding, setIsAdding] = useState(false);
-  
-  // ✅ Estado crítico para que el calendario responda al clic
-  const [diaSeleccionado, setDiaSeleccionado] = useState(9); 
 
-  // --- LÓGICA DE TAREAS ---
+  // 3. Estados de Navegación del Calendario
+  const [fechaVisualizacion, setFechaVisualizacion] = useState(new Date(2026, 1, 1)); // Empezamos en Feb 2026
+  const [diaSeleccionado, setDiaSeleccionado] = useState(new Date().getDate());
+
+  const mesesNombres = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  // --- LÓGICA DINÁMICA DEL CALENDARIO ---
+  const { diasEnMes, primerDiaSemana, mesActual, añoActual } = useMemo(() => {
+    const año = fechaVisualizacion.getFullYear();
+    const mes = fechaVisualizacion.getMonth();
+    const dias = new Date(año, mes + 1, 0).getDate();
+    let primerDia = new Date(año, mes, 1).getDay();
+    // Ajuste para que Lunes sea 0
+    primerDia = primerDia === 0 ? 6 : primerDia - 1; 
+
+    return { diasEnMes: dias, primerDiaSemana: primerDia, mesActual: mes, añoActual: año };
+  }, [fechaVisualizacion]);
+
+  const cambiarMes = (offset: number) => {
+    setFechaVisualizacion(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+  };
+
+  // --- LÓGICA DE TAREAS (SUPABASE) ---
   const handleAddTarea = async () => {
     if (!nuevaTarea.trim() || isAdding) return;
     setIsAdding(true);
@@ -61,21 +83,25 @@ export const GestionPersonal = () => {
     }
   };
 
-  // --- LÓGICA DE FILTRADO DEL CALENDARIO ---
-  // ✅ Esto hace que la lista inferior dependa del día que toques
+  // --- FILTRADO DE EVENTOS ---
   const eventosDelDia = useMemo(() => {
     return eventos.filter((e: any) => {
-      const fechaEvento = new Date(e.fecha).getDate() + 1;
-      return fechaEvento === diaSeleccionado;
+      const d = new Date(e.fecha);
+      // Ajuste de zona horaria común en JS dates
+      const diaE = d.getUTCDate();
+      const mesE = d.getUTCMonth();
+      const añoE = d.getUTCFullYear();
+      
+      return diaE === diaSeleccionado && mesE === mesActual && añoE === añoActual;
     });
-  }, [eventos, diaSeleccionado]);
+  }, [eventos, diaSeleccionado, mesActual, añoActual]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       
-      {/* --- COLUMNA TAREAS --- */}
+      {/* SECCIÓN TAREAS */}
       <section className="lg:col-span-5">
-        <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 min-h-[500px] flex flex-col">
+        <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 min-h-[600px] flex flex-col">
           <div className="flex items-center gap-3 mb-8 px-2">
             <CheckSquare className="text-primary" size={20} />
             <h2 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Lista de Pendientes</h2>
@@ -87,19 +113,19 @@ export const GestionPersonal = () => {
               value={nuevaTarea}
               onChange={(e) => setNuevaTarea(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddTarea()}
-              placeholder="¿Qué hay que hacer?"
+              placeholder="¿Qué tienes que hacer?"
               className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/10 focus:bg-white rounded-2xl py-4 px-6 text-sm transition-all outline-none font-bold"
             />
             <button 
-              onClick={handleAddTarea} // ✅ Vinculado
+              onClick={handleAddTarea}
               disabled={isAdding || !nuevaTarea.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2.5 rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2.5 rounded-xl hover:scale-105 active:scale-95 transition-all"
             >
               {isAdding ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
             </button>
           </div>
 
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+          <div className="space-y-3 flex-1 overflow-y-auto max-h-[450px] pr-2 custom-scrollbar">
             <AnimatePresence mode="popLayout">
               {tLoading ? (
                 <div className="flex justify-center py-10 opacity-20"><Loader2 className="animate-spin" /></div>
@@ -138,7 +164,7 @@ export const GestionPersonal = () => {
         </div>
       </section>
 
-      {/* --- COLUMNA CALENDARIO --- */}
+      {/* SECCIÓN CALENDARIO */}
       <section className="lg:col-span-7">
         <div className="bg-white border border-primary/10 rounded-[40px] p-8 shadow-xl shadow-primary/5 h-full">
           <div className="flex items-center justify-between mb-10 px-2">
@@ -147,9 +173,15 @@ export const GestionPersonal = () => {
               <h2 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Calendario</h2>
             </div>
             <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-primary/5 rounded-xl text-primary/40 transition-colors"><ChevronLeft size={20} /></button>
-              <span className="text-[11px] font-black uppercase tracking-widest text-primary">Febrero 2026</span>
-              <button className="p-2 hover:bg-primary/5 rounded-xl text-primary/40 transition-colors"><ChevronRight size={20} /></button>
+              <button onClick={() => cambiarMes(-1)} className="p-2 hover:bg-primary/5 rounded-xl text-primary/40 transition-colors">
+                <ChevronLeft size={20} />
+              </button>
+              <span className="text-[11px] font-black uppercase tracking-widest text-primary min-w-[140px] text-center">
+                {mesesNombres[mesActual]} {añoActual}
+              </span>
+              <button onClick={() => cambiarMes(1)} className="p-2 hover:bg-primary/5 rounded-xl text-primary/40 transition-colors">
+                <ChevronRight size={20} />
+              </button>
             </div>
           </div>
 
@@ -157,52 +189,51 @@ export const GestionPersonal = () => {
             {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map(d => (
               <div key={d} className="text-center text-[9px] font-black uppercase text-primary/20 mb-2">{d}</div>
             ))}
-            {Array.from({ length: 28 }).map((_, i) => {
+            
+            {Array.from({ length: primerDiaSemana }).map((_, i) => (
+              <div key={`empty-${i}`} className="aspect-square" />
+            ))}
+
+            {Array.from({ length: diasEnMes }).map((_, i) => {
               const dia = i + 1;
-              const esHoy = dia === 9;
               const estaSeleccionado = dia === diaSeleccionado;
-              const tieneEvento = eventos.some((e: any) => new Date(e.fecha).getDate() + 1 === dia);
+              const tieneEvento = eventos.some((e: any) => {
+                const d = new Date(e.fecha);
+                return d.getUTCDate() === dia && d.getUTCMonth() === mesActual && d.getUTCFullYear() === añoActual;
+              });
 
               return (
                 <motion.div 
-                  key={i}
-                  onClick={() => setDiaSeleccionado(dia)} // ✅ Ahora cambia el estado al pulsar
+                  key={dia}
+                  onClick={() => setDiaSeleccionado(dia)}
                   whileHover={{ scale: 1.05 }}
                   className={cn(
                     "aspect-square rounded-2xl border flex flex-col items-center justify-center relative transition-all cursor-pointer",
                     estaSeleccionado ? "bg-primary text-white border-primary shadow-lg shadow-primary/30" : 
-                    esHoy ? "border-primary/40 text-primary bg-primary/5" :
                     "bg-primary/5 border-transparent text-primary/60 hover:bg-white hover:border-primary/20"
                   )}
                 >
                   <span className="text-sm font-black">{dia}</span>
                   {tieneEvento && (
-                    <div className={cn(
-                      "absolute bottom-2 w-1.5 h-1.5 rounded-full",
-                      estaSeleccionado ? "bg-white" : "bg-primary"
-                    )} />
+                    <div className={cn("absolute bottom-2 w-1.5 h-1.5 rounded-full", estaSeleccionado ? "bg-white" : "bg-primary")} />
                   )}
                 </motion.div>
               );
             })}
           </div>
 
-          {/* Eventos filtrados del día seleccionado */}
+          {/* DETALLE EVENTOS */}
           <div className="pt-6 border-t border-primary/5">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-primary/30 mb-4 px-2">
-              Eventos del día {diaSeleccionado}
+              Planes para el {diaSeleccionado} de {mesesNombres[mesActual]}
             </h3>
             <div className="space-y-3">
               {eLoading ? (
                 <Loader2 className="animate-spin mx-auto opacity-20" />
               ) : eventosDelDia.length > 0 ? (
-                eventosDelDia.map((e: any) => ( // ✅ Ahora usa la lista filtrada
-                  <motion.div 
-                    initial={{ opacity: 0, x: -10 }} 
-                    animate={{ opacity: 1, x: 0 }} 
-                    key={e.id} 
-                    className="flex items-center gap-4 p-4 bg-primary/5 rounded-3xl border border-transparent"
-                  >
+                eventosDelDia.map((e: any) => (
+                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={e.id} 
+                    className="flex items-center gap-4 p-4 bg-primary/5 rounded-3xl border border-transparent">
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
                        <span className="text-[14px] font-black text-primary">{diaSeleccionado}</span>
                     </div>
@@ -221,4 +252,4 @@ export const GestionPersonal = () => {
       </section>
     </div>
   );
-};;
+};
