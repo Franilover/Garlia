@@ -18,6 +18,7 @@ export const personajesQueries = {
     const { data: personajes, error: pError } = await query;
     if (pError) throw pError;
 
+    // 1. CARGA DE CANCIONES
     const { data: canciones, error: cError } = await supabase
       .from("canciones")
       .select("id, titulo, personaje, portada_url");
@@ -27,9 +28,14 @@ export const personajesQueries = {
       return { data: personajes || [], error: null };
     }
 
+    // 2. FILTRADO ROBUSTO (Ignora espacios y mayúsculas)
     const personajesConCanciones = (personajes || []).map(personaje => ({
       ...personaje,
-      canciones: canciones.filter(cancion => cancion.personaje === personaje.nombre)
+      canciones: canciones.filter(cancion => {
+        if (!cancion.personaje || !personaje.nombre) return false;
+        // Limpiamos espacios y comparamos en minúsculas para evitar fallos de vinculación
+        return cancion.personaje.trim().toLowerCase() === personaje.nombre.trim().toLowerCase();
+      })
     }));
 
     return { data: personajesConCanciones, error: null };
@@ -45,15 +51,16 @@ export const personajesQueries = {
         relaciones:relaciones!personaje_id (*)
       `)
       .eq("id", id)
-      .maybeSingle(); // Usamos maybeSingle para evitar excepciones pesadas
+      .maybeSingle();
 
     if (pError) throw pError;
     if (!personaje) return { data: null, error: "No encontrado" };
 
+    // Búsqueda de canciones específica usando ILIKE para que sea insensible a mayúsculas
     const { data: canciones, error: cError } = await supabase
       .from("canciones")
       .select("id, titulo, personaje, portada_url")
-      .eq("personaje", personaje.nombre);
+      .ilike("personaje", personaje.nombre.trim());
 
     if (cError) console.error("Error al obtener canciones del personaje:", cError);
 
@@ -69,9 +76,10 @@ export const personajesQueries = {
   update: async (id, datos) => {
     if (!id) throw new Error("ID de personaje requerido para actualizar");
 
+    // Extraemos las canciones para manejarlas por separado de la tabla personajes
     const { canciones, ...datosParaUpdate } = datos;
 
-    // 1. Actualizar datos base
+    // 1. Actualizar datos base del personaje
     const { data: personajeActualizado, error: uError } = await supabase
       .from("personajes")
       .update(datosParaUpdate)
@@ -80,11 +88,11 @@ export const personajesQueries = {
       .maybeSingle();
 
     if (uError) throw uError;
-    if (!personajeActualizado) throw new Error("No se pudo encontrar el personaje para actualizar");
+    if (!personajeActualizado) throw new Error("No se pudo encontrar el personaje");
 
-    // 2. Sincronizar canciones
+    // 2. Sincronizar vinculación de canciones
     if (canciones && Array.isArray(canciones)) {
-      // Limpiar vinculaciones previas
+      // Limpiar vinculaciones anteriores para evitar duplicados o huérfanos
       await supabase
         .from("canciones")
         .update({ personaje: null })
@@ -100,24 +108,26 @@ export const personajesQueries = {
             .from("canciones")
             .update({ personaje: personajeActualizado.nombre })
             .in("id", idsCanciones);
-            
+          
           if (musicError) throw musicError;
         }
       }
     }
 
-    // 3. RESPUESTA DE SEGURIDAD
-    // En lugar de llamar a getById (que hace otra petición), 
-    // construimos la respuesta con lo que ya tenemos para ser instantáneos.
+    // 3. Obtener relaciones actualizadas para devolver el objeto completo
     const { data: relacionesRecientes } = await supabase
       .from("relaciones")
       .select("*")
       .eq("personaje_id", id);
 
+    // 4. Retornar estructura idéntica a getById para actualizar la UI sin refrescar
     return {
-      ...personajeActualizado,
-      relaciones: relacionesRecientes || [],
-      canciones: canciones || [] // Mantenemos las que acabamos de setear
+      data: {
+        ...personajeActualizado,
+        relaciones: relacionesRecientes || [],
+        canciones: canciones || [] 
+      },
+      error: null
     }; 
   }
 };;
