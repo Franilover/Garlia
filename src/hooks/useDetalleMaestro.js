@@ -1,6 +1,6 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/api/supabase';
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/lib/api/supabase";
 
 export function useDetalleMaestro(data, onUpdate) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -31,10 +31,10 @@ export function useDetalleMaestro(data, onUpdate) {
     if (!id) return;
     try {
       const { data: vars, error } = await supabase
-        .from('criatura_variantes')
-        .select('*')
-        .eq('criatura_id', id)
-        .order('id', { ascending: true });
+        .from("criatura_variantes")
+        .select("*")
+        .eq("criatura_id", id)
+        .order("id", { ascending: true });
         
       if (!error) setVariantes(vars || []);
     } catch (err) {
@@ -42,47 +42,50 @@ export function useDetalleMaestro(data, onUpdate) {
     }
   };
 
-  // 3. --- SINCRONIZACIÓN DE ESTADOS (OPTIMIZADO PARA RUTAS INTERNAS) ---
+  // 3. --- SINCRONIZACIÓN DE ESTADOS ---
   useEffect(() => {
-    if (data) {
-      const esNuevoItem = prevIdRef.current !== data.id;
+    // Si no hay data, no hacemos nada (esto evita el error del ID)
+    if (!data || !data.id) return;
 
-      if (esNuevoItem || editMode) {
-        setEditNombre(data.nombre || "");
-        setEditDescripcion(data.sobre || data.descripcion || "");
+    const esNuevoItem = prevIdRef.current !== data.id;
+
+    if (esNuevoItem || editMode) {
+      setEditNombre(data.nombre || "");
+      setEditDescripcion(data.sobre || data.descripcion || "");
+      
+      const cancionesData = data.canciones || [];
+      const idsIniciales = Array.isArray(cancionesData) 
+        ? cancionesData
+            .map(c => {
+              if (typeof c === "object" && c !== null) return c.id;
+              if (typeof c === "number") return c;
+              if (typeof c === "string" && !isNaN(c)) return parseInt(c);
+              return null;
+            })
+            .filter(id => id !== null)
+        : [];
         
-        // Extraemos solo los IDs para que el SelectorMusicaAdmin pueda marcarlos
-        const cancionesData = data.canciones || [];
-        const idsIniciales = Array.isArray(cancionesData) 
-          ? cancionesData
-              .map(c => {
-                if (typeof c === 'object' && c !== null) return c.id;
-                if (typeof c === 'number') return c;
-                if (typeof c === 'string' && !isNaN(c)) return parseInt(c);
-                return null;
-              })
-              .filter(id => id !== null)
-          : [];
-          
-        setEditCanciones(idsIniciales);
-        setEditRelaciones(data.relaciones || []);
-      }
+      setEditCanciones(idsIniciales);
+      setEditRelaciones(data.relaciones || []);
+    }
 
-      if (esNuevoItem) {
-        setEditMode(false);
-        setVarianteActiva(null);
-        if (!data.sobre && (!data.variantes || data.variantes.length === 0)) {
-          fetchVariantes(data.id);
-        } else {
-          setVariantes(data.variantes || []);
-        }
-        prevIdRef.current = data.id;
+    if (esNuevoItem) {
+      setEditMode(false);
+      setVarianteActiva(null);
+      if (!data.sobre && (!data.variantes || data.variantes.length === 0)) {
+        fetchVariantes(data.id);
+      } else {
+        setVariantes(data.variantes || []);
       }
+      prevIdRef.current = data.id;
     }
   }, [data, editMode]);
 
   // 4. --- LÓGICA DE GUARDADO MAESTRA ---
   const handleSave = async () => {
+    // Verificación de seguridad extra al inicio
+    if (!data || !data.id) return;
+    
     if (!editNombre.trim()) {
       alert("El nombre no puede estar vacío");
       return;
@@ -90,9 +93,9 @@ export function useDetalleMaestro(data, onUpdate) {
 
     setSaving(true);
     try {
-      const esPersonaje = 'sobre' in data; 
-      const tablaPrincipal = esPersonaje ? 'personajes' : 'criaturas';
-      const columnaTexto = esPersonaje ? 'sobre' : 'descripcion';
+      const esPersonaje = "sobre" in data; 
+      const tablaPrincipal = esPersonaje ? "personajes" : "criaturas";
+      const columnaTexto = esPersonaje ? "sobre" : "descripcion";
 
       // A. ACTUALIZAR ENTIDAD PRINCIPAL
       const { error: mainError } = await supabase
@@ -101,24 +104,24 @@ export function useDetalleMaestro(data, onUpdate) {
           nombre: editNombre,
           [columnaTexto]: editDescripcion
         })
-        .eq('id', data.id);
+        .eq("id", data.id);
 
       if (mainError) throw mainError;
 
       // B. ACTUALIZAR CANCIONES (Solo Personajes)
       if (esPersonaje) {
-        // 1. Desvincular canciones antiguas (por nombre viejo y nuevo para seguridad)
+        // Limpiamos referencias previas
         await supabase
-          .from('canciones')
+          .from("canciones")
           .update({ personaje: null })
           .or(`personaje.eq."${data.nombre}",personaje.eq."${editNombre}"`);
 
-        // 2. Vincular las nuevas canciones seleccionadas al nombre actual
+        // Vincular las nuevas
         if (editCanciones.length > 0) {
           const { error: musicError } = await supabase
-            .from('canciones')
+            .from("canciones")
             .update({ personaje: editNombre })
-            .in('id', editCanciones);
+            .in("id", editCanciones);
           
           if (musicError) throw musicError;
         }
@@ -127,21 +130,25 @@ export function useDetalleMaestro(data, onUpdate) {
       // C. ACTUALIZAR VARIANTES (Solo Criaturas)
       if (!esPersonaje && variantes.length > 0) {
         const { error: varError } = await supabase
-          .from('criatura_variantes')
+          .from("criatura_variantes")
           .upsert(
             variantes.map(v => ({
               ...v,
               criatura_id: data.id 
             })),
-            { onConflict: 'id' }
+            { onConflict: "id" }
           );
         
         if (varError) throw varError;
         await fetchVariantes(data.id);
       }
 
-      if (onUpdate) await onUpdate(); 
+      // IMPORTANTE: Primero cambiamos el modo edición, luego notificamos al padre
       setEditMode(false);
+      if (onUpdate) {
+        await onUpdate(); 
+      }
+      
       alert("Sincronización con el Archivo exitosa.");
 
     } catch (err) {
