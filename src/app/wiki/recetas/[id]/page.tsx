@@ -1,16 +1,20 @@
 "use client";
 import React from "react";
 import RecetasPage from "@/components/features/recetas";
+import { use } from "react"; // Importamos 'use' para desenvolver la promesa
 
-// Este componente recibe 'params' automáticamente de Next.js
-export default function DetalleRecetaPage({ params }: { params: { id: string } }) {
+// Definimos la interfaz correcta para Next.js 15/16
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function DetalleRecetaPage({ params }: PageProps) {
+  // 'use' desenvolverá la promesa de los params de forma segura en Client Components
+  const resolvedParams = use(params);
+
   return (
     <main>
-      {/* Le pasamos el 'id' al componente de features.
-        Tendremos que ir a 'features/recetas.tsx' y decirle:
-        "Si recibes un ID, no muestres la lista, muestra solo esta receta".
-      */}
-      <RecetasPage selectedRecipeId={params.id} />
+      <RecetasPage selectedRecipeId={resolvedParams.id} />
     </main>
   );
 }
