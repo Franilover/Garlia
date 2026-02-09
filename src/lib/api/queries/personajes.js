@@ -2,9 +2,9 @@ import { supabase } from '../supabase';
 
 export const personajesQueries = {
   getAll: async (opciones = {}) => {
-    // 1. Consultar Personajes
+    // 1. Consultar Personajes y sus relaciones
     let query = supabase
-      .from('personajes')
+      .from("personajes")
       .select(`
         *,
         relaciones:relaciones!personaje_id (*)
@@ -19,18 +19,17 @@ export const personajesQueries = {
     const { data: personajes, error: pError } = await query;
     if (pError) throw pError;
 
-    // 2. CORRECCIÓN AQUÍ: Eliminamos 'url' del select para evitar el error 400
-    // Solo pedimos lo que tu tabla SÍ tiene según la captura
+    // 2. Consultar canciones (sin la columna 'url' que no existe)
     const { data: canciones, error: cError } = await supabase
-      .from('canciones')
-      .select('id, titulo, personaje, links'); // Quitamos 'url' de aquí
+      .from("canciones")
+      .select("id, titulo, personaje, links");
 
     if (cError) {
       console.error("Error cargando canciones vinculadas:", cError);
       return { data: personajes, error: null };
     }
 
-    // 3. Vinculación en memoria
+    // 3. Vincular en memoria para que cada personaje tenga su array de objetos canción
     const personajesConCanciones = personajes.map(personaje => ({
       ...personaje,
       canciones: canciones.filter(cancion => cancion.personaje === personaje.nombre)
@@ -41,21 +40,20 @@ export const personajesQueries = {
   
   getById: async (id) => {
     const { data: personaje, error: pError } = await supabase
-      .from('personajes')
+      .from("personajes")
       .select(`
         *,
         relaciones:relaciones!personaje_id (*)
       `)
-      .eq('id', id)
+      .eq("id", id)
       .single();
 
     if (pError) throw pError;
 
-    // CORRECCIÓN AQUÍ: Eliminamos 'url' también en el getById
     const { data: canciones, error: cError } = await supabase
-      .from('canciones')
-      .select('id, titulo, personaje, links') // Solo campos existentes
-      .eq('personaje', personaje.nombre);
+      .from("canciones")
+      .select("id, titulo, personaje, links")
+      .eq("personaje", personaje.nombre);
 
     if (cError) console.error("Error al obtener canciones del personaje:", cError);
 
@@ -68,31 +66,43 @@ export const personajesQueries = {
     };
   },
 
-  // El método update se mantiene igual ya que usa los IDs
+  /**
+   * ACTUALIZADO: Retorna directamente los datos para evitar el crash en el cliente
+   */
   update: async (id, datos) => {
     const { canciones, ...datosParaUpdate } = datos;
+
+    // A. Actualizar datos base del personaje
     const { data: personajeActualizado, error: uError } = await supabase
-      .from('personajes')
+      .from("personajes")
       .update(datosParaUpdate)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (uError) throw uError;
 
+    // B. Sincronizar canciones por ID
     if (canciones && Array.isArray(canciones)) {
+      // Limpiar vinculaciones previas (usando el nombre actualizado)
       await supabase
-        .from('canciones')
+        .from("canciones")
         .update({ personaje: null })
-        .eq('personaje', personajeActualizado.nombre);
+        .eq("personaje", personajeActualizado.nombre);
 
       if (canciones.length > 0) {
-        await supabase
-          .from('canciones')
+        const { error: musicError } = await supabase
+          .from("canciones")
           .update({ personaje: personajeActualizado.nombre })
-          .in('id', canciones);
+          .in("id", canciones);
+          
+        if (musicError) throw musicError;
       }
     }
-    return personajesQueries.getById(id);
+
+    // C. RESPUESTA FINAL: Obtenemos el objeto completo y devolvemos SOLO el .data
+    // Esto evita que useSupabaseData reciba un objeto {data: {..}} anidado.
+    const respuestaDetallada = await personajesQueries.getById(id);
+    return respuestaDetallada.data; 
   }
 };
