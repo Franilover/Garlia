@@ -109,16 +109,19 @@ export default function CancionDetalle() {
     if (!nuevoLinkTitulo.trim() || !nuevoLinkUrl.trim() || procesando) return;
     setProcesando(true);
     try {
-      const { data: freshData } = await supabase.from('canciones').select('links').eq('id', id).single();
-      let linksActuales = Array.isArray(freshData?.links) ? [...freshData.links] : [];
+      // Usamos el estado actual para evitar un SELECT extra que pueda fallar
+      let linksActuales = Array.isArray(cancion?.links) ? [...cancion.links] : [];
       const nuevoLink = { titulo: nuevoLinkTitulo.trim(), url: nuevoLinkUrl.trim() };
+      
       if (linkEditandoIndex !== null) {
         linksActuales[linkEditandoIndex] = nuevoLink;
       } else {
         linksActuales.push(nuevoLink);
       }
+
       const { error } = await supabase.from('canciones').update({ links: linksActuales }).eq('id', id);
       if (error) throw error;
+      
       setCancion(prev => ({ ...prev, links: linksActuales }));
       cancelarEdicionLink();
     } catch (error) {
@@ -145,21 +148,25 @@ export default function CancionDetalle() {
   const removeLink = async (index) => {
     if (!confirm("¿Eliminar este enlace?")) return;
     try {
-      const { data: freshData } = await supabase.from('canciones').select('links').eq('id', id).single();
-      const filtrados = (freshData?.links || []).filter((_, i) => i !== index);
+      const filtrados = (cancion?.links || []).filter((_, i) => i !== index);
       const { error } = await supabase.from('canciones').update({ links: filtrados }).eq('id', id);
       if (error) throw error;
       setCancion(prev => ({ ...prev, links: filtrados }));
       if (linkEditandoIndex === index) cancelarEdicionLink();
-    } catch (error) { alert("Error al borrar link"); }
+    } catch (error) { 
+      alert("Error al borrar link"); 
+    }
   };
 
   const handleUpdateEstado = async (nuevoEstado) => {
     try {
+      // Optimistic update
       setCancion(prev => ({ ...prev, estado: nuevoEstado }));
       const { error } = await supabase.from('canciones').update({ estado: nuevoEstado }).eq('id', id);
       if (error) throw error;
-    } catch (error) { fetchData(); }
+    } catch (error) { 
+      fetchData(); 
+    }
   };
 
   const handleCrearSeccion = async (e) => {
@@ -176,11 +183,16 @@ export default function CancionDetalle() {
         letra_romaji: nuevaLetraRomaji,
         orden: secciones.length + 1
       }]).select();
+      
       if (error) throw error;
       setSecciones(prev => [...prev, data[0]]);
       setShowAddModal(false);
       setNuevoNombre(""); setNuevaLetraEs(""); setNuevaLetraEn(""); setNuevaLetraJp(""); setNuevaLetraRomaji("");
-    } catch (error) { alert("Error al guardar"); } finally { setProcesando(false); }
+    } catch (error) { 
+      alert("Error al guardar la sección"); 
+    } finally { 
+      setProcesando(false); 
+    }
   };
 
   const handleUpdateSeccion = async (e) => {
@@ -195,23 +207,35 @@ export default function CancionDetalle() {
         letra_jp: editSecJp,
         letra_romaji: editSecRomaji
       }).eq('id', selectedSec.id);
+
       if (error) throw error;
+
       setSecciones(prev => prev.map(s => s.id === selectedSec.id ? { 
         ...s, 
         nombre_seccion: editSecNombre.toUpperCase(), 
         letra_es: editSecEs, letra_en: editSecEn, letra_jp: editSecJp, letra_romaji: editSecRomaji
       } : s));
       setShowEditSecModal(false);
-    } catch (error) { alert("Error al actualizar"); } finally { setProcesando(false); }
+    } catch (error) { 
+      alert("Error al actualizar"); 
+    } finally { 
+      setProcesando(false); 
+    }
   };
 
   const deleteSeccion = async () => {
     if (!confirm("¿Borrar sección?")) return;
+    setProcesando(true);
     try {
-      await supabase.from('secciones_cancion').delete().eq('id', selectedSec.id);
+      const { error } = await supabase.from('secciones_cancion').delete().eq('id', selectedSec.id);
+      if (error) throw error;
       setSecciones(prev => prev.filter(s => s.id !== selectedSec.id));
       setShowEditSecModal(false);
-    } catch (error) { alert("Error"); }
+    } catch (error) { 
+      alert("Error al borrar"); 
+    } finally {
+      setProcesando(false);
+    }
   };
 
   const openEditSec = (seccion) => {
@@ -336,8 +360,8 @@ export default function CancionDetalle() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 shadow-lg hover:bg-[#5A4D5F] transition-colors"><Save size={14} /> Guardar</button>
-                  <button type="button" onClick={deleteSeccion} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 hover:bg-red-100 transition-colors"><Trash2 size={14} /> Borrar</button>
+                  <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 shadow-lg hover:bg-[#5A4D5F] transition-colors"><Save size={14} /> {procesando ? "Guardando..." : "Guardar"}</button>
+                  <button type="button" onClick={deleteSeccion} disabled={procesando} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 hover:bg-red-100 transition-colors"><Trash2 size={14} /> Borrar</button>
                 </div>
               </form>
             </motion.div>
@@ -349,7 +373,6 @@ export default function CancionDetalle() {
         <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Volver al Cancionero
       </button>
 
-      {/* MODIFICACIÓN: Ancho dinámico del contenedor */}
       <div className={`mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4 transition-all duration-500 ${idiomasActivos.length > 1 ? 'max-w-7xl' : 'max-w-5xl'}`}>
         <aside className="space-y-6">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10">
@@ -445,14 +468,12 @@ export default function CancionDetalle() {
             <div className="space-y-12">
               {secciones.map((seccion, index) => (
                 <motion.div key={seccion.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="relative group">
-                  {/* MODIFICACIÓN: Ajuste de padding dinámico */}
                   <div className={`bg-white border border-[#6B5E70]/5 rounded-[2.5rem] transition-all hover:border-[#6B5E70]/20 hover:shadow-2xl hover:shadow-[#6B5E70]/5 ${idiomasActivos.length > 1 ? 'p-8 md:p-12' : 'p-10'}`}>
                     <div className="flex items-center justify-between mb-8">
                       <span className="bg-[#F1F5F9] text-[#6B5E70]/60 px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase italic">{seccion.nombre_seccion}</span>
                       {isAdmin && <button onClick={() => openEditSec(seccion)} className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"><Edit3 size={14} /></button>}
                     </div>
                     
-                    {/* MODIFICACIÓN: Ajuste de gap y bordes en grid */}
                     <div className={`grid gap-x-12 gap-y-8 ${idiomasActivos.length > 1 ? 'md:grid-cols-2 divide-x-2 divide-[#6B5E70]/5' : 'grid-cols-1'}`}>
                       {idiomasActivos.map((lang, i) => (
                         <div key={lang} className={`${i > 0 ? 'md:pl-12' : ''}`}>
@@ -461,7 +482,6 @@ export default function CancionDetalle() {
                               {lang === 'romaji' ? 'Reading' : lang}
                             </span>
                           )}
-                          {/* MODIFICACIÓN: Fuente adaptable para evitar wrap temprano */}
                           <div className={`text-[#6B5E70] leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90 transition-all ${idiomasActivos.length > 1 ? 'text-lg md:text-xl' : 'text-xl md:text-2xl'}`}>
                             {lang === 'es' && (seccion.letra_es || "---")}
                             {lang === 'en' && (seccion.letra_en || "---")}
