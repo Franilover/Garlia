@@ -1,36 +1,52 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Book, ChevronRight, Clock, Plus, Edit3, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/api/supabase';
-import { useSupabaseData } from '@/hooks/useSupabaseData'; // <--- Usamos tu Hook Maestro
-import { SmartImage } from '@/components/shared/display/SmartImage'; // <--- Usamos SmartImage
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { SmartImage } from '@/components/shared/display/SmartImage';
+
+// --- INTERFACES ---
+interface Libro {
+  id: string;
+  titulo: string;
+  sinopsis: string;
+  portada_url: string;
+  estado: string;
+  created_at: string;
+}
 
 const Biblioteca = () => {
-  // 1. Usamos tu Hook Maestro para tener Realtime y Cache automático
-  const { data: libros, loading, setData: setLibros } = useSupabaseData('libros', {
+  // 1. Hook Maestro: Gestiona la carga, el Realtime y la Caché global
+  const { data, loading, setData: setLibros } = useSupabaseData('libros', {
     order: { campo: 'created_at', asc: false }
   });
+
+  // Forzamos el tipado de los datos obtenidos
+  const libros = data as Libro[];
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   
-  const [selectedLibro, setSelectedLibro] = useState(null);
+  const [selectedLibro, setSelectedLibro] = useState<Libro | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Verificación de Admin (Mantenemos la lógica de sesión)
-  React.useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setIsAdmin(true);
-    });
+  // Verificación de sesión
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAdmin(!!session);
+    };
+    checkSession();
   }, []);
 
-  const openEditModal = (e, libro) => {
+  // --- MANEJADORES ---
+  const openEditModal = (e: React.MouseEvent, libro: Libro) => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedLibro(libro);
@@ -38,9 +54,9 @@ const Biblioteca = () => {
     setShowEditModal(true);
   };
 
-  const handleUpdateLibro = async (e) => {
+  const handleUpdateLibro = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editTitle.trim() || isUpdating) return;
+    if (!editTitle.trim() || isUpdating || !selectedLibro) return;
     setIsUpdating(true);
 
     const { error } = await supabase
@@ -49,26 +65,28 @@ const Biblioteca = () => {
       .eq('id', selectedLibro.id);
 
     if (!error) {
-      // Actualizamos el estado local y el caché global simultáneamente
-      setLibros(prev => prev.map(l => l.id === selectedLibro.id ? { ...l, titulo: editTitle.toUpperCase() } : l));
+      // Actualización optimista en el estado y caché global
+      setLibros((prev: Libro[]) => 
+        prev.map(l => l.id === selectedLibro.id ? { ...l, titulo: editTitle.toUpperCase() } : l)
+      );
       setShowEditModal(false);
     }
     setIsUpdating(false);
   };
 
-  const handleAddLibro = async (e) => {
+  const handleAddLibro = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoTitulo.trim() || isUpdating) return;
     setIsUpdating(true);
 
-    const { data, error } = await supabase.from('libros').insert([{ 
+    const { data: insertedData, error } = await supabase.from('libros').insert([{ 
       titulo: nuevoTitulo.toUpperCase(),
       sinopsis: "Nueva crónica por escribir...",
       estado: "EN PROCESO"
     }]).select();
 
-    if (!error && data) {
-      setLibros(prev => [data[0], ...prev]);
+    if (!error && insertedData) {
+      setLibros((prev: Libro[]) => [insertedData[0], ...prev]);
       setShowAddModal(false);
       setNuevoTitulo("");
     }
@@ -86,7 +104,7 @@ const Biblioteca = () => {
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20">
       
-      {/* MODALES (Edit y Add) - Sin cambios mayores, solo limpieza de encoding */}
+      {/* MODAL: EDITAR TÍTULO */}
       <AnimatePresence>
         {showEditModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
@@ -96,7 +114,7 @@ const Biblioteca = () => {
               <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Modificar Título</h3>
               <form onSubmit={handleUpdateLibro} className="space-y-6">
                 <input autoFocus type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
-                <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20">
+                <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20 active:scale-95 transition-all">
                   {isUpdating ? "Guardando..." : "Actualizar Registro"}
                 </button>
               </form>
@@ -105,6 +123,7 @@ const Biblioteca = () => {
         )}
       </AnimatePresence>
 
+      {/* MODAL: AÑADIR LIBRO */}
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
@@ -114,7 +133,7 @@ const Biblioteca = () => {
               <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nueva Crónica</h3>
               <form onSubmit={handleAddLibro} className="space-y-6">
                 <input autoFocus type="text" placeholder="TÍTULO DEL LIBRO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
-                <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20">
+                <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20 active:scale-95 transition-all">
                   {isUpdating ? "Sellando..." : "Crear Libro"}
                 </button>
               </form>
@@ -123,14 +142,13 @@ const Biblioteca = () => {
         )}
       </AnimatePresence>
 
+      {/* HEADER DE BIBLIOTECA */}
       <div className="max-w-6xl mx-auto pt-16 px-6 mb-12 flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3">
             <Book size={32} /> BIBLIOTECA
           </h1>
-          <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2">
-            Explora los relatos del mundo
-          </p>
+          <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2">Explora los relatos del mundo</p>
         </div>
         {isAdmin && (
           <button 
@@ -142,10 +160,10 @@ const Biblioteca = () => {
         )}
       </div>
 
+      {/* GRID DE LIBROS */}
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
         {libros.map((libro) => (
           <div key={libro.id} className="relative group">
-            
             {isAdmin && (
               <button 
                 onClick={(e) => openEditModal(e, libro)}
@@ -158,7 +176,6 @@ const Biblioteca = () => {
             <Link href={`/wiki/libros/${libro.id}`}>
               <motion.div whileHover={{ y: -10 }} className="cursor-pointer">
                 <div className="relative aspect-[3/4] rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-white">
-                  {/* Cambio: Usamos SmartImage en lugar de img nativa */}
                   <SmartImage 
                     src={libro.portada_url || "/placeholder-cover.jpg"} 
                     alt={libro.titulo}
@@ -175,11 +192,9 @@ const Biblioteca = () => {
                   <h2 className="text-[#6B5E70] font-black uppercase text-base group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tight">
                     {libro.titulo}
                   </h2>
-                  
                   <p className="text-[#6B5E70]/50 text-xs mt-2 line-clamp-3 italic leading-relaxed font-medium">
                     &quot;{libro.sinopsis}&quot;
                   </p>
-
                   <div className="flex items-center gap-4 mt-4 text-[#6B5E70]/30 font-bold text-[9px] uppercase tracking-widest">
                     <span className="flex items-center gap-1.5"><Clock size={12} /> Reciente</span>
                     <span className="flex items-center gap-1.5"><ChevronRight size={12} /> Abrir</span>

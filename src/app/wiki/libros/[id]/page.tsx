@@ -1,67 +1,84 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/api/supabase';
 import { ChevronLeft, Play, ListOrdered, Plus, Trash2, X, Edit3, Save, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SmartImage } from '@/components/shared/display/SmartImage';
+import { useSupabaseData } from '@/hooks/useSupabaseData'; // Tu hook personalizado
+import { cn } from '@/lib/utils';
+
+// Definimos la interfaz para el Capítulo
+interface Capitulo {
+  id: string;
+  titulo_capitulo: string;
+  orden: number;
+  fecha_publicacion: string;
+  libro_id: string;
+}
+
+interface Libro {
+  id: string;
+  titulo: string;
+  sinopsis: string;
+  portada_url: string;
+  fecha_proximo_capitulo?: string;
+}
 
 export default function LibroDetalle() {
   const params = useParams();
-  const id = params?.id;
+  const id = params?.id as string;
   const router = useRouter();
   
-  const [libro, setLibro] = useState(null);
-  const [capitulos, setCapitulos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [libro, setLibro] = useState<Libro | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [procesando, setProcesando] = useState(false);
 
+  // --- MODALES ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditCapModal, setShowEditCapModal] = useState(false);
   
+  // --- FORMULARIOS ---
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [nuevaFecha, setNuevaFecha] = useState(new Date().toISOString().split('T')[0]); 
-  const [selectedCap, setSelectedCap] = useState(null);
+  const [selectedCap, setSelectedCap] = useState<Capitulo | null>(null);
   const [editCapTitle, setEditCapTitle] = useState("");
   const [editCapFecha, setEditCapFecha] = useState("");
-  const [procesando, setProcesando] = useState(false);
 
-  // Memorizamos el fetch para poder reutilizarlo sin bucles
-  const fetchData = useCallback(async () => {
-    if (!id) return;
-    try {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      const esAdmin = !!session;
-      setIsAdmin(esAdmin);
+  // --- INTEGRACIÓN CON HOOK DE DATOS (Caché + Realtime) ---
+  const { 
+    data: capitulosRaw, 
+    loading: loadingCaps, 
+    refetch: refetchCaps 
+  } = useSupabaseData('capitulos', {
+    select: "*",
+    order: { campo: 'orden', asc: true }
+  });
 
-      // 1. Obtener datos del libro
-      const { data: libroData } = await supabase.from('libros').select('*').eq('id', id).single();
-      if (libroData) setLibro(libroData);
-
-      // 2. Obtener capítulos con lógica de visibilidad
-      const hoy = new Date().toISOString().split('T')[0];
-      let query = supabase.from('capitulos').select('*').eq('libro_id', id);
-
-      if (!esAdmin) {
-        query = query.lte('fecha_publicacion', hoy);
-      }
-
-      const { data: capsData } = await query.order('orden', { ascending: true });
-      setCapitulos(capsData || []);
-    } catch (err) {
-      console.error("Error cargando detalle:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  // Filtramos los capítulos por libro y por fecha (si no es admin)
+  const capitulos = useMemo(() => {
+    const hoy = new Date().toISOString().split('T')[0];
+    return (capitulosRaw as Capitulo[])
+      .filter(cap => cap.libro_id === id)
+      .filter(cap => isAdmin || cap.fecha_publicacion <= hoy);
+  }, [capitulosRaw, id, isAdmin]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAdmin(!!session);
 
-  const handleCrearCapitulo = async (e) => {
+      if (id) {
+        const { data } = await supabase.from('libros').select('*').eq('id', id).single();
+        if (data) setLibro(data);
+      }
+    };
+    checkUser();
+  }, [id]);
+
+  // --- ACCIONES ---
+  const handleCrearCapitulo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoTitulo.trim() || procesando) return;
     setProcesando(true);
@@ -77,14 +94,14 @@ export default function LibroDetalle() {
     if (!error) {
       setShowAddModal(false);
       setNuevoTitulo("");
-      fetchData(); // Refresco suave en lugar de reload()
+      refetchCaps(); // Sincroniza la caché
     }
     setProcesando(false);
   };
 
-  const handleUpdateCapitulo = async (e) => {
+  const handleUpdateCapitulo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editCapTitle.trim() || procesando) return;
+    if (!editCapTitle.trim() || !selectedCap || procesando) return;
     setProcesando(true);
     const { error } = await supabase.from('capitulos').update({ 
         titulo_capitulo: editCapTitle.toUpperCase(),
@@ -93,23 +110,23 @@ export default function LibroDetalle() {
 
     if (!error) {
       setShowEditCapModal(false);
-      fetchData();
+      refetchCaps();
     }
     setProcesando(false);
   };
 
   const deleteCapitulo = async () => {
-    if (!confirm("¿Deseas eliminar permanentemente este capítulo?")) return;
+    if (!selectedCap || !confirm("¿Deseas eliminar permanentemente este capítulo?")) return;
     setProcesando(true);
     const { error } = await supabase.from('capitulos').delete().eq('id', selectedCap.id);
     if (!error) {
       setShowEditCapModal(false);
-      fetchData();
+      refetchCaps();
     }
     setProcesando(false);
   };
 
-  const openEditCap = (e, cap) => {
+  const openEditCap = (e: React.MouseEvent, cap: Capitulo) => {
     e.stopPropagation();
     setSelectedCap(cap);
     setEditCapTitle(cap.titulo_capitulo);
@@ -117,7 +134,7 @@ export default function LibroDetalle() {
     setShowEditCapModal(true);
   };
 
-  if (loading) return (
+  if (loadingCaps && !libro) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD] text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
       Consultando archivos...
     </div>
@@ -126,7 +143,7 @@ export default function LibroDetalle() {
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20 relative">
       
-      {/* MODAL: NUEVO CAPÍTULO */}
+      {/* MODALES (Mantienen tu estructura original) */}
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
@@ -145,10 +162,7 @@ export default function LibroDetalle() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
 
-      {/* MODAL: GESTIONAR CAPÍTULO */}
-      <AnimatePresence>
         {showEditCapModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditCapModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
@@ -184,7 +198,7 @@ export default function LibroDetalle() {
           <div className="aspect-[3/4] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-white">
             <SmartImage 
               src={libro?.portada_url || "/placeholder-cover.jpg"} 
-              alt={libro?.titulo} 
+              alt={libro?.titulo || "Libro"} 
               className="w-full h-full"
             />
           </div>
