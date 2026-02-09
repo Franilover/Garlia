@@ -5,7 +5,7 @@ import { X, Edit3, Save, Plus, Trash2, Music, Users, Image as ImageIcon, Zap } f
 import Relaciones from './relaciones'; 
 import { useDetalleMaestro } from '@/hooks/useDetalleMaestro'; 
 
-// IMPORTANTE: Importamos ambos componentes del mismo archivo
+// IMPORTANTE: Estos componentes ahora manejan la lógica de la tabla independiente 'canciones'
 import { SeccionMusica, SelectorMusicaAdmin } from './SeccionMusica';
 
 export default function DetalleMaestro({ 
@@ -19,8 +19,16 @@ export default function DetalleMaestro({
     editCanciones, setEditCanciones, setEditRelaciones
   } = useDetalleMaestro(data, onUpdate);
 
-  const esCriatura = data && (!data.hasOwnProperty('canciones') || 'puntos_vida' in data);
-  const tieneContenidoInferior = !esCriatura && (editMode || data?.relaciones?.length > 0 || data?.canciones?.length > 0);
+  // Lógica para detectar si es criatura o personaje (ajustada para la nueva DB)
+  const esCriatura = data && (!data.hasOwnProperty('nombre') || 'puntos_vida' in data);
+  
+  // Ahora comprobamos si hay canciones en el array (viniendo del join de Supabase)
+  const tieneContenidoInferior = !esCriatura && (
+    editMode || 
+    (data?.relaciones && data.relaciones.length > 0) || 
+    (data?.canciones && data.canciones.length > 0)
+  );
+
   const [loadingRelaciones, setLoadingRelaciones] = useState(!esCriatura && !data?.relaciones);
 
   useEffect(() => {
@@ -75,19 +83,26 @@ export default function DetalleMaestro({
                 }`}
               >
                 {editMode ? <Save size={22} /> : <Edit3 size={22} />}
-                {editMode && <span className="text-xs font-black uppercase tracking-widest text-white">{saving ? 'Guardando...' : 'Guardar'}</span>}
+                {editMode && (
+                  <span className="text-xs font-black uppercase tracking-widest text-white">
+                    {saving ? 'Guardando...' : 'Guardar'}
+                  </span>
+                )}
               </button>
             )}
-            <button onClick={onClose} className="p-4 bg-primary/5 text-primary rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-primary/10">
+            <button 
+              onClick={onClose} 
+              className="p-4 bg-primary/5 text-primary rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-primary/10"
+            >
               <X size={22} />
             </button>
           </div>
 
           <div className="flex flex-col lg:flex-row items-stretch border-b border-primary/5">
-            {/* --- PANEL IZQUIERDO: IMAGEN CON INICIAL --- */}
+            {/* --- PANEL IZQUIERDO: IMAGEN --- */}
             <div className="w-full lg:w-[45%] bg-linear-to-br from-primary/5 to-white p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-125">
               <div className="absolute inset-0 opacity-[0.05] pointer-events-none italic font-black text-[25rem] flex items-center justify-center text-primary select-none">
-                {data.nombre[0]}
+                {data.nombre ? data.nombre[0] : '?'}
               </div>
               <div className="relative w-full aspect-square max-w-120 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-white group">
                 <motion.img 
@@ -114,7 +129,9 @@ export default function DetalleMaestro({
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 ml-4 mb-2 block italic">{esCriatura ? 'Descripción de la Especie' : 'Biografía del Personaje'}</label>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 ml-4 mb-2 block italic">
+                        {esCriatura ? 'Descripción de la Especie' : 'Biografía del Personaje'}
+                      </label>
                       <textarea 
                         value={editDescripcion} 
                         onChange={(e) => setEditDescripcion(e.target.value)} 
@@ -123,7 +140,7 @@ export default function DetalleMaestro({
                     </div>
                   </div>
 
-                  {/* SECCIÓN VARIANTES EN MODO EDICIÓN */}
+                  {/* VARIANTES (Sólo para criaturas) */}
                   {esCriatura && (
                     <div className="pt-6 border-t border-primary/10">
                       <div className="flex items-center justify-between mb-6">
@@ -249,6 +266,8 @@ export default function DetalleMaestro({
           {/* Bloque Inferior: Vínculos y Música */}
           {tieneContenidoInferior && (
             <div className="bg-primary/2 p-10 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-20 items-start border-t border-primary/5">
+              
+              {/* VÍNCULOS / RELACIONES */}
               <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-4">
                   <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/20 italic flex items-center gap-2">
@@ -269,6 +288,7 @@ export default function DetalleMaestro({
                 )}
               </div>
               
+              {/* SOLILOQUIOS / MÚSICA */}
               <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-4">
                   <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/20 italic flex items-center gap-2">
@@ -284,10 +304,12 @@ export default function DetalleMaestro({
                   />
                 ) : (
                   <div className="min-h-50">
+                    {/* SeccionMusica ahora recibe el array de objetos directamente */}
                     {mostrarMusica && <SeccionMusica listaLinks={data?.canciones || []} />}
                   </div>
                 )}
               </div>
+
             </div>
           )}
         </div>
