@@ -84,7 +84,7 @@ export default function DetalleMaestro({
           </div>
 
           <div className="flex flex-col lg:flex-row items-stretch border-b border-primary/5">
-            {/* --- PANEL IZQUIERDO: IMAGEN --- */}
+            {/* --- PANEL IZQUIERDO: IMAGEN CON INICIAL --- */}
             <div className="w-full lg:w-[45%] bg-linear-to-br from-primary/5 to-white p-6 lg:p-12 flex items-center justify-center relative overflow-hidden min-h-125">
               <div className="absolute inset-0 opacity-[0.05] pointer-events-none italic font-black text-[25rem] flex items-center justify-center text-primary select-none">
                 {data.nombre[0]}
@@ -123,7 +123,7 @@ export default function DetalleMaestro({
                     </div>
                   </div>
 
-                  {/* SECCIÓN VARIANTES */}
+                  {/* SECCIÓN VARIANTES EN MODO EDICIÓN */}
                   {esCriatura && (
                     <div className="pt-6 border-t border-primary/10">
                       <div className="flex items-center justify-between mb-6">
@@ -217,7 +217,7 @@ export default function DetalleMaestro({
                     {varianteActiva ? varianteActiva.descripcion_variante : editDescripcion}
                   </p>
                   
-                  {/* SELECTOR DE VARIANTES */}
+                  {/* SELECTOR DE VARIANTES VISUAL */}
                   {variantes.length > 0 && (
                     <div className="flex flex-wrap gap-3 mt-12">
                       <button 
@@ -246,7 +246,7 @@ export default function DetalleMaestro({
             </div>
           </div>
 
-          {/* Bloque Inferior */}
+          {/* Bloque Inferior: Vínculos y Música */}
           {tieneContenidoInferior && (
             <div className="bg-primary/2 p-10 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-20 items-start border-t border-primary/5">
               <div className="space-y-6">
@@ -256,8 +256,19 @@ export default function DetalleMaestro({
                   </span>
                   <div className="h-px flex-1 bg-primary/10" />
                 </div>
-                {loadingRelaciones ? <div className="h-20 bg-white rounded-4xl w-full animate-pulse border border-primary/5" /> : <Relaciones nombrePersonaje={data.nombre} personajeId={data.id} datosRelaciones={data.relaciones || []} editMode={editMode} onChange={setEditRelaciones} />}
+                {loadingRelaciones ? (
+                  <div className="h-20 bg-white rounded-4xl w-full animate-pulse border border-primary/5" />
+                ) : (
+                  <Relaciones 
+                    nombrePersonaje={data.nombre} 
+                    personajeId={data.id} 
+                    datosRelaciones={data.relaciones || []} 
+                    editMode={editMode} 
+                    onChange={setEditRelaciones} 
+                  />
+                )}
               </div>
+              
               <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-4">
                   <span className="text-[12px] font-black uppercase tracking-[0.4em] text-primary/20 italic flex items-center gap-2">
@@ -267,7 +278,6 @@ export default function DetalleMaestro({
                 </div>
                 
                 {editMode ? (
-                  /* REEMPLAZADO: Ahora usamos el Selector Admin */
                   <SelectorMusicaAdmin 
                     idsSeleccionados={editCanciones} 
                     onChange={setEditCanciones} 
