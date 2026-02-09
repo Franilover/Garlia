@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/api/supabase';
+import React, { useEffect, useState, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { supabase } from "@/lib/api/supabase";
 import { 
   ChevronLeft, Plus, Trash2, X, Edit3, Save, User, List, Music, 
   EyeOff, AlertCircle, Loader2, ChevronDown, Link2, ExternalLink 
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { SmartImage } from '@/components/shared/display/SmartImage';
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { SmartImage } from "@/components/shared/display/SmartImage";
 
 export default function CancionDetalle() {
   const params = useParams();
@@ -21,7 +21,7 @@ export default function CancionDetalle() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [errorAcceso, setErrorAcceso] = useState(false);
   
-  const [idiomasActivos, setIdiomasActivos] = useState(['es']); 
+  const [idiomasActivos, setIdiomasActivos] = useState(["es"]); 
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditSecModal, setShowEditSecModal] = useState(false);
@@ -55,9 +55,9 @@ export default function CancionDetalle() {
       setIsAdmin(adminStatus);
 
       const { data: cancionData, error: errorC } = await supabase
-        .from('canciones')
-        .select('*')
-        .eq('id', id)
+        .from("canciones")
+        .select("*")
+        .eq("id", id)
         .single();
       
       if (errorC || !cancionData) {
@@ -73,10 +73,10 @@ export default function CancionDetalle() {
       setCancion(cancionData);
 
       const { data: seccionesData, error: errorS } = await supabase
-        .from('secciones_cancion')
-        .select('*')
-        .eq('cancion_id', id)
-        .order('orden', { ascending: true });
+        .from("secciones_cancion")
+        .select("*")
+        .eq("cancion_id", id)
+        .order("orden", { ascending: true });
       
       if (errorS) throw errorS;
       setSecciones(seccionesData || []);
@@ -109,7 +109,6 @@ export default function CancionDetalle() {
     if (!nuevoLinkTitulo.trim() || !nuevoLinkUrl.trim() || procesando) return;
     setProcesando(true);
     try {
-      // Usamos el estado actual para evitar un SELECT extra que pueda fallar
       let linksActuales = Array.isArray(cancion?.links) ? [...cancion.links] : [];
       const nuevoLink = { titulo: nuevoLinkTitulo.trim(), url: nuevoLinkUrl.trim() };
       
@@ -119,10 +118,11 @@ export default function CancionDetalle() {
         linksActuales.push(nuevoLink);
       }
 
-      const { error } = await supabase.from('canciones').update({ links: linksActuales }).eq('id', id);
+      const { error } = await supabase.from("canciones").update({ links: linksActuales }).eq("id", id);
       if (error) throw error;
       
       setCancion(prev => ({ ...prev, links: linksActuales }));
+      setShowLinksModal(false); // Cerramos el modal tras guardar
       cancelarEdicionLink();
     } catch (error) {
       console.error("Error en links:", error);
@@ -149,7 +149,7 @@ export default function CancionDetalle() {
     if (!confirm("¿Eliminar este enlace?")) return;
     try {
       const filtrados = (cancion?.links || []).filter((_, i) => i !== index);
-      const { error } = await supabase.from('canciones').update({ links: filtrados }).eq('id', id);
+      const { error } = await supabase.from("canciones").update({ links: filtrados }).eq("id", id);
       if (error) throw error;
       setCancion(prev => ({ ...prev, links: filtrados }));
       if (linkEditandoIndex === index) cancelarEdicionLink();
@@ -160,9 +160,8 @@ export default function CancionDetalle() {
 
   const handleUpdateEstado = async (nuevoEstado) => {
     try {
-      // Optimistic update
       setCancion(prev => ({ ...prev, estado: nuevoEstado }));
-      const { error } = await supabase.from('canciones').update({ estado: nuevoEstado }).eq('id', id);
+      const { error } = await supabase.from("canciones").update({ estado: nuevoEstado }).eq("id", id);
       if (error) throw error;
     } catch (error) { 
       fetchData(); 
@@ -174,7 +173,7 @@ export default function CancionDetalle() {
     if (!nuevoNombre.trim() || !nuevaLetraEs.trim() || procesando) return;
     setProcesando(true);
     try {
-      const { data, error } = await supabase.from('secciones_cancion').insert([{
+      const { data, error } = await supabase.from("secciones_cancion").insert([{
         cancion_id: id,
         nombre_seccion: nuevoNombre.toUpperCase(),
         letra_es: nuevaLetraEs,
@@ -185,11 +184,13 @@ export default function CancionDetalle() {
       }]).select();
       
       if (error) throw error;
-      setSecciones(prev => [...prev, data[0]]);
-      setShowAddModal(false);
-      setNuevoNombre(""); setNuevaLetraEs(""); setNuevaLetraEn(""); setNuevaLetraJp(""); setNuevaLetraRomaji("");
+      if (data) {
+        setSecciones(prev => [...prev, data[0]]);
+        setShowAddModal(false);
+        setNuevoNombre(""); setNuevaLetraEs(""); setNuevaLetraEn(""); setNuevaLetraJp(""); setNuevaLetraRomaji("");
+      }
     } catch (error) { 
-      alert("Error al guardar la sección"); 
+      alert("Error al guardar la sección: " + error.message); 
     } finally { 
       setProcesando(false); 
     }
@@ -200,13 +201,13 @@ export default function CancionDetalle() {
     if (!editSecNombre.trim() || !editSecEs.trim() || procesando) return;
     setProcesando(true);
     try {
-      const { error } = await supabase.from('secciones_cancion').update({ 
+      const { error } = await supabase.from("secciones_cancion").update({ 
         nombre_seccion: editSecNombre.toUpperCase(),
         letra_es: editSecEs,
         letra_en: editSecEn,
         letra_jp: editSecJp,
         letra_romaji: editSecRomaji
-      }).eq('id', selectedSec.id);
+      }).eq("id", selectedSec.id);
 
       if (error) throw error;
 
@@ -217,7 +218,7 @@ export default function CancionDetalle() {
       } : s));
       setShowEditSecModal(false);
     } catch (error) { 
-      alert("Error al actualizar"); 
+      alert("Error al actualizar: " + error.message); 
     } finally { 
       setProcesando(false); 
     }
@@ -227,7 +228,7 @@ export default function CancionDetalle() {
     if (!confirm("¿Borrar sección?")) return;
     setProcesando(true);
     try {
-      const { error } = await supabase.from('secciones_cancion').delete().eq('id', selectedSec.id);
+      const { error } = await supabase.from("secciones_cancion").delete().eq("id", selectedSec.id);
       if (error) throw error;
       setSecciones(prev => prev.filter(s => s.id !== selectedSec.id));
       setShowEditSecModal(false);
@@ -250,9 +251,9 @@ export default function CancionDetalle() {
 
   const getEstadoColor = (estado) => {
     switch(estado) {
-      case 'TERMINADA': return 'bg-[#6B5E70]/10 text-[#6B5E70] border-[#6B5E70]/20';
-      case 'EN PROCESO': return 'bg-[#FDFCFD] text-[#6B5E70]/80 border-[#6B5E70]/10';
-      default: return 'bg-[#F4F4F5] text-[#6B5E70]/60 border-[#E4E4E7]';
+      case "TERMINADA": return "bg-[#6B5E70]/10 text-[#6B5E70] border-[#6B5E70]/20";
+      case "EN PROCESO": return "bg-[#FDFCFD] text-[#6B5E70]/80 border-[#6B5E70]/10";
+      default: return "bg-[#F4F4F5] text-[#6B5E70]/60 border-[#E4E4E7]";
     }
   };
 
@@ -369,11 +370,11 @@ export default function CancionDetalle() {
         )}
       </AnimatePresence>
 
-      <button onClick={() => router.push('/wiki/canciones')} className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase group transition-colors italic">
+      <button onClick={() => router.push("/wiki/canciones")} className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase group transition-colors italic">
         <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Volver al Cancionero
       </button>
 
-      <div className={`mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4 transition-all duration-500 ${idiomasActivos.length > 1 ? 'max-w-7xl' : 'max-w-5xl'}`}>
+      <div className={`mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4 transition-all duration-500 ${idiomasActivos.length > 1 ? "max-w-7xl" : "max-w-5xl"}`}>
         <aside className="space-y-6">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10">
             <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo} className="w-full h-full object-cover" />
@@ -407,18 +408,18 @@ export default function CancionDetalle() {
             <h4 className="text-white/40 font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic">Vista Comparativa</h4>
             <div className="grid grid-cols-2 gap-2">
               {[
-                {id: 'es', label: 'ES'}, 
-                {id: 'en', label: 'EN'}, 
-                {id: 'jp', label: 'JP'}, 
-                {id: 'romaji', label: 'RO'}
+                {id: "es", label: "ES"}, 
+                {id: "en", label: "EN"}, 
+                {id: "jp", label: "JP"}, 
+                {id: "romaji", label: "RO"}
               ].map((l) => (
                 <button 
                   key={l.id} 
                   onClick={() => toggleIdioma(l.id)} 
                   className={`py-2 rounded-xl font-black text-[9px] transition-all uppercase border-2 ${
                     idiomasActivos.includes(l.id) 
-                    ? 'bg-white text-[#6B5E70] border-white scale-105' 
-                    : 'bg-transparent text-white/40 border-white/10 hover:border-white/30'
+                    ? "bg-white text-[#6B5E70] border-white scale-105" 
+                    : "bg-transparent text-white/40 border-white/10 hover:border-white/30"
                   }`}
                 >
                   {l.label}
@@ -468,25 +469,25 @@ export default function CancionDetalle() {
             <div className="space-y-12">
               {secciones.map((seccion, index) => (
                 <motion.div key={seccion.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="relative group">
-                  <div className={`bg-white border border-[#6B5E70]/5 rounded-[2.5rem] transition-all hover:border-[#6B5E70]/20 hover:shadow-2xl hover:shadow-[#6B5E70]/5 ${idiomasActivos.length > 1 ? 'p-8 md:p-12' : 'p-10'}`}>
+                  <div className={`bg-white border border-[#6B5E70]/5 rounded-[2.5rem] transition-all hover:border-[#6B5E70]/20 hover:shadow-2xl hover:shadow-[#6B5E70]/5 ${idiomasActivos.length > 1 ? "p-8 md:p-12" : "p-10"}`}>
                     <div className="flex items-center justify-between mb-8">
                       <span className="bg-[#F1F5F9] text-[#6B5E70]/60 px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase italic">{seccion.nombre_seccion}</span>
                       {isAdmin && <button onClick={() => openEditSec(seccion)} className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"><Edit3 size={14} /></button>}
                     </div>
                     
-                    <div className={`grid gap-x-12 gap-y-8 ${idiomasActivos.length > 1 ? 'md:grid-cols-2 divide-x-2 divide-[#6B5E70]/5' : 'grid-cols-1'}`}>
+                    <div className={`grid gap-x-12 gap-y-8 ${idiomasActivos.length > 1 ? "md:grid-cols-2 divide-x-2 divide-[#6B5E70]/5" : "grid-cols-1"}`}>
                       {idiomasActivos.map((lang, i) => (
-                        <div key={lang} className={`${i > 0 ? 'md:pl-12' : ''}`}>
+                        <div key={lang} className={`${i > 0 ? "md:pl-12" : ""}`}>
                           {idiomasActivos.length > 1 && (
                             <span className="text-[7px] font-black text-[#6B5E70]/20 uppercase tracking-[0.3em] block mb-4 italic">
-                              {lang === 'romaji' ? 'Reading' : lang}
+                              {lang === "romaji" ? "Reading" : lang}
                             </span>
                           )}
-                          <div className={`text-[#6B5E70] leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90 transition-all ${idiomasActivos.length > 1 ? 'text-lg md:text-xl' : 'text-xl md:text-2xl'}`}>
-                            {lang === 'es' && (seccion.letra_es || "---")}
-                            {lang === 'en' && (seccion.letra_en || "---")}
-                            {lang === 'jp' && (seccion.letra_jp || "---")}
-                            {lang === 'romaji' && (seccion.letra_romaji || "---")}
+                          <div className={`text-[#6B5E70] leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90 transition-all ${idiomasActivos.length > 1 ? "text-lg md:text-xl" : "text-xl md:text-2xl"}`}>
+                            {lang === "es" && (seccion.letra_es || "---")}
+                            {lang === "en" && (seccion.letra_en || "---")}
+                            {lang === "jp" && (seccion.letra_jp || "---")}
+                            {lang === "romaji" && (seccion.letra_romaji || "---")}
                           </div>
                         </div>
                       ))}
