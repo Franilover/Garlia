@@ -12,13 +12,12 @@ import {
   ImageIcon, Camera, Sparkles, 
   Users, CircleUser, Flower2, Sword,
   Footprints, Package, Map, BookOpen, Music,
-  Utensils // Icono para Recetas
+  Utensils 
 } from "lucide-react";
 
 const Navbar = () => {
   const currentPath = usePathname();
   
-  // Cast de tipos para solucionar: Property 'user'/'perfil' does not exist on type '{}'
   const { user, perfil } = useAuth() as { user: any; perfil: any };
   
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
@@ -41,7 +40,6 @@ const Navbar = () => {
 
   const puedeSubir = perfil?.rol === "admin" || perfil?.rol === "autor";
   
-  // Lógica exclusiva para Franilover
   const esFranilover = perfil?.username === "Franilover";
 
   const closeAll = () => { 
@@ -67,7 +65,7 @@ const Navbar = () => {
       <div className="grow flex justify-center">
         <Link href={puedeSubir ? "/upload" : "/"} onClick={closeAll} className={cn(
           "p-3 rounded-full transition-all duration-300",
-          currentPath === "/upload" ? "bg-white text-primary" : "bg-primary text-white"
+          currentPath === "/upload" ? "bg-white text-primary shadow-lg shadow-primary/20" : "bg-primary text-white shadow-lg shadow-primary/30"
         )}>
           {puedeSubir ? <Plus size={20} strokeWidth={3} /> : <Flower2 size={20} />}
         </Link>
@@ -104,9 +102,9 @@ const Navbar = () => {
                         <Sword size={14} /> "Mi Personaje"
                       </Link>
 
-                      {/* SOLO PARA FRANILOVER EN PC */}
+                      {/* ACTUALIZADO A MORADO PARA FRANILOVER EN PC */}
                       {esFranilover && (
-                        <Link href="/wiki/recetas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-amber-600/70 hover:bg-amber-50 rounded-xl transition-all border-t border-primary/5">
+                        <Link href="/wiki/recetas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-violet-600/70 hover:bg-violet-50 rounded-xl transition-all border-t border-primary/5">
                           <Utensils size={14} /> "Mis Recetas"
                         </Link>
                       )}
@@ -156,7 +154,7 @@ const Navbar = () => {
           
           <div className="flex items-center gap-6">
             <Link href="/" className="text-xl font-black italic tracking-tighter text-primary flex items-center gap-2">
-              <Flower2 size={20} /> <span>"FRANI"<span className="opacity-40">"LOVER"</span></span>
+              <Flower2 size={20} /> <span>"FRANI"<span className="text-violet-500 opacity-40">"LOVER"</span></span>
             </Link>
           </div>
         </div>
@@ -184,9 +182,9 @@ const Navbar = () => {
                     <Sword size={18}/> "Mi Personaje"
                   </Link>
 
-                  {/* SOLO PARA FRANILOVER EN MÓVIL */}
+                  {/* ACTUALIZADO A MORADO PARA FRANILOVER EN MÓVIL */}
                   {esFranilover && (
-                    <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-amber-50 text-amber-700 border border-amber-100 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                    <Link href="/wiki/recetas" onClick={closeAll} className="w-full p-5 bg-violet-50 text-violet-700 border border-violet-100 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                       <Utensils size={18}/> "Mis Recetas"
                     </Link>
                   )}
@@ -226,7 +224,7 @@ const Navbar = () => {
       </motion.div>
 
       {(openSubmenu || userMenuOpen) && (
-        <div className="fixed inset-0 z-999 bg-primary/20 backdrop-blur-sm" onClick={closeAll} />
+        <div className="fixed inset-0 z-999 bg-violet-900/10 backdrop-blur-sm" onClick={closeAll} />
       )}
     </>
   );
@@ -251,7 +249,7 @@ const PCGroup = ({ label, items, active, currentPath }: any) => (
 );
 
 const MobileSubItem = ({ href, label, icon, active, onClick }: any) => (
-  <Link href={href} onClick={onClick} className={cn("flex flex-col items-center gap-2 p-5 rounded-[30px] border transition-all", active ? "bg-primary border-primary text-white shadow-lg" : "bg-primary/5 border-transparent text-primary/40")}>
+  <Link href={href} onClick={onClick} className={cn("flex flex-col items-center gap-2 p-5 rounded-[30px] border transition-all", active ? "bg-primary border-primary text-white shadow-lg shadow-primary/20" : "bg-primary/5 border-transparent text-primary/40 hover:bg-primary/10")}>
     {icon}
     <span className="text-[9px] font-black uppercase tracking-widest leading-none text-center">{label}</span>
   </Link>
