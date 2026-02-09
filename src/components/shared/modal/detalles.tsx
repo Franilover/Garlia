@@ -3,13 +3,12 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DetalleMaestro from '../../features/DetalleMaestro/DetalleMaestro';
 
-// Si es .tsx, añade esta interfaz arriba. Si es .jsx, solo usa los parámetros.
 interface DetallesModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: any;
   onUpdate: (val: any) => void;
-  tags?: any[];         // El ? lo hace opcional
+  tags?: any[];
   mostrarMusica?: boolean;
 }
 
@@ -18,9 +17,9 @@ export default function DetallesModal({
   onClose, 
   data, 
   onUpdate,
-  tags = [],           // Valor por defecto
-  mostrarMusica = true // Valor por defecto
-}: DetallesModalProps) { // Si es .jsx, quita ": DetallesModalProps"
+  tags = [], 
+  mostrarMusica = true 
+}: DetallesModalProps) { 
   
   if (!isOpen || !data) return null;
 
@@ -30,7 +29,8 @@ export default function DetallesModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        // FIX: Cambiado z-[1100] por z-1100 como sugería el linter
+        className="fixed inset-0 z-1100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <div className="w-full max-w-7xl max-h-[95vh] overflow-y-auto">
@@ -43,7 +43,12 @@ export default function DetallesModal({
               isOpen={isOpen} 
               onClose={onClose} 
               data={data} 
-              onUpdate={onUpdate}
+              // FIX: Aquí envolvemos la función para que coincida con el tipo esperado
+              onUpdate={async () => {
+                if (onUpdate) {
+                  onUpdate(data);
+                }
+              }}
               tags={tags}
               mostrarMusica={mostrarMusica}
             />
