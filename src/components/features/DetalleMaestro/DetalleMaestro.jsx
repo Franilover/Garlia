@@ -12,14 +12,23 @@ import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 export default function DetalleMaestro({ 
   isOpen, onClose, data, tags = [], mostrarMusica = true, onUpdate 
 }) {
+  // Estado interno para mantener data estable durante actualizaciones
+  const [internalData, setInternalData] = useState(data);
+
+  // Sincronizar data solo cuando cambia y es válido
+  useEffect(() => {
+    if (data && data.id) {
+      setInternalData(data);
+    }
+  }, [data?.id]); // Solo actualizar cuando cambie el ID
+
   // --- 1. ADUANA DE SEGURIDAD ---
   // Si no hay data o no está abierto, no renderizamos nada.
-  // Esto evita que los hooks internos se ejecuten con datos nulos.
-  if (!isOpen || !data || !data.id) return null;
+  if (!isOpen || !internalData || !internalData.id) return null;
 
   return (
     <DetalleContenido 
-      data={data} 
+      data={internalData} 
       onClose={onClose} 
       tags={tags} 
       onUpdate={onUpdate} 

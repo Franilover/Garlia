@@ -147,6 +147,10 @@ export function useDetalleMaestro(data, onUpdate) {
 
       // --- PASOS DE SALIDA CRÍTICOS ---
       setEditMode(false);
+      setSaving(false); // Marcar como guardado ANTES de onUpdate
+      
+      // Esperar un tick para que React procese el cambio de estado
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       if (onUpdate) {
         await onUpdate(); 
@@ -161,7 +165,6 @@ export function useDetalleMaestro(data, onUpdate) {
     } catch (err) {
       console.error("Error crítico en handleSave:", err);
       alert("Error de esquema: " + err.message);
-    } finally {
       setSaving(false);
     }
   };
