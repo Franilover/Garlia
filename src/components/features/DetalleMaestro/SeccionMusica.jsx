@@ -40,8 +40,11 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
   };
 
   const safeIds = Array.isArray(idsSeleccionados) ? idsSeleccionados : [];
+  
   const toggle = (id) => {
-    const nuevos = safeIds.includes(id) ? safeIds.filter(i => i !== id) : [...safeIds, id];
+    const nuevos = safeIds.includes(id) 
+      ? safeIds.filter(i => i !== id) 
+      : [...safeIds, id];
     onChange(nuevos);
   };
 
@@ -52,16 +55,23 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
       <div 
         ref={buttonRef}
         onClick={handleOpen} 
-        className={`w-full p-5 bg-white border ${isOpen ? 'border-primary' : 'border-primary/10'} rounded-[2rem] flex items-center justify-between cursor-pointer shadow-inner transition-all`}
+        className={`w-full p-5 bg-white border ${isOpen ? 'border-primary' : 'border-primary/10'} rounded-[2rem] flex items-center justify-between cursor-pointer shadow-inner transition-all hover:border-primary/30`}
       >
         <div className="flex flex-wrap gap-2">
           {safeIds.length > 0 ? (
-            safeIds.map(id => (
-              <span key={id} className="bg-primary text-white text-[9px] font-black px-4 py-2 rounded-full flex items-center gap-2 uppercase italic tracking-wider shadow-sm">
-                {todas.find(c => c.id === id)?.titulo || '...'}
-                <X size={12} onClick={(e) => { e.stopPropagation(); toggle(id); }} className="hover:text-red-300" />
-              </span>
-            ))
+            safeIds.map(id => {
+              const item = todas.find(c => c.id === id);
+              return (
+                <span key={id} className="bg-primary text-white text-[9px] font-black px-4 py-2 rounded-full flex items-center gap-2 uppercase italic tracking-wider shadow-sm border border-white/10">
+                  {item?.titulo || '...'}
+                  <X 
+                    size={12} 
+                    onClick={(e) => { e.stopPropagation(); toggle(id); }} 
+                    className="hover:text-red-300 transition-colors" 
+                  />
+                </span>
+              );
+            })
           ) : (
             <span className="text-primary/30 text-[10px] font-black uppercase italic tracking-[0.2em] ml-2">Seleccionar registros sonoros...</span>
           )}
@@ -93,7 +103,9 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
                   key={c.id} 
                   onClick={() => toggle(c.id)} 
                   className={`p-4 rounded-2xl cursor-pointer mb-1.5 flex justify-between items-center transition-all ${
-                    safeIds.includes(c.id) ? 'bg-primary text-white shadow-lg' : 'hover:bg-primary/5 text-primary/60'
+                    safeIds.includes(c.id) 
+                      ? 'bg-primary text-white shadow-lg translate-x-1' 
+                      : 'hover:bg-primary/5 text-primary/60 hover:translate-x-1'
                   }`}
                 >
                   <span className="text-[11px] font-black uppercase italic tracking-tight">{c.titulo}</span>
@@ -111,14 +123,21 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
 
 export const SeccionMusica = ({ listaLinks = [] }) => {
   const linksLimpios = useMemo(() => {
-    if (!listaLinks) return [];
-    const base = Array.isArray(listaLinks) ? listaLinks : [listaLinks];
-    return base
-      .map(item => (typeof item === 'object' && item !== null ? item.links || item.url : item))
-      .flatMap(item => (typeof item === 'string' ? item.split(',') : item))
+    if (!listaLinks || !Array.isArray(listaLinks)) return [];
+
+    return listaLinks
+      .map(item => {
+        // Si es un objeto (viniendo de la tabla canciones), buscamos el campo de URL
+        if (typeof item === 'object' && item !== null) {
+          // Extraemos la URL del primer objeto en el JSONB 'links' o de la columna 'url'
+          return item.links?.[0]?.url || item.url || null;
+        }
+        return item;
+      })
       .filter(link => typeof link === 'string' && link.trim().length > 0)
       .map(link => {
         const l = link.trim();
+        // Si no es una URL completa, asumimos que es un ID de YouTube
         return !l.startsWith('http') ? `https://www.youtube.com/watch?v=${l}` : l;
       });
   }, [listaLinks]);
@@ -138,13 +157,16 @@ export const SeccionMusica = ({ listaLinks = [] }) => {
             whileHover={{ scale: 1.05, y: -8 }} 
             className="relative flex flex-col items-center justify-center p-10 bg-white border border-primary/5 rounded-[3rem] aspect-square overflow-hidden shadow-sm"
           >
+            {/* Número de fondo gigante */}
             <span className="absolute inset-0 flex items-center justify-center text-[10rem] font-black text-primary/5 italic select-none translate-y-4 group-hover:scale-110 transition-transform">
               {String(index + 1).padStart(2, '0')}
             </span>
+            
+            {/* Play e indicadores */}
             <div className="relative z-10 text-5xl font-black text-primary/10 group-hover:text-primary transition-colors italic mb-2">
               {String(index + 1).padStart(2, '0')}
             </div>
-            <PlayCircle size={40} className="relative z-20 text-primary/20 group-hover:text-primary transition-all shadow-white" />
+            <PlayCircle size={40} className="relative z-20 text-primary/20 group-hover:text-primary transition-all" />
           </motion.div>
         </Link>
       ))}
