@@ -9,7 +9,8 @@ import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { SmartImage } from '@/components/shared/display/SmartImage';
 
 const Canciones = () => {
-  const { data: canciones, loading, setData: setCanciones } = useSupabaseData('canciones', {
+  // Asegúrate de que useSupabaseData devuelva 'setData' y que este actualice el estado 'data'
+  const { data: canciones = [], loading, setData: setCanciones } = useSupabaseData('canciones', {
     order: { campo: 'created_at', asc: false }
   });
 
@@ -44,6 +45,7 @@ const Canciones = () => {
     fetchPersonajes();
   }, []);
 
+  // Filtrado reactivo basado en el estado actual de 'canciones'
   const cancionesAMostrar = isAdmin 
     ? canciones 
     : canciones.filter(c => c.visible === true);
@@ -65,18 +67,20 @@ const Canciones = () => {
     setIsUpdating(true);
 
     const linkWiki = `/wiki/canciones/${selectedCancion.id}`;
+    const nuevoTituloUpper = editTitulo.toUpperCase();
 
     const { error: updateError } = await supabase
       .from('canciones')
       .update({ 
-        titulo: editTitulo.toUpperCase(),
-        personaje: editPersonaje,
+        titulo: nuevoTituloUpper,
+        personaje: editPersonaje || null,
         estado: editEstado,
         visible: editVisible 
       })
       .eq('id', selectedCancion.id);
 
     if (!updateError) {
+      // Lógica de actualización de personajes (se mantiene igual pero con await asegurado)
       if (selectedCancion.personaje && selectedCancion.personaje !== editPersonaje) {
         const pAnterior = listaPersonajes.find(p => p.nombre === selectedCancion.personaje);
         if (pAnterior) {
@@ -98,9 +102,10 @@ const Canciones = () => {
         }
       }
 
+      // ACTUALIZACIÓN LOCAL: Crucial para que se vea el cambio sin refrescar
       setCanciones(prev => prev.map(c => 
         c.id === selectedCancion.id 
-          ? { ...c, titulo: editTitulo.toUpperCase(), personaje: editPersonaje, estado: editEstado, visible: editVisible } 
+          ? { ...c, titulo: nuevoTituloUpper, personaje: editPersonaje, estado: editEstado, visible: editVisible } 
           : c
       ));
       setShowEditModal(false);
@@ -121,8 +126,9 @@ const Canciones = () => {
       visible: false 
     }]).select();
 
-    if (!error && data?.[0]) {
+    if (!error && data && data.length > 0) {
       const nuevaCancion = data[0];
+      
       if (nuevoPersonaje) {
         const p = listaPersonajes.find(per => per.nombre === nuevoPersonaje);
         if (p) {
@@ -134,6 +140,7 @@ const Canciones = () => {
         }
       }
 
+      // ACTUALIZACIÓN LOCAL: Insertar la nueva canción al principio de la lista
       setCanciones(prev => [nuevaCancion, ...prev]);
       setShowAddModal(false);
       setNuevoTitulo("");
@@ -222,8 +229,8 @@ const Canciones = () => {
                   <option value="">SIN PERSONAJE</option>
                   {listaPersonajes.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre.toUpperCase()}</option>)}
                 </select>
-                <button type="submit" disabled={isUpdating} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg">
-                  {isUpdating ? "Creando..." : "Crear Canción"}
+                <button type="submit" disabled={isUpdating} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg flex justify-center items-center gap-2">
+                  {isUpdating ? <Loader2 className="animate-spin" size={14}/> : "Crear Canción"}
                 </button>
               </form>
             </motion.div>
