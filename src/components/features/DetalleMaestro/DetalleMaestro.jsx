@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Edit3, Save, Plus, Trash2, Music, Users, 
-  Image as ImageIcon, Zap, Binary, Sparkles 
+  Binary 
 } from "lucide-react";
 import Relaciones from "./relaciones"; 
 import { useDetalleMaestro } from "@/hooks/useDetalleMaestro"; 
@@ -12,6 +12,9 @@ import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 export default function DetalleMaestro({ 
   isOpen, onClose, data, tags = [], mostrarMusica = true, onUpdate 
 }) {
+  // 1. EL FIX CRÍTICO: Si no hay data o no está abierto, abortamos antes de ejecutar hooks
+  if (!isOpen || !data) return null;
+
   const {
     isAdmin, editMode, setEditMode, saving, handleSave,
     variantes, setVariantes,
@@ -20,10 +23,8 @@ export default function DetalleMaestro({
     editCanciones, setEditCanciones, setEditRelaciones
   } = useDetalleMaestro(data, onUpdate);
 
-  // Validación de seguridad para evitar errores de propiedad en nulo
-  if (!data || !isOpen) return null;
-
-  const esPersonaje = data && ("sobre" in data);
+  // 2. Protecciones de tipo y datos
+  const esPersonaje = data && typeof data === "object" && "sobre" in data;
   const esCriatura = data && !esPersonaje;
   
   const tieneContenidoInferior = !esCriatura && (
@@ -34,8 +35,9 @@ export default function DetalleMaestro({
 
   const [loadingRelaciones, setLoadingRelaciones] = useState(true);
 
+  // 3. Manejo del ciclo de vida de los datos
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && data?.id) {
       setLoadingRelaciones(true);
       if (esCriatura || (data?.relaciones && data.relaciones.length > 0)) {
         setLoadingRelaciones(false);
@@ -44,10 +46,16 @@ export default function DetalleMaestro({
         return () => clearTimeout(timer);
       }
     }
-  }, [isOpen, data?.id, esCriatura]); // Usamos data.id para ser más específicos
+  }, [isOpen, data?.id, esCriatura]);
 
   const agregarVariante = () => {
-    setVariantes([...variantes, { tipo: "Nueva Variante", descripcion_variante: "", imagen_url: "", criatura_id: data.id }]);
+    if (!data?.id) return;
+    setVariantes([...variantes, { 
+      tipo: "Nueva Variante", 
+      descripcion_variante: "", 
+      imagen_url: "", 
+      criatura_id: data.id 
+    }]);
   };
 
   const eliminarVariante = (index) => {
@@ -67,14 +75,13 @@ export default function DetalleMaestro({
       >
         <div className="bg-white rounded-[5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] relative border border-primary/10">
           
+          {/* BOTONES DE ACCIÓN SUPERIORES */}
           <div className="absolute top-10 right-10 z-50 flex items-center gap-4">
             {isAdmin && (
               <motion.button 
                 onClick={editMode ? async () => {
                   try {
                     await handleSave();
-                    // El editMode se suele desactivar dentro del hook, 
-                    // pero si falla, la excepción ocurre aquí.
                   } catch (err) {
                     console.error("Error al guardar:", err);
                   }
@@ -96,6 +103,7 @@ export default function DetalleMaestro({
           </div>
 
           <div className="flex flex-col lg:flex-row items-stretch">
+            {/* SECCIÓN IZQUIERDA: IMAGEN */}
             <div className="w-full lg:w-[48%] bg-slate-50 p-10 lg:p-24 flex items-center justify-center relative overflow-hidden min-h-[550px] lg:min-h-[800px]">
               <div className="relative w-full aspect-square max-w-140 group">
                 <motion.div className="relative w-full h-full rounded-full overflow-hidden border-[16px] border-white shadow-[0_40px_80px_-15px_rgba(0,0,0,0.35)]">
@@ -103,12 +111,13 @@ export default function DetalleMaestro({
                     key={imagenVisual} 
                     src={imagenVisual} 
                     className="w-full h-full object-cover" 
-                    alt={editNombre}
+                    alt={editNombre || "Imagen descriptiva"}
                   />
                 </motion.div>
               </div>
             </div>
 
+            {/* SECCIÓN DERECHA: TEXTO / EDICIÓN */}
             <div className="w-full lg:w-[52%] p-14 lg:p-28 flex flex-col justify-center bg-white">
               {editMode ? (
                 <div className="space-y-12 w-full">
@@ -176,7 +185,7 @@ export default function DetalleMaestro({
                     {varianteActiva ? varianteActiva.tipo : editNombre}
                   </h2>
                   <p className="text-slate-500 text-xl lg:text-2xl italic leading-relaxed whitespace-pre-wrap border-l-4 border-primary/5 pl-10">
-                    {varianteActiva ? varianteActiva.descripcion_variante : editDescripcion}
+                    {varianteActiva ? (varianteActiva.descripcion_variante || "Sin descripción") : editDescripcion}
                   </p>
                   {esCriatura && variantes.length > 0 && (
                     <div className="flex flex-wrap gap-4 mt-16">
@@ -191,6 +200,7 @@ export default function DetalleMaestro({
             </div>
           </div>
 
+          {/* SECCIÓN INFERIOR: RELACIONES Y MÚSICA */}
           {tieneContenidoInferior && (
             <div className="bg-slate-50 p-12 lg:p-24 grid grid-cols-1 xl:grid-cols-2 gap-24 border-t border-primary/5">
               <div className="space-y-10">
@@ -198,7 +208,9 @@ export default function DetalleMaestro({
                   <Users size={24} className="text-primary/30" />
                   <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Relaciones</h4>
                 </div>
-                {loadingRelaciones ? <div className="h-40 bg-white rounded-[3rem] animate-pulse" /> : (
+                {loadingRelaciones ? (
+                  <div className="h-40 bg-white rounded-[3rem] animate-pulse" />
+                ) : (
                   <Relaciones 
                     nombrePersonaje={data.nombre} 
                     personajeId={data.id} 
