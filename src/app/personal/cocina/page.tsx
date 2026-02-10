@@ -33,8 +33,7 @@ export default function CocinaMenuPage() {
           <MenuCard 
             href="/personal/cocina/recetas"
             title="Recetas"
-            subtitle="El Grimorio"
-            icon={<ChefHat size={42} />}
+             icon={<ChefHat size={42} />}
             description="Explora tus preparaciones, tiempos y pasos detallados."
             delay={0.1}
           />
@@ -43,7 +42,6 @@ export default function CocinaMenuPage() {
           <MenuCard 
             href="/personal/cocina/ingredientes"
             title="Despensa"
-            subtitle="Inventario"
             icon={<Utensils size={42} />}
             description="Control de stock, precios y valores nutricionales."
             delay={0.2}
@@ -71,7 +69,7 @@ export default function CocinaMenuPage() {
 }
 
 /* --- COMPONENTE INTERNO: CARD DE MENÚ --- */
-const MenuCard = ({ href, title, subtitle, icon, description, delay }: any) => (
+const MenuCard = ({ href, title, icon, description, delay }: any) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -84,10 +82,6 @@ const MenuCard = ({ href, title, subtitle, icon, description, delay }: any) => (
         <div className="w-20 h-20 bg-primary/5 text-primary rounded-[30px] flex items-center justify-center mb-8 transition-colors group-hover:bg-primary group-hover:text-white">
           {icon}
         </div>
-
-        <span className="text-[10px] font-black uppercase tracking-widest text-primary/30 mb-2 block italic">
-          "{subtitle}"
-        </span>
         
         <h2 className="text-3xl font-black uppercase tracking-tighter text-primary mb-4 flex items-center gap-3">
           {title}
