@@ -208,13 +208,19 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   }, [searchIng, dbIngredientes, formData.ingredientes]);
 
   const addIngrediente = (ing: Ingrediente) => {
-    // Lógica mejorada: Detectar unidad por nombre, categoría o campo agua_ml
+    // Lógica avanzada basada en tu tabla de Supabase
     let sugerencia = "100g";
     
-    // Si tiene agua_ml o la categoría es Lácteos, sugerimos ml
-    if (ing.categoria === "Lácteos" || (ing as any).agua_ml > 0) {
+    // 1. Prioridad: Si en la DB ya dice "unidad", usamos eso
+    if (ing.porcion_texto?.toLowerCase().includes("unidad")) {
+      sugerencia = ing.porcion_texto;
+    } 
+    // 2. Si es Lácteo o tiene agua, sugerimos ml
+    else if (ing.categoria === "Lácteos" || (ing as any).agua_ml > 0) {
       sugerencia = "100ml";
-    } else if (ing.nombre.toLowerCase().includes("huevo")) {
+    }
+    // 3. Casos específicos por nombre (Frutas o Proteínas comunes)
+    else if (["Frutas", "Proteínas"].includes(ing.categoria)) {
       sugerencia = "1 unidad";
     }
 
