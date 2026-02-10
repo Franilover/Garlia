@@ -37,7 +37,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     if (!receta) return (
       <div className="p-20 text-center">
         <p className="font-black text-primary uppercase">"Receta no encontrada"</p>
-        <Link href="/wiki/recetas" className="text-[10px] text-primary/40 underline uppercase mt-4 block">"Volver a la biblioteca"</Link>
+        <Link href="/personal/recetas" className="text-[10px] text-primary/40 underline uppercase mt-4 block">"Volver a la biblioteca"</Link>
       </div>
     );
 
@@ -281,7 +281,7 @@ const RecipeCard = ({ receta, index }: { receta: Receta; index: number }) => (
         <div className="flex items-center gap-1 text-[10px] font-bold"><Clock size={12} /> {receta.tiempo}</div>
         <div className="flex items-center gap-1 text-[10px] font-bold text-primary/60"><ChefHat size={12} /> {receta.dificultad}</div>
       </div>
-      <Link href={`/personal/recetas/${receta.id}`} className="flex items-center justify-between w-full p-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-primary/10">
+      <Link href={`/wiki/recetas/${receta.id}`} className="flex items-center justify-between w-full p-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-primary/10">
         "Ver Preparación" <ChevronRight size={14} />
       </Link>
     </div>
