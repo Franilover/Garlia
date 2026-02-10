@@ -189,10 +189,10 @@ const Navbar = () => {
 
                   {esFranilover && (
                     <>
-                      <Link href="/wiki/cocina" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                      <Link href="/personal/cocina" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                         <Utensils size={18}/> Mi Cocina
                       </Link>
-                      <Link href="/wiki/tareas" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                      <Link href="/personal/tareas" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                         <CheckSquare size={18}/> Mi Agenda
                       </Link>
                     </>
@@ -206,9 +206,9 @@ const Navbar = () => {
 
               {openSubmenu === "personal" && (
                 <div className="grid grid-cols-3 gap-2">
-                  <MobileSubItem href="/wiki/sobre-mi" label="Bio" active={currentPath === "/wiki/sobre-mi"} icon={<Smile size={18}/>} onClick={closeAll} />
-                  <MobileSubItem href="/wiki/dibujos" label="Dibujos" active={currentPath === "/wiki/dibujos"} icon={<ImageIcon size={18}/>} onClick={closeAll} />
-                  <MobileSubItem href="/wiki/fotos" label="Fotos" active={currentPath === "/wiki/fotos"} icon={<Camera size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/personal/sobre-mi" label="Bio" active={currentPath === "/personal/sobre-mi"} icon={<Smile size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/personal/dibujos" label="Dibujos" active={currentPath === "/personal/dibujos"} icon={<ImageIcon size={18}/>} onClick={closeAll} />
+                  <MobileSubItem href="/personal/fotos" label="Fotos" active={currentPath === "/personal/fotos"} icon={<Camera size={18}/>} onClick={closeAll} />
                 </div>
               )}
 
