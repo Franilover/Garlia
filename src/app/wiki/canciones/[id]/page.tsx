@@ -340,101 +340,235 @@ const SeccionModal = ({
   onRomajiChange,
   onSave,
   onDelete = null
-}) => (
-  <AnimatePresence>
-    {isOpen && (
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm"
-        />
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10 max-h-[90vh] overflow-y-auto custom-scrollbar"
-        >
-          <motion.button
-            whileHover={{ rotate: 90 }}
+}) => {
+  const [activeTab, setActiveTab] = React.useState("es");
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors"
+            className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white w-full max-w-3xl rounded-[2rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 max-h-[85vh] overflow-hidden flex flex-col"
           >
-            <X size={20} />
-          </motion.button>
-
-          <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">
-            {isEditing ? "Modificar Sección" : "Nueva Sección"}
-          </h3>
-
-          <form onSubmit={onSave} className="space-y-6">
-            <input
-              autoFocus
-              type="text"
-              placeholder="ESTROFA, CORO, PUENTE..."
-              value={nombre}
-              onChange={(e) => onNombreChange(e.target.value)}
-              className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-0 uppercase"
-            />
-
-            <div className="grid md:grid-cols-2 gap-4">
-              {IDIOMAS.map((lang) => {
-                const valores = {
-                  es: { label: "Español", value: es, onChange: onEsChange },
-                  en: { label: "Inglés", value: en, onChange: onEnChange },
-                  jp: { label: "Japonés", value: jp, onChange: onJpChange },
-                  romaji: { label: "Romaji", value: romaji, onChange: onRomajiChange }
-                };
-                const config = valores[lang.id];
-                return (
-                  <div key={lang.id}>
-                    <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">
-                      {config.label}
-                    </label>
-                    <textarea
-                      value={config.value}
-                      onChange={(e) => config.onChange(e.target.value)}
-                      rows={4}
-                      className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-xs text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-0 resize-none italic"
-                    />
-                  </div>
-                );
-              })}
+            {/* HEADER */}
+            <div className="p-6 border-b border-[#6B5E70]/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-[#6B5E70] font-black uppercase text-[11px] tracking-[0.3em] italic">
+                  {isEditing ? "✏️ Editar Sección" : "➕ Nueva Sección"}
+                </h3>
+              </div>
+              <motion.button
+                whileHover={{ rotate: 90 }}
+                onClick={onClose}
+                className="text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors"
+              >
+                <X size={20} />
+              </motion.button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {/* CONTENIDO */}
+            <div className="overflow-y-auto flex-1 p-6">
+              <form onSubmit={onSave} className="space-y-6">
+                {/* NOMBRE DE LA SECCIÓN */}
+                <div>
+                  <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase mb-2 block italic tracking-widest">
+                    Nombre de la sección
+                  </label>
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="ESTROFA, CORO, PUENTE, PRE-CORO..."
+                    value={nombre}
+                    onChange={(e) => onNombreChange(e.target.value)}
+                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] rounded-xl uppercase"
+                  />
+                </div>
+
+                {/* TABS DE IDIOMAS */}
+                <div className="border-b border-[#6B5E70]/10">
+                  <div className="flex gap-1 overflow-x-auto pb-2">
+                    {IDIOMAS.map((lang) => (
+                      <motion.button
+                        key={lang.id}
+                        type="button"
+                        onClick={() => setActiveTab(lang.id)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`px-4 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all whitespace-nowrap ${
+                          activeTab === lang.id
+                            ? "bg-[#6B5E70] text-white shadow-md"
+                            : "bg-[#6B5E70]/5 text-[#6B5E70]/60 hover:bg-[#6B5E70]/10"
+                        }`}
+                      >
+                        {lang.label} - {lang.nombre}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* TEXTAREAS CON TABS */}
+                <div className="space-y-3">
+                  {activeTab === "es" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-2"
+                    >
+                      <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase block italic">
+                        Español
+                      </label>
+                      <textarea
+                        value={es}
+                        onChange={(e) => onEsChange(e.target.value)}
+                        placeholder="Escribe la letra en español..."
+                        rows={8}
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 resize-none italic font-serif leading-relaxed"
+                      />
+                      <p className="text-[10px] text-[#6B5E70]/40 italic">{es.length} caracteres</p>
+                    </motion.div>
+                  )}
+
+                  {activeTab === "en" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-2"
+                    >
+                      <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase block italic">
+                        Inglés
+                      </label>
+                      <textarea
+                        value={en}
+                        onChange={(e) => onEnChange(e.target.value)}
+                        placeholder="Escribe la letra en inglés..."
+                        rows={8}
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 resize-none italic font-serif leading-relaxed"
+                      />
+                      <p className="text-[10px] text-[#6B5E70]/40 italic">{en.length} caracteres</p>
+                    </motion.div>
+                  )}
+
+                  {activeTab === "jp" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-2"
+                    >
+                      <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase block italic">
+                        Japonés
+                      </label>
+                      <textarea
+                        value={jp}
+                        onChange={(e) => onJpChange(e.target.value)}
+                        placeholder="Escribe la letra en japonés..."
+                        rows={8}
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 resize-none italic font-serif leading-relaxed"
+                      />
+                      <p className="text-[10px] text-[#6B5E70]/40 italic">{jp.length} caracteres</p>
+                    </motion.div>
+                  )}
+
+                  {activeTab === "romaji" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-2"
+                    >
+                      <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase block italic">
+                        Romaji (Reading)
+                      </label>
+                      <textarea
+                        value={romaji}
+                        onChange={(e) => onRomajiChange(e.target.value)}
+                        placeholder="Escribe la pronunciación romanizada..."
+                        rows={8}
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 resize-none italic font-serif leading-relaxed"
+                      />
+                      <p className="text-[10px] text-[#6B5E70]/40 italic">{romaji.length} caracteres</p>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* ESTADO DE VALIDACIÓN */}
+                {!nombre.trim() && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
+                  >
+                    <p className="text-[10px] text-yellow-800 font-bold italic">
+                      ⚠️ Debes ingresar un nombre para la sección
+                    </p>
+                  </motion.div>
+                )}
+
+                {!es.trim() && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
+                  >
+                    <p className="text-[10px] text-yellow-800 font-bold italic">
+                      ⚠️ La letra en español es obligatoria
+                    </p>
+                  </motion.div>
+                )}
+              </form>
+            </div>
+
+            {/* FOOTER CON BOTONES */}
+            <div className="p-6 border-t border-[#6B5E70]/10 bg-[#FDFCFD] flex gap-3">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                type="submit"
+                onClick={onClose}
+                disabled={isProcessing}
+                className="flex-1 px-4 py-3 rounded-xl border-2 border-[#6B5E70]/20 text-[#6B5E70] font-black uppercase text-[9px] hover:bg-[#6B5E70]/5 transition-colors"
+              >
+                Cancelar
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onSave}
                 disabled={isProcessing || !nombre.trim() || !es.trim()}
-                className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 shadow-lg hover:bg-[#5A4D5F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                type="submit"
+                className="flex-1 px-4 py-3 rounded-xl bg-[#6B5E70] text-white font-black uppercase text-[9px] shadow-lg hover:bg-[#5A4D5F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 <Save size={14} />
                 {isProcessing ? "Guardando..." : "Guardar"}
               </motion.button>
+
               {isEditing && onDelete && (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  type="button"
                   onClick={onDelete}
                   disabled={isProcessing}
-                  className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-3 rounded-xl bg-red-50 text-red-400 font-black uppercase text-[9px] border-2 border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                 >
                   <Trash2 size={14} />
                   Borrar
                 </motion.button>
               )}
             </div>
-          </form>
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
-);
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
 
 // ============================================================================
 // COMPONENTE PRINCIPAL
