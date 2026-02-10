@@ -182,7 +182,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   );
 };
 
-/* --- MODAL CON COLORES DE ALTO CONTRASTE --- */
+/* --- MODAL CON MENU DESPLEGABLE CORREGIDO --- */
 const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) => {
   const [loading, setLoading] = useState(false);
   const [searchIng, setSearchIng] = useState("");
@@ -201,7 +201,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   const [nuevoPaso, setNuevoPaso] = useState("");
 
   const filteredDbIngredientes = useMemo(() => {
-    if (!searchIng) return [];
+    if (!searchIng.trim()) return [];
     return dbIngredientes.filter(i => 
       i.nombre.toLowerCase().includes(searchIng.toLowerCase()) &&
       !formData.ingredientes.find(selected => selected.nombre === i.nombre)
@@ -251,7 +251,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
     >
       <motion.div 
         initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
@@ -268,11 +268,11 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-[9px] font-black uppercase opacity-60 ml-2 text-primary tracking-widest">"Nombre del plato"</label>
-                <input required className="w-full bg-slate-50 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary focus:border-primary/40 transition-colors" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
+                <input required className="w-full bg-slate-100 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary focus:border-primary/40 transition-colors" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
               </div>
               <div>
                 <label className="text-[9px] font-black uppercase opacity-60 ml-2 text-primary tracking-widest">"Categoría"</label>
-                <select className="w-full bg-slate-50 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary cursor-pointer" value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value as any})}>
+                <select className="w-full bg-slate-100 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary cursor-pointer" value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value as any})}>
                   <option value="General">"General"</option>
                   <option value="Postres">"Postres"</option>
                   <option value="Almuerzos">"Almuerzos"</option>
@@ -281,24 +281,51 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
               </div>
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/10">
+            {/* SECCIÓN DESPLEGABLE DE INGREDIENTES */}
+            <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/10 relative">
               <h3 className="text-[10px] font-black uppercase text-primary mb-4 flex items-center gap-2">
                 <Utensils size={14} /> "Ingredientes de tu Despensa"
               </h3>
+              
               <div className="relative mb-4">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40" size={14} />
-                <input type="text" placeholder='"BUSCAR EN MI DESPENSA..."' className="w-full bg-white border border-primary/10 rounded-xl py-3 pl-10 pr-4 text-[10px] font-bold uppercase outline-none text-primary focus:border-primary/40 transition-colors" value={searchIng} onChange={(e) => setSearchIng(e.target.value)} />
-                {filteredDbIngredientes.length > 0 && (
-                  <div className="absolute top-full left-0 w-full bg-white shadow-2xl rounded-xl mt-2 border border-primary/10 z-20 overflow-hidden">
-                    {filteredDbIngredientes.map(ing => (
-                      <button key={ing.id} type="button" onClick={() => addIngrediente(ing)} className="w-full p-4 text-left text-[10px] font-bold uppercase hover:bg-primary hover:text-white flex justify-between items-center transition-all">
-                        <span>{ing.nombre}</span>
-                        <Plus size={12} />
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={14} />
+                <input 
+                  type="text" 
+                  placeholder='"BUSCAR EN MI DESPENSA..."' 
+                  className="w-full bg-white border-2 border-primary/20 rounded-xl py-3 pl-10 pr-4 text-[10px] font-black uppercase outline-none text-primary focus:border-primary transition-colors" 
+                  value={searchIng} 
+                  onChange={(e) => setSearchIng(e.target.value)} 
+                />
+                
+                {/* DROPDOWN - FORZANDO VISIBILIDAD */}
+                <AnimatePresence>
+                  {filteredDbIngredientes.length > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute top-full left-0 w-full bg-white shadow-[0_10px_40px_rgba(0,0,0,0.2)] rounded-xl mt-2 border-2 border-primary z-[100] overflow-hidden"
+                    >
+                      {filteredDbIngredientes.map(ing => (
+                        <button 
+                          key={ing.id} 
+                          type="button" 
+                          onClick={() => addIngrediente(ing)} 
+                          className="w-full p-4 text-left text-[11px] font-black uppercase text-primary hover:bg-primary hover:text-white flex justify-between items-center transition-all border-b border-primary/5 last:border-none"
+                        >
+                          <span>{ing.nombre}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[8px] opacity-60">{ing.kcal} kcal</span>
+                            <Plus size={14} />
+                          </div>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
+
+              {/* Lista de ingredientes añadidos */}
               <div className="flex flex-wrap gap-2">
                 {formData.ingredientes.map((ing, idx) => (
                   <div key={idx} className="bg-primary text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 shadow-md">
@@ -312,7 +339,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
             <div>
               <label className="text-[9px] font-black uppercase opacity-60 ml-2 text-primary tracking-widest">"Pasos de Preparación"</label>
               <div className="flex gap-2 mb-3">
-                <input className="flex-1 bg-slate-50 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary focus:border-primary/40" value={nuevoPaso} onChange={e => setNuevoPaso(e.target.value)} placeholder='"Añadir un paso..."' />
+                <input className="flex-1 bg-slate-100 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary focus:border-primary/40" value={nuevoPaso} onChange={e => setNuevoPaso(e.target.value)} placeholder='"Añadir un paso..."' />
                 <button type="button" onClick={addPaso} className="p-4 bg-primary text-white rounded-2xl hover:brightness-110 shadow-lg shadow-primary/20"><Plus size={20} /></button>
               </div>
               <div className="space-y-2">
@@ -338,7 +365,6 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   );
 };
 
-/* --- RECIPE CARD --- */
 const RecipeCard = ({ receta, index }: { receta: Receta; index: number }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}
