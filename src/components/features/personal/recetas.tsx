@@ -37,14 +37,14 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     if (!receta) return (
       <div className="p-20 text-center">
         <p className="font-black text-primary uppercase">"Receta no encontrada"</p>
-        <Link href="/personal/recetas" className="text-[10px] text-primary/40 underline uppercase mt-4 block">"Volver a la biblioteca"</Link>
+        <Link href="/personal/cocina/recetas" className="text-[10px] text-primary/40 underline uppercase mt-4 block">"Volver a la biblioteca"</Link>
       </div>
     );
 
     return (
       <div className="min-h-screen bg-bg-main p-6">
         <div className="max-w-4xl mx-auto">
-          <Link href="/personal/recetas" className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors mb-8">
+          <Link href="/personal/cocina/recetas" className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors mb-8">
             <ArrowLeft size={14} /> "Volver a Recetas"
           </Link>
           
