@@ -1,6 +1,6 @@
 "use client";
 
-import Personal from "@/components/features/personal";
+import Personal from "@/components/features/personal/personal";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { LoadingState } from "@/components/shared/feedback/StateComponents";
 import { getMensaje } from "@/lib/config/constants";

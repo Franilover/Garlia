@@ -1,4 +1,4 @@
-import Personajes from "@/components/features/personajes";
+import Personajes from "@/components/features/wiki/personajes";
 
 export default function Page() {
   return <Personajes />;

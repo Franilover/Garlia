@@ -1,4 +1,4 @@
-import PureGridItems from "@/components/features/items";
+import PureGridItems from "@/components/features/personal/items";
 
 export default function Page() {
   return <PureGridItems />;
