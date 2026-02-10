@@ -1,9 +1,10 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/useSupabaseData"; 
 import { Receta, NuevaReceta } from "@/lib/types/recetas";
+import { Ingrediente } from "@/lib/types/cocina";
 import { recetasQueries } from "@/lib/api/queries/recetas"; 
 import {  
   Utensils,  
@@ -14,10 +15,17 @@ import {
   Flame,
   Plus,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Trash2
 } from "lucide-react";
 
-// 1. Añadimos la interfaz de Props para que TypeScript no se queje
+// Definimos la interfaz del objeto ingrediente para que TS no se queje
+interface IngredienteReceta {
+  nombre: string;
+  cantidad: string;
+  kcal?: number;
+}
+
 interface RecetasPageProps {
   selectedRecipeId?: string;
 }
@@ -28,7 +36,6 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   
   const { data: recipes, loading, error, refetch } = useSupabaseData<Receta>("recetas");
 
-  // 2. Lógica para mostrar el DETALLE de una receta
   if (selectedRecipeId) {
     const receta = recipes.find(r => String(r.id) === selectedRecipeId);
 
@@ -50,8 +57,8 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           
           <div className="bg-white rounded-[40px] border border-primary/10 overflow-hidden shadow-2xl">
             <div className="h-64 bg-primary/5 relative">
-               {receta.imagen_url && <img src={receta.imagen_url} className="w-full h-full object-cover" />}
-               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+               {receta.imagen_url && <img src={receta.imagen_url} className="w-full h-full object-cover" alt={receta.nombre} />}
+               <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
             </div>
             <div className="p-10">
               <span className="text-[10px] font-black uppercase text-primary/30 tracking-[0.2em]">{receta.categoria}</span>
@@ -68,15 +75,29 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                 </div>
               </div>
 
-              {/* Aquí puedes expandir con ingredientes e instrucciones de tu BD */}
               <div className="grid md:grid-cols-2 gap-12 text-primary">
                 <div>
                   <h3 className="font-black uppercase text-xs mb-4 tracking-widest text-primary/40 italic">"Ingredientes"</h3>
-                  <p className="text-sm leading-relaxed opacity-70">"Contenido en desarrollo..."</p>
+                  <ul className="space-y-2">
+                    {/* Casteamos a IngredienteReceta[] para evitar el error de 'string' */}
+                    {(receta.ingredientes as unknown as IngredienteReceta[])?.map((ing, i) => (
+                      <li key={i} className="text-[11px] font-bold uppercase border-b border-primary/5 pb-2 flex justify-between">
+                        <span>{ing.nombre}</span>
+                        <span className="text-primary/40">{ing.cantidad}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div>
                   <h3 className="font-black uppercase text-xs mb-4 tracking-widest text-primary/40 italic">"Preparación"</h3>
-                  <p className="text-sm leading-relaxed opacity-70">"Contenido en desarrollo..."</p>
+                  <div className="space-y-4">
+                    {receta.instrucciones?.map((paso, i) => (
+                      <div key={i} className="flex gap-4">
+                        <span className="text-[10px] font-black text-primary/20">{i + 1}</span>
+                        <p className="text-[11px] font-medium leading-relaxed opacity-70 uppercase">{paso}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -86,7 +107,6 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     );
   }
 
-  // 3. Lógica original de la LISTA (Se muestra si no hay selectedRecipeId)
   const filteredRecipes = recipes.filter((r) => 
     r.nombre.toLowerCase().includes(filter.toLowerCase()) ||
     r.categoria.toLowerCase().includes(filter.toLowerCase())
@@ -125,7 +145,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
             onClick={() => setIsModalOpen(true)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="border-2 border-dashed border-primary/10 rounded-[40px] flex flex-col items-center justify-center p-10 min-h-[250px] bg-white/50 hover:bg-primary/5 transition-colors group"
+            className="border-2 border-dashed border-primary/10 rounded-[40px] flex flex-col items-center justify-center p-10 min-h-62.5 bg-white/50 hover:bg-primary/5 transition-colors group"
           >
             <div className="p-4 bg-primary text-white rounded-full shadow-lg shadow-primary/20">
               <Plus size={32} />
@@ -136,7 +156,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           {loading ? (
             <>
               {[1, 2].map((n) => (
-                <div key={n} className="min-h-[250px] rounded-[40px] bg-primary/5 animate-pulse border border-primary/10 shadow-inner" />
+                <div key={n} className="min-h-62.5 rounded-[40px] bg-primary/5 animate-pulse border border-primary/10 shadow-inner" />
               ))}
             </>
           ) : (
@@ -164,10 +184,14 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   );
 };
 
-/* --- COMPONENTE MODAL (Sin cambios) --- */
+/* --- COMPONENTE MODAL --- */
 const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) => {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<NuevaReceta>({
+  const [searchIng, setSearchIng] = useState("");
+  const { data: dbIngredientes } = useSupabaseData<Ingrediente>("ingredientes");
+
+  // Usamos 'any' temporalmente para los ingredientes en el state si la interfaz NuevaReceta es rígida
+  const [formData, setFormData] = useState<Omit<NuevaReceta, 'ingredientes'> & { ingredientes: IngredienteReceta[] }>({
     nombre: "",
     categoria: "General",
     tiempo: "20 min",
@@ -177,11 +201,47 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
     descripcion: ""
   });
 
+  const [nuevoPaso, setNuevoPaso] = useState("");
+
+  const filteredDbIngredientes = useMemo(() => {
+    if (!searchIng) return [];
+    return dbIngredientes.filter(i => 
+      i.nombre.toLowerCase().includes(searchIng.toLowerCase()) &&
+      !formData.ingredientes.find(selected => selected.nombre === i.nombre)
+    ).slice(0, 5);
+  }, [searchIng, dbIngredientes, formData.ingredientes]);
+
+  const addIngrediente = (ing: Ingrediente) => {
+    const cantidad = prompt(`"Cantidad para ${ing.nombre} (ej: 100g, 2 unidades):"`, "100g");
+    if (cantidad) {
+      setFormData({
+        ...formData,
+        ingredientes: [...formData.ingredientes, { nombre: ing.nombre, cantidad, kcal: ing.kcal }]
+      });
+      setSearchIng("");
+    }
+  };
+
+  const removeIngrediente = (index: number) => {
+    const newIngs = [...formData.ingredientes];
+    newIngs.splice(index, 1);
+    setFormData({ ...formData, ingredientes: newIngs });
+  };
+
+  const addPaso = () => {
+    if (nuevoPaso.trim()) {
+      setFormData({ ...formData, instrucciones: [...formData.instrucciones, nuevoPaso] });
+      setNuevoPaso("");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.ingredientes.length === 0) return alert('"Añade al menos un ingrediente"');
     setLoading(true);
     try {
-      const { error } = await recetasQueries.create(formData);
+      // Forzamos el tipo al enviar para que la API lo acepte (se guardará como JSONB en Supabase)
+      const { error } = await recetasQueries.create(formData as unknown as NuevaReceta);
       if (error) throw error;
       onSuccess();
     } catch (err) {
@@ -199,54 +259,80 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
     >
       <motion.div 
         initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-        className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden relative border border-primary/10"
+        className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[40px] shadow-2xl overflow-y-auto relative border border-primary/10 p-10"
       >
         <button onClick={onClose} className="absolute top-6 right-6 text-primary/30 hover:text-primary transition-colors">
           <X size={24} />
         </button>
 
-        <form onSubmit={handleSubmit} className="p-10">
+        <form onSubmit={handleSubmit}>
           <h2 className="text-2xl font-black uppercase tracking-tighter mb-8 text-primary italic">"Nueva"<span className="text-primary/30">"Receta"</span></h2>
           <div className="space-y-6">
-            <div>
-              <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-primary tracking-widest">"Nombre del plato"</label>
-              <input 
-                required
-                className="w-full bg-primary/5 border-none rounded-2xl p-4 text-[11px] font-bold uppercase focus:ring-2 focus:ring-primary/10 transition-all outline-none text-primary"
-                value={formData.nombre}
-                onChange={e => setFormData({...formData, nombre: e.target.value})}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-primary tracking-widest">"Nombre del plato"</label>
+                <input required className="w-full bg-primary/5 border-none rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
+              </div>
               <div>
                 <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-primary tracking-widest">"Categoría"</label>
-                <select 
-                  className="w-full bg-primary/5 border-none rounded-2xl p-4 text-[11px] font-bold uppercase focus:ring-2 focus:ring-primary/10 outline-none cursor-pointer text-primary"
-                  value={formData.categoria}
-                  onChange={e => setFormData({...formData, categoria: e.target.value as any})}
-                >
+                <select className="w-full bg-primary/5 border-none rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary" value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value as any})}>
                   <option value="General">"General"</option>
                   <option value="Postres">"Postres"</option>
                   <option value="Almuerzos">"Almuerzos"</option>
                   <option value="Desayunos">"Desayunos"</option>
                 </select>
               </div>
-              <div>
-                <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-primary tracking-widest">"Tiempo"</label>
-                <input 
-                  placeholder='"Ej: 30 min"'
-                  className="w-full bg-primary/5 border-none rounded-2xl p-4 text-[11px] font-bold uppercase focus:ring-2 focus:ring-primary/10 outline-none text-primary"
-                  value={formData.tiempo}
-                  onChange={e => setFormData({...formData, tiempo: e.target.value})}
-                />
+            </div>
+
+            <div className="bg-primary/5 p-6 rounded-[30px] border border-primary/5">
+              <h3 className="text-[10px] font-black uppercase text-primary mb-4 flex items-center gap-2">
+                <Utensils size={14} /> "Ingredientes de tu Despensa"
+              </h3>
+              <div className="relative mb-4">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={14} />
+                <input type="text" placeholder='"BUSCAR EN MI DESPENSA..."' className="w-full bg-white rounded-xl py-3 pl-10 pr-4 text-[10px] font-bold uppercase outline-none" value={searchIng} onChange={(e) => setSearchIng(e.target.value)} />
+                {filteredDbIngredientes.length > 0 && (
+                  <div className="absolute top-full left-0 w-full bg-white shadow-xl rounded-xl mt-2 border border-primary/10 z-10 overflow-hidden">
+                    {filteredDbIngredientes.map(ing => (
+                      <button key={ing.id} type="button" onClick={() => addIngrediente(ing)} className="w-full p-3 text-left text-[10px] font-bold uppercase hover:bg-primary/5 flex justify-between items-center transition-colors">
+                        <span>{ing.nombre}</span>
+                        <Plus size={12} className="text-primary" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.ingredientes.map((ing, idx) => (
+                  <div key={idx} className="bg-primary text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-2">
+                    <span>{ing.nombre} ({ing.cantidad})</span>
+                    <button type="button" onClick={() => removeIngrediente(idx)}><X size={12} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-primary tracking-widest">"Pasos de Preparación"</label>
+              <div className="flex gap-2 mb-3">
+                <input className="flex-1 bg-primary/5 border-none rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary" value={nuevoPaso} onChange={e => setNuevoPaso(e.target.value)} placeholder='"Añadir un paso..."' />
+                <button type="button" onClick={addPaso} className="p-4 bg-primary text-white rounded-2xl"><Plus size={20} /></button>
+              </div>
+              <div className="space-y-2">
+                {formData.instrucciones.map((paso, idx) => (
+                  <div key={idx} className="flex justify-between items-center bg-white border border-primary/5 p-3 rounded-xl">
+                    <span className="text-[10px] font-bold uppercase text-primary/60">{idx + 1}. {paso}</span>
+                    <button type="button" onClick={() => {
+                       const n = [...formData.instrucciones];
+                       n.splice(idx, 1);
+                       setFormData({...formData, instrucciones: n});
+                    }} className="text-red-400"><Trash2 size={14} /></button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-          <button 
-            disabled={loading}
-            type="submit"
-            className="w-full mt-10 p-5 bg-primary text-white rounded-3xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-xl shadow-primary/20 transition-all disabled:opacity-50"
-          >
+          <button disabled={loading} type="submit" className="w-full mt-10 p-5 bg-primary text-white rounded-3xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-xl shadow-primary/20 transition-all disabled:opacity-50">
             {loading ? '"Escribiendo en el grimorio..."' : '"Guardar Receta"'}
           </button>
         </form>
@@ -274,7 +360,6 @@ const RecipeCard = ({ receta, index }: { receta: Receta; index: number }) => (
         {receta.categoria}
       </div>
     </div>
-
     <div className="p-6 text-center">
       <h3 className="text-lg font-black uppercase tracking-tight text-primary mb-2 italic">"{receta.nombre}"</h3>
       <div className="flex items-center justify-center gap-4 text-primary/40 mb-6">
