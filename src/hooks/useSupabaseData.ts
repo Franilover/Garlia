@@ -8,9 +8,9 @@ import { criaturasQueries } from "@/lib/api/queries/criaturas";
 import { itemsQueries } from "@/lib/api/queries/items"; 
 import { librosQueries } from "@/lib/api/queries/libros";
 import { recetasQueries } from "@/lib/api/queries/recetas";
-// ✅ NUEVAS IMPORTACIONES
 import { tareasQueries } from "@/lib/api/queries/tareas";
 import { eventosQueries } from "@/lib/api/queries/eventos";
+import { ingredientesQueries } from "@/lib/api/queries/ingredientes";
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
@@ -18,9 +18,10 @@ const QUERIES_MAP: Record<string, any> = {
   "items": itemsQueries,
   "libros": librosQueries,
   "recetas": recetasQueries,
-  // ✅ NUEVOS REGISTROS
   "tareas": tareasQueries,
-  "eventos": eventosQueries
+  "eventos": eventosQueries,
+  // ✅ NUEVO REGISTRO
+  "ingredientes": ingredientesQueries
 };
 
 interface UseSupabaseOptions {
@@ -32,11 +33,9 @@ interface UseSupabaseOptions {
   [key: string]: any;
 }
 
-// ✅ CAMBIO 1: Añadir <T = any> aquí
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // ✅ CAMBIO 2: Usar T[] en lugar de any[]
   const [data, setData] = useState<T[]>(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +77,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
       if (errorFetch) throw errorFetch;
 
-      // ✅ CAMBIO 3: Asegurar que el resultado se trate como T[]
       const finalData = (resultado || []) as T[];
       
       if (isMounted.current) {
