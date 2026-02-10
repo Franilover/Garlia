@@ -59,7 +59,7 @@ const Navbar = () => {
       </button>
 
       <button onClick={() => setOpenSubmenu(openSubmenu === "personal" ? null : "personal")} className="grow flex justify-center">
-        <Camera size={22} className={isInSection(["/wiki/sobre-mi", "/wiki/dibujos", "/wiki/fotos"]) ? "text-primary" : "text-primary/30"} />
+        <Camera size={22} className={isInSection(["/personal/sobre-mi", "/personal/dibujos", "/personal/fotos"]) ? "text-primary" : "text-primary/30"} />
       </button>
       
       <div className="grow flex justify-center">
@@ -115,11 +115,11 @@ const Navbar = () => {
           <nav className="flex items-center gap-1 bg-primary/5 p-1 rounded-2xl border border-primary/10">
             <PCGroup 
               label="Posts" 
-              active={isInSection(["/wiki/sobre-mi", "/wiki/dibujos", "/wiki/fotos"])} 
+              active={isInSection(["/personal/sobre-mi", "/personal/dibujos", "/personal/fotos"])} 
               items={[
-                { href: "/wiki/sobre-mi", label: "Bio", icon: <Smile size={14}/> }, 
-                { href: "/wiki/dibujos", label: "Dibujos", icon: <ImageIcon size={14}/> }, 
-                { href: "/wiki/fotos", label: "Fotos", icon: <Camera size={14}/> }
+                { href: "/personal/sobre-mi", label: "Bio", icon: <Smile size={14}/> }, 
+                { href: "/personal/dibujos", label: "Dibujos", icon: <ImageIcon size={14}/> }, 
+                { href: "/personal/fotos", label: "Fotos", icon: <Camera size={14}/> }
               ]} 
               currentPath={currentPath} 
             />
