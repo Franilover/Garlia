@@ -102,17 +102,6 @@ const Navbar = () => {
                         <Sword size={14} /> Mi Personaje
                       </Link>
 
-                      {esFranilover && (
-                        <>
-                          <Link href="/wiki/cocina" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all border-t border-primary/5">
-                            <Utensils size={14} /> Mi Cocina
-                          </Link>
-                          <Link href="/wiki/tareas" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all border-t border-primary/5">
-                            <CheckSquare size={14} /> Mi Agenda
-                          </Link>
-                        </>
-                      )}
-
                       <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase text-red-400 hover:bg-red-50 rounded-xl transition-all border-t border-primary/5">
                         <LogOut size={14} /> Salir
                       </button>
@@ -125,7 +114,7 @@ const Navbar = () => {
 
           <nav className="flex items-center gap-1 bg-primary/5 p-1 rounded-2xl border border-primary/10">
             <PCGroup 
-              label="Personal" 
+              label="Posts" 
               active={isInSection(["/wiki/sobre-mi", "/wiki/dibujos", "/wiki/fotos"])} 
               items={[
                 { href: "/wiki/sobre-mi", label: "Bio", icon: <Smile size={14}/> }, 
@@ -154,6 +143,18 @@ const Navbar = () => {
               ]} 
               currentPath={currentPath} 
             />
+            {/* --- NUEVO GRUPO PARA FRANILOVER --- */}
+            {esFranilover && (
+              <PCGroup 
+                label="Gestión" 
+                active={isInSection(["/wiki/cocina", "/wiki/tareas"])} 
+                items={[
+                  { href: "/wiki/cocina", label: "Mi Cocina", icon: <Utensils size={14}/> },
+                  { href: "/wiki/tareas", label: "Mi Agenda", icon: <CheckSquare size={14}/> }
+                ]} 
+                currentPath={currentPath} 
+              />
+            )}
           </nav>
           
           <div className="flex items-center gap-6">
