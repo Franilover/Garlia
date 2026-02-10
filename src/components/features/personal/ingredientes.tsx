@@ -1,26 +1,36 @@
 "use client";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSupabaseData } from "@/hooks/useSupabaseData"; 
+import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { Ingrediente } from "@/lib/types/cocina";
-import { 
-  Search, 
-  Plus, 
-  Flame, 
-  Zap, 
+import {
+  Search,
+  Plus,
+  Flame,
+  Zap,
   ChevronLeft,
   Filter
 } from "lucide-react";
 import Link from "next/link";
 
+// Definimos las categorías disponibles para los filtros
+const CATEGORIAS = ["Todos", "Proteínas", "Carbohidratos", "Grasas", "Frutas", "Verduras", "Lácteos", "Cereales", "Otros"];
+
 export const IngredientesPage = () => {
   const [filter, setFilter] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Todos"); // Nuevo estado para el filtro
   const { data: ingredientes, loading } = useSupabaseData<Ingrediente>("ingredientes");
 
-  const filteredItems = ingredientes.filter((item) =>
-    item.nombre.toLowerCase().includes(filter.toLowerCase()) ||
-    item.categoria.toLowerCase().includes(filter.toLowerCase())
-  );
+  // Lógica de filtrado actualizada
+  const filteredItems = ingredientes.filter((item) => {
+    const matchesSearch = item.nombre.toLowerCase().includes(filter.toLowerCase()) ||
+                          item.categoria.toLowerCase().includes(filter.toLowerCase());
+    
+    const matchesCategory = selectedCategory === "Todos" || 
+                            item.categoria === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="min-h-screen bg-bg-main pb-24">
@@ -51,6 +61,35 @@ export const IngredientesPage = () => {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
+          </div>
+        </div>
+
+        {/* --- NUEVA SECCIÓN: FILTROS DE CATEGORÍA --- */}
+        <div className="mt-8 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex items-center gap-2 min-w-max">
+            <div className="pr-2 text-primary/20">
+                <Filter size={14} />
+            </div>
+            {CATEGORIAS.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className="relative px-4 py-2 rounded-full transition-all group"
+              >
+                {selectedCategory === cat && (
+                  <motion.div
+                    layoutId="activeFilter"
+                    className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/20"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className={`relative z-10 text-[9px] font-black uppercase tracking-widest transition-colors ${
+                  selectedCategory === cat ? "text-white" : "text-primary/40 group-hover:text-primary"
+                }`}>
+                  "{cat}"
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       </header>
@@ -106,6 +145,7 @@ const IngredientCard = ({ item, index }: { item: Ingrediente; index: number }) =
       layout
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
       transition={{ delay: index * 0.03 }}
       className="bg-white border border-primary/5 rounded-[35px] p-5 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group"
     >
