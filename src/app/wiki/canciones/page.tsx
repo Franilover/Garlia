@@ -694,9 +694,6 @@ const Canciones = () => {
               <h1 className="text-5xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.9] uppercase">
                 Soliloquios
               </h1>
-              <p className="text-[#6B5E70]/40 text-[9px] font-black uppercase tracking-[0.3em] mt-1 italic">
-                ✨ Partituras de Nadiria
-              </p>
             </div>
           </motion.div>
 
