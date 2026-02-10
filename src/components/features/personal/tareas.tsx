@@ -1,6 +1,6 @@
-;"use client";
+"use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/useSupabaseData"; 
@@ -15,15 +15,43 @@ import {
   ChevronLeft,
   ChevronRight,
   Bookmark,
-  BookOpen // Nuevo icono para capítulos
+  BookOpen,
+  Clock // Nuevo icono para el reloj
 } from "lucide-react";
+
+// --- NUEVO COMPONENTE: RELOJ DIGITAL ---
+const RelojDigital = () => {
+  const [hora, setHora] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setHora(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatoHora = hora.toLocaleTimeString("es-CL", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  return (
+    <div className="flex items-center gap-4 bg-primary text-white px-6 py-4 rounded-[25px] shadow-lg shadow-primary/20 mb-6">
+      <Clock size={20} className="animate-pulse" />
+      <div className="flex flex-col">
+        <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60 italic">Hora Actual</span>
+        <span className="text-2xl font-black tracking-tighter tabular-nums italic">"{formatoHora}"</span>
+      </div>
+    </div>
+  );
+};
 
 export const GestionPersonal = () => {
   // 1. Datos de Supabase
   const { data: tareas, loading: tLoading, setData: setTareas } = useSupabaseData<any>("tareas");
   const { data: eventos, loading: eLoading, setData: setEventos } = useSupabaseData<any>("eventos");
   
-  // --- NUEVO: Carga de Capítulos ---
+  // --- CARGA DE CAPÍTULOS ---
   const { data: capitulosRaw } = useSupabaseData<any>("capitulos", {
     select: "id, titulo_capitulo, fecha_publicacion, libro_id"
   });
@@ -37,7 +65,7 @@ export const GestionPersonal = () => {
   const [tipoEvento, setTipoEvento] = useState("Plan");
   const [isAddingEvento, setIsAddingEvento] = useState(false);
 
-  // 4. Estados de Navegación del Calendario
+  // 4. Estados de Navegación del Calendario (Ajustado a 2026 según tus instrucciones)
   const [fechaVisualizacion, setFechaVisualizacion] = useState(new Date(2026, 1, 1)); 
   const [diaSeleccionado, setDiaSeleccionado] = useState(new Date().getDate());
 
@@ -107,7 +135,7 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); } finally { setIsAddingEvento(false); }
   };
 
-  // --- NUEVO: UNIFICAR EVENTOS Y CAPÍTULOS ---
+  // --- UNIFICAR EVENTOS Y CAPÍTULOS ---
   const itemsCombinadosDelDia = useMemo(() => {
     const evs = eventos.filter((e: any) => {
       const d = new Date(e.fecha);
@@ -127,7 +155,6 @@ export const GestionPersonal = () => {
     return [...evs, ...caps];
   }, [eventos, capitulosRaw, diaSeleccionado, mesActual, añoActual]);
 
-  // Función para saber si un día específico del calendario tiene algo (para los puntitos)
   const tieneAlgoElDia = (dia: number) => {
     const hayEvento = eventos.some((e: any) => {
       const d = new Date(e.fecha);
@@ -143,9 +170,11 @@ export const GestionPersonal = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       
-      {/* SECCIÓN TAREAS */}
+      {/* SECCIÓN TAREAS + RELOJ */}
       <section className="lg:col-span-5">
-        <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 min-h-[600px] flex flex-col">
+        <RelojDigital /> {/* --- RELOJ INSERTADO AQUÍ --- */}
+        
+        <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 min-h-[520px] flex flex-col">
           <div className="flex items-center gap-3 mb-8 px-2">
             <CheckSquare className="text-primary" size={20} />
             <h2 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Lista de Pendientes</h2>
@@ -157,7 +186,7 @@ export const GestionPersonal = () => {
               value={nuevaTarea}
               onChange={(e) => setNuevaTarea(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddTarea()}
-              placeholder="Añadir una tarea"
+              placeholder='"Añadir una tarea..."'
               className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/10 focus:bg-white rounded-2xl py-4 px-6 text-sm text-primary transition-all outline-none font-bold placeholder:text-primary/30"
             />
             <button 
@@ -169,7 +198,7 @@ export const GestionPersonal = () => {
             </button>
           </div>
 
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-[450px] pr-2 custom-scrollbar">
+          <div className="space-y-3 flex-1 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
             <AnimatePresence mode="popLayout">
               {tareas.map((t: any) => (
                 <motion.div key={t.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
@@ -178,7 +207,7 @@ export const GestionPersonal = () => {
                     <div className={cn("w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all", t.completada ? "bg-primary border-primary" : "border-primary/20 group-hover:border-primary/40")}>
                       {t.completada && <Plus size={14} className="text-white rotate-45" strokeWidth={4} />}
                     </div>
-                    <span className={cn("text-sm font-bold text-primary", t.completada && "line-through text-primary/40")}>{t.titulo}</span>
+                    <span className={cn("text-sm font-bold text-primary", t.completada && "line-through text-primary/40")}>"{t.titulo}"</span>
                   </div>
                   <button onClick={() => handleDelete(t.id)} className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
                 </motion.div>
@@ -223,7 +252,6 @@ export const GestionPersonal = () => {
             })}
           </div>
 
-          {/* FORMULARIO PARA AÑADIR EVENTOS */}
           <div className="bg-primary/5 rounded-3xl p-4 mb-6 border border-primary/5">
             <div className="flex items-center gap-3 mb-3">
                <Bookmark size={16} className="text-primary/40" />
@@ -234,7 +262,7 @@ export const GestionPersonal = () => {
                 type="text" 
                 value={nuevoEvento}
                 onChange={(e) => setNuevoEvento(e.target.value)}
-                placeholder="Nombre del evento..."
+                placeholder='"Nombre del evento..."'
                 className="flex-1 bg-white rounded-xl px-4 py-2 text-xs text-primary font-bold outline-none border border-primary/10 focus:border-primary/30"
               />
               <button 
@@ -247,7 +275,6 @@ export const GestionPersonal = () => {
             </div>
           </div>
 
-          {/* DETALLE EVENTOS Y CAPÍTULOS */}
           <div className="pt-6 border-t border-primary/5">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-primary/30 mb-4 px-2">Planes para el {diaSeleccionado} de {mesesNombres[mesActual]}</h3>
             <div className="space-y-3">
@@ -262,18 +289,18 @@ export const GestionPersonal = () => {
                        {item.esCapitulo ? <BookOpen size={18} className="text-primary" /> : <span className="text-[14px] font-black text-primary">{diaSeleccionado}</span>}
                     </div>
                     <div>
-                      <p className="text-[11px] font-black text-primary uppercase">{item.titulo}</p>
-                      <p className="text-[9px] font-bold text-primary/40 uppercase">{item.tipo}</p>
+                      <p className="text-[11px] font-black text-primary uppercase italic">"{item.titulo}"</p>
+                      <p className="text-[9px] font-bold text-primary/40 uppercase tracking-tighter">"{item.tipo}"</p>
                     </div>
                     {item.esCapitulo && (
                       <div className="ml-auto">
-                        <span className="text-[8px] font-black bg-primary text-white px-2 py-1 rounded-full uppercase tracking-tighter">Capítulo</span>
+                        <span className="text-[8px] font-black bg-primary text-white px-2 py-1 rounded-full uppercase tracking-tighter italic">Capítulo</span>
                       </div>
                     )}
                   </motion.div>
                 ))
               ) : (
-                <p className="text-[10px] font-bold text-primary/20 italic px-2">No hay eventos para este día.</p>
+                <p className="text-[10px] font-bold text-primary/20 italic px-2">"No hay eventos para este día."</p>
               )}
             </div>
           </div>
