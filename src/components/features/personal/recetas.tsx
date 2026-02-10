@@ -182,7 +182,6 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   );
 };
 
-/* --- MODAL CON MENU DESPLEGABLE CORREGIDO --- */
 const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) => {
   const [loading, setLoading] = useState(false);
   const [searchIng, setSearchIng] = useState("");
@@ -209,7 +208,18 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   }, [searchIng, dbIngredientes, formData.ingredientes]);
 
   const addIngrediente = (ing: Ingrediente) => {
-    const cantidad = prompt(`"Cantidad para ${ing.nombre}:"`, "100g");
+    // Lógica mejorada: Detectar unidad por nombre, categoría o campo agua_ml
+    let sugerencia = "100g";
+    
+    // Si tiene agua_ml o la categoría es Lácteos, sugerimos ml
+    if (ing.categoria === "Lácteos" || (ing as any).agua_ml > 0) {
+      sugerencia = "100ml";
+    } else if (ing.nombre.toLowerCase().includes("huevo")) {
+      sugerencia = "1 unidad";
+    }
+
+    const cantidad = prompt(`"Cantidad para ${ing.nombre}:"`, sugerencia);
+    
     if (cantidad) {
       setFormData({
         ...formData,
@@ -281,7 +291,6 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
               </div>
             </div>
 
-            {/* SECCIÓN DESPLEGABLE DE INGREDIENTES */}
             <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/10 relative">
               <h3 className="text-[10px] font-black uppercase text-primary mb-4 flex items-center gap-2">
                 <Utensils size={14} /> "Ingredientes de tu Despensa"
@@ -297,7 +306,6 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                   onChange={(e) => setSearchIng(e.target.value)} 
                 />
                 
-                {/* DROPDOWN - FORZANDO VISIBILIDAD */}
                 <AnimatePresence>
                   {filteredDbIngredientes.length > 0 && (
                     <motion.div 
@@ -325,7 +333,6 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                 </AnimatePresence>
               </div>
 
-              {/* Lista de ingredientes añadidos */}
               <div className="flex flex-wrap gap-2">
                 {formData.ingredientes.map((ing, idx) => (
                   <div key={idx} className="bg-primary text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 shadow-md">
