@@ -1,6 +1,5 @@
 "use client";
-
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useReducer } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/supabase";
 import { 
@@ -10,41 +9,457 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/shared/display/SmartImage";
 
+// ============================================================================
+// CONSTANTES Y CONFIGURACIÓN
+// ============================================================================
+
+const IDIOMAS = [
+  { id: "es", label: "ES", nombre: "Español" },
+  { id: "en", label: "EN", nombre: "Inglés" },
+  { id: "jp", label: "JP", nombre: "Japonés" },
+  { id: "romaji", label: "RO", nombre: "Reading" }
+];
+
+const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"];
+
+const getEstadoColor = (estado) => {
+  const colores = {
+    "TERMINADA": "bg-[#6B5E70]/10 text-[#6B5E70] border-[#6B5E70]/20",
+    "EN PROCESO": "bg-[#FDFCFD] text-[#6B5E70]/80 border-[#6B5E70]/10",
+    "BORRADOR": "bg-[#F4F4F5] text-[#6B5E70]/60 border-[#E4E4E7]"
+  };
+  return colores[estado] || colores["BORRADOR"];
+};
+
+// ============================================================================
+// REDUCER PARA MODALES Y FORMULARIOS
+// ============================================================================
+
+const initialModalState = {
+  showAddModal: false,
+  showEditSecModal: false,
+  showLinksModal: false,
+  selectedSec: null,
+  linkEditandoIndex: null,
+  procesando: false
+};
+
+const modalReducer = (state, action) => {
+  switch(action.type) {
+    case "OPEN_ADD": return { ...state, showAddModal: true };
+    case "CLOSE_ADD": return { ...state, showAddModal: false };
+    case "OPEN_EDIT_SEC": return { ...state, showEditSecModal: true, selectedSec: action.payload };
+    case "CLOSE_EDIT_SEC": return { ...state, showEditSecModal: false, selectedSec: null };
+    case "OPEN_LINKS": return { ...state, showLinksModal: true };
+    case "CLOSE_LINKS": return { ...state, showLinksModal: false, linkEditandoIndex: null };
+    case "SET_EDITING_LINK": return { ...state, linkEditandoIndex: action.payload };
+    case "SET_PROCESANDO": return { ...state, procesando: action.payload };
+    default: return state;
+  }
+};
+
+// ============================================================================
+// REDUCER PARA FORMULARIOS
+// ============================================================================
+
+const initialFormState = {
+  // Nueva sección
+  nuevoNombre: "",
+  nuevaLetraEs: "",
+  nuevaLetraEn: "",
+  nuevaLetraJp: "",
+  nuevaLetraRomaji: "",
+  // Editar sección
+  editSecNombre: "",
+  editSecEs: "",
+  editSecEn: "",
+  editSecJp: "",
+  editSecRomaji: "",
+  // Links
+  nuevoLinkTitulo: "",
+  nuevoLinkUrl: ""
+};
+
+const formReducer = (state, action) => {
+  switch(action.type) {
+    case "SET_NUEVA_SECCION":
+      return { ...state, ...action.payload };
+    case "SET_EDIT_SECCION":
+      return { ...state, ...action.payload };
+    case "SET_LINK":
+      return { ...state, ...action.payload };
+    case "RESET_NUEVA":
+      return { ...state, nuevoNombre: "", nuevaLetraEs: "", nuevaLetraEn: "", nuevaLetraJp: "", nuevaLetraRomaji: "" };
+    case "RESET_EDIT":
+      return { ...state, editSecNombre: "", editSecEs: "", editSecEn: "", editSecJp: "", editSecRomaji: "" };
+    case "RESET_LINK":
+      return { ...state, nuevoLinkTitulo: "", nuevoLinkUrl: "" };
+    default:
+      return state;
+  }
+};
+
+// ============================================================================
+// COMPONENTES AUXILIARES
+// ============================================================================
+
+const LanguageToggler = ({ idiomasActivos, toggleIdioma }) => (
+  <div className="p-6 bg-[#6B5E70] rounded-[2.5rem] shadow-xl shadow-[#6B5E70]/20">
+    <h4 className="text-white/40 font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic">
+      Vista Comparativa
+    </h4>
+    <div className="grid grid-cols-2 gap-2">
+      {IDIOMAS.map((l) => (
+        <motion.button
+          key={l.id}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => toggleIdioma(l.id)}
+          title={l.nombre}
+          className={`py-2 rounded-xl font-black text-[9px] transition-all uppercase border-2 ${
+            idiomasActivos.includes(l.id)
+              ? "bg-white text-[#6B5E70] border-white scale-105"
+              : "bg-transparent text-white/40 border-white/10 hover:border-white/30"
+          }`}
+        >
+          {l.label}
+        </motion.button>
+      ))}
+    </div>
+    <p className="text-white/20 text-[7px] text-center mt-3 font-bold uppercase tracking-widest">
+      Máx. 2 idiomas
+    </p>
+  </div>
+);
+
+const EstadoSelector = ({ estado, isAdmin, onchange }) => (
+  <motion.div
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className={`relative p-4 rounded-[2rem] border text-center ${getEstadoColor(estado)} shadow-sm transition-all`}
+  >
+    {isAdmin ? (
+      <div className="flex items-center justify-center gap-2 relative">
+        <select
+          value={estado}
+          onChange={(e) => onchange(e.target.value)}
+          className="bg-transparent font-black uppercase text-[9px] tracking-[0.2em] outline-none cursor-pointer appearance-none text-center w-full pr-8"
+        >
+          {ESTADOS.map((est) => (
+            <option key={est} value={est}>
+              {est}
+            </option>
+          ))}
+        </select>
+        <ChevronDown size={10} className="absolute right-6 opacity-40 pointer-events-none" />
+      </div>
+    ) : (
+      <h4 className="font-black uppercase text-[9px] tracking-[0.2em]">{estado}</h4>
+    )}
+  </motion.div>
+);
+
+const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
+  <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
+    <div className="flex items-center justify-between mb-4">
+      <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] flex items-center gap-2 italic">
+        <Link2 size={12} /> Enlaces
+      </h4>
+      {isAdmin && (
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onOpenModal}
+          className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors"
+        >
+          <Plus size={14} />
+        </motion.button>
+      )}
+    </div>
+    <div className="space-y-2">
+      {links && links.length > 0 ? (
+        links.map((link, idx) => (
+          <motion.a
+            key={idx}
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ x: 4 }}
+            className="flex items-center justify-between p-3 bg-white rounded-xl border border-[#6B5E70]/10 hover:border-[#6B5E70] transition-all group"
+          >
+            <span className="text-[10px] font-bold text-[#6B5E70] uppercase italic truncate mr-2">
+              {link.titulo}
+            </span>
+            <ExternalLink size={10} className="text-[#6B5E70]/30 group-hover:text-[#6B5E70]" />
+          </motion.a>
+        ))
+      ) : (
+        <p className="text-[#6B5E70]/30 text-[9px] font-bold uppercase italic text-center py-2">
+          Sin referencias
+        </p>
+      )}
+    </div>
+  </div>
+);
+
+// ============================================================================
+// MODAL DE ENLACES
+// ============================================================================
+
+const LinksModal = ({ isOpen, onClose, isProcessing, titulo, onTituloChange, url, onUrlChange, onSave, links, onEdit, onDelete, isEditing }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <div className="fixed inset-0 z-[130] flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10"
+        >
+          <motion.button
+            whileHover={{ rotate: 90 }}
+            onClick={onClose}
+            className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors"
+          >
+            <X size={20} />
+          </motion.button>
+
+          <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">
+            {isEditing ? "Editar Enlace" : "Gestionar Enlaces"}
+          </h3>
+
+          <form onSubmit={onSave} className="space-y-4 mb-8">
+            <input
+              type="text"
+              placeholder="TÍTULO"
+              value={titulo}
+              onChange={(e) => onTituloChange(e.target.value)}
+              className="w-full bg-[#FDFCFD] border-b border-[#6B5E70]/10 py-3 text-sm font-bold text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-0 uppercase"
+            />
+            <input
+              type="url"
+              placeholder="URL"
+              value={url}
+              onChange={(e) => onUrlChange(e.target.value)}
+              className="w-full bg-[#FDFCFD] border-b border-[#6B5E70]/10 py-3 text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-0"
+            />
+            <div className="flex gap-2">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={isProcessing || !titulo.trim() || !url.trim()}
+                className="flex-1 bg-[#6B5E70] text-white py-3 rounded-xl font-black uppercase text-[9px] shadow-md hover:bg-[#5A4D5F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 size={12} className="inline animate-spin mr-2" />
+                    Guardando...
+                  </>
+                ) : isEditing ? (
+                  "Guardar"
+                ) : (
+                  "Añadir"
+                )}
+              </motion.button>
+              {isEditing && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 bg-gray-100 text-[#6B5E70] rounded-xl font-black uppercase text-[8px] hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </motion.button>
+              )}
+            </div>
+          </form>
+
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+            {links?.map((link, i) => (
+              <motion.div
+                key={i}
+                layout
+                className="flex items-center justify-between p-3 rounded-xl border bg-[#6B5E70]/5 border-[#6B5E70]/10 hover:bg-[#6B5E70]/10 transition-colors"
+              >
+                <span className="text-[10px] font-black text-[#6B5E70] truncate uppercase italic">
+                  {link.titulo}
+                </span>
+                <div className="flex gap-1">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => onEdit(i)}
+                    className="text-[#6B5E70]/40 hover:text-[#6B5E70] p-1 transition-colors"
+                  >
+                    <Edit3 size={14} />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => onDelete(i)}
+                    className="text-red-400 hover:text-red-600 p-1 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </motion.button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+);
+
+// ============================================================================
+// MODAL DE SECCIÓN
+// ============================================================================
+
+const SeccionModal = ({
+  isOpen,
+  isEditing,
+  onClose,
+  isProcessing,
+  nombre,
+  onNombreChange,
+  es,
+  onEsChange,
+  en,
+  onEnChange,
+  jp,
+  onJpChange,
+  romaji,
+  onRomajiChange,
+  onSave,
+  onDelete = null
+}) => (
+  <AnimatePresence>
+    {isOpen && (
+      <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10 max-h-[90vh] overflow-y-auto custom-scrollbar"
+        >
+          <motion.button
+            whileHover={{ rotate: 90 }}
+            onClick={onClose}
+            className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors"
+          >
+            <X size={20} />
+          </motion.button>
+
+          <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">
+            {isEditing ? "Modificar Sección" : "Nueva Sección"}
+          </h3>
+
+          <form onSubmit={onSave} className="space-y-6">
+            <input
+              autoFocus
+              type="text"
+              placeholder="ESTROFA, CORO, PUENTE..."
+              value={nombre}
+              onChange={(e) => onNombreChange(e.target.value)}
+              className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-0 uppercase"
+            />
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {IDIOMAS.map((lang) => {
+                const valores = {
+                  es: { label: "Español", value: es, onChange: onEsChange },
+                  en: { label: "Inglés", value: en, onChange: onEnChange },
+                  jp: { label: "Japonés", value: jp, onChange: onJpChange },
+                  romaji: { label: "Romaji", value: romaji, onChange: onRomajiChange }
+                };
+                const config = valores[lang.id];
+                return (
+                  <div key={lang.id}>
+                    <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">
+                      {config.label}
+                    </label>
+                    <textarea
+                      value={config.value}
+                      onChange={(e) => config.onChange(e.target.value)}
+                      rows={4}
+                      className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-xs text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-0 resize-none italic"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={isProcessing || !nombre.trim() || !es.trim()}
+                className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 shadow-lg hover:bg-[#5A4D5F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Save size={14} />
+                {isProcessing ? "Guardando..." : "Guardar"}
+              </motion.button>
+              {isEditing && onDelete && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={onDelete}
+                  disabled={isProcessing}
+                  className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Trash2 size={14} />
+                  Borrar
+                </motion.button>
+              )}
+            </div>
+          </form>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+);
+
+// ============================================================================
+// COMPONENTE PRINCIPAL
+// ============================================================================
+
 export default function CancionDetalle() {
   const params = useParams();
   const id = params?.id;
   const router = useRouter();
-  
+
+  // Estado principal
   const [cancion, setCancion] = useState(null);
   const [secciones, setSecciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [errorAcceso, setErrorAcceso] = useState(false);
-  
-  const [idiomasActivos, setIdiomasActivos] = useState(["es"]); 
+  const [idiomasActivos, setIdiomasActivos] = useState(["es"]);
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditSecModal, setShowEditSecModal] = useState(false);
-  const [showLinksModal, setShowLinksModal] = useState(false);
-  
-  const [nuevoNombre, setNuevoNombre] = useState("");
-  const [nuevaLetraEs, setNuevaLetraEs] = useState("");
-  const [nuevaLetraEn, setNuevaLetraEn] = useState("");
-  const [nuevaLetraJp, setNuevaLetraJp] = useState("");
-  const [nuevaLetraRomaji, setNuevaLetraRomaji] = useState("");
+  // Reducers
+  const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
+  const [formState, dispatchForm] = useReducer(formReducer, initialFormState);
 
-  const [selectedSec, setSelectedSec] = useState(null);
-  const [editSecNombre, setEditSecNombre] = useState("");
-  const [editSecEs, setEditSecEs] = useState("");
-  const [editSecEn, setEditSecEn] = useState("");
-  const [editSecJp, setEditSecJp] = useState("");
-  const [editSecRomaji, setEditSecRomaji] = useState("");
-  
-  const [nuevoLinkTitulo, setNuevoLinkTitulo] = useState("");
-  const [nuevoLinkUrl, setNuevoLinkUrl] = useState("");
-  const [linkEditandoIndex, setLinkEditandoIndex] = useState(null);
-  
-  const [procesando, setProcesando] = useState(false);
+  // ========================================================================
+  // FUNCIONES PRINCIPALES
+  // ========================================================================
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -59,7 +474,7 @@ export default function CancionDetalle() {
         .select("*")
         .eq("id", id)
         .single();
-      
+
       if (errorC || !cancionData) {
         setErrorAcceso(true);
         return;
@@ -77,11 +492,12 @@ export default function CancionDetalle() {
         .select("*")
         .eq("cancion_id", id)
         .order("orden", { ascending: true });
-      
+
       if (errorS) throw errorS;
       setSecciones(seccionesData || []);
     } catch (err) {
       console.error("Error en la carga:", err);
+      setErrorAcceso(true);
     } finally {
       setLoading(false);
     }
@@ -91,399 +507,589 @@ export default function CancionDetalle() {
     fetchData();
   }, [fetchData]);
 
-  const toggleIdioma = (idm) => {
-    setIdiomasActivos(prev => {
+  // ========================================================================
+  // TOGGLEAR IDIOMAS (máx 2)
+  // ========================================================================
+
+  const toggleIdioma = useCallback((idm) => {
+    setIdiomasActivos((prev) => {
+      // Si está activo, desactivar (mínimo 1)
       if (prev.includes(idm)) {
-        if (prev.length === 1) return prev; 
-        return prev.filter(i => i !== idm);
+        return prev.length === 1 ? prev : prev.filter((i) => i !== idm);
       }
+      // Si no está activo, agregar (máximo 2)
       if (prev.length >= 2) {
-        return [prev[1], idm];
+        return [prev[prev.length - 1], idm];
       }
       return [...prev, idm];
     });
-  };
+  }, []);
+
+  // ========================================================================
+  // GESTIÓN DE ENLACES
+  // ========================================================================
 
   const handleSaveLink = async (e) => {
     e.preventDefault();
-    if (!nuevoLinkTitulo.trim() || !nuevoLinkUrl.trim() || procesando) return;
-    setProcesando(true);
+    const { nuevoLinkTitulo, nuevoLinkUrl } = formState;
+
+    if (!nuevoLinkTitulo.trim() || !nuevoLinkUrl.trim() || modalState.procesando) {
+      return;
+    }
+
+    dispatchModal({ type: "SET_PROCESANDO", payload: true });
+
     try {
       let linksActuales = Array.isArray(cancion?.links) ? [...cancion.links] : [];
-      const nuevoLink = { titulo: nuevoLinkTitulo.trim(), url: nuevoLinkUrl.trim() };
-      
-      if (linkEditandoIndex !== null) {
-        linksActuales[linkEditandoIndex] = nuevoLink;
+      const nuevoLink = {
+        titulo: nuevoLinkTitulo.trim(),
+        url: nuevoLinkUrl.trim()
+      };
+
+      if (modalState.linkEditandoIndex !== null) {
+        linksActuales[modalState.linkEditandoIndex] = nuevoLink;
       } else {
         linksActuales.push(nuevoLink);
       }
 
-      const { error } = await supabase.from("canciones").update({ links: linksActuales }).eq("id", id);
+      const { error } = await supabase
+        .from("canciones")
+        .update({ links: linksActuales })
+        .eq("id", id);
+
       if (error) throw error;
-      
-      setCancion(prev => ({ ...prev, links: linksActuales }));
-      setShowLinksModal(false); // Cerramos el modal tras guardar
-      cancelarEdicionLink();
+
+      setCancion((prev) => ({ ...prev, links: linksActuales }));
+      dispatchForm({ type: "RESET_LINK" });
+      dispatchModal({ type: "SET_EDITING_LINK", payload: null });
+      dispatchModal({ type: "CLOSE_LINKS" });
     } catch (error) {
-      console.error("Error en links:", error);
-      alert("No se pudo guardar el link: " + error.message);
+      console.error("Error guardando link:", error);
+      alert("Error: " + (error.message || "No se pudo guardar el enlace"));
     } finally {
-      setProcesando(false);
+      dispatchModal({ type: "SET_PROCESANDO", payload: false });
     }
   };
 
-  const prepararEdicionLink = (index) => {
+  const prepararEdicionLink = useCallback((index) => {
     const link = cancion.links[index];
-    setNuevoLinkTitulo(link.titulo);
-    setNuevoLinkUrl(link.url);
-    setLinkEditandoIndex(index);
-  };
-
-  const cancelarEdicionLink = () => {
-    setNuevoLinkTitulo("");
-    setNuevoLinkUrl("");
-    setLinkEditandoIndex(null);
-  };
+    dispatchForm({
+      type: "SET_LINK",
+      payload: {
+        nuevoLinkTitulo: link.titulo,
+        nuevoLinkUrl: link.url
+      }
+    });
+    dispatchModal({ type: "SET_EDITING_LINK", payload: index });
+  }, [cancion?.links]);
 
   const removeLink = async (index) => {
     if (!confirm("¿Eliminar este enlace?")) return;
+
     try {
       const filtrados = (cancion?.links || []).filter((_, i) => i !== index);
-      const { error } = await supabase.from("canciones").update({ links: filtrados }).eq("id", id);
+      const { error } = await supabase
+        .from("canciones")
+        .update({ links: filtrados })
+        .eq("id", id);
+
       if (error) throw error;
-      setCancion(prev => ({ ...prev, links: filtrados }));
-      if (linkEditandoIndex === index) cancelarEdicionLink();
-    } catch (error) { 
-      alert("Error al borrar link"); 
+
+      setCancion((prev) => ({ ...prev, links: filtrados }));
+
+      if (modalState.linkEditandoIndex === index) {
+        dispatchForm({ type: "RESET_LINK" });
+        dispatchModal({ type: "SET_EDITING_LINK", payload: null });
+      }
+    } catch (error) {
+      console.error("Error al borrar link:", error);
+      alert("Error al borrar el enlace");
     }
   };
+
+  // ========================================================================
+  // GESTIÓN DE ESTADO DE LA CANCIÓN
+  // ========================================================================
 
   const handleUpdateEstado = async (nuevoEstado) => {
     try {
-      setCancion(prev => ({ ...prev, estado: nuevoEstado }));
-      const { error } = await supabase.from("canciones").update({ estado: nuevoEstado }).eq("id", id);
+      setCancion((prev) => ({ ...prev, estado: nuevoEstado }));
+
+      const { error } = await supabase
+        .from("canciones")
+        .update({ estado: nuevoEstado })
+        .eq("id", id);
+
       if (error) throw error;
-    } catch (error) { 
-      fetchData(); 
+    } catch (error) {
+      console.error("Error actualizando estado:", error);
+      await fetchData(); // Recargar si falla
     }
   };
+
+  // ========================================================================
+  // CREAR SECCIÓN
+  // ========================================================================
 
   const handleCrearSeccion = async (e) => {
     e.preventDefault();
-    if (!nuevoNombre.trim() || !nuevaLetraEs.trim() || procesando) return;
-    setProcesando(true);
+    const { nuevoNombre, nuevaLetraEs, nuevaLetraEn, nuevaLetraJp, nuevaLetraRomaji } = formState;
+
+    if (!nuevoNombre.trim() || !nuevaLetraEs.trim() || modalState.procesando) {
+      return;
+    }
+
+    dispatchModal({ type: "SET_PROCESANDO", payload: true });
+
     try {
-      const { data, error } = await supabase.from("secciones_cancion").insert([{
-        cancion_id: id,
-        nombre_seccion: nuevoNombre.toUpperCase(),
-        letra_es: nuevaLetraEs,
-        letra_en: nuevaLetraEn,
-        letra_jp: nuevaLetraJp,
-        letra_romaji: nuevaLetraRomaji,
-        orden: secciones.length + 1
-      }]).select();
-      
+      const { data, error } = await supabase
+        .from("secciones_cancion")
+        .insert([
+          {
+            cancion_id: id,
+            nombre_seccion: nuevoNombre.toUpperCase(),
+            letra_es: nuevaLetraEs,
+            letra_en: nuevaLetraEn,
+            letra_jp: nuevaLetraJp,
+            letra_romaji: nuevaLetraRomaji,
+            orden: secciones.length + 1
+          }
+        ])
+        .select();
+
       if (error) throw error;
-      if (data) {
-        setSecciones(prev => [...prev, data[0]]);
-        setShowAddModal(false);
-        setNuevoNombre(""); setNuevaLetraEs(""); setNuevaLetraEn(""); setNuevaLetraJp(""); setNuevaLetraRomaji("");
+
+      if (data && data.length > 0) {
+        setSecciones((prev) => [...prev, data[0]]);
+        dispatchForm({ type: "RESET_NUEVA" });
+        dispatchModal({ type: "CLOSE_ADD" });
       }
-    } catch (error) { 
-      alert("Error al guardar la sección: " + error.message); 
-    } finally { 
-      setProcesando(false); 
+    } catch (error) {
+      console.error("Error al crear sección:", error);
+      alert("Error: " + (error.message || "No se pudo crear la sección"));
+    } finally {
+      dispatchModal({ type: "SET_PROCESANDO", payload: false });
     }
   };
+
+  // ========================================================================
+  // ACTUALIZAR SECCIÓN
+  // ========================================================================
 
   const handleUpdateSeccion = async (e) => {
     e.preventDefault();
-    if (!editSecNombre.trim() || !editSecEs.trim() || procesando) return;
-    setProcesando(true);
+    const { editSecNombre, editSecEs, editSecEn, editSecJp, editSecRomaji } = formState;
+    const { selectedSec } = modalState;
+
+    if (!editSecNombre.trim() || !editSecEs.trim() || modalState.procesando) {
+      return;
+    }
+
+    dispatchModal({ type: "SET_PROCESANDO", payload: true });
+
     try {
-      const { error } = await supabase.from("secciones_cancion").update({ 
-        nombre_seccion: editSecNombre.toUpperCase(),
-        letra_es: editSecEs,
-        letra_en: editSecEn,
-        letra_jp: editSecJp,
-        letra_romaji: editSecRomaji
-      }).eq("id", selectedSec.id);
+      const { error } = await supabase
+        .from("secciones_cancion")
+        .update({
+          nombre_seccion: editSecNombre.toUpperCase(),
+          letra_es: editSecEs,
+          letra_en: editSecEn,
+          letra_jp: editSecJp,
+          letra_romaji: editSecRomaji
+        })
+        .eq("id", selectedSec.id);
 
       if (error) throw error;
 
-      setSecciones(prev => prev.map(s => s.id === selectedSec.id ? { 
-        ...s, 
-        nombre_seccion: editSecNombre.toUpperCase(), 
-        letra_es: editSecEs, letra_en: editSecEn, letra_jp: editSecJp, letra_romaji: editSecRomaji
-      } : s));
-      setShowEditSecModal(false);
-    } catch (error) { 
-      alert("Error al actualizar: " + error.message); 
-    } finally { 
-      setProcesando(false); 
+      setSecciones((prev) =>
+        prev.map((s) =>
+          s.id === selectedSec.id
+            ? {
+                ...s,
+                nombre_seccion: editSecNombre.toUpperCase(),
+                letra_es: editSecEs,
+                letra_en: editSecEn,
+                letra_jp: editSecJp,
+                letra_romaji: editSecRomaji
+              }
+            : s
+        )
+      );
+
+      dispatchForm({ type: "RESET_EDIT" });
+      dispatchModal({ type: "CLOSE_EDIT_SEC" });
+    } catch (error) {
+      console.error("Error al actualizar sección:", error);
+      alert("Error: " + (error.message || "No se pudo actualizar la sección"));
+    } finally {
+      dispatchModal({ type: "SET_PROCESANDO", payload: false });
     }
   };
+
+  // ========================================================================
+  // ELIMINAR SECCIÓN
+  // ========================================================================
 
   const deleteSeccion = async () => {
-    if (!confirm("¿Borrar sección?")) return;
-    setProcesando(true);
+    const { selectedSec } = modalState;
+    if (!selectedSec) return;
+
+    dispatchModal({ type: "SET_PROCESANDO", payload: true });
+
     try {
-      const { error } = await supabase.from("secciones_cancion").delete().eq("id", selectedSec.id);
+      const { error } = await supabase
+        .from("secciones_cancion")
+        .delete()
+        .eq("id", selectedSec.id);
+
       if (error) throw error;
-      setSecciones(prev => prev.filter(s => s.id !== selectedSec.id));
-      setShowEditSecModal(false);
-    } catch (error) { 
-      alert("Error al borrar"); 
+
+      setSecciones((prev) => prev.filter((s) => s.id !== selectedSec.id));
+      dispatchModal({ type: "CLOSE_EDIT_SEC" });
+    } catch (error) {
+      console.error("Error al borrar sección:", error);
+      alert("Error al borrar la sección");
     } finally {
-      setProcesando(false);
+      dispatchModal({ type: "SET_PROCESANDO", payload: false });
     }
   };
 
-  const openEditSec = (seccion) => {
-    setSelectedSec(seccion);
-    setEditSecNombre(seccion.nombre_seccion);
-    setEditSecEs(seccion.letra_es || "");
-    setEditSecEn(seccion.letra_en || "");
-    setEditSecJp(seccion.letra_jp || "");
-    setEditSecRomaji(seccion.letra_romaji || "");
-    setShowEditSecModal(true);
-  };
+  // ========================================================================
+  // ABRIR EDICIÓN DE SECCIÓN
+  // ========================================================================
 
-  const getEstadoColor = (estado) => {
-    switch(estado) {
-      case "TERMINADA": return "bg-[#6B5E70]/10 text-[#6B5E70] border-[#6B5E70]/20";
-      case "EN PROCESO": return "bg-[#FDFCFD] text-[#6B5E70]/80 border-[#6B5E70]/10";
-      default: return "bg-[#F4F4F5] text-[#6B5E70]/60 border-[#E4E4E7]";
-    }
-  };
+  const openEditSec = useCallback((seccion) => {
+    dispatchForm({
+      type: "SET_EDIT_SECCION",
+      payload: {
+        editSecNombre: seccion.nombre_seccion,
+        editSecEs: seccion.letra_es || "",
+        editSecEn: seccion.letra_en || "",
+        editSecJp: seccion.letra_jp || "",
+        editSecRomaji: seccion.letra_romaji || ""
+      }
+    });
+    dispatchModal({ type: "OPEN_EDIT_SEC", payload: seccion });
+  }, []);
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-[#FDFCFD] text-[#6B5E70] uppercase text-[10px] tracking-widest italic font-black">Afining instruments...</div>;
+  // ========================================================================
+  // RENDER
+  // ========================================================================
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#FDFCFD] flex-col gap-4">
+        <Loader2 className="text-[#6B5E70] animate-spin" size={32} />
+        <p className="text-[#6B5E70] uppercase text-[10px] tracking-widest italic font-black">
+          Afinando instrumentos...
+        </p>
+      </div>
+    );
+  }
+
+  if (errorAcceso) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#FDFCFD] flex-col gap-4">
+        <AlertCircle className="text-red-400" size={48} />
+        <p className="text-[#6B5E70] uppercase text-[10px] tracking-widest italic font-black">
+          Acceso denegado o canción no encontrada
+        </p>
+        <button
+          onClick={() => router.push("/wiki/canciones")}
+          className="mt-4 bg-[#6B5E70] text-white px-6 py-2 rounded-full font-black text-sm hover:bg-[#5A4D5F]"
+        >
+          Volver
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20 relative">
-      
-      <AnimatePresence>
-        {showLinksModal && (
-          <div className="fixed inset-0 z-[130] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setShowLinksModal(false); cancelarEdicionLink(); }} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
-              <button onClick={() => { setShowLinksModal(false); cancelarEdicionLink(); }} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors"><X size={20} /></button>
-              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">
-                {linkEditandoIndex !== null ? "Editar Enlace" : "Gestionar Enlaces"}
-              </h3>
-              <form onSubmit={handleSaveLink} className="space-y-4 mb-8">
-                <input type="text" placeholder="TÍTULO" value={nuevoLinkTitulo} onChange={(e) => setNuevoLinkTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b border-[#6B5E70]/10 py-3 text-sm font-bold text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
-                <input type="url" placeholder="URL..." value={nuevoLinkUrl} onChange={(e) => setNuevoLinkUrl(e.target.value)} className="w-full bg-[#FDFCFD] border-b border-[#6B5E70]/10 py-3 text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70]" />
-                <div className="flex gap-2">
-                  <button type="submit" disabled={procesando} className="flex-1 bg-[#6B5E70] text-white py-3 rounded-xl font-black uppercase text-[9px] shadow-md hover:bg-[#5A4D5F] transition-colors">
-                    {procesando ? "Guardando..." : (linkEditandoIndex !== null ? "Guardar" : "Añadir")}
-                  </button>
-                  {linkEditandoIndex !== null && <button type="button" onClick={cancelarEdicionLink} className="px-4 bg-gray-100 text-[#6B5E70] rounded-xl font-black uppercase text-[8px]">X</button>}
-                </div>
-              </form>
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                {cancion?.links?.map((link, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-xl border bg-[#6B5E70]/5 border-[#6B5E70]/10">
-                    <span className="text-[10px] font-black text-[#6B5E70] truncate uppercase italic">{link.titulo}</span>
-                    <div className="flex gap-1">
-                      <button onClick={() => prepararEdicionLink(i)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] p-1"><Edit3 size={14}/></button>
-                      <button onClick={() => removeLink(i)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14}/></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* MODALES */}
+      <LinksModal
+        isOpen={modalState.showLinksModal}
+        onClose={() => {
+          dispatchModal({ type: "CLOSE_LINKS" });
+          dispatchForm({ type: "RESET_LINK" });
+        }}
+        isProcessing={modalState.procesando}
+        titulo={formState.nuevoLinkTitulo}
+        onTituloChange={(val) => dispatchForm({ type: "SET_LINK", payload: { nuevoLinkTitulo: val } })}
+        url={formState.nuevoLinkUrl}
+        onUrlChange={(val) => dispatchForm({ type: "SET_LINK", payload: { nuevoLinkUrl: val } })}
+        onSave={handleSaveLink}
+        links={cancion?.links || []}
+        onEdit={prepararEdicionLink}
+        onDelete={removeLink}
+        isEditing={modalState.linkEditandoIndex !== null}
+      />
 
-      <AnimatePresence>
-        {showAddModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
-              <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">Nueva Sección</h3>
-              <form onSubmit={handleCrearSeccion} className="space-y-6">
-                <input autoFocus placeholder="ESTROFA, CORO..." value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Español</label>
-                    <textarea value={nuevaLetraEs} onChange={(e) => setNuevaLetraEs(e.target.value)} rows={4} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-xs text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none italic" />
-                  </div>
-                  <div>
-                    <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Inglés</label>
-                    <textarea value={nuevaLetraEn} onChange={(e) => setNuevaLetraEn(e.target.value)} rows={4} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-xs text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none italic" />
-                  </div>
-                  <div>
-                    <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Japonés</label>
-                    <textarea value={nuevaLetraJp} onChange={(e) => setNuevaLetraJp(e.target.value)} rows={4} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-xs text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none italic" />
-                  </div>
-                  <div>
-                    <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Romaji</label>
-                    <textarea value={nuevaLetraRomaji} onChange={(e) => setNuevaLetraRomaji(e.target.value)} rows={4} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-xs text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none italic" />
-                  </div>
-                </div>
-                <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg hover:bg-[#5A4D5F] transition-colors">
-                  {procesando ? "Guardando..." : "Agregar Sección"}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <SeccionModal
+        isOpen={modalState.showAddModal}
+        isEditing={false}
+        onClose={() => {
+          dispatchModal({ type: "CLOSE_ADD" });
+          dispatchForm({ type: "RESET_NUEVA" });
+        }}
+        isProcessing={modalState.procesando}
+        nombre={formState.nuevoNombre}
+        onNombreChange={(val) =>
+          dispatchForm({
+            type: "SET_NUEVA_SECCION",
+            payload: { nuevoNombre: val }
+          })
+        }
+        es={formState.nuevaLetraEs}
+        onEsChange={(val) =>
+          dispatchForm({
+            type: "SET_NUEVA_SECCION",
+            payload: { nuevaLetraEs: val }
+          })
+        }
+        en={formState.nuevaLetraEn}
+        onEnChange={(val) =>
+          dispatchForm({
+            type: "SET_NUEVA_SECCION",
+            payload: { nuevaLetraEn: val }
+          })
+        }
+        jp={formState.nuevaLetraJp}
+        onJpChange={(val) =>
+          dispatchForm({
+            type: "SET_NUEVA_SECCION",
+            payload: { nuevaLetraJp: val }
+          })
+        }
+        romaji={formState.nuevaLetraRomaji}
+        onRomajiChange={(val) =>
+          dispatchForm({
+            type: "SET_NUEVA_SECCION",
+            payload: { nuevaLetraRomaji: val }
+          })
+        }
+        onSave={handleCrearSeccion}
+      />
 
-      <AnimatePresence>
-        {showEditSecModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditSecModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
-              <button onClick={() => setShowEditSecModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">Modificar Sección</h3>
-              <form onSubmit={handleUpdateSeccion} className="space-y-6">
-                <input type="text" value={editSecNombre} onChange={(e) => setEditSecNombre(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Español</label>
-                    <textarea value={editSecEs} onChange={(e) => setEditSecEs(e.target.value)} rows={4} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-xs text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none italic" />
-                  </div>
-                  <div>
-                    <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Inglés</label>
-                    <textarea value={editSecEn} onChange={(e) => setEditSecEn(e.target.value)} rows={4} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-xs text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none italic" />
-                  </div>
-                  <div>
-                    <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Japonés</label>
-                    <textarea value={editSecJp} onChange={(e) => setEditSecJp(e.target.value)} rows={4} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-xs text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none italic" />
-                  </div>
-                  <div>
-                    <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Romaji</label>
-                    <textarea value={editSecRomaji} onChange={(e) => setEditSecRomaji(e.target.value)} rows={4} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 text-xs text-[#6B5E70] outline-none focus:border-[#6B5E70] resize-none italic" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 shadow-lg hover:bg-[#5A4D5F] transition-colors"><Save size={14} /> {procesando ? "Guardando..." : "Guardar"}</button>
-                  <button type="button" onClick={deleteSeccion} disabled={procesando} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 hover:bg-red-100 transition-colors"><Trash2 size={14} /> Borrar</button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <SeccionModal
+        isOpen={modalState.showEditSecModal}
+        isEditing={true}
+        onClose={() => {
+          dispatchModal({ type: "CLOSE_EDIT_SEC" });
+          dispatchForm({ type: "RESET_EDIT" });
+        }}
+        isProcessing={modalState.procesando}
+        nombre={formState.editSecNombre}
+        onNombreChange={(val) =>
+          dispatchForm({
+            type: "SET_EDIT_SECCION",
+            payload: { editSecNombre: val }
+          })
+        }
+        es={formState.editSecEs}
+        onEsChange={(val) =>
+          dispatchForm({
+            type: "SET_EDIT_SECCION",
+            payload: { editSecEs: val }
+          })
+        }
+        en={formState.editSecEn}
+        onEnChange={(val) =>
+          dispatchForm({
+            type: "SET_EDIT_SECCION",
+            payload: { editSecEn: val }
+          })
+        }
+        jp={formState.editSecJp}
+        onJpChange={(val) =>
+          dispatchForm({
+            type: "SET_EDIT_SECCION",
+            payload: { editSecJp: val }
+          })
+        }
+        romaji={formState.editSecRomaji}
+        onRomajiChange={(val) =>
+          dispatchForm({
+            type: "SET_EDIT_SECCION",
+            payload: { editSecRomaji: val }
+          })
+        }
+        onSave={handleUpdateSeccion}
+        onDelete={() => {
+          if (confirm("¿Borrar esta sección? No se puede deshacer.")) {
+            deleteSeccion();
+          }
+        }}
+      />
 
-      <button onClick={() => router.push("/wiki/canciones")} className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase group transition-colors italic">
-        <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Volver al Cancionero
-      </button>
+      {/* BOTÓN VOLVER */}
+      <motion.button
+        whileHover={{ x: -4 }}
+        onClick={() => router.push("/wiki/canciones")}
+        className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase transition-colors italic"
+      >
+        <ChevronLeft size={16} />
+        Volver al Cancionero
+      </motion.button>
 
-      <div className={`mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4 transition-all duration-500 ${idiomasActivos.length > 1 ? "max-w-7xl" : "max-w-5xl"}`}>
+      {/* CONTENIDO PRINCIPAL */}
+      <div
+        className={`mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4 transition-all duration-500 ${
+          idiomasActivos.length > 1 ? "max-w-7xl" : "max-w-5xl"
+        }`}
+      >
+        {/* SIDEBAR */}
         <aside className="space-y-6">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10">
-            <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo} className="w-full h-full object-cover" />
+          {/* Imagen de portada */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10"
+          >
+            <SmartImage
+              src={cancion?.portada_url || "/placeholder-cover.jpg"}
+              alt={cancion?.titulo}
+              className="w-full h-full object-cover"
+            />
           </motion.div>
 
+          {/* Indicador de oculto */}
           {isAdmin && !cancion?.visible && (
-            <div className="p-4 bg-[#604b68] text-white rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 bg-[#604b68] text-white rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl"
+            >
               <EyeOff size={16} />
-              <span className="font-black uppercase text-[9px] tracking-widest italic">Oculto</span>
-            </div>
+              <span className="font-black uppercase text-[9px] tracking-widest italic">
+                Oculto
+              </span>
+            </motion.div>
           )}
 
+          {/* Selector de estado */}
           {cancion?.estado && (
-            <div className={`relative p-4 rounded-[2rem] border text-center ${getEstadoColor(cancion.estado)} shadow-sm transition-all`}>
-              {isAdmin ? (
-                <div className="flex items-center justify-center gap-2">
-                  <select value={cancion.estado} onChange={(e) => handleUpdateEstado(e.target.value)} className="bg-transparent font-black uppercase text-[9px] tracking-[0.2em] outline-none cursor-pointer appearance-none text-center w-full">
-                    <option value="BORRADOR">BORRADOR</option>
-                    <option value="EN PROCESO">EN PROCESO</option>
-                    <option value="TERMINADA">TERMINADA</option>
-                  </select>
-                  <ChevronDown size={10} className="absolute right-6 opacity-40" />
-                </div>
-              ) : (
-                <h4 className="font-black uppercase text-[9px] tracking-[0.2em]">{cancion.estado}</h4>
-              )}
-            </div>
+            <EstadoSelector
+              estado={cancion.estado}
+              isAdmin={isAdmin}
+              onchange={handleUpdateEstado}
+            />
           )}
 
-          <div className="p-6 bg-[#6B5E70] rounded-[2.5rem] shadow-xl shadow-[#6B5E70]/20">
-            <h4 className="text-white/40 font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic">Vista Comparativa</h4>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                {id: "es", label: "ES"}, 
-                {id: "en", label: "EN"}, 
-                {id: "jp", label: "JP"}, 
-                {id: "romaji", label: "RO"}
-              ].map((l) => (
-                <button 
-                  key={l.id} 
-                  onClick={() => toggleIdioma(l.id)} 
-                  className={`py-2 rounded-xl font-black text-[9px] transition-all uppercase border-2 ${
-                    idiomasActivos.includes(l.id) 
-                    ? "bg-white text-[#6B5E70] border-white scale-105" 
-                    : "bg-transparent text-white/40 border-white/10 hover:border-white/30"
-                  }`}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-white/20 text-[7px] text-center mt-3 font-bold uppercase tracking-widest">Selecciona hasta 2</p>
-          </div>
+          {/* Selector de idiomas */}
+          <LanguageToggler idiomasActivos={idiomasActivos} toggleIdioma={toggleIdioma} />
 
+          {/* Personaje */}
           {cancion?.personaje && (
-            <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
-              <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic"><User size={12} /> Personaje</h4>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10"
+            >
+              <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
+                <User size={12} />
+                Personaje
+              </h4>
               <p className="text-[#6B5E70] font-bold text-sm italic">{cancion.personaje}</p>
-            </div>
+            </motion.div>
           )}
 
-          <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] flex items-center gap-2 italic"><Link2 size={12} /> Enlaces</h4>
-              {isAdmin && <button onClick={() => setShowLinksModal(true)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors"><Plus size={14}/></button>}
-            </div>
-            <div className="space-y-2">
-              {cancion?.links && cancion.links.length > 0 ? (
-                cancion.links.map((link, idx) => (
-                  <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-white rounded-xl border border-[#6B5E70]/10 hover:border-[#6B5E70] transition-all group">
-                    <span className="text-[10px] font-bold text-[#6B5E70] uppercase italic truncate mr-2">{link.titulo}</span>
-                    <ExternalLink size={10} className="text-[#6B5E70]/30 group-hover:text-[#6B5E70]" />
-                  </a>
-                ))
-              ) : <p className="text-[#6B5E70]/30 text-[9px] font-bold uppercase italic text-center py-2">Sin referencias</p>}
-            </div>
-          </div>
+          {/* Enlaces */}
+          <LinkSection
+            links={cancion?.links}
+            isAdmin={isAdmin}
+            onOpenModal={() => {
+              dispatchForm({ type: "RESET_LINK" });
+              dispatchModal({ type: "OPEN_LINKS" });
+            }}
+            onEdit={prepararEdicionLink}
+            onDelete={removeLink}
+          />
         </aside>
 
+        {/* CONTENIDO PRINCIPAL */}
         <main>
+          {/* Título */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
-            <h1 className="text-6xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.85] mb-6 uppercase">{cancion?.titulo}</h1>
+            <h1 className="text-6xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.85] mb-6 uppercase">
+              {cancion?.titulo}
+            </h1>
             <div className="h-1.5 w-24 bg-[#6B5E70]/10 rounded-full" />
           </motion.div>
 
+          {/* Secciones */}
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-8 border-b border-[#6B5E70]/10 pb-4">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic"><List size={16} /> Letra</h3>
-              {isAdmin && <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white p-2 rounded-full shadow-lg hover:scale-110 active:scale-90 transition-transform"><Plus size={18} /></button>}
+              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
+                <List size={16} />
+                Letra
+              </h3>
+              {isAdmin && (
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => {
+                    dispatchForm({ type: "RESET_NUEVA" });
+                    dispatchModal({ type: "OPEN_ADD" });
+                  }}
+                  className="bg-[#6B5E70] text-white p-2 rounded-full shadow-lg hover:bg-[#5A4D5F] transition-colors"
+                >
+                  <Plus size={18} />
+                </motion.button>
+              )}
             </div>
 
             <div className="space-y-12">
               {secciones.map((seccion, index) => (
-                <motion.div key={seccion.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="relative group">
-                  <div className={`bg-white border border-[#6B5E70]/5 rounded-[2.5rem] transition-all hover:border-[#6B5E70]/20 hover:shadow-2xl hover:shadow-[#6B5E70]/5 ${idiomasActivos.length > 1 ? "p-8 md:p-12" : "p-10"}`}>
+                <motion.div
+                  key={seccion.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="relative group"
+                >
+                  <div
+                    className={`bg-white border border-[#6B5E70]/5 rounded-[2.5rem] transition-all hover:border-[#6B5E70]/20 hover:shadow-2xl hover:shadow-[#6B5E70]/5 ${
+                      idiomasActivos.length > 1 ? "p-8 md:p-12" : "p-10"
+                    }`}
+                  >
                     <div className="flex items-center justify-between mb-8">
-                      <span className="bg-[#F1F5F9] text-[#6B5E70]/60 px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase italic">{seccion.nombre_seccion}</span>
-                      {isAdmin && <button onClick={() => openEditSec(seccion)} className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"><Edit3 size={14} /></button>}
+                      <span className="bg-[#F1F5F9] text-[#6B5E70]/60 px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase italic">
+                        {seccion.nombre_seccion}
+                      </span>
+                      {isAdmin && (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => openEditSec(seccion)}
+                          className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Edit3 size={14} />
+                        </motion.button>
+                      )}
                     </div>
-                    
-                    <div className={`grid gap-x-12 gap-y-8 ${idiomasActivos.length > 1 ? "md:grid-cols-2 divide-x-2 divide-[#6B5E70]/5" : "grid-cols-1"}`}>
+
+                    <div
+                      className={`grid gap-x-12 gap-y-8 ${
+                        idiomasActivos.length > 1
+                          ? "md:grid-cols-2 divide-x-2 divide-[#6B5E70]/5"
+                          : "grid-cols-1"
+                      }`}
+                    >
                       {idiomasActivos.map((lang, i) => (
                         <div key={lang} className={`${i > 0 ? "md:pl-12" : ""}`}>
                           {idiomasActivos.length > 1 && (
                             <span className="text-[7px] font-black text-[#6B5E70]/20 uppercase tracking-[0.3em] block mb-4 italic">
-                              {lang === "romaji" ? "Reading" : lang}
+                              {IDIOMAS.find((x) => x.id === lang)?.nombre}
                             </span>
                           )}
-                          <div className={`text-[#6B5E70] leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90 transition-all ${idiomasActivos.length > 1 ? "text-lg md:text-xl" : "text-xl md:text-2xl"}`}>
+                          <div
+                            className={`text-[#6B5E70] leading-[1.8] font-medium whitespace-pre-wrap italic font-serif opacity-90 transition-all ${
+                              idiomasActivos.length > 1
+                                ? "text-lg md:text-xl"
+                                : "text-xl md:text-2xl"
+                            }`}
+                          >
                             {lang === "es" && (seccion.letra_es || "---")}
                             {lang === "en" && (seccion.letra_en || "---")}
                             {lang === "jp" && (seccion.letra_jp || "---")}
@@ -497,12 +1103,31 @@ export default function CancionDetalle() {
               ))}
             </div>
 
+            {/* Estado vacío */}
             {secciones.length === 0 && (
-              <div className="text-center py-24 bg-[#6B5E70]/5 rounded-[3rem] border-2 border-dashed border-[#6B5E70]/10">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-24 bg-[#6B5E70]/5 rounded-[3rem] border-2 border-dashed border-[#6B5E70]/10"
+              >
                 <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
-                <p className="text-[#6B5E70]/40 font-bold uppercase text-sm tracking-widest mb-6 italic">El lienzo está en blanco</p>
-                {isAdmin && <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white px-8 py-3 rounded-full font-black uppercase text-[10px] shadow-lg hover:bg-[#5A4D5F] transition-colors">Escribir primer verso</button>}
-              </div>
+                <p className="text-[#6B5E70]/40 font-bold uppercase text-sm tracking-widest mb-6 italic">
+                  El lienzo está en blanco
+                </p>
+                {isAdmin && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      dispatchForm({ type: "RESET_NUEVA" });
+                      dispatchModal({ type: "OPEN_ADD" });
+                    }}
+                    className="bg-[#6B5E70] text-white px-8 py-3 rounded-full font-black uppercase text-[10px] shadow-lg hover:bg-[#5A4D5F] transition-colors"
+                  >
+                    Escribir primer verso
+                  </motion.button>
+                )}
+              </motion.div>
             )}
           </div>
         </main>

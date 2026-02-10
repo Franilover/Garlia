@@ -31,7 +31,7 @@ export default function CocinaMenuPage() {
           
           {/* Opción: RECETAS */}
           <MenuCard 
-            href="/wiki/cocina/recetas"
+            href="/personal/cocina/recetas"
             title="Recetas"
             subtitle="El Grimorio"
             icon={<ChefHat size={42} />}
@@ -41,7 +41,7 @@ export default function CocinaMenuPage() {
 
           {/* Opción: INGREDIENTES */}
           <MenuCard 
-            href="/wiki/cocina/ingredientes"
+            href="/personal/cocina/ingredientes"
             title="Despensa"
             subtitle="Inventario"
             icon={<Utensils size={42} />}
@@ -59,7 +59,7 @@ export default function CocinaMenuPage() {
           className="mt-16 text-center"
         >
           <Link 
-            href="/wiki" 
+            href="/personal" 
             className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors border-b border-transparent hover:border-primary"
           >
             "Volver al Wiki Principal"
