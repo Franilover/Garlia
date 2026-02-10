@@ -1,5 +1,5 @@
 "use client";
-import { GestionPersonal } from "@/components/features/personal/tareas"; // Asegúrate de que el nombre coincida con el export de tu archivo
+import { GestionPersonal } from "@/components/features/tareas"; // Asegúrate de que el nombre coincida con el export de tu archivo
 import { Clock } from "lucide-react";
 
 export default function TareasPage() {
