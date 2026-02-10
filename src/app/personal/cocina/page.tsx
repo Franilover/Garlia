@@ -55,7 +55,7 @@ export default function CocinaMenuPage() {
             href="/personal" 
             className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors border-b border-transparent hover:border-primary"
           >
-            "Volver al Wiki Principal"
+            Volver al Wiki Principal
           </Link>
         </motion.div>
       </div>
