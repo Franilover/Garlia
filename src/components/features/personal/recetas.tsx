@@ -44,7 +44,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     return (
       <div className="min-h-screen bg-bg-main p-6">
         <div className="max-w-4xl mx-auto">
-          <Link href="/wiki/recetas" className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors mb-8">
+          <Link href="/personal/recetas" className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors mb-8">
             <ArrowLeft size={14} /> "Volver a Recetas"
           </Link>
           
@@ -281,7 +281,7 @@ const RecipeCard = ({ receta, index }: { receta: Receta; index: number }) => (
         <div className="flex items-center gap-1 text-[10px] font-bold"><Clock size={12} /> {receta.tiempo}</div>
         <div className="flex items-center gap-1 text-[10px] font-bold text-primary/60"><ChefHat size={12} /> {receta.dificultad}</div>
       </div>
-      <Link href={`/wiki/recetas/${receta.id}`} className="flex items-center justify-between w-full p-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-primary/10">
+      <Link href={`/personal/recetas/${receta.id}`} className="flex items-center justify-between w-full p-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-primary/10">
         "Ver Preparación" <ChevronRight size={14} />
       </Link>
     </div>
