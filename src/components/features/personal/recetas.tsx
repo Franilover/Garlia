@@ -19,7 +19,6 @@ import {
   Trash2
 } from "lucide-react";
 
-// Definimos la interfaz del objeto ingrediente para que TS no se queje
 interface IngredienteReceta {
   nombre: string;
   cantidad: string;
@@ -79,11 +78,10 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                 <div>
                   <h3 className="font-black uppercase text-xs mb-4 tracking-widest text-primary/40 italic">"Ingredientes"</h3>
                   <ul className="space-y-2">
-                    {/* Casteamos a IngredienteReceta[] para evitar el error de 'string' */}
                     {(receta.ingredientes as unknown as IngredienteReceta[])?.map((ing, i) => (
-                      <li key={i} className="text-[11px] font-bold uppercase border-b border-primary/5 pb-2 flex justify-between">
+                      <li key={i} className="text-[11px] font-bold uppercase border-b border-primary/10 pb-2 flex justify-between text-primary">
                         <span>{ing.nombre}</span>
-                        <span className="text-primary/40">{ing.cantidad}</span>
+                        <span className="opacity-60">{ing.cantidad}</span>
                       </li>
                     ))}
                   </ul>
@@ -93,8 +91,8 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                   <div className="space-y-4">
                     {receta.instrucciones?.map((paso, i) => (
                       <div key={i} className="flex gap-4">
-                        <span className="text-[10px] font-black text-primary/20">{i + 1}</span>
-                        <p className="text-[11px] font-medium leading-relaxed opacity-70 uppercase">{paso}</p>
+                        <span className="text-[10px] font-black text-primary/30">{i + 1}</span>
+                        <p className="text-[11px] font-bold leading-relaxed text-primary/80 uppercase">{paso}</p>
                       </div>
                     ))}
                   </div>
@@ -132,7 +130,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           <input 
             type="text"
             placeholder='"BUSCAR RECETA..."'
-            className="w-full bg-white border border-primary/10 rounded-2xl py-4 pl-12 pr-4 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all shadow-sm"
+            className="w-full bg-white border border-primary/20 rounded-2xl py-4 pl-12 pr-4 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all shadow-sm text-primary"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
@@ -145,7 +143,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
             onClick={() => setIsModalOpen(true)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="border-2 border-dashed border-primary/10 rounded-[40px] flex flex-col items-center justify-center p-10 min-h-62.5 bg-white/50 hover:bg-primary/5 transition-colors group"
+            className="border-2 border-dashed border-primary/20 rounded-[40px] flex flex-col items-center justify-center p-10 min-h-62.5 bg-white hover:bg-primary/5 transition-colors group"
           >
             <div className="p-4 bg-primary text-white rounded-full shadow-lg shadow-primary/20">
               <Plus size={32} />
@@ -156,7 +154,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           {loading ? (
             <>
               {[1, 2].map((n) => (
-                <div key={n} className="min-h-62.5 rounded-[40px] bg-primary/5 animate-pulse border border-primary/10 shadow-inner" />
+                <div key={n} className="min-h-62.5 rounded-[40px] bg-primary/5 animate-pulse border border-primary/10" />
               ))}
             </>
           ) : (
@@ -184,13 +182,12 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   );
 };
 
-/* --- COMPONENTE MODAL --- */
+/* --- MODAL CON COLORES DE ALTO CONTRASTE --- */
 const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) => {
   const [loading, setLoading] = useState(false);
   const [searchIng, setSearchIng] = useState("");
   const { data: dbIngredientes } = useSupabaseData<Ingrediente>("ingredientes");
 
-  // Usamos 'any' temporalmente para los ingredientes en el state si la interfaz NuevaReceta es rígida
   const [formData, setFormData] = useState<Omit<NuevaReceta, 'ingredientes'> & { ingredientes: IngredienteReceta[] }>({
     nombre: "",
     categoria: "General",
@@ -212,7 +209,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   }, [searchIng, dbIngredientes, formData.ingredientes]);
 
   const addIngrediente = (ing: Ingrediente) => {
-    const cantidad = prompt(`"Cantidad para ${ing.nombre} (ej: 100g, 2 unidades):"`, "100g");
+    const cantidad = prompt(`"Cantidad para ${ing.nombre}:"`, "100g");
     if (cantidad) {
       setFormData({
         ...formData,
@@ -237,16 +234,15 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.ingredientes.length === 0) return alert('"Añade al menos un ingrediente"');
+    if (formData.ingredientes.length === 0) return alert('"Añade ingredientes de la despensa"');
     setLoading(true);
     try {
-      // Forzamos el tipo al enviar para que la API lo acepte (se guardará como JSONB en Supabase)
       const { error } = await recetasQueries.create(formData as unknown as NuevaReceta);
       if (error) throw error;
       onSuccess();
     } catch (err) {
-      console.error('"Error al guardar:"', err);
-      alert('"No se pudo guardar la receta"');
+      console.error('"Error:"', err);
+      alert('"Error al guardar"');
     } finally {
       setLoading(false);
     }
@@ -255,27 +251,28 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-primary/10 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
     >
       <motion.div 
         initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-        className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[40px] shadow-2xl overflow-y-auto relative border border-primary/10 p-10"
+        className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[40px] shadow-2xl overflow-y-auto relative border border-primary/20 p-10"
       >
-        <button onClick={onClose} className="absolute top-6 right-6 text-primary/30 hover:text-primary transition-colors">
+        <button onClick={onClose} className="absolute top-6 right-6 text-primary/40 hover:text-primary transition-colors">
           <X size={24} />
         </button>
 
         <form onSubmit={handleSubmit}>
           <h2 className="text-2xl font-black uppercase tracking-tighter mb-8 text-primary italic">"Nueva"<span className="text-primary/30">"Receta"</span></h2>
+          
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-primary tracking-widest">"Nombre del plato"</label>
-                <input required className="w-full bg-primary/5 border-none rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
+                <label className="text-[9px] font-black uppercase opacity-60 ml-2 text-primary tracking-widest">"Nombre del plato"</label>
+                <input required className="w-full bg-slate-50 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary focus:border-primary/40 transition-colors" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
               </div>
               <div>
-                <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-primary tracking-widest">"Categoría"</label>
-                <select className="w-full bg-primary/5 border-none rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary" value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value as any})}>
+                <label className="text-[9px] font-black uppercase opacity-60 ml-2 text-primary tracking-widest">"Categoría"</label>
+                <select className="w-full bg-slate-50 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary cursor-pointer" value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value as any})}>
                   <option value="General">"General"</option>
                   <option value="Postres">"Postres"</option>
                   <option value="Almuerzos">"Almuerzos"</option>
@@ -284,19 +281,19 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
               </div>
             </div>
 
-            <div className="bg-primary/5 p-6 rounded-[30px] border border-primary/5">
+            <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/10">
               <h3 className="text-[10px] font-black uppercase text-primary mb-4 flex items-center gap-2">
                 <Utensils size={14} /> "Ingredientes de tu Despensa"
               </h3>
               <div className="relative mb-4">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={14} />
-                <input type="text" placeholder='"BUSCAR EN MI DESPENSA..."' className="w-full bg-white rounded-xl py-3 pl-10 pr-4 text-[10px] font-bold uppercase outline-none" value={searchIng} onChange={(e) => setSearchIng(e.target.value)} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40" size={14} />
+                <input type="text" placeholder='"BUSCAR EN MI DESPENSA..."' className="w-full bg-white border border-primary/10 rounded-xl py-3 pl-10 pr-4 text-[10px] font-bold uppercase outline-none text-primary focus:border-primary/40 transition-colors" value={searchIng} onChange={(e) => setSearchIng(e.target.value)} />
                 {filteredDbIngredientes.length > 0 && (
-                  <div className="absolute top-full left-0 w-full bg-white shadow-xl rounded-xl mt-2 border border-primary/10 z-10 overflow-hidden">
+                  <div className="absolute top-full left-0 w-full bg-white shadow-2xl rounded-xl mt-2 border border-primary/10 z-20 overflow-hidden">
                     {filteredDbIngredientes.map(ing => (
-                      <button key={ing.id} type="button" onClick={() => addIngrediente(ing)} className="w-full p-3 text-left text-[10px] font-bold uppercase hover:bg-primary/5 flex justify-between items-center transition-colors">
+                      <button key={ing.id} type="button" onClick={() => addIngrediente(ing)} className="w-full p-4 text-left text-[10px] font-bold uppercase hover:bg-primary hover:text-white flex justify-between items-center transition-all">
                         <span>{ing.nombre}</span>
-                        <Plus size={12} className="text-primary" />
+                        <Plus size={12} />
                       </button>
                     ))}
                   </div>
@@ -304,35 +301,35 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
               </div>
               <div className="flex flex-wrap gap-2">
                 {formData.ingredientes.map((ing, idx) => (
-                  <div key={idx} className="bg-primary text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-2">
+                  <div key={idx} className="bg-primary text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 shadow-md">
                     <span>{ing.nombre} ({ing.cantidad})</span>
-                    <button type="button" onClick={() => removeIngrediente(idx)}><X size={12} /></button>
+                    <button type="button" onClick={() => removeIngrediente(idx)} className="hover:scale-110 transition-transform"><X size={12} /></button>
                   </div>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="text-[9px] font-black uppercase opacity-40 ml-2 text-primary tracking-widest">"Pasos de Preparación"</label>
+              <label className="text-[9px] font-black uppercase opacity-60 ml-2 text-primary tracking-widest">"Pasos de Preparación"</label>
               <div className="flex gap-2 mb-3">
-                <input className="flex-1 bg-primary/5 border-none rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary" value={nuevoPaso} onChange={e => setNuevoPaso(e.target.value)} placeholder='"Añadir un paso..."' />
-                <button type="button" onClick={addPaso} className="p-4 bg-primary text-white rounded-2xl"><Plus size={20} /></button>
+                <input className="flex-1 bg-slate-50 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary focus:border-primary/40" value={nuevoPaso} onChange={e => setNuevoPaso(e.target.value)} placeholder='"Añadir un paso..."' />
+                <button type="button" onClick={addPaso} className="p-4 bg-primary text-white rounded-2xl hover:brightness-110 shadow-lg shadow-primary/20"><Plus size={20} /></button>
               </div>
               <div className="space-y-2">
                 {formData.instrucciones.map((paso, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-white border border-primary/5 p-3 rounded-xl">
-                    <span className="text-[10px] font-bold uppercase text-primary/60">{idx + 1}. {paso}</span>
+                  <div key={idx} className="flex justify-between items-center bg-white border border-primary/10 p-4 rounded-xl shadow-sm">
+                    <span className="text-[10px] font-bold uppercase text-primary leading-tight">{idx + 1}. {paso}</span>
                     <button type="button" onClick={() => {
                        const n = [...formData.instrucciones];
                        n.splice(idx, 1);
                        setFormData({...formData, instrucciones: n});
-                    }} className="text-red-400"><Trash2 size={14} /></button>
+                    }} className="text-red-500 hover:scale-110 transition-transform"><Trash2 size={16} /></button>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-          <button disabled={loading} type="submit" className="w-full mt-10 p-5 bg-primary text-white rounded-3xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-xl shadow-primary/20 transition-all disabled:opacity-50">
+          <button disabled={loading} type="submit" className="w-full mt-10 p-5 bg-primary text-white rounded-3xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-xl shadow-primary/30 transition-all disabled:opacity-50">
             {loading ? '"Escribiendo en el grimorio..."' : '"Guardar Receta"'}
           </button>
         </form>
@@ -356,7 +353,7 @@ const RecipeCard = ({ receta, index }: { receta: Receta; index: number }) => (
           <Flame size={48} />
         </div>
       )}
-      <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[9px] font-black uppercase text-primary/60 border border-primary/5 shadow-sm">
+      <div className="absolute top-4 left-4 px-3 py-1 bg-white rounded-full text-[9px] font-black uppercase text-primary border border-primary/10 shadow-sm">
         {receta.categoria}
       </div>
     </div>
