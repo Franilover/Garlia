@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/api/supabase";
 import { Ingrediente } from "@/lib/types/cocina"; // Asegúrate de crear este tipo
 
 export const ingredientesQueries = {
