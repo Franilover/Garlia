@@ -37,7 +37,7 @@ export default function CocinaMenuPage() {
           {/* Opción: INGREDIENTES */}
           <MenuCard 
             href="/personal/cocina/ingredientes"
-            title="Despensa"
+            title="Ingredientes"
             icon={<Utensils size={42} />}
             delay={0.2}
           />
