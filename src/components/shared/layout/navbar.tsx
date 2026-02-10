@@ -147,10 +147,10 @@ const Navbar = () => {
             {esFranilover && (
               <PCGroup 
                 label="Gestión" 
-                active={isInSection(["/wiki/cocina", "/wiki/tareas"])} 
+                active={isInSection(["/personal/cocina", "/personal/tareas"])} 
                 items={[
-                  { href: "/wiki/cocina", label: "Mi Cocina", icon: <Utensils size={14}/> },
-                  { href: "/wiki/tareas", label: "Mi Agenda", icon: <CheckSquare size={14}/> }
+                  { href: "/personal/cocina", label: "Mi Cocina", icon: <Utensils size={14}/> },
+                  { href: "/personal/tareas", label: "Mi Agenda", icon: <CheckSquare size={14}/> }
                 ]} 
                 currentPath={currentPath} 
               />
