@@ -19,11 +19,8 @@ export default function CocinaMenuPage() {
             <CookingPot size={40} />
           </div>
           <h1 className="text-5xl font-black uppercase tracking-tighter text-primary italic">
-            "CENTRO DE"<span className="text-primary/20">"CONTROL"</span>
+            Cocina
           </h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40 mt-2">
-            "Gestión Gastronómica y Nutricional"
-          </p>
         </motion.div>
 
         {/* --- BOTONES DE SELECCIÓN --- */}
@@ -34,7 +31,6 @@ export default function CocinaMenuPage() {
             href="/personal/cocina/recetas"
             title="Recetas"
              icon={<ChefHat size={42} />}
-            description="Explora tus preparaciones, tiempos y pasos detallados."
             delay={0.1}
           />
 
@@ -43,7 +39,6 @@ export default function CocinaMenuPage() {
             href="/personal/cocina/ingredientes"
             title="Despensa"
             icon={<Utensils size={42} />}
-            description="Control de stock, precios y valores nutricionales."
             delay={0.2}
           />
 
@@ -69,7 +64,7 @@ export default function CocinaMenuPage() {
 }
 
 /* --- COMPONENTE INTERNO: CARD DE MENÚ --- */
-const MenuCard = ({ href, title, icon, description, delay }: any) => (
+const MenuCard = ({ href, title, icon, delay }: any) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -87,11 +82,6 @@ const MenuCard = ({ href, title, icon, description, delay }: any) => (
           {title}
           <ArrowRight className="opacity-0 -translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" size={24} />
         </h2>
-
-        <p className="text-[11px] font-bold text-primary/40 leading-relaxed uppercase pr-10">
-          "{description}"
-        </p>
-
         {/* Decoración fondo */}
         <div className="absolute bottom-6 right-8 text-primary/5 font-black text-6xl select-none group-hover:text-primary/10 transition-colors">
           {title[0]}
