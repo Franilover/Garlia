@@ -1,10 +1,11 @@
-"use client";
+;"use client";
+
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/useSupabaseData"; 
 import { tareasQueries } from "@/lib/api/queries/tareas";
-import { eventosQueries } from "@/lib/api/queries/eventos"; // ✅ Importada
+import { eventosQueries } from "@/lib/api/queries/eventos";
 import { 
   CheckSquare, 
   Calendar as CalendarIcon, 
@@ -13,13 +14,19 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  Bookmark
+  Bookmark,
+  BookOpen // Nuevo icono para capítulos
 } from "lucide-react";
 
 export const GestionPersonal = () => {
   // 1. Datos de Supabase
   const { data: tareas, loading: tLoading, setData: setTareas } = useSupabaseData<any>("tareas");
   const { data: eventos, loading: eLoading, setData: setEventos } = useSupabaseData<any>("eventos");
+  
+  // --- NUEVO: Carga de Capítulos ---
+  const { data: capitulosRaw } = useSupabaseData<any>("capitulos", {
+    select: "id, titulo_capitulo, fecha_publicacion, libro_id"
+  });
 
   // 2. Estados de Tareas
   const [nuevaTarea, setNuevaTarea] = useState("");
@@ -85,8 +92,6 @@ export const GestionPersonal = () => {
   const handleAddEvento = async () => {
     if (!nuevoEvento.trim() || isAddingEvento) return;
     setIsAddingEvento(true);
-    
-    // Crear fecha ISO para el día seleccionado
     const fechaISO = new Date(añoActual, mesActual, diaSeleccionado).toISOString();
     
     try {
@@ -102,12 +107,38 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); } finally { setIsAddingEvento(false); }
   };
 
-  const eventosDelDia = useMemo(() => {
-    return eventos.filter((e: any) => {
+  // --- NUEVO: UNIFICAR EVENTOS Y CAPÍTULOS ---
+  const itemsCombinadosDelDia = useMemo(() => {
+    const evs = eventos.filter((e: any) => {
       const d = new Date(e.fecha);
       return d.getUTCDate() === diaSeleccionado && d.getUTCMonth() === mesActual && d.getUTCFullYear() === añoActual;
+    }).map(e => ({ ...e, esCapitulo: false }));
+
+    const caps = (capitulosRaw as any[] || []).filter((c: any) => {
+      const d = new Date(c.fecha_publicacion);
+      return d.getUTCDate() === diaSeleccionado && d.getUTCMonth() === mesActual && d.getUTCFullYear() === añoActual;
+    }).map(c => ({
+      id: c.id,
+      titulo: c.titulo_capitulo,
+      tipo: "Lanzamiento Libro",
+      esCapitulo: true
+    }));
+
+    return [...evs, ...caps];
+  }, [eventos, capitulosRaw, diaSeleccionado, mesActual, añoActual]);
+
+  // Función para saber si un día específico del calendario tiene algo (para los puntitos)
+  const tieneAlgoElDia = (dia: number) => {
+    const hayEvento = eventos.some((e: any) => {
+      const d = new Date(e.fecha);
+      return d.getUTCDate() === dia && d.getUTCMonth() === mesActual && d.getUTCFullYear() === añoActual;
     });
-  }, [eventos, diaSeleccionado, mesActual, añoActual]);
+    const hayCap = (capitulosRaw as any[] || []).some((c: any) => {
+      const d = new Date(c.fecha_publicacion);
+      return d.getUTCDate() === dia && d.getUTCMonth() === mesActual && d.getUTCFullYear() === añoActual;
+    });
+    return hayEvento || hayCap;
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -180,21 +211,19 @@ export const GestionPersonal = () => {
             {Array.from({ length: diasEnMes }).map((_, i) => {
               const dia = i + 1;
               const estaSeleccionado = dia === diaSeleccionado;
-              const tieneEvento = eventos.some((e: any) => {
-                const d = new Date(e.fecha);
-                return d.getUTCDate() === dia && d.getUTCMonth() === mesActual && d.getUTCFullYear() === añoActual;
-              });
+              const tieneAlgo = tieneAlgoElDia(dia);
+
               return (
                 <motion.div key={dia} onClick={() => setDiaSeleccionado(dia)} whileHover={{ scale: 1.05 }}
                   className={cn("aspect-square rounded-2xl border flex flex-col items-center justify-center relative transition-all cursor-pointer", estaSeleccionado ? "bg-primary text-white border-primary shadow-lg shadow-primary/30" : "bg-primary/5 border-transparent text-primary/60 hover:bg-white hover:border-primary/20")}>
                   <span className="text-sm font-black">{dia}</span>
-                  {tieneEvento && <div className={cn("absolute bottom-2 w-1.5 h-1.5 rounded-full", estaSeleccionado ? "bg-white" : "bg-primary")} />}
+                  {tieneAlgo && <div className={cn("absolute bottom-2 w-1.5 h-1.5 rounded-full", estaSeleccionado ? "bg-white" : "bg-primary")} />}
                 </motion.div>
               );
             })}
           </div>
 
-          {/* NUEVO: FORMULARIO PARA AÑADIR EVENTOS */}
+          {/* FORMULARIO PARA AÑADIR EVENTOS */}
           <div className="bg-primary/5 rounded-3xl p-4 mb-6 border border-primary/5">
             <div className="flex items-center gap-3 mb-3">
                <Bookmark size={16} className="text-primary/40" />
@@ -218,20 +247,29 @@ export const GestionPersonal = () => {
             </div>
           </div>
 
-          {/* DETALLE EVENTOS */}
+          {/* DETALLE EVENTOS Y CAPÍTULOS */}
           <div className="pt-6 border-t border-primary/5">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-primary/30 mb-4 px-2">Planes para el {diaSeleccionado} de {mesesNombres[mesActual]}</h3>
             <div className="space-y-3">
-              {eventosDelDia.length > 0 ? (
-                eventosDelDia.map((e: any) => (
-                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={e.id} className="flex items-center gap-4 p-4 bg-primary/5 rounded-3xl border border-transparent">
+              {itemsCombinadosDelDia.length > 0 ? (
+                itemsCombinadosDelDia.map((item: any) => (
+                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={item.id} 
+                    className={cn(
+                      "flex items-center gap-4 p-4 rounded-3xl border transition-all",
+                      item.esCapitulo ? "bg-primary/10 border-primary/10" : "bg-primary/5 border-transparent"
+                    )}>
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                       <span className="text-[14px] font-black text-primary">{diaSeleccionado}</span>
+                       {item.esCapitulo ? <BookOpen size={18} className="text-primary" /> : <span className="text-[14px] font-black text-primary">{diaSeleccionado}</span>}
                     </div>
                     <div>
-                      <p className="text-[11px] font-black text-primary uppercase">{e.titulo}</p>
-                      <p className="text-[9px] font-bold text-primary/40 uppercase">{e.tipo}</p>
+                      <p className="text-[11px] font-black text-primary uppercase">{item.titulo}</p>
+                      <p className="text-[9px] font-bold text-primary/40 uppercase">{item.tipo}</p>
                     </div>
+                    {item.esCapitulo && (
+                      <div className="ml-auto">
+                        <span className="text-[8px] font-black bg-primary text-white px-2 py-1 rounded-full uppercase tracking-tighter">Capítulo</span>
+                      </div>
+                    )}
                   </motion.div>
                 ))
               ) : (
@@ -243,4 +281,4 @@ export const GestionPersonal = () => {
       </section>
     </div>
   );
-};
+}
