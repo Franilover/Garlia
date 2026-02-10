@@ -18,10 +18,9 @@ const CATEGORIAS = ["Todos", "Proteínas", "Carbohidratos", "Grasas", "Frutas", 
 
 export const IngredientesPage = () => {
   const [filter, setFilter] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Todos"); // Nuevo estado para el filtro
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
   const { data: ingredientes, loading } = useSupabaseData<Ingrediente>("ingredientes");
 
-  // Lógica de filtrado actualizada
   const filteredItems = ingredientes.filter((item) => {
     const matchesSearch = item.nombre.toLowerCase().includes(filter.toLowerCase()) ||
                           item.categoria.toLowerCase().includes(filter.toLowerCase());
@@ -43,11 +42,11 @@ export const IngredientesPage = () => {
           >
             <div className="flex items-center gap-2 text-primary/40 mb-2">
               <Link href="/wiki/cocina" className="hover:text-primary transition-colors flex items-center gap-1 text-[10px] font-black uppercase tracking-widest">
-                <ChevronLeft size={14} /> "Cocina"
+                <ChevronLeft size={14} /> Cocina
               </Link>
             </div>
             <h1 className="text-4xl font-black uppercase tracking-tighter text-primary italic">
-              "MI"<span className="text-primary/20">"DESPENSA"</span>
+              MI <span className="text-primary/20">DESPENSA</span>
             </h1>
           </motion.div>
 
@@ -56,7 +55,7 @@ export const IngredientesPage = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={16} />
             <input 
               type="text"
-              placeholder='"BUSCAR INGREDIENTE..."'
+              placeholder="BUSCAR INGREDIENTE..."
               className="w-full bg-white border-2 border-primary/5 rounded-2xl py-3 pl-12 pr-4 text-[10px] font-bold uppercase tracking-widest focus:border-primary/20 transition-all outline-none"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -64,7 +63,7 @@ export const IngredientesPage = () => {
           </div>
         </div>
 
-        {/* --- NUEVA SECCIÓN: FILTROS DE CATEGORÍA --- */}
+        {/* --- SECCIÓN: FILTROS DE CATEGORÍA --- */}
         <div className="mt-8 overflow-x-auto pb-2 scrollbar-hide">
           <div className="flex items-center gap-2 min-w-max">
             <div className="pr-2 text-primary/20">
@@ -86,7 +85,7 @@ export const IngredientesPage = () => {
                 <span className={`relative z-10 text-[9px] font-black uppercase tracking-widest transition-colors ${
                   selectedCategory === cat ? "text-white" : "text-primary/40 group-hover:text-primary"
                 }`}>
-                  "{cat}"
+                  {cat}
                 </span>
               </button>
             ))}
@@ -106,7 +105,7 @@ export const IngredientesPage = () => {
             <div className="p-3 bg-primary text-white rounded-full shadow-lg shadow-primary/20">
               <Plus size={20} />
             </div>
-            <span className="text-[9px] font-black uppercase mt-3 text-primary/40 tracking-widest">"Nuevo Insumo"</span>
+            <span className="text-[9px] font-black uppercase mt-3 text-primary/40 tracking-widest">Nuevo Insumo</span>
           </motion.button>
 
           {loading ? (
@@ -129,7 +128,6 @@ export const IngredientesPage = () => {
 /* --- CARD DE INGREDIENTE --- */
 const IngredientCard = ({ item, index }: { item: Ingrediente; index: number }) => {
   
-  // Color dinámico según categoría para el badge
   const getCategoryColor = (cat: string) => {
     const colors: Record<string, string> = {
       "Proteínas": "bg-red-500/10 text-red-600",
@@ -159,7 +157,7 @@ const IngredientCard = ({ item, index }: { item: Ingrediente; index: number }) =
       </div>
 
       <h3 className="text-sm font-black uppercase text-primary mb-1 tracking-tight italic">
-        "{item.nombre}"
+        {item.nombre}
       </h3>
       <p className="text-[9px] font-bold text-primary/30 uppercase mb-5 tracking-widest">
         {item.porcion_texto}
@@ -168,15 +166,15 @@ const IngredientCard = ({ item, index }: { item: Ingrediente; index: number }) =
       {/* Grid de Macros */}
       <div className="grid grid-cols-3 gap-1.5 border-t border-primary/5 pt-4">
         <div className="text-center">
-          <span className="block text-[7px] font-black text-primary/20 uppercase">"Prot"</span>
+          <span className="block text-[7px] font-black text-primary/20 uppercase">Prot</span>
           <span className="text-[11px] font-black text-primary">{item.proteinas}g</span>
         </div>
         <div className="text-center">
-          <span className="block text-[7px] font-black text-primary/20 uppercase">"Carb"</span>
+          <span className="block text-[7px] font-black text-primary/20 uppercase">Carb</span>
           <span className="text-[11px] font-black text-primary">{item.carbohidratos}g</span>
         </div>
         <div className="text-center">
-          <span className="block text-[7px] font-black text-primary/20 uppercase">"Gras"</span>
+          <span className="block text-[7px] font-black text-primary/20 uppercase">Gras</span>
           <span className="text-[11px] font-black text-primary">{item.grasas}g</span>
         </div>
       </div>
