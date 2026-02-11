@@ -51,8 +51,9 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       </div>
     );
 
-    // Cálculo de macros totales
+    // --- LÓGICA DE SUMA DE MACROS ---
     const ingredientesList = (receta.ingredientes as unknown as IngredienteReceta[]) || [];
+    
     const totales = ingredientesList.reduce((acc, ing) => ({
       kcal: acc.kcal + (Number(ing.kcal) || 0),
       proteinas: acc.proteinas + (Number(ing.proteinas) || 0),
@@ -76,7 +77,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
               <span className="text-[10px] font-black uppercase text-primary/30 tracking-[0.2em]">{receta.categoria}</span>
               <h1 className="text-4xl font-black uppercase text-primary italic mt-2 mb-6 tracking-tighter">"{receta.nombre}"</h1>
               
-              <div className="flex flex-wrap gap-8 mb-10 border-y border-primary/5 py-6">
+              <div className="flex items-center gap-8 mb-10 border-y border-primary/5 py-6">
                 <div className="flex items-center gap-2">
                   <Clock className="text-primary/30" size={18} />
                   <span className="text-[11px] font-bold uppercase text-primary">{receta.tiempo}</span>
@@ -85,26 +86,25 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                   <ChefHat className="text-primary/30" size={18} />
                   <span className="text-[11px] font-bold uppercase text-primary">{receta.dificultad}</span>
                 </div>
-                {/* Badge de Calorías Totales */}
                 <div className="flex items-center gap-2 ml-auto">
-                  <Activity className="text-primary" size={18} />
-                  <span className="text-[11px] font-black uppercase text-primary">{totales.kcal} kcal</span>
+                  <Activity className="text-primary/30" size={18} />
+                  <span className="text-[11px] font-black uppercase text-primary">{totales.kcal.toFixed(0)} kcal</span>
                 </div>
               </div>
 
-              {/* Grid de Macros Totales */}
+              {/* Grid de Totales Nutricionales */}
               <div className="grid grid-cols-3 gap-4 mb-10">
-                <div className="bg-slate-50 p-4 rounded-3xl border border-primary/5 text-center">
-                  <p className="text-[8px] font-black uppercase text-primary/40 mb-1">"Proteínas"</p>
-                  <p className="text-sm font-black text-primary">{totales.proteinas.toFixed(1)}g</p>
+                <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/5 text-center">
+                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1 tracking-widest">"Proteínas"</p>
+                  <p className="text-xl font-black text-primary italic">{totales.proteinas.toFixed(1)}g</p>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-3xl border border-primary/5 text-center">
-                  <p className="text-[8px] font-black uppercase text-primary/40 mb-1">"Carbos"</p>
-                  <p className="text-sm font-black text-primary">{totales.carbos.toFixed(1)}g</p>
+                <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/5 text-center">
+                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1 tracking-widest">"Carbos"</p>
+                  <p className="text-xl font-black text-primary italic">{totales.carbos.toFixed(1)}g</p>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-3xl border border-primary/5 text-center">
-                  <p className="text-[8px] font-black uppercase text-primary/40 mb-1">"Grasas"</p>
-                  <p className="text-sm font-black text-primary">{totales.grasas.toFixed(1)}g</p>
+                <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/5 text-center">
+                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1 tracking-widest">"Grasas"</p>
+                  <p className="text-xl font-black text-primary italic">{totales.grasas.toFixed(1)}g</p>
                 </div>
               </div>
 
@@ -113,10 +113,10 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                   <h3 className="font-black uppercase text-xs mb-4 tracking-widest text-primary/40 italic">"Ingredientes"</h3>
                   <ul className="space-y-2">
                     {ingredientesList.map((ing, i) => (
-                      <li key={i} className="text-[11px] font-bold uppercase border-b border-primary/10 pb-2 flex justify-between text-primary">
+                      <li key={i} className="text-[11px] font-bold uppercase border-b border-primary/10 pb-2 flex justify-between items-center text-primary">
                         <span>{ing.nombre}</span>
-                        <div className="flex gap-4">
-                          <span className="text-[9px] opacity-40">{ing.proteinas}P</span>
+                        <div className="flex items-center gap-4">
+                          <span className="text-[8px] font-black text-primary/30">P {Number(ing.proteinas || 0).toFixed(1)}</span>
                           <span className="opacity-60">{ing.cantidad}</span>
                         </div>
                       </li>
@@ -142,6 +142,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     );
   }
 
+  // --- VISTA PRINCIPAL (LISTADO) ---
   const filteredRecipes = recipes.filter((r) => 
     r.nombre.toLowerCase().includes(filter.toLowerCase()) ||
     r.categoria.toLowerCase().includes(filter.toLowerCase())
@@ -260,16 +261,19 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
     const cantidad = prompt(`"Cantidad para ${ing.nombre}:"`, sugerencia);
     
     if (cantidad) {
+      // Capturamos todos los macros asegurando que sean números
+      const nuevoIng: IngredienteReceta = { 
+        nombre: ing.nombre, 
+        cantidad, 
+        kcal: Number(ing.kcal) || 0,
+        proteinas: Number((ing as any).proteinas) || 0,
+        carbohidratos: Number((ing as any).carbohidratos) || 0,
+        grasas: Number((ing as any).grasas) || 0
+      };
+
       setFormData({
         ...formData,
-        ingredientes: [...formData.ingredientes, { 
-          nombre: ing.nombre, 
-          cantidad, 
-          kcal: ing.kcal,
-          proteinas: (ing as any).proteinas || 0,
-          carbohidratos: (ing as any).carbohidratos || 0,
-          grasas: (ing as any).grasas || 0
-        }]
+        ingredientes: [...formData.ingredientes, nuevoIng]
       });
       setSearchIng("");
     }
@@ -369,7 +373,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                         >
                           <span>{ing.nombre}</span>
                           <div className="flex items-center gap-2">
-                            <span className="text-[8px] opacity-60">{(ing as any).proteinas || 0}g P</span>
+                            <span className="text-[8px] opacity-60">{Number((ing as any).proteinas || 0).toFixed(1)}g P</span>
                             <Plus size={14} />
                           </div>
                         </button>
