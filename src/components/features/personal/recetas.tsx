@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/useSupabaseData"; 
-import { Receta, NuevaReceta } from "@/lib/types/recetas";
+import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/types/recetas";
 import { Ingrediente } from "@/lib/types/cocina";
 import { recetasQueries } from "@/lib/api/queries/recetas"; 
 import {  
@@ -19,16 +19,6 @@ import {
   Trash2,
   Activity
 } from "lucide-react";
-
-// Interfaz para el JSON que se guarda dentro de la receta
-interface IngredienteReceta {
-  nombre: string;
-  cantidad: string;
-  kcal: number;
-  proteinas: number;
-  carbohidratos: number;
-  grasas: number;
-}
 
 interface RecetasPageProps {
   selectedRecipeId?: string;
@@ -75,6 +65,17 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     }
 
     console.log('Ingredientes parseados:', ingredientesList); // Para debugging
+    console.log('Detalle de cada ingrediente:');
+    ingredientesList.forEach((ing, idx) => {
+      console.log(`Ingrediente ${idx}:`, {
+        nombre: ing.nombre,
+        cantidad: ing.cantidad,
+        kcal: ing.kcal,
+        proteinas: ing.proteinas,
+        carbohidratos: ing.carbohidratos,
+        grasas: ing.grasas
+      });
+    });
     
     const totales = ingredientesList.reduce((acc, ing) => {
       // Asegurar que los valores son números
@@ -290,6 +291,8 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   }, [searchIng, dbIngredientes, formData.ingredientes]);
 
   const addIngrediente = (ing: Ingrediente) => {
+    console.log('Ingrediente de la BD:', ing); // Ver qué trae la BD
+    
     let sugerencia = "100g";
     if (ing.porcion_texto?.toLowerCase().includes("unidad")) sugerencia = ing.porcion_texto;
     else if (ing.categoria === "Lácteos" || ing.agua_ml > 0) sugerencia = "100ml";
@@ -308,7 +311,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
         grasas: parseFloat(String(ing.grasas || 0))
       };
       
-      console.log('Añadiendo ingrediente:', nuevoIng); // Para debugging
+      console.log('Ingrediente a guardar:', nuevoIng); // Para debugging
       
       setFormData({
         ...formData,

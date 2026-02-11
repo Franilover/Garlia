@@ -7,6 +7,19 @@ export type RecetaCategoria = "Postres" | "Almuerzos" | "Cenas" | "Desayunos" | 
 export type RecetaDificultad = "Fácil" | "Media" | "Difícil";
 
 /**
+ * "Interfaz para ingredientes dentro de una receta"
+ * "Guarda los macros calculados del ingrediente en el momento de agregarlo"
+ */
+export interface IngredienteReceta {
+  nombre: string;
+  cantidad: string;
+  kcal: number;
+  proteinas: number;
+  carbohidratos: number;
+  grasas: number;
+}
+
+/**
  * "Interfaz que define la estructura de una Receta"
  * "Coincide exactamente con las columnas de tu tabla en Supabase"
  */
@@ -18,7 +31,7 @@ export interface Receta {
   categoria: RecetaCategoria; // "Usa los tipos definidos arriba"
   tiempo: string;            // "Ejemplo: 45 min"
   dificultad: RecetaDificultad;
-  ingredientes: string[];    // "Array de strings (JSONB en la base de datos)"
+  ingredientes: IngredienteReceta[] | string; // "Array de objetos con macros (JSONB en la base de datos) o string si viene sin parsear"
   instrucciones: string[];   // "Array de pasos (JSONB en la base de datos)"
   imagen_url?: string;       // "URL de la foto guardada en el Storage"
   autor_id?: string;         // "ID del usuario que la creó"
