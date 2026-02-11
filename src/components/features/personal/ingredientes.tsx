@@ -21,7 +21,6 @@ export const IngredientesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Estado inicial para el formulario
   const [formData, setFormData] = useState({
     nombre: "",
     categoria: "Verduras",
@@ -33,11 +32,6 @@ export const IngredientesPage = () => {
     porcion_texto: "100g"
   });
 
-  /**
-   * "DELEGACIÓN AL HOOK"
-   * Al igual que en el Diario, extraemos data, loading y mutate.
-   * Añadimos 'addRow' que es la función que debe tener tu hook para insertar.
-   */
   const { data: ingredientes, loading, mutate, addRow } = useSupabaseData<Ingrediente>("ingredientes");
 
   const categoriasDinamicas = useMemo(() => {
@@ -61,13 +55,9 @@ export const IngredientesPage = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-
     try {
-      // Delegamos la inserción al hook
       const { error } = await addRow(formData);
       if (error) throw error;
-
-      // Reset y cierre
       setFormData({
         nombre: "",
         categoria: "Verduras",
@@ -79,7 +69,7 @@ export const IngredientesPage = () => {
         porcion_texto: "100g"
       });
       setIsModalOpen(false);
-      mutate(); // Refresca la lista
+      mutate();
     } catch (err) {
       console.error("Error al guardar:", err);
     } finally {
@@ -89,7 +79,6 @@ export const IngredientesPage = () => {
 
   return (
     <div className="min-h-screen bg-bg-main pb-24">
-      {/* --- CABECERA --- */}
       <header className="pt-10 pb-6 px-6 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
@@ -108,14 +97,13 @@ export const IngredientesPage = () => {
             <input 
               type="text"
               placeholder="BUSCAR INGREDIENTE..."
-              className="w-full bg-white border-2 border-primary/5 rounded-2xl py-3 pl-12 pr-4 text-[10px] font-bold uppercase tracking-widest focus:border-primary/20 transition-all outline-none"
+              className="w-full bg-white border-2 border-primary/5 rounded-2xl py-3 pl-12 pr-4 text-[10px] font-bold uppercase tracking-widest focus:border-primary/20 transition-all outline-none text-primary"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
           </div>
         </div>
 
-        {/* --- FILTROS --- */}
         <div className="mt-8 overflow-x-auto pb-2 scrollbar-hide">
           <div className="flex items-center gap-2 min-w-max">
             <div className="pr-2 text-primary/20"><Filter size={14} /></div>
@@ -143,15 +131,13 @@ export const IngredientesPage = () => {
         </div>
       </header>
 
-      {/* --- LISTADO --- */}
       <main className="px-6 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          
           <motion.button 
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setIsModalOpen(true)}
-            className="border-2 border-dashed border-primary/10 rounded-[35px] flex flex-col items-center justify-center p-8 bg-white/40 hover:bg-white transition-all group min-h-[160px]"
+            className="border-2 border-dashed border-primary/10 rounded-[35px] flex flex-col items-center justify-center p-8 bg-white/40 hover:bg-white transition-all group min-h-40"
           >
             <div className="p-3 bg-primary text-white rounded-full shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
               <Plus size={20} />
@@ -161,7 +147,7 @@ export const IngredientesPage = () => {
 
           {loading ? (
             Array(4).fill(0).map((_, i) => (
-              <div key={i} className="h-[160px] rounded-[35px] bg-primary/5 animate-pulse border border-primary/10" />
+              <div key={i} className="h-40 rounded-[35px] bg-primary/5 animate-pulse border border-primary/10" />
             ))
           ) : (
             <AnimatePresence mode="popLayout">
@@ -173,7 +159,6 @@ export const IngredientesPage = () => {
         </div>
       </main>
 
-      {/* --- MODAL FORMULARIO --- */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -198,7 +183,7 @@ export const IngredientesPage = () => {
                   <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 ml-4">Nombre</label>
                   <input 
                     required
-                    className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold uppercase outline-none focus:ring-2 ring-primary/20"
+                    className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold uppercase outline-none focus:ring-2 ring-primary/20 text-primary"
                     value={formData.nombre}
                     onChange={(e) => setFormData({...formData, nombre: e.target.value})}
                   />
@@ -208,7 +193,7 @@ export const IngredientesPage = () => {
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase text-primary/30 ml-4">Categoría</label>
                     <select 
-                      className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-[10px] font-black uppercase outline-none"
+                      className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-[10px] font-black uppercase outline-none text-primary appearance-none cursor-pointer"
                       value={formData.categoria}
                       onChange={(e) => setFormData({...formData, categoria: e.target.value})}
                     >
@@ -223,7 +208,7 @@ export const IngredientesPage = () => {
                     <label className="text-[9px] font-black uppercase text-primary/30 ml-4">Precio ($)</label>
                     <input 
                       type="number"
-                      className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold outline-none"
+                      className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold outline-none text-primary"
                       value={formData.precio}
                       onChange={(e) => setFormData({...formData, precio: Number(e.target.value)})}
                     />
@@ -231,10 +216,22 @@ export const IngredientesPage = () => {
                 </div>
 
                 <div className="bg-primary/5 rounded-[30px] p-6 grid grid-cols-2 gap-4">
-                   <input type="number" placeholder="Kcal" className="bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.kcal} onChange={(e) => setFormData({...formData, kcal: Number(e.target.value)})}/>
-                   <input type="number" placeholder="Prot (g)" className="bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.proteinas} onChange={(e) => setFormData({...formData, proteinas: Number(e.target.value)})}/>
-                   <input type="number" placeholder="Carb (g)" className="bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.carbohidratos} onChange={(e) => setFormData({...formData, carbohidratos: Number(e.target.value)})}/>
-                   <input type="number" placeholder="Gras (g)" className="bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.grasas} onChange={(e) => setFormData({...formData, grasas: Number(e.target.value)})}/>
+                   <div className="space-y-1">
+                     <span className="text-[7px] font-black uppercase text-primary/30 ml-2">Kcal</span>
+                     <input type="number" className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary" value={formData.kcal} onChange={(e) => setFormData({...formData, kcal: Number(e.target.value)})}/>
+                   </div>
+                   <div className="space-y-1">
+                     <span className="text-[7px] font-black uppercase text-primary/30 ml-2">Prot (g)</span>
+                     <input type="number" className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary" value={formData.proteinas} onChange={(e) => setFormData({...formData, proteinas: Number(e.target.value)})}/>
+                   </div>
+                   <div className="space-y-1">
+                     <span className="text-[7px] font-black uppercase text-primary/30 ml-2">Carb (g)</span>
+                     <input type="number" className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary" value={formData.carbohidratos} onChange={(e) => setFormData({...formData, carbohidratos: Number(e.target.value)})}/>
+                   </div>
+                   <div className="space-y-1">
+                     <span className="text-[7px] font-black uppercase text-primary/30 ml-2">Gras (g)</span>
+                     <input type="number" className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary" value={formData.grasas} onChange={(e) => setFormData({...formData, grasas: Number(e.target.value)})}/>
+                   </div>
                 </div>
 
                 <button 
