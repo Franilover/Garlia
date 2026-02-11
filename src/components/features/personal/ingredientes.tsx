@@ -1,35 +1,51 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { Ingrediente } from "@/lib/types/cocina";
 import {
   Search,
   Plus,
-  Flame,
   Zap,
   ChevronLeft,
   Filter
 } from "lucide-react";
 import Link from "next/link";
 
-// Definimos las categorías disponibles para los filtros
-const CATEGORIAS = ["Todos", "Proteínas", "Carbohidratos", "Grasas", "Frutas", "Verduras", "Lácteos", "Cereales", "Otros"];
-
 export const IngredientesPage = () => {
   const [filter, setFilter] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+  
+  // "Cargamos los datos usando el hook que sincroniza con el user_id"
   const { data: ingredientes, loading } = useSupabaseData<Ingrediente>("ingredientes");
 
-  const filteredItems = ingredientes.filter((item) => {
-    const matchesSearch = item.nombre.toLowerCase().includes(filter.toLowerCase()) ||
-                          item.categoria.toLowerCase().includes(filter.toLowerCase());
-    
-    const matchesCategory = selectedCategory === "Todos" || 
-                            item.categoria === selectedCategory;
+  /**
+   * "CATEGORÍAS DINÁMICAS"
+   * "Extrae las categorías únicas directamente de los datos de Supabase."
+   * "Esto asegura que si añades 'Superfoods' o cualquier otra, aparezca el botón automáticamente."
+   */
+  const categoriasDinamicas = useMemo(() => {
+    const base = ["Todos"];
+    if (!ingredientes) return base;
+    const catsEnData = Array.from(new Set(ingredientes.map(i => i.categoria)));
+    return [...base, ...catsEnData.filter(c => c && c.trim() !== "")];
+  }, [ingredientes]);
 
-    return matchesSearch && matchesCategory;
-  });
+  /**
+   * "LÓGICA DE FILTRADO"
+   */
+  const filteredItems = useMemo(() => {
+    return ingredientes.filter((item) => {
+      const nombreMatches = item.nombre.toLowerCase().includes(filter.toLowerCase());
+      const categoriaMatches = item.categoria.toLowerCase().includes(filter.toLowerCase());
+      const matchesSearch = nombreMatches || categoriaMatches;
+      
+      const matchesCategory = selectedCategory === "Todos" || 
+                              item.categoria === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [ingredientes, filter, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-bg-main pb-24">
@@ -63,13 +79,13 @@ export const IngredientesPage = () => {
           </div>
         </div>
 
-        {/* --- SECCIÓN: FILTROS DE CATEGORÍA --- */}
+        {/* --- SECCIÓN: FILTROS DE CATEGORÍA DINÁMICOS --- */}
         <div className="mt-8 overflow-x-auto pb-2 scrollbar-hide">
           <div className="flex items-center gap-2 min-w-max">
             <div className="pr-2 text-primary/20">
                 <Filter size={14} />
             </div>
-            {CATEGORIAS.map((cat) => (
+            {categoriasDinamicas.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -134,6 +150,8 @@ const IngredientCard = ({ item, index }: { item: Ingrediente; index: number }) =
       "Frutas": "bg-orange-500/10 text-orange-600",
       "Lácteos": "bg-blue-500/10 text-blue-600",
       "Cereales": "bg-amber-500/10 text-amber-600",
+      "Verduras": "bg-green-500/10 text-green-600",
+      "Superfoods": "bg-teal-500/10 text-teal-600",
     };
     return colors[cat] || "bg-primary/5 text-primary/40";
   };
