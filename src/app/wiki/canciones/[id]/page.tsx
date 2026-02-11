@@ -41,7 +41,7 @@ const initialModalState = {
   showEditSecModal: false,
   showLinksModal: false,
   showFullLyricsModal: false,
-  showMassEditModal: false, // Nuevo: Modal de edición masiva
+  showMassEditModal: false,
   selectedSec: null,
   linkEditandoIndex: null,
   procesando: false
@@ -57,8 +57,8 @@ const modalReducer = (state, action) => {
     case "CLOSE_LINKS": return { ...state, showLinksModal: false, linkEditandoIndex: null };
     case "OPEN_FULL_LYRICS": return { ...state, showFullLyricsModal: true };
     case "CLOSE_FULL_LYRICS": return { ...state, showFullLyricsModal: false };
-    case "OPEN_MASS_EDIT": return { ...state, showMassEditModal: true }; // Nuevo
-    case "CLOSE_MASS_EDIT": return { ...state, showMassEditModal: false }; // Nuevo
+    case "OPEN_MASS_EDIT": return { ...state, showMassEditModal: true };
+    case "CLOSE_MASS_EDIT": return { ...state, showMassEditModal: false };
     case "SET_EDITING_LINK": return { ...state, linkEditandoIndex: action.payload };
     case "SET_PROCESANDO": return { ...state, procesando: action.payload };
     default: return state;
@@ -196,7 +196,7 @@ const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
 );
 
 // ============================================================================
-// MODAL DE EDICIÓN MASIVA (NUEVO)
+// MODAL DE EDICIÓN MASIVA (CON REORDENAR, AÑADIR Y BORRAR)
 // ============================================================================
 
 const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => {
@@ -213,8 +213,37 @@ const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => 
     setLocalSecciones(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
   };
 
+  const moverSeccion = (index, direccion) => {
+    const nuevas = [...localSecciones];
+    const [item] = nuevas.splice(index, 1);
+    nuevas.splice(index + direccion, 0, item);
+    setLocalSecciones(nuevas);
+  };
+
+  const eliminarSeccion = (index) => {
+    if (confirm("¿Eliminar esta sección de la canción?")) {
+      setLocalSecciones(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const añadirSeccion = () => {
+    const nueva = {
+      id: `temp-${Date.now()}`,
+      nombre_seccion: "NUEVA SECCIÓN",
+      letra_es: "",
+      letra_en: "",
+      letra_jp: "",
+      letra_romaji: ""
+    };
+    setLocalSecciones(prev => [...prev, nueva]);
+  };
+
   const handleGuardar = () => {
-    onSave(localSecciones);
+    const seccionesConOrden = localSecciones.map((s, idx) => ({
+      ...s,
+      orden: idx + 1
+    }));
+    onSave(seccionesConOrden);
   };
 
   return (
@@ -245,7 +274,7 @@ const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => 
                     Editor Maestro
                   </h3>
                   <p className="text-[8px] font-bold text-[#6B5E70]/40 uppercase tracking-widest mt-1">
-                    Editando {secciones.length} secciones simultáneamente
+                    Gestionando {localSecciones.length} secciones
                   </p>
                 </div>
               </div>
@@ -277,31 +306,64 @@ const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => 
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-10 space-y-12 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar">
               {localSecciones.map((sec, idx) => (
-                <div key={sec.id} className="group relative">
-                  <div className="flex items-center gap-4 mb-4">
-                    <span className="text-[10px] font-black text-[#6B5E70]/20 uppercase italic">
-                      #{(idx + 1).toString().padStart(2, '0')}
-                    </span>
-                    <input 
-                      type="text"
-                      value={sec.nombre_seccion}
-                      onChange={(e) => handleChange(sec.id, "nombre_seccion", e.target.value.toUpperCase())}
-                      className="bg-transparent border-b border-[#6B5E70]/10 text-[#6B5E70] font-black uppercase text-[10px] tracking-widest outline-none focus:border-[#6B5E70] transition-colors pb-1"
-                      placeholder="NOMBRE DE SECCIÓN"
-                    />
+                <div key={sec.id} className="group relative bg-white border border-[#6B5E70]/5 p-6 rounded-[2rem] hover:shadow-xl transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-col gap-1">
+                        <button 
+                          disabled={idx === 0}
+                          onClick={() => moverSeccion(idx, -1)}
+                          className="text-[#6B5E70]/20 hover:text-[#6B5E70] disabled:opacity-0"
+                        >
+                          <ChevronDown size={14} className="rotate-180" />
+                        </button>
+                        <button 
+                          disabled={idx === localSecciones.length - 1}
+                          onClick={() => moverSeccion(idx, 1)}
+                          className="text-[#6B5E70]/20 hover:text-[#6B5E70] disabled:opacity-0"
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                      </div>
+                      <span className="text-[10px] font-black text-[#6B5E70]/20 uppercase italic">
+                        #{(idx + 1).toString().padStart(2, '0')}
+                      </span>
+                      <input 
+                        type="text"
+                        value={sec.nombre_seccion}
+                        onChange={(e) => handleChange(sec.id, "nombre_seccion", e.target.value.toUpperCase())}
+                        className="bg-transparent border-b border-[#6B5E70]/10 text-[#6B5E70] font-black uppercase text-[10px] tracking-widest outline-none focus:border-[#6B5E70] transition-colors pb-1"
+                        placeholder="NOMBRE DE SECCIÓN"
+                      />
+                    </div>
+                    
+                    <button 
+                      onClick={() => eliminarSeccion(idx)}
+                      className="text-[#6B5E70]/10 hover:text-red-400 transition-colors p-2"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                   
                   <textarea
                     value={sec[`letra_${activeTab}`] || ""}
                     onChange={(e) => handleChange(sec.id, `letra_${activeTab}`, e.target.value)}
                     rows={Math.max(3, (sec[`letra_${activeTab}`]?.split('\n').length || 0))}
-                    className="w-full bg-white border border-[#6B5E70]/5 rounded-[1.5rem] p-6 text-[#6B5E70] text-sm md:text-base italic font-serif leading-relaxed outline-none focus:border-[#6B5E70]/30 focus:shadow-xl focus:shadow-[#6B5E70]/5 transition-all resize-none"
+                    className="w-full bg-[#FDFCFD] border border-[#6B5E70]/5 rounded-[1.5rem] p-6 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/30 transition-all resize-none"
                     placeholder={`Escribe la letra en ${IDIOMAS.find(i => i.id === activeTab)?.nombre.toLowerCase()}...`}
                   />
                 </div>
               ))}
+
+              <button 
+                onClick={añadirSeccion}
+                className="w-full py-8 border-2 border-dashed border-[#6B5E70]/10 rounded-[2rem] text-[#6B5E70]/30 hover:border-[#6B5E70]/30 hover:text-[#6B5E70] hover:bg-[#6B5E70]/5 transition-all flex flex-col items-center justify-center gap-2"
+              >
+                <Plus size={20} />
+                <span className="font-black uppercase text-[10px] tracking-widest">Añadir nueva sección</span>
+              </button>
             </div>
 
             {/* Footer */}
@@ -468,7 +530,7 @@ const LinksModal = ({ isOpen, onClose, isProcessing, titulo, onTituloChange, url
 );
 
 // ============================================================================
-// MODAL DE SECCIÓN
+// MODAL DE SECCIÓN (EDITOR INDIVIDUAL)
 // ============================================================================
 
 const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNombreChange, es, onEsChange, en, onEnChange, jp, onJpChange, romaji, onRomajiChange, onSave, onDelete = null }) => {
@@ -672,34 +734,46 @@ export default function CancionDetalle() {
   };
 
   // ========================================================================
-  // GUARDADO MASIVO (LÓGICA NUEVA)
+  // GUARDADO MASIVO (SINCRONIZACIÓN TOTAL)
   // ========================================================================
   const handleMassUpdate = async (seccionesActualizadas) => {
     dispatchModal({ type: "SET_PROCESANDO", payload: true });
     try {
-      // Usamos un bucle para actualizar cada sección
-      // Supabase no soporta updates masivos con diferentes valores por fila fácilmente en una sola query
-      for (const sec of seccionesActualizadas) {
-        const { error } = await supabase
-          .from("secciones_cancion")
-          .update({
-            nombre_seccion: sec.nombre_seccion,
-            letra_es: sec.letra_es,
-            letra_en: sec.letra_en,
-            letra_jp: sec.letra_jp,
-            letra_romaji: sec.letra_romaji
-          })
-          .eq("id", sec.id);
-        
-        if (error) throw error;
-      }
+      // 1. Eliminamos las secciones actuales de esta canción
+      const { error: deleteError } = await supabase
+        .from("secciones_cancion")
+        .delete()
+        .eq("cancion_id", id);
 
-      setSecciones(seccionesActualizadas);
+      if (deleteError) throw deleteError;
+
+      // 2. Preparamos el nuevo set de datos para insertar
+      const nuevasSecciones = seccionesActualizadas.map((sec) => ({
+        cancion_id: id,
+        nombre_seccion: sec.nombre_seccion,
+        letra_es: sec.letra_es,
+        letra_en: sec.letra_en,
+        letra_jp: sec.letra_jp,
+        letra_romaji: sec.letra_romaji,
+        orden: sec.orden
+      }));
+
+      // 3. Insertamos de golpe
+      const { data: insertedData, error: insertError } = await supabase
+        .from("secciones_cancion")
+        .insert(nuevasSecciones)
+        .select();
+
+      if (insertError) throw insertError;
+
+      // 4. Actualizamos estado local
+      setSecciones(insertedData.sort((a, b) => a.orden - b.orden));
       dispatchModal({ type: "CLOSE_MASS_EDIT" });
-      alert("¡Canción actualizada correctamente!");
+      alert("¡Estructura de la canción actualizada correctamente!");
     } catch (error) {
       console.error("Error en update masivo:", error);
       alert("Hubo un error al guardar los cambios masivos.");
+      fetchData(); // Resetear estado local por seguridad
     } finally {
       dispatchModal({ type: "SET_PROCESANDO", payload: false });
     }
@@ -752,7 +826,6 @@ export default function CancionDetalle() {
       <SeccionModal isOpen={modalState.showEditSecModal} isEditing={true} onClose={() => { dispatchModal({ type: "CLOSE_EDIT_SEC" }); dispatchForm({ type: "RESET_EDIT" }); }} isProcessing={modalState.procesando} nombre={formState.editSecNombre} onNombreChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecNombre: val } })} es={formState.editSecEs} onEsChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecEs: val } })} en={formState.editSecEn} onEnChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecEn: val } })} jp={formState.editSecJp} onJpChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecJp: val } })} romaji={formState.editSecRomaji} onRomajiChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecRomaji: val } })} onSave={handleUpdateSeccion} onDelete={() => { if (confirm("¿Borrar esta sección? No se puede deshacer.")) deleteSeccion(); }} />
       <FullLyricsModal isOpen={modalState.showFullLyricsModal} onClose={() => dispatchModal({ type: "CLOSE_FULL_LYRICS" })} secciones={secciones} idiomaActivo={idiomasActivos} />
       
-      {/* Nuevo Modal de Edición Masiva */}
       <MassEditModal 
         isOpen={modalState.showMassEditModal}
         onClose={() => dispatchModal({ type: "CLOSE_MASS_EDIT" })}
@@ -788,8 +861,6 @@ export default function CancionDetalle() {
                 {secciones.length > 0 && (
                   <>
                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => dispatchModal({ type: "OPEN_FULL_LYRICS" })} className="flex items-center gap-1 px-3 py-1 bg-[#6B5E70]/5 rounded-lg text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors"><FileText size={12} /><span className="text-[8px] font-black uppercase tracking-widest">Lectura</span></motion.button>
-                    
-                    {/* BOTÓN EDICIÓN MASIVA */}
                     {isAdmin && (
                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => dispatchModal({ type: "OPEN_MASS_EDIT" })} className="flex items-center gap-1 px-3 py-1 bg-[#6B5E70]/5 rounded-lg text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors border border-[#6B5E70]/10"><Layers size={12} /><span className="text-[8px] font-black uppercase tracking-widest">Editor Maestro</span></motion.button>
                     )}
