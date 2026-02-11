@@ -98,7 +98,6 @@ const CancionCard = ({ cancion, isAdmin, onEdit, getEstadoColor }) => (
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
         className="cursor-pointer h-full flex flex-col"
       >
-        {/* IMAGEN CON OVERLAY */}
         <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/10 to-[#6B5E70]/5 group-hover:shadow-[0_20px_40px_rgba(107,94,112,0.15)] transition-all">
           <SmartImage
             src={cancion.portada_url || "/placeholder-cover.jpg"}
@@ -106,10 +105,8 @@ const CancionCard = ({ cancion, isAdmin, onEdit, getEstadoColor }) => (
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
 
-          {/* OVERLAY GRADIENT */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#6B5E70]/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-          {/* ESTADO BADGE */}
           <motion.div
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -120,7 +117,6 @@ const CancionCard = ({ cancion, isAdmin, onEdit, getEstadoColor }) => (
             {cancion.estado}
           </motion.div>
 
-          {/* PERSONAJE BADGE */}
           {cancion.personaje && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -134,7 +130,6 @@ const CancionCard = ({ cancion, isAdmin, onEdit, getEstadoColor }) => (
             </motion.div>
           )}
 
-          {/* PLAY ICON EN HOVER */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             whileHover={{ opacity: 1, scale: 1 }}
@@ -146,13 +141,11 @@ const CancionCard = ({ cancion, isAdmin, onEdit, getEstadoColor }) => (
           </motion.div>
         </div>
 
-        {/* TEXTO */}
         <div className="mt-6 flex-1 flex flex-col px-2 text-center sm:text-left">
           <h2 className="text-[#6B5E70] font-black uppercase text-base group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tight italic line-clamp-2">
             {cancion.titulo}
           </h2>
 
-          {/* METADATA */}
           <div className="flex items-center gap-3 mt-auto pt-4 text-[#6B5E70]/40 font-bold text-[8px] uppercase tracking-widest justify-center sm:justify-start">
             <motion.span
               whileHover={{ x: 2 }}
@@ -204,10 +197,8 @@ const EditModal = ({
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
           className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 overflow-hidden"
         >
-          {/* Header decorativo */}
           <div className="h-1 bg-gradient-to-r from-[#6B5E70]/0 via-[#6B5E70] to-[#6B5E70]/0" />
 
-          {/* Botón cerrar */}
           <motion.button
             whileHover={{ rotate: 90, scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -227,7 +218,6 @@ const EditModal = ({
             </motion.h3>
 
             <form onSubmit={onSubmit} className="space-y-6">
-              {/* Toggle Visibilidad */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -271,7 +261,6 @@ const EditModal = ({
                 </motion.button>
               </motion.div>
 
-              {/* Título */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -293,7 +282,6 @@ const EditModal = ({
                 />
               </motion.div>
 
-              {/* Personaje */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -321,7 +309,6 @@ const EditModal = ({
                 </select>
               </motion.div>
 
-              {/* Estado */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -348,7 +335,6 @@ const EditModal = ({
                 </select>
               </motion.div>
 
-              {/* Botón Submit */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -406,10 +392,8 @@ const AddModal = ({
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
           className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 overflow-hidden"
         >
-          {/* Header decorativo */}
           <div className="h-1 bg-gradient-to-r from-[#6B5E70]/0 via-[#6B5E70] to-[#6B5E70]/0" />
 
-          {/* Botón cerrar */}
           <motion.button
             whileHover={{ rotate: 90, scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -557,7 +541,7 @@ const Canciones = () => {
 
     try {
       const nuevoTituloUpper = formState.editTitulo.toUpperCase();
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("canciones")
         .update({
           titulo: nuevoTituloUpper,
@@ -565,23 +549,21 @@ const Canciones = () => {
           estado: formState.editEstado,
           visible: formState.editVisible
         })
-        .eq("id", modalState.selectedCancion.id);
+        .eq("id", modalState.selectedCancion.id)
+        .select(); // IMPORTANTE: Pedir los datos actualizados
 
       if (error) throw error;
 
-      setCanciones((prev) =>
-        prev.map((c) =>
-          c.id === modalState.selectedCancion.id
-            ? {
-                ...c,
-                titulo: nuevoTituloUpper,
-                personaje: formState.editPersonaje,
-                estado: formState.editEstado,
-                visible: formState.editVisible
-              }
-            : c
-        )
-      );
+      if (data && data.length > 0) {
+        // ACTUALIZACIÓN DE ESTADO CORRECTA:
+        setCanciones((prev) => {
+          const index = prev.findIndex(c => c.id === modalState.selectedCancion.id);
+          if (index === -1) return prev;
+          const newCanciones = [...prev];
+          newCanciones[index] = data[0];
+          return newCanciones;
+        });
+      }
 
       dispatchModal({ type: "CLOSE_EDIT" });
       dispatchForm({ type: "RESET_EDIT" });
@@ -615,7 +597,8 @@ const Canciones = () => {
 
       if (error) throw error;
 
-      if (data?.length > 0) {
+      if (data && data.length > 0) {
+        // ACTUALIZACIÓN DE ESTADO CORRECTA:
         setCanciones((prev) => [data[0], ...prev]);
         dispatchModal({ type: "CLOSE_ADD" });
         dispatchForm({ type: "RESET_ADD" });
@@ -647,7 +630,6 @@ const Canciones = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20">
-      {/* MODALES */}
       <EditModal
         isOpen={modalState.showEditModal}
         isProcessing={modalState.isProcessing}
@@ -674,7 +656,6 @@ const Canciones = () => {
         onFormChange={dispatchForm}
       />
 
-      {/* HEADER */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -715,13 +696,8 @@ const Canciones = () => {
             onClick={() => dispatchModal({ type: "OPEN_ADD" })}
             className="group relative p-4 rounded-full shadow-2xl z-50 overflow-hidden"
           >
-            {/* Fondo gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-[#6B5E70] to-[#8B7A90]" />
-
-            {/* Shine effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
-
-            {/* Icono */}
             <Plus
               size={28}
               className="text-white relative z-10 group-hover:rotate-90 transition-transform duration-300"
@@ -730,7 +706,6 @@ const Canciones = () => {
         )}
       </motion.div>
 
-      {/* GRID DE CANCIONES */}
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
         {cancionesAMostrar.map((cancion, index) => (
           <motion.div
