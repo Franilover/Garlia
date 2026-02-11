@@ -35,26 +35,31 @@ interface UseSupabaseOptions {
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
   
+  // Iniciamos con lo que haya en caché para carga instantánea
   const [data, setData] = useState<T[]>(cache[tabla] || []);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cache[tabla]); // No mostramos loading si ya hay caché
   const [error, setError] = useState<string | null>(null);
   
   const isMounted = useRef(true);
-  const opcionesRef = useRef(opciones);
+  // Usamos JSON.stringify para comparar opciones y evitar re-renders infinitos
+  const opcionesRef = useRef(JSON.stringify(opciones));
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
-    opcionesRef.current = opciones;
+    opcionesRef.current = JSON.stringify(opciones);
   }, [opciones]);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    if (isMounted.current) {
-      setLoading(true);
-      setError(null);
+    if (!isMounted.current) return;
+    
+    // Solo ponemos loading si no hay datos previos (evita parpadeos)
+    if (data.length === 0 || forceRefresh) {
+        setLoading(true);
     }
+    setError(null);
     
     try {
-      const opt = opcionesRef.current;
+      const opt = JSON.parse(opcionesRef.current);
       let resultado;
       let errorFetch;
 
@@ -62,8 +67,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         const res = await QUERIES_MAP[tabla].getAll(opt);
         resultado = res?.data !== undefined ? res.data : (Array.isArray(res) ? res : []);
         errorFetch = res?.error !== undefined ? res.error : null;
-      } 
-      else {
+      } else {
         let query = supabase.from(tabla).select(opt.select || "*");
         if (opt.order) {
           query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
@@ -81,7 +85,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         setData(finalData);
         updateCache(tabla, finalData); 
       }
-
     } catch (err: any) {
       if (isMounted.current) {
         setError(err.message);
@@ -90,72 +93,56 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, updateCache]);
+  }, [tabla, updateCache, data.length]);
 
   useEffect(() => {
     isMounted.current = true;
     
-    // Carga inicial
-    fetchData(true);
+    // Carga inicial (solo si la caché está vacía o necesitamos refrescar)
+    fetchData();
 
-    // Intentar suscripción en tiempo real
+    // Suscripción Realtime
     const channel = supabase
-      .channel(`db-changes-${tabla}-${Math.random()}`)
+      .channel(`db-${tabla}-${Math.random().toString(36).substring(7)}`)
       .on("postgres_changes", 
         { event: "*", schema: "public", table: tabla }, 
-        (payload) => {
-          console.log(`✅ Cambio detectado en ${tabla}:`, payload.eventType);
-          setTimeout(() => {
-            fetchData(true);
-          }, 100);
+        () => {
+          // Pequeño debounce para no saturar si hay cambios masivos
+          fetchData(true);
         }
       )
-      .subscribe((status, err) => {
-        console.log(`📡 Suscripción a ${tabla}:`, status);
-        
+      .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
-          console.warn(`⚠️ Error en suscripción realtime para ${tabla}, usando polling como fallback`);
-          
-          // FALLBACK: Polling cada 5 segundos si realtime falla
-          pollingIntervalRef.current = setInterval(() => {
-            if (isMounted.current) {
-              console.log(`🔄 Polling ${tabla}...`);
-              fetchData(true);
-            }
-          }, 5000);
+          // Fallback a Polling
+          if (!pollingIntervalRef.current) {
+            pollingIntervalRef.current = setInterval(() => {
+              if (isMounted.current) fetchData(true);
+            }, 10000); // Polling cada 10s para no saturar
+          }
         } else if (status === "SUBSCRIBED") {
-          console.log(`✅ Suscripción exitosa a ${tabla}`);
-          // Limpiar polling si la suscripción funciona
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
           }
         }
-        
-        if (err) {
-          console.error(`❌ Error en canal ${tabla}:`, err);
-        }
       });
 
     return () => {
       isMounted.current = false;
-      
-      // Limpiar suscripción
       supabase.removeChannel(channel);
-      
-      // Limpiar polling
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     };
   }, [tabla, fetchData]);
 
+  // Función para actualizaciones manuales/optimistas
   const setSyncedData = useCallback((newDataOrFn: any) => {
     setData(prev => {
       const resolved = typeof newDataOrFn === "function" ? newDataOrFn(prev) : newDataOrFn;
-      if (!Array.isArray(resolved)) return prev;
-      updateCache(tabla, resolved); 
-      return resolved;
+      if (Array.isArray(resolved)) {
+        updateCache(tabla, resolved); 
+        return resolved;
+      }
+      return prev;
     });
   }, [tabla, updateCache]);
 
