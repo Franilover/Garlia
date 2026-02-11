@@ -4,7 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/supabase";
 import { 
   ChevronLeft, Plus, Trash2, X, Edit3, Save, User, List, Music, 
-  EyeOff, AlertCircle, Loader2, ChevronDown, Link2, ExternalLink 
+  EyeOff, AlertCircle, Loader2, ChevronDown, Link2, ExternalLink,
+  FileText, Copy 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/shared/display/SmartImage";
@@ -39,6 +40,7 @@ const initialModalState = {
   showAddModal: false,
   showEditSecModal: false,
   showLinksModal: false,
+  showFullLyricsModal: false, // Nuevo estado para el modal de lectura
   selectedSec: null,
   linkEditandoIndex: null,
   procesando: false
@@ -52,6 +54,8 @@ const modalReducer = (state, action) => {
     case "CLOSE_EDIT_SEC": return { ...state, showEditSecModal: false, selectedSec: null };
     case "OPEN_LINKS": return { ...state, showLinksModal: true };
     case "CLOSE_LINKS": return { ...state, showLinksModal: false, linkEditandoIndex: null };
+    case "OPEN_FULL_LYRICS": return { ...state, showFullLyricsModal: true }; // Nuevo case
+    case "CLOSE_FULL_LYRICS": return { ...state, showFullLyricsModal: false }; // Nuevo case
     case "SET_EDITING_LINK": return { ...state, linkEditandoIndex: action.payload };
     case "SET_PROCESANDO": return { ...state, procesando: action.payload };
     default: return state;
@@ -201,6 +205,92 @@ const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
     </div>
   </div>
 );
+
+// ============================================================================
+// MODAL DE LECTURA COMPLETA (NUEVO)
+// ============================================================================
+
+const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
+  // Función para copiar al portapapeles
+  const handleCopy = () => {
+    const textoCompleto = secciones
+      .map(s => {
+        // Obtenemos la letra según el idioma (prioridad al primer idioma activo si es array, o string directo)
+        const langCode = Array.isArray(idiomaActivo) ? idiomaActivo[0] : idiomaActivo;
+        const key = `letra_${langCode}`;
+        return s[key] || "";
+      })
+      .filter(Boolean)
+      .join("\n\n"); // Doble salto para separar estrofas sutilmente
+
+    navigator.clipboard.writeText(textoCompleto);
+    alert("¡Letra copiada al portapapeles!");
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[140] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md"
+          />
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 h-[80vh] flex flex-col overflow-hidden"
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-[#6B5E70]/10 flex items-center justify-between bg-[#FDFCFD]">
+              <h3 className="text-[#6B5E70] font-black uppercase text-[11px] tracking-[0.3em] italic flex items-center gap-2">
+                <FileText size={14} /> Vista de Lectura
+              </h3>
+              <div className="flex gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleCopy}
+                  title="Copiar letra"
+                  className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors p-1"
+                >
+                  <Copy size={18} />
+                </motion.button>
+                <motion.button
+                  whileHover={{ rotate: 90 }}
+                  onClick={onClose}
+                  className="text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors p-1"
+                >
+                  <X size={20} />
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Contenido Scrollable */}
+            <div className="flex-1 overflow-y-auto p-8 md:p-12 custom-scrollbar">
+              <div className="text-[#6B5E70] text-lg md:text-xl font-medium italic font-serif leading-relaxed whitespace-pre-wrap">
+                {secciones.map((seccion, index) => {
+                   // Si hay múltiples idiomas activos, mostramos el principal (el primero)
+                   const lang = Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es";
+                   const texto = seccion[`letra_${lang}`];
+                   
+                   return texto ? (
+                     <div key={seccion.id} className="mb-8 last:mb-0">
+                       {texto}
+                     </div>
+                   ) : null;
+                })}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
 
 // ============================================================================
 // MODAL DE ENLACES
@@ -762,7 +852,7 @@ export default function CancionDetalle() {
   };
 
   // ========================================================================
-  // CREAR SECCIÓN
+  // CREAR SECCIÓN (CORREGIDO PARA EVITAR CONGELAMIENTO)
   // ========================================================================
 
   const handleCrearSeccion = async (e) => {
@@ -795,9 +885,15 @@ export default function CancionDetalle() {
 
       if (data && data.length > 0) {
         setSecciones((prev) => [...prev, data[0]]);
-        dispatchForm({ type: "RESET_NUEVA" });
-        dispatchModal({ type: "CLOSE_ADD" });
+      } else {
+        // Fallback: si no devuelve data, recargamos
+        fetchData();
       }
+      
+      // Cerramos siempre si no hay error
+      dispatchForm({ type: "RESET_NUEVA" });
+      dispatchModal({ type: "CLOSE_ADD" });
+
     } catch (error) {
       console.error("Error al crear sección:", error);
       alert("Error: " + (error.message || "No se pudo crear la sección"));
@@ -807,7 +903,7 @@ export default function CancionDetalle() {
   };
 
   // ========================================================================
-  // ACTUALIZAR SECCIÓN
+  // ACTUALIZAR SECCIÓN (CORREGIDO PARA EVITAR CONGELAMIENTO)
   // ========================================================================
 
   const handleUpdateSeccion = async (e) => {
@@ -850,8 +946,10 @@ export default function CancionDetalle() {
         )
       );
 
+      // Cerramos siempre si no hay error
       dispatchForm({ type: "RESET_EDIT" });
       dispatchModal({ type: "CLOSE_EDIT_SEC" });
+
     } catch (error) {
       console.error("Error al actualizar sección:", error);
       alert("Error: " + (error.message || "No se pudo actualizar la sección"));
@@ -1056,6 +1154,13 @@ export default function CancionDetalle() {
         }}
       />
 
+      <FullLyricsModal 
+        isOpen={modalState.showFullLyricsModal}
+        onClose={() => dispatchModal({ type: "CLOSE_FULL_LYRICS" })}
+        secciones={secciones}
+        idiomaActivo={idiomasActivos}
+      />
+
       {/* BOTÓN VOLVER */}
       <motion.button
         whileHover={{ x: -4 }}
@@ -1154,10 +1259,26 @@ export default function CancionDetalle() {
           {/* Secciones */}
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-8 border-b border-[#6B5E70]/10 pb-4">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
-                <List size={16} />
-                Letra
-              </h3>
+              <div className="flex items-center gap-4">
+                <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
+                  <List size={16} />
+                  Letra
+                </h3>
+                
+                {/* BOTÓN NUEVO: VISTA LECTURA */}
+                {secciones.length > 0 && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => dispatchModal({ type: "OPEN_FULL_LYRICS" })}
+                    className="flex items-center gap-1 px-3 py-1 bg-[#6B5E70]/5 rounded-lg text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors"
+                  >
+                    <FileText size={12} />
+                    <span className="text-[8px] font-black uppercase tracking-widest">Lectura</span>
+                  </motion.button>
+                )}
+              </div>
+
               {isAdmin && (
                 <motion.button
                   whileHover={{ scale: 1.1 }}
