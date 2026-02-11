@@ -42,7 +42,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
 
   if (selectedRecipeId) {
     const receta = recipes.find(r => String(r.id) === selectedRecipeId);
-
+    
     if (loading) return <div className="p-20 text-center font-black uppercase text-primary animate-pulse">"Abriendo Grimorio..."</div>;
     
     if (!receta) return (
@@ -52,15 +52,46 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       </div>
     );
 
-    // --- CÁLCULO DE TOTALES (USANDO TU INTERFAZ) ---
-    const ingredientesList = (receta.ingredientes as unknown as IngredienteReceta[]) || [];
+    // --- CORRECCIÓN: CÁLCULO DE TOTALES ---
+    // Primero, aseguramos que ingredientes es un array
+    let ingredientesList: IngredienteReceta[] = [];
     
-    const totales = ingredientesList.reduce((acc, ing) => ({
-      kcal: acc.kcal + (Number(ing.kcal) || 0),
-      proteinas: acc.proteinas + (Number(ing.proteinas) || 0),
-      carbos: acc.carbos + (Number(ing.carbohidratos) || 0),
-      grasas: acc.grasas + (Number(ing.grasas) || 0),
-    }), { kcal: 0, proteinas: 0, carbos: 0, grasas: 0 });
+    try {
+      // Si ingredientes ya es un array, lo usamos directamente
+      if (Array.isArray(receta.ingredientes)) {
+        ingredientesList = receta.ingredientes as unknown as IngredienteReceta[];
+      } 
+      // Si es un string JSON, lo parseamos
+      else if (typeof receta.ingredientes === 'string') {
+        ingredientesList = JSON.parse(receta.ingredientes);
+      }
+      // Si es un objeto, lo convertimos a array
+      else if (receta.ingredientes && typeof receta.ingredientes === 'object') {
+        ingredientesList = [receta.ingredientes] as unknown as IngredienteReceta[];
+      }
+    } catch (e) {
+      console.error('Error parsing ingredientes:', e);
+      ingredientesList = [];
+    }
+
+    console.log('Ingredientes parseados:', ingredientesList); // Para debugging
+    
+    const totales = ingredientesList.reduce((acc, ing) => {
+      // Asegurar que los valores son números
+      const kcal = parseFloat(String(ing.kcal || 0));
+      const proteinas = parseFloat(String(ing.proteinas || 0));
+      const carbohidratos = parseFloat(String(ing.carbohidratos || 0));
+      const grasas = parseFloat(String(ing.grasas || 0));
+      
+      return {
+        kcal: acc.kcal + (isNaN(kcal) ? 0 : kcal),
+        proteinas: acc.proteinas + (isNaN(proteinas) ? 0 : proteinas),
+        carbos: acc.carbos + (isNaN(carbohidratos) ? 0 : carbohidratos),
+        grasas: acc.grasas + (isNaN(grasas) ? 0 : grasas),
+      };
+    }, { kcal: 0, proteinas: 0, carbos: 0, grasas: 0 });
+
+    console.log('Totales calculados:', totales); // Para debugging
 
     return (
       <div className="min-h-screen bg-bg-main p-6">
@@ -74,6 +105,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                {receta.imagen_url && <img src={receta.imagen_url} className="w-full h-full object-cover" alt={receta.nombre} />}
                <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
             </div>
+            
             <div className="p-10">
               <span className="text-[10px] font-black uppercase text-primary/30 tracking-[0.2em]">{receta.categoria}</span>
               <h1 className="text-4xl font-black uppercase text-primary italic mt-2 mb-6 tracking-tighter">"{receta.nombre}"</h1>
@@ -117,13 +149,16 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                       <li key={i} className="text-[11px] font-bold uppercase border-b border-primary/10 pb-2 flex justify-between items-center text-primary">
                         <span>{ing.nombre}</span>
                         <div className="flex items-center gap-4">
-                          <span className="text-[8px] font-black text-primary/20">P {Number(ing.proteinas || 0).toFixed(1)}</span>
+                          <span className="text-[8px] font-black text-primary/20">
+                            P {parseFloat(String(ing.proteinas || 0)).toFixed(1)}g
+                          </span>
                           <span className="opacity-60">{ing.cantidad}</span>
                         </div>
                       </li>
                     ))}
                   </ul>
                 </div>
+                
                 <div>
                   <h3 className="font-black uppercase text-xs mb-4 tracking-widest text-primary/40 italic">"Preparación"</h3>
                   <div className="space-y-4">
@@ -136,6 +171,15 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                   </div>
                 </div>
               </div>
+
+              {/* Debug info - puedes eliminar esto después */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-8 p-4 bg-yellow-50 rounded-lg text-xs">
+                  <p className="font-bold mb-2">Debug Info:</p>
+                  <p>Ingredientes count: {ingredientesList.length}</p>
+                  <p>Totales: {JSON.stringify(totales)}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -250,20 +294,22 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
     if (ing.porcion_texto?.toLowerCase().includes("unidad")) sugerencia = ing.porcion_texto;
     else if (ing.categoria === "Lácteos" || ing.agua_ml > 0) sugerencia = "100ml";
     else if (["Frutas", "Proteínas"].includes(ing.categoria)) sugerencia = "1 unidad";
-
+    
     const cantidad = prompt(`"Cantidad para ${ing.nombre}:"`, sugerencia);
     
     if (cantidad) {
-      // USAMOS TUS NOMBRES DE COLUMNA EXACTOS
+      // ASEGURAR QUE LOS VALORES SON NÚMEROS
       const nuevoIng: IngredienteReceta = { 
         nombre: ing.nombre, 
         cantidad, 
-        kcal: Number(ing.kcal) || 0,
-        proteinas: Number(ing.proteinas) || 0,
-        carbohidratos: Number(ing.carbohidratos) || 0,
-        grasas: Number(ing.grasas) || 0
+        kcal: parseFloat(String(ing.kcal || 0)),
+        proteinas: parseFloat(String(ing.proteinas || 0)),
+        carbohidratos: parseFloat(String(ing.carbohidratos || 0)),
+        grasas: parseFloat(String(ing.grasas || 0))
       };
-
+      
+      console.log('Añadiendo ingrediente:', nuevoIng); // Para debugging
+      
       setFormData({
         ...formData,
         ingredientes: [...formData.ingredientes, nuevoIng]
@@ -288,8 +334,10 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.ingredientes.length === 0) return alert('"Añade ingredientes de la despensa"');
+    
     setLoading(true);
     try {
+      console.log('Guardando receta con ingredientes:', formData.ingredientes); // Para debugging
       const { error } = await recetasQueries.create(formData as unknown as NuevaReceta);
       if (error) throw error;
       onSuccess();
@@ -355,7 +403,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full left-0 w-full bg-white shadow-[0_10px_40px_rgba(0,0,0,0.2)] rounded-xl mt-2 border-2 border-primary z-[100] overflow-hidden"
+                      className="absolute top-full left-0 w-full bg-white shadow-[0_10px_40px_rgba(0,0,0,0.2)] rounded-xl mt-2 border-2 border-primary z-100 overflow-hidden"
                     >
                       {filteredDbIngredientes.map(ing => (
                         <button 
@@ -379,7 +427,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
               <div className="flex flex-wrap gap-2">
                 {formData.ingredientes.map((ing, idx) => (
                   <div key={idx} className="bg-primary text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 shadow-md">
-                    <span>{ing.nombre} ({ing.cantidad})</span>
+                    <span>{ing.nombre} ({ing.cantidad}) - {ing.proteinas.toFixed(1)}g P</span>
                     <button type="button" onClick={() => removeIngrediente(idx)} className="hover:scale-110 transition-transform"><X size={12} /></button>
                   </div>
                 ))}
@@ -406,6 +454,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
               </div>
             </div>
           </div>
+
           <button disabled={loading} type="submit" className="w-full mt-10 p-5 bg-primary text-white rounded-3xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-xl shadow-primary/30 transition-all disabled:opacity-50">
             {loading ? '"Escribiendo en el grimorio..."' : '"Guardar Receta"'}
           </button>
