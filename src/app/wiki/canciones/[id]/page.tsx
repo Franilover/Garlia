@@ -207,21 +207,21 @@ const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
 );
 
 // ============================================================================
-// MODAL DE LECTURA COMPLETA (NUEVO)
+// MODAL DE LECTURA COMPLETA (CORREGIDO Y AMPLIADO)
 // ============================================================================
 
 const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
-  // Función para copiar al portapapeles
+  // Estado local para ajustar el tamaño dinámicamente si se desea
+  const [zoom, setZoom] = React.useState(1);
+
   const handleCopy = () => {
+    const langCode = Array.isArray(idiomaActivo) ? idiomaActivo[0] : idiomaActivo;
+    const key = `letra_${langCode}`;
+    
     const textoCompleto = secciones
-      .map(s => {
-        // Obtenemos la letra según el idioma (prioridad al primer idioma activo si es array, o string directo)
-        const langCode = Array.isArray(idiomaActivo) ? idiomaActivo[0] : idiomaActivo;
-        const key = `letra_${langCode}`;
-        return s[key] || "";
-      })
+      .map(s => s[key] || "")
       .filter(Boolean)
-      .join("\n\n"); // Doble salto para separar estrofas sutilmente
+      .join("\n\n");
 
     navigator.clipboard.writeText(textoCompleto);
     alert("¡Letra copiada al portapapeles!");
@@ -230,59 +230,104 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[140] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[140] flex items-center justify-center p-0 md:p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md"
+            className="absolute inset-0 bg-[#6B5E70]/60 backdrop-blur-xl"
           />
           <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            initial={{ scale: 0.9, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 h-[80vh] flex flex-col overflow-hidden"
+            exit={{ scale: 0.9, opacity: 0, y: 40 }}
+            className="bg-[#FDFCFD] w-full max-w-4xl md:rounded-[3rem] shadow-[0_32px_64px_-12px_rgba(107,94,112,0.3)] relative z-10 border border-[#6B5E70]/10 h-full md:h-[90vh] flex flex-col overflow-hidden"
           >
-            {/* Header */}
-            <div className="p-6 border-b border-[#6B5E70]/10 flex items-center justify-between bg-[#FDFCFD]">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[11px] tracking-[0.3em] italic flex items-center gap-2">
-                <FileText size={14} /> Vista de Lectura
-              </h3>
-              <div className="flex gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={handleCopy}
-                  title="Copiar letra"
-                  className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors p-1"
-                >
-                  <Copy size={18} />
-                </motion.button>
-                <motion.button
-                  whileHover={{ rotate: 90 }}
-                  onClick={onClose}
-                  className="text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors p-1"
-                >
-                  <X size={20} />
-                </motion.button>
+            {/* Header mejorado */}
+            <div className="px-8 py-6 border-b border-[#6B5E70]/5 flex items-center justify-between bg-white/50 backdrop-blur-sm sticky top-0 z-20">
+              <div className="flex flex-col">
+                <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.4em] italic flex items-center gap-3">
+                  <div className="w-8 h-[2px] bg-[#6B5E70]/20" />
+                  Modo Lectura
+                </h3>
+                <p className="text-[#6B5E70]/40 text-[9px] font-bold uppercase tracking-widest mt-1 ml-11">
+                  Idioma: {IDIOMAS.find(l => l.id === (Array.isArray(idiomaActivo) ? idiomaActivo[0] : idiomaActivo))?.nombre}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {/* Controles de tamaño rápidos */}
+                <div className="hidden md:flex items-center gap-2 bg-[#6B5E70]/5 rounded-full px-3 py-1">
+                  <button onClick={() => setZoom(prev => Math.max(0.8, prev - 0.1))} className="text-[#6B5E70] hover:scale-125 transition-transform p-1">
+                    <span className="text-xs">-</span>
+                  </button>
+                  <div className="w-[1px] h-3 bg-[#6B5E70]/10" />
+                  <button onClick={() => setZoom(prev => Math.min(1.5, prev + 0.1))} className="text-[#6B5E70] hover:scale-125 transition-transform p-1">
+                    <span className="text-xs">+</span>
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.1, backgroundColor: "#6B5E70", color: "#fff" }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={handleCopy}
+                    className="text-[#6B5E70] bg-[#6B5E70]/5 p-3 rounded-2xl transition-all"
+                  >
+                    <Copy size={20} />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ rotate: 90, backgroundColor: "#ef444410", color: "#ef4444" }}
+                    onClick={onClose}
+                    className="text-[#6B5E70]/40 p-3 rounded-2xl transition-all"
+                  >
+                    <X size={24} />
+                  </motion.button>
+                </div>
               </div>
             </div>
 
-            {/* Contenido Scrollable */}
-            <div className="flex-1 overflow-y-auto p-8 md:p-12 custom-scrollbar">
-              <div className="text-[#6B5E70] text-lg md:text-xl font-medium italic font-serif leading-relaxed whitespace-pre-wrap">
-                {secciones.map((seccion, index) => {
-                   // Si hay múltiples idiomas activos, mostramos el principal (el primero)
-                   const lang = Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es";
-                   const texto = seccion[`letra_${lang}`];
-                   
-                   return texto ? (
-                     <div key={seccion.id} className="mb-8 last:mb-0">
-                       {texto}
-                     </div>
-                   ) : null;
-                })}
+            {/* Contenido con letra más grande y legible */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-b from-white to-[#FDFCFD]">
+              <div 
+                className="max-w-3xl mx-auto p-12 md:p-20 transition-all duration-300"
+                style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
+              >
+                {secciones.length > 0 ? (
+                  secciones.map((seccion) => {
+                    const lang = Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es";
+                    const texto = seccion[`letra_${lang}`];
+                    
+                    return texto ? (
+                      <div key={seccion.id} className="mb-16 last:mb-0 group">
+                        {/* Indicador de sección sutil */}
+                        <div className="flex items-center gap-4 mb-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[9px] font-black text-[#6B5E70]/30 uppercase tracking-[0.3em] italic">
+                            {seccion.nombre_seccion}
+                          </span>
+                          <div className="h-[1px] flex-1 bg-[#6B5E70]/5" />
+                        </div>
+                        
+                        {/* TEXTO AMPLIADO: Pasamos de text-xl a text-3xl/4xl */}
+                        <p className="text-[#4A3F4F] text-3xl md:text-4xl lg:text-5xl font-medium italic font-serif leading-[1.4] whitespace-pre-wrap selection:bg-[#6B5E70]/10">
+                          {texto}
+                        </p>
+                      </div>
+                    ) : null;
+                  })
+                ) : (
+                  <div className="h-full flex items-center justify-center py-20">
+                     <p className="text-[#6B5E70]/20 font-black uppercase tracking-[0.5em] italic">Sin contenido</p>
+                  </div>
+                )}
+                
+                {/* Separador final decorativo */}
+                <div className="mt-20 flex justify-center opacity-20">
+                  <div className="flex gap-2">
+                    {[1,2,3].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#6B5E70]" />)}
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
