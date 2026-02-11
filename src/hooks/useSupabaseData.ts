@@ -35,25 +35,26 @@ interface UseSupabaseOptions {
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // "Iniciamos con el caché, pero ya no bloquearemos la petición"
   const [data, setData] = useState<T[]>(cache[tabla] || []);
-  const [loading, setLoading] = useState(true); // "Siempre iniciamos cargando para validar"
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const isMounted = useRef(true);
-  const opcionesKey = useMemo(() => JSON.stringify(opciones), [opciones]);
+  
+  // Crear una referencia estable de opciones
+  const opcionesRef = useRef(opciones);
+  useEffect(() => {
+    opcionesRef.current = opciones;
+  }, [opciones]);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    // "QUITAMOS la condición que bloqueaba la carga si había caché"
-    // "Ahora, aunque haya caché, haremos el fetch en segundo plano para sincronizar"
-
     if (isMounted.current) {
       setLoading(true);
       setError(null);
     }
     
     try {
-      const opt = JSON.parse(opcionesKey);
+      const opt = opcionesRef.current;
       let resultado;
       let errorFetch;
 
@@ -84,34 +85,41 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } catch (err: any) {
       if (isMounted.current) {
         setError(err.message);
-        console.error(`"Error fetching ${tabla}:"`, err);
+        console.error(`Error fetching ${tabla}:`, err);
       }
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, opcionesKey, updateCache]); // "Quitamos dependencias que causaban bucles"
+  }, [tabla, updateCache]);
 
   useEffect(() => {
     isMounted.current = true;
     
-    // "Fuerza la carga inicial siempre"
+    // Carga inicial
     fetchData(true);
 
+    // Suscripción a cambios en tiempo real
     const channel = supabase
       .channel(`db-changes-${tabla}`)
       .on("postgres_changes", 
         { event: "*", schema: "public", table: tabla }, 
-        () => {
-          fetchData(true);
+        (payload) => {
+          console.log(`[useSupabaseData] Cambio detectado en ${tabla}:`, payload);
+          // Esperar un momento antes de refrescar para asegurar consistencia
+          setTimeout(() => {
+            fetchData(true);
+          }, 100);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[useSupabaseData] Suscripción a ${tabla}:`, status);
+      });
 
     return () => {
       isMounted.current = false;
       supabase.removeChannel(channel);
     };
-  }, [fetchData, tabla]);
+  }, [tabla, fetchData]);
 
   const setSyncedData = useCallback((newDataOrFn: any) => {
     setData(prev => {
