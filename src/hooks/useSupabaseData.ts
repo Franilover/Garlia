@@ -14,7 +14,7 @@ import { ingredientesQueries } from "@/lib/api/queries/ingredientes";
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
-  "criaturas": criaturasQueries, // Corregido: antes decía creaturesQueries
+  "criaturas": criaturasQueries, 
   "items": itemsQueries,
   "libros": librosQueries,
   "recetas": recetasQueries,
@@ -106,10 +106,30 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       }
 
       if (errorInsert) throw errorInsert;
-      
       return { error: null };
     } catch (err: any) {
       console.error(`Error al insertar en ${tabla}:`, err);
+      return { error: err.message };
+    }
+  }, [tabla]);
+
+  // Función para actualizar filas (updateRow) - ESTA ES LA QUE FALTABA
+  const updateRow = useCallback(async (id: string | number, updates: any) => {
+    try {
+      let errorUpdate;
+
+      if (QUERIES_MAP[tabla]?.update) {
+        const res = await QUERIES_MAP[tabla].update(id, updates);
+        errorUpdate = res?.error;
+      } else {
+        const { error: err } = await supabase.from(tabla).update(updates).eq("id", id);
+        errorUpdate = err;
+      }
+
+      if (errorUpdate) throw errorUpdate;
+      return { error: null };
+    } catch (err: any) {
+      console.error(`Error al actualizar en ${tabla}:`, err);
       return { error: err.message };
     }
   }, [tabla]);
@@ -163,7 +183,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     loading, 
     error, 
     refetch: () => fetchData(true),
-    mutate: () => fetchData(true), // Alias para compatibilidad con código tipo SWR
-    addRow
+    mutate: () => fetchData(true),
+    addRow,
+    updateRow // Exportado correctamente para que ingredientes.tsx lo vea
   };
 }
