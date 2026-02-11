@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useReducer, useCallback } from "react";
 import Link from "next/link";
-import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save } from "lucide-react";
+import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/supabase";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
@@ -13,6 +13,8 @@ import { SmartImage } from "@/components/shared/display/SmartImage";
 // ============================================================================
 
 const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"];
+
+const TIPOS_PARTE = ["ESTROFA", "CORO", "PUENTE", "INTRO", "OUTRO", "SOLO"];
 
 const getEstadoColor = (estado) => {
   const colores = {
@@ -50,6 +52,7 @@ const initialFormState = {
   editPersonaje: "",
   editEstado: "BORRADOR",
   editVisible: false,
+  editPartes: [], 
   nuevoTitulo: "",
   nuevoPersonaje: ""
 };
@@ -58,8 +61,25 @@ const formReducer = (state, action) => {
   switch(action.type) {
     case "SET_EDIT_FORM": return { ...state, ...action.payload };
     case "SET_ADD_FORM": return { ...state, ...action.payload };
-    case "RESET_EDIT": return { ...state, editTitulo: "", editPersonaje: "", editEstado: "BORRADOR", editVisible: false };
+    case "RESET_EDIT": return { ...state, editTitulo: "", editPersonaje: "", editEstado: "BORRADOR", editVisible: false, editPartes: [] };
     case "RESET_ADD": return { ...state, nuevoTitulo: "", nuevoPersonaje: "" };
+    
+    case "ADD_PARTE": 
+      return { ...state, editPartes: [...state.editPartes, { tipo: "ESTROFA", contenido: "" }] };
+    case "REMOVE_PARTE":
+      return { ...state, editPartes: state.editPartes.filter((_, i) => i !== action.index) };
+    case "UPDATE_PARTE":
+      const newPartes = [...state.editPartes];
+      newPartes[action.index] = { ...newPartes[action.index], ...action.payload };
+      return { ...state, editPartes: newPartes };
+    case "MOVE_PARTE":
+      const movedPartes = [...state.editPartes];
+      const targetIndex = action.direction === "up" ? action.index - 1 : action.index + 1;
+      if (targetIndex >= 0 && targetIndex < movedPartes.length) {
+        [movedPartes[action.index], movedPartes[targetIndex]] = [movedPartes[targetIndex], movedPartes[action.index]];
+      }
+      return { ...state, editPartes: movedPartes };
+      
     default: return state;
   }
 };
@@ -195,9 +215,9 @@ const EditModal = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.85, opacity: 0, y: 20 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 overflow-hidden"
+          className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[2.5rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 overflow-hidden flex flex-col"
         >
-          <div className="h-1 bg-gradient-to-r from-[#6B5E70]/0 via-[#6B5E70] to-[#6B5E70]/0" />
+          <div className="h-1 bg-gradient-to-r from-[#6B5E70]/0 via-[#6B5E70] to-[#6B5E70]/0 shrink-0" />
 
           <motion.button
             whileHover={{ rotate: 90, scale: 1.1 }}
@@ -208,7 +228,7 @@ const EditModal = ({
             <X size={22} />
           </motion.button>
 
-          <div className="p-8 sm:p-10">
+          <div className="p-8 sm:p-10 overflow-y-auto custom-scrollbar">
             <motion.h3
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -218,122 +238,216 @@ const EditModal = ({
             </motion.h3>
 
             <form onSubmit={onSubmit} className="space-y-6">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between p-4 bg-gradient-to-r from-[#6B5E70]/5 to-[#6B5E70]/10 rounded-2xl border border-[#6B5E70]/10 hover:border-[#6B5E70]/20 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-[#6B5E70]/10 rounded-lg">
-                    {formState.editVisible ? (
-                      <Eye size={18} className="text-[#6B5E70]" />
-                    ) : (
-                      <EyeOff size={18} className="text-[#6B5E70]/50" />
-                    )}
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black text-[#6B5E70] uppercase tracking-wider italic block">
-                      Pública
-                    </span>
-                    <span className="text-[8px] text-[#6B5E70]/40 italic">
-                      {formState.editVisible ? "Visible" : "Oculta"}
-                    </span>
-                  </div>
-                </div>
-                <motion.button
-                  type="button"
-                  onClick={() =>
-                    onFormChange({
-                      type: "SET_EDIT_FORM",
-                      payload: { editVisible: !formState.editVisible }
-                    })
-                  }
-                  className={`w-14 h-7 rounded-full transition-all relative flex items-center ${
-                    formState.editVisible
-                      ? "bg-gradient-to-r from-[#6B5E70] to-[#8B7A90]"
-                      : "bg-[#E0E0E0]"
-                  }`}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-[#6B5E70]/5 to-[#6B5E70]/10 rounded-2xl border border-[#6B5E70]/10 hover:border-[#6B5E70]/20 transition-all"
                 >
-                  <motion.div
-                    animate={{ x: formState.editVisible ? 28 : 4 }}
-                    className="w-5 h-5 bg-white rounded-full shadow-md"
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-[#6B5E70]/10 rounded-lg">
+                      {formState.editVisible ? (
+                        <Eye size={18} className="text-[#6B5E70]" />
+                      ) : (
+                        <EyeOff size={18} className="text-[#6B5E70]/50" />
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black text-[#6B5E70] uppercase tracking-wider italic block">
+                        Pública
+                      </span>
+                      <span className="text-[8px] text-[#6B5E70]/40 italic">
+                        {formState.editVisible ? "Visible" : "Oculta"}
+                      </span>
+                    </div>
+                  </div>
+                  <motion.button
+                    type="button"
+                    onClick={() =>
+                      onFormChange({
+                        type: "SET_EDIT_FORM",
+                        payload: { editVisible: !formState.editVisible }
+                      })
+                    }
+                    className={`w-14 h-7 rounded-full transition-all relative flex items-center ${
+                      formState.editVisible
+                        ? "bg-gradient-to-r from-[#6B5E70] to-[#8B7A90]"
+                        : "bg-[#E0E0E0]"
+                    }`}
+                  >
+                    <motion.div
+                      animate={{ x: formState.editVisible ? 28 : 4 }}
+                      className="w-5 h-5 bg-white rounded-full shadow-md"
+                    />
+                  </motion.button>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                >
+                  <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
+                    🎯 Estado
+                  </label>
+                  <select
+                    value={formState.editEstado}
+                    onChange={(e) =>
+                      onFormChange({
+                        type: "SET_EDIT_FORM",
+                        payload: { editEstado: e.target.value }
+                      })
+                    }
+                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl uppercase appearance-none cursor-pointer transition-all"
+                  >
+                    {ESTADOS.map((est) => (
+                      <option key={est} value={est}>
+                        {est}
+                      </option>
+                    ))}
+                  </select>
+                </motion.div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 }}
+                >
+                  <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
+                    📝 Título
+                  </label>
+                  <input
+                    type="text"
+                    value={formState.editTitulo}
+                    onChange={(e) =>
+                      onFormChange({
+                        type: "SET_EDIT_FORM",
+                        payload: { editTitulo: e.target.value }
+                      })
+                    }
+                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl uppercase transition-all"
                   />
-                </motion.button>
-              </motion.div>
+                </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-              >
-                <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
-                  📝 Título
-                </label>
-                <input
-                  type="text"
-                  value={formState.editTitulo}
-                  onChange={(e) =>
-                    onFormChange({
-                      type: "SET_EDIT_FORM",
-                      payload: { editTitulo: e.target.value }
-                    })
-                  }
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl uppercase transition-all"
-                />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
-                  👤 Personaje
-                </label>
-                <select
-                  value={formState.editPersonaje}
-                  onChange={(e) =>
-                    onFormChange({
-                      type: "SET_EDIT_FORM",
-                      payload: { editPersonaje: e.target.value }
-                    })
-                  }
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl appearance-none cursor-pointer transition-all"
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
                 >
-                  <option value="">SIN PERSONAJE</option>
-                  {listaPersonajes.map((p) => (
-                    <option key={p.nombre} value={p.nombre}>
-                      {p.nombre.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
-              </motion.div>
+                  <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
+                    👤 Personaje
+                  </label>
+                  <select
+                    value={formState.editPersonaje}
+                    onChange={(e) =>
+                      onFormChange({
+                        type: "SET_EDIT_FORM",
+                        payload: { editPersonaje: e.target.value }
+                      })
+                    }
+                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl appearance-none cursor-pointer transition-all"
+                  >
+                    <option value="">SIN PERSONAJE</option>
+                    {listaPersonajes.map((p) => (
+                      <option key={p.nombre} value={p.nombre}>
+                        {p.nombre.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </motion.div>
+              </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-              >
-                <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
-                  🎯 Estado
-                </label>
-                <select
-                  value={formState.editEstado}
-                  onChange={(e) =>
-                    onFormChange({
-                      type: "SET_EDIT_FORM",
-                      payload: { editEstado: e.target.value }
-                    })
-                  }
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl uppercase appearance-none cursor-pointer transition-all"
-                >
-                  {ESTADOS.map((est) => (
-                    <option key={est} value={est}>
-                      {est}
-                    </option>
-                  ))}
-                </select>
-              </motion.div>
+              {/* --- SECCIÓN DE ESTRUCTURA --- */}
+              <div className="space-y-4 pt-6 border-t border-[#6B5E70]/10">
+                <div className="flex justify-between items-center px-2">
+                  <h4 className="text-[10px] font-black text-[#6B5E70] uppercase tracking-[0.2em] italic">
+                    🎼 Estructura de la Canción
+                  </h4>
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onFormChange({ type: "ADD_PARTE" })}
+                    className="flex items-center gap-2 bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white px-4 py-2 rounded-full text-[9px] font-black uppercase shadow-md"
+                  >
+                    <Plus size={14} /> Añadir Parte
+                  </motion.button>
+                </div>
+
+                <div className="space-y-4">
+                  <AnimatePresence initial={false}>
+                    {formState.editPartes.map((parte, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 flex gap-4 items-start group hover:border-[#6B5E70]/30 transition-all shadow-sm"
+                      >
+                        <div className="flex flex-col gap-1 mt-1">
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => onFormChange({ type: "MOVE_PARTE", index, direction: "up" })}
+                            className="p-1.5 text-[#6B5E70]/40 hover:text-[#6B5E70] disabled:opacity-10 transition-colors"
+                          >
+                            <ArrowUp size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === formState.editPartes.length - 1}
+                            onClick={() => onFormChange({ type: "MOVE_PARTE", index, direction: "down" })}
+                            className="p-1.5 text-[#6B5E70]/40 hover:text-[#6B5E70] disabled:opacity-10 transition-colors"
+                          >
+                            <ArrowDown size={16} />
+                          </button>
+                        </div>
+
+                        <div className="flex-1 space-y-3">
+                          <div className="flex gap-4">
+                            <select
+                              value={parte.tipo}
+                              onChange={(e) => onFormChange({ type: "UPDATE_PARTE", index, payload: { tipo: e.target.value } })}
+                              className="bg-white border border-[#6B5E70]/20 rounded-lg px-3 py-1 text-[9px] font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]"
+                            >
+                              {TIPOS_PARTE.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                            <span className="text-[9px] font-bold text-[#6B5E70]/30 uppercase italic flex items-center tracking-widest">
+                              Sección #{index + 1}
+                            </span>
+                          </div>
+                          
+                          <textarea
+                            value={parte.contenido}
+                            placeholder="Escribe la letra de esta sección..."
+                            onChange={(e) => onFormChange({ type: "UPDATE_PARTE", index, payload: { contenido: e.target.value } })}
+                            className="w-full bg-white/50 border border-[#6B5E70]/10 rounded-xl p-4 text-xs font-medium text-[#6B5E70] min-h-[100px] outline-none focus:ring-2 focus:ring-[#6B5E70]/10 focus:border-[#6B5E70]/30 transition-all resize-none"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => onFormChange({ type: "REMOVE_PARTE", index })}
+                          className="p-2.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+
+                  {formState.editPartes.length === 0 && (
+                    <div className="text-center py-10 border-2 border-dashed border-[#6B5E70]/10 rounded-[2rem] bg-[#6B5E70]/5">
+                      <Music size={24} className="mx-auto text-[#6B5E70]/20 mb-2" />
+                      <p className="text-[9px] font-black text-[#6B5E70]/30 uppercase tracking-[0.2em] italic">
+                        La canción no tiene estructura definida
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -527,7 +641,8 @@ const Canciones = () => {
         editTitulo: cancion.titulo,
         editPersonaje: cancion.personaje || "",
         editEstado: cancion.estado || "BORRADOR",
-        editVisible: cancion.visible || false
+        editVisible: cancion.visible || false,
+        editPartes: cancion.partes || [] 
       }
     });
     dispatchModal({ type: "OPEN_EDIT", payload: cancion });
@@ -547,15 +662,15 @@ const Canciones = () => {
           titulo: nuevoTituloUpper,
           personaje: formState.editPersonaje || null,
           estado: formState.editEstado,
-          visible: formState.editVisible
+          visible: formState.editVisible,
+          partes: formState.editPartes 
         })
         .eq("id", modalState.selectedCancion.id)
-        .select(); // IMPORTANTE: Pedir los datos actualizados
+        .select();
 
       if (error) throw error;
 
       if (data && data.length > 0) {
-        // ACTUALIZACIÓN DE ESTADO CORRECTA:
         setCanciones((prev) => {
           const index = prev.findIndex(c => c.id === modalState.selectedCancion.id);
           if (index === -1) return prev;
@@ -590,7 +705,8 @@ const Canciones = () => {
             personaje: formState.nuevoPersonaje || null,
             estado: "BORRADOR",
             portada_url: "/placeholder-cover.jpg",
-            visible: false
+            visible: false,
+            partes: []
           }
         ])
         .select();
@@ -598,7 +714,6 @@ const Canciones = () => {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        // ACTUALIZACIÓN DE ESTADO CORRECTA:
         setCanciones((prev) => [data[0], ...prev]);
         dispatchModal({ type: "CLOSE_ADD" });
         dispatchForm({ type: "RESET_ADD" });
