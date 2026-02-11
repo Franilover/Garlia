@@ -207,11 +207,10 @@ const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
 );
 
 // ============================================================================
-// MODAL DE LECTURA COMPLETA (CORREGIDO Y AMPLIADO)
+// MODAL DE LECTURA COMPLETA (CORREGIDO: MÁS ANCHO Y LETRA GRANDE)
 // ============================================================================
 
 const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
-  // Estado local para ajustar el tamaño dinámicamente si se desea
   const [zoom, setZoom] = React.useState(1);
 
   const handleCopy = () => {
@@ -230,104 +229,103 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[140] flex items-center justify-center p-0 md:p-6">
+        <div className="fixed inset-0 z-[140] flex items-center justify-center p-0 md:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#6B5E70]/60 backdrop-blur-xl"
+            className="absolute inset-0 bg-[#6B5E70]/70 backdrop-blur-xl"
           />
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 40 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 40 }}
-            className="bg-[#FDFCFD] w-full max-w-4xl md:rounded-[3rem] shadow-[0_32px_64px_-12px_rgba(107,94,112,0.3)] relative z-10 border border-[#6B5E70]/10 h-full md:h-[90vh] flex flex-col overflow-hidden"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            // Ajustado a max-w-[95vw] para ocupar casi todo el ancho horizontal
+            className="bg-[#FDFCFD] w-full max-w-[95vw] md:rounded-[3rem] shadow-2xl relative z-10 border border-[#6B5E70]/20 h-full md:h-[92vh] flex flex-col overflow-hidden"
           >
-            {/* Header mejorado */}
-            <div className="px-8 py-6 border-b border-[#6B5E70]/5 flex items-center justify-between bg-white/50 backdrop-blur-sm sticky top-0 z-20">
+            {/* Header */}
+            <div className="px-10 py-6 border-b border-[#6B5E70]/10 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20">
               <div className="flex flex-col">
-                <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.4em] italic flex items-center gap-3">
-                  <div className="w-8 h-[2px] bg-[#6B5E70]/20" />
-                  Modo Lectura
+                <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.5em] italic flex items-center gap-3">
+                  <Music size={16} className="animate-pulse" />
+                  Modo Lectura Inmersiva
                 </h3>
-                <p className="text-[#6B5E70]/40 text-[9px] font-bold uppercase tracking-widest mt-1 ml-11">
-                  Idioma: {IDIOMAS.find(l => l.id === (Array.isArray(idiomaActivo) ? idiomaActivo[0] : idiomaActivo))?.nombre}
-                </p>
               </div>
 
-              <div className="flex items-center gap-4">
-                {/* Controles de tamaño rápidos */}
-                <div className="hidden md:flex items-center gap-2 bg-[#6B5E70]/5 rounded-full px-3 py-1">
-                  <button onClick={() => setZoom(prev => Math.max(0.8, prev - 0.1))} className="text-[#6B5E70] hover:scale-125 transition-transform p-1">
-                    <span className="text-xs">-</span>
+              <div className="flex items-center gap-6">
+                {/* Controles de Zoom para ajustar si la línea es muy larga */}
+                <div className="flex items-center gap-4 bg-[#6B5E70]/5 rounded-2xl px-4 py-2 border border-[#6B5E70]/10">
+                  <button 
+                    onClick={() => setZoom(prev => Math.max(0.6, prev - 0.1))} 
+                    className="text-[#6B5E70] hover:scale-125 transition-transform font-black text-lg"
+                  >
+                    −
                   </button>
-                  <div className="w-[1px] h-3 bg-[#6B5E70]/10" />
-                  <button onClick={() => setZoom(prev => Math.min(1.5, prev + 0.1))} className="text-[#6B5E70] hover:scale-125 transition-transform p-1">
-                    <span className="text-xs">+</span>
+                  <span className="text-[10px] font-black text-[#6B5E70]/40 w-8 text-center">
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <button 
+                    onClick={() => setZoom(prev => Math.min(1.4, prev + 0.1))} 
+                    className="text-[#6B5E70] hover:scale-125 transition-transform font-black text-lg"
+                  >
+                    +
                   </button>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <motion.button
                     whileHover={{ scale: 1.1, backgroundColor: "#6B5E70", color: "#fff" }}
                     whileTap={{ scale: 0.9 }}
                     onClick={handleCopy}
-                    className="text-[#6B5E70] bg-[#6B5E70]/5 p-3 rounded-2xl transition-all"
+                    className="text-[#6B5E70] bg-[#6B5E70]/5 p-3 rounded-2xl transition-all border border-[#6B5E70]/10"
                   >
                     <Copy size={20} />
                   </motion.button>
                   <motion.button
-                    whileHover={{ rotate: 90, backgroundColor: "#ef444410", color: "#ef4444" }}
+                    whileHover={{ rotate: 90, scale: 1.1 }}
                     onClick={onClose}
-                    className="text-[#6B5E70]/40 p-3 rounded-2xl transition-all"
+                    className="text-[#6B5E70]/30 p-3 hover:text-red-500 transition-all"
                   >
-                    <X size={24} />
+                    <X size={28} />
                   </motion.button>
                 </div>
               </div>
             </div>
 
-            {/* Contenido con letra más grande y legible */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-b from-white to-[#FDFCFD]">
+            {/* Contenedor de la Letra */}
+            <div className="flex-1 overflow-auto custom-scrollbar bg-[radial-gradient(#6B5E70_0.5px,transparent_0.5px)] [background-size:24px_24px] [background-position:center] bg-opacity-[0.02]">
               <div 
-                className="max-w-3xl mx-auto p-12 md:p-20 transition-all duration-300"
-                style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
+                className="min-w-max mx-auto p-12 md:p-24 transition-all duration-300 ease-out text-center"
+                style={{ 
+                  transform: `scale(${zoom})`, 
+                  transformOrigin: "top center",
+                  // Evita que el texto baje de línea si el contenedor es pequeño
+                  whiteSpace: "nowrap" 
+                }}
               >
-                {secciones.length > 0 ? (
-                  secciones.map((seccion) => {
-                    const lang = Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es";
-                    const texto = seccion[`letra_${lang}`];
-                    
-                    return texto ? (
-                      <div key={seccion.id} className="mb-16 last:mb-0 group">
-                        {/* Indicador de sección sutil */}
-                        <div className="flex items-center gap-4 mb-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span className="text-[9px] font-black text-[#6B5E70]/30 uppercase tracking-[0.3em] italic">
-                            {seccion.nombre_seccion}
-                          </span>
-                          <div className="h-[1px] flex-1 bg-[#6B5E70]/5" />
-                        </div>
-                        
-                        {/* TEXTO AMPLIADO: Pasamos de text-xl a text-3xl/4xl */}
-                        <p className="text-[#4A3F4F] text-3xl md:text-4xl lg:text-5xl font-medium italic font-serif leading-[1.4] whitespace-pre-wrap selection:bg-[#6B5E70]/10">
-                          {texto}
-                        </p>
+                {secciones.map((seccion) => {
+                  const lang = Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es";
+                  const texto = seccion[`letra_${lang}`];
+                  
+                  return texto ? (
+                    <div key={seccion.id} className="mb-20 last:mb-0">
+                      {/* Etiqueta de sección sutil */}
+                      <div className="mb-6 flex items-center justify-center gap-4 opacity-30">
+                        <div className="h-[1px] w-12 bg-[#6B5E70]" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] italic text-[#6B5E70]">
+                          {seccion.nombre_seccion}
+                        </span>
+                        <div className="h-[1px] w-12 bg-[#6B5E70]" />
                       </div>
-                    ) : null;
-                  })
-                ) : (
-                  <div className="h-full flex items-center justify-center py-20">
-                     <p className="text-[#6B5E70]/20 font-black uppercase tracking-[0.5em] italic">Sin contenido</p>
-                  </div>
-                )}
-                
-                {/* Separador final decorativo */}
-                <div className="mt-20 flex justify-center opacity-20">
-                  <div className="flex gap-2">
-                    {[1,2,3].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#6B5E70]" />)}
-                  </div>
-                </div>
+                      
+                      {/* Texto Principal - Se mantiene en una línea por verso gracias a whitespace-pre */}
+                      <p className="text-[#3A323D] text-4xl md:text-5xl lg:text-6xl font-medium italic font-serif leading-[1.3] whitespace-pre">
+                        {texto}
+                      </p>
+                    </div>
+                  ) : null;
+                })}
               </div>
             </div>
           </motion.div>
