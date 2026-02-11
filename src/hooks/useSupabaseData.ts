@@ -20,7 +20,6 @@ const QUERIES_MAP: Record<string, any> = {
   "recetas": recetasQueries,
   "tareas": tareasQueries,
   "eventos": eventosQueries,
-  // ✅ NUEVO REGISTRO
   "ingredientes": ingredientesQueries
 };
 
@@ -36,19 +35,17 @@ interface UseSupabaseOptions {
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
   
+  // "Iniciamos con el caché, pero ya no bloquearemos la petición"
   const [data, setData] = useState<T[]>(cache[tabla] || []);
-  const [loading, setLoading] = useState(!cache[tabla]); 
+  const [loading, setLoading] = useState(true); // "Siempre iniciamos cargando para validar"
   const [error, setError] = useState<string | null>(null);
   
   const isMounted = useRef(true);
-
   const opcionesKey = useMemo(() => JSON.stringify(opciones), [opciones]);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    if (cache[tabla] && !forceRefresh && data.length > 0) {
-      if (isMounted.current) setLoading(false);
-      return;
-    }
+    // "QUITAMOS la condición que bloqueaba la carga si había caché"
+    // "Ahora, aunque haya caché, haremos el fetch en segundo plano para sincronizar"
 
     if (isMounted.current) {
       setLoading(true);
@@ -92,11 +89,13 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, opcionesKey, updateCache, cache, data.length]); 
+  }, [tabla, opcionesKey, updateCache]); // "Quitamos dependencias que causaban bucles"
 
   useEffect(() => {
     isMounted.current = true;
-    fetchData();
+    
+    // "Fuerza la carga inicial siempre"
+    fetchData(true);
 
     const channel = supabase
       .channel(`db-changes-${tabla}`)
