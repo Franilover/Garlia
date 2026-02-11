@@ -20,6 +20,7 @@ import {
   Activity
 } from "lucide-react";
 
+// Interfaz para el JSON que se guarda dentro de la receta
 interface IngredienteReceta {
   nombre: string;
   cantidad: string;
@@ -51,7 +52,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       </div>
     );
 
-    // --- LÓGICA DE SUMA DE MACROS ---
+    // --- CÁLCULO DE TOTALES (USANDO TU INTERFAZ) ---
     const ingredientesList = (receta.ingredientes as unknown as IngredienteReceta[]) || [];
     
     const totales = ingredientesList.reduce((acc, ing) => ({
@@ -87,23 +88,23 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                   <span className="text-[11px] font-bold uppercase text-primary">{receta.dificultad}</span>
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
-                  <Activity className="text-primary/30" size={18} />
+                  <Activity className="text-primary" size={18} />
                   <span className="text-[11px] font-black uppercase text-primary">{totales.kcal.toFixed(0)} kcal</span>
                 </div>
               </div>
 
-              {/* Grid de Totales Nutricionales */}
+              {/* Grid de Totales */}
               <div className="grid grid-cols-3 gap-4 mb-10">
                 <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/5 text-center">
-                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1 tracking-widest">"Proteínas"</p>
+                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1">"Proteínas"</p>
                   <p className="text-xl font-black text-primary italic">{totales.proteinas.toFixed(1)}g</p>
                 </div>
                 <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/5 text-center">
-                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1 tracking-widest">"Carbos"</p>
+                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1">"Carbos"</p>
                   <p className="text-xl font-black text-primary italic">{totales.carbos.toFixed(1)}g</p>
                 </div>
                 <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/5 text-center">
-                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1 tracking-widest">"Grasas"</p>
+                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1">"Grasas"</p>
                   <p className="text-xl font-black text-primary italic">{totales.grasas.toFixed(1)}g</p>
                 </div>
               </div>
@@ -116,7 +117,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                       <li key={i} className="text-[11px] font-bold uppercase border-b border-primary/10 pb-2 flex justify-between items-center text-primary">
                         <span>{ing.nombre}</span>
                         <div className="flex items-center gap-4">
-                          <span className="text-[8px] font-black text-primary/30">P {Number(ing.proteinas || 0).toFixed(1)}</span>
+                          <span className="text-[8px] font-black text-primary/20">P {Number(ing.proteinas || 0).toFixed(1)}</span>
                           <span className="opacity-60">{ing.cantidad}</span>
                         </div>
                       </li>
@@ -142,7 +143,6 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     );
   }
 
-  // --- VISTA PRINCIPAL (LISTADO) ---
   const filteredRecipes = recipes.filter((r) => 
     r.nombre.toLowerCase().includes(filter.toLowerCase()) ||
     r.categoria.toLowerCase().includes(filter.toLowerCase())
@@ -247,28 +247,21 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
 
   const addIngrediente = (ing: Ingrediente) => {
     let sugerencia = "100g";
-    
-    if (ing.porcion_texto?.toLowerCase().includes("unidad")) {
-      sugerencia = ing.porcion_texto;
-    } 
-    else if (ing.categoria === "Lácteos" || (ing as any).agua_ml > 0) {
-      sugerencia = "100ml";
-    }
-    else if (["Frutas", "Proteínas"].includes(ing.categoria)) {
-      sugerencia = "1 unidad";
-    }
+    if (ing.porcion_texto?.toLowerCase().includes("unidad")) sugerencia = ing.porcion_texto;
+    else if (ing.categoria === "Lácteos" || ing.agua_ml > 0) sugerencia = "100ml";
+    else if (["Frutas", "Proteínas"].includes(ing.categoria)) sugerencia = "1 unidad";
 
     const cantidad = prompt(`"Cantidad para ${ing.nombre}:"`, sugerencia);
     
     if (cantidad) {
-      // Capturamos todos los macros asegurando que sean números
+      // USAMOS TUS NOMBRES DE COLUMNA EXACTOS
       const nuevoIng: IngredienteReceta = { 
         nombre: ing.nombre, 
         cantidad, 
         kcal: Number(ing.kcal) || 0,
-        proteinas: Number((ing as any).proteinas) || 0,
-        carbohidratos: Number((ing as any).carbohidratos) || 0,
-        grasas: Number((ing as any).grasas) || 0
+        proteinas: Number(ing.proteinas) || 0,
+        carbohidratos: Number(ing.carbohidratos) || 0,
+        grasas: Number(ing.grasas) || 0
       };
 
       setFormData({
@@ -373,7 +366,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                         >
                           <span>{ing.nombre}</span>
                           <div className="flex items-center gap-2">
-                            <span className="text-[8px] opacity-60">{Number((ing as any).proteinas || 0).toFixed(1)}g P</span>
+                            <span className="text-[8px] opacity-60">{ing.proteinas}g P</span>
                             <Plus size={14} />
                           </div>
                         </button>
