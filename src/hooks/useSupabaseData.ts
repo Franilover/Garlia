@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/supabase";
 import { useDataCache } from "@/components/features/control/DataContext";
 
@@ -40,9 +40,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const [error, setError] = useState<string | null>(null);
   
   const isMounted = useRef(true);
-  
-  // Crear una referencia estable de opciones
   const opcionesRef = useRef(opciones);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
     opcionesRef.current = opciones;
   }, [opciones]);
@@ -98,26 +98,55 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     // Carga inicial
     fetchData(true);
 
-    // Suscripción a cambios en tiempo real
+    // Intentar suscripción en tiempo real
     const channel = supabase
-      .channel(`db-changes-${tabla}`)
+      .channel(`db-changes-${tabla}-${Math.random()}`)
       .on("postgres_changes", 
         { event: "*", schema: "public", table: tabla }, 
         (payload) => {
-          console.log(`[useSupabaseData] Cambio detectado en ${tabla}:`, payload);
-          // Esperar un momento antes de refrescar para asegurar consistencia
+          console.log(`✅ Cambio detectado en ${tabla}:`, payload.eventType);
           setTimeout(() => {
             fetchData(true);
           }, 100);
         }
       )
-      .subscribe((status) => {
-        console.log(`[useSupabaseData] Suscripción a ${tabla}:`, status);
+      .subscribe((status, err) => {
+        console.log(`📡 Suscripción a ${tabla}:`, status);
+        
+        if (status === "CHANNEL_ERROR") {
+          console.warn(`⚠️ Error en suscripción realtime para ${tabla}, usando polling como fallback`);
+          
+          // FALLBACK: Polling cada 5 segundos si realtime falla
+          pollingIntervalRef.current = setInterval(() => {
+            if (isMounted.current) {
+              console.log(`🔄 Polling ${tabla}...`);
+              fetchData(true);
+            }
+          }, 5000);
+        } else if (status === "SUBSCRIBED") {
+          console.log(`✅ Suscripción exitosa a ${tabla}`);
+          // Limpiar polling si la suscripción funciona
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        }
+        
+        if (err) {
+          console.error(`❌ Error en canal ${tabla}:`, err);
+        }
       });
 
     return () => {
       isMounted.current = false;
+      
+      // Limpiar suscripción
       supabase.removeChannel(channel);
+      
+      // Limpiar polling
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
     };
   }, [tabla, fetchData]);
 
