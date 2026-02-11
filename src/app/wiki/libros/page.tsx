@@ -19,12 +19,11 @@ interface Libro {
 }
 
 const Biblioteca = () => {
-  // 1. Hook Maestro: Gestiona la carga, el Realtime y la Caché global
+  // 1. Hook Maestro: Gestión de Caché + Realtime
   const { data, loading, setData: setLibros } = useSupabaseData('libros', {
     order: { campo: 'created_at', asc: false }
   });
 
-  // Forzamos el tipado de los datos obtenidos
   const libros = data as Libro[];
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -36,7 +35,7 @@ const Biblioteca = () => {
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Verificación de sesión
+  // OPTIMIZACIÓN: Verificación de sesión rápida
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -45,7 +44,7 @@ const Biblioteca = () => {
     checkSession();
   }, []);
 
-  // --- MANEJADORES ---
+  // --- MANEJADORES OPTIMIZADOS ---
   const openEditModal = (e: React.MouseEvent, libro: Libro) => {
     e.preventDefault();
     e.stopPropagation();
@@ -57,19 +56,28 @@ const Biblioteca = () => {
   const handleUpdateLibro = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTitle.trim() || isUpdating || !selectedLibro) return;
+
+    const tituloAnterior = selectedLibro.titulo;
+    const nuevoTituloUpper = editTitle.toUpperCase();
+
+    // 1. Actualización Optimista: Cambiamos la UI antes de ir al servidor
+    setLibros((prev: Libro[]) => 
+      prev.map(l => l.id === selectedLibro.id ? { ...l, titulo: nuevoTituloUpper } : l)
+    );
+    setShowEditModal(false);
     setIsUpdating(true);
 
     const { error } = await supabase
       .from('libros')
-      .update({ titulo: editTitle.toUpperCase() })
+      .update({ titulo: nuevoTituloUpper })
       .eq('id', selectedLibro.id);
 
-    if (!error) {
-      // Actualización optimista en el estado y caché global
+    if (error) {
+      // Rollback si hay error
       setLibros((prev: Libro[]) => 
-        prev.map(l => l.id === selectedLibro.id ? { ...l, titulo: editTitle.toUpperCase() } : l)
+        prev.map(l => l.id === selectedLibro.id ? { ...l, titulo: tituloAnterior } : l)
       );
-      setShowEditModal(false);
+      alert("Error al actualizar el registro");
     }
     setIsUpdating(false);
   };
@@ -77,23 +85,30 @@ const Biblioteca = () => {
   const handleAddLibro = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoTitulo.trim() || isUpdating) return;
+    
     setIsUpdating(true);
+    const tituloNuevo = nuevoTitulo.toUpperCase();
+    
+    // Cerramos modal para dar fluidez
+    setShowAddModal(false);
 
     const { data: insertedData, error } = await supabase.from('libros').insert([{ 
-      titulo: nuevoTitulo.toUpperCase(),
+      titulo: tituloNuevo,
       sinopsis: "Nueva crónica por escribir...",
       estado: "EN PROCESO"
     }]).select();
 
     if (!error && insertedData) {
       setLibros((prev: Libro[]) => [insertedData[0], ...prev]);
-      setShowAddModal(false);
       setNuevoTitulo("");
+    } else {
+      alert("Error al sellar el nuevo libro");
     }
     setIsUpdating(false);
   };
 
-  if (loading) return (
+  // --- RENDER DE CARGA ---
+  if (loading && libros.length === 0) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
       <div className="animate-pulse text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
         Abriendo Archivos...
@@ -108,13 +123,13 @@ const Biblioteca = () => {
       <AnimatePresence>
         {showEditModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !isUpdating && setShowEditModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
               <button onClick={() => setShowEditModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
               <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Modificar Título</h3>
               <form onSubmit={handleUpdateLibro} className="space-y-6">
                 <input autoFocus type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
-                <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20 active:scale-95 transition-all">
+                <button type="submit" disabled={isUpdating} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg active:scale-95 transition-all">
                   {isUpdating ? "Guardando..." : "Actualizar Registro"}
                 </button>
               </form>
@@ -127,13 +142,13 @@ const Biblioteca = () => {
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !isUpdating && setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
               <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
               <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nueva Crónica</h3>
               <form onSubmit={handleAddLibro} className="space-y-6">
                 <input autoFocus type="text" placeholder="TÍTULO DEL LIBRO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
-                <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-[#6B5E70]/20 active:scale-95 transition-all">
+                <button type="submit" disabled={isUpdating} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg active:scale-95 transition-all">
                   {isUpdating ? "Sellando..." : "Crear Libro"}
                 </button>
               </form>
@@ -142,14 +157,14 @@ const Biblioteca = () => {
         )}
       </AnimatePresence>
 
-      {/* HEADER DE BIBLIOTECA */}
+      {/* HEADER */}
       <div className="max-w-6xl mx-auto pt-16 px-6 mb-12 flex justify-between items-end">
-        <div>
-          <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3">
+        <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
+          <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3 leading-none">
             <Book size={32} /> BIBLIOTECA
           </h1>
           <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2">Explora los relatos del mundo</p>
-        </div>
+        </motion.div>
         {isAdmin && (
           <button 
             onClick={() => setShowAddModal(true)} 
@@ -162,8 +177,14 @@ const Biblioteca = () => {
 
       {/* GRID DE LIBROS */}
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-        {libros.map((libro) => (
-          <div key={libro.id} className="relative group">
+        {libros.map((libro, index) => (
+          <motion.div 
+            key={libro.id} 
+            initial={{ y: 20, opacity: 0 }} 
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: index * 0.05 }}
+            className="relative group"
+          >
             {isAdmin && (
               <button 
                 onClick={(e) => openEditModal(e, libro)}
@@ -174,19 +195,19 @@ const Biblioteca = () => {
             )}
 
             <Link href={`/wiki/libros/${libro.id}`}>
-              <motion.div whileHover={{ y: -10 }} className="cursor-pointer">
-                <div className="relative aspect-[3/4] rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-white">
+              <div className="cursor-pointer">
+                <motion.div whileHover={{ y: -10 }} className="relative aspect-[3/4] rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-white">
                   <SmartImage 
                     src={libro.portada_url || "/placeholder-cover.jpg"} 
                     alt={libro.titulo}
-                    className="w-full h-full"
+                    className="w-full h-full object-cover"
                   />
                   <div className="absolute top-6 left-6 z-20 bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full border border-[#6B5E70]/10">
                     <span className="text-[9px] font-black uppercase text-[#6B5E70] tracking-widest">
                       {libro.estado}
                     </span>
                   </div>
-                </div>
+                </motion.div>
 
                 <div className="mt-6 px-2">
                   <h2 className="text-[#6B5E70] font-black uppercase text-base group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tight">
@@ -200,9 +221,9 @@ const Biblioteca = () => {
                     <span className="flex items-center gap-1.5"><ChevronRight size={12} /> Abrir</span>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </Link>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

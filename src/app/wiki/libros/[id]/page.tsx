@@ -1,15 +1,14 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/api/supabase';
 import { ChevronLeft, Play, ListOrdered, Plus, Trash2, X, Edit3, Save, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SmartImage } from '@/components/shared/display/SmartImage';
-import { useSupabaseData } from '@/hooks/useSupabaseData'; // Tu hook personalizado
+import { useSupabaseData } from '@/hooks/useSupabaseData'; 
 import { cn } from '@/lib/utils';
 
-// Definimos la interfaz para el Capítulo
 interface Capitulo {
   id: string;
   titulo_capitulo: string;
@@ -46,7 +45,7 @@ export default function LibroDetalle() {
   const [editCapTitle, setEditCapTitle] = useState("");
   const [editCapFecha, setEditCapFecha] = useState("");
 
-  // --- INTEGRACIÓN CON HOOK DE DATOS (Caché + Realtime) ---
+  // --- INTEGRACIÓN CON HOOK DE DATOS ---
   const { 
     data: capitulosRaw, 
     loading: loadingCaps, 
@@ -56,7 +55,6 @@ export default function LibroDetalle() {
     order: { campo: 'orden', asc: true }
   });
 
-  // Filtramos los capítulos por libro y por fecha (si no es admin)
   const capitulos = useMemo(() => {
     const hoy = new Date().toISOString().split('T')[0];
     return (capitulosRaw as Capitulo[])
@@ -64,25 +62,35 @@ export default function LibroDetalle() {
       .filter(cap => isAdmin || cap.fecha_publicacion <= hoy);
   }, [capitulosRaw, id, isAdmin]);
 
+  // OPTIMIZACIÓN: Carga de Auth y Libro en paralelo
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAdmin(!!session);
+    const fetchData = async () => {
+      if (!id) return;
 
-      if (id) {
-        const { data } = await supabase.from('libros').select('*').eq('id', id).single();
-        if (data) setLibro(data);
+      try {
+        const [authRes, libroRes] = await Promise.all([
+          supabase.auth.getSession(),
+          supabase.from('libros').select('*').eq('id', id).single()
+        ]);
+
+        setIsAdmin(!!authRes.data.session);
+        if (libroRes.data) setLibro(libroRes.data);
+      } catch (err) {
+        console.error("Error al cargar detalle:", err);
       }
     };
-    checkUser();
+    fetchData();
   }, [id]);
 
-  // --- ACCIONES ---
+  // --- ACCIONES OPTIMIZADAS (Feedback instantáneo) ---
   const handleCrearCapitulo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoTitulo.trim() || procesando) return;
-    setProcesando(true);
     
+    setProcesando(true);
+    // Cerramos el modal inmediatamente para dar sensación de velocidad
+    setShowAddModal(false);
+
     const { error } = await supabase.from('capitulos').insert([{ 
       libro_id: id, 
       titulo_capitulo: nuevoTitulo.toUpperCase(), 
@@ -92,9 +100,11 @@ export default function LibroDetalle() {
     }]);
 
     if (!error) {
-      setShowAddModal(false);
       setNuevoTitulo("");
-      refetchCaps(); // Sincroniza la caché
+      refetchCaps(); // Actualiza la lista en segundo plano
+    } else {
+      alert("Error al crear el capítulo");
+      setShowAddModal(true); // Reabrimos si falló
     }
     setProcesando(false);
   };
@@ -102,26 +112,35 @@ export default function LibroDetalle() {
   const handleUpdateCapitulo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editCapTitle.trim() || !selectedCap || procesando) return;
+    
     setProcesando(true);
+    setShowEditCapModal(false);
+
     const { error } = await supabase.from('capitulos').update({ 
         titulo_capitulo: editCapTitle.toUpperCase(),
         fecha_publicacion: editCapFecha 
     }).eq('id', selectedCap.id);
 
     if (!error) {
-      setShowEditCapModal(false);
       refetchCaps();
+    } else {
+      alert("Error al actualizar");
+      setShowEditCapModal(true);
     }
     setProcesando(false);
   };
 
   const deleteCapitulo = async () => {
     if (!selectedCap || !confirm("¿Deseas eliminar permanentemente este capítulo?")) return;
+    
     setProcesando(true);
+    setShowEditCapModal(false);
+
     const { error } = await supabase.from('capitulos').delete().eq('id', selectedCap.id);
     if (!error) {
-      setShowEditCapModal(false);
       refetchCaps();
+    } else {
+      alert("No se pudo eliminar");
     }
     setProcesando(false);
   };
@@ -134,6 +153,7 @@ export default function LibroDetalle() {
     setShowEditCapModal(true);
   };
 
+  // --- RENDERS ---
   if (loadingCaps && !libro) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD] text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
       Consultando archivos...
@@ -142,12 +162,10 @@ export default function LibroDetalle() {
 
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20 relative">
-      
-      {/* MODALES (Mantienen tu estructura original) */}
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !procesando && setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10 text-center">
               <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
               <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8">Nuevo Capítulo</h3>
@@ -157,7 +175,9 @@ export default function LibroDetalle() {
                     <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2">Fecha de estreno</label>
                     <input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none" />
                 </div>
-                <button type="submit" className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px]">{procesando ? "Sellando..." : "Revelar"}</button>
+                <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform">
+                  {procesando ? "Sellando..." : "Revelar"}
+                </button>
               </form>
             </motion.div>
           </div>
@@ -165,7 +185,7 @@ export default function LibroDetalle() {
 
         {showEditCapModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditCapModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !procesando && setShowEditCapModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
               <button onClick={() => setShowEditCapModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
               <div className="text-center mb-8">
@@ -174,12 +194,11 @@ export default function LibroDetalle() {
               <form onSubmit={handleUpdateCapitulo} className="space-y-6">
                 <input autoFocus type="text" value={editCapTitle} onChange={(e) => setEditCapTitle(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
                 <input type="date" value={editCapFecha} onChange={(e) => setEditCapFecha(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none" />
-                
                 <div className="grid grid-cols-2 gap-3">
-                  <button type="submit" className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2">
+                  <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-transform">
                     <Save size={14} /> Guardar
                   </button>
-                  <button type="button" onClick={deleteCapitulo} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100">
+                  <button type="button" onClick={deleteCapitulo} disabled={procesando} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 active:scale-95 transition-transform">
                     <Trash2 size={14} /> Borrar
                   </button>
                 </div>
@@ -196,21 +215,12 @@ export default function LibroDetalle() {
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[320px_1fr] gap-16 mt-4">
         <aside>
           <div className="aspect-[3/4] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-white">
-            <SmartImage 
-              src={libro?.portada_url || "/placeholder-cover.jpg"} 
-              alt={libro?.titulo || "Libro"} 
-              className="w-full h-full"
-            />
+            <SmartImage src={libro?.portada_url || "/placeholder-cover.jpg"} alt={libro?.titulo || "Libro"} className="w-full h-full" />
           </div>
-          
           {libro?.fecha_proximo_capitulo && (
             <div className="mt-8 p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
-               <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2">
-                 <Calendar size={12} /> Próximo Capítulo
-               </h4>
-               <p className="text-[#6B5E70] font-bold text-sm">
-                 {new Date(libro.fecha_proximo_capitulo).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
-               </p>
+               <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2"><Calendar size={12} /> Próximo Capítulo</h4>
+               <p className="text-[#6B5E70] font-bold text-sm">{new Date(libro.fecha_proximo_capitulo).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</p>
             </div>
           )}
         </aside>
@@ -228,34 +238,26 @@ export default function LibroDetalle() {
                 <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"><Plus size={18} /></button>
               )}
             </div>
-            
             <div className="grid gap-3">
               {capitulos.map((cap) => (
-                <div key={cap.id} className="relative group">
-                  <button 
-                    onClick={() => router.push(`/wiki/libros/${id}/leer/${cap.id}`)}
-                    className="w-full flex items-center justify-between p-6 bg-white border border-[#6B5E70]/5 rounded-3xl hover:border-[#6B5E70]/20 transition-all text-left"
-                  >
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[#6B5E70] font-black uppercase text-[12px]">{cap.orden}. {cap.titulo_capitulo}</span>
-                        <span className="text-[#6B5E70]/40 font-bold text-[9px] uppercase tracking-wider">
-                            {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "} 
-                            {new Date(cap.fecha_publicacion).toLocaleDateString('es-ES')}
-                        </span>
+                <button 
+                  key={cap.id}
+                  onClick={() => router.push(`/wiki/libros/${id}/leer/${cap.id}`)}
+                  className="w-full flex items-center justify-between p-6 bg-white border border-[#6B5E70]/5 rounded-3xl hover:border-[#6B5E70]/20 transition-all text-left"
+                >
+                  <div className="flex flex-col gap-1">
+                      <span className="text-[#6B5E70] font-black uppercase text-[12px]">{cap.orden}. {cap.titulo_capitulo}</span>
+                      <span className="text-[#6B5E70]/40 font-bold text-[9px] uppercase tracking-wider">
+                          {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "} 
+                          {new Date(cap.fecha_publicacion).toLocaleDateString('es-ES')}
+                      </span>
+                  </div>
+                  {isAdmin ? (
+                    <div onClick={(e) => openEditCap(e, cap)} className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors">
+                      <Edit3 size={16} />
                     </div>
-                    
-                    {isAdmin ? (
-                      <div 
-                        onClick={(e) => openEditCap(e, cap)}
-                        className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors"
-                      >
-                        <Edit3 size={16} />
-                      </div>
-                    ) : (
-                      <Play size={14} fill="currentColor" className="text-[#6B5E70]" />
-                    )}
-                  </button>
-                </div>
+                  ) : <Play size={14} fill="currentColor" className="text-[#6B5E70]" />}
+                </button>
               ))}
             </div>
           </div>

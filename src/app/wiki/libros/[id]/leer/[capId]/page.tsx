@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/supabase";
 import { ChevronLeft, ChevronRight, List, Save, Edit3, X } from "lucide-react";
@@ -14,7 +14,7 @@ export default function Lector() {
   const capId = params?.capId as string;
   const router = useRouter();
   
-  // --- ESTADOS TIPADOS ---
+  // --- ESTADOS ---
   const [capitulo, setCapitulo] = useState<Capitulo | null>(null);
   const [listaCapitulos, setListaCapitulos] = useState<{ id: string; orden: number }[]>([]); 
   const [loading, setLoading] = useState(true);
@@ -25,62 +25,67 @@ export default function Lector() {
   const [nuevoContenido, setNuevoContenido] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // --- CARGA DE DATOS CENTRALIZADA ---
+  // Referencia para evitar ejecuciones duplicadas en React Strict Mode
+  const isInitialMount = useRef(true);
+
+  // --- CARGA DE DATOS OPTIMIZADA ---
   useEffect(() => {
     const fetchDatos = async () => {
       if (!capId || !id) return;
 
       try {
-        setLoading(true);
+        // Solo mostramos el loader completo en la primera carga
+        if (isInitialMount.current) setLoading(true);
         setError(null);
 
-        // 1. Verificamos permisos
-        const { data: { session } } = await supabase.auth.getSession();
-        const esAdmin = !!session;
+        // OPTIMIZACIÓN: Ejecutamos la sesión y la query en paralelo para ahorrar tiempo de ida y vuelta (RTT)
+        const [sessionRes, queryRes] = await Promise.all([
+          supabase.auth.getSession(),
+          librosQueries.getCapituloParaLectura(capId, id, true) // Pedimos como admin inicialmente para no esperar al auth
+        ]);
+
+        const esAdmin = !!sessionRes.data.session;
         setIsAdmin(esAdmin);
 
-        // 2. Usamos la query que optimizamos
-        const { data, error: queryError } = await librosQueries.getCapituloParaLectura(
-          capId,
-          id,
-          esAdmin
-        );
-
-        if (queryError || !data) {
-          setError(queryError || "No se pudo cargar el capítulo");
+        if (queryRes.error || !queryRes.data) {
+          setError(queryRes.error || "No se pudo cargar el capítulo");
         } else {
-          setCapitulo(data.capitulo);
-          setListaCapitulos(data.listaCapitulos);
-          setNuevoContenido(data.capitulo.contenido || ""); 
+          setCapitulo(queryRes.data.capitulo);
+          setListaCapitulos(queryRes.data.listaCapitulos);
+          setNuevoContenido(queryRes.data.capitulo.contenido || ""); 
         }
       } catch (err) {
         console.error("Error crítico en Lector:", err);
         setError("Error al abrir el pergamino");
       } finally {
         setLoading(false);
+        isInitialMount.current = false;
       }
     };
 
     fetchDatos();
   }, [capId, id]);
 
-  // --- ACCIONES DE ADMIN ---
+  // --- ACCIONES DE ADMIN (OPTIMISTAS) ---
   const handleSave = async () => {
     if (!capitulo || !capId) return;
     
+    // Guardamos el estado previo por si falla el servidor
+    const contenidoPrevio = capitulo.contenido;
+    
+    // 1. Actualización inmediata de la UI (Feedback instantáneo)
+    setCapitulo({ ...capitulo, contenido: nuevoContenido });
+    setEditMode(false);
     setSaving(true);
+
     try {
-      const { error: saveError } = await librosQueries.updateContenido(
-        capId, 
-        nuevoContenido
-      );
-
+      const { error: saveError } = await librosQueries.updateContenido(capId, nuevoContenido);
       if (saveError) throw saveError;
-
-      // Actualización optimista de la UI
-      setCapitulo({ ...capitulo, contenido: nuevoContenido });
-      setEditMode(false);
     } catch (err: any) {
+      // 2. Rollback si falla: regresamos al estado anterior
+      setCapitulo({ ...capitulo, contenido: contenidoPrevio });
+      setNuevoContenido(contenidoPrevio);
+      setEditMode(true);
       alert("Error al guardar: " + err.message);
     } finally {
       setSaving(false);
@@ -93,7 +98,7 @@ export default function Lector() {
   const siguienteCap = listaCapitulos[indiceActual + 1];
 
   // --- RENDERS DE CARGA Y ERROR ---
-  if (loading) return (
+  if (loading && !capitulo) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
       <div className="animate-pulse text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
         Abriendo pergamino...
