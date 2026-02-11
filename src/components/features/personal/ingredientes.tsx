@@ -3,7 +3,6 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { Ingrediente } from "@/lib/types/cocina";
-import { supabase } from "@/lib/supabase";
 import {
   Search,
   Plus,
@@ -22,7 +21,7 @@ export const IngredientesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Estado para el nuevo ingrediente
+  // Estado inicial para el formulario
   const [formData, setFormData] = useState({
     nombre: "",
     categoria: "Verduras",
@@ -34,9 +33,13 @@ export const IngredientesPage = () => {
     porcion_texto: "100g"
   });
 
-  const { data: ingredientes, loading, mutate } = useSupabaseData<Ingrediente>("ingredientes");
+  /**
+   * "DELEGACIÓN AL HOOK"
+   * Al igual que en el Diario, extraemos data, loading y mutate.
+   * Añadimos 'addRow' que es la función que debe tener tu hook para insertar.
+   */
+  const { data: ingredientes, loading, mutate, addRow } = useSupabaseData<Ingrediente>("ingredientes");
 
-  // CATEGORÍAS DINÁMICAS
   const categoriasDinamicas = useMemo(() => {
     const base = ["Todos"];
     if (!ingredientes) return base;
@@ -44,7 +47,6 @@ export const IngredientesPage = () => {
     return [...base, ...catsEnData.filter(c => c && c.trim() !== "")];
   }, [ingredientes]);
 
-  // LÓGICA DE FILTRADO
   const filteredItems = useMemo(() => {
     if (!ingredientes) return [];
     return ingredientes.filter((item) => {
@@ -56,19 +58,16 @@ export const IngredientesPage = () => {
     });
   }, [ingredientes, filter, selectedCategory]);
 
-  // FUNCIÓN PARA GUARDAR EN SUPABASE
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
     try {
-      const { error } = await supabase
-        .from("ingredientes")
-        .insert([formData]);
-
+      // Delegamos la inserción al hook
+      const { error } = await addRow(formData);
       if (error) throw error;
 
-      // Resetear y cerrar
+      // Reset y cierre
       setFormData({
         nombre: "",
         categoria: "Verduras",
@@ -80,10 +79,9 @@ export const IngredientesPage = () => {
         porcion_texto: "100g"
       });
       setIsModalOpen(false);
-      mutate(); // Recarga los datos de la lista
-    } catch (error) {
-      console.error("Error guardando ingrediente:", error);
-      alert("Error al guardar el ingrediente");
+      mutate(); // Refresca la lista
+    } catch (err) {
+      console.error("Error al guardar:", err);
     } finally {
       setIsSaving(false);
     }
@@ -117,6 +115,7 @@ export const IngredientesPage = () => {
           </div>
         </div>
 
+        {/* --- FILTROS --- */}
         <div className="mt-8 overflow-x-auto pb-2 scrollbar-hide">
           <div className="flex items-center gap-2 min-w-max">
             <div className="pr-2 text-primary/20"><Filter size={14} /></div>
@@ -177,7 +176,7 @@ export const IngredientesPage = () => {
       {/* --- MODAL FORMULARIO --- */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !isSaving && setIsModalOpen(false)}
@@ -195,13 +194,11 @@ export const IngredientesPage = () => {
               </div>
               
               <form onSubmit={handleSave} className="space-y-5">
-                {/* Nombre e Insumo */}
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 ml-4">Nombre del Ingrediente</label>
+                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 ml-4">Nombre</label>
                   <input 
                     required
-                    className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold uppercase tracking-widest focus:ring-2 ring-primary/20 outline-none"
-                    placeholder="Ejem: Lentejas Rojas"
+                    className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold uppercase outline-none focus:ring-2 ring-primary/20"
                     value={formData.nombre}
                     onChange={(e) => setFormData({...formData, nombre: e.target.value})}
                   />
@@ -209,9 +206,9 @@ export const IngredientesPage = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 ml-4">Categoría</label>
+                    <label className="text-[9px] font-black uppercase text-primary/30 ml-4">Categoría</label>
                     <select 
-                      className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-[10px] font-black uppercase tracking-widest outline-none appearance-none"
+                      className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-[10px] font-black uppercase outline-none"
                       value={formData.categoria}
                       onChange={(e) => setFormData({...formData, categoria: e.target.value})}
                     >
@@ -220,11 +217,10 @@ export const IngredientesPage = () => {
                       <option value="Cereales">Cereales</option>
                       <option value="Frutas">Frutas</option>
                       <option value="Lácteos">Lácteos</option>
-                      <option value="Superfoods">Superfoods</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 ml-4">Precio ($)</label>
+                    <label className="text-[9px] font-black uppercase text-primary/30 ml-4">Precio ($)</label>
                     <input 
                       type="number"
                       className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold outline-none"
@@ -234,30 +230,17 @@ export const IngredientesPage = () => {
                   </div>
                 </div>
 
-                {/* Macros Grid */}
                 <div className="bg-primary/5 rounded-[30px] p-6 grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[7px] font-black uppercase text-primary/40 tracking-widest">Calorías (kcal)</label>
-                    <input type="number" className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.kcal} onChange={(e) => setFormData({...formData, kcal: Number(e.target.value)})}/>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[7px] font-black uppercase text-primary/40 tracking-widest">Proteínas (g)</label>
-                    <input type="number" className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.proteinas} onChange={(e) => setFormData({...formData, proteinas: Number(e.target.value)})}/>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[7px] font-black uppercase text-primary/40 tracking-widest">Carbos (g)</label>
-                    <input type="number" className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.carbohidratos} onChange={(e) => setFormData({...formData, carbohidratos: Number(e.target.value)})}/>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[7px] font-black uppercase text-primary/40 tracking-widest">Grasas (g)</label>
-                    <input type="number" className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.grasas} onChange={(e) => setFormData({...formData, grasas: Number(e.target.value)})}/>
-                  </div>
+                   <input type="number" placeholder="Kcal" className="bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.kcal} onChange={(e) => setFormData({...formData, kcal: Number(e.target.value)})}/>
+                   <input type="number" placeholder="Prot (g)" className="bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.proteinas} onChange={(e) => setFormData({...formData, proteinas: Number(e.target.value)})}/>
+                   <input type="number" placeholder="Carb (g)" className="bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.carbohidratos} onChange={(e) => setFormData({...formData, carbohidratos: Number(e.target.value)})}/>
+                   <input type="number" placeholder="Gras (g)" className="bg-white rounded-xl py-2 px-4 text-xs font-bold" value={formData.grasas} onChange={(e) => setFormData({...formData, grasas: Number(e.target.value)})}/>
                 </div>
 
                 <button 
                   disabled={isSaving}
                   type="submit"
-                  className="w-full bg-primary text-white py-5 rounded-[25px] font-black uppercase text-[11px] tracking-[0.3em] shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full bg-primary text-white py-5 rounded-[25px] font-black uppercase text-[11px] tracking-[0.3em] shadow-xl flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   {isSaving ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>}
                   {isSaving ? "Guardando..." : "Registrar Insumo"}
@@ -271,7 +254,6 @@ export const IngredientesPage = () => {
   );
 };
 
-/* --- CARD DE INGREDIENTE --- */
 const IngredientCard = ({ item, index }: { item: Ingrediente; index: number }) => {
   const getCategoryColor = (cat: string) => {
     const colors: Record<string, string> = {
@@ -292,24 +274,16 @@ const IngredientCard = ({ item, index }: { item: Ingrediente; index: number }) =
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ delay: index * 0.03 }}
-      className="bg-white border border-primary/5 rounded-[35px] p-5 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group"
+      className="bg-white border border-primary/5 rounded-[35px] p-5 shadow-sm hover:shadow-xl transition-all"
     >
       <div className="flex justify-between items-start mb-4">
         <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-tighter ${getCategoryColor(item.categoria)}`}>
           {item.categoria}
         </div>
-        <div className="text-[10px] font-black text-primary/20">
-          ${item.precio}
-        </div>
+        <div className="text-[10px] font-black text-primary/20">${item.precio}</div>
       </div>
-
-      <h3 className="text-sm font-black uppercase text-primary mb-1 tracking-tight italic">
-        {item.nombre}
-      </h3>
-      <p className="text-[9px] font-bold text-primary/30 uppercase mb-5 tracking-widest">
-        {item.porcion_texto}
-      </p>
-
+      <h3 className="text-sm font-black uppercase text-primary mb-1 tracking-tight italic">{item.nombre}</h3>
+      <p className="text-[9px] font-bold text-primary/30 uppercase mb-5 tracking-widest">{item.porcion_texto}</p>
       <div className="grid grid-cols-3 gap-1.5 border-t border-primary/5 pt-4">
         <div className="text-center">
           <span className="block text-[7px] font-black text-primary/20 uppercase">Prot</span>
@@ -324,8 +298,7 @@ const IngredientCard = ({ item, index }: { item: Ingrediente; index: number }) =
           <span className="text-[11px] font-black text-primary">{item.grasas}g</span>
         </div>
       </div>
-
-      <div className="mt-4 flex items-center justify-center gap-1.5 py-2 bg-primary text-white rounded-2xl shadow-lg shadow-primary/10">
+      <div className="mt-4 flex items-center justify-center gap-1.5 py-2 bg-primary text-white rounded-2xl">
         <Zap size={10} className="fill-current" />
         <span className="text-[9px] font-black tracking-widest uppercase">{item.kcal} Kcal</span>
       </div>

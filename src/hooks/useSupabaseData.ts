@@ -14,7 +14,7 @@ import { ingredientesQueries } from "@/lib/api/queries/ingredientes";
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
-  "criaturas": criaturasQueries,
+  "criaturas": criaturasQueries, // Corregido: antes decía creaturesQueries
   "items": itemsQueries,
   "libros": librosQueries,
   "recetas": recetasQueries,
@@ -35,13 +35,11 @@ interface UseSupabaseOptions {
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // Iniciamos con lo que haya en caché para carga instantánea
   const [data, setData] = useState<T[]>(cache[tabla] || []);
-  const [loading, setLoading] = useState(!cache[tabla]); // No mostramos loading si ya hay caché
+  const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState<string | null>(null);
   
   const isMounted = useRef(true);
-  // Usamos JSON.stringify para comparar opciones y evitar re-renders infinitos
   const opcionesRef = useRef(JSON.stringify(opciones));
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -52,7 +50,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
     
-    // Solo ponemos loading si no hay datos previos (evita parpadeos)
     if (data.length === 0 || forceRefresh) {
         setLoading(true);
     }
@@ -95,29 +92,44 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla, updateCache, data.length]);
 
+  // Función para insertar nuevas filas (addRow)
+  const addRow = useCallback(async (newData: any) => {
+    try {
+      let errorInsert;
+
+      if (QUERIES_MAP[tabla]?.create) {
+        const res = await QUERIES_MAP[tabla].create(newData);
+        errorInsert = res?.error;
+      } else {
+        const { error: err } = await supabase.from(tabla).insert([newData]);
+        errorInsert = err;
+      }
+
+      if (errorInsert) throw errorInsert;
+      
+      return { error: null };
+    } catch (err: any) {
+      console.error(`Error al insertar en ${tabla}:`, err);
+      return { error: err.message };
+    }
+  }, [tabla]);
+
   useEffect(() => {
     isMounted.current = true;
-    
-    // Carga inicial (solo si la caché está vacía o necesitamos refrescar)
     fetchData();
 
-    // Suscripción Realtime
     const channel = supabase
       .channel(`db-${tabla}-${Math.random().toString(36).substring(7)}`)
       .on("postgres_changes", 
         { event: "*", schema: "public", table: tabla }, 
-        () => {
-          // Pequeño debounce para no saturar si hay cambios masivos
-          fetchData(true);
-        }
+        () => fetchData(true)
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
-          // Fallback a Polling
           if (!pollingIntervalRef.current) {
             pollingIntervalRef.current = setInterval(() => {
               if (isMounted.current) fetchData(true);
-            }, 10000); // Polling cada 10s para no saturar
+            }, 10000);
           }
         } else if (status === "SUBSCRIBED") {
           if (pollingIntervalRef.current) {
@@ -134,7 +146,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     };
   }, [tabla, fetchData]);
 
-  // Función para actualizaciones manuales/optimistas
   const setSyncedData = useCallback((newDataOrFn: any) => {
     setData(prev => {
       const resolved = typeof newDataOrFn === "function" ? newDataOrFn(prev) : newDataOrFn;
@@ -151,6 +162,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     setData: setSyncedData, 
     loading, 
     error, 
-    refetch: () => fetchData(true) 
+    refetch: () => fetchData(true),
+    mutate: () => fetchData(true), // Alias para compatibilidad con código tipo SWR
+    addRow
   };
 }
