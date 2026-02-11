@@ -207,7 +207,7 @@ const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
 );
 
 // ============================================================================
-// MODAL DE LECTURA COMPLETA (CORREGIDO: MÁS ANCHO Y LETRA GRANDE)
+// MODAL DE LECTURA COMPLETA (CORREGIDO: FONDO LIMPIO Y SIN INTERFERENCIAS)
 // ============================================================================
 
 const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
@@ -229,79 +229,77 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[140] flex items-center justify-center p-0 md:p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 md:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#6B5E70]/70 backdrop-blur-xl"
+            className="absolute inset-0 bg-[#6B5E70]/80 backdrop-blur-2xl"
           />
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
+            initial={{ scale: 0.98, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            // Ajustado a max-w-[95vw] para ocupar casi todo el ancho horizontal
-            className="bg-[#FDFCFD] w-full max-w-[95vw] md:rounded-[3rem] shadow-2xl relative z-10 border border-[#6B5E70]/20 h-full md:h-[92vh] flex flex-col overflow-hidden"
+            exit={{ scale: 0.98, opacity: 0 }}
+            className="bg-[#FDFCFD] w-full max-w-[98vw] md:rounded-[2rem] shadow-2xl relative z-[10000] border border-[#6B5E70]/20 h-full md:h-[95vh] flex flex-col overflow-hidden"
           >
-            {/* Header */}
-            <div className="px-10 py-6 border-b border-[#6B5E70]/10 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20">
-              <div className="flex flex-col">
-                <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.5em] italic flex items-center gap-3">
-                  <Music size={16} className="animate-pulse" />
-                  Modo Lectura Inmersiva
+            {/* Header: Más compacto y con z-index alto para no ser tapado */}
+            <div className="px-8 py-4 border-b border-[#6B5E70]/10 flex items-center justify-between bg-white z-30">
+              <div className="flex items-center gap-4">
+                <Music size={18} className="text-[#6B5E70]" />
+                <h3 className="text-[#6B5E70] font-black uppercase text-[11px] tracking-[0.4em] italic">
+                  Lectura Completa
                 </h3>
               </div>
 
-              <div className="flex items-center gap-6">
-                {/* Controles de Zoom para ajustar si la línea es muy larga */}
-                <div className="flex items-center gap-4 bg-[#6B5E70]/5 rounded-2xl px-4 py-2 border border-[#6B5E70]/10">
+              <div className="flex items-center gap-4">
+                {/* Controles de Zoom */}
+                <div className="flex items-center gap-3 bg-[#6B5E70]/5 rounded-xl px-3 py-1.5">
                   <button 
-                    onClick={() => setZoom(prev => Math.max(0.6, prev - 0.1))} 
-                    className="text-[#6B5E70] hover:scale-125 transition-transform font-black text-lg"
+                    onClick={() => setZoom(prev => Math.max(0.5, prev - 0.1))} 
+                    className="text-[#6B5E70] hover:scale-110 px-2 font-bold"
                   >
                     −
                   </button>
-                  <span className="text-[10px] font-black text-[#6B5E70]/40 w-8 text-center">
+                  <span className="text-[10px] font-black text-[#6B5E70]/60 min-w-[35px] text-center">
                     {Math.round(zoom * 100)}%
                   </span>
                   <button 
-                    onClick={() => setZoom(prev => Math.min(1.4, prev + 0.1))} 
-                    className="text-[#6B5E70] hover:scale-125 transition-transform font-black text-lg"
+                    onClick={() => setZoom(prev => Math.min(1.5, prev + 0.1))} 
+                    className="text-[#6B5E70] hover:scale-110 px-2 font-bold"
                   >
                     +
                   </button>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex items-center gap-2">
                   <motion.button
-                    whileHover={{ scale: 1.1, backgroundColor: "#6B5E70", color: "#fff" }}
-                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={handleCopy}
-                    className="text-[#6B5E70] bg-[#6B5E70]/5 p-3 rounded-2xl transition-all border border-[#6B5E70]/10"
+                    className="flex items-center gap-2 text-[#6B5E70] bg-[#6B5E70]/5 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-[#6B5E70]/10"
                   >
-                    <Copy size={20} />
+                    <Copy size={14} />
+                    Copiar
                   </motion.button>
                   <motion.button
-                    whileHover={{ rotate: 90, scale: 1.1 }}
+                    whileHover={{ scale: 1.1, rotate: 90 }}
                     onClick={onClose}
-                    className="text-[#6B5E70]/30 p-3 hover:text-red-500 transition-all"
+                    className="text-[#6B5E70]/40 p-2 hover:text-red-500 transition-all"
                   >
-                    <X size={28} />
+                    <X size={24} />
                   </motion.button>
                 </div>
               </div>
             </div>
 
-            {/* Contenedor de la Letra */}
-            <div className="flex-1 overflow-auto custom-scrollbar bg-[radial-gradient(#6B5E70_0.5px,transparent_0.5px)] [background-size:24px_24px] [background-position:center] bg-opacity-[0.02]">
+            {/* Contenedor de la Letra: SIN PUNTITOS y con scroll mejorado */}
+            <div className="flex-1 overflow-auto bg-[#FDFCFD] selection:bg-[#6B5E70]/10">
               <div 
-                className="min-w-max mx-auto p-12 md:p-24 transition-all duration-300 ease-out text-center"
+                className="inline-block min-w-full p-12 md:p-24 transition-all duration-200 ease-out text-center"
                 style={{ 
                   transform: `scale(${zoom})`, 
-                  transformOrigin: "top center",
-                  // Evita que el texto baje de línea si el contenedor es pequeño
-                  whiteSpace: "nowrap" 
+                  transformOrigin: "top center"
                 }}
               >
                 {secciones.map((seccion) => {
@@ -309,23 +307,26 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
                   const texto = seccion[`letra_${lang}`];
                   
                   return texto ? (
-                    <div key={seccion.id} className="mb-20 last:mb-0">
-                      {/* Etiqueta de sección sutil */}
-                      <div className="mb-6 flex items-center justify-center gap-4 opacity-30">
-                        <div className="h-[1px] w-12 bg-[#6B5E70]" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] italic text-[#6B5E70]">
+                    <div key={seccion.id} className="mb-24 last:mb-0">
+                      {/* Nombre de sección discreto */}
+                      <div className="mb-8 flex items-center justify-center gap-6 opacity-20">
+                        <div className="h-[1px] w-16 bg-[#6B5E70]" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.5em] italic text-[#6B5E70]">
                           {seccion.nombre_seccion}
                         </span>
-                        <div className="h-[1px] w-12 bg-[#6B5E70]" />
+                        <div className="h-[1px] w-16 bg-[#6B5E70]" />
                       </div>
                       
-                      {/* Texto Principal - Se mantiene en una línea por verso gracias a whitespace-pre */}
-                      <p className="text-[#3A323D] text-4xl md:text-5xl lg:text-6xl font-medium italic font-serif leading-[1.3] whitespace-pre">
+                      {/* Texto de la letra: Extra grande y sin saltos forzados */}
+                      <p className="text-[#3A323D] text-4xl md:text-6xl lg:text-7xl font-medium italic font-serif leading-[1.4] whitespace-pre">
                         {texto}
                       </p>
                     </div>
                   ) : null;
                 })}
+                
+                {/* Espacio extra al final para que la última línea no quede pegada al borde */}
+                <div className="h-32" />
               </div>
             </div>
           </motion.div>
