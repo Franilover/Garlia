@@ -16,13 +16,17 @@ import {
   Plus,
   X,
   ArrowLeft,
-  Trash2
+  Trash2,
+  Activity
 } from "lucide-react";
 
 interface IngredienteReceta {
   nombre: string;
   cantidad: string;
-  kcal?: number;
+  kcal: number;
+  proteinas: number;
+  carbohidratos: number;
+  grasas: number;
 }
 
 interface RecetasPageProps {
@@ -47,6 +51,15 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       </div>
     );
 
+    // Cálculo de macros totales
+    const ingredientesList = (receta.ingredientes as unknown as IngredienteReceta[]) || [];
+    const totales = ingredientesList.reduce((acc, ing) => ({
+      kcal: acc.kcal + (Number(ing.kcal) || 0),
+      proteinas: acc.proteinas + (Number(ing.proteinas) || 0),
+      carbos: acc.carbos + (Number(ing.carbohidratos) || 0),
+      grasas: acc.grasas + (Number(ing.grasas) || 0),
+    }), { kcal: 0, proteinas: 0, carbos: 0, grasas: 0 });
+
     return (
       <div className="min-h-screen bg-bg-main p-6">
         <div className="max-w-4xl mx-auto">
@@ -63,7 +76,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
               <span className="text-[10px] font-black uppercase text-primary/30 tracking-[0.2em]">{receta.categoria}</span>
               <h1 className="text-4xl font-black uppercase text-primary italic mt-2 mb-6 tracking-tighter">"{receta.nombre}"</h1>
               
-              <div className="flex gap-8 mb-10 border-y border-primary/5 py-6">
+              <div className="flex flex-wrap gap-8 mb-10 border-y border-primary/5 py-6">
                 <div className="flex items-center gap-2">
                   <Clock className="text-primary/30" size={18} />
                   <span className="text-[11px] font-bold uppercase text-primary">{receta.tiempo}</span>
@@ -72,16 +85,40 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                   <ChefHat className="text-primary/30" size={18} />
                   <span className="text-[11px] font-bold uppercase text-primary">{receta.dificultad}</span>
                 </div>
+                {/* Badge de Calorías Totales */}
+                <div className="flex items-center gap-2 ml-auto">
+                  <Activity className="text-primary" size={18} />
+                  <span className="text-[11px] font-black uppercase text-primary">{totales.kcal} kcal</span>
+                </div>
+              </div>
+
+              {/* Grid de Macros Totales */}
+              <div className="grid grid-cols-3 gap-4 mb-10">
+                <div className="bg-slate-50 p-4 rounded-3xl border border-primary/5 text-center">
+                  <p className="text-[8px] font-black uppercase text-primary/40 mb-1">"Proteínas"</p>
+                  <p className="text-sm font-black text-primary">{totales.proteinas.toFixed(1)}g</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-3xl border border-primary/5 text-center">
+                  <p className="text-[8px] font-black uppercase text-primary/40 mb-1">"Carbos"</p>
+                  <p className="text-sm font-black text-primary">{totales.carbos.toFixed(1)}g</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-3xl border border-primary/5 text-center">
+                  <p className="text-[8px] font-black uppercase text-primary/40 mb-1">"Grasas"</p>
+                  <p className="text-sm font-black text-primary">{totales.grasas.toFixed(1)}g</p>
+                </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-12 text-primary">
                 <div>
                   <h3 className="font-black uppercase text-xs mb-4 tracking-widest text-primary/40 italic">"Ingredientes"</h3>
                   <ul className="space-y-2">
-                    {(receta.ingredientes as unknown as IngredienteReceta[])?.map((ing, i) => (
+                    {ingredientesList.map((ing, i) => (
                       <li key={i} className="text-[11px] font-bold uppercase border-b border-primary/10 pb-2 flex justify-between text-primary">
                         <span>{ing.nombre}</span>
-                        <span className="opacity-60">{ing.cantidad}</span>
+                        <div className="flex gap-4">
+                          <span className="text-[9px] opacity-40">{ing.proteinas}P</span>
+                          <span className="opacity-60">{ing.cantidad}</span>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -208,18 +245,14 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
   }, [searchIng, dbIngredientes, formData.ingredientes]);
 
   const addIngrediente = (ing: Ingrediente) => {
-    // Lógica avanzada basada en tu tabla de Supabase
     let sugerencia = "100g";
     
-    // 1. Prioridad: Si en la DB ya dice "unidad", usamos eso
     if (ing.porcion_texto?.toLowerCase().includes("unidad")) {
       sugerencia = ing.porcion_texto;
     } 
-    // 2. Si es Lácteo o tiene agua, sugerimos ml
     else if (ing.categoria === "Lácteos" || (ing as any).agua_ml > 0) {
       sugerencia = "100ml";
     }
-    // 3. Casos específicos por nombre (Frutas o Proteínas comunes)
     else if (["Frutas", "Proteínas"].includes(ing.categoria)) {
       sugerencia = "1 unidad";
     }
@@ -229,7 +262,14 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
     if (cantidad) {
       setFormData({
         ...formData,
-        ingredientes: [...formData.ingredientes, { nombre: ing.nombre, cantidad, kcal: ing.kcal }]
+        ingredientes: [...formData.ingredientes, { 
+          nombre: ing.nombre, 
+          cantidad, 
+          kcal: ing.kcal,
+          proteinas: (ing as any).proteinas || 0,
+          carbohidratos: (ing as any).carbohidratos || 0,
+          grasas: (ing as any).grasas || 0
+        }]
       });
       setSearchIng("");
     }
@@ -329,7 +369,7 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                         >
                           <span>{ing.nombre}</span>
                           <div className="flex items-center gap-2">
-                            <span className="text-[8px] opacity-60">{ing.kcal} kcal</span>
+                            <span className="text-[8px] opacity-60">{(ing as any).proteinas || 0}g P</span>
                             <Plus size={14} />
                           </div>
                         </button>

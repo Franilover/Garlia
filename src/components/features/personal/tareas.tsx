@@ -39,7 +39,7 @@ const RelojDigital = () => {
     <div className="flex items-center gap-4 bg-primary text-white px-6 py-4 rounded-[25px] shadow-lg shadow-primary/20 mb-6">
       <Clock size={20} className="animate-pulse" />
       <div className="flex flex-col">
-        <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60 italic">Hora Actual</span>
+        <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60 italic">Hora</span>
         <span className="text-2xl font-black tracking-tighter tabular-nums italic">"{formatoHora}"</span>
       </div>
     </div>
