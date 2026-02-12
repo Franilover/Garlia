@@ -107,7 +107,8 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
   const imagenVisual = (varianteActiva?.imagen_url) || (data?.img_url || data?.imagen_url) || "/placeholder.png";
 
   return (
-    <div className="max-w-7xl mx-auto relative pt-10 px-4 pb-32 space-y-8">
+    /* Ajuste de ancho máximo para pantallas grandes */
+    <div className="max-w-[95%] lg:max-w-[90%] 2xl:max-w-8xl mx-auto relative pt-10 px-4 pb-32 space-y-8">
       <AnimatePresence>
         {showSuccess && (
           <motion.div 
@@ -127,8 +128,8 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         </button>
 
         <div className="flex flex-col lg:flex-row items-stretch">
-          <div className="w-full lg:w-[45%] bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
-            <div className="relative w-full aspect-square max-w-sm">
+          <div className="w-full lg:w-[40%] xl:w-[35%] bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
+            <div className="relative w-full aspect-square max-w-sm lg:max-w-md">
               <div className="w-full h-full rounded-full overflow-hidden border-[12px] border-white-custom shadow-xl bg-white-custom">
                 <img src={imagenVisual} className="w-full h-full object-cover" alt="Sujeto" />
               </div>
@@ -143,7 +144,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
             </div>
           </div>
 
-          <div className="w-full lg:w-[55%] p-12 lg:p-20 bg-white-custom/30">
+          <div className="w-full lg:w-[60%] xl:w-[65%] p-12 lg:p-20 bg-white-custom/30">
             <div className="flex items-center gap-4 mb-8 text-primary/60 font-black uppercase text-xs tracking-[0.3em]">
               {esPersonaje ? <Fingerprint size={24} /> : <Ghost size={24} />}
               <span>{esPersonaje ? "Expediente de Individuo" : "Registro de Entidad"}</span>
@@ -172,11 +173,11 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <h2 className="text-6xl lg:text-7xl font-black text-primary leading-tight mb-8 tracking-tighter uppercase italic">
+                <h2 className="text-6xl lg:text-7xl xl:text-8xl font-black text-primary leading-tight mb-8 tracking-tighter uppercase italic">
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
                 <div className="w-20 h-2 bg-accent mb-10 rounded-full" />
-                <p className="text-primary/80 text-xl lg:text-2xl leading-relaxed font-medium mb-12">
+                <p className="text-primary/80 text-xl lg:text-2xl xl:text-3xl leading-relaxed font-medium mb-12 max-w-5xl">
                   {varianteActiva ? (varianteActiva.descripcion_variante || "Sin registros.") : editDescripcion}
                 </p>
               </div>
@@ -187,7 +188,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
 
       {(esPersonaje || editMode) && (
         <div className="bg-white rounded-[3rem] p-12 lg:p-20 shadow-2xl border border-primary/10">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-16 lg:gap-24">
             <div className="space-y-8">
               <h2 className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-4">
                 <Users size={28}/> Relaciones
@@ -218,6 +219,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
             )}
           </div>
           
+          {/* ... resto del componente igual ... */}
           {!esPersonaje && editMode && (
             <div className="mt-16 pt-12 border-t border-primary/5 space-y-8">
               <div className="flex items-center justify-between">
@@ -226,7 +228,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                   <Plus size={24}/>
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {variantes.map((v, i) => (
                   <div key={i} className="p-6 bg-bg-main/50 rounded-2xl flex gap-4 items-center">
                     <input 
