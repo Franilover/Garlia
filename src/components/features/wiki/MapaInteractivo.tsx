@@ -1,16 +1,16 @@
 "use client";
 
-import Image from 'next/image';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Loader2, ChevronRight, Compass } from 'lucide-react';
+import Image from "next/image";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, MapPin, Loader2, ChevronRight, Compass, ArrowLeft } from "lucide-react";
 import QuickPinchZoom, { make3dTransformValue } from "react-quick-pinch-zoom";
-import { supabase } from '@/lib/api/supabase';
+import { supabase } from "@/lib/api/supabase";
 
 const Marker = ({ x, y, info, onClick }) => (
   <div 
     className="absolute z-20 flex flex-col items-center" 
-    style={{ top: `${y}%`, left: `${x}%`, transform: 'translate(-50%, -50%)' }}
+    style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -50%)" }}
   >
     <div className="mb-1 bg-[#6B5E70] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-sm shadow-lg whitespace-nowrap pointer-events-none border border-white/20">
       {info}
@@ -29,9 +29,10 @@ const Marker = ({ x, y, info, onClick }) => (
 
 export default function MapaInteractivo() {
   const [reinos, setReinos] = useState([]);
-  const [puntoSeleccionado, setPuntoSeleccionado] = useState(null);
+  const [vistaActual, setVistaActual] = useState("global"); // "global" o "reino"
+  const [reinoSeleccionado, setReinoSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
-  const mapRef = useRef<HTMLDivElement>(null);;
+  const mapRef = useRef(null);
 
   const onUpdate = useCallback(({ x, y, scale }) => {
     if (mapRef.current) {
@@ -42,7 +43,7 @@ export default function MapaInteractivo() {
 
   useEffect(() => {
     async function fetchReinos() {
-      const { data, error } = await supabase.from('reinos').select('*');
+      const { data, error } = await supabase.from("reinos").select("*");
       if (error) console.error(error);
       else setReinos(data);
       setLoading(false);
@@ -50,12 +51,14 @@ export default function MapaInteractivo() {
     fetchReinos();
   }, []);
 
-  const handleMapClick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    console.log(`ð Coordenadas -> X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}`);
-    if (puntoSeleccionado) setPuntoSeleccionado(null);
+  const handleReinoClick = (reino) => {
+    setReinoSeleccionado(reino);
+    setVistaActual("reino");
+  };
+
+  const volverAlGlobal = () => {
+    setVistaActual("global");
+    setReinoSeleccionado(null);
   };
 
   if (loading) return (
@@ -66,86 +69,102 @@ export default function MapaInteractivo() {
   );
 
   return (
-    /* MAPA: Bordes rectos y sin sombras exteriores */
-    <div className="relative w-full h-auto min-h-500px overflow-hidden bg-[#F8F5F2] border-b border-[#6B5E70]/10">
+    <div className="flex flex-col md:flex-row w-full min-h-[600px] bg-[#F8F5F2] overflow-hidden">
       
-      <QuickPinchZoom 
-        onUpdate={onUpdate} 
-        maxZoom={5} 
-        minZoom={0.5}
-      >
-        <div ref={mapRef} className="w-full h-full origin-top-left">
-          <div 
-            className="relative cursor-grab active:cursor-grabbing inline-block w-full" 
-            onClick={handleMapClick}
-          >
-            <img 
-              src="/dibujos/fanart/01.jpg" 
-              alt="Mapa"
-              className="w-full h-auto block pointer-events-none select-none"
-              onLoad={() => window.dispatchEvent(new Event('resize'))}
-            />
+      {/* SECCIÓN DEL MAPA */}
+      <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
+        
+        {/* Botón de Volver (Solo visible en vista de reino) */}
+        <AnimatePresence>
+          {vistaActual === "reino" && (
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              onClick={volverAlGlobal}
+              className="absolute top-6 left-6 z-50 bg-white/90 backdrop-blur-md p-3 rounded-full shadow-xl border border-[#6B5E70]/20 text-[#6B5E70] hover:scale-110 transition-transform"
+            >
+              <ArrowLeft size={20} />
+            </motion.button>
+          )}
+        </AnimatePresence>
 
-            {reinos.map((reino) => (
-              <Marker 
-                key={reino.id} 
-                x={reino.coord_x} 
-                y={reino.coord_y} 
-                info={reino.nombre} 
-                onClick={() => setPuntoSeleccionado(reino)} 
+        <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5}>
+          <div ref={mapRef} className="w-full h-full origin-top-left">
+            <div className="relative cursor-grab active:cursor-grabbing inline-block w-full">
+              <img 
+                // Si estamos en un reino, usamos su mapa específico, si no, el fanart global
+                src={vistaActual === "reino" ? reinoSeleccionado.mapa_url : "/dibujos/fanart/mapa_mundial.jpg"} 
+                alt="Mapa"
+                className="w-full h-auto block pointer-events-none select-none"
+                onLoad={() => window.dispatchEvent(new Event("resize"))}
               />
-            ))}
-          </div>
-        </div>
-      </QuickPinchZoom>
 
-      {/* TARJETA: AquÃ­ mantenemos los bordes redondeados y el diseÃ±o elegante */}
-      <AnimatePresence>
-        {puntoSeleccionado && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.95 }}
-            className="absolute bottom-6 left-6 right-6 md:left-1/2 md:-translate-x-1/2 md:w-650px bg-white border border-[#6B5E70]/20 rounded-[2.5rem] z-50 overflow-hidden shadow-[0_20px_50px_rgba(107,94,112,0.3)]"
-          >
-            <div className="flex flex-col md:flex-row min-h-240px">
-              
-              {/* IMAGEN DEL REINO (Izquierda) */}
-              <div className="w-full md:w-2/5 h-44 md:h-auto bg-[#6B5E70]/5 relative">
-                {puntoSeleccionado.mapa_url ? (
-                  <img src={puntoSeleccionado.mapa_url} className="w-full h-full object-cover" alt="Detalle" />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center opacity-10">
-                    <Compass size={40} className="text-[#6B5E70]" />
-                  </div>
-                )}
-              </div>
-
-              {/* CONTENIDO (Derecha) */}
-              <div className="w-full md:w-3/5 p-8 relative flex flex-col justify-center">
-                <button onClick={() => setPuntoSeleccionado(null)} className="absolute top-6 right-6 text-[#6B5E70]/30 hover:text-[#6B5E70]">
-                  <X size={20} />
-                </button>
-
-                <div className="mb-2 flex items-center gap-2">
-                   <div className="h-1px w-4 bg-[#6B5E70]/30" />
-                   <span className="text-[8px] font-black text-[#6B5E70]/40 uppercase tracking-widest">Territorio de Omnisia</span>
-                </div>
-
-                <h3 className="text-[#6B5E70] font-black text-2xl uppercase tracking-tighter mb-2 leading-none">
-                  {puntoSeleccionado.nombre}
-                </h3>
-
-                <p className="text-[#6B5E70]/70 text-xs md:text-sm italic leading-relaxed mb-6">
-                  "{puntoSeleccionado.descripcion}"
-                </p>
-                
-                <button className="w-fit bg-[#6B5E70] text-white text-[10px] font-black uppercase py-3 px-8 rounded-2xl flex items-center gap-3 hover:bg-[#5a4e5f] transition-all shadow-lg shadow-[#6B5E70]/20">
-                  Explorar Reino <ChevronRight size={14} />
-                </button>
-              </div>
-
+              {/* Renderizado de Marcadores Dinámico */}
+              {vistaActual === "global" ? (
+                // En el mapa global, los marcadores llevan a la vista de reino
+                reinos.map((reino) => (
+                  <Marker 
+                    key={reino.id} 
+                    x={reino.coord_x} 
+                    y={reino.coord_y} 
+                    info={reino.nombre} 
+                    onClick={() => handleReinoClick(reino)} 
+                  />
+                ))
+              ) : (
+                /* Aquí podrías mapear puntos de interés específicos de ese reino
+                   reinoSeleccionado.puntos_interes.map(...) 
+                */
+                null
+              )}
             </div>
+          </div>
+        </QuickPinchZoom>
+      </div>
+
+      {/* SECCIÓN LATERAL DE DESCRIPCIÓN (Solo en vista de reino) */}
+      <AnimatePresence>
+        {vistaActual === "reino" && reinoSeleccionado && (
+          <motion.div 
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="w-full md:w-1/3 bg-white border-l border-[#6B5E70]/10 p-10 flex flex-col z-40 shadow-[-20px_0_50px_rgba(0,0,0,0.05)]"
+          >
+            <div className="mb-4 flex items-center gap-2">
+               <div className="h-1px w-8 bg-[#6B5E70]/30" />
+               <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.2em]">Explorando Territorio</span>
+            </div>
+
+            <h2 className="text-[#6B5E70] font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
+              {reinoSeleccionado.nombre}
+            </h2>
+
+            <div className="space-y-6 flex-grow">
+              <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/5">
+                <p className="text-[#6B5E70] text-sm italic leading-relaxed">
+                  "{reinoSeleccionado.descripcion}"
+                </p>
+              </div>
+              
+              {/* Espacio para más info: Clima, Población, etc. */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
+                  <span className="block text-[8px] font-bold uppercase opacity-40">Coordenadas</span>
+                  <span className="text-[10px] font-black text-[#6B5E70]">{reinoSeleccionado.coord_x}° / {reinoSeleccionado.coord_y}°</span>
+                </div>
+                <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
+                  <span className="block text-[8px] font-bold uppercase opacity-40">Orden</span>
+                  <span className="text-[10px] font-black text-[#6B5E70]">Nivel {reinoSeleccionado.orden}</span>
+                </div>
+              </div>
+            </div>
+
+            <button className="mt-8 w-full bg-[#6B5E70] text-white text-[11px] font-black uppercase py-5 px-8 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#5a4e5f] transition-all shadow-lg shadow-[#6B5E70]/20">
+              Ver personajes de este Reino <ChevronRight size={16} />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
