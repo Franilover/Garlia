@@ -61,11 +61,19 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let errorFetch;
 
       if (QUERIES_MAP[tabla]) {
+        // Para la tabla precios, si no hay query custom, forzamos el join si es necesario
         const res = await QUERIES_MAP[tabla].getAll(opt);
         resultado = res?.data !== undefined ? res.data : (Array.isArray(res) ? res : []);
         errorFetch = res?.error !== undefined ? res.error : null;
       } else {
-        let query = supabase.from(tabla).select(opt.select || "*");
+        // Lógica por defecto para tablas sin QUERIES_MAP (como 'precios')
+        let selectStr = opt.select || "*";
+        // Si es la tabla precios, intentamos traer la relación de ingredientes
+        if (tabla === "precios" && !opt.select) {
+          selectStr = "*, ingredientes(nombre, categoria)";
+        }
+
+        let query = supabase.from(tabla).select(selectStr);
         if (opt.order) {
           query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
         }
@@ -92,11 +100,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla, updateCache, data.length]);
 
-  // Función para insertar nuevas filas (addRow)
   const addRow = useCallback(async (newData: any) => {
     try {
       let errorInsert;
-
       if (QUERIES_MAP[tabla]?.create) {
         const res = await QUERIES_MAP[tabla].create(newData);
         errorInsert = res?.error;
@@ -104,7 +110,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         const { error: err } = await supabase.from(tabla).insert([newData]);
         errorInsert = err;
       }
-
       if (errorInsert) throw errorInsert;
       return { error: null };
     } catch (err: any) {
@@ -113,11 +118,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
 
-  // Función para actualizar filas (updateRow) - ESTA ES LA QUE FALTABA
   const updateRow = useCallback(async (id: string | number, updates: any) => {
     try {
       let errorUpdate;
-
       if (QUERIES_MAP[tabla]?.update) {
         const res = await QUERIES_MAP[tabla].update(id, updates);
         errorUpdate = res?.error;
@@ -125,11 +128,29 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         const { error: err } = await supabase.from(tabla).update(updates).eq("id", id);
         errorUpdate = err;
       }
-
       if (errorUpdate) throw errorUpdate;
       return { error: null };
     } catch (err: any) {
       console.error(`Error al actualizar en ${tabla}:`, err);
+      return { error: err.message };
+    }
+  }, [tabla]);
+
+  // --- FUNCIÓN AÑADIDA PARA SOLUCIONAR EL ERROR ---
+  const deleteRow = useCallback(async (id: string | number) => {
+    try {
+      let errorDelete;
+      if (QUERIES_MAP[tabla]?.delete) {
+        const res = await QUERIES_MAP[tabla].delete(id);
+        errorDelete = res?.error;
+      } else {
+        const { error: err } = await supabase.from(tabla).delete().eq("id", id);
+        errorDelete = err;
+      }
+      if (errorDelete) throw errorDelete;
+      return { error: null };
+    } catch (err: any) {
+      console.error(`Error al eliminar en ${tabla}:`, err);
       return { error: err.message };
     }
   }, [tabla]);
@@ -185,6 +206,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     refetch: () => fetchData(true),
     mutate: () => fetchData(true),
     addRow,
-    updateRow // Exportado correctamente para que ingredientes.tsx lo vea
+    updateRow,
+    deleteRow // <-- Ahora sí está disponible para compras.tsx
   };
 }
