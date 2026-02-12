@@ -190,7 +190,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
             <div className="space-y-8">
               <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-4">
-                <Users size={20}/> Relaciones
+                <Users size={40}/> Relaciones
               </h4>
               <div className="text-primary text-xl font-bold">
                 <Relaciones 
@@ -205,7 +205,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
             {mostrarMusica && (
               <div className="space-y-8">
                 <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-4">
-                  <Music size={20}/> Multimedia
+                  <Music size={40}/> Multimedia
                 </h4>
                 <div>
                   {editMode ? (
