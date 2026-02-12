@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/api/supabase";
 
-// 1. EXPORTAMOS LAS INTERFACES para que el componente las pueda importar
 export interface Relacion {
   id?: string;
   sus: string;
@@ -13,9 +12,9 @@ export interface Relacion {
 export interface Variante {
   id?: number;
   tipo: string;
-  descripcion?: string;          // Opcional
-  descripcion_variante?: string; // FIX: Agregado para coincidir con la base de datos
-  imagen_url?: string;           // FIX: Agregado para las imágenes de cepas
+  descripcion?: string;
+  descripcion_variante?: string;
+  imagen_url?: string;
   criatura_id?: number;
 }
 
@@ -34,7 +33,7 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
 
   const prevIdRef = useRef<number | string | null>(null);
 
-  // 1. --- VERIFICACIÓN DE PERMISOS ---
+  // Verificación de Admin
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -43,147 +42,118 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
     checkUser();
   }, []);
 
-  // 2. --- CARGA DETALLADA DE VARIANTES ---
-  const fetchVariantes = async (id: any) => {
-    if (!id) return;
-    try {
-      const idNumerico = Number(id);
-      if (isNaN(idNumerico)) return;
-
-      const { data: vars, error } = await supabase
-        .from("criatura_variantes")
-        .select("*")
-        .eq("criatura_id", idNumerico)
-        .order("id", { ascending: true });
-        
-      if (!error) setVariantes(vars || []);
-    } catch (err) {
-      console.error("Error fetching variantes:", err);
-    }
-  };
-
-  // 3. --- SINCRONIZACIÓN DE ESTADOS ---
+  // Sincronización de estados (Carga inicial)
   useEffect(() => {
-    if (!data || !data.id) {
-      prevIdRef.current = null;
-      return;
-    }
+    if (!data) return;
 
-    const esNuevoItem = prevIdRef.current !== data.id;
-
-    if (esNuevoItem || editMode) {
+    // Si es un ID nuevo o estamos reseteando
+    if (prevIdRef.current !== data.id) {
       setEditNombre(data.nombre || "");
       setEditDescripcion(data.sobre || data.descripcion || "");
+      setEditRelaciones(data.relaciones || []);
       
+      // Procesar canciones
       const cancionesData = data.canciones || [];
       const idsIniciales = Array.isArray(cancionesData) 
-        ? cancionesData
-            .map(c => {
-              if (typeof c === "object" && c !== null) return Number(c.id);
-              if (typeof c === "number") return c;
-              if (typeof c === "string" && !isNaN(Number(c))) return parseInt(c);
-              return null;
-            })
-            .filter((id): id is number => id !== null)
+        ? cancionesData.map(c => (typeof c === "object" ? c.id : c)).filter(Boolean)
         : [];
-        
       setEditCanciones(idsIniciales);
-      setEditRelaciones(data.relaciones || []);
-    }
 
-    if (esNuevoItem) {
-      setEditMode(false);
-      setVarianteActiva(null);
-      // Solo buscamos variantes si es una criatura (no tiene el campo 'sobre')
-      if (!data.sobre && (!data.variantes || data.variantes.length === 0)) {
+      // Cargar Variantes
+      if (data.id && !data.sobre) {
         fetchVariantes(data.id);
       } else {
         setVariantes(data.variantes || []);
       }
+      
       prevIdRef.current = data.id;
     }
-  }, [data, editMode]);
+  }, [data]);
 
-  // 4. --- LÓGICA DE GUARDADO MAESTRA ---
+  const fetchVariantes = async (id: any) => {
+    const { data: vars } = await supabase
+      .from("criatura_variantes")
+      .select("*")
+      .eq("criatura_id", id);
+    if (vars) setVariantes(vars);
+  };
+
+  // --- LÓGICA DE GUARDADO MEJORADA ---
   const handleSave = async () => {
-    if (!data?.id) return;
-    
-    const targetId = Number(data.id);
-    if (isNaN(targetId)) {
-      alert("Error: ID de entidad no válido");
-      return;
-    }
-
+    // 1. Validaciones básicas
     if (!editNombre.trim()) {
-      alert("El nombre no puede estar vacío");
+      alert("El nombre es obligatorio.");
       return;
     }
 
     setSaving(true);
     try {
-      const esPersonaje = "sobre" in data; 
-      const tablaPrincipal = esPersonaje ? "personajes" : "criaturas";
-      const columnaTexto = esPersonaje ? "sobre" : "descripcion";
+      const esPersonaje = data && ("sobre" in data || data.isPersonaje); 
+      const tabla = esPersonaje ? "personajes" : "criaturas";
+      const campoTexto = esPersonaje ? "sobre" : "descripcion";
+      
+      let finalId = data?.id;
 
-      // A. ACTUALIZAR ENTIDAD PRINCIPAL
-      const { error: mainError } = await supabase
-        .from(tablaPrincipal)
-        .update({
-          nombre: editNombre,
-          [columnaTexto]: editDescripcion
-        })
-        .eq("id", targetId);
+      // 2. OPERACIÓN PRINCIPAL (Insert o Update)
+      const payload = {
+        nombre: editNombre,
+        [campoTexto]: editDescripcion
+      };
 
-      if (mainError) throw mainError;
+      if (!finalId) {
+        // ES NUEVO: INSERT
+        const { data: newRecord, error: insError } = await supabase
+          .from(tabla)
+          .insert([payload])
+          .select()
+          .single();
+        
+        if (insError) throw insError;
+        finalId = newRecord.id;
+      } else {
+        // EXISTE: UPDATE
+        const { error: updError } = await supabase
+          .from(tabla)
+          .update(payload)
+          .eq("id", finalId);
+        
+        if (updError) throw updError;
+      }
 
-      // B. ACTUALIZAR CANCIONES (Solo Personajes)
+      // 3. ACTUALIZAR CANCIONES (Solo si es personaje)
       if (esPersonaje) {
-        await supabase
-          .from("canciones")
-          .update({ personaje: null })
-          .eq("personaje", data.nombre);
-
+        // Desvincular antiguas
+        await supabase.from("canciones").update({ personaje: null }).eq("personaje", data?.nombre || editNombre);
+        // Vincular nuevas
         if (editCanciones.length > 0) {
-          const { error: musicError } = await supabase
-            .from("canciones")
-            .update({ personaje: editNombre })
-            .in("id", editCanciones);
-          
-          if (musicError) throw musicError;
+          await supabase.from("canciones").update({ personaje: editNombre }).in("id", editCanciones);
         }
       }
 
-      // C. ACTUALIZAR VARIANTES (Solo Criaturas)
+      // 4. ACTUALIZAR VARIANTES (Solo si es criatura)
       if (!esPersonaje && variantes.length > 0) {
         const { error: varError } = await supabase
           .from("criatura_variantes")
           .upsert(
             variantes.map(v => ({
               ...v,
-              criatura_id: targetId 
+              criatura_id: finalId 
             })),
             { onConflict: "id" }
           );
-        
         if (varError) throw varError;
       }
 
       setEditMode(false);
-      setSaving(false);
+      if (onUpdate) await onUpdate();
       
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      if (onUpdate) {
-        await onUpdate(); 
-      }
-      
-      setTimeout(() => {
-        alert("Sincronización con el Archivo exitosa.");
-      }, 150);
+      return true; // Éxito
 
     } catch (err: any) {
-      console.error("Error crítico en handleSave:", err);
-      alert("Error de esquema: " + err.message);
+      console.error("Error al guardar:", err);
+      alert("Error: " + err.message);
+      return false;
+    } finally {
       setSaving(false);
     }
   };
