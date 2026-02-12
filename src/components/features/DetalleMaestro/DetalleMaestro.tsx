@@ -196,9 +196,6 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         <div className="bg-white rounded-[3rem] p-12 lg:p-20 shadow-2xl border border-primary/10 w-full">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
             <div className="space-y-8">
-              <h2 className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-4">
-                <Users size={28}/> Relaciones
-              </h2>
               <div className="text-primary text-xl font-bold">
                 <Relaciones 
                   nombrePersonaje={editNombre} 
@@ -211,9 +208,6 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
             
             {mostrarMusica && (
               <div className="space-y-8">
-                <h2 className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-4">
-                  <Music size={28}/> Multimedia
-                </h2>
                 <div>
                   {editMode ? (
                     <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} />
