@@ -3,11 +3,11 @@
 import Image from "next/image";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Loader2, ChevronRight, Compass, ArrowLeft } from "lucide-react";
+import { X, MapPin, Loader2, ChevronRight, Compass, ArrowLeft, House } from "lucide-react";
 import QuickPinchZoom, { make3dTransformValue } from "react-quick-pinch-zoom";
 import { supabase } from "@/lib/api/supabase";
 
-const Marker = ({ x, y, info, onClick }) => (
+const Marker = ({ x, y, info, onClick, tipo }) => (
   <div 
     className="absolute z-20 flex flex-col items-center" 
     style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -50%)" }}
@@ -21,7 +21,11 @@ const Marker = ({ x, y, info, onClick }) => (
     >
       <div className="absolute w-5 h-5 bg-[#6B5E70]/20 rounded-full animate-ping" />
       <div className="w-4 h-4 bg-[#6B5E70] rounded-full border-2 border-white shadow-md group-hover:bg-white transition-all flex items-center justify-center">
-         <MapPin size={8} className="text-white group-hover:text-[#6B5E70]" />
+         {tipo === "reino" ? (
+           <MapPin size={8} className="text-white group-hover:text-[#6B5E70]" />
+         ) : (
+           <House size={8} className="text-white group-hover:text-[#6B5E70]" />
+         )}
       </div>
     </button>
   </div>
@@ -29,10 +33,12 @@ const Marker = ({ x, y, info, onClick }) => (
 
 export default function MapaInteractivo() {
   const [reinos, setReinos] = useState([]);
-  const [vistaActual, setVistaActual] = useState("global");
+  const [detallesReino, setDetallesReino] = useState([]);
+  const [vistaActual, setVistaActual] = useState("global"); 
   const [reinoSeleccionado, setReinoSeleccionado] = useState(null);
+  const [puntoSeleccionado, setPuntoSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [cargandoImagen, setCargandoImagen] = useState(false); // Nuevo estado para la transición
+  const [cargandoImagen, setCargandoImagen] = useState(false);
   const mapRef = useRef(null);
 
   const onUpdate = useCallback(({ x, y, scale }) => {
@@ -52,16 +58,28 @@ export default function MapaInteractivo() {
     fetchReinos();
   }, []);
 
-  const handleReinoClick = (reino) => {
-    setCargandoImagen(true); // Empezamos a cargar la nueva imagen
+  const handleReinoClick = async (reino) => {
+    setCargandoImagen(true);
     setReinoSeleccionado(reino);
+    
+    // Traemos los puntos de la nueva tabla reino_detalles
+    const { data, error } = await supabase
+      .from("reino_detalles")
+      .select("*")
+      .eq("reino_id", reino.id);
+
+    if (error) console.error(error);
+    else setDetallesReino(data);
+    
     setVistaActual("reino");
   };
 
   const volverAlGlobal = () => {
-    setCargandoImagen(true); // También al volver al global
+    setCargandoImagen(true);
     setVistaActual("global");
     setReinoSeleccionado(null);
+    setPuntoSeleccionado(null);
+    setDetallesReino([]);
   };
 
   if (loading) return (
@@ -77,7 +95,7 @@ export default function MapaInteractivo() {
       {/* SECCIÓN DEL MAPA */}
       <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
         
-        {/* Loader superpuesto cuando la imagen cambia */}
+        {/* Pantalla de carga para la transición de imágenes */}
         <AnimatePresence>
           {cargandoImagen && (
             <motion.div 
@@ -110,19 +128,16 @@ export default function MapaInteractivo() {
           <div ref={mapRef} className="w-full h-full origin-top-left">
             <div className="relative cursor-grab active:cursor-grabbing inline-block w-full">
               <img 
-                // La clave (key) fuerza a React a destruir y recrear el elemento img,
-                // evitando que se vea la imagen anterior.
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/fanart/01.jpg"} 
                 alt="Mapa"
                 className="w-full h-auto block pointer-events-none select-none"
                 onLoad={() => {
                   window.dispatchEvent(new Event("resize"));
-                  setCargandoImagen(false); // Ocultar loader cuando la imagen termina de bajar
+                  setCargandoImagen(false); 
                 }}
               />
 
-              {/* Solo mostramos marcadores si NO estamos cargando la imagen */}
               {!cargandoImagen && (
                 vistaActual === "global" ? (
                   reinos.map((reino) => (
@@ -131,11 +146,21 @@ export default function MapaInteractivo() {
                       x={reino.coord_x} 
                       y={reino.coord_y} 
                       info={reino.nombre} 
+                      tipo="reino"
                       onClick={() => handleReinoClick(reino)} 
                     />
                   ))
                 ) : (
-                  null // Aquí irían tus puntos_interes
+                  detallesReino.map((punto) => (
+                    <Marker 
+                      key={punto.id} 
+                      x={punto.coord_x} 
+                      y={punto.coord_y} 
+                      info={punto.nombre} 
+                      tipo="detalle"
+                      onClick={() => setPuntoSeleccionado(punto)} 
+                    />
+                  ))
                 )
               )}
             </div>
@@ -155,35 +180,50 @@ export default function MapaInteractivo() {
           >
             <div className="mb-4 flex items-center gap-2">
                <div className="h-1px w-8 bg-[#6B5E70]/30" />
-               <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.2em]">Explorando Territorio</span>
+               <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.2em]">
+                 {puntoSeleccionado ? "Lugar Hallado" : "Explorando Territorio"}
+               </span>
             </div>
 
             <h2 className="text-[#6B5E70] font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
-              {reinoSeleccionado.nombre}
+              {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
             </h2>
 
-            <div className="space-y-6 flex-grow">
+            <div className="space-y-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
               <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/5">
                 <p className="text-[#6B5E70] text-sm italic leading-relaxed">
-                  "{reinoSeleccionado.descripcion}"
+                  "{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}"
                 </p>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
-                  <span className="block text-[8px] font-bold uppercase opacity-40">Coordenadas</span>
-                  <span className="text-[10px] font-black text-[#6B5E70]">{reinoSeleccionado.coord_x}° / {reinoSeleccionado.coord_y}°</span>
+              {!puntoSeleccionado && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
+                    <span className="block text-[8px] font-bold uppercase opacity-40">Ubicación</span>
+                    <span className="text-[10px] font-black text-[#6B5E70]">{reinoSeleccionado.coord_x} / {reinoSeleccionado.coord_y}</span>
+                  </div>
+                  <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
+                    <span className="block text-[8px] font-bold uppercase opacity-40">Orden</span>
+                    <span className="text-[10px] font-black text-[#6B5E70]">Nivel {reinoSeleccionado.orden}</span>
+                  </div>
                 </div>
-                <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
-                  <span className="block text-[8px] font-bold uppercase opacity-40">Orden</span>
-                  <span className="text-[10px] font-black text-[#6B5E70]">Nivel {reinoSeleccionado.orden}</span>
-                </div>
-              </div>
+              )}
             </div>
 
-            <button className="mt-8 w-full bg-[#6B5E70] text-white text-[11px] font-black uppercase py-5 px-8 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#5a4e5f] transition-all shadow-lg shadow-[#6B5E70]/20">
-              Ver personajes de este Reino <ChevronRight size={16} />
-            </button>
+            {/* Botón de acción */}
+            <div className="mt-8 flex flex-col gap-3">
+              {puntoSeleccionado && (
+                <button 
+                  onClick={() => setPuntoSeleccionado(null)}
+                  className="w-full bg-[#F8F5F2] text-[#6B5E70] text-[10px] font-black uppercase py-3 rounded-xl border border-[#6B5E70]/10 hover:bg-white transition-all"
+                >
+                  Volver al Reino
+                </button>
+              )}
+              <button className="w-full bg-[#6B5E70] text-white text-[11px] font-black uppercase py-5 px-8 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#5a4e5f] transition-all shadow-lg shadow-[#6B5E70]/20">
+                {puntoSeleccionado ? "Ver Lore del Punto" : "Ver personajes de este Reino"} <ChevronRight size={16} />
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
