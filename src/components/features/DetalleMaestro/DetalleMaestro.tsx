@@ -176,7 +176,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
                 <div className="w-20 h-2 bg-accent mb-10 rounded-full" />
-                <p className="text-primary/80 text-2xl lg:text-3xl leading-relaxed font-medium mb-12">
+                <p className="text-primary/80 text-xl lg:text-2xl leading-relaxed font-medium mb-12">
                   {varianteActiva ? (varianteActiva.descripcion_variante || "Sin registros.") : editDescripcion}
                 </p>
               </div>
