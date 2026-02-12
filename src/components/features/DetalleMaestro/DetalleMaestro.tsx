@@ -16,22 +16,15 @@ interface DetalleMaestroProps {
   tags?: string[];
   mostrarMusica?: boolean;
   onUpdate?: () => Promise<void>;
-  // FIX: Agregada la prop que causaba el error 2322
   isNew?: boolean; 
 }
 
 export default function DetalleMaestro({ 
-  isOpen, 
-  onClose, 
-  data, 
-  tags = [], 
-  onUpdate,
-  isNew = false // Valor por defecto
+  isOpen, onClose, data, tags = [], onUpdate, isNew = false 
 }: DetalleMaestroProps) {
   const [internalData, setInternalData] = useState(data);
 
   useEffect(() => {
-    // Si es nuevo, no esperamos un ID para mostrar el contenido
     if (isNew) {
       setInternalData(data || {});
     } else if (data && data.id) {
@@ -39,7 +32,6 @@ export default function DetalleMaestro({
     }
   }, [data?.id, isNew, data]);
 
-  // Si no está abierto o no hay data (y no es un registro nuevo), no renderizar
   if (!isOpen || (!isNew && (!internalData || !internalData.id))) return null;
 
   return (
@@ -62,11 +54,9 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew }: any) {
     editCanciones, setEditCanciones, setEditRelaciones
   } = useDetalleMaestro(data, onUpdate);
 
-  // Forzar modo edición si es un registro nuevo
+  // Activar edición automáticamente si es un registro nuevo
   useEffect(() => {
-    if (isNew) {
-      setEditMode(true);
-    }
+    if (isNew) setEditMode(true);
   }, [isNew, setEditMode]);
 
   const esPersonaje = data && typeof data === "object" && "sobre" in data;
@@ -83,21 +73,14 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew }: any) {
   useEffect(() => {
     if (isNew) {
       setLoadingRelaciones(false);
-      return;
-    }
-    if (data?.id) {
+    } else if (data?.id) {
       setLoadingRelaciones(true);
-      if (esCriatura || (data?.relaciones && data.relaciones.length > 0)) {
-        setLoadingRelaciones(false);
-      } else {
-        const timer = setTimeout(() => setLoadingRelaciones(false), 400);
-        return () => clearTimeout(timer);
-      }
+      const timer = setTimeout(() => setLoadingRelaciones(false), 400);
+      return () => clearTimeout(timer);
     }
-  }, [data?.id, esCriatura, isNew]);
+  }, [data?.id, isNew]);
 
   const agregarVariante = () => {
-    // Si es nuevo, quizás el ID aún no existe, podrías usar un placeholder o 0
     const nueva: Variante = { 
       tipo: "Nueva Variante", 
       descripcion_variante: "", 
@@ -107,136 +90,103 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew }: any) {
     setVariantes([...variantes, nueva]);
   };
 
-  const imagenVisual = (varianteActiva?.imagen_url) || (data?.img_url || data?.imagen_url) || "/placeholder-image.png";
+  const imagenVisual = (varianteActiva?.imagen_url) || (data?.img_url || data?.imagen_url) || "/placeholder.png";
 
   return (
     <AnimatePresence mode="wait">
       <motion.div 
-        key={isNew ? "new-record" : data.id}
-        initial={{ opacity: 0, scale: 0.9, y: 30 }} 
-        animate={{ opacity: 1, scale: 1, y: 0 }} 
-        exit={{ opacity: 0, scale: 0.9, y: 30 }}
-        className="max-w-7xl mx-auto mb-32 relative pt-24 px-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        className="max-w-7xl mx-auto relative pt-10 px-4 pb-20"
       >
-        <div className="bg-white rounded-[5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] relative border border-primary/10">
+        <div className="bg-white rounded-[4rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] relative border border-slate-200">
           
-          <div className="absolute top-10 right-10 z-50 flex items-center gap-4">
+          {/* BOTONERA FLOTANTE SUPERIOR */}
+          <div className="absolute top-8 right-8 z-50 flex items-center gap-4">
             {isAdmin && (
               <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={editMode ? handleSave : () => setEditMode(true)} 
                 disabled={saving}
                 className={`group p-5 text-white rounded-full shadow-2xl transition-all flex items-center gap-4 px-10 ${
-                  editMode ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90"
+                  editMode ? "bg-green-600 hover:bg-green-700 ring-4 ring-green-600/20" : "bg-primary hover:bg-primary/90"
                 }`}
               >
-                {editMode ? <Save size={24} className={saving ? "animate-spin" : "animate-pulse"} /> : <Edit3 size={24} />}
-                <span className="text-[11px] font-black uppercase tracking-[0.25em]">
-                  {saving ? "Procesando..." : (editMode ? (isNew ? "Guardar Nuevo" : "Confirmar Cambios") : "Modificar Registro")}
+                {editMode ? <Save size={24} className={saving ? "animate-spin" : ""} /> : <Edit3 size={24} />}
+                <span className="text-[12px] font-black uppercase tracking-widest">
+                  {saving ? "Procesando..." : (editMode ? (isNew ? "GUARDAR NUEVO" : "CONFIRMAR") : "EDITAR")}
                 </span>
               </motion.button>
             )}
-            <button onClick={onClose} className="p-5 bg-white/90 text-primary rounded-full hover:bg-red-500 hover:text-white transition-all shadow-xl border border-primary/5">
+            <button onClick={onClose} className="p-5 bg-slate-100 text-slate-800 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-slate-200">
               <X size={24} />
             </button>
           </div>
 
           <div className="flex flex-col lg:flex-row items-stretch">
-            <div className="w-full lg:w-[48%] bg-slate-50 p-10 lg:p-24 flex items-center justify-center relative overflow-hidden min-h-[550px] lg:min-h-[800px]">
-              <div className="relative w-full aspect-square max-w-140 group">
-                <motion.div className="relative w-full h-full rounded-full overflow-hidden border-[16px] border-white shadow-[0_40px_80px_-15px_rgba(0,0,0,0.35)]">
-                  <motion.img 
-                    key={imagenVisual} 
-                    src={imagenVisual} 
-                    className="w-full h-full object-cover" 
-                    alt={editNombre || "Visual"}
-                  />
-                </motion.div>
+            {/* SECCIÓN IMAGEN */}
+            <div className="w-full lg:w-[45%] bg-slate-50 p-10 flex items-center justify-center relative min-h-[500px]">
+              <div className="relative w-full aspect-square max-w-md">
+                <div className="w-full h-full rounded-full overflow-hidden border-[12px] border-white shadow-2xl">
+                  <img src={imagenVisual} className="w-full h-full object-cover" alt="Visual" />
+                </div>
               </div>
             </div>
 
-            <div className="w-full lg:w-[52%] p-14 lg:p-28 flex flex-col justify-center bg-white">
+            {/* SECCIÓN TEXTOS */}
+            <div className="w-full lg:w-[55%] p-12 lg:p-20 flex flex-col justify-center bg-white">
               {editMode ? (
-                <div className="space-y-12 w-full">
-                  <div className="flex items-center gap-4 text-primary/30">
-                    <Binary size={20} />
-                    <span className="text-[11px] font-black uppercase tracking-[0.4em] italic">
-                      {isNew ? "Panel de Creación" : "Consola de Edición"}
-                    </span>
+                <div className="space-y-10 w-full">
+                  <div className="flex items-center gap-3 text-slate-900 font-bold uppercase text-xs tracking-[0.3em]">
+                    <Binary size={18} /> <span>{isNew ? "Creando Registro" : "Modificando Registro"}</span>
                   </div>
-                  <div className="space-y-8">
+                  <div className="space-y-6">
                     <input 
-                      placeholder="Nombre del registro..."
+                      placeholder="Escribe el nombre aquí..."
                       value={editNombre || ""} 
                       onChange={(e) => setEditNombre(e.target.value)} 
-                      className="text-4xl font-black uppercase italic text-primary w-full bg-primary/5 p-8 rounded-[3rem] outline-none" 
+                      className="text-4xl font-black uppercase text-slate-900 w-full bg-slate-50 border-2 border-slate-200 p-6 rounded-3xl outline-none focus:border-primary/40 transition-all placeholder:text-slate-400" 
                     />
                     <textarea 
-                      placeholder="Escribe la descripción aquí..."
+                      placeholder="Escribe la descripción detallada..."
                       value={editDescripcion || ""} 
                       onChange={(e) => setEditDescripcion(e.target.value)} 
-                      className="text-slate-600 text-xl italic leading-relaxed w-full bg-primary/5 p-12 rounded-[3.5rem] outline-none min-h-[400px] resize-none" 
+                      className="text-slate-800 text-lg leading-relaxed w-full bg-slate-50 border-2 border-slate-200 p-8 rounded-[2rem] outline-none min-h-[350px] resize-none focus:border-primary/40 transition-all placeholder:text-slate-400" 
                     />
                   </div>
+                  
+                  {/* Variantes en modo edición para criaturas */}
                   {esCriatura && (
-                    <div className="pt-12 border-t border-primary/5">
-                      <button onClick={agregarVariante} className="px-10 py-4 bg-primary text-white rounded-[1.5rem] text-[10px] font-black uppercase flex items-center gap-4 mb-8">
-                        <Plus size={18} /> Nueva Cepa
+                    <div className="pt-6 border-t border-slate-100">
+                      <button onClick={agregarVariante} className="flex items-center gap-2 text-primary font-bold text-sm uppercase tracking-wider hover:opacity-70 transition-opacity">
+                        <Plus size={18} /> Añadir Variante / Cepa
                       </button>
-                      <div className="space-y-8 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
-                        {variantes && variantes.map((v: Variante, index: number) => (
-                          <div key={v.id || index} className="p-8 bg-slate-50 rounded-[3rem] relative">
-                            <input 
-                              placeholder="Nombre Forma" 
-                              value={v.tipo || ""} 
-                              onChange={(e) => { 
-                                const n = [...variantes]; 
-                                n[index].tipo = e.target.value; 
-                                setVariantes(n); 
-                              }} 
-                              className="w-full mb-4 p-4 rounded-xl border border-primary/10" 
-                            />
-                            <textarea 
-                              placeholder="Descripción..." 
-                              value={v.descripcion_variante || ""} 
-                              onChange={(e) => { 
-                                const n = [...variantes]; 
-                                n[index].descripcion_variante = e.target.value; 
-                                setVariantes(n); 
-                              }} 
-                              className="w-full p-4 rounded-xl border border-primary/10 resize-none h-24" 
-                            />
-                            <button 
-                              onClick={() => setVariantes(variantes.filter((_, i) => i !== index))} 
-                              className="absolute -top-3 -right-3 bg-red-500 text-white p-3 rounded-full"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="relative">
-                  <div className="flex flex-wrap gap-4 mb-10">
-                    {tags?.map((tag, i) => tag && (
-                      <span key={i} className="px-7 py-3 bg-primary text-white text-[11px] font-black uppercase rounded-full tracking-[0.3em]">
+                  <div className="flex flex-wrap gap-3 mb-8">
+                    {tags?.map((tag, i) => (
+                      <span key={i} className="px-5 py-2 bg-primary text-white text-[10px] font-black uppercase rounded-full tracking-widest">
                         {tag}
                       </span>
                     ))}
                   </div>
-                  <h2 className="text-6xl lg:text-8xl font-black uppercase italic text-primary leading-[0.85] tracking-tighter mb-12">
+                  <h2 className="text-5xl lg:text-7xl font-black uppercase italic text-slate-900 leading-none mb-10 tracking-tighter">
                     {varianteActiva ? (varianteActiva as Variante).tipo : editNombre}
                   </h2>
-                  <p className="text-slate-500 text-xl lg:text-2xl italic leading-relaxed whitespace-pre-wrap border-l-4 border-primary/5 pl-10">
+                  <p className="text-slate-800 text-xl leading-relaxed whitespace-pre-wrap border-l-4 border-primary/30 pl-8">
                     {varianteActiva ? ((varianteActiva as Variante).descripcion_variante || "Sin descripción") : editDescripcion}
                   </p>
-                  {esCriatura && variantes && variantes.length > 0 && (
-                    <div className="flex flex-wrap gap-4 mt-16">
-                      <button onClick={() => setVarianteActiva(null)} className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all ${!varianteActiva ? "bg-primary text-white shadow-2xl" : "bg-primary/5 text-primary"}`}>Fenotipo Base</button>
+                  
+                  {esCriatura && variantes.length > 0 && (
+                    <div className="flex flex-wrap gap-3 mt-12">
+                      <button onClick={() => setVarianteActiva(null)} className={`px-8 py-4 rounded-2xl text-[11px] font-bold uppercase transition-all ${!varianteActiva ? "bg-primary text-white shadow-xl" : "bg-slate-100 text-slate-600"}`}>Base</button>
                       {variantes.map((v: Variante, i: number) => (
-                        <button key={i} onClick={() => setVarianteActiva(v)} className={`px-10 py-5 rounded-[2rem] text-[12px] font-black uppercase transition-all ${varianteActiva === v ? "bg-primary text-white shadow-2xl" : "bg-primary/5 text-primary"}`}>{v.tipo}</button>
+                        <button key={i} onClick={() => setVarianteActiva(v)} className={`px-8 py-4 rounded-2xl text-[11px] font-bold uppercase transition-all ${varianteActiva === v ? "bg-primary text-white shadow-xl" : "bg-slate-100 text-slate-600"}`}>{v.tipo}</button>
                       ))}
                     </div>
                   )}
@@ -245,34 +195,33 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew }: any) {
             </div>
           </div>
 
+          {/* SECCIÓN INFERIOR */}
           {tieneContenidoInferior && (
-            <div className="bg-slate-50 p-12 lg:p-24 grid grid-cols-1 xl:grid-cols-2 gap-24 border-t border-primary/5">
-              <div className="space-y-10">
-                <div className="flex items-center gap-6">
-                  <span className="text-primary/30"><Users size={24} /></span>
-                  <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Relaciones</h4>
-                </div>
-                {loadingRelaciones ? (
-                  <div className="h-40 bg-white rounded-[3rem] animate-pulse" />
-                ) : (
+            <div className="bg-slate-50 p-12 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-16 border-t border-slate-200">
+              <div className="space-y-8">
+                <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-4">
+                  <Users size={20} /> Relaciones
+                </h4>
+                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
                   <Relaciones 
                     nombrePersonaje={editNombre} 
                     datosRelaciones={data?.relaciones || []} 
                     editMode={editMode} 
                     onChange={setEditRelaciones} 
                   />
-                )}
-              </div>
-              <div className="space-y-10">
-                <div className="flex items-center gap-6">
-                  <span className="text-primary/30"><Music size={24} /></span>
-                  <h4 className="text-[12px] font-black uppercase tracking-[0.5em] text-primary/30">Soliloquios</h4>
                 </div>
-                {editMode ? (
-                  <SelectorMusicaAdmin idsSeleccionados={editCanciones || []} onChange={setEditCanciones} />
-                ) : (
-                  <SeccionMusica listaLinks={data?.canciones || []} />
-                )}
+              </div>
+              <div className="space-y-8">
+                <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center gap-4">
+                  <Music size={20} /> Soliloquios
+                </h4>
+                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
+                  {editMode ? (
+                    <SelectorMusicaAdmin idsSeleccionados={editCanciones || []} onChange={setEditCanciones} />
+                  ) : (
+                    <SeccionMusica listaLinks={data?.canciones || []} />
+                  )}
+                </div>
               </div>
             </div>
           )}

@@ -1,7 +1,7 @@
 "use client";
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import DetalleMaestro from '../../features/DetalleMaestro/DetalleMaestro';
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import DetalleMaestro from "../../features/DetalleMaestro/DetalleMaestro";
 
 interface DetallesModalProps {
   isOpen: boolean;
@@ -10,7 +10,6 @@ interface DetallesModalProps {
   onUpdate: (val: any) => void;
   tags?: any[];
   mostrarMusica?: boolean;
-  // Agregamos la propiedad que faltaba para corregir el error 2322
   isNew?: boolean; 
 }
 
@@ -21,24 +20,25 @@ export default function DetallesModal({
   onUpdate,
   tags = [], 
   mostrarMusica = true,
-  isNew = false // Valor por defecto
+  isNew = false 
 }: DetallesModalProps) {  
   
   return (
     <AnimatePresence>
-      {isOpen && data && (
+      {/* Ajuste en la condición: Permitir abrir si es nuevo aunque 'data' sea null */}
+      {isOpen && (data || isNew) && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
           onClick={(e) => e.target === e.currentTarget && onClose()}
         >
-          <div className="w-full max-w-7xl max-h-[95vh] overflow-y-auto">
+          <div className="w-full max-w-7xl max-h-[95vh] overflow-y-auto custom-scrollbar">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
             >
               <DetalleMaestro 
@@ -52,7 +52,6 @@ export default function DetallesModal({
                 }}
                 tags={tags}
                 mostrarMusica={mostrarMusica}
-                // Si DetalleMaestro también necesita saber si es nuevo, se lo pasamos:
                 isNew={isNew}
               />
             </motion.div>
