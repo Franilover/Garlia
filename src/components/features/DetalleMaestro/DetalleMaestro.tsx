@@ -112,77 +112,77 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
             initial={{ y: -100, opacity: 0 }} 
             animate={{ y: 0, opacity: 1 }} 
             exit={{ y: -100, opacity: 0 }} 
-            className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] bg-[#DDD6FE] text-[#5B21B6] px-10 py-5 rounded-full shadow-lg flex items-center gap-3 font-bold text-lg border border-[#C4B5FD]"
+            className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] bg-accent text-primary px-10 py-5 rounded-full shadow-lg flex items-center gap-3 font-bold text-lg border border-primary/20"
           >
             <CheckCircle2 size={24} /> "Registro Sincronizado"
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="bg-white rounded-[4rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(139,92,246,0.1)] border border-[#EDE9FE] relative">
+      <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl border border-primary/10 relative">
         
-        {/* BOTÓN CERRAR - MORADO PASTEL MEDIO */}
-        <button onClick={onClose} className="absolute top-10 right-10 z-50 p-5 bg-[#F5F3FF] text-[#A78BFA] rounded-full hover:bg-[#DDD6FE] hover:text-[#7C3AED] transition-all border border-[#EDE9FE] shadow-sm">
+        {/* BOTÓN CERRAR */}
+        <button onClick={onClose} className="absolute top-8 right-8 z-50 p-4 bg-bg-main text-primary rounded-full hover:bg-accent transition-all border border-primary/10">
           <X size={28} />
         </button>
 
         <div className="flex flex-col lg:flex-row items-stretch">
-          {/* SECCIÓN VISUAL (FONDO LAVANDA SUAVE) */}
-          <div className="w-full lg:w-[45%] bg-[#F8F7FF] p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-[#F3E8FF]">
+          {/* SECCIÓN VISUAL (USANDO TU BG-MAIN) */}
+          <div className="w-full lg:w-[45%] bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
             <div className="relative w-full aspect-square max-w-sm">
-              <div className="w-full h-full rounded-full overflow-hidden border-[15px] border-white shadow-2xl bg-white">
+              <div className="w-full h-full rounded-full overflow-hidden border-[12px] border-white-custom shadow-xl bg-white-custom">
                 <img src={imagenVisual} className="w-full h-full object-cover" alt="Sujeto" />
               </div>
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-[#C4B5FD] text-[#5B21B6] px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest shadow-md">
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white-custom px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-md">
                 {esPersonaje ? "Personaje" : "Criatura"}
               </div>
             </div>
           </div>
 
-          {/* SECCIÓN TEXTO - EQUILIBRIO DE MORADOS */}
-          <div className="w-full lg:w-[55%] p-16 lg:p-24 bg-white">
-            <div className="flex items-center gap-4 mb-12 text-[#A78BFA] font-black uppercase text-xs tracking-[0.4em]">
+          {/* SECCIÓN TEXTO */}
+          <div className="w-full lg:w-[55%] p-12 lg:p-20 bg-white-custom/30">
+            <div className="flex items-center gap-4 mb-8 text-primary/60 font-black uppercase text-xs tracking-[0.3em]">
               {esPersonaje ? <Fingerprint size={24} /> : <Ghost size={24} />}
-              <span>"Expediente Registrado"</span>
+              <span>"Expediente de Archivo"</span>
             </div>
 
             {editMode ? (
-              <div className="space-y-12">
-                <div className="space-y-4">
-                  <label className="text-sm font-black text-[#C4B5FD] uppercase tracking-widest ml-6">Nombre</label>
+              <div className="space-y-10">
+                <div className="space-y-3">
+                  <label className="text-xs font-black text-primary/50 uppercase tracking-widest ml-4">Nombre</label>
                   <input 
                     value={editNombre} 
                     onChange={(e) => setEditNombre(e.target.value)} 
-                    className="text-5xl font-bold w-full bg-[#FAF9FF] border-2 border-[#EDE9FE] p-8 rounded-[2.5rem] focus:border-[#C4B5FD] outline-none text-[#6D28D9] transition-all shadow-sm" 
-                    placeholder="..."
+                    className="input-brand !text-4xl font-bold !p-6 !bg-white/50" 
+                    placeholder="Escribir nombre..."
                   />
                 </div>
-                <div className="space-y-4">
-                  <label className="text-sm font-black text-[#C4B5FD] uppercase tracking-widest ml-6">Descripción</label>
+                <div className="space-y-3">
+                  <label className="text-xs font-black text-primary/50 uppercase tracking-widest ml-4">Descripción</label>
                   <textarea 
                     value={editDescripcion} 
                     onChange={(e) => setEditDescripcion(e.target.value)} 
-                    className="text-[#7C3AED] text-xl leading-relaxed w-full bg-[#FAF9FF] border-2 border-[#EDE9FE] p-10 rounded-[3rem] min-h-[350px] outline-none focus:border-[#C4B5FD] resize-none transition-all shadow-sm"
-                    placeholder="..."
+                    className="input-brand !text-xl !leading-relaxed !p-8 min-h-[300px] resize-none !bg-white/50"
+                    placeholder="Escribir historia..."
                   />
                 </div>
 
                 {esCriatura && (
-                  <div className="space-y-6 pt-10 border-t-2 border-[#F5F3FF]">
+                  <div className="space-y-6 pt-8 border-t border-primary/10">
                     <div className="flex items-center justify-between">
-                      <h5 className="text-sm font-black uppercase text-[#C4B5FD] tracking-widest">Variantes</h5>
-                      <button onClick={agregarVariante} className="p-3 bg-[#DDD6FE] text-[#7C3AED] rounded-full hover:bg-[#C4B5FD] transition-all shadow-sm"><Plus size={24}/></button>
+                      <h5 className="text-xs font-black uppercase text-primary/40 tracking-widest">Variantes de Forma</h5>
+                      <button onClick={agregarVariante} className="p-3 bg-accent text-primary rounded-xl hover:scale-110 transition-all shadow-sm"><Plus size={24}/></button>
                     </div>
                     {variantes.map((v, i) => (
-                      <div key={i} className="p-8 bg-[#FAF9FF] rounded-[2rem] space-y-4 border-2 border-[#EDE9FE]">
+                      <div key={i} className="p-6 bg-white/40 rounded-2xl space-y-4 border border-primary/5">
                         <div className="flex gap-4">
                           <input 
                             placeholder="Nombre variante" 
-                            className="flex-1 bg-white border border-[#EDE9FE] p-4 rounded-2xl text-lg text-[#6D28D9] font-bold outline-none"
+                            className="input-brand !bg-white/60 !py-3"
                             value={v.tipo} 
                             onChange={(e) => actualizarVariante(i, "tipo", e.target.value)}
                           />
-                          <button onClick={() => eliminarVariante(i)} className="text-[#C4B5FD] hover:text-[#EF4444] transition-colors"><Trash2 size={24}/></button>
+                          <button onClick={() => eliminarVariante(i)} className="text-primary/40 hover:text-red-400 p-2"><Trash2 size={24}/></button>
                         </div>
                       </div>
                     ))}
@@ -191,20 +191,21 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <h2 className="text-6xl lg:text-8xl font-black text-[#5B21B6] leading-[1.1] mb-10 tracking-tighter">
+                <h2 className="text-6xl lg:text-7xl font-black text-primary leading-tight mb-8 tracking-tighter">
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
-                <div className="w-24 h-3 bg-[#DDD6FE] mb-12 rounded-full" />
-                <p className="text-[#6D28D9] text-2xl lg:text-3xl leading-[1.6] font-medium opacity-80">
+                <div className="w-20 h-2 bg-accent mb-10 rounded-full" />
+                <p className="text-primary/80 text-2xl lg:text-3xl leading-relaxed font-medium mb-12">
                   {varianteActiva ? (varianteActiva.descripcion_variante || "Sin datos adicionales.") : editDescripcion}
                 </p>
 
+                {/* VARIANTES ESTILO BOTONES BRAND */}
                 {esCriatura && variantes.length > 0 && (
-                  <div className="mt-20">
-                    <div className="flex flex-wrap gap-4">
+                  <div className="mt-16">
+                    <div className="flex flex-wrap gap-3">
                       <button 
                         onClick={() => setVarianteActiva(null)} 
-                        className={`px-10 py-5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all ${!varianteActiva ? "bg-[#DDD6FE] text-[#5B21B6] shadow-md shadow-purple-100" : "bg-[#F5F3FF] text-[#A78BFA] hover:bg-[#EDE9FE]"}`}
+                        className={`px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!varianteActiva ? "bg-primary text-white shadow-lg" : "bg-accent/30 text-primary hover:bg-accent/50"}`}
                       >
                         "Original"
                       </button>
@@ -212,7 +213,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
                         <button 
                           key={i} 
                           onClick={() => setVarianteActiva(v)} 
-                          className={`px-10 py-5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all ${varianteActiva === v ? "bg-[#DDD6FE] text-[#5B21B6] shadow-md shadow-purple-100" : "bg-[#F5F3FF] text-[#A78BFA] hover:bg-[#EDE9FE]"}`}
+                          className={`px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${varianteActiva === v ? "bg-primary text-white shadow-lg" : "bg-accent/30 text-primary hover:bg-accent/50"}`}
                         >
                           {v.tipo}
                         </button>
@@ -225,19 +226,19 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
           </div>
         </div>
 
-        {/* SECCIONES INFERIORES - PASTEL CON CUERPO */}
+        {/* SECCIONES INFERIORES */}
         {(esPersonaje || editMode) && (
-          <div className="bg-[#FAF9FF] p-16 lg:p-24 grid grid-cols-1 xl:grid-cols-2 gap-16 border-t border-[#F3E8FF]">
-            <div className="space-y-8">
-              <h4 className="text-sm font-black uppercase tracking-[0.4em] text-[#C4B5FD] flex items-center gap-4"><Users size={24}/> "Relaciones"</h4>
-              <div className="bg-white p-10 rounded-[3rem] border-2 border-[#EDE9FE] shadow-sm text-[#6D28D9] text-xl font-bold">
+          <div className="bg-bg-main/50 p-12 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-12 border-t border-primary/10">
+            <div className="space-y-6">
+              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-4"><Users size={20}/> "Relaciones"</h4>
+              <div className="bg-white/60 p-8 rounded-[2rem] border border-primary/10 shadow-sm text-primary text-xl font-bold">
                 <Relaciones nombrePersonaje={editNombre} datosRelaciones={data?.relaciones || []} editMode={editMode} onChange={setEditRelaciones} />
               </div>
             </div>
             {mostrarMusica && (
-              <div className="space-y-8">
-                <h4 className="text-sm font-black uppercase tracking-[0.4em] text-[#C4B5FD] flex items-center gap-4"><Music size={24}/> "Música"</h4>
-                <div className="bg-white p-10 rounded-[3rem] border-2 border-[#EDE9FE] shadow-sm">
+              <div className="space-y-6">
+                <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-4"><Music size={20}/> "Multimedia"</h4>
+                <div className="bg-white/60 p-8 rounded-[2rem] border border-primary/10 shadow-sm">
                   {editMode ? <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} /> : <SeccionMusica listaLinks={data?.canciones || []} />}
                 </div>
               </div>
@@ -246,22 +247,22 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
         )}
       </div>
 
-      {/* BARRA DE ACCIÓN - MORADO SUAVE */}
+      {/* BARRA FLOTANTE USANDO BTN-BRAND */}
       {isAdmin && (
-        <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-4 bg-[#F5F3FF]/90 backdrop-blur-xl p-5 rounded-full border border-[#DDD6FE] shadow-2xl">
-          <button onClick={() => setEditMode(!editMode)} className={`px-10 py-5 rounded-full text-xs font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all ${editMode ? "bg-white text-[#A78BFA]" : "bg-[#DDD6FE] text-[#5B21B6] hover:scale-105"}`}>
+        <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-4 bg-white/80 backdrop-blur-md p-4 rounded-[2rem] border border-primary/20 shadow-2xl">
+          <button onClick={() => setEditMode(!editMode)} className={`btn-brand !px-6 ${editMode ? "!bg-accent !text-primary" : ""}`}>
             {editMode ? <X size={20} /> : <Edit3 size={20} />}
-            {editMode ? "Cerrar" : "Editar Registro"}
+            <span className="text-xs tracking-widest">{editMode ? "Cerrar" : "Editar"}</span>
           </button>
           
           {editMode && (
             <button 
               onClick={onConfirmSave} 
               disabled={saving} 
-              className="px-12 py-5 bg-[#C4B5FD] text-[#5B21B6] rounded-full text-xs font-black uppercase tracking-[0.2em] hover:bg-[#BDB2FF] flex items-center gap-3 transition-all shadow-md disabled:opacity-50 hover:scale-105"
+              className="btn-brand !bg-primary !text-white-custom !px-10"
             >
-              {saving ? <div className="w-5 h-5 border-3 border-[#5B21B6]/30 border-t-[#5B21B6] rounded-full animate-spin" /> : <Save size={20} />}
-              "Guardar"
+              {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={20} />}
+              <span className="text-xs tracking-widest uppercase">"Sincronizar"</span>
             </button>
           )}
         </motion.div>
