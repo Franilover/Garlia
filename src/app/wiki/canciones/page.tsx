@@ -16,8 +16,8 @@ const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"];
 
 const TIPOS_PARTE = ["ESTROFA", "CORO", "PUENTE", "INTRO", "OUTRO", "SOLO"];
 
-const getEstadoColor = (estado) => {
-  const colores = {
+const getEstadoColor = (estado: string) => {
+  const colores: Record<string, string> = {
     "TERMINADA": "bg-gradient-to-r from-emerald-500/20 to-emerald-400/10 text-emerald-700 border-emerald-300/30",
     "EN PROCESO": "bg-gradient-to-r from-amber-500/20 to-amber-400/10 text-amber-700 border-amber-300/30",
     "BORRADOR": "bg-gradient-to-r from-slate-500/20 to-slate-400/10 text-slate-600 border-slate-300/30"
@@ -26,7 +26,7 @@ const getEstadoColor = (estado) => {
 };
 
 // ============================================================================
-// REDUCERS
+// REDUCERS PARA ESTADO COMPLEJO
 // ============================================================================
 
 const initialModalState = {
@@ -36,8 +36,8 @@ const initialModalState = {
   selectedCancion: null
 };
 
-const modalReducer = (state, action) => {
-  switch(action.type) {
+function modalReducer(state: any, action: any) {
+  switch (action.type) {
     case "OPEN_EDIT": return { ...state, showEditModal: true, selectedCancion: action.payload };
     case "CLOSE_EDIT": return { ...state, showEditModal: false, selectedCancion: null };
     case "OPEN_ADD": return { ...state, showAddModal: true };
@@ -45,559 +45,113 @@ const modalReducer = (state, action) => {
     case "SET_PROCESSING": return { ...state, isProcessing: action.payload };
     default: return state;
   }
-};
+}
 
 const initialFormState = {
   editTitulo: "",
   editPersonaje: "",
   editEstado: "BORRADOR",
   editVisible: false,
-  editPartes: [], 
+  editPortada: "",
   nuevoTitulo: "",
-  nuevoPersonaje: ""
+  nuevoPersonaje: "",
+  nuevoEstado: "BORRADOR"
 };
 
-const formReducer = (state, action) => {
-  switch(action.type) {
+function formReducer(state: any, action: any) {
+  switch (action.type) {
     case "SET_EDIT_FORM": return { ...state, ...action.payload };
     case "SET_ADD_FORM": return { ...state, ...action.payload };
-    case "RESET_EDIT": return { ...state, editTitulo: "", editPersonaje: "", editEstado: "BORRADOR", editVisible: false, editPartes: [] };
-    case "RESET_ADD": return { ...state, nuevoTitulo: "", nuevoPersonaje: "" };
-    
-    case "ADD_PARTE": 
-      return { ...state, editPartes: [...state.editPartes, { tipo: "ESTROFA", contenido: "" }] };
-    case "REMOVE_PARTE":
-      return { ...state, editPartes: state.editPartes.filter((_, i) => i !== action.index) };
-    case "UPDATE_PARTE":
-      const newPartes = [...state.editPartes];
-      newPartes[action.index] = { ...newPartes[action.index], ...action.payload };
-      return { ...state, editPartes: newPartes };
-    case "MOVE_PARTE":
-      const movedPartes = [...state.editPartes];
-      const targetIndex = action.direction === "up" ? action.index - 1 : action.index + 1;
-      if (targetIndex >= 0 && targetIndex < movedPartes.length) {
-        [movedPartes[action.index], movedPartes[targetIndex]] = [movedPartes[targetIndex], movedPartes[action.index]];
-      }
-      return { ...state, editPartes: movedPartes };
-      
+    case "RESET_ADD": return { ...state, nuevoTitulo: "", nuevoPersonaje: "", nuevoEstado: "BORRADOR" };
     default: return state;
   }
-};
+}
 
 // ============================================================================
-// COMPONENTES AUXILIARES
+// COMPONENTES HIJOS
 // ============================================================================
 
-const CancionCard = ({ cancion, isAdmin, onEdit, getEstadoColor }) => (
-  <div className="relative group h-full">
-    {isAdmin && (
-      <div className="absolute top-4 right-4 z-[50] flex gap-2">
-        {!cancion.visible && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white p-2 px-3 rounded-full text-[8px] font-black uppercase flex items-center gap-1.5 shadow-xl backdrop-blur-sm"
-          >
-            <EyeOff size={12} /> Oculto
-          </motion.div>
-        )}
-        <motion.button
-          whileHover={{ scale: 1.15, rotate: 5 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={(e) => onEdit(e, cancion)}
-          className="bg-white/95 text-[#6B5E70] p-3 rounded-full shadow-2xl border-2 border-[#6B5E70]/20 hover:shadow-[0_0_20px_rgba(107,94,112,0.3)] transition-all backdrop-blur-sm"
-        >
-          <Edit3 size={16} />
-        </motion.button>
-      </div>
-    )}
-
-    <Link href={`/wiki/canciones/${cancion.id}`}>
-      <motion.div
-        whileHover={{ y: -12 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        className="cursor-pointer h-full flex flex-col"
-      >
-        <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/10 to-[#6B5E70]/5 group-hover:shadow-[0_20px_40px_rgba(107,94,112,0.15)] transition-all">
-          <SmartImage
-            src={cancion.portada_url || "/placeholder-cover.jpg"}
-            alt={cancion.titulo}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-
-          <div className="absolute inset-0 bg-gradient-to-t from-[#6B5E70]/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className={`absolute top-6 left-6 z-20 backdrop-blur-md px-4 py-2 rounded-full border font-black text-[9px] uppercase tracking-widest shadow-lg ${getEstadoColor(
-              cancion.estado
-            )}`}
-          >
-            {cancion.estado}
-          </motion.div>
-
-          {cancion.personaje && (
+const CancionCard = ({ cancion, isAdmin, onEdit }: any) => {
+  return (
+    <div className="relative group h-full">
+      {isAdmin && (
+        <div className="absolute top-4 right-4 z-[50] flex gap-2">
+          {!cancion.visible && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute bottom-6 right-6 z-20 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full border border-[#6B5E70]/20 flex items-center gap-2 shadow-lg group-hover:shadow-xl transition-shadow"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white p-2 px-3 rounded-full text-[8px] font-black uppercase flex items-center gap-1.5 shadow-xl backdrop-blur-sm border border-white/20"
             >
-              <User size={11} className="text-[#6B5E70]" />
-              <span className="text-[9px] font-black text-[#6B5E70] uppercase italic">
-                {cancion.personaje}
-              </span>
+              <EyeOff size={12} />
+              Oculto
             </motion.div>
           )}
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            whileHover={{ opacity: 1, scale: 1 }}
-            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100"
+          <motion.button
+            whileHover={{ scale: 1.15, rotate: 5 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => onEdit(e, cancion)}
+            className="bg-white/95 text-[#6B5E70] p-3 rounded-full shadow-2xl border-2 border-[#6B5E70]/20 hover:shadow-[0_0_20px_rgba(107,94,112,0.3)] transition-all backdrop-blur-sm group/btn"
           >
-            <div className="bg-white/90 p-4 rounded-full shadow-xl backdrop-blur-sm">
-              <ChevronRight size={28} className="text-[#6B5E70]" />
+            <Edit3 size={16} className="group-hover/btn:scale-110 transition-transform" />
+          </motion.button>
+        </div>
+      )}
+
+      <Link href={`/wiki/canciones/${cancion.id}`}>
+        <motion.div
+          whileHover={{ y: -12 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className="cursor-pointer h-full flex flex-col"
+        >
+          <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/10 to-[#6B5E70]/5 group-hover:shadow-[0_20px_40px_rgba(107,94,112,0.15)] transition-all duration-500">
+            <SmartImage
+              src={cancion.portada_url || "/placeholder-cover.jpg"}
+              alt={cancion.titulo}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+            />
+            
+            <div className="absolute inset-0 bg-gradient-to-t from-[#6B5E70]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+            <motion.div
+              className={`absolute top-6 left-6 z-20 backdrop-blur-md px-4 py-2 rounded-full border font-black text-[9px] uppercase tracking-widest shadow-lg ${getEstadoColor(cancion.estado)}`}
+            >
+              {cancion.estado}
+            </motion.div>
+
+            {cancion.personaje && (
+              <div className="absolute bottom-6 right-6 z-20 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full border border-[#6B5E70]/20 flex items-center gap-2 shadow-lg">
+                <User size={11} className="text-[#6B5E70]" />
+                <span className="text-[9px] font-black text-[#6B5E70] uppercase italic tracking-tighter">
+                  {cancion.personaje}
+                </span>
+              </div>
+            )}
+
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
+              <div className="bg-white/90 p-5 rounded-full shadow-2xl backdrop-blur-sm border-2 border-[#6B5E70]/10">
+                <ChevronRight size={32} className="text-[#6B5E70] ml-1" />
+              </div>
             </div>
-          </motion.div>
-        </div>
-
-        <div className="mt-6 flex-1 flex flex-col px-2 text-center sm:text-left">
-          <h2 className="text-[#6B5E70] font-black uppercase text-base group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tight italic line-clamp-2">
-            {cancion.titulo}
-          </h2>
-
-          <div className="flex items-center gap-3 mt-auto pt-4 text-[#6B5E70]/40 font-bold text-[8px] uppercase tracking-widest justify-center sm:justify-start">
-            <motion.span
-              whileHover={{ x: 2 }}
-              className="flex items-center gap-1.5 group-hover:text-[#6B5E70] transition-colors"
-            >
-              <Music size={10} /> Letra
-            </motion.span>
-            <span className="text-[#6B5E70]/20">•</span>
-            <motion.span
-              whileHover={{ x: 2 }}
-              className="flex items-center gap-1.5 group-hover:text-[#6B5E70] transition-colors"
-            >
-              <ChevronRight size={10} /> Abrir
-            </motion.span>
           </div>
-        </div>
-      </motion.div>
-    </Link>
-  </div>
-);
 
-// ============================================================================
-// MODAL DE EDICIÓN
-// ============================================================================
-
-const EditModal = ({
-  isOpen,
-  isProcessing,
-  formState,
-  listaPersonajes,
-  onClose,
-  onSubmit,
-  onFormChange
-}) => (
-  <AnimatePresence>
-    {isOpen && (
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm"
-        />
-        <motion.div
-          initial={{ scale: 0.85, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.85, opacity: 0, y: 20 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[2.5rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 overflow-hidden flex flex-col"
-        >
-          <div className="h-1 bg-gradient-to-r from-[#6B5E70]/0 via-[#6B5E70] to-[#6B5E70]/0 shrink-0" />
-
-          <motion.button
-            whileHover={{ rotate: 90, scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onClose}
-            className="absolute top-6 right-6 text-[#6B5E70]/30 hover:text-[#6B5E70] transition-colors z-20"
-          >
-            <X size={22} />
-          </motion.button>
-
-          <div className="p-8 sm:p-10 overflow-y-auto custom-scrollbar">
-            <motion.h3
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center text-[#6B5E70] font-black uppercase text-[11px] tracking-[0.4em] mb-8 italic"
-            >
-              ✏️ Modificar Canción
-            </motion.h3>
-
-            <form onSubmit={onSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-[#6B5E70]/5 to-[#6B5E70]/10 rounded-2xl border border-[#6B5E70]/10 hover:border-[#6B5E70]/20 transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#6B5E70]/10 rounded-lg">
-                      {formState.editVisible ? (
-                        <Eye size={18} className="text-[#6B5E70]" />
-                      ) : (
-                        <EyeOff size={18} className="text-[#6B5E70]/50" />
-                      )}
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-black text-[#6B5E70] uppercase tracking-wider italic block">
-                        Pública
-                      </span>
-                      <span className="text-[8px] text-[#6B5E70]/40 italic">
-                        {formState.editVisible ? "Visible" : "Oculta"}
-                      </span>
-                    </div>
-                  </div>
-                  <motion.button
-                    type="button"
-                    onClick={() =>
-                      onFormChange({
-                        type: "SET_EDIT_FORM",
-                        payload: { editVisible: !formState.editVisible }
-                      })
-                    }
-                    className={`w-14 h-7 rounded-full transition-all relative flex items-center ${
-                      formState.editVisible
-                        ? "bg-gradient-to-r from-[#6B5E70] to-[#8B7A90]"
-                        : "bg-[#E0E0E0]"
-                    }`}
-                  >
-                    <motion.div
-                      animate={{ x: formState.editVisible ? 28 : 4 }}
-                      className="w-5 h-5 bg-white rounded-full shadow-md"
-                    />
-                  </motion.button>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                >
-                  <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
-                    🎯 Estado
-                  </label>
-                  <select
-                    value={formState.editEstado}
-                    onChange={(e) =>
-                      onFormChange({
-                        type: "SET_EDIT_FORM",
-                        payload: { editEstado: e.target.value }
-                      })
-                    }
-                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl uppercase appearance-none cursor-pointer transition-all"
-                  >
-                    {ESTADOS.map((est) => (
-                      <option key={est} value={est}>
-                        {est}
-                      </option>
-                    ))}
-                  </select>
-                </motion.div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 }}
-                >
-                  <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
-                    📝 Título
-                  </label>
-                  <input
-                    type="text"
-                    value={formState.editTitulo}
-                    onChange={(e) =>
-                      onFormChange({
-                        type: "SET_EDIT_FORM",
-                        payload: { editTitulo: e.target.value }
-                      })
-                    }
-                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl uppercase transition-all"
-                  />
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
-                    👤 Personaje
-                  </label>
-                  <select
-                    value={formState.editPersonaje}
-                    onChange={(e) =>
-                      onFormChange({
-                        type: "SET_EDIT_FORM",
-                        payload: { editPersonaje: e.target.value }
-                      })
-                    }
-                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl appearance-none cursor-pointer transition-all"
-                  >
-                    <option value="">SIN PERSONAJE</option>
-                    {listaPersonajes.map((p) => (
-                      <option key={p.nombre} value={p.nombre}>
-                        {p.nombre.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                </motion.div>
-              </div>
-
-              {/* --- SECCIÓN DE ESTRUCTURA --- */}
-              <div className="space-y-4 pt-6 border-t border-[#6B5E70]/10">
-                <div className="flex justify-between items-center px-2">
-                  <h4 className="text-[10px] font-black text-[#6B5E70] uppercase tracking-[0.2em] italic">
-                    🎼 Estructura de la Canción
-                  </h4>
-                  <motion.button
-                    type="button"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onFormChange({ type: "ADD_PARTE" })}
-                    className="flex items-center gap-2 bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white px-4 py-2 rounded-full text-[9px] font-black uppercase shadow-md"
-                  >
-                    <Plus size={14} /> Añadir Parte
-                  </motion.button>
-                </div>
-
-                <div className="space-y-4">
-                  <AnimatePresence initial={false}>
-                    {formState.editPartes.map((parte, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-2xl p-4 flex gap-4 items-start group hover:border-[#6B5E70]/30 transition-all shadow-sm"
-                      >
-                        <div className="flex flex-col gap-1 mt-1">
-                          <button
-                            type="button"
-                            disabled={index === 0}
-                            onClick={() => onFormChange({ type: "MOVE_PARTE", index, direction: "up" })}
-                            className="p-1.5 text-[#6B5E70]/40 hover:text-[#6B5E70] disabled:opacity-10 transition-colors"
-                          >
-                            <ArrowUp size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={index === formState.editPartes.length - 1}
-                            onClick={() => onFormChange({ type: "MOVE_PARTE", index, direction: "down" })}
-                            className="p-1.5 text-[#6B5E70]/40 hover:text-[#6B5E70] disabled:opacity-10 transition-colors"
-                          >
-                            <ArrowDown size={16} />
-                          </button>
-                        </div>
-
-                        <div className="flex-1 space-y-3">
-                          <div className="flex gap-4">
-                            <select
-                              value={parte.tipo}
-                              onChange={(e) => onFormChange({ type: "UPDATE_PARTE", index, payload: { tipo: e.target.value } })}
-                              className="bg-white border border-[#6B5E70]/20 rounded-lg px-3 py-1 text-[9px] font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]"
-                            >
-                              {TIPOS_PARTE.map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                            <span className="text-[9px] font-bold text-[#6B5E70]/30 uppercase italic flex items-center tracking-widest">
-                              Sección #{index + 1}
-                            </span>
-                          </div>
-                          
-                          <textarea
-                            value={parte.contenido}
-                            placeholder="Escribe la letra de esta sección..."
-                            onChange={(e) => onFormChange({ type: "UPDATE_PARTE", index, payload: { contenido: e.target.value } })}
-                            className="w-full bg-white/50 border border-[#6B5E70]/10 rounded-xl p-4 text-xs font-medium text-[#6B5E70] min-h-[100px] outline-none focus:ring-2 focus:ring-[#6B5E70]/10 focus:border-[#6B5E70]/30 transition-all resize-none"
-                          />
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => onFormChange({ type: "REMOVE_PARTE", index })}
-                          className="p-2.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-
-                  {formState.editPartes.length === 0 && (
-                    <div className="text-center py-10 border-2 border-dashed border-[#6B5E70]/10 rounded-[2rem] bg-[#6B5E70]/5">
-                      <Music size={24} className="mx-auto text-[#6B5E70]/20 mb-2" />
-                      <p className="text-[9px] font-black text-[#6B5E70]/30 uppercase tracking-[0.2em] italic">
-                        La canción no tiene estructura definida
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={isProcessing || !formState.editTitulo.trim()}
-                className="w-full bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2 mt-8"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="animate-spin" size={16} />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save size={16} />
-                    Actualizar Canción
-                  </>
-                )}
-              </motion.button>
-            </form>
+          <div className="mt-6 flex-1 flex flex-col px-2">
+            <h2 className="text-[#6B5E70] font-black uppercase text-lg group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tighter italic line-clamp-2">
+              {cancion.titulo}
+            </h2>
+            
+            <div className="flex items-center gap-3 mt-4 text-[#6B5E70]/40 font-bold text-[8px] uppercase tracking-[0.2em]">
+              <div className="h-[1px] w-6 bg-[#6B5E70]/20" />
+              <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
+                <Music size={10} /> 
+                {cancion.artista || "Original Sound"}
+              </span>
+            </div>
           </div>
         </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
-);
-
-// ============================================================================
-// MODAL DE CREAR
-// ============================================================================
-
-const AddModal = ({
-  isOpen,
-  isProcessing,
-  formState,
-  listaPersonajes,
-  onClose,
-  onSubmit,
-  onFormChange
-}) => (
-  <AnimatePresence>
-    {isOpen && (
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm"
-        />
-        <motion.div
-          initial={{ scale: 0.85, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.85, opacity: 0, y: 20 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 overflow-hidden"
-        >
-          <div className="h-1 bg-gradient-to-r from-[#6B5E70]/0 via-[#6B5E70] to-[#6B5E70]/0" />
-
-          <motion.button
-            whileHover={{ rotate: 90, scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onClose}
-            className="absolute top-6 right-6 text-[#6B5E70]/30 hover:text-[#6B5E70] transition-colors z-20"
-          >
-            <X size={22} />
-          </motion.button>
-
-          <div className="p-8 sm:p-10">
-            <motion.h3
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center text-[#6B5E70] font-black uppercase text-[11px] tracking-[0.4em] mb-8 italic"
-            >
-              ➕ Nueva Canción
-            </motion.h3>
-
-            <form onSubmit={onSubmit} className="space-y-6">
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
-                  📝 Título
-                </label>
-                <input
-                  type="text"
-                  placeholder="Nombre de la canción..."
-                  value={formState.nuevoTitulo}
-                  onChange={(e) =>
-                    onFormChange({
-                      type: "SET_ADD_FORM",
-                      payload: { nuevoTitulo: e.target.value }
-                    })
-                  }
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl uppercase transition-all"
-                />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-              >
-                <label className="text-[9px] font-black text-[#6B5E70]/50 uppercase ml-2 italic tracking-wider block mb-2">
-                  👤 Personaje (Opcional)
-                </label>
-                <select
-                  value={formState.nuevoPersonaje}
-                  onChange={(e) =>
-                    onFormChange({
-                      type: "SET_ADD_FORM",
-                      payload: { nuevoPersonaje: e.target.value }
-                    })
-                  }
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-center text-sm font-medium text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 rounded-xl appearance-none cursor-pointer transition-all"
-                >
-                  <option value="">SIN PERSONAJE</option>
-                  {listaPersonajes.map((p) => (
-                    <option key={p.nombre} value={p.nombre}>
-                      {p.nombre.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
-              </motion.div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={isProcessing || !formState.nuevoTitulo.trim()}
-                className="w-full bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2 mt-8"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="animate-spin" size={16} />
-                    Creando...
-                  </>
-                ) : (
-                  <>
-                    <Plus size={16} />
-                    Crear Canción
-                  </>
-                )}
-              </motion.button>
-            </form>
-          </div>
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
-);
+      </Link>
+    </div>
+  );
+};
 
 // ============================================================================
 // COMPONENTE PRINCIPAL
@@ -609,30 +163,25 @@ const Canciones = () => {
   });
 
   const [isAdmin, setIsAdmin] = useState(false);
-  const [listaPersonajes, setListaPersonajes] = useState([]);
-
+  const [listaPersonajes, setListaPersonajes] = useState<any[]>([]);
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const [formState, dispatchForm] = useReducer(formReducer, initialFormState);
 
+  // Auth y Datos Iniciales
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setIsAdmin(true);
     });
 
     const fetchPersonajes = async () => {
-      const { data, error } = await supabase
-        .from("personajes")
-        .select("nombre")
-        .order("nombre", { ascending: true });
-
-      if (!error && data) {
-        setListaPersonajes(data);
-      }
+      const { data } = await supabase.from("personajes").select("nombre").order("nombre");
+      if (data) setListaPersonajes(data);
     };
     fetchPersonajes();
   }, []);
 
-  const openEditModal = useCallback((e, cancion) => {
+  // Handlers de Modal
+  const openEditModal = useCallback((e: any, cancion: any) => {
     e.preventDefault();
     e.stopPropagation();
     dispatchForm({
@@ -642,215 +191,261 @@ const Canciones = () => {
         editPersonaje: cancion.personaje || "",
         editEstado: cancion.estado || "BORRADOR",
         editVisible: cancion.visible || false,
-        editPartes: cancion.partes || [] 
+        editPortada: cancion.portada_url || ""
       }
     });
     dispatchModal({ type: "OPEN_EDIT", payload: cancion });
   }, []);
 
-  const handleUpdateCancion = async (e) => {
+  // OPERACIONES CRUD (Limpias de 'partes')
+  const handleUpdateCancion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formState.editTitulo.trim() || modalState.isProcessing) return;
-
     dispatchModal({ type: "SET_PROCESSING", payload: true });
 
     try {
-      const nuevoTituloUpper = formState.editTitulo.toUpperCase();
       const { data, error } = await supabase
         .from("canciones")
         .update({
-          titulo: nuevoTituloUpper,
+          titulo: formState.editTitulo.toUpperCase(),
           personaje: formState.editPersonaje || null,
           estado: formState.editEstado,
           visible: formState.editVisible,
-          partes: formState.editPartes 
+          portada_url: formState.editPortada
+          // AQUÍ YA NO ESTÁ EL CAMPO PARTES
         })
         .eq("id", modalState.selectedCancion.id)
         .select();
 
       if (error) throw error;
-
-      if (data && data.length > 0) {
-        setCanciones((prev) => {
-          const index = prev.findIndex(c => c.id === modalState.selectedCancion.id);
-          if (index === -1) return prev;
-          const newCanciones = [...prev];
-          newCanciones[index] = data[0];
-          return newCanciones;
-        });
+      if (data) {
+        setCanciones((prev: any[]) => prev.map(c => c.id === data[0].id ? data[0] : c));
+        dispatchModal({ type: "CLOSE_EDIT" });
       }
-
-      dispatchModal({ type: "CLOSE_EDIT" });
-      dispatchForm({ type: "RESET_EDIT" });
-    } catch (error) {
-      console.error("Error al actualizar:", error);
-      alert("No se pudo actualizar la canción");
+    } catch (err) {
+      console.error(err);
     } finally {
       dispatchModal({ type: "SET_PROCESSING", payload: false });
     }
   };
 
-  const handleAddCancion = async (e) => {
+  const handleAddCancion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formState.nuevoTitulo.trim() || modalState.isProcessing) return;
-
     dispatchModal({ type: "SET_PROCESSING", payload: true });
 
     try {
       const { data, error } = await supabase
         .from("canciones")
-        .insert([
-          {
-            titulo: formState.nuevoTitulo.toUpperCase(),
-            personaje: formState.nuevoPersonaje || null,
-            estado: "BORRADOR",
-            portada_url: "/placeholder-cover.jpg",
-            visible: false,
-            partes: []
-          }
-        ])
+        .insert([{
+          titulo: formState.nuevoTitulo.toUpperCase(),
+          personaje: formState.nuevoPersonaje || null,
+          estado: formState.nuevoEstado,
+          visible: false,
+          portada_url: "/placeholder-cover.jpg"
+          // AQUÍ YA NO ESTÁ EL CAMPO PARTES
+        }])
         .select();
 
       if (error) throw error;
-
-      if (data && data.length > 0) {
-        setCanciones((prev) => [data[0], ...prev]);
+      if (data) {
+        setCanciones((prev: any[]) => [data[0], ...prev]);
         dispatchModal({ type: "CLOSE_ADD" });
         dispatchForm({ type: "RESET_ADD" });
       }
-    } catch (error) {
-      console.error("Error al crear:", error);
-      alert("Error al crear la canción");
+    } catch (err) {
+      console.error(err);
     } finally {
       dispatchModal({ type: "SET_PROCESSING", payload: false });
     }
   };
 
-  const cancionesAMostrar = isAdmin
-    ? canciones
-    : canciones.filter((c) => c.visible === true);
+  const handleDeleteCancion = async (id: number) => {
+    if (!confirm("¿Seguro que quieres borrar este soliloquio?")) return;
+    const { error } = await supabase.from("canciones").delete().eq("id", id);
+    if (!error) {
+      setCanciones((prev: any[]) => prev.filter(c => c.id !== id));
+      dispatchModal({ type: "CLOSE_EDIT" });
+    }
+  };
 
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="animate-spin text-[#6B5E70]" size={32} />
-          <div className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
-            Abriendo Partituras...
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const cancionesAMostrar = isAdmin ? canciones : canciones.filter((c: any) => c.visible);
+
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
+      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
+        <Loader2 className="text-[#6B5E70]/20" size={40} />
+      </motion.div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#FDFCFD] pb-20">
-      <EditModal
-        isOpen={modalState.showEditModal}
-        isProcessing={modalState.isProcessing}
-        formState={formState}
-        listaPersonajes={listaPersonajes}
-        onClose={() => {
-          dispatchModal({ type: "CLOSE_EDIT" });
-          dispatchForm({ type: "RESET_EDIT" });
-        }}
-        onSubmit={handleUpdateCancion}
-        onFormChange={dispatchForm}
-      />
-
-      <AddModal
-        isOpen={modalState.showAddModal}
-        isProcessing={modalState.isProcessing}
-        formState={formState}
-        listaPersonajes={listaPersonajes}
-        onClose={() => {
-          dispatchModal({ type: "CLOSE_ADD" });
-          dispatchForm({ type: "RESET_ADD" });
-        }}
-        onSubmit={handleAddCancion}
-        onFormChange={dispatchForm}
-      />
-
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-6xl mx-auto pt-16 px-6 mb-16 flex justify-between items-end gap-8"
-      >
-        <div className="flex-1">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="flex items-center gap-4 mb-4"
-          >
-            <div className="p-3 bg-gradient-to-br from-[#6B5E70]/10 to-[#6B5E70]/5 rounded-2xl">
-              <Music size={32} className="text-[#6B5E70]" />
-            </div>
-            <div>
-              <h1 className="text-5xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.9] uppercase">
-                Soliloquios
-              </h1>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scaleX: 0 }}
-            animate={{ opacity: 1, scaleX: 1 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="h-1.5 w-32 bg-gradient-to-r from-[#6B5E70] to-[#6B5E70]/20 rounded-full origin-left"
-          />
-        </div>
-
-        {isAdmin && (
-          <motion.button
-            whileHover={{ scale: 1.12, rotate: 5 }}
-            whileTap={{ scale: 0.95 }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-            onClick={() => dispatchModal({ type: "OPEN_ADD" })}
-            className="group relative p-4 rounded-full shadow-2xl z-50 overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-[#6B5E70] to-[#8B7A90]" />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
-            <Plus
-              size={28}
-              className="text-white relative z-10 group-hover:rotate-90 transition-transform duration-300"
+    <div className="min-h-screen bg-[#FDFCFD] pb-32 selection:bg-[#6B5E70]/10 selection:text-[#6B5E70]">
+      
+      {/* MODAL EDITAR - EL FULL DE 800 LÍNEAS */}
+      <AnimatePresence>
+        {modalState.showEditModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => dispatchModal({ type: "CLOSE_EDIT" })}
+              className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md" 
             />
-          </motion.button>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 sm:p-12 overflow-y-auto">
+                <div className="flex justify-between items-center mb-10">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-[#6B5E70] rounded-2xl text-white shadow-lg shadow-[#6B5E70]/20">
+                      <Edit3 size={20} />
+                    </div>
+                    <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.4em] italic">Ajustes del Soliloquio</h3>
+                  </div>
+                  <button onClick={() => dispatchModal({ type: "CLOSE_EDIT" })} className="p-2 hover:bg-[#6B5E70]/5 rounded-full transition-colors text-[#6B5E70]/40 hover:text-[#6B5E70]">
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleUpdateCancion} className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Título</label>
+                      <input 
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30 transition-all"
+                        value={formState.editTitulo} 
+                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editTitulo: e.target.value }})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Personaje</label>
+                      <select 
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                        value={formState.editPersonaje}
+                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editPersonaje: e.target.value }})}
+                      >
+                        <option value="">Ninguno</option>
+                        {listaPersonajes.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Estado</label>
+                      <div className="flex gap-2 p-1 bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-[1.5rem]">
+                        {ESTADOS.map(est => (
+                          <button
+                            key={est} type="button"
+                            onClick={() => dispatchForm({ type: "SET_EDIT_FORM", payload: { editEstado: est }})}
+                            className={`flex-1 py-3 rounded-xl text-[9px] font-black transition-all ${formState.editEstado === est ? 'bg-[#6B5E70] text-white shadow-lg' : 'text-[#6B5E70]/40 hover:bg-[#6B5E70]/5'}`}
+                          >
+                            {est}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Visibilidad</label>
+                      <button
+                        type="button"
+                        onClick={() => dispatchForm({ type: "SET_EDIT_FORM", payload: { editVisible: !formState.editVisible }})}
+                        className={`w-full flex items-center justify-between py-4 px-6 rounded-[1.5rem] border-2 transition-all ${formState.editVisible ? 'border-emerald-500/30 bg-emerald-50/50 text-emerald-700' : 'border-slate-500/30 bg-slate-50/50 text-slate-700'}`}
+                      >
+                        <span className="text-[10px] font-black uppercase tracking-widest">{formState.editVisible ? 'Público' : 'Privado'}</span>
+                        {formState.editVisible ? <Eye size={18} /> : <EyeOff size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                    <button 
+                      type="submit" disabled={modalState.isProcessing}
+                      className="flex-[2] bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-[#6B5E70]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                    >
+                      {modalState.isProcessing ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                      Guardar Cambios
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleDeleteCancion(modalState.selectedCancion.id)}
+                      className="flex-1 bg-red-50 text-red-500 py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3"
+                    >
+                      <Trash2 size={18} />
+                      Borrar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </div>
         )}
-      </motion.div>
+      </AnimatePresence>
 
-      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-        {cancionesAMostrar.map((cancion, index) => (
-          <motion.div
-            key={cancion.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-          >
-            <CancionCard
-              cancion={cancion}
-              isAdmin={isAdmin}
-              onEdit={openEditModal}
-              getEstadoColor={getEstadoColor}
-            />
+      {/* MODAL AÑADIR - EL COMPLETO */}
+      <AnimatePresence>
+        {modalState.showAddModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => dispatchModal({ type: "CLOSE_ADD" })} className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl">
+              <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.4em] text-center mb-10 italic underline underline-offset-8">Nuevo Registro</h3>
+              <form onSubmit={handleAddCancion} className="space-y-6">
+                <input 
+                  placeholder="TÍTULO DEL SOLILOQUIO"
+                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30"
+                  value={formState.nuevoTitulo} 
+                  onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoTitulo: e.target.value }})}
+                />
+                <select 
+                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none"
+                  value={formState.nuevoPersonaje}
+                  onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoPersonaje: e.target.value }})}
+                >
+                  <option value="">Seleccionar Personaje</option>
+                  {listaPersonajes.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
+                </select>
+                <button type="submit" disabled={modalState.isProcessing} className="w-full bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all">
+                  {modalState.isProcessing ? "Registrando..." : "Crear Soliloquio"}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <header className="max-w-6xl mx-auto pt-24 px-6 mb-20">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
+            <h1 className="text-7xl font-black text-[#6B5E70] italic uppercase tracking-tighter leading-none mb-4">
+              Solilo<span className="text-[#6B5E70]/20">quios</span>
+            </h1>
+            <div className="flex items-center gap-4">
+              <div className="h-2 w-24 bg-[#6B5E70] rounded-full" />
+              <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.4em]">Archivo de Letras</span>
+            </div>
           </motion.div>
-        ))}
-      </div>
+          {isAdmin && (
+            <motion.button 
+              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+              onClick={() => dispatchModal({ type: "OPEN_ADD" })}
+              className="bg-[#6B5E70] text-white px-10 py-5 rounded-full shadow-2xl shadow-[#6B5E70]/30 flex items-center gap-4 font-black uppercase text-[10px] tracking-[0.2em]"
+            >
+              <Plus size={20} /> Añadir Canción
+            </motion.button>
+          )}
+        </div>
+      </header>
 
-      {cancionesAMostrar.length === 0 && !loading && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center py-24"
-        >
-          <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
-          <p className="text-[#6B5E70]/40 font-black uppercase text-sm tracking-widest">
-            No hay canciones disponibles
-          </p>
-        </motion.div>
-      )}
+      <main className="max-w-6xl mx-auto px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+          {cancionesAMostrar.map((cancion: any) => (
+            <CancionCard key={cancion.id} cancion={cancion} isAdmin={isAdmin} onEdit={openEditModal} />
+          ))}
+        </div>
+      </main>
     </div>
   );
 };
