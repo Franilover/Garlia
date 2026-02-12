@@ -139,9 +139,9 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
             </div>
           </div>
 
-          {/* SECCIÓN TEXTO (LIMPIO Y CLARO) */}
+          {/* SECCIÓN TEXTO (MORADO PASTEL) */}
           <div className="w-full lg:w-[55%] p-12 lg:p-24 bg-white">
-            <div className="flex items-center gap-3 mb-10 text-slate-300 font-semibold uppercase text-[9px] tracking-[0.3em]">
+            <div className="flex items-center gap-3 mb-10 text-primary/30 font-semibold uppercase text-[9px] tracking-[0.3em]">
               {esPersonaje ? <Fingerprint size={16} /> : <Ghost size={16} />}
               <span>"Información Registrada"</span>
             </div>
@@ -149,11 +149,11 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
             {editMode ? (
               <div className="space-y-10">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-300 uppercase tracking-widest ml-4">Nombre</label>
+                  <label className="text-[10px] font-bold text-primary/20 uppercase tracking-widest ml-4">Nombre</label>
                   <input 
                     value={editNombre} 
                     onChange={(e) => setEditNombre(e.target.value)} 
-                    className="text-4xl font-bold w-full bg-slate-50/30 border border-slate-100 p-6 rounded-3xl focus:border-primary/20 outline-none text-slate-700 transition-all" 
+                    className="text-4xl font-bold w-full bg-slate-50/30 border border-slate-100 p-6 rounded-3xl focus:border-primary/20 outline-none text-primary transition-all" 
                     placeholder="..."
                   />
                 </div>
@@ -170,7 +170,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
                 {esCriatura && (
                   <div className="space-y-6 pt-10 border-t border-slate-50">
                     <div className="flex items-center justify-between">
-                      <h5 className="text-[9px] font-bold uppercase text-slate-300 tracking-widest">Variantes</h5>
+                      <h5 className="text-[9px] font-bold uppercase text-primary/30 tracking-widest">Variantes</h5>
                       <button onClick={agregarVariante} className="p-2 bg-primary/5 text-primary rounded-full hover:bg-primary/10 transition-all"><Plus size={16}/></button>
                     </div>
                     {variantes.map((v, i) => (
@@ -178,7 +178,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
                         <div className="flex gap-4">
                           <input 
                             placeholder="Nombre variante" 
-                            className="flex-1 bg-white border border-slate-50 p-3 rounded-xl text-sm text-slate-600 outline-none focus:border-primary/20"
+                            className="flex-1 bg-white border border-slate-50 p-3 rounded-xl text-sm text-primary/60 outline-none focus:border-primary/20"
                             value={v.tipo} 
                             onChange={(e) => actualizarVariante(i, "tipo", e.target.value)}
                           />
@@ -191,7 +191,8 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
               </div>
             ) : (
               <div className="animate-in fade-in duration-700">
-                <h2 className="text-5xl lg:text-6xl font-bold text-slate-800 leading-tight mb-8 tracking-tight">
+                {/* TÍTULO EN MORADO PRIMARY */}
+                <h2 className="text-5xl lg:text-6xl font-bold text-primary leading-tight mb-8 tracking-tight">
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
                 <div className="w-12 h-1 bg-primary/10 mb-8 rounded-full" />
@@ -223,18 +224,18 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
           </div>
         </div>
 
-        {/* MÓDULOS INFERIORES PASTEL */}
+        {/* MÓDULOS INFERIORES */}
         {(esPersonaje || editMode) && (
           <div className="bg-slate-50/20 p-12 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-12 border-t border-slate-50">
             <div className="space-y-6">
-              <h4 className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-200 flex items-center gap-3"><Users size={14}/> "Relaciones"</h4>
-              <div className="bg-white p-8 rounded-[2rem] border border-slate-50 shadow-sm">
+              <h4 className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary/20 flex items-center gap-3"><Users size={14}/> "Relaciones"</h4>
+              <div className="bg-white p-8 rounded-[2rem] border border-slate-50 shadow-sm text-primary/80">
                 <Relaciones nombrePersonaje={editNombre} datosRelaciones={data?.relaciones || []} editMode={editMode} onChange={setEditRelaciones} />
               </div>
             </div>
             {mostrarMusica && (
               <div className="space-y-6">
-                <h4 className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-200 flex items-center gap-3"><Music size={14}/> "Audio"</h4>
+                <h4 className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary/20 flex items-center gap-3"><Music size={14}/> "Audio"</h4>
                 <div className="bg-white p-8 rounded-[2rem] border border-slate-50 shadow-sm">
                   {editMode ? <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} /> : <SeccionMusica listaLinks={data?.canciones || []} />}
                 </div>
@@ -244,7 +245,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
         )}
       </div>
 
-      {/* BARRA DE ACCIÓN (FLOTANTE PASTEL) */}
+      {/* BARRA DE ACCIÓN */}
       {isAdmin && (
         <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-2 bg-white/90 backdrop-blur-md p-3 rounded-full border border-slate-100 shadow-lg">
           <button onClick={() => setEditMode(!editMode)} className={`px-6 py-3 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all ${editMode ? "bg-slate-50 text-slate-400" : "bg-primary/10 text-primary hover:bg-primary/20"}`}>
