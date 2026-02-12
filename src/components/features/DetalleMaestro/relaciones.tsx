@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/api/supabase';
-import { Plus, Trash2, X } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/api/supabase";
+import { Plus, Trash2, X } from "lucide-react";
 
 interface Relacion {
   id?: string;
@@ -49,7 +49,7 @@ export default function Relaciones({
     if (editMode && mounted) {
       const cargarNombres = async () => {
         try {
-          const { data } = await supabase.from('personajes').select('nombre');
+          const { data } = await supabase.from("personajes").select("nombre");
           if (data) setTodosLosPersonajes(data.map(p => p.nombre));
         } catch (err) {
           console.error("Error cargando personajes:", err);
@@ -102,7 +102,6 @@ export default function Relaciones({
         </div>
       )}
       
-      {/* GRID SIN BORDES NI CAJAS BLANCAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
         {lista.map((rel, index) => (
           <div 
@@ -160,7 +159,8 @@ export default function Relaciones({
                   {rel.son.map((nombre, i) => (
                     <div key={`${nombre}-${i}`} className="flex items-center gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                      <span className="text-2xl font-black uppercase italic text-primary leading-none tracking-tighter">
+                      {/* CAMBIO AQUÍ: Se cambió "font-black" por "font-medium" o se puede quitar para que sea normal */}
+                      <span className="text-2xl font-medium uppercase italic text-primary leading-none tracking-tighter">
                         {nombre}
                       </span>
                     </div>
