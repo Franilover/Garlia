@@ -97,11 +97,12 @@ export default function Relaciones({
             onClick={() => setLista([...lista, { sus: "NUEVO VÍNCULO", son: [], personaje: nombrePersonaje }])}
             className="flex items-center gap-2 px-6 py-2 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
           >
-            <Plus size={14} /> Añadir Vínculo
+            <Plus size={14} /> "Añadir Vínculo"
           </button>
         </div>
       )}
       
+      {/* GRID SIN BORDES NI CAJAS BLANCAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
         {lista.map((rel, index) => (
           <div 
