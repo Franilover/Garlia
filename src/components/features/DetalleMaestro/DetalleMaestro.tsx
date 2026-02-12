@@ -62,8 +62,12 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
 
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Lógica para determinar el tipo
   const esPersonaje = ("sobre" in data) || tags.some((t: string) => t.toLowerCase().includes("personaje"));
-  const esCriatura = !esPersonaje;
+  
+  // Extraer información específica
+  const especie = data?.especie || "Humano";
+  const alma = data?.alma || "Desconocida";
 
   useEffect(() => {
     if (isNew) setEditMode(true);
@@ -121,20 +125,25 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
 
       <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl border border-primary/10 relative">
         
-        {/* BOTÓN CERRAR */}
         <button onClick={onClose} className="absolute top-8 right-8 z-50 p-4 bg-bg-main text-primary rounded-full hover:bg-accent transition-all border border-primary/10">
           <X size={28} />
         </button>
 
         <div className="flex flex-col lg:flex-row items-stretch">
-          {/* SECCIÓN VISUAL (USANDO TU BG-MAIN) */}
+          {/* SECCIÓN VISUAL */}
           <div className="w-full lg:w-[45%] bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
             <div className="relative w-full aspect-square max-w-sm">
               <div className="w-full h-full rounded-full overflow-hidden border-[12px] border-white-custom shadow-xl bg-white-custom">
                 <img src={imagenVisual} className="w-full h-full object-cover" alt="Sujeto" />
               </div>
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white-custom px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-md">
-                {esPersonaje ? "Personaje" : "Criatura"}
+              
+              {/* ETIQUETA DINÁMICA: ESPECIE O ALMA */}
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white-custom px-8 py-3 rounded-xl text-sm font-black uppercase tracking-[0.15em] shadow-md whitespace-nowrap min-w-[180px] text-center">
+                {esPersonaje ? (
+                  <span>"Especie: {especie}"</span>
+                ) : (
+                  <span>"Alma: {alma}"</span>
+                )}
               </div>
             </div>
           </div>
@@ -143,7 +152,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
           <div className="w-full lg:w-[55%] p-12 lg:p-20 bg-white-custom/30">
             <div className="flex items-center gap-4 mb-8 text-primary/60 font-black uppercase text-xs tracking-[0.3em]">
               {esPersonaje ? <Fingerprint size={24} /> : <Ghost size={24} />}
-              <span>"Expediente de Archivo"</span>
+              <span>{esPersonaje ? "\"Expediente de Individuo\"" : "\"Registro de Entidad\""}</span>
             </div>
 
             {editMode ? (
@@ -154,7 +163,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
                     value={editNombre} 
                     onChange={(e) => setEditNombre(e.target.value)} 
                     className="input-brand !text-4xl font-bold !p-6 !bg-white/50" 
-                    placeholder="Escribir nombre..."
+                    placeholder="..."
                   />
                 </div>
                 <div className="space-y-3">
@@ -163,14 +172,14 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
                     value={editDescripcion} 
                     onChange={(e) => setEditDescripcion(e.target.value)} 
                     className="input-brand !text-xl !leading-relaxed !p-8 min-h-[300px] resize-none !bg-white/50"
-                    placeholder="Escribir historia..."
+                    placeholder="..."
                   />
                 </div>
 
-                {esCriatura && (
+                {!esPersonaje && (
                   <div className="space-y-6 pt-8 border-t border-primary/10">
                     <div className="flex items-center justify-between">
-                      <h5 className="text-xs font-black uppercase text-primary/40 tracking-widest">Variantes de Forma</h5>
+                      <h5 className="text-xs font-black uppercase text-primary/40 tracking-widest">Variantes Registradas</h5>
                       <button onClick={agregarVariante} className="p-3 bg-accent text-primary rounded-xl hover:scale-110 transition-all shadow-sm"><Plus size={24}/></button>
                     </div>
                     {variantes.map((v, i) => (
@@ -196,18 +205,17 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
                 </h2>
                 <div className="w-20 h-2 bg-accent mb-10 rounded-full" />
                 <p className="text-primary/80 text-2xl lg:text-3xl leading-relaxed font-medium mb-12">
-                  {varianteActiva ? (varianteActiva.descripcion_variante || "Sin datos adicionales.") : editDescripcion}
+                  {varianteActiva ? (varianteActiva.descripcion_variante || "Sin registros.") : editDescripcion}
                 </p>
 
-                {/* VARIANTES ESTILO BOTONES BRAND */}
-                {esCriatura && variantes.length > 0 && (
+                {!esPersonaje && variantes.length > 0 && (
                   <div className="mt-16">
                     <div className="flex flex-wrap gap-3">
                       <button 
                         onClick={() => setVarianteActiva(null)} 
                         className={`px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!varianteActiva ? "bg-primary text-white shadow-lg" : "bg-accent/30 text-primary hover:bg-accent/50"}`}
                       >
-                        "Original"
+                        "Forma Base"
                       </button>
                       {variantes.map((v, i) => (
                         <button 
@@ -226,7 +234,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
           </div>
         </div>
 
-        {/* SECCIONES INFERIORES */}
+        {/* MÓDULOS INFERIORES */}
         {(esPersonaje || editMode) && (
           <div className="bg-bg-main/50 p-12 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-12 border-t border-primary/10">
             <div className="space-y-6">
@@ -247,12 +255,12 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
         )}
       </div>
 
-      {/* BARRA FLOTANTE USANDO BTN-BRAND */}
+      {/* BARRA DE ACCIÓN */}
       {isAdmin && (
         <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-4 bg-white/80 backdrop-blur-md p-4 rounded-[2rem] border border-primary/20 shadow-2xl">
           <button onClick={() => setEditMode(!editMode)} className={`btn-brand !px-6 ${editMode ? "!bg-accent !text-primary" : ""}`}>
             {editMode ? <X size={20} /> : <Edit3 size={20} />}
-            <span className="text-xs tracking-widest">{editMode ? "Cerrar" : "Editar"}</span>
+            <span className="text-xs tracking-widest uppercase">{editMode ? "Cerrar" : "Editar"}</span>
           </button>
           
           {editMode && (
