@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from 'react'; // Agregamos useMemo
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/api/supabase';
 import { Plus, Trash2, X } from 'lucide-react';
 
@@ -25,14 +25,12 @@ export default function Relaciones({
 }: RelacionesProps) {
   const [lista, setLista] = useState<Relacion[]>([]);
   const [todosLosPersonajes, setTodosLosPersonajes] = useState<string[]>([]);
-  const [mounted, setMounted] = useState(false); // FIX: Guard de Hidratación
+  const [mounted, setMounted] = useState(false);
 
-  // 1. Control de montaje para evitar errores de Vercel
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 2. Formateo de datos seguro
   useEffect(() => {
     if (datosRelaciones && Array.isArray(datosRelaciones)) {
       const formateadas: Relacion[] = datosRelaciones.map(r => ({
@@ -43,11 +41,10 @@ export default function Relaciones({
       }));
       setLista(formateadas);
     } else if (!editMode) {
-      setLista([]); // Limpiar si no hay datos y no estamos editando
+      setLista([]);
     }
   }, [datosRelaciones, nombrePersonaje, editMode]);
 
-  // 3. Carga de personajes para el selector
   useEffect(() => {
     if (editMode && mounted) {
       const cargarNombres = async () => {
@@ -55,14 +52,13 @@ export default function Relaciones({
           const { data } = await supabase.from('personajes').select('nombre');
           if (data) setTodosLosPersonajes(data.map(p => p.nombre));
         } catch (err) {
-          console.error("Error cargando personajes para relaciones:", err);
+          console.error("Error cargando personajes:", err);
         }
       };
       cargarNombres();
     }
   }, [editMode, mounted]);
 
-  // 4. Notificar cambios al padre de forma segura
   useEffect(() => {
     if (editMode && onChange && mounted) {
       onChange(lista);
@@ -89,46 +85,33 @@ export default function Relaciones({
     setLista(lista.filter((_, i) => i !== index));
   };
 
-  // SI NO ESTÁ MONTADO, no renderizamos nada para evitar el crash de hidratación
   if (!mounted) return null;
   if (lista.length === 0 && !editMode) return null;
 
   return (
     <div className="w-full">
       {editMode && (
-        <div className="flex justify-end mb-6">
+        <div className="flex justify-start mb-8">
           <button 
             type="button"
             onClick={() => setLista([...lista, { sus: "NUEVO VÍNCULO", son: [], personaje: nombrePersonaje }])}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
+            className="flex items-center gap-2 px-6 py-2 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
           >
-            <Plus size={14} /> Añadir Relación
+            <Plus size={14} /> "Añadir Vínculo"
           </button>
         </div>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* GRID SIN BORDES NI CAJAS BLANCAS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
         {lista.map((rel, index) => (
           <div 
-            key={rel.id || `rel-${index}`} // Usar ID o fallback seguro
-            className={`relative group p-6 rounded-[2.5rem] transition-all duration-300 ${
-              editMode 
-                ? "bg-white border-2 border-dashed border-primary/20 shadow-inner" 
-                : "bg-white border border-primary/5 shadow-sm hover:shadow-xl"
-            }`}
+            key={rel.id || `rel-${index}`} 
+            className="relative flex flex-col transition-all duration-300"
           >
             {editMode ? (
               <div className="space-y-4">
-                <button 
-                  type="button"
-                  onClick={() => eliminarFilaCompleta(index)}
-                  className="absolute -top-3 -right-3 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-colors z-20"
-                >
-                  <Trash2 size={14} />
-                </button>
-                
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-primary/40 uppercase ml-1">Relación</label>
+                <div className="flex items-center justify-between border-b border-primary/10 pb-2">
                   <input 
                     value={rel.sus}
                     onChange={(e) => {
@@ -136,13 +119,20 @@ export default function Relaciones({
                       nl[index].sus = e.target.value.toUpperCase();
                       setLista(nl);
                     }}
-                    className="w-full text-xs font-black uppercase italic bg-slate-50 p-3 rounded-xl outline-none"
+                    className="bg-transparent text-xs font-black uppercase italic outline-none text-primary/60"
                   />
+                  <button 
+                    type="button" 
+                    onClick={() => eliminarFilaCompleta(index)}
+                    className="text-primary/20 hover:text-red-400"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-xl min-h-[40px]">
+                <div className="flex flex-wrap gap-2">
                   {rel.son.map((n, i) => (
-                    <span key={`${n}-${i}`} className="bg-primary text-white text-[10px] px-3 py-1 rounded-lg flex items-center gap-2 font-black italic">
+                    <span key={`${n}-${i}`} className="bg-primary/5 text-primary text-[10px] px-3 py-1 rounded-md flex items-center gap-2 font-black">
                       {n} 
                       <button type="button" onClick={() => quitarNombreDeRelacion(index, n)}><X size={10} /></button>
                     </span>
@@ -151,10 +141,10 @@ export default function Relaciones({
 
                 <select 
                   onChange={(e) => agregarNombreARelacion(index, e.target.value)}
-                  className="w-full text-[10px] font-black uppercase bg-primary/5 p-3 rounded-xl outline-none text-primary"
+                  className="w-full text-[10px] font-black uppercase bg-transparent p-2 border border-primary/10 rounded-lg outline-none text-primary/40"
                   value=""
                 >
-                  <option value="" disabled>+ Vincular a...</option>
+                  <option value="" disabled>+ Seleccionar</option>
                   {todosLosPersonajes
                     .filter(n => n !== nombrePersonaje && !rel.son.includes(n))
                     .map(n => <option key={`opt-${n}`} value={n}>{n}</option>)
@@ -162,15 +152,15 @@ export default function Relaciones({
                 </select>
               </div>
             ) : (
-              <div className="flex flex-col h-full">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/30 mb-3 border-b border-primary/5 pb-2">
-                  {rel.sus}
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/30 mb-4 border-b border-primary/10 pb-2">
+                  "{rel.sus}"
                 </span>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-3">
                   {rel.son.map((nombre, i) => (
-                    <div key={`${nombre}-${i}`} className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
-                      <span className="text-xl font-black uppercase italic text-primary leading-none tracking-tighter">
+                    <div key={`${nombre}-${i}`} className="flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                      <span className="text-2xl font-black uppercase italic text-primary leading-none tracking-tighter">
                         {nombre}
                       </span>
                     </div>
