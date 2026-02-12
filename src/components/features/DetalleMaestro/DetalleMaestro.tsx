@@ -112,84 +112,78 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
             initial={{ y: -100, opacity: 0 }} 
             animate={{ y: 0, opacity: 1 }} 
             exit={{ y: -100, opacity: 0 }} 
-            className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] bg-emerald-600 text-white px-10 py-5 rounded-full shadow-2xl flex items-center gap-3 font-bold text-lg"
+            className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] bg-[#DDD6FE] text-[#5B21B6] px-10 py-5 rounded-full shadow-lg flex items-center gap-3 font-bold text-lg border border-[#C4B5FD]"
           >
-            <CheckCircle2 size={24} /> "Expediente actualizado"
+            <CheckCircle2 size={24} /> "Registro Sincronizado"
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="bg-white rounded-[4rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(45,27,78,0.2)] border border-[#E9D5FF] relative">
+      <div className="bg-white rounded-[4rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(139,92,246,0.1)] border border-[#EDE9FE] relative">
         
-        {/* BOTÓN CERRAR MORADO */}
-        <button onClick={onClose} className="absolute top-10 right-10 z-50 p-5 bg-[#F5F3FF] text-[#7C3AED] rounded-full hover:bg-[#7C3AED] hover:text-white transition-all border border-[#DDD6FE] shadow-sm">
+        {/* BOTÓN CERRAR - MORADO PASTEL MEDIO */}
+        <button onClick={onClose} className="absolute top-10 right-10 z-50 p-5 bg-[#F5F3FF] text-[#A78BFA] rounded-full hover:bg-[#DDD6FE] hover:text-[#7C3AED] transition-all border border-[#EDE9FE] shadow-sm">
           <X size={28} />
         </button>
 
         <div className="flex flex-col lg:flex-row items-stretch">
-          {/* SECCIÓN VISUAL (FONDO MORADO TENUE) */}
-          <div className="w-full lg:w-[45%] bg-[#F9F5FF] p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-[#F3E8FF]">
+          {/* SECCIÓN VISUAL (FONDO LAVANDA SUAVE) */}
+          <div className="w-full lg:w-[45%] bg-[#F8F7FF] p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-[#F3E8FF]">
             <div className="relative w-full aspect-square max-w-sm">
               <div className="w-full h-full rounded-full overflow-hidden border-[15px] border-white shadow-2xl bg-white">
                 <img src={imagenVisual} className="w-full h-full object-cover" alt="Sujeto" />
               </div>
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-[#4C1D95] text-white px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest shadow-xl">
-                {esPersonaje ? "Tipo: Personaje" : "Tipo: Criatura"}
+              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-[#C4B5FD] text-[#5B21B6] px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest shadow-md">
+                {esPersonaje ? "Personaje" : "Criatura"}
               </div>
             </div>
           </div>
 
-          {/* SECCIÓN TEXTO MORADO OSCURO */}
+          {/* SECCIÓN TEXTO - EQUILIBRIO DE MORADOS */}
           <div className="w-full lg:w-[55%] p-16 lg:p-24 bg-white">
-            <div className="flex items-center gap-4 mb-12 text-[#7C3AED] font-black uppercase text-xs tracking-[0.4em]">
+            <div className="flex items-center gap-4 mb-12 text-[#A78BFA] font-black uppercase text-xs tracking-[0.4em]">
               {esPersonaje ? <Fingerprint size={24} /> : <Ghost size={24} />}
-              <span>"Expediente del Sujeto"</span>
+              <span>"Expediente Registrado"</span>
             </div>
 
             {editMode ? (
               <div className="space-y-12">
                 <div className="space-y-4">
-                  <label className="text-sm font-black text-[#5B21B6] uppercase tracking-widest ml-6">Identificador / Nombre</label>
+                  <label className="text-sm font-black text-[#C4B5FD] uppercase tracking-widest ml-6">Nombre</label>
                   <input 
                     value={editNombre} 
                     onChange={(e) => setEditNombre(e.target.value)} 
-                    className="text-5xl font-bold w-full bg-[#FDFCFE] border-2 border-[#DDD6FE] p-8 rounded-[2.5rem] focus:border-[#7C3AED] outline-none text-[#2D1B4E] transition-all shadow-md" 
+                    className="text-5xl font-bold w-full bg-[#FAF9FF] border-2 border-[#EDE9FE] p-8 rounded-[2.5rem] focus:border-[#C4B5FD] outline-none text-[#6D28D9] transition-all shadow-sm" 
                     placeholder="..."
                   />
                 </div>
                 <div className="space-y-4">
-                  <label className="text-sm font-black text-[#5B21B6] uppercase tracking-widest ml-6">Descripción de Archivo</label>
+                  <label className="text-sm font-black text-[#C4B5FD] uppercase tracking-widest ml-6">Descripción</label>
                   <textarea 
                     value={editDescripcion} 
                     onChange={(e) => setEditDescripcion(e.target.value)} 
-                    className="text-[#4C1D95] text-xl leading-relaxed w-full bg-[#FDFCFE] border-2 border-[#DDD6FE] p-10 rounded-[3rem] min-h-[350px] outline-none focus:border-[#7C3AED] resize-none transition-all shadow-md"
+                    className="text-[#7C3AED] text-xl leading-relaxed w-full bg-[#FAF9FF] border-2 border-[#EDE9FE] p-10 rounded-[3rem] min-h-[350px] outline-none focus:border-[#C4B5FD] resize-none transition-all shadow-sm"
                     placeholder="..."
                   />
                 </div>
 
                 {esCriatura && (
-                  <div className="space-y-6 pt-10 border-t-2 border-[#F3E8FF]">
+                  <div className="space-y-6 pt-10 border-t-2 border-[#F5F3FF]">
                     <div className="flex items-center justify-between">
-                      <h5 className="text-sm font-black uppercase text-[#A78BFA] tracking-widest">Variantes Registradas</h5>
-                      <button onClick={agregarVariante} className="p-3 bg-[#7C3AED] text-white rounded-full hover:scale-110 transition-all shadow-lg"><Plus size={24}/></button>
+                      <h5 className="text-sm font-black uppercase text-[#C4B5FD] tracking-widest">Variantes</h5>
+                      <button onClick={agregarVariante} className="p-3 bg-[#DDD6FE] text-[#7C3AED] rounded-full hover:bg-[#C4B5FD] transition-all shadow-sm"><Plus size={24}/></button>
                     </div>
                     {variantes.map((v, i) => (
-                      <div key={i} className="p-8 bg-[#F5F3FF] rounded-[2rem] space-y-4 border-2 border-[#DDD6FE] shadow-sm">
+                      <div key={i} className="p-8 bg-[#FAF9FF] rounded-[2rem] space-y-4 border-2 border-[#EDE9FE]">
                         <div className="flex gap-4">
                           <input 
-                            placeholder="Nombre de variante" 
-                            className="flex-1 bg-white border-2 border-[#DDD6FE] p-4 rounded-2xl text-lg text-[#2D1B4E] font-bold outline-none focus:border-[#7C3AED]"
+                            placeholder="Nombre variante" 
+                            className="flex-1 bg-white border border-[#EDE9FE] p-4 rounded-2xl text-lg text-[#6D28D9] font-bold outline-none"
                             value={v.tipo} 
                             onChange={(e) => actualizarVariante(i, "tipo", e.target.value)}
                           />
-                          <button onClick={() => eliminarVariante(i)} className="text-[#A78BFA] hover:text-[#DC2626] transition-colors p-2"><Trash2 size={24}/></button>
+                          <button onClick={() => eliminarVariante(i)} className="text-[#C4B5FD] hover:text-[#EF4444] transition-colors"><Trash2 size={24}/></button>
                         </div>
-                        <textarea 
-                          placeholder="Notas de la variante..." 
-                          className="w-full bg-white border-2 border-[#DDD6FE] p-4 rounded-2xl text-[#4C1D95] outline-none focus:border-[#7C3AED] min-h-[100px]"
-                          value={v.descripcion_variante} 
-                          onChange={(e) => actualizarVariante(i, "descripcion_variante", e.target.value)}
-                        />
                       </div>
                     ))}
                   </div>
@@ -197,22 +191,20 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                {/* NOMBRE EN MORADO MUY OSCURO */}
-                <h2 className="text-6xl lg:text-8xl font-black text-[#1E1B4B] leading-[1.1] mb-10 tracking-tighter">
+                <h2 className="text-6xl lg:text-8xl font-black text-[#5B21B6] leading-[1.1] mb-10 tracking-tighter">
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
-                <div className="w-24 h-3 bg-[#7C3AED] mb-12 rounded-full" />
-                <p className="text-[#2D1B4E] text-2xl lg:text-3xl leading-[1.6] font-medium mb-12">
-                  {varianteActiva ? (varianteActiva.descripcion_variante || "Sin datos.") : editDescripcion}
+                <div className="w-24 h-3 bg-[#DDD6FE] mb-12 rounded-full" />
+                <p className="text-[#6D28D9] text-2xl lg:text-3xl leading-[1.6] font-medium opacity-80">
+                  {varianteActiva ? (varianteActiva.descripcion_variante || "Sin datos adicionales.") : editDescripcion}
                 </p>
 
                 {esCriatura && variantes.length > 0 && (
-                  <div className="mt-16">
-                    <h4 className="text-xs font-black uppercase text-[#A78BFA] tracking-[0.3em] mb-6 italic">Registros de Variante:</h4>
+                  <div className="mt-20">
                     <div className="flex flex-wrap gap-4">
                       <button 
                         onClick={() => setVarianteActiva(null)} 
-                        className={`px-10 py-5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all ${!varianteActiva ? "bg-[#7C3AED] text-white shadow-2xl shadow-[#7C3AED]/40" : "bg-[#F5F3FF] text-[#7C3AED] hover:bg-[#EDE9FE]"}`}
+                        className={`px-10 py-5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all ${!varianteActiva ? "bg-[#DDD6FE] text-[#5B21B6] shadow-md shadow-purple-100" : "bg-[#F5F3FF] text-[#A78BFA] hover:bg-[#EDE9FE]"}`}
                       >
                         "Original"
                       </button>
@@ -220,7 +212,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
                         <button 
                           key={i} 
                           onClick={() => setVarianteActiva(v)} 
-                          className={`px-10 py-5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all ${varianteActiva === v ? "bg-[#7C3AED] text-white shadow-2xl shadow-[#7C3AED]/40" : "bg-[#F5F3FF] text-[#7C3AED] hover:bg-[#EDE9FE]"}`}
+                          className={`px-10 py-5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all ${varianteActiva === v ? "bg-[#DDD6FE] text-[#5B21B6] shadow-md shadow-purple-100" : "bg-[#F5F3FF] text-[#A78BFA] hover:bg-[#EDE9FE]"}`}
                         >
                           {v.tipo}
                         </button>
@@ -233,19 +225,19 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
           </div>
         </div>
 
-        {/* SECCIONES INFERIORES EN MORADO PASTEL OSCURO */}
+        {/* SECCIONES INFERIORES - PASTEL CON CUERPO */}
         {(esPersonaje || editMode) && (
-          <div className="bg-[#F5F3FF] p-16 lg:p-24 grid grid-cols-1 xl:grid-cols-2 gap-16 border-t border-[#EDE9FE]">
+          <div className="bg-[#FAF9FF] p-16 lg:p-24 grid grid-cols-1 xl:grid-cols-2 gap-16 border-t border-[#F3E8FF]">
             <div className="space-y-8">
-              <h4 className="text-sm font-black uppercase tracking-[0.4em] text-[#5B21B6] flex items-center gap-4"><Users size={24}/> "Vínculos Detectados"</h4>
-              <div className="bg-white p-10 rounded-[3rem] border-2 border-[#DDD6FE] shadow-lg text-[#2D1B4E] text-xl font-bold">
+              <h4 className="text-sm font-black uppercase tracking-[0.4em] text-[#C4B5FD] flex items-center gap-4"><Users size={24}/> "Relaciones"</h4>
+              <div className="bg-white p-10 rounded-[3rem] border-2 border-[#EDE9FE] shadow-sm text-[#6D28D9] text-xl font-bold">
                 <Relaciones nombrePersonaje={editNombre} datosRelaciones={data?.relaciones || []} editMode={editMode} onChange={setEditRelaciones} />
               </div>
             </div>
             {mostrarMusica && (
               <div className="space-y-8">
-                <h4 className="text-sm font-black uppercase tracking-[0.4em] text-[#5B21B6] flex items-center gap-4"><Music size={24}/> "Archivo de Audio"</h4>
-                <div className="bg-white p-10 rounded-[3rem] border-2 border-[#DDD6FE] shadow-lg">
+                <h4 className="text-sm font-black uppercase tracking-[0.4em] text-[#C4B5FD] flex items-center gap-4"><Music size={24}/> "Música"</h4>
+                <div className="bg-white p-10 rounded-[3rem] border-2 border-[#EDE9FE] shadow-sm">
                   {editMode ? <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} /> : <SeccionMusica listaLinks={data?.canciones || []} />}
                 </div>
               </div>
@@ -254,22 +246,22 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
         )}
       </div>
 
-      {/* BARRA DE ACCIÓN MORADA OSCURA */}
+      {/* BARRA DE ACCIÓN - MORADO SUAVE */}
       {isAdmin && (
-        <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-4 bg-[#1E1B4B]/95 backdrop-blur-xl p-5 rounded-full shadow-[0_20px_50px_rgba(45,27,78,0.4)]">
-          <button onClick={() => setEditMode(!editMode)} className={`px-10 py-5 rounded-full text-xs font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all ${editMode ? "bg-white text-[#1E1B4B]" : "bg-[#7C3AED] text-white hover:scale-105"}`}>
+        <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-4 bg-[#F5F3FF]/90 backdrop-blur-xl p-5 rounded-full border border-[#DDD6FE] shadow-2xl">
+          <button onClick={() => setEditMode(!editMode)} className={`px-10 py-5 rounded-full text-xs font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all ${editMode ? "bg-white text-[#A78BFA]" : "bg-[#DDD6FE] text-[#5B21B6] hover:scale-105"}`}>
             {editMode ? <X size={20} /> : <Edit3 size={20} />}
-            {editMode ? "Cerrar Archivo" : "Editar Registro"}
+            {editMode ? "Cerrar" : "Editar Registro"}
           </button>
           
           {editMode && (
             <button 
               onClick={onConfirmSave} 
               disabled={saving} 
-              className="px-12 py-5 bg-[#059669] text-white rounded-full text-xs font-black uppercase tracking-[0.2em] hover:bg-[#047857] flex items-center gap-3 transition-all shadow-xl disabled:opacity-50 hover:scale-105"
+              className="px-12 py-5 bg-[#C4B5FD] text-[#5B21B6] rounded-full text-xs font-black uppercase tracking-[0.2em] hover:bg-[#BDB2FF] flex items-center gap-3 transition-all shadow-md disabled:opacity-50 hover:scale-105"
             >
-              {saving ? <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={20} />}
-              "Sincronizar Datos"
+              {saving ? <div className="w-5 h-5 border-3 border-[#5B21B6]/30 border-t-[#5B21B6] rounded-full animate-spin" /> : <Save size={20} />}
+              "Guardar"
             </button>
           )}
         </motion.div>
