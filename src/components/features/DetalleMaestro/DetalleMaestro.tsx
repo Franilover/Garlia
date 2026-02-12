@@ -109,7 +109,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
   const imagenVisual = (varianteActiva?.imagen_url) || (data?.img_url || data?.imagen_url) || "/placeholder.png";
 
   return (
-    <div className="max-w-7xl mx-auto relative pt-10 px-4 pb-32">
+    <div className="max-w-7xl mx-auto relative pt-10 px-4 pb-32 space-y-8">
       <AnimatePresence>
         {showSuccess && (
           <motion.div 
@@ -123,8 +123,8 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
         )}
       </AnimatePresence>
 
+      {/* BLOQUE 1: IMAGEN Y DESCRIPCIÓN */}
       <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl border border-primary/10 relative">
-        
         <button onClick={onClose} className="absolute top-8 right-8 z-50 p-4 bg-bg-main text-primary rounded-full hover:bg-accent transition-all border border-primary/10">
           <X size={28} />
         </button>
@@ -137,7 +137,6 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
                 <img src={imagenVisual} className="w-full h-full object-cover" alt="Sujeto" />
               </div>
               
-              {/* ETIQUETA DINÁMICA: ESPECIE O ALMA */}
               <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white-custom px-8 py-3 rounded-xl text-sm font-black uppercase tracking-[0.15em] shadow-md whitespace-nowrap min-w-[180px] text-center">
                 {esPersonaje ? (
                   <span>{especie}</span>
@@ -175,85 +174,105 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
                     placeholder="..."
                   />
                 </div>
-
-                {!esPersonaje && (
-                  <div className="space-y-6 pt-8 border-t border-primary/10">
-                    <div className="flex items-center justify-between">
-                      <h5 className="text-xs font-black uppercase text-primary/40 tracking-widest">Variantes Registradas</h5>
-                      <button onClick={agregarVariante} className="p-3 bg-accent text-primary rounded-xl hover:scale-110 transition-all shadow-sm"><Plus size={24}/></button>
-                    </div>
-                    {variantes.map((v, i) => (
-                      <div key={i} className="p-6 bg-white/40 rounded-2xl space-y-4 border border-primary/5">
-                        <div className="flex gap-4">
-                          <input 
-                            placeholder="Nombre variante" 
-                            className="input-brand !bg-white/60 !py-3"
-                            value={v.tipo} 
-                            onChange={(e) => actualizarVariante(i, "tipo", e.target.value)}
-                          />
-                          <button onClick={() => eliminarVariante(i)} className="text-primary/40 hover:text-red-400 p-2"><Trash2 size={24}/></button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <h2 className="text-6xl lg:text-7xl font-black text-primary leading-tight mb-8 tracking-tighter">
+                <h2 className="text-6xl lg:text-7xl font-black text-primary leading-tight mb-8 tracking-tighter uppercase italic">
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
                 <div className="w-20 h-2 bg-accent mb-10 rounded-full" />
                 <p className="text-primary/80 text-2xl lg:text-3xl leading-relaxed font-medium mb-12">
                   {varianteActiva ? (varianteActiva.descripcion_variante || "Sin registros.") : editDescripcion}
                 </p>
-
-                {!esPersonaje && variantes.length > 0 && (
-                  <div className="mt-16">
-                    <div className="flex flex-wrap gap-3">
-                      <button 
-                        onClick={() => setVarianteActiva(null)} 
-                        className={`px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!varianteActiva ? "bg-primary text-white shadow-lg" : "bg-accent/30 text-primary hover:bg-accent/50"}`}
-                      >
-                        "Forma Base"
-                      </button>
-                      {variantes.map((v, i) => (
-                        <button 
-                          key={i} 
-                          onClick={() => setVarianteActiva(v)} 
-                          className={`px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${varianteActiva === v ? "bg-primary text-white shadow-lg" : "bg-accent/30 text-primary hover:bg-accent/50"}`}
-                        >
-                          {v.tipo}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
         </div>
+      </div>
 
-        {/* MÓDULOS INFERIORES */}
-        {(esPersonaje || editMode) && (
-          <div className="bg-bg-main/50 p-12 lg:p-20 grid grid-cols-1 xl:grid-cols-2 gap-12 border-t border-primary/10">
-            <div className="space-y-6">
-              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-4"><Users size={20}/> "Relaciones"</h4>
-              <div className="bg-white/60 p-8 rounded-[2rem] border border-primary/10 shadow-sm text-primary text-xl font-bold">
-                <Relaciones nombrePersonaje={editNombre} datosRelaciones={data?.relaciones || []} editMode={editMode} onChange={setEditRelaciones} />
+      {/* BLOQUE 2: RELACIONES Y MULTIMEDIA */}
+      {(esPersonaje || editMode) && (
+        <div className="bg-white rounded-[3rem] p-12 lg:p-20 shadow-2xl border border-primary/10">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
+            <div className="space-y-8">
+              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-4">
+                <Users size={20}/> "Relaciones"
+              </h4>
+              <div className="text-primary text-xl font-bold">
+                <Relaciones 
+                  nombrePersonaje={editNombre} 
+                  datosRelaciones={data?.relaciones || []} 
+                  editMode={editMode} 
+                  onChange={setEditRelaciones} 
+                />
               </div>
             </div>
+            
             {mostrarMusica && (
-              <div className="space-y-6">
-                <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-4"><Music size={20}/> "Multimedia"</h4>
-                <div className="bg-white/60 p-8 rounded-[2rem] border border-primary/10 shadow-sm">
-                  {editMode ? <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} /> : <SeccionMusica listaLinks={data?.canciones || []} />}
+              <div className="space-y-8">
+                <h4 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-4">
+                  <Music size={20}/> "Multimedia"
+                </h4>
+                <div>
+                  {editMode ? (
+                    <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} />
+                  ) : (
+                    <SeccionMusica listaLinks={data?.canciones || []} />
+                  )}
                 </div>
               </div>
             )}
           </div>
-        )}
-      </div>
+          
+          {/* VARIANTES (Solo para criaturas, dentro del bloque inferior en edición) */}
+          {!esPersonaje && editMode && (
+            <div className="mt-16 pt-12 border-t border-primary/5 space-y-8">
+              <div className="flex items-center justify-between">
+                <h5 className="text-xs font-black uppercase text-primary/40 tracking-widest">Variantes Registradas</h5>
+                <button onClick={agregarVariante} className="p-3 bg-accent text-primary rounded-xl hover:scale-110 transition-all shadow-sm">
+                  <Plus size={24}/>
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {variantes.map((v, i) => (
+                  <div key={i} className="p-6 bg-bg-main/50 rounded-2xl flex gap-4 items-center">
+                    <input 
+                      placeholder="Nombre variante" 
+                      className="input-brand !bg-white/60 !py-3 flex-1"
+                      value={v.tipo} 
+                      onChange={(e) => actualizarVariante(i, "tipo", e.target.value)}
+                    />
+                    <button onClick={() => eliminarVariante(i)} className="text-primary/40 hover:text-red-400 p-2">
+                      <Trash2 size={24}/>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Selector de variantes en modo vista */}
+          {!esPersonaje && !editMode && variantes.length > 0 && (
+            <div className="mt-12 flex flex-wrap gap-3 pt-8 border-t border-primary/5">
+              <button 
+                onClick={() => setVarianteActiva(null)} 
+                className={`px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!varianteActiva ? "bg-primary text-white shadow-lg" : "bg-accent/30 text-primary hover:bg-accent/50"}`}
+              >
+                "Forma Base"
+              </button>
+              {variantes.map((v, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => setVarianteActiva(v)} 
+                  className={`px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${varianteActiva === v ? "bg-primary text-white shadow-lg" : "bg-accent/30 text-primary hover:bg-accent/50"}`}
+                >
+                  {v.tipo}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* BARRA DE ACCIÓN */}
       {isAdmin && (
