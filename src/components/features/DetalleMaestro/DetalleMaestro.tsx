@@ -6,11 +6,8 @@ import {
   Binary 
 } from "lucide-react";
 import Relaciones from "./relaciones"; 
-// Importamos useDetalleMaestro y sus interfaces exportadas
 import { useDetalleMaestro, type Variante } from "@/hooks/useDetalleMaestro"; 
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
-
-// --- YA NO NECESITAMOS DECLARAR LAS INTERFACES AQUÍ, LAS TRAEMOS DEL HOOK ---
 
 interface DetalleMaestroProps {
   isOpen: boolean;
@@ -19,32 +16,44 @@ interface DetalleMaestroProps {
   tags?: string[];
   mostrarMusica?: boolean;
   onUpdate?: () => Promise<void>;
+  // FIX: Agregada la prop que causaba el error 2322
+  isNew?: boolean; 
 }
 
 export default function DetalleMaestro({ 
-  isOpen, onClose, data, tags = [], onUpdate 
+  isOpen, 
+  onClose, 
+  data, 
+  tags = [], 
+  onUpdate,
+  isNew = false // Valor por defecto
 }: DetalleMaestroProps) {
   const [internalData, setInternalData] = useState(data);
 
   useEffect(() => {
-    if (data && data.id) {
+    // Si es nuevo, no esperamos un ID para mostrar el contenido
+    if (isNew) {
+      setInternalData(data || {});
+    } else if (data && data.id) {
       setInternalData(data);
     }
-  }, [data?.id]);
+  }, [data?.id, isNew, data]);
 
-  if (!isOpen || !internalData || !internalData.id) return null;
+  // Si no está abierto o no hay data (y no es un registro nuevo), no renderizar
+  if (!isOpen || (!isNew && (!internalData || !internalData.id))) return null;
 
   return (
     <DetalleContenido 
       data={internalData} 
       onClose={onClose} 
       tags={tags} 
-      onUpdate={onUpdate} 
+      onUpdate={onUpdate}
+      isNew={isNew}
     />
   );
 }
 
-function DetalleContenido({ data, onClose, tags, onUpdate }: any) {
+function DetalleContenido({ data, onClose, tags, onUpdate, isNew }: any) {
   const {
     isAdmin, editMode, setEditMode, saving, handleSave,
     variantes, setVariantes,
@@ -52,6 +61,13 @@ function DetalleContenido({ data, onClose, tags, onUpdate }: any) {
     editNombre, setEditNombre, editDescripcion, setEditDescripcion,
     editCanciones, setEditCanciones, setEditRelaciones
   } = useDetalleMaestro(data, onUpdate);
+
+  // Forzar modo edición si es un registro nuevo
+  useEffect(() => {
+    if (isNew) {
+      setEditMode(true);
+    }
+  }, [isNew, setEditMode]);
 
   const esPersonaje = data && typeof data === "object" && "sobre" in data;
   const esCriatura = data && !esPersonaje;
@@ -65,6 +81,10 @@ function DetalleContenido({ data, onClose, tags, onUpdate }: any) {
   const [loadingRelaciones, setLoadingRelaciones] = useState(true);
 
   useEffect(() => {
+    if (isNew) {
+      setLoadingRelaciones(false);
+      return;
+    }
     if (data?.id) {
       setLoadingRelaciones(true);
       if (esCriatura || (data?.relaciones && data.relaciones.length > 0)) {
@@ -74,26 +94,25 @@ function DetalleContenido({ data, onClose, tags, onUpdate }: any) {
         return () => clearTimeout(timer);
       }
     }
-  }, [data?.id, esCriatura]);
+  }, [data?.id, esCriatura, isNew]);
 
   const agregarVariante = () => {
-    if (!data?.id) return;
-    // Usamos la interfaz Variante importada
+    // Si es nuevo, quizás el ID aún no existe, podrías usar un placeholder o 0
     const nueva: Variante = { 
       tipo: "Nueva Variante", 
       descripcion_variante: "", 
       imagen_url: "", 
-      criatura_id: Number(data.id) 
+      criatura_id: data?.id ? Number(data.id) : 0
     };
     setVariantes([...variantes, nueva]);
   };
 
-  const imagenVisual = (varianteActiva?.imagen_url) || (data.img_url || data.imagen_url);
+  const imagenVisual = (varianteActiva?.imagen_url) || (data?.img_url || data?.imagen_url) || "/placeholder-image.png";
 
   return (
     <AnimatePresence mode="wait">
       <motion.div 
-        key={data.id}
+        key={isNew ? "new-record" : data.id}
         initial={{ opacity: 0, scale: 0.9, y: 30 }} 
         animate={{ opacity: 1, scale: 1, y: 0 }} 
         exit={{ opacity: 0, scale: 0.9, y: 30 }}
@@ -112,7 +131,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate }: any) {
               >
                 {editMode ? <Save size={24} className={saving ? "animate-spin" : "animate-pulse"} /> : <Edit3 size={24} />}
                 <span className="text-[11px] font-black uppercase tracking-[0.25em]">
-                  {saving ? "Procesando..." : (editMode ? "Confirmar Cambios" : "Modificar Registro")}
+                  {saving ? "Procesando..." : (editMode ? (isNew ? "Guardar Nuevo" : "Confirmar Cambios") : "Modificar Registro")}
                 </span>
               </motion.button>
             )}
@@ -140,15 +159,19 @@ function DetalleContenido({ data, onClose, tags, onUpdate }: any) {
                 <div className="space-y-12 w-full">
                   <div className="flex items-center gap-4 text-primary/30">
                     <Binary size={20} />
-                    <span className="text-[11px] font-black uppercase tracking-[0.4em] italic">Consola de Edición</span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.4em] italic">
+                      {isNew ? "Panel de Creación" : "Consola de Edición"}
+                    </span>
                   </div>
                   <div className="space-y-8">
                     <input 
+                      placeholder="Nombre del registro..."
                       value={editNombre || ""} 
                       onChange={(e) => setEditNombre(e.target.value)} 
                       className="text-4xl font-black uppercase italic text-primary w-full bg-primary/5 p-8 rounded-[3rem] outline-none" 
                     />
                     <textarea 
+                      placeholder="Escribe la descripción aquí..."
                       value={editDescripcion || ""} 
                       onChange={(e) => setEditDescripcion(e.target.value)} 
                       className="text-slate-600 text-xl italic leading-relaxed w-full bg-primary/5 p-12 rounded-[3.5rem] outline-none min-h-[400px] resize-none" 
@@ -233,8 +256,8 @@ function DetalleContenido({ data, onClose, tags, onUpdate }: any) {
                   <div className="h-40 bg-white rounded-[3rem] animate-pulse" />
                 ) : (
                   <Relaciones 
-                    nombrePersonaje={data.nombre} 
-                    datosRelaciones={data.relaciones || []} 
+                    nombrePersonaje={editNombre} 
+                    datosRelaciones={data?.relaciones || []} 
                     editMode={editMode} 
                     onChange={setEditRelaciones} 
                   />
