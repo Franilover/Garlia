@@ -189,8 +189,8 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
         <div className="bg-white rounded-[3rem] p-12 lg:p-20 shadow-2xl border border-primary/10">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
             <div className="space-y-8">
-              <h2 className="text-3xl font-black uppercase tracking-[0.2em] text-primary flex items-center gap-4">
-                <Users size={32}/> Relaciones
+              <h2 className="text-4xl font-black uppercase tracking-tighter text-primary flex items-center gap-4">
+                <Users size={36}/> Relaciones
               </h2>
               <div className="text-primary text-xl font-bold">
                 <Relaciones 
@@ -204,8 +204,8 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
             
             {mostrarMusica && (
               <div className="space-y-8">
-                <h2 className="text-3xl font-black uppercase tracking-[0.2em] text-primary flex items-center gap-4">
-                  <Music size={32}/> Multimedia
+                <h2 className="text-4xl font-black uppercase tracking-tighter text-primary flex items-center gap-4">
+                  <Music size={36}/> Multimedia
                 </h2>
                 <div>
                   {editMode ? (
