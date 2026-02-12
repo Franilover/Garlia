@@ -140,7 +140,7 @@ function DetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica 
               {/* ETIQUETA DINÁMICA: ESPECIE O ALMA */}
               <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white-custom px-8 py-3 rounded-xl text-sm font-black uppercase tracking-[0.15em] shadow-md whitespace-nowrap min-w-[180px] text-center">
                 {esPersonaje ? (
-                  <span>"Especie: {especie}"</span>
+                  <span>"{especie}"</span>
                 ) : (
                   <span>"Alma: {alma}"</span>
                 )}
