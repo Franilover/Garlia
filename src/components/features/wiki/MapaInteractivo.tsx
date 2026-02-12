@@ -94,7 +94,7 @@ export default function MapaInteractivo() {
             <div className="relative cursor-grab active:cursor-grabbing inline-block w-full">
               <img 
                 // Si estamos en un reino, usamos su mapa específico, si no, el fanart global
-                src={vistaActual === "reino" ? reinoSeleccionado.mapa_url : "/dibujos/fanart/mapa_mundial.jpg"} 
+                src={vistaActual === "reino" ? reinoSeleccionado.mapa_url : "/dibujos/fanart/01.jpg"} 
                 alt="Mapa"
                 className="w-full h-auto block pointer-events-none select-none"
                 onLoad={() => window.dispatchEvent(new Event("resize"))}
