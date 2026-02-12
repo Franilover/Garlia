@@ -29,9 +29,10 @@ const Marker = ({ x, y, info, onClick }) => (
 
 export default function MapaInteractivo() {
   const [reinos, setReinos] = useState([]);
-  const [vistaActual, setVistaActual] = useState("global"); // "global" o "reino"
+  const [vistaActual, setVistaActual] = useState("global");
   const [reinoSeleccionado, setReinoSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [cargandoImagen, setCargandoImagen] = useState(false); // Nuevo estado para la transición
   const mapRef = useRef(null);
 
   const onUpdate = useCallback(({ x, y, scale }) => {
@@ -52,11 +53,13 @@ export default function MapaInteractivo() {
   }, []);
 
   const handleReinoClick = (reino) => {
+    setCargandoImagen(true); // Empezamos a cargar la nueva imagen
     setReinoSeleccionado(reino);
     setVistaActual("reino");
   };
 
   const volverAlGlobal = () => {
+    setCargandoImagen(true); // También al volver al global
     setVistaActual("global");
     setReinoSeleccionado(null);
   };
@@ -74,7 +77,21 @@ export default function MapaInteractivo() {
       {/* SECCIÓN DEL MAPA */}
       <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
         
-        {/* Botón de Volver (Solo visible en vista de reino) */}
+        {/* Loader superpuesto cuando la imagen cambia */}
+        <AnimatePresence>
+          {cargandoImagen && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[60] bg-[#F8F5F2] flex flex-col items-center justify-center"
+            >
+              <Loader2 className="animate-spin text-[#6B5E70] mb-2" />
+              <span className="text-[8px] font-black uppercase tracking-widest text-[#6B5E70]/40">Cargando Cartografía...</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence>
           {vistaActual === "reino" && (
             <motion.button
@@ -93,37 +110,40 @@ export default function MapaInteractivo() {
           <div ref={mapRef} className="w-full h-full origin-top-left">
             <div className="relative cursor-grab active:cursor-grabbing inline-block w-full">
               <img 
-                // Si estamos en un reino, usamos su mapa específico, si no, el fanart global
-                src={vistaActual === "reino" ? reinoSeleccionado.mapa_url : "/dibujos/fanart/01.jpg"} 
+                // La clave (key) fuerza a React a destruir y recrear el elemento img,
+                // evitando que se vea la imagen anterior.
+                key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
+                src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/fanart/01.jpg"} 
                 alt="Mapa"
                 className="w-full h-auto block pointer-events-none select-none"
-                onLoad={() => window.dispatchEvent(new Event("resize"))}
+                onLoad={() => {
+                  window.dispatchEvent(new Event("resize"));
+                  setCargandoImagen(false); // Ocultar loader cuando la imagen termina de bajar
+                }}
               />
 
-              {/* Renderizado de Marcadores Dinámico */}
-              {vistaActual === "global" ? (
-                // En el mapa global, los marcadores llevan a la vista de reino
-                reinos.map((reino) => (
-                  <Marker 
-                    key={reino.id} 
-                    x={reino.coord_x} 
-                    y={reino.coord_y} 
-                    info={reino.nombre} 
-                    onClick={() => handleReinoClick(reino)} 
-                  />
-                ))
-              ) : (
-                /* Aquí podrías mapear puntos de interés específicos de ese reino
-                   reinoSeleccionado.puntos_interes.map(...) 
-                */
-                null
+              {/* Solo mostramos marcadores si NO estamos cargando la imagen */}
+              {!cargandoImagen && (
+                vistaActual === "global" ? (
+                  reinos.map((reino) => (
+                    <Marker 
+                      key={reino.id} 
+                      x={reino.coord_x} 
+                      y={reino.coord_y} 
+                      info={reino.nombre} 
+                      onClick={() => handleReinoClick(reino)} 
+                    />
+                  ))
+                ) : (
+                  null // Aquí irían tus puntos_interes
+                )
               )}
             </div>
           </div>
         </QuickPinchZoom>
       </div>
 
-      {/* SECCIÓN LATERAL DE DESCRIPCIÓN (Solo en vista de reino) */}
+      {/* SECCIÓN LATERAL */}
       <AnimatePresence>
         {vistaActual === "reino" && reinoSeleccionado && (
           <motion.div 
@@ -149,7 +169,6 @@ export default function MapaInteractivo() {
                 </p>
               </div>
               
-              {/* Espacio para más info: Clima, Población, etc. */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
                   <span className="block text-[8px] font-bold uppercase opacity-40">Coordenadas</span>
