@@ -107,8 +107,11 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
   const imagenVisual = (varianteActiva?.imagen_url) || (data?.img_url || data?.imagen_url) || "/placeholder.png";
 
   return (
-    /* CAMBIO CLAVE: Quitamos max-w-7xl y usamos el 98% del ancho de pantalla */
-    <div className="w-[98vw] max-w-[1920px] mx-auto relative pt-10 px-6 pb-32 space-y-8">
+    /* CAMBIO CLAVE: Usamos w-full para que ocupe todo el ancho sin desbordar. 
+       Aumentamos el max-w-screen-2xl para que en monitores muy grandes se vea gigante 
+       pero sin causar scroll lateral.
+    */
+    <div className="w-full max-w-[96%] xl:max-w-screen-2xl mx-auto relative pt-10 px-4 pb-32 space-y-8">
       <AnimatePresence>
         {showSuccess && (
           <motion.div 
@@ -128,7 +131,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         </button>
 
         <div className="flex flex-col lg:flex-row items-stretch">
-          {/* Mantenemos el tamaño fijo de la columna de imagen para que no crezca desproporcionalmente */}
+          {/* Tamaño de imagen respetado */}
           <div className="w-full lg:w-[450px] xl:w-[500px] flex-shrink-0 bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
             <div className="relative w-full aspect-square max-w-sm">
               <div className="w-full h-full rounded-full overflow-hidden border-[12px] border-white-custom shadow-xl bg-white-custom">
@@ -145,8 +148,8 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
             </div>
           </div>
 
-          {/* Esta columna ahora ocupará todo el espacio restante (flex-grow) */}
-          <div className="flex-1 p-12 lg:p-20 bg-white-custom/30">
+          {/* Esta columna crece lateralmente todo lo posible */}
+          <div className="flex-1 p-12 lg:p-20 bg-white-custom/30 overflow-hidden">
             <div className="flex items-center gap-4 mb-8 text-primary/60 font-black uppercase text-xs tracking-[0.3em]">
               {esPersonaje ? <Fingerprint size={24} /> : <Ghost size={24} />}
               <span>{esPersonaje ? "Expediente de Individuo" : "Registro de Entidad"}</span>
@@ -179,7 +182,8 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
                 <div className="w-20 h-2 bg-accent mb-10 rounded-full" />
-                <p className="text-primary/80 text-xl lg:text-2xl leading-relaxed font-medium mb-12 w-full">
+                {/* La descripción ahora se estirará hasta el final de la caja blanca */}
+                <p className="text-primary/80 text-xl lg:text-2xl leading-relaxed font-medium mb-12">
                   {varianteActiva ? (varianteActiva.descripcion_variante || "Sin registros.") : editDescripcion}
                 </p>
               </div>
@@ -188,9 +192,8 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         </div>
       </div>
 
-      {/* Los bloques de abajo también se expanden */}
       {(esPersonaje || editMode) && (
-        <div className="bg-white rounded-[3rem] p-12 lg:p-20 shadow-2xl border border-primary/10">
+        <div className="bg-white rounded-[3rem] p-12 lg:p-20 shadow-2xl border border-primary/10 w-full">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
             <div className="space-y-8">
               <h2 className="text-2xl font-black uppercase tracking-tighter text-primary flex items-center gap-4">
@@ -221,11 +224,9 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
               </div>
             )}
           </div>
-          {/* ... resto del código igual ... */}
         </div>
       )}
 
-      {/* Botones de administración fijos */}
       {isAdmin && (
         <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-4 bg-white/80 backdrop-blur-md p-4 rounded-[2rem] border border-primary/20 shadow-2xl">
           <button onClick={() => setEditMode(!editMode)} className={`btn-brand !px-6 ${editMode ? "!bg-accent !text-primary" : ""}`}>
