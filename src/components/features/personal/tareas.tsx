@@ -16,11 +16,11 @@ import {
   ChevronRight,
   Bookmark,
   BookOpen,
-  Clock // Nuevo icono para el reloj
+  Clock
 } from "lucide-react";
 
-// --- NUEVO COMPONENTE: RELOJ DIGITAL ---
-const RelojDigital = () => {
+// --- COMPONENTE: RELOJ DIGITAL CON ACTIVIDAD ACTUAL ---
+const RelojDigital = ({ horario }: { horario: any[] }) => {
   const [hora, setHora] = useState(new Date());
 
   useEffect(() => {
@@ -35,12 +35,41 @@ const RelojDigital = () => {
     hour12: false,
   });
 
+  // Buscamos si hay una actividad ocurriendo justo ahora
+  const actividadActual = useMemo(() => {
+    if (!horario || horario.length === 0) return null;
+    
+    // Obtenemos día (0-6) y hora actual en formato "HH:mm:ss"
+    const diaActual = hora.getDay(); 
+    const ahoraStr = hora.toLocaleTimeString("es-CL", { hour12: false });
+
+    return horario.find((item) => {
+      return (
+        item.dia_semana === diaActual &&
+        ahoraStr >= item.hora_inicio &&
+        ahoraStr <= item.hora_fin
+      );
+    });
+  }, [hora, horario]);
+
   return (
-    <div className="flex items-center gap-4 bg-primary text-white px-6 py-4 rounded-[25px] shadow-lg shadow-primary/20 mb-6">
-      <Clock size={20} className="animate-pulse" />
-      <div className="flex flex-col">
-        <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60 italic">Hora</span>
-        <span className="text-2xl font-black tracking-tighter tabular-nums italic">"{formatoHora}"</span>
+    <div className="flex flex-col sm:flex-row items-center gap-6 bg-primary text-white px-6 py-5 rounded-[30px] shadow-lg shadow-primary/20 mb-6 border border-white/10">
+      <div className="flex items-center gap-4">
+        <Clock size={24} className="animate-pulse text-white/80" />
+        <div className="flex flex-col">
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-50 italic">Tiempo Real</span>
+          <span className="text-3xl font-black tracking-tighter tabular-nums italic">"{formatoHora}"</span>
+        </div>
+      </div>
+
+      {/* Separador vertical solo visible en desktop */}
+      <div className="hidden sm:block h-10 w-[1px] bg-white/20 mx-2" />
+
+      <div className="flex flex-col items-center sm:items-start">
+        <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-50 italic">Actividad Programada</span>
+        <span className="text-sm font-black uppercase tracking-tight italic text-white/90">
+          {actividadActual ? `"${actividadActual.actividad}"` : '"Tiempo Libre"'}
+        </span>
       </div>
     </div>
   );
@@ -51,10 +80,13 @@ export const GestionPersonal = () => {
   const { data: tareas, loading: tLoading, setData: setTareas } = useSupabaseData<any>("tareas");
   const { data: eventos, loading: eLoading, setData: setEventos } = useSupabaseData<any>("eventos");
   
-  // --- CARGA DE CAPÍTULOS ---
+  // Carga de Capítulos
   const { data: capitulosRaw } = useSupabaseData<any>("capitulos", {
     select: "id, titulo_capitulo, fecha_publicacion, libro_id"
   });
+
+  // --- NUEVA CARGA: TABLA HORARIO ---
+  const { data: horarioRaw } = useSupabaseData<any>("horario");
 
   // 2. Estados de Tareas
   const [nuevaTarea, setNuevaTarea] = useState("");
@@ -65,7 +97,7 @@ export const GestionPersonal = () => {
   const [tipoEvento, setTipoEvento] = useState("Plan");
   const [isAddingEvento, setIsAddingEvento] = useState(false);
 
-  // 4. Estados de Navegación del Calendario (Ajustado a 2026 según tus instrucciones)
+  // 4. Estados de Navegación del Calendario (2026)
   const [fechaVisualizacion, setFechaVisualizacion] = useState(new Date(2026, 1, 1)); 
   const [diaSeleccionado, setDiaSeleccionado] = useState(new Date().getDate());
 
@@ -172,7 +204,8 @@ export const GestionPersonal = () => {
       
       {/* SECCIÓN TAREAS + RELOJ */}
       <section className="lg:col-span-5">
-        <RelojDigital /> {/* --- RELOJ INSERTADO AQUÍ --- */}
+        {/* Pasamos los datos del horario al reloj */}
+        <RelojDigital horario={horarioRaw || []} />
         
         <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 min-h-[520px] flex flex-col">
           <div className="flex items-center gap-3 mb-8 px-2">
@@ -220,6 +253,7 @@ export const GestionPersonal = () => {
       {/* SECCIÓN CALENDARIO */}
       <section className="lg:col-span-7">
         <div className="bg-white border border-primary/10 rounded-[40px] p-8 shadow-xl shadow-primary/5 h-full">
+          {/* ... Resto de tu componente de Calendario (sin cambios) ... */}
           <div className="flex items-center justify-between mb-10 px-2">
             <div className="flex items-center gap-3">
               <CalendarIcon className="text-primary" size={20} />
