@@ -19,7 +19,7 @@ import {
   Clock
 } from "lucide-react";
 
-// --- COMPONENTE: RELOJ DIGITAL CON ACTIVIDAD ACTUAL ---
+// --- COMPONENTE: RELOJ DIGITAL CON ACTIVIDAD ACTUAL (MULTIDÍA) ---
 const RelojDigital = ({ horario }: { horario: any[] }) => {
   const [hora, setHora] = useState(new Date());
 
@@ -35,17 +35,19 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
     hour12: false,
   });
 
-  // Buscamos si hay una actividad ocurriendo justo ahora
   const actividadActual = useMemo(() => {
     if (!horario || horario.length === 0) return null;
     
-    // Obtenemos día (0-6) y hora actual en formato "HH:mm:ss"
+    // Obtenemos día actual (0-6) y hora actual "HH:mm:ss"
     const diaActual = hora.getDay(); 
     const ahoraStr = hora.toLocaleTimeString("es-CL", { hour12: false });
 
     return horario.find((item) => {
+      // NUEVA LÓGICA: Verifica si el día actual está contenido en el array de días
+      const seRealizaHoy = item.dias_semana && item.dias_semana.includes(diaActual);
+      
       return (
-        item.dia_semana === diaActual &&
+        seRealizaHoy &&
         ahoraStr >= item.hora_inicio &&
         ahoraStr <= item.hora_fin
       );
@@ -58,11 +60,10 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
         <Clock size={24} className="animate-pulse text-white/80" />
         <div className="flex flex-col">
           <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-50 italic">Tiempo Real</span>
-          <span className="text-3xl font-black tracking-tighter tabular-nums italic">"{formatoHora}"</span>
+          <span className="text-3xl font-black tracking-tighter tabular-nums italic">{formatoHora}</span>
         </div>
       </div>
 
-      {/* Separador vertical solo visible en desktop */}
       <div className="hidden sm:block h-10 w-[1px] bg-white/20 mx-2" />
 
       <div className="flex flex-col items-center sm:items-start">
@@ -80,12 +81,11 @@ export const GestionPersonal = () => {
   const { data: tareas, loading: tLoading, setData: setTareas } = useSupabaseData<any>("tareas");
   const { data: eventos, loading: eLoading, setData: setEventos } = useSupabaseData<any>("eventos");
   
-  // Carga de Capítulos
   const { data: capitulosRaw } = useSupabaseData<any>("capitulos", {
     select: "id, titulo_capitulo, fecha_publicacion, libro_id"
   });
 
-  // --- NUEVA CARGA: TABLA HORARIO ---
+  // Carga de la tabla Horario (ahora con soporte para arrays dias_semana)
   const { data: horarioRaw } = useSupabaseData<any>("horario");
 
   // 2. Estados de Tareas
@@ -97,7 +97,7 @@ export const GestionPersonal = () => {
   const [tipoEvento, setTipoEvento] = useState("Plan");
   const [isAddingEvento, setIsAddingEvento] = useState(false);
 
-  // 4. Estados de Navegación del Calendario (2026)
+  // 4. Estados de Calendario (2026)
   const [fechaVisualizacion, setFechaVisualizacion] = useState(new Date(2026, 1, 1)); 
   const [diaSeleccionado, setDiaSeleccionado] = useState(new Date().getDate());
 
@@ -106,14 +106,12 @@ export const GestionPersonal = () => {
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
   ];
 
-  // --- LÓGICA DINÁMICA DEL CALENDARIO ---
   const { diasEnMes, primerDiaSemana, mesActual, añoActual } = useMemo(() => {
     const año = fechaVisualizacion.getFullYear();
     const mes = fechaVisualizacion.getMonth();
     const dias = new Date(año, mes + 1, 0).getDate();
     let primerDia = new Date(año, mes, 1).getDay();
     primerDia = primerDia === 0 ? 6 : primerDia - 1; 
-
     return { diasEnMes: dias, primerDiaSemana: primerDia, mesActual: mes, añoActual: año };
   }, [fechaVisualizacion]);
 
@@ -121,7 +119,7 @@ export const GestionPersonal = () => {
     setFechaVisualizacion(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
   };
 
-  // --- LÓGICA DE TAREAS ---
+  // --- HANDLERS TAREAS ---
   const handleAddTarea = async () => {
     if (!nuevaTarea.trim() || isAddingTarea) return;
     setIsAddingTarea(true);
@@ -148,12 +146,11 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); }
   };
 
-  // --- LÓGICA DE EVENTOS ---
+  // --- HANDLERS EVENTOS ---
   const handleAddEvento = async () => {
     if (!nuevoEvento.trim() || isAddingEvento) return;
     setIsAddingEvento(true);
     const fechaISO = new Date(añoActual, mesActual, diaSeleccionado).toISOString();
-    
     try {
       const creado = await eventosQueries.add({
         titulo: nuevoEvento,
@@ -167,7 +164,6 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); } finally { setIsAddingEvento(false); }
   };
 
-  // --- UNIFICAR EVENTOS Y CAPÍTULOS ---
   const itemsCombinadosDelDia = useMemo(() => {
     const evs = eventos.filter((e: any) => {
       const d = new Date(e.fecha);
@@ -183,7 +179,6 @@ export const GestionPersonal = () => {
       tipo: "Lanzamiento Libro",
       esCapitulo: true
     }));
-
     return [...evs, ...caps];
   }, [eventos, capitulosRaw, diaSeleccionado, mesActual, añoActual]);
 
@@ -202,9 +197,8 @@ export const GestionPersonal = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       
-      {/* SECCIÓN TAREAS + RELOJ */}
+      {/* COLUMNA IZQUIERDA: RELOJ Y TAREAS */}
       <section className="lg:col-span-5">
-        {/* Pasamos los datos del horario al reloj */}
         <RelojDigital horario={horarioRaw || []} />
         
         <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 min-h-[520px] flex flex-col">
@@ -250,10 +244,9 @@ export const GestionPersonal = () => {
         </div>
       </section>
 
-      {/* SECCIÓN CALENDARIO */}
+      {/* COLUMNA DERECHA: CALENDARIO Y EVENTOS */}
       <section className="lg:col-span-7">
         <div className="bg-white border border-primary/10 rounded-[40px] p-8 shadow-xl shadow-primary/5 h-full">
-          {/* ... Resto de tu componente de Calendario (sin cambios) ... */}
           <div className="flex items-center justify-between mb-10 px-2">
             <div className="flex items-center gap-3">
               <CalendarIcon className="text-primary" size={20} />
@@ -275,7 +268,6 @@ export const GestionPersonal = () => {
               const dia = i + 1;
               const estaSeleccionado = dia === diaSeleccionado;
               const tieneAlgo = tieneAlgoElDia(dia);
-
               return (
                 <motion.div key={dia} onClick={() => setDiaSeleccionado(dia)} whileHover={{ scale: 1.05 }}
                   className={cn("aspect-square rounded-2xl border flex flex-col items-center justify-center relative transition-all cursor-pointer", estaSeleccionado ? "bg-primary text-white border-primary shadow-lg shadow-primary/30" : "bg-primary/5 border-transparent text-primary/60 hover:bg-white hover:border-primary/20")}>
@@ -310,15 +302,12 @@ export const GestionPersonal = () => {
           </div>
 
           <div className="pt-6 border-t border-primary/5">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-primary/30 mb-4 px-2">Planes para el {diaSeleccionado} de {mesesNombres[mesActual]}</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-primary/30 mb-4 px-2">Planes para el {diaSeleccionado}</h3>
             <div className="space-y-3">
               {itemsCombinadosDelDia.length > 0 ? (
                 itemsCombinadosDelDia.map((item: any) => (
                   <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={item.id} 
-                    className={cn(
-                      "flex items-center gap-4 p-4 rounded-3xl border transition-all",
-                      item.esCapitulo ? "bg-primary/10 border-primary/10" : "bg-primary/5 border-transparent"
-                    )}>
+                    className={cn("flex items-center gap-4 p-4 rounded-3xl border transition-all", item.esCapitulo ? "bg-primary/10 border-primary/10" : "bg-primary/5 border-transparent")}>
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
                        {item.esCapitulo ? <BookOpen size={18} className="text-primary" /> : <span className="text-[14px] font-black text-primary">{diaSeleccionado}</span>}
                     </div>
