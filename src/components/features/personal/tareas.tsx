@@ -60,7 +60,7 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
         <Clock size={24} className="animate-pulse text-white/80" />
         <div className="flex flex-col">
           <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-50 italic">Tiempo Real</span>
-          <span className="text-3xl font-black tracking-tighter tabular-nums italic">{formatoHora}</span>
+          <span className="text-3xl font-black tracking-tighter tabular-nums italic">{formatoHora}z</span>
         </div>
       </div>
 
@@ -69,7 +69,7 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
       <div className="flex flex-col items-center sm:items-start">
         <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-50 italic">Actividad Programada</span>
         <span className="text-sm font-black uppercase tracking-tight italic text-white/90">
-          {actividadActual ? `"${actividadActual.actividad}"` : '"Tiempo Libre"'}
+          {actividadActual ? `${actividadActual.actividad}` : 'Tiempo Libre'}
         </span>
       </div>
     </div>
