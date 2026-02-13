@@ -1,68 +1,67 @@
 import { precacheAndRoute } from 'workbox-precaching';
+import { registerRoute } from 'workbox-routing';
+import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
 
-// 1. INYECCIÓN DE MANIFIESTO (Obligatorio para next-pwa)
-// Esta línea permite que la librería gestione el modo offline y el caché.
+// 1. INYECCIÓN DE MANIFIESTO
 precacheAndRoute(self.__WB_MANIFEST);
 
-// 2. EVENTO DE INSTALACIÓN
-self.addEventListener('install', (event) => {
-  console.log('SW: Instalando y saltando espera...');
+// 2. CACHÉ DINÁMICA DE IMÁGENES (Para ver fotos sin internet)
+registerRoute(
+  ({ request }) => request.destination === 'image',
+  new CacheFirst({
+    cacheName: 'images-franilover-cache',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
+      }),
+    ],
+  })
+);
+
+// 3. EVENTO DE INSTALACIÓN
+self.addEventListener('install', () => {
+  console.log('SW: Instalando...');
   self.skipWaiting();
 });
 
-// 3. EVENTO DE ACTIVACIÓN
+// 4. EVENTO DE ACTIVACIÓN
 self.addEventListener('activate', (event) => {
-  console.log('SW: Activado y reclamando clientes...');
   event.waitUntil(clients.claim());
 });
 
-// 4. EVENTO PUSH (Recibir la notificación con imagen)
+// 5. EVENTO PUSH
 self.addEventListener('push', function(event) {
-  console.log('SW: Señal Push recibida');
-  
   if (event.data) {
     try {
       const data = event.data.json();
-      
       const options = {
         body: data.body,
-        icon: '/icon.png',    // Tu logo
-        badge: '/icon.png',   // Icono pequeño de la barra de estado
-        image: data.image,    // <--- LA MINIATURA DEL DIBUJO
+        icon: '/icon.png',
+        badge: '/icon.png',
+        image: data.image,
         vibrate: [100, 50, 100],
-        data: {
-          url: data.url || '/'
-        }
+        data: { url: data.url || '/' }
       };
-
-      event.waitUntil(
-        self.registration.showNotification(data.title, options)
-      );
+      event.waitUntil(self.registration.showNotification(data.title, options));
     } catch (e) {
-      console.error('Error al parsear el JSON de la notificación:', e);
+      console.error('Error Push:', e);
     }
   }
 });
 
-// 5. EVENTO CLICK (Abrir o enfocar la web)
+// 6. EVENTO CLICK NOTIFICACIÓN
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  
   const targetUrl = event.notification.data.url;
-
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      // Si ya hay una pestaña abierta con nuestra web, la enfocamos
       for (var i = 0; i < windowClients.length; i++) {
         var client = windowClients[i];
-        if (client.url === targetUrl && 'focus' in client) {
-          return client.focus();
-        }
+        if (client.url === targetUrl && 'focus' in client) return client.focus();
       }
-      // Si no hay ninguna abierta, abrimos una nueva
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );
 });

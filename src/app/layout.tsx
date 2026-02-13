@@ -1,10 +1,12 @@
+import { Montserrat } from 'next/font/google';
 import { LightboxProvider } from "@/components/shared/modal/lightbox/"; 
 import { AuthProvider } from "@/components/features/control/authContext"; 
 import { DataProvider } from "@/components/features/control/DataContext"; 
 import AppLogic from "./AppLogic";
 import "../components/tailwind.css";
 
-import { Montserrat } from 'next/font/google';
+// IMPORTANTE: Este componente activa el hook en el lado del cliente
+import { OfflineSyncActivator } from "./OfflineSyncActivator";
 
 const montserrat = Montserrat({ 
   subsets: ['latin'],
@@ -31,12 +33,14 @@ export const viewport = {
   themeColor: '#000000',
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={montserrat.variable}>
       <body className={`${montserrat.className} antialiased bg-[#F0F0F0] min-h-screen flex flex-col`}>
+        {/* Este componente activa la lógica offline sin romper los metadatos */}
+        <OfflineSyncActivator />
+
         <AuthProvider>
-          {/* El DataProvider debe envolver a AppLogic y children */}
           <DataProvider> 
             <LightboxProvider>
               <div className="flex-grow">
