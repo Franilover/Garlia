@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Loader2, ChevronRight, Compass, ArrowLeft, House } from "lucide-react";
+import { X, MapPin, Loader2, ChevronRight, Compass, ArrowLeft, House, Save, Edit3 } from "lucide-react";
 import QuickPinchZoom, { make3dTransformValue } from "react-quick-pinch-zoom";
 import { supabase } from "@/lib/api/supabase";
 
@@ -39,6 +39,11 @@ export default function MapaInteractivo() {
   const [puntoSeleccionado, setPuntoSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cargandoImagen, setCargandoImagen] = useState(false);
+  
+  // Estados para la edición
+  const [editMode, setEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
   const mapRef = useRef(null);
 
   const onUpdate = useCallback(({ x, y, scale }) => {
@@ -59,10 +64,14 @@ export default function MapaInteractivo() {
   }, []);
 
   const handleReinoClick = async (reino) => {
+    if (editMode) {
+        setReinoSeleccionado(reino);
+        return;
+    }
+    
     setCargandoImagen(true);
     setReinoSeleccionado(reino);
     
-    // Traemos los puntos de la nueva tabla reino_detalles
     const { data, error } = await supabase
       .from("reino_detalles")
       .select("*")
@@ -74,12 +83,79 @@ export default function MapaInteractivo() {
     setVistaActual("reino");
   };
 
+  const handleMapClick = (e) => {
+    if (!editMode) return;
+
+    // Calculamos la posición relativa al contenedor de la imagen (0-100%)
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    if (puntoSeleccionado) {
+      setPuntoSeleccionado({ 
+        ...puntoSeleccionado, 
+        coord_x: parseFloat(x.toFixed(2)), 
+        coord_y: parseFloat(y.toFixed(2)) 
+      });
+    } else if (reinoSeleccionado && vistaActual === "global") {
+      setReinoSeleccionado({ 
+        ...reinoSeleccionado, 
+        coord_x: parseFloat(x.toFixed(2)), 
+        coord_y: parseFloat(y.toFixed(2)) 
+      });
+      // Actualización visual inmediata en el array de reinos
+      setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? 
+        { ...r, coord_x: x.toFixed(2), coord_y: y.toFixed(2) } : r
+      ));
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    try {
+      if (puntoSeleccionado) {
+        const { error } = await supabase
+          .from("reino_detalles")
+          .update({
+            nombre: puntoSeleccionado.nombre,
+            descripcion: puntoSeleccionado.descripcion,
+            coord_x: puntoSeleccionado.coord_x,
+            coord_y: puntoSeleccionado.coord_y
+          })
+          .eq("id", puntoSeleccionado.id);
+        
+        if (error) throw error;
+        setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? puntoSeleccionado : p));
+      } else if (reinoSeleccionado) {
+        const { error } = await supabase
+          .from("reinos")
+          .update({
+            nombre: reinoSeleccionado.nombre,
+            descripcion: reinoSeleccionado.descripcion,
+            coord_x: reinoSeleccionado.coord_x,
+            coord_y: reinoSeleccionado.coord_y
+          })
+          .eq("id", reinoSeleccionado.id);
+
+        if (error) throw error;
+        setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? reinoSeleccionado : r));
+      }
+      setEditMode(false);
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      alert("No se pudieron guardar los cambios.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const volverAlGlobal = () => {
     setCargandoImagen(true);
     setVistaActual("global");
     setReinoSeleccionado(null);
     setPuntoSeleccionado(null);
     setDetallesReino([]);
+    setEditMode(false);
   };
 
   if (loading) return (
@@ -95,7 +171,28 @@ export default function MapaInteractivo() {
       {/* SECCIÓN DEL MAPA */}
       <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
         
-        {/* Pantalla de carga para la transición de imágenes */}
+        {/* Controles de Edición Flotantes */}
+        <div className="absolute top-6 right-6 z-[70] flex gap-2">
+            <button 
+              onClick={() => setEditMode(!editMode)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-xl border ${editMode ? "bg-red-500 text-white border-red-600" : "bg-white text-[#6B5E70] border-[#6B5E70]/20"}`}
+            >
+              {editMode ? <X size={14} /> : <Edit3 size={14} />}
+              {editMode ? "Cancelar" : "Editar Mapa"}
+            </button>
+            
+            {editMode && (
+              <button 
+                onClick={handleSaveChanges}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-full text-[10px] font-black uppercase shadow-xl hover:bg-green-700 disabled:opacity-50 transition-all"
+              >
+                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Guardar
+              </button>
+            )}
+        </div>
+
         <AnimatePresence>
           {cargandoImagen && (
             <motion.div 
@@ -124,9 +221,12 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
-        <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5}>
+        <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5} enabled={!editMode}>
           <div ref={mapRef} className="w-full h-full origin-top-left">
-            <div className="relative cursor-grab active:cursor-grabbing inline-block w-full">
+            <div 
+              className={`relative inline-block w-full ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+              onClick={handleMapClick}
+            >
               <img 
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/fanart/01.jpg"} 
@@ -181,38 +281,68 @@ export default function MapaInteractivo() {
             <div className="mb-4 flex items-center gap-2">
                <div className="h-1px w-8 bg-[#6B5E70]/30" />
                <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.2em]">
-                 {puntoSeleccionado ? "Lugar Hallado" : "Explorando Territorio"}
+                 {editMode ? "Editando Información" : (puntoSeleccionado ? "Lugar Hallado" : "Explorando Territorio")}
                </span>
             </div>
 
-            <h2 className="text-[#6B5E70] font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
-              {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
-            </h2>
-
-            <div className="space-y-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
-              <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/5">
-                <p className="text-[#6B5E70] text-sm italic leading-relaxed">
-                  "{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}"
-                </p>
-              </div>
-              
-              {!puntoSeleccionado && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
-                    <span className="block text-[8px] font-bold uppercase opacity-40">Ubicación</span>
-                    <span className="text-[10px] font-black text-[#6B5E70]">{reinoSeleccionado.coord_x} / {reinoSeleccionado.coord_y}</span>
-                  </div>
-                  <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
-                    <span className="block text-[8px] font-bold uppercase opacity-40">Orden</span>
-                    <span className="text-[10px] font-black text-[#6B5E70]">Nivel {reinoSeleccionado.orden}</span>
-                  </div>
+            {editMode ? (
+              <div className="flex flex-col gap-4 flex-grow">
+                <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold uppercase text-[#6B5E70]/50 ml-2">Nombre del Lugar</label>
+                    <input 
+                        type="text"
+                        value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
+                        onChange={(e) => {
+                            if (puntoSeleccionado) setPuntoSeleccionado({...puntoSeleccionado, nombre: e.target.value});
+                            else setReinoSeleccionado({...reinoSeleccionado, nombre: e.target.value});
+                        }}
+                        className="w-full bg-[#6B5E70]/5 border border-[#6B5E70]/10 rounded-xl p-4 text-[#6B5E70] font-black uppercase text-xl outline-none focus:bg-white transition-all"
+                    />
                 </div>
-              )}
-            </div>
+                <div className="flex flex-col gap-1 flex-grow">
+                    <label className="text-[9px] font-bold uppercase text-[#6B5E70]/50 ml-2">Descripción / Lore</label>
+                    <textarea 
+                        value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
+                        onChange={(e) => {
+                            if (puntoSeleccionado) setPuntoSeleccionado({...puntoSeleccionado, descripcion: e.target.value});
+                            else setReinoSeleccionado({...reinoSeleccionado, descripcion: e.target.value});
+                        }}
+                        className="w-full bg-[#6B5E70]/5 border border-[#6B5E70]/10 rounded-xl p-4 text-[#6B5E70] text-sm italic leading-relaxed outline-none focus:bg-white transition-all h-40 resize-none"
+                    />
+                </div>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-[#6B5E70] font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
+                  {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
+                </h2>
 
-            {/* Botón de acción */}
+                <div className="space-y-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/5">
+                    <p className="text-[#6B5E70] text-sm italic leading-relaxed">
+                      "{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}"
+                    </p>
+                  </div>
+                  
+                  {!puntoSeleccionado && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
+                        <span className="block text-[8px] font-bold uppercase opacity-40">Ubicación</span>
+                        <span className="text-[10px] font-black text-[#6B5E70]">{reinoSeleccionado.coord_x} / {reinoSeleccionado.coord_y}</span>
+                      </div>
+                      <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
+                        <span className="block text-[8px] font-bold uppercase opacity-40">Orden</span>
+                        <span className="text-[10px] font-black text-[#6B5E70]">Nivel {reinoSeleccionado.orden}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Botón de acción lateral */}
             <div className="mt-8 flex flex-col gap-3">
-              {puntoSeleccionado && (
+              {puntoSeleccionado && !editMode && (
                 <button 
                   onClick={() => setPuntoSeleccionado(null)}
                   className="w-full bg-[#F8F5F2] text-[#6B5E70] text-[10px] font-black uppercase py-3 rounded-xl border border-[#6B5E70]/10 hover:bg-white transition-all"
@@ -220,9 +350,11 @@ export default function MapaInteractivo() {
                   Volver al Reino
                 </button>
               )}
-              <button className="w-full bg-[#6B5E70] text-white text-[11px] font-black uppercase py-5 px-8 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#5a4e5f] transition-all shadow-lg shadow-[#6B5E70]/20">
-                {puntoSeleccionado ? "Ver Lore del Punto" : "Ver personajes de este Reino"} <ChevronRight size={16} />
-              </button>
+              {!editMode && (
+                <button className="w-full bg-[#6B5E70] text-white text-[11px] font-black uppercase py-5 px-8 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#5a4e5f] transition-all shadow-lg shadow-[#6B5E70]/20">
+                  {puntoSeleccionado ? "Ver Lore del Punto" : "Ver personajes de este Reino"} <ChevronRight size={16} />
+                </button>
+              )}
             </div>
           </motion.div>
         )}
