@@ -1,37 +1,56 @@
 import { precacheAndRoute } from 'workbox-precaching';
-import { registerRoute } from 'workbox-routing';
-import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { registerRoute, NavigationRoute } from 'workbox-routing';
+import { CacheFirst, NetworkOnly } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 
-// 1. INYECCIÓN DE MANIFIESTO
+// 1. INYECCIÓN DE MANIFIESTO (Obligatorio para next-pwa)
+// Esto guarda los archivos locales (JS, CSS, HTML) generados en el build.
 precacheAndRoute(self.__WB_MANIFEST);
 
-// 2. CACHÉ DINÁMICA DE IMÁGENES (Para ver fotos sin internet)
+// 2. CACHÉ DE IMÁGENES (GitHub y locales)
+// Captura imágenes de tu repo de GitHub y las guarda hasta por 60 días.
 registerRoute(
-  ({ request }) => request.destination === 'image',
+  ({ request, url }) => 
+    request.destination === 'image' || 
+    url.origin.includes('githubusercontent.com'),
   new CacheFirst({
-    cacheName: 'images-franilover-cache',
+    cacheName: 'franilover-images-cache',
     plugins: [
       new ExpirationPlugin({
-        maxEntries: 60,
-        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
+        maxEntries: 100,
+        maxAgeSeconds: 60 * 24 * 60 * 60, 
       }),
     ],
   })
 );
 
-// 3. EVENTO DE INSTALACIÓN
+// 3. ESTRATEGIA DE NAVEGACIÓN (Evita la pantalla "No internet connection")
+const networkOnly = new NetworkOnly();
+
+const navigationRoute = new NavigationRoute(async (params) => {
+  try {
+    // Intenta cargar por red siempre que sea posible
+    return await networkOnly.handle(params);
+  } catch (error) {
+    // Si no hay internet, devuelve el index.html precacheado (el App Shell)
+    return caches.match('/index.html') || caches.match('/');
+  }
+});
+
+registerRoute(navigationRoute);
+
+// 4. EVENTOS DE CICLO DE VIDA
 self.addEventListener('install', () => {
-  console.log('SW: Instalando...');
+  console.log('SW: Instalando y activando inmediatamente...');
   self.skipWaiting();
 });
 
-// 4. EVENTO DE ACTIVACIÓN
 self.addEventListener('activate', (event) => {
+  console.log('SW: Listo para servir contenido offline.');
   event.waitUntil(clients.claim());
 });
 
-// 5. EVENTO PUSH
+// 5. EVENTO PUSH (Notificaciones)
 self.addEventListener('push', function(event) {
   if (event.data) {
     try {
