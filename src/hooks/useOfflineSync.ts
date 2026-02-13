@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { db } from "../lib/db";
-import { supabase } from "../lib/supabase"; // Tu cliente de Supabase
+import { db } from "@/lib/db";
+import { supabase } from "@/lib/supabase"; // Tu cliente de Supabase
 
 export function useOfflineSync() {
   useEffect(() => {
