@@ -252,6 +252,7 @@ const Canciones = () => {
     e.preventDefault();
     if (!formState.editTitulo.trim() || modalState.isProcessing) return;
     dispatchModal({ type: "SET_PROCESSING", payload: true });
+    let success = false;
 
     try {
       const { data, error } = await supabase
@@ -272,12 +273,15 @@ const Canciones = () => {
       if (error) throw error;
       if (data) {
         setCanciones((prev: any[]) => prev.map(c => c.id === data[0].id ? data[0] : c));
-        dispatchModal({ type: "CLOSE_EDIT" });
+        success = true;
       }
     } catch (err) {
       console.error(err);
     } finally {
       dispatchModal({ type: "SET_PROCESSING", payload: false });
+      if (success) {
+        dispatchModal({ type: "CLOSE_EDIT" });
+      }
     }
   };
 
@@ -285,6 +289,7 @@ const Canciones = () => {
     e.preventDefault();
     if (!formState.nuevoTitulo.trim() || modalState.isProcessing) return;
     dispatchModal({ type: "SET_PROCESSING", payload: true });
+    let success = false;
 
     try {
       const { data, error } = await supabase
@@ -304,13 +309,16 @@ const Canciones = () => {
       if (error) throw error;
       if (data) {
         setCanciones((prev: any[]) => [data[0], ...prev]);
-        dispatchModal({ type: "CLOSE_ADD" });
-        dispatchForm({ type: "RESET_ADD" });
+        success = true;
       }
     } catch (err) {
       console.error(err);
     } finally {
       dispatchModal({ type: "SET_PROCESSING", payload: false });
+      if (success) {
+        dispatchModal({ type: "CLOSE_ADD" });
+        dispatchForm({ type: "RESET_ADD" });
+      }
     }
   };
 
@@ -445,15 +453,16 @@ const Canciones = () => {
                   <div className="flex flex-col sm:flex-row gap-4 pt-6">
                     <button 
                       type="submit" disabled={modalState.isProcessing}
-                      className="flex-[2] bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-[#6B5E70]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                      className="flex-[2] bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-[#6B5E70]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {modalState.isProcessing ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                      Guardar Cambios
+                      {modalState.isProcessing ? "Guardando..." : "Guardar Cambios"}
                     </button>
                     <button 
                       type="button"
                       onClick={() => handleDeleteCancion(modalState.selectedCancion.id)}
-                      className="flex-1 bg-red-50 text-red-500 py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3"
+                      disabled={modalState.isProcessing}
+                      className="flex-1 bg-red-50 text-red-500 py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Trash2 size={18} />
                       Borrar
@@ -514,8 +523,8 @@ const Canciones = () => {
                   </select>
                 </div>
 
-                <button type="submit" disabled={modalState.isProcessing} className="w-full bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all">
-                  {modalState.isProcessing ? "Registrando..." : "Crear Soliloquio"}
+                <button type="submit" disabled={modalState.isProcessing} className="w-full bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
+                  {modalState.isProcessing ? <><Loader2 className="animate-spin" size={16} />Registrando...</> : "Crear Soliloquio"}
                 </button>
               </form>
             </motion.div>
