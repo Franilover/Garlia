@@ -71,15 +71,15 @@ const Navbar = () => {
 
   return (
     <>
-      {/* PC NAVBAR: 
-         Cambiamos a 'fixed' para asegurar que siempre esté ahí, 
-         y usamos 'top-0 left-0' para que no flote mal.
-      */}
+      {/* PC NAVBAR */}
       <header className="hidden md:block fixed top-0 left-0 w-full z-[1000] bg-bg-main/80 backdrop-blur-md border-b border-primary/10">
         <div className="max-w-7xl mx-auto h-20 flex items-center justify-between px-8">
           <div className="flex items-center gap-6">
             <Link href="/" className="text-xl font-black italic tracking-tighter text-primary flex items-center gap-2">
-              <Flower2 size={20} /> <span>FRANI<span className="text-primary opacity-40">LOVER</span></span>
+              <Flower2 size={20} /> 
+              <span>
+                FRANI<span className="text-primary opacity-40">LOVER</span>
+              </span>
             </Link>
           </div>
 
@@ -143,10 +143,6 @@ const Navbar = () => {
         </div>
       </header>
 
-      {/* TIP IMPORTANTE: 
-         Añadimos un div que ocupe el mismo espacio que la Navbar (h-20) 
-         para que el contenido de abajo no se meta debajo de ella.
-      */}
       <div className="hidden md:block h-20 w-full" />
 
       {/* --- MÓVIL --- */}

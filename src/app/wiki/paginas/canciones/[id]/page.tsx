@@ -814,7 +814,7 @@ export default function CancionDetalle() {
       <div className="h-screen flex items-center justify-center bg-[#FDFCFD] flex-col gap-4">
         <AlertCircle className="text-red-400" size={48} />
         <p className="text-[#6B5E70] uppercase text-[10px] tracking-widest italic font-black">Acceso denegado o canción no encontrada</p>
-        <button onClick={() => router.push("/wiki/canciones")} className="mt-4 bg-[#6B5E70] text-white px-6 py-2 rounded-full font-black text-sm hover:bg-[#5A4D5F]">Volver</button>
+        <button onClick={() => router.push("/wiki/paginas/canciones")} className="mt-4 bg-[#6B5E70] text-white px-6 py-2 rounded-full font-black text-sm hover:bg-[#5A4D5F]">Volver</button>
       </div>
     );
   }
@@ -834,7 +834,7 @@ export default function CancionDetalle() {
         onSave={handleMassUpdate}
       />
 
-      <motion.button whileHover={{ x: -4 }} onClick={() => router.push("/wiki/canciones")} className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase transition-colors italic"><ChevronLeft size={16} />Volver al Cancionero</motion.button>
+      <motion.button whileHover={{ x: -4 }} onClick={() => router.push("/wiki/paginas/canciones")} className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase transition-colors italic"><ChevronLeft size={16} />Volver al Cancionero</motion.button>
 
       <div className={`mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4 transition-all duration-500 ${idiomasActivos.length > 1 ? "max-w-7xl" : "max-w-5xl"}`}>
         <aside className="space-y-6">
