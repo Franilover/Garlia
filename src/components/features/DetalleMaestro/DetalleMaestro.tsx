@@ -74,7 +74,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
 
   const agregarVariante = () => {
     const nueva: Variante = {
-      id: Date.now(), // Corregido: Ahora es un número para evitar el error TS2322
+      id: Date.now(), 
       tipo: "Nueva Variante",
       descripcion_variante: "",
       imagen_url: "",
@@ -174,12 +174,16 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                 </h2>
                 <div className="w-20 h-2 bg-accent mb-10 rounded-full" />
                 
+                {/* Selector de Variantes Dinámico */}
                 {!esPersonaje && variantes.length > 0 && (
-                   <SelectorVariantes 
-                    variantes={variantes} 
-                    varianteActiva={varianteActiva} 
-                    onSeleccionar={setVarianteActiva} 
-                   />
+                   <div className="mb-10">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/30 mb-4 ml-2">Variaciones Detectadas</p>
+                    <SelectorVariantes 
+                      variantes={variantes} 
+                      varianteActiva={varianteActiva} 
+                      onSeleccionar={setVarianteActiva} 
+                    />
+                   </div>
                 )}
 
                 <p className="text-primary/80 text-xl lg:text-2xl leading-relaxed font-medium mt-12 mb-12">
