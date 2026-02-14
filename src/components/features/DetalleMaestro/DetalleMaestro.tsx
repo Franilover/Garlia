@@ -9,7 +9,6 @@ import { useDetalleMaestro, type Variante } from "@/hooks/useDetalleMaestro";
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 import { SelectorVariantes } from "./SelectorVariantes";
 
-// Optimizamos: Props estables
 interface DetalleMaestroProps {
   isOpen: boolean;
   onClose: () => void;
@@ -63,7 +62,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
 
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Optimizamos lógica de flags
+  // Optimización: Memoización de flags para evitar re-renders costosos
   const esPersonaje = useMemo(() => 
     ("sobre" in data) || tags.some((t: string) => t.toLowerCase().includes("personaje")),
   [data, tags]);
@@ -109,7 +108,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
     }
   };
 
-  // Imagen optimizada (se carga con prioridad)
+  // Optimización de carga de imagen (Prioridad alta)
   const imagenVisual = (varianteActiva?.imagen_url) || (data?.img_url || data?.imagen_url) || "/placeholder.png";
 
   return (
@@ -117,9 +116,9 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
       <AnimatePresence>
         {showSuccess && (
           <motion.div 
-            initial={{ y: -40, opacity: 0 }} 
+            initial={{ y: -50, opacity: 0 }} 
             animate={{ y: 0, opacity: 1 }} 
-            exit={{ y: -40, opacity: 0 }} 
+            exit={{ y: -50, opacity: 0 }} 
             className="fixed top-10 left-1/2 -translate-x-1/2 z-3000 bg-accent text-primary px-10 py-5 rounded-full shadow-lg flex items-center gap-3 font-bold border border-primary/20"
           >
             <CheckCircle2 size={24} /> Registro Sincronizado
@@ -128,15 +127,15 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
       </AnimatePresence>
 
       <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl border border-primary/10 relative">
-        <button onClick={onClose} className="absolute top-8 right-8 z-50 p-4 bg-bg-main text-primary rounded-full hover:bg-accent transition-colors border border-primary/10">
+        <button onClick={onClose} className="absolute top-8 right-8 z-50 p-4 bg-bg-main text-primary rounded-full hover:bg-accent transition-all border border-primary/10">
           <X size={28} />
         </button>
 
         <div className="flex flex-col lg:flex-row items-stretch">
+          {/* LADO IZQUIERDO: VISUAL */}
           <div className="w-full lg:w-112.5 xl:w-125 shrink-0 bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
             <div className="relative w-full aspect-square max-w-sm">
               <div className="w-full h-full rounded-full overflow-hidden border-12 border-white-custom shadow-xl bg-white-custom">
-                {/* img nativa optimizada */}
                 <img 
                   src={imagenVisual} 
                   className="w-full h-full object-cover" 
@@ -151,37 +150,38 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
             </div>
           </div>
 
-          <div className="flex-1 p-12 lg:p-20 bg-white-custom/30">
+          {/* LADO DERECHO: CONTENIDO */}
+          <div className="flex-1 p-8 lg:p-16 bg-white-custom/30 overflow-hidden flex flex-col justify-center">
             {editMode ? (
-              <div className="space-y-10">
-                <div className="space-y-3">
-                  <label className="text-xs font-black text-primary/40 uppercase ml-4">Nombre</label>
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-4">Nombre</label>
                   <input 
                     value={editNombre} 
                     onChange={(e) => setEditNombre(e.target.value)} 
-                    className="input-brand text-4xl! p-6! bg-white/50!" 
-                    placeholder="Nombre del registro..."
+                    className="input-brand text-3xl! lg:text-4xl! p-5! bg-white/50! w-full" 
+                    placeholder="Nombre..."
                   />
                 </div>
-                <div className="space-y-3">
-                  <label className="text-xs font-black text-primary/40 uppercase ml-4">Descripción</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-4">Descripción</label>
                   <textarea 
                     value={editDescripcion} 
                     onChange={(e) => setEditDescripcion(e.target.value)} 
-                    className="input-brand text-xl! leading-relaxed! p-8! min-h-75 resize-none bg-white/50! w-full"
-                    placeholder="Escribe la historia aquí..."
+                    className="input-brand text-lg! leading-relaxed! p-6! min-h-60 resize-none bg-white/50! w-full"
+                    placeholder="Escribe la historia..."
                   />
                 </div>
               </div>
             ) : (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <h2 className="text-6xl lg:text-7xl font-black text-primary leading-tight mb-8 tracking-tighter uppercase italic">
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 w-full max-w-full">
+                <h2 className="text-4xl lg:text-6xl font-black text-primary leading-[1.1] mb-6 tracking-tighter uppercase italic break-words">
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
-                <div className="w-20 h-2 bg-accent mb-10 rounded-full" />
+                <div className="w-16 h-1.5 bg-accent mb-8 rounded-full" />
                 
                 {!esPersonaje && variantes.length > 0 && (
-                   <div className="mb-10">
+                   <div className="mb-8">
                     <SelectorVariantes 
                       variantes={variantes} 
                       varianteActiva={varianteActiva} 
@@ -190,8 +190,8 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                    </div>
                 )}
 
-                <p className="text-primary/80 text-xl lg:text-2xl leading-relaxed font-medium mt-12 mb-12">
-                  {varianteActiva ? (varianteActiva.descripcion_variante || "Sin registros.") : editDescripcion}
+                <p className="text-primary/80 text-lg lg:text-xl leading-relaxed font-medium break-words">
+                  {varianteActiva ? (varianteActiva.descripcion_variante || "Sin registros descriptivos.") : editDescripcion}
                 </p>
               </div>
             )}
@@ -199,11 +199,11 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         </div>
       </div>
 
-      {/* Secciones de Administración (Carga diferida lógica) */}
+      {/* GESTIÓN DE VARIANTES (Solo Admin y Criaturas) */}
       {editMode && !esPersonaje && (
         <div className="bg-white rounded-[3rem] p-12 shadow-2xl border border-primary/10">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-black uppercase italic">Variantes</h3>
+            <h3 className="text-2xl font-black uppercase italic tracking-tighter">Variantes del Registro</h3>
             <button onClick={agregarVariante} className="btn-brand bg-accent! text-primary!">
               <Plus size={20} /> Nueva Variante
             </button>
@@ -214,13 +214,13 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                 <div className="flex gap-4">
                   <div className="flex-1 space-y-2">
                     <input 
-                      placeholder="Elemento/Tipo" 
+                      placeholder="Tipo (Ej: Fuego)" 
                       className="input-brand p-3! text-sm!"
                       value={v.tipo}
                       onChange={(e) => actualizarVariante(idx, "tipo", e.target.value)}
                     />
                     <input 
-                      placeholder="URL de imagen" 
+                      placeholder="URL Imagen" 
                       className="input-brand p-3! text-xs!"
                       value={v.imagen_url}
                       onChange={(e) => actualizarVariante(idx, "imagen_url", e.target.value)}
@@ -242,6 +242,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         </div>
       )}
 
+      {/* SECCIONES INFERIORES: RELACIONES Y MÚSICA */}
       {(esPersonaje || editMode) && (
         <div className="bg-white rounded-[3rem] p-12 lg:p-20 shadow-2xl border border-primary/10">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
@@ -264,9 +265,13 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         </div>
       )}
 
-      {/* Floating Admin Menu */}
+      {/* BARRA FLOTANTE DE ACCIONES ADMIN */}
       {isAdmin && (
-        <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-1100 flex items-center gap-4 bg-white/90 backdrop-blur-md p-4 rounded-full border border-primary/20 shadow-2xl">
+        <motion.div 
+          initial={{ y: 50, opacity: 0 }} 
+          animate={{ y: 0, opacity: 1 }} 
+          className="fixed bottom-10 left-1/2 -translate-x-1/2 z-1100 flex items-center gap-4 bg-white/90 backdrop-blur-md p-4 rounded-full border border-primary/20 shadow-2xl"
+        >
           <button onClick={() => setEditMode(!editMode)} className={`btn-brand px-6! ${editMode ? "bg-accent! text-primary!" : ""}`}>
             {editMode ? <X size={20} /> : <Edit3 size={20} />}
             <span className="text-[10px] font-black uppercase tracking-widest">{editMode ? "Cerrar" : "Editar"}</span>
