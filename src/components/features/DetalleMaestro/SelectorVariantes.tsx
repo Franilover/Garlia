@@ -77,4 +77,4 @@ export const SelectorVariantes = ({ variantes = [], varianteActiva, onSelecciona
       })}
     </div>
   );
-};;
+};
