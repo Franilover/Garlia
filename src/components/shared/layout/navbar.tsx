@@ -91,14 +91,14 @@ const Navbar = () => {
               className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl", 
               isInSection("/personal") && !isInSection("/personal/cocina") ? "bg-white text-primary shadow-sm" : "text-primary/40 hover:text-primary")}
             >
-              "Personal"
+              Personal
             </Link>
             <Link 
               href="/wiki" 
               className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl", 
               isInSection("/wiki") && currentPath !== "/wiki/personal" ? "bg-white text-primary shadow-sm" : "text-primary/40 hover:text-primary")}
             >
-              "Wiki"
+              Wiki
             </Link>
 
             {esFranilover && (
@@ -166,7 +166,7 @@ const Navbar = () => {
               </div>
 
               <Link href="/wiki/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                <Sword size={18}/> "Mi Personaje"
+                <Sword size={18}/> Mi Personaje
               </Link>
 
               {puedeSubir && (
