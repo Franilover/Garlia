@@ -8,8 +8,7 @@ import { useAuth } from "@/components/features/control/authContext";
 import { supabase } from "@/lib/api/supabase";
 import { useScrollVisibility } from "@/hooks/useScrollVisibility";
 import { 
-  User, LogOut, Plus, 
-  Camera, Sparkles, 
+  LogOut, Plus, Camera, Sparkles, 
   CircleUser, Flower2, Sword,
   Utensils, CheckSquare 
 } from "lucide-react";
@@ -41,42 +40,45 @@ const Navbar = () => {
 
   const isInSection = (path: string) => currentPath?.startsWith(path);
 
-  const navContent = useMemo(() => (
-    <div className="flex w-full items-center justify-around px-2 h-full">
+  // --- CONTENIDO MÓVIL: 3 OPCIONES ---
+  const navContentMobile = useMemo(() => (
+    <div className="flex w-full items-center justify-between px-8 h-full">
+      
+      {/* 1. PERSONAL (IZQUIERDA) */}
+      <Link href="/personal" onClick={closeAll} className="flex flex-col items-center gap-1">
+        <Camera size={22} className={isInSection("/personal") && !isInSection("/personal/cocina") && !isInSection("/personal/tareas") ? "text-primary" : "text-primary/30"} />
+        <span className={cn("text-[7px] font-black uppercase tracking-widest", isInSection("/personal") && !isInSection("/personal/cocina") ? "text-primary" : "text-primary/20")}>
+          "Personal"
+        </span>
+      </Link>
+
+      {/* 2. LA FLOR (CENTRO) - ABRE EL MENÚ DE CUENTA */}
       <button 
         onClick={() => user ? setUserMenuOpen(!userMenuOpen) : window.location.href="/auth/login"} 
-        className="grow flex justify-center"
+        className={cn(
+          "p-3 rounded-full transition-all duration-300 shadow-lg",
+          userMenuOpen ? "bg-white text-primary scale-110" : "bg-primary text-white shadow-primary/30"
+        )}
       >
-        <User size={22} className={user || userMenuOpen ? "text-primary" : "text-primary/30"} />
+        <Flower2 size={24} strokeWidth={2.5} />
       </button>
 
-      {/* Botón Personal (Hub de Fotos, Dibujos, Bio) */}
-      <Link href="/personal" onClick={closeAll} className="grow flex justify-center">
-        <Camera size={22} className={isInSection("/personal") && !isInSection("/personal/cocina") && !isInSection("/personal/tareas") ? "text-primary" : "text-primary/30"} />
+      {/* 3. WIKI (DERECHA) */}
+      <Link href="/wiki" onClick={closeAll} className="flex flex-col items-center gap-1">
+        <Sparkles size={22} className={isInSection("/wiki") && currentPath !== "/wiki/personal" ? "text-primary" : "text-primary/30"} />
+        <span className={cn("text-[7px] font-black uppercase tracking-widest", isInSection("/wiki") && currentPath !== "/wiki/personal" ? "text-primary" : "text-primary/20")}>
+          "Wiki"
+        </span>
       </Link>
       
-      <div className="grow flex justify-center">
-        <Link href={puedeSubir ? "/upload" : "/"} onClick={closeAll} className={cn(
-          "p-3 rounded-full transition-all duration-300",
-          currentPath === "/upload" ? "bg-white text-primary shadow-lg shadow-primary/20" : "bg-primary text-white shadow-lg shadow-primary/30"
-        )}>
-          {puedeSubir ? <Plus size={20} strokeWidth={3} /> : <Flower2 size={20} />}
-        </Link>
-      </div>
-
-      {/* Botón Wiki (Hub General) */}
-      <Link href="/wiki" onClick={closeAll} className="grow flex justify-center">
-        <Sparkles size={22} className={isInSection("/wiki") && currentPath !== "/wiki/personal" ? "text-primary" : "text-primary/30"} />
-      </Link>
     </div>
-  ), [currentPath, user, puedeSubir, userMenuOpen]);
+  ), [currentPath, user, userMenuOpen]);
 
   return (
     <>
-      {/* --- PC NAVBAR --- */}
+      {/* --- PC NAVBAR (Sin cambios significativos para mantener consistencia) --- */}
       <header className="hidden md:block sticky top-0 w-full z-1000 bg-bg-main/80 backdrop-blur-md border-b border-primary/10">
         <div className="max-w-7xl mx-auto h-20 flex items-center justify-between px-8">
-          
           <div className="flex items-center gap-6">
             <Link href="/" className="text-xl font-black italic tracking-tighter text-primary flex items-center gap-2">
               <Flower2 size={20} /> <span>FRANI<span className="text-primary opacity-40">LOVER</span></span>
@@ -89,15 +91,14 @@ const Navbar = () => {
               className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl", 
               isInSection("/personal") && !isInSection("/personal/cocina") ? "bg-white text-primary shadow-sm" : "text-primary/40 hover:text-primary")}
             >
-              Personal
+              "Personal"
             </Link>
-            
             <Link 
               href="/wiki" 
               className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl", 
               isInSection("/wiki") && currentPath !== "/wiki/personal" ? "bg-white text-primary shadow-sm" : "text-primary/40 hover:text-primary")}
             >
-              Wiki
+              "Wiki"
             </Link>
 
             {esFranilover && (
@@ -113,6 +114,11 @@ const Navbar = () => {
           </nav>
           
           <div className="flex items-center gap-4">
+            {puedeSubir && (
+               <Link href="/upload" className="p-2 bg-primary/5 text-primary rounded-xl hover:bg-primary hover:text-white transition-all">
+                <Plus size={20} />
+               </Link>
+            )}
             {user ? (
               <div className="relative">
                 <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2">
@@ -125,16 +131,16 @@ const Navbar = () => {
                       className="absolute top-full right-0 mt-3 w-48 bg-white border border-primary/10 rounded-2xl shadow-xl p-2 z-1001"
                     >
                       <Link href="/wiki/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
-                        <Sword size={14} /> Mi Personaje
+                        <Sword size={14} /> "Mi Personaje"
                       </Link>
                       <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase text-red-400 hover:bg-red-50 rounded-xl transition-all border-t border-primary/5">
-                        <LogOut size={14} /> Salir
+                        <LogOut size={14} /> "Salir"
                       </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-            ) : <Link href="/auth/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">Entrar</Link>}
+            ) : <Link href="/auth/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">"Entrar"</Link>}
           </div>
         </div>
       </header>
@@ -146,32 +152,42 @@ const Navbar = () => {
         animate={{ y: isVisible ? 0 : 120, opacity: isVisible ? 1 : 0 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
-        <nav className="bg-bg-main/95 backdrop-blur-xl border border-primary/20 shadow-2xl h-15 rounded-[40px] flex items-center justify-center overflow-hidden w-full">
-          {navContent}
+        <nav className="bg-bg-main/95 backdrop-blur-xl border border-primary/20 shadow-2xl h-18 rounded-[40px] flex items-center overflow-hidden w-full">
+          {navContentMobile}
         </nav>
 
         <AnimatePresence>
           {userMenuOpen && user && (
             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 15 }}
-              className="absolute bottom-20 left-0 w-full bg-white border border-primary/10 rounded-[40px] p-3 shadow-2xl flex flex-col gap-2 z-1001">
+              className="absolute bottom-24 left-0 w-full bg-white border border-primary/10 rounded-[40px] p-4 shadow-2xl flex flex-col gap-2 z-1001">
               
-              <Link href="/wiki/personal" onClick={closeAll} className="w-full p-5 bg-primary/5 text-primary rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                <Sword size={18}/> Mi Personaje
+              <div className="text-center mb-2">
+                <p className="text-[9px] font-black text-primary/20 uppercase tracking-widest">"Menú de Usuario"</p>
+              </div>
+
+              <Link href="/wiki/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                <Sword size={18}/> "Mi Personaje"
               </Link>
+
+              {puedeSubir && (
+                <Link href="/upload" onClick={closeAll} className="w-full p-4 bg-primary text-white rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                  <Plus size={18}/> "Subir Contenido"
+                </Link>
+              )}
 
               {esFranilover && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Link href="/personal/cocina" onClick={closeAll} className="p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    <Utensils size={16}/> Cocina
+                  <Link href="/personal/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                    <Utensils size={16}/> "Cocina"
                   </Link>
-                  <Link href="/personal/tareas" onClick={closeAll} className="p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    <CheckSquare size={16}/> Agenda
+                  <Link href="/personal/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                    <CheckSquare size={16}/> "Agenda"
                   </Link>
                 </div>
               )}
 
-              <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-400 rounded-[30px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                Cerrar Sesión <LogOut size={16}/>
+              <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-400 rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3 mt-2">
+                "Cerrar Sesión" <LogOut size={16}/>
               </button>
             </motion.div>
           )}
