@@ -3,11 +3,12 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Edit3, Save, Plus, Music, Users, 
-  CheckCircle2, Trash2
+  CheckCircle2, Trash2, Image as ImageIcon
 } from "lucide-react";
 import Relaciones from "./relaciones"; 
 import { useDetalleMaestro, type Variante } from "@/hooks/useDetalleMaestro"; 
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
+import { SelectorVariantes } from "./SelectorVariantes";
 
 interface DetalleMaestroProps {
   isOpen: boolean;
@@ -73,6 +74,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
 
   const agregarVariante = () => {
     const nueva: Variante = {
+      id: Date.now(), // Corregido: Ahora es un número para evitar el error TS2322
       tipo: "Nueva Variante",
       descripcion_variante: "",
       imagen_url: "",
@@ -114,7 +116,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
             initial={{ y: -100, opacity: 0 }} 
             animate={{ y: 0, opacity: 1 }} 
             exit={{ y: -100, opacity: 0 }} 
-            className="fixed top-10 left-1/2 -translate-x-1/2 z-[3000] bg-accent text-primary px-10 py-5 rounded-full shadow-lg flex items-center gap-3 font-bold text-lg border border-primary/20"
+            className="fixed top-10 left-1/2 -translate-x-1/2 z-3000 bg-accent text-primary px-10 py-5 rounded-full shadow-lg flex items-center gap-3 font-bold text-lg border border-primary/20"
           >
             <CheckCircle2 size={24} /> Registro Sincronizado
           </motion.div>
@@ -127,13 +129,13 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         </button>
 
         <div className="flex flex-col lg:flex-row items-stretch">
-          <div className="w-full lg:w-[450px] xl:w-[500px] flex-shrink-0 bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
+          <div className="w-full lg:w-112.5 xl:w-125 shrink-0 bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
             <div className="relative w-full aspect-square max-w-sm">
-              <div className="w-full h-full rounded-full overflow-hidden border-[12px] border-white-custom shadow-xl bg-white-custom">
+              <div className="w-full h-full rounded-full overflow-hidden border-12 border-white-custom shadow-xl bg-white-custom">
                 <img src={imagenVisual} className="w-full h-full object-cover" alt="Sujeto" />
               </div>
               
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white-custom px-8 py-3 rounded-xl text-sm font-black uppercase tracking-[0.15em] shadow-md whitespace-nowrap min-w-[180px] text-center">
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white-custom px-8 py-3 rounded-xl text-sm font-black uppercase tracking-[0.15em] shadow-md whitespace-nowrap min-w-45 text-center">
                 {esPersonaje ? (
                   <span>{especie}</span>
                 ) : (
@@ -151,7 +153,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                   <input 
                     value={editNombre} 
                     onChange={(e) => setEditNombre(e.target.value)} 
-                    className="input-brand !text-4xl font-bold !p-6 !bg-white/50" 
+                    className="input-brand text-4xl! p-6! bg-white/50!" 
                     placeholder="..."
                   />
                 </div>
@@ -160,7 +162,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                   <textarea 
                     value={editDescripcion} 
                     onChange={(e) => setEditDescripcion(e.target.value)} 
-                    className="input-brand !text-xl !leading-relaxed !p-8 min-h-[300px] resize-none !bg-white/50 w-full"
+                    className="input-brand text-xl! leading-relaxed! p-8! min-h-75 resize-none bg-white/50! w-full"
                     placeholder="..."
                   />
                 </div>
@@ -171,7 +173,16 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
                 <div className="w-20 h-2 bg-accent mb-10 rounded-full" />
-                <p className="text-primary/80 text-xl lg:text-2xl leading-relaxed font-medium mb-12">
+                
+                {!esPersonaje && variantes.length > 0 && (
+                   <SelectorVariantes 
+                    variantes={variantes} 
+                    varianteActiva={varianteActiva} 
+                    onSeleccionar={setVarianteActiva} 
+                   />
+                )}
+
+                <p className="text-primary/80 text-xl lg:text-2xl leading-relaxed font-medium mt-12 mb-12">
                   {varianteActiva ? (varianteActiva.descripcion_variante || "Sin registros.") : editDescripcion}
                 </p>
               </div>
@@ -179,6 +190,48 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
           </div>
         </div>
       </div>
+
+      {editMode && !esPersonaje && (
+        <div className="bg-white rounded-[3rem] p-12 shadow-2xl border border-primary/10">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-2xl font-black uppercase tracking-tighter">Gestión de Variantes</h3>
+            <button onClick={agregarVariante} className="btn-brand bg-accent! text-primary!">
+              <Plus size={20} /> Agregar Variante
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {variantes.map((v, idx) => (
+              <div key={v.id || idx} className="p-6 bg-bg-main rounded-2xl border border-primary/5 space-y-4">
+                <div className="flex gap-4">
+                  <div className="flex-1 space-y-2">
+                    <input 
+                      placeholder="Tipo (Ej: Fuego, Hielo)" 
+                      className="input-brand p-3! text-sm!"
+                      value={v.tipo}
+                      onChange={(e) => actualizarVariante(idx, "tipo", e.target.value)}
+                    />
+                    <input 
+                      placeholder="URL Imagen" 
+                      className="input-brand p-3! text-xs!"
+                      value={v.imagen_url}
+                      onChange={(e) => actualizarVariante(idx, "imagen_url", e.target.value)}
+                    />
+                  </div>
+                  <button onClick={() => eliminarVariante(idx)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg h-fit">
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+                <textarea 
+                  placeholder="Descripción de esta variante..."
+                  className="input-brand p-4! text-sm! min-h-25 resize-none"
+                  value={v.descripcion_variante}
+                  onChange={(e) => actualizarVariante(idx, "descripcion_variante", e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {(esPersonaje || editMode) && (
         <div className="bg-white rounded-[3rem] p-12 lg:p-20 shadow-2xl border border-primary/10 w-full">
@@ -210,8 +263,8 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
       )}
 
       {isAdmin && (
-        <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-4 bg-white/80 backdrop-blur-md p-4 rounded-[2rem] border border-primary/20 shadow-2xl">
-          <button onClick={() => setEditMode(!editMode)} className={`btn-brand !px-6 ${editMode ? "!bg-accent !text-primary" : ""}`}>
+        <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-1100 flex items-center gap-4 bg-white/80 backdrop-blur-md p-4 rounded-4xl border border-primary/20 shadow-2xl">
+          <button onClick={() => setEditMode(!editMode)} className={`btn-brand px-6! ${editMode ? "bg-accent! text-primary!" : ""}`}>
             {editMode ? <X size={20} /> : <Edit3 size={20} />}
             <span className="text-xs tracking-widest uppercase">{editMode ? "Cerrar" : "Editar"}</span>
           </button>
@@ -220,7 +273,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
             <button 
               onClick={onConfirmSave} 
               disabled={saving} 
-              className="btn-brand !bg-primary !text-white-custom !px-10"
+              className="btn-brand bg-primary! text-white-custom! px-10!"
             >
               {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={20} />}
               <span className="text-xs tracking-widest uppercase">Sincronizar</span>
