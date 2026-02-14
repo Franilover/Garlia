@@ -405,9 +405,9 @@ const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => 
 // ============================================================================
 // MODAL DE LECTURA COMPLETA
 // ============================================================================
-
 const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
-  const [zoom, setZoom] = React.useState(1);
+  // Cambiamos el zoom inicial a 0.8 para que se vea más lejos por defecto
+  const [zoom, setZoom] = React.useState(0.8);
 
   const handleCopy = () => {
     const langCode = Array.isArray(idiomaActivo) ? idiomaActivo[0] : idiomaActivo;
@@ -426,7 +426,7 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#6B5E70]/80 backdrop-blur-2xl"
+            className="absolute inset-0 bg-[#6B5E70]/90 backdrop-blur-2xl"
           />
           <motion.div
             initial={{ scale: 0.98, opacity: 0 }}
@@ -434,6 +434,7 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
             exit={{ scale: 0.98, opacity: 0 }}
             className="bg-[#FDFCFD] w-full max-w-[98vw] md:rounded-[2rem] shadow-2xl relative z-[10000] border border-[#6B5E70]/20 h-full md:h-[95vh] flex flex-col overflow-hidden"
           >
+            {/* Header del Modal */}
             <div className="px-8 py-4 border-b border-[#6B5E70]/10 flex items-center justify-between bg-white z-30">
               <div className="flex items-center gap-4">
                 <Music size={18} className="text-[#6B5E70]" />
@@ -443,9 +444,9 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3 bg-[#6B5E70]/5 rounded-xl px-3 py-1.5">
-                  <button onClick={() => setZoom(prev => Math.max(0.5, prev - 0.1))} className="text-[#6B5E70] hover:scale-110 px-2 font-bold">−</button>
+                  <button onClick={() => setZoom(prev => Math.max(0.3, prev - 0.1))} className="text-[#6B5E70] hover:scale-110 px-2 font-bold text-lg">−</button>
                   <span className="text-[10px] font-black text-[#6B5E70]/60 min-w-[35px] text-center">{Math.round(zoom * 100)}%</span>
-                  <button onClick={() => setZoom(prev => Math.min(1.5, prev + 0.1))} className="text-[#6B5E70] hover:scale-110 px-2 font-bold">+</button>
+                  <button onClick={() => setZoom(prev => Math.min(1.2, prev + 0.1))} className="text-[#6B5E70] hover:scale-110 px-2 font-bold text-lg">+</button>
                 </div>
                 <div className="flex items-center gap-2">
                   <motion.button
@@ -462,23 +463,34 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
                 </div>
               </div>
             </div>
-            <div className="flex-1 overflow-auto bg-[#FDFCFD] selection:bg-[#6B5E70]/10">
-              <div className="inline-block min-w-full p-12 md:p-24 transition-all duration-200 ease-out text-center" style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}>
+
+            {/* Área de la letra con scroll mejorado */}
+            <div className="flex-1 overflow-auto bg-[#FDFCFD] selection:bg-[#6B5E70]/10 custom-scrollbar">
+              <div 
+                className="w-full h-fit p-8 md:p-20 transition-all duration-300 ease-out origin-top"
+                style={{ 
+                  transform: `scale(${zoom})`,
+                  width: `${100 / zoom}%`, // Ajusta el ancho para compensar la escala
+                  marginLeft: `${(100 - (100 / zoom)) / 2}%` // Centra el contenido escalado
+                }}
+              >
                 {secciones.map((seccion) => {
                   const lang = Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es";
                   const texto = seccion[`letra_${lang}`];
                   return texto ? (
-                    <div key={seccion.id} className="mb-24 last:mb-0">
-                      <div className="mb-8 flex items-center justify-center gap-6 opacity-20">
-                        <div className="h-[1px] w-16 bg-[#6B5E70]" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.5em] italic text-[#6B5E70]">{seccion.nombre_seccion}</span>
-                        <div className="h-[1px] w-16 bg-[#6B5E70]" />
+                    <div key={seccion.id} className="mb-20 last:mb-0 max-w-5xl mx-auto text-center">
+                      <div className="mb-10 flex items-center justify-center gap-8 opacity-20">
+                        <div className="h-[1px] flex-1 max-w-[100px] bg-[#6B5E70]" />
+                        <span className="text-[14px] font-black uppercase tracking-[0.5em] italic text-[#6B5E70]">{seccion.nombre_seccion}</span>
+                        <div className="h-[1px] flex-1 max-w-[100px] bg-[#6B5E70]" />
                       </div>
-                      <p className="text-[#3A323D] text-4xl md:text-6xl lg:text-7xl font-medium italic font-serif leading-[1.4] whitespace-pre">{texto}</p>
+                      <p className="text-[#3A323D] text-3xl md:text-5xl lg:text-6xl font-medium italic font-serif leading-[1.5] whitespace-pre-wrap break-words">
+                        {texto}
+                      </p>
                     </div>
                   ) : null;
                 })}
-                <div className="h-32" />
+                <div className="h-40" />
               </div>
             </div>
           </motion.div>
@@ -487,7 +499,6 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
     </AnimatePresence>
   );
 };
-
 // ============================================================================
 // MODAL DE ENLACES
 // ============================================================================
