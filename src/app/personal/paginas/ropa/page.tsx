@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, Trash2, Save, 
   Layers, ChevronRight, X,
-  CheckCircle2, Loader2, Shirt
+  CheckCircle2, Loader2, Shirt, ImageOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/api/supabase";
@@ -19,24 +19,14 @@ interface Prenda {
   id: string;
   nombre: string;
   categoria: Categoria;
-  imagen_url: string;
-}
-
-interface OutfitGuardado {
-  id: string;
-  nombre: string;
-  prendas: any; 
-  created_at?: string;
+  imagen_url: string; // Asegúrate que en Supabase la columna se llame exactamente así
 }
 
 export default function ArmarioCanvasPage() {
-  // 1. CARGA DESDE LA TABLA 'ropa'
   const { data: prendas = [], loading } = useSupabaseData("ropa", {
     order: { campo: "created_at", asc: false }
   });
 
-  // 2. CARGA DE LOOKS DESDE 'ropa_outfits'
-  // Cambiamos 'refreshData' por 'refetch' que es lo que devuelve tu hook
   const { data: outfitsGuardados = [], refetch: refetchOutfits } = useSupabaseData("ropa_outfits", {
     order: { campo: "created_at", asc: false }
   });
@@ -53,11 +43,9 @@ export default function ArmarioCanvasPage() {
     }
   };
 
-  // 3. GUARDADO REAL EN 'ropa_outfits'
   const guardarOutfit = async () => {
     if (selectedPrendas.length === 0 || !nombreOutfit) return;
     setIsSaving(true);
-
     try {
       const { error } = await supabase
         .from("ropa_outfits")
@@ -65,12 +53,9 @@ export default function ArmarioCanvasPage() {
           nombre: nombreOutfit,
           prendas: selectedPrendas, 
         }]);
-
       if (error) throw error;
-
       setSelectedPrendas([]);
       setNombreOutfit("");
-      // Usamos refetch() para actualizar la lista de outfits guardados
       await refetchOutfits(); 
     } catch (err) {
       console.error("Error guardando outfit:", err);
@@ -91,7 +76,7 @@ export default function ArmarioCanvasPage() {
   );
 
   return (
-    <div className="min-h-screen bg-bg-main flex flex-col md:flex-row">
+    <div className="min-h-screen bg-bg-main flex flex-col md:grow">
       
       {/* --- LADO IZQUIERDO: ROPA --- */}
       <div className="w-full md:w-2/3 p-8 overflow-y-auto">
@@ -117,14 +102,24 @@ export default function ArmarioCanvasPage() {
                   estaSeleccionada ? "border-primary shadow-xl" : "border-primary/5"
                 )}
               >
-                <SmartImage
-                  src={prenda.imagen_url}
-                  alt={prenda.nombre}
-                  className={cn(
-                    "w-full h-full object-cover transition-transform duration-700 group-hover:scale-110",
-                    estaSeleccionada ? "scale-105 opacity-50" : ""
+                {/* CONTENEDOR DE IMAGEN CON FALLBACK */}
+                <div className="absolute inset-0 w-full h-full bg-primary/5 flex items-center justify-center">
+                  {prenda.imagen_url ? (
+                    <SmartImage
+                      src={prenda.imagen_url}
+                      alt={prenda.nombre}
+                      className={cn(
+                        "w-full h-full object-cover transition-transform duration-700 group-hover:scale-110",
+                        estaSeleccionada ? "scale-105 opacity-40" : ""
+                      )}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-primary/20">
+                      <Shirt size={40} strokeWidth={1} />
+                      <span className="text-[8px] font-black uppercase">Sin foto</span>
+                    </div>
                   )}
-                />
+                </div>
                 
                 <div className="absolute inset-0 p-4 flex flex-col justify-end bg-linear-to-t from-black/80 via-black/20 to-transparent">
                   <span className="text-[10px] font-black uppercase text-white leading-tight">{prenda.nombre}</span>
@@ -132,7 +127,7 @@ export default function ArmarioCanvasPage() {
                 </div>
 
                 {estaSeleccionada && (
-                  <div className="absolute top-4 right-4 bg-primary text-white p-2 rounded-full">
+                  <div className="absolute top-4 right-4 bg-primary text-white p-2 rounded-full z-10">
                     <CheckCircle2 size={14} />
                   </div>
                 )}
@@ -142,11 +137,11 @@ export default function ArmarioCanvasPage() {
         </div>
       </div>
 
-      {/* --- LADO DERECHO: ROPA_OUTFITS --- */}
+      {/* --- LADO DERECHO: CONSTRUCTOR --- */}
       <div className="w-full md:w-1/3 bg-white border-l border-primary/10 p-8 flex flex-col gap-6">
         <div className="flex items-center gap-2 text-primary">
           <Layers size={20} />
-          <h2 className="text-sm font-black uppercase tracking-widest">Constructor de Looks</h2>
+          <h2 className="text-sm font-black uppercase tracking-widest">Constructor</h2>
         </div>
 
         <div className="grow flex flex-col gap-3 min-h-62.5 p-4 bg-primary/5 rounded-[40px] border-2 border-dashed border-primary/10 overflow-y-auto">
@@ -161,8 +156,14 @@ export default function ArmarioCanvasPage() {
                   key={p.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }}
                   className="flex items-center gap-4 bg-white p-3 rounded-2xl shadow-sm border border-primary/5"
                 >
-                  <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0">
-                    <img src={p.imagen_url} className="w-full h-full object-cover" />
+                  <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-primary/5">
+                    {p.imagen_url ? (
+                      <img src={p.imagen_url} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-primary/20">
+                        <Shirt size={16} />
+                      </div>
+                    )}
                   </div>
                   <div className="grow">
                     <span className="block text-[9px] font-black uppercase text-primary leading-none">{p.nombre}</span>
@@ -188,12 +189,12 @@ export default function ArmarioCanvasPage() {
               className="w-full bg-primary text-white p-4 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3 transition-all active:scale-95"
             >
               {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} 
-              Guardar en ropa_outfits
+              Guardar Look
             </button>
           </div>
         )}
 
-        {/* --- HISTORIAL DE OUTFITS --- */}
+        {/* --- HISTORIAL --- */}
         <div className="mt-4">
           <h3 className="text-[9px] font-black text-primary/30 uppercase tracking-[0.2em] mb-4 text-center">Colección Guardada</h3>
           <div className="space-y-3">
@@ -208,7 +209,13 @@ export default function ArmarioCanvasPage() {
                 <div className="flex -space-x-3">
                   {Array.isArray(o.prendas) && o.prendas.map((pr: any, i: number) => (
                     <div key={i} className="w-10 h-10 rounded-full border-2 border-white overflow-hidden bg-slate-100 shadow-sm">
-                      <img src={pr.imagen_url} className="w-full h-full object-cover" />
+                      {pr.imagen_url ? (
+                        <img src={pr.imagen_url} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-primary/20">
+                          <Shirt size={14} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
