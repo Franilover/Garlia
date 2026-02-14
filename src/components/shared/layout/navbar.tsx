@@ -45,12 +45,13 @@ const Navbar = () => {
     <div className="flex w-full items-center justify-between px-8 h-full">
       
       {/* 1. PERSONAL (IZQUIERDA) */}
-      <Link href="/personal" onClick={closeAll} className="flex flex-col items-center gap-1">
+      <Link href="/personal/paginas" onClick={closeAll} className="flex flex-col items-center gap-1">
         <Camera size={22} className={isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") && !isInSection("/personal/paginas/tareas") ? "text-primary" : "text-primary/30"} />
         <span className={cn("text-[7px] font-black uppercase tracking-widest", isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") ? "text-primary" : "text-primary/20")}>
-          "Personal"
+          Personal
         </span>
       </Link>
+
       {/* 2. LA FLOR (CENTRO) - ABRE EL MENÚ DE CUENTA */}
       <button 
         onClick={() => user ? setUserMenuOpen(!userMenuOpen) : window.location.href="/auth/login"} 
@@ -66,7 +67,7 @@ const Navbar = () => {
       <Link href="/wiki" onClick={closeAll} className="flex flex-col items-center gap-1">
         <Sparkles size={22} className={isInSection("/wiki") && currentPath !== "/wiki/personal" ? "text-primary" : "text-primary/30"} />
         <span className={cn("text-[7px] font-black uppercase tracking-widest", isInSection("/wiki") && currentPath !== "/wiki/personal" ? "text-primary" : "text-primary/20")}>
-          "Wiki"
+          Wiki
         </span>
       </Link>
       
@@ -75,7 +76,7 @@ const Navbar = () => {
 
   return (
     <>
-      {/* --- PC NAVBAR (Sin cambios significativos para mantener consistencia) --- */}
+      {/* --- PC NAVBAR --- */}
       <header className="hidden md:block sticky top-0 w-full z-1000 bg-bg-main/80 backdrop-blur-md border-b border-primary/10">
         <div className="max-w-7xl mx-auto h-20 flex items-center justify-between px-8">
           <div className="flex items-center gap-6">
@@ -130,16 +131,16 @@ const Navbar = () => {
                       className="absolute top-full right-0 mt-3 w-48 bg-white border border-primary/10 rounded-2xl shadow-xl p-2 z-1001"
                     >
                       <Link href="/wiki/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
-                        <Sword size={14} /> "Mi Personaje"
+                        <Sword size={14} /> Mi Personaje
                       </Link>
                       <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase text-red-400 hover:bg-red-50 rounded-xl transition-all border-t border-primary/5">
-                        <LogOut size={14} /> "Salir"
+                        <LogOut size={14} /> Salir
                       </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-            ) : <Link href="/auth/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">"Entrar"</Link>}
+            ) : <Link href="/auth/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">Entrar</Link>}
           </div>
         </div>
       </header>
@@ -161,7 +162,7 @@ const Navbar = () => {
               className="absolute bottom-24 left-0 w-full bg-white border border-primary/10 rounded-[40px] p-4 shadow-2xl flex flex-col gap-2 z-1001">
               
               <div className="text-center mb-2">
-                <p className="text-[9px] font-black text-primary/20 uppercase tracking-widest">"Menú de Usuario"</p>
+                <p className="text-[9px] font-black text-primary/20 uppercase tracking-widest">Menú de Usuario</p>
               </div>
 
               <Link href="/wiki/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
@@ -170,23 +171,23 @@ const Navbar = () => {
 
               {puedeSubir && (
                 <Link href="/upload" onClick={closeAll} className="w-full p-4 bg-primary text-white rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                  <Plus size={18}/> "Subir Contenido"
+                  <Plus size={18}/> Subir Contenido
                 </Link>
               )}
 
               {esFranilover && (
                 <div className="grid grid-cols-2 gap-2">
                   <Link href="/personal/paginas/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    <Utensils size={16}/> "Cocina"
+                    <Utensils size={16}/> Cocina
                   </Link>
                   <Link href="/personal/paginas/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    <CheckSquare size={16}/> "Agenda"
+                    <CheckSquare size={16}/> Agenda
                   </Link>
                 </div>
               )}
-a
+
               <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-400 rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3 mt-2">
-                "Cerrar Sesión" <LogOut size={16}/>
+                Cerrar Sesión <LogOut size={16}/>
               </button>
             </motion.div>
           )}
