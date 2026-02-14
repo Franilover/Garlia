@@ -25,23 +25,20 @@ export default function Lector() {
   const [nuevoContenido, setNuevoContenido] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Referencia para evitar ejecuciones duplicadas en React Strict Mode
   const isInitialMount = useRef(true);
 
-  // --- CARGA DE DATOS OPTIMIZADA ---
+  // --- CARGA DE DATOS ---
   useEffect(() => {
     const fetchDatos = async () => {
       if (!capId || !id) return;
 
       try {
-        // Solo mostramos el loader completo en la primera carga
         if (isInitialMount.current) setLoading(true);
         setError(null);
 
-        // OPTIMIZACIÓN: Ejecutamos la sesión y la query en paralelo para ahorrar tiempo de ida y vuelta (RTT)
         const [sessionRes, queryRes] = await Promise.all([
           supabase.auth.getSession(),
-          librosQueries.getCapituloParaLectura(capId, id, true) // Pedimos como admin inicialmente para no esperar al auth
+          librosQueries.getCapituloParaLectura(capId, id, true)
         ]);
 
         const esAdmin = !!sessionRes.data.session;
@@ -66,14 +63,12 @@ export default function Lector() {
     fetchDatos();
   }, [capId, id]);
 
-  // --- ACCIONES DE ADMIN (OPTIMISTAS) ---
+  // --- ACCIONES DE ADMIN ---
   const handleSave = async () => {
     if (!capitulo || !capId) return;
     
-    // Guardamos el estado previo por si falla el servidor
     const contenidoPrevio = capitulo.contenido;
     
-    // 1. Actualización inmediata de la UI (Feedback instantáneo)
     setCapitulo({ ...capitulo, contenido: nuevoContenido });
     setEditMode(false);
     setSaving(true);
@@ -82,7 +77,6 @@ export default function Lector() {
       const { error: saveError } = await librosQueries.updateContenido(capId, nuevoContenido);
       if (saveError) throw saveError;
     } catch (err: any) {
-      // 2. Rollback si falla: regresamos al estado anterior
       setCapitulo({ ...capitulo, contenido: contenidoPrevio });
       setNuevoContenido(contenidoPrevio);
       setEditMode(true);
@@ -92,12 +86,11 @@ export default function Lector() {
     }
   };
 
-  // --- LÓGICA DE NAVEGACIÓN ---
+  // --- NAVEGACIÓN ---
   const indiceActual = listaCapitulos.findIndex(c => c.id === capId);
   const anteriorCap = listaCapitulos[indiceActual - 1];
   const siguienteCap = listaCapitulos[indiceActual + 1];
 
-  // --- RENDERS DE CARGA Y ERROR ---
   if (loading && !capitulo) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
       <div className="animate-pulse text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">
@@ -112,7 +105,7 @@ export default function Lector() {
         {error || "Capítulo no encontrado"}
       </h2>
       <button 
-        onClick={() => router.push(`/wiki/libros/${id}`)} 
+        onClick={() => router.push(`/wiki/paginas/libros/${id}`)} 
         className="text-[10px] font-black uppercase border-b-2 border-[#6B5E70] pb-1"
       >
         Volver al índice
@@ -125,7 +118,7 @@ export default function Lector() {
       
       {/* PANEL DE ADMIN FLOTANTE */}
       {isAdmin && (
-        <div className="fixed bottom-10 right-6 z-[100] flex flex-col gap-3">
+        <div className="fixed bottom-10 right-6 z-100 flex flex-col gap-3">
           <AnimatePresence>
             {editMode ? (
               <motion.div 
@@ -160,9 +153,9 @@ export default function Lector() {
       )}
 
       {/* NAVBAR SUPERIOR */}
-      <nav className="sticky top-0 z-[50] bg-[#FDFCFD]/80 backdrop-blur-md border-b border-[#6B5E70]/5 px-6 py-4">
+      <nav className="sticky top-0 z-50 bg-[#FDFCFD]/80 backdrop-blur-md border-b border-[#6B5E70]/5 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors">
+          <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors">
             <ChevronLeft size={24} />
           </button>
           <div className="text-center">
@@ -171,13 +164,13 @@ export default function Lector() {
             </h2>
             <p className="text-[11px] font-bold text-[#6B5E70] uppercase">Capítulo {capitulo.orden}</p>
           </div>
-          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70]">
+          <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70]">
             <List size={24} />
           </button>
         </div>
       </nav>
 
-      {/* CONTENIDO DEL CAPÍTULO */}
+      {/* CONTENIDO */}
       <article className="max-w-2xl mx-auto px-6 py-12 md:py-20">
         <header className="mb-12 text-center">
           <span className="text-[#6B5E70]/20 font-serif italic text-4xl block mb-2">§ {capitulo.orden}</span>
@@ -207,19 +200,19 @@ export default function Lector() {
         {/* NAVEGACIÓN INFERIOR */}
         {!editMode && (
           <footer className="mt-20 pt-10 border-t border-[#6B5E70]/10 flex flex-col items-center gap-8">
-            <button onClick={() => router.push(`/wiki/libros/${id}`)} className="flex items-center gap-2 text-[#6B5E70]/40 hover:text-[#6B5E70] font-black text-[10px] uppercase tracking-widest transition-all">
+            <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="flex items-center gap-2 text-[#6B5E70]/40 hover:text-[#6B5E70] font-black text-[10px] uppercase tracking-widest transition-all">
               <List size={16} /> Volver al Índice
             </button>
             <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
               <button 
-                onClick={() => anteriorCap && router.push(`/wiki/libros/${id}/leer/${anteriorCap.id}`)}
+                onClick={() => anteriorCap && router.push(`/wiki/paginas/libros/${id}/leer/${anteriorCap.id}`)}
                 disabled={!anteriorCap}
                 className={cn("p-5 rounded-2xl border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all", !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-[#6B5E70]/10 text-[#6B5E70]/60 hover:bg-[#6B5E70]/5 active:scale-95")}
               >
                 <ChevronLeft size={14} /> Anterior
               </button>
               <button 
-                onClick={() => siguienteCap ? router.push(`/wiki/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/libros/${id}`)}
+                onClick={() => siguienteCap ? router.push(`/wiki/paginas/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/paginas/libros/${id}`)}
                 className="p-5 rounded-2xl bg-[#6B5E70] text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg hover:shadow-[#6B5E70]/30 active:scale-95 transition-all"
               >
                 {siguienteCap ? "Siguiente" : "Finalizar"} <ChevronRight size={14} />

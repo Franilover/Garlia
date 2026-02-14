@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/supabase";
 import { 
@@ -9,7 +9,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/shared/display/SmartImage";
 import { useSupabaseData } from "@/hooks/useSupabaseData"; 
-import { cn } from "@/lib/utils";
 
 // --- INTERFACES ---
 interface Capitulo {
@@ -48,6 +47,14 @@ export default function LibroDetalle() {
   const [selectedCap, setSelectedCap] = useState<Capitulo | null>(null);
   const [editCapTitle, setEditCapTitle] = useState("");
   const [editCapFecha, setEditCapFecha] = useState("");
+
+  // Helper para cerrar modales de forma segura
+  const closeModals = () => {
+    if (!procesando) {
+      setShowAddModal(false);
+      setShowEditCapModal(false);
+    }
+  };
 
   // 1. CARGA DE DATOS (PARALELIZADA)
   useEffect(() => {
@@ -148,60 +155,78 @@ export default function LibroDetalle() {
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20 relative">
       <AnimatePresence>
-        {/* MODAL: AÑADIR */}
-        {showAddModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !procesando && setShowAddModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10 text-center">
-              <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">Nuevo Capítulo</h3>
-              <form onSubmit={handleCrearCapitulo} className="space-y-6">
-                <input autoFocus type="text" placeholder="TÍTULO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
+        {/* MODAL: AÑADIR O EDITAR */}
+        {(showAddModal || showEditCapModal) && (
+          <div className="fixed inset-0 z-120 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={closeModals} 
+              className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }} 
+              className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10"
+            >
+              <button onClick={closeModals} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]">
+                <X size={20} />
+              </button>
+              
+              <div className="text-center mb-8">
+                <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] italic">
+                  {showAddModal ? "Nuevo Capítulo" : "Gestionar Capítulo"}
+                </h3>
+              </div>
+
+              <form onSubmit={showAddModal ? handleCrearCapitulo : handleUpdateCapitulo} className="space-y-6">
+                <input 
+                  autoFocus 
+                  type="text" 
+                  placeholder="TÍTULO..." 
+                  value={showAddModal ? nuevoTitulo : editCapTitle} 
+                  onChange={(e) => showAddModal ? setNuevoTitulo(e.target.value) : setEditCapTitle(e.target.value)} 
+                  className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" 
+                />
                 <div className="text-left">
                     <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Fecha de estreno</label>
-                    <input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none" />
+                    <input 
+                      type="date" 
+                      value={showAddModal ? nuevaFecha : editCapFecha} 
+                      onChange={(e) => showAddModal ? setNuevaFecha(e.target.value) : setEditCapFecha(e.target.value)} 
+                      className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none" 
+                    />
                 </div>
-                <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform">
-                  {procesando ? "Sellando..." : "Revelar"}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-
-        {/* MODAL: EDITAR */}
-        {showEditCapModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !procesando && setShowEditCapModal(false)} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10">
-              <button onClick={() => setShowEditCapModal(false)} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]"><X size={20} /></button>
-              <div className="text-center mb-8">
-                <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] italic">Gestionar Capítulo</h3>
-              </div>
-              <form onSubmit={handleUpdateCapitulo} className="space-y-6">
-                <input autoFocus type="text" value={editCapTitle} onChange={(e) => setEditCapTitle(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" />
-                <input type="date" value={editCapFecha} onChange={(e) => setEditCapFecha(e.target.value)} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none" />
-                <div className="grid grid-cols-2 gap-3">
-                  <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                    <Save size={14} /> Guardar
+                
+                {showAddModal ? (
+                  <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform">
+                    {procesando ? "Sellando..." : "Revelar"}
                   </button>
-                  <button type="button" onClick={deleteCapitulo} disabled={procesando} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 active:scale-95 transition-transform">
-                    <Trash2 size={14} /> Borrar
-                  </button>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                      <Save size={14} /> Guardar
+                    </button>
+                    <button type="button" onClick={deleteCapitulo} disabled={procesando} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 active:scale-95 transition-transform">
+                      <Trash2 size={14} /> Borrar
+                    </button>
+                  </div>
+                )}
               </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      <button onClick={() => router.push("/wiki/libros")} className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase group italic">
+      <button onClick={() => router.push("/wiki/paginas/libros")} className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase group italic">
         <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Volver
       </button>
 
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[320px_1fr] gap-16 mt-4">
         <aside>
-          <div className="aspect-[3/4] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-white relative">
+          <div className="aspect-3/4 rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-white relative">
             {loadingLibro ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                 <Loader2 className="animate-spin text-[#6B5E70]/20" />
@@ -228,7 +253,7 @@ export default function LibroDetalle() {
             ) : (
               <>
                 <h1 className="text-5xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.9] mb-6 uppercase">{libro?.titulo}</h1>
-                <p className="text-[#6B5E70]/70 leading-relaxed text-lg font-medium italic">&quot;{libro?.sinopsis}&quot;</p>
+                <p className="text-[#6B5E70]/70 leading-relaxed text-lg font-medium italic">"{libro?.sinopsis}"</p>
               </>
             )}
           </div>
@@ -250,7 +275,7 @@ export default function LibroDetalle() {
                 capitulos.map((cap) => (
                   <button 
                     key={cap.id}
-                    onClick={() => router.push(`/wiki/libros/${id}/leer/${cap.id}`)}
+                    onClick={() => router.push(`/wiki/paginas/libros/${id}/leer/${cap.id}`)}
                     className="w-full flex items-center justify-between p-6 bg-white border border-[#6B5E70]/5 rounded-3xl hover:border-[#6B5E70]/20 transition-all text-left group"
                   >
                     <div className="flex flex-col gap-1">
