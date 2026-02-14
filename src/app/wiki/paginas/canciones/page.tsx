@@ -13,6 +13,7 @@ import { SmartImage } from "@/components/shared/display/SmartImage";
 // ============================================================================
 
 const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"];
+const IDIOMAS_DISPONIBLES = ["Español", "Inglés", "Japonés"];
 
 const getEstadoColor = (estado: string) => {
   const colores: Record<string, string> = {
@@ -224,8 +225,7 @@ const Canciones = () => {
   const opcionesFiltros = useMemo(() => {
     return {
       cantantes: Array.from(new Set(canciones.map((c: any) => c.cantante).filter(Boolean))).sort(),
-      compositores: Array.from(new Set(canciones.map((c: any) => c.compositor).filter(Boolean))).sort(),
-      idiomas: Array.from(new Set(canciones.map((c: any) => c.idioma).filter(Boolean))).sort()
+      compositores: Array.from(new Set(canciones.map((c: any) => c.compositor).filter(Boolean))).sort()
     };
   }, [canciones]);
 
@@ -404,11 +404,13 @@ const Canciones = () => {
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Idioma</label>
-                      <input 
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none"
-                        value={formState.editIdioma} 
+                      <select 
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                        value={formState.editIdioma}
                         onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editIdioma: e.target.value }})}
-                      />
+                      >
+                        {IDIOMAS_DISPONIBLES.map(idioma => <option key={idioma} value={idioma}>{idioma}</option>)}
+                      </select>
                     </div>
                   </div>
 
@@ -501,6 +503,17 @@ const Canciones = () => {
                   onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoCompositor: e.target.value }})}
                 />
 
+                <div className="space-y-2 px-2">
+                  <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest">Idioma</label>
+                  <select 
+                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                    value={formState.nuevoIdioma}
+                    onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoIdioma: e.target.value }})}
+                  >
+                    {IDIOMAS_DISPONIBLES.map(idioma => <option key={idioma} value={idioma}>{idioma}</option>)}
+                  </select>
+                </div>
+
                 <button type="submit" disabled={modalState.isProcessing} className="w-full bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all">
                   {modalState.isProcessing ? "Registrando..." : "Crear Soliloquio"}
                 </button>
@@ -533,7 +546,7 @@ const Canciones = () => {
         </div>
       </header>
 
-      {/* SECCIÓN DE FILTROS ACTUALIZADA */}
+      {/* SECCIÓN DE FILTROS */}
       <section className="max-w-6xl mx-auto px-6 mb-16">
         <div className="bg-white/50 backdrop-blur-sm border border-[#6B5E70]/10 p-6 rounded-[2.5rem] flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-3 text-[#6B5E70] font-black uppercase text-[9px] tracking-widest px-4">
@@ -564,7 +577,7 @@ const Canciones = () => {
             onChange={(e) => setFiltroIdioma(e.target.value)}
           >
             <option value="">Todos los Idiomas</option>
-            {opcionesFiltros.idiomas.map(i => <option key={i} value={i}>{i}</option>)}
+            {IDIOMAS_DISPONIBLES.map(i => <option key={i} value={i}>{i}</option>)}
           </select>
 
           {(filtroCantante || filtroCompositor || filtroIdioma) && (
