@@ -11,8 +11,24 @@ export interface Capitulo {
 }
 
 export const librosQueries = {
+  // ESTA ES LA FUNCIÓN QUE FALTABA
+  getAll: async (options: any = {}) => {
+    let query = supabase.from("libros").select("*");
+
+    if (options.order) {
+      query = query.order(options.order.campo, { 
+        ascending: options.order.asc ?? false 
+      });
+    } else {
+      query = query.order("created_at", { ascending: false });
+    }
+
+    return await query;
+  },
+
   getCapituloParaLectura: async (capId: string, libroId: string, isAdmin: boolean) => {
-    const hoy = new Date().toISOString().split("T")[1];
+    // Corregido: Usamos la fecha completa para comparar
+    const hoy = new Date().toISOString(); 
 
     const { data: capitulo, error: capError } = await supabase
       .from("capitulos")
