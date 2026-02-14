@@ -557,7 +557,7 @@ const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNomb
               <motion.button whileHover={{ rotate: 90 }} onClick={onClose} className="text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors"><X size={20} /></motion.button>
             </div>
             <div className="overflow-y-auto flex-1 p-6">
-              <form onSubmit={onSave} className="space-y-6">
+              <div className="space-y-6">
                 <div>
                   <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase mb-2 block italic tracking-widest">Nombre de la sección</label>
                   <input autoFocus type="text" placeholder="ESTROFA, CORO, PUENTE, PRE-CORO..." value={nombre} onChange={(e) => onNombreChange(e.target.value)} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] rounded-xl uppercase" />
@@ -577,11 +577,11 @@ const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNomb
                   {activeTab === "jp" && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2"><label className="text-[8px] font-black text-[#6B5E70]/40 uppercase block italic">Japonés</label><textarea value={jp} onChange={(e) => onJpChange(e.target.value)} placeholder="Escribe la letra en japonés..." rows={8} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 resize-none italic font-serif leading-relaxed" /><p className="text-[10px] text-[#6B5E70]/40 italic">{jp.length} caracteres</p></motion.div>}
                   {activeTab === "romaji" && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2"><label className="text-[8px] font-black text-[#6B5E70]/40 uppercase block italic">Romaji (Reading)</label><textarea value={romaji} onChange={(e) => onRomajiChange(e.target.value)} placeholder="Escribe la pronunciación romanizada..." rows={8} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 resize-none italic font-serif leading-relaxed" /><p className="text-[10px] text-[#6B5E70]/40 italic">{romaji.length} caracteres</p></motion.div>}
                 </div>
-              </form>
+              </div>
             </div>
             <div className="p-6 border-t border-[#6B5E70]/10 bg-[#FDFCFD] flex gap-3">
               <button onClick={onClose} disabled={isProcessing} className="flex-1 px-4 py-3 rounded-xl border-2 border-[#6B5E70]/20 text-[#6B5E70] font-black uppercase text-[9px] hover:bg-[#6B5E70]/5 transition-colors">Cancelar</button>
-              <button onClick={onSave} disabled={isProcessing || !nombre.trim() || !es.trim()} type="submit" className="flex-1 px-4 py-3 rounded-xl bg-[#6B5E70] text-white font-black uppercase text-[9px] shadow-lg hover:bg-[#5A4D5F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"><Save size={14} />{isProcessing ? "Guardando..." : "Guardar"}</button>
+              <button onClick={onSave} disabled={isProcessing || !nombre.trim() || !es.trim()} type="button" className="flex-1 px-4 py-3 rounded-xl bg-[#6B5E70] text-white font-black uppercase text-[9px] shadow-lg hover:bg-[#5A4D5F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"><Save size={14} />{isProcessing ? "Guardando..." : "Guardar"}</button>
               {isEditing && onDelete && <button onClick={onDelete} disabled={isProcessing} className="px-4 py-3 rounded-xl bg-red-50 text-red-400 font-black uppercase text-[9px] border-2 border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"><Trash2 size={14} />Borrar</button>}
             </div>
           </motion.div>
