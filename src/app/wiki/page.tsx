@@ -177,10 +177,10 @@ const Navbar = () => {
 
               {esFranilover && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Link href="/personal/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                  <Link href="/personal/paginas/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                     <Utensils size={16}/> "Cocina"
                   </Link>
-                  <Link href="/personal/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                  <Link href="/personal/paginas/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                     <CheckSquare size={16}/> "Agenda"
                   </Link>
                 </div>
