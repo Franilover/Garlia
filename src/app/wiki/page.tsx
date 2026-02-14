@@ -26,12 +26,12 @@ export default function WikiMenuPage() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <MenuCard href="/wiki/personajes" title="Personajes" icon={<Users size={38} />} delay={0.1} />
-          <MenuCard href="/wiki/criaturas" title="Criaturas" icon={<Footprints size={38} />} delay={0.15} />
-          <MenuCard href="/wiki/items" title="Items" icon={<Package size={38} />} delay={0.2} />
-          <MenuCard href="/wiki/mapa" title="Mapa" icon={<Map size={38} />} delay={0.25} />
-          <MenuCard href="/wiki/libros" title="Libros" icon={<BookOpen size={38} />} delay={0.3} />
-          <MenuCard href="/wiki/canciones" title="Canciones" icon={<Music size={38} />} delay={0.35} />
+          <MenuCard href="/wiki/paginas/personajes" title="Personajes" icon={<Users size={38} />} delay={0.1} />
+          <MenuCard href="/wiki/paginas/criaturas" title="Criaturas" icon={<Footprints size={38} />} delay={0.15} />
+          <MenuCard href="/wiki/paginas/items" title="Items" icon={<Package size={38} />} delay={0.2} />
+          <MenuCard href="/wiki/paginas/mapa" title="Mapa" icon={<Map size={38} />} delay={0.25} />
+          <MenuCard href="/wiki/paginas/libros" title="Libros" icon={<BookOpen size={38} />} delay={0.3} />
+          <MenuCard href="/wiki/paginas/canciones" title="Canciones" icon={<Music size={38} />} delay={0.35} />
         </div>
 
         <motion.div 

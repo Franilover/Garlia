@@ -24,19 +24,19 @@ export default function PersonalMenuPage() {
 
         <div className="grid md:grid-cols-3 gap-6">
           <MenuCard 
-            href="/personal/sobre-mi"
+            href="/personal/paginas/sobre-mi"
             title="Sobre Mí"
             icon={<Smile size={42} />}
             delay={0.1}
           />
           <MenuCard 
-            href="/personal/dibujos"
+            href="/personal/paginas/dibujos"
             title="Dibujos"
             icon={<ImageIcon size={42} />}
             delay={0.2}
           />
           <MenuCard 
-            href="/personal/fotos"
+            href="/personal/paginas/fotos"
             title="Fotos"
             icon={<Camera size={42} />}
             delay={0.3}
