@@ -5,7 +5,8 @@ import DetalleMaestro from "@/components/shared/modal/detalles";
 import FiltrosMaestros from "@/components/shared/forms/Filtros";
 import PageHeader from "@/components/shared/layout/PageHeader";
 import { LoadingState } from "@/components/shared/feedback/StateComponents";
-import { Plus } from "lucide-react"; // Asumiendo que usas lucide para iconos
+import { Plus } from "lucide-react"
+import { cn } from "@/lib/utils";;
 
 // Hooks y Libs unificadas
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -36,7 +37,7 @@ export default function Criaturas() {
     campos: TABLAS_CONFIG.criaturas.filtros 
   });
 
-  // Manejador para actualizar o añadir nuevas criaturas a la lista local
+  // Manejador para actualizar o añadir nuevas criaturas
   const handleUpdate = useCallback((newData) => {
     if (isCreating) {
       setCriaturas(prev => [newData, ...prev]);
@@ -52,7 +53,7 @@ export default function Criaturas() {
   const handleSelect = (c) => {
     setIsCreating(false);
     setSelected(c);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Ya no hacemos scroll automático hacia arriba para que no salte la página bruscamente
   };
 
   const handleAddNew = () => {
@@ -65,7 +66,6 @@ export default function Criaturas() {
       pensamiento: opciones.pensamiento[0] || "",
       imagen_url: ""
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) {
@@ -75,9 +75,7 @@ export default function Criaturas() {
   return (
     <main className="min-h-screen bg-bg-main pb-20 overflow-x-hidden">
       
-      {/* DETALLE MAESTRO: 
-          Ahora 'data' puede ser un objeto vacío para creación o uno existente para edición
-      */}
+      {/* DETALLE MAESTRO */}
       <DetalleMaestro 
         isOpen={!!selected || isCreating}
         onClose={() => {
@@ -86,7 +84,7 @@ export default function Criaturas() {
         }}
         data={selected}
         onUpdate={handleUpdate}
-        isNew={isCreating} // Prop útil si el modal necesita cambiar el texto del botón de "Guardar"
+        isNew={isCreating}
         tags={isCreating ? ["Nueva Criatura"] : [
           selected?.habitat, 
           selected?.alma ? `Alma ${selected.alma}` : null
@@ -94,16 +92,16 @@ export default function Criaturas() {
         mostrarMusica={false} 
       />
 
+      {/* GALLERY GRID (Sin isDetailOpen para que los filtros no se oculten) */}
       <GalleryGrid 
-        isDetailOpen={!!selected || isCreating} 
         headerContent={
           <PageHeader titulo="Bestiario">
             <div className="flex flex-col gap-4">
               <button 
                 onClick={handleAddNew}
-                className="flex items-center justify-center gap-2 bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-dark transition-colors"
+                className="flex items-center justify-center gap-2 bg-primary text-white py-3 px-4 rounded-[20px] font-black uppercase text-[10px] tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
               >
-                <Plus size={20} />
+                <Plus size={18} strokeWidth={3} />
                 <span>Añadir Criatura</span>
               </button>
 
@@ -133,7 +131,7 @@ export default function Criaturas() {
             src={c.imagen_url} 
             onClick={() => handleSelect(c)}
           >
-            <p className={typography.tag + " mb-1"}>
+            <p className={cn(typography.tag, "mb-1 opacity-60")}>
               {c.habitat} • {c.alma}
             </p>
             <h3 className={typography.cardTitle}>
