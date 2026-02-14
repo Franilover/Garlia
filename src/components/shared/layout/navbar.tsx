@@ -45,7 +45,7 @@ const Navbar = () => {
     <div className="flex w-full items-center justify-between px-8 h-full">
       
       {/* 1. PERSONAL (IZQUIERDA) */}
-      <Link href="/personal/paginas" onClick={closeAll} className="flex flex-col items-center gap-1">
+      <Link href="/personal" onClick={closeAll} className="flex flex-col items-center gap-1">
         <Camera size={22} className={isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") && !isInSection("/personal/paginas/tareas") ? "text-primary" : "text-primary/30"} />
         <span className={cn("text-[7px] font-black uppercase tracking-widest", isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") ? "text-primary" : "text-primary/20")}>
           "Personal"
