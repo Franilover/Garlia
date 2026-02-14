@@ -11,6 +11,7 @@ import { recetasQueries } from "@/lib/api/queries/recetas";
 import { tareasQueries } from "@/lib/api/queries/tareas";
 import { eventosQueries } from "@/lib/api/queries/eventos";
 import { ingredientesQueries } from "@/lib/api/queries/ingredientes";
+import { ropaQueries } from "@/lib/api/queries/ropa"; // <-- IMPORTADO
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
@@ -20,7 +21,9 @@ const QUERIES_MAP: Record<string, any> = {
   "recetas": recetasQueries,
   "tareas": tareasQueries,
   "eventos": eventosQueries,
-  "ingredientes": ingredientesQueries
+  "ingredientes": ingredientesQueries,
+  "ropa": ropaQueries,          // <-- REGISTRADO
+  "ropa_outfits": ropaQueries   // <-- REGISTRADO
 };
 
 interface UseSupabaseOptions {
@@ -61,14 +64,12 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let errorFetch;
 
       if (QUERIES_MAP[tabla]) {
-        // Para la tabla precios, si no hay query custom, forzamos el join si es necesario
-        const res = await QUERIES_MAP[tabla].getAll(opt);
+        // Pasa la tabla en las opciones para que la query sepa a cuál atacar
+        const res = await QUERIES_MAP[tabla].getAll({ ...opt, tabla });
         resultado = res?.data !== undefined ? res.data : (Array.isArray(res) ? res : []);
         errorFetch = res?.error !== undefined ? res.error : null;
       } else {
-        // Lógica por defecto para tablas sin QUERIES_MAP (como 'precios')
         let selectStr = opt.select || "*";
-        // Si es la tabla precios, intentamos traer la relación de ingredientes
         if (tabla === "precios" && !opt.select) {
           selectStr = "*, ingredientes(nombre, categoria)";
         }
@@ -104,7 +105,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     try {
       let errorInsert;
       if (QUERIES_MAP[tabla]?.create) {
-        const res = await QUERIES_MAP[tabla].create(newData);
+        // Enviamos la tabla destino para que la query sepa dónde insertar
+        const res = await QUERIES_MAP[tabla].create({ ...newData, tabla_destino: tabla });
         errorInsert = res?.error;
       } else {
         const { error: err } = await supabase.from(tabla).insert([newData]);
@@ -122,7 +124,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     try {
       let errorUpdate;
       if (QUERIES_MAP[tabla]?.update) {
-        const res = await QUERIES_MAP[tabla].update(id, updates);
+        const res = await QUERIES_MAP[tabla].update(id, { ...updates, tabla_destino: tabla });
         errorUpdate = res?.error;
       } else {
         const { error: err } = await supabase.from(tabla).update(updates).eq("id", id);
@@ -136,12 +138,12 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
 
-  // --- FUNCIÓN AÑADIDA PARA SOLUCIONAR EL ERROR ---
   const deleteRow = useCallback(async (id: string | number) => {
     try {
       let errorDelete;
       if (QUERIES_MAP[tabla]?.delete) {
-        const res = await QUERIES_MAP[tabla].delete(id);
+        // En ropaQueries.delete pasamos el ID y ahora también la tabla por si acaso
+        const res = await QUERIES_MAP[tabla].delete(id, tabla);
         errorDelete = res?.error;
       } else {
         const { error: err } = await supabase.from(tabla).delete().eq("id", id);
@@ -207,8 +209,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     mutate: () => fetchData(true),
     addRow,
     updateRow,
-    deleteRow // <-- Ahora sí está disponible para compras.tsx
+    deleteRow 
   };
 }
-
-
