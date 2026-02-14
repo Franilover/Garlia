@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useReducer, useCallback } from "react";
+import React, { useState, useEffect, useReducer, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2 } from "lucide-react";
+import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2, Filter, Globe, Mic2, PenTool } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/supabase";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
@@ -51,16 +51,31 @@ const initialFormState = {
   editEstado: "BORRADOR",
   editVisible: false,
   editPortada: "",
+  // Nuevos campos
+  editCantante: "",
+  editCompositor: "",
+  editIdioma: "Español",
   nuevoTitulo: "",
   nuevoPersonaje: "",
-  nuevoEstado: "BORRADOR"
+  nuevoEstado: "BORRADOR",
+  nuevoCantante: "",
+  nuevoCompositor: "",
+  nuevoIdioma: "Español"
 };
 
 function formReducer(state: any, action: any) {
   switch (action.type) {
     case "SET_EDIT_FORM": return { ...state, ...action.payload };
     case "SET_ADD_FORM": return { ...state, ...action.payload };
-    case "RESET_ADD": return { ...state, nuevoTitulo: "", nuevoPersonaje: "", nuevoEstado: "BORRADOR" };
+    case "RESET_ADD": return { 
+      ...state, 
+      nuevoTitulo: "", 
+      nuevoPersonaje: "", 
+      nuevoEstado: "BORRADOR",
+      nuevoCantante: "",
+      nuevoCompositor: "",
+      nuevoIdioma: "Español"
+    };
     default: return state;
   }
 }
@@ -137,11 +152,14 @@ const CancionCard = ({ cancion, isAdmin, onEdit }: any) => {
               {cancion.titulo}
             </h2>
             
-            <div className="flex items-center gap-3 mt-4 text-[#6B5E70]/40 font-bold text-[8px] uppercase tracking-[0.2em]">
-              <div className="h-[1px] w-6 bg-[#6B5E70]/20" />
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-[#6B5E70]/40 font-bold text-[8px] uppercase tracking-[0.2em]">
               <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
-                <Music size={10} /> 
-                {cancion.artista || "Original Sound"}
+                <Mic2 size={10} /> 
+                {cancion.cantante || "N/A"}
+              </span>
+              <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
+                <Globe size={10} /> 
+                {cancion.idioma || "Español"}
               </span>
             </div>
           </div>
@@ -165,6 +183,10 @@ const Canciones = () => {
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const [formState, dispatchForm] = useReducer(formReducer, initialFormState);
 
+  // Estados para filtros
+  const [filtroCantante, setFiltroCantante] = useState("");
+  const [filtroIdioma, setFiltroIdioma] = useState("");
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setIsAdmin(true);
@@ -177,6 +199,28 @@ const Canciones = () => {
     fetchPersonajes();
   }, []);
 
+  // Lógica de filtrado
+  const cancionesFiltradas = useMemo(() => {
+    let result = isAdmin ? canciones : canciones.filter((c: any) => c.visible);
+    
+    if (filtroCantante) {
+      result = result.filter((c: any) => c.cantante === filtroCantante);
+    }
+    if (filtroIdioma) {
+      result = result.filter((c: any) => c.idioma === filtroIdioma);
+    }
+    
+    return result;
+  }, [canciones, isAdmin, filtroCantante, filtroIdioma]);
+
+  // Obtener opciones únicas para los selectores de filtro
+  const opcionesFiltros = useMemo(() => {
+    return {
+      cantantes: Array.from(new Set(canciones.map((c: any) => c.cantante).filter(Boolean))),
+      idiomas: Array.from(new Set(canciones.map((c: any) => c.idioma).filter(Boolean)))
+    };
+  }, [canciones]);
+
   const openEditModal = useCallback((e: any, cancion: any) => {
     e.preventDefault();
     e.stopPropagation();
@@ -187,7 +231,10 @@ const Canciones = () => {
         editPersonaje: cancion.personaje || "",
         editEstado: cancion.estado || "BORRADOR",
         editVisible: cancion.visible || false,
-        editPortada: cancion.portada_url || ""
+        editPortada: cancion.portada_url || "",
+        editCantante: cancion.cantante || "",
+        editCompositor: cancion.compositor || "",
+        editIdioma: cancion.idioma || "Español"
       }
     });
     dispatchModal({ type: "OPEN_EDIT", payload: cancion });
@@ -206,7 +253,10 @@ const Canciones = () => {
           personaje: formState.editPersonaje || null,
           estado: formState.editEstado,
           visible: formState.editVisible,
-          portada_url: formState.editPortada
+          portada_url: formState.editPortada,
+          cantante: formState.editCantante,
+          compositor: formState.editCompositor,
+          idioma: formState.editIdioma
         })
         .eq("id", modalState.selectedCancion.id)
         .select();
@@ -236,7 +286,10 @@ const Canciones = () => {
           personaje: formState.nuevoPersonaje || null,
           estado: formState.nuevoEstado,
           visible: false,
-          portada_url: "/placeholder-cover.jpg"
+          portada_url: "/placeholder-cover.jpg",
+          cantante: formState.nuevoCantante,
+          compositor: formState.nuevoCompositor,
+          idioma: formState.nuevoIdioma
         }])
         .select();
 
@@ -262,8 +315,6 @@ const Canciones = () => {
     }
   };
 
-  const cancionesAMostrar = isAdmin ? canciones : canciones.filter((c: any) => c.visible);
-
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
       <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
@@ -288,7 +339,7 @@ const Canciones = () => {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative bg-white w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="p-8 sm:p-12 overflow-y-auto">
                 <div className="flex justify-between items-center mb-10">
@@ -323,6 +374,34 @@ const Canciones = () => {
                         <option value="">Ninguno</option>
                         {listaPersonajes.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
                       </select>
+                    </div>
+                  </div>
+
+                  {/* NUEVOS CAMPOS EN EDITAR */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Cantante</label>
+                      <input 
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none"
+                        value={formState.editCantante} 
+                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editCantante: e.target.value }})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Compositor</label>
+                      <input 
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none"
+                        value={formState.editCompositor} 
+                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editCompositor: e.target.value }})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Idioma</label>
+                      <input 
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none"
+                        value={formState.editIdioma} 
+                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editIdioma: e.target.value }})}
+                      />
                     </div>
                   </div>
 
@@ -383,7 +462,7 @@ const Canciones = () => {
         {modalState.showAddModal && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => dispatchModal({ type: "CLOSE_ADD" })} className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
               <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.4em] text-center mb-10 italic underline underline-offset-8">Nuevo Registro</h3>
               <form onSubmit={handleAddCancion} className="space-y-6">
                 <input 
@@ -400,6 +479,14 @@ const Canciones = () => {
                   <option value="">Seleccionar Personaje</option>
                   {listaPersonajes.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
                 </select>
+                
+                <input 
+                  placeholder="CANTANTE"
+                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30"
+                  value={formState.nuevoCantante} 
+                  onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoCantante: e.target.value }})}
+                />
+
                 <button type="submit" disabled={modalState.isProcessing} className="w-full bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all">
                   {modalState.isProcessing ? "Registrando..." : "Crear Soliloquio"}
                 </button>
@@ -409,7 +496,7 @@ const Canciones = () => {
         )}
       </AnimatePresence>
 
-      <header className="max-w-6xl mx-auto pt-24 px-6 mb-20">
+      <header className="max-w-6xl mx-auto pt-24 px-6 mb-12">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
           <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
             <h1 className="text-7xl font-black text-[#6B5E70] italic uppercase tracking-tighter leading-none mb-4">
@@ -432,12 +519,54 @@ const Canciones = () => {
         </div>
       </header>
 
+      {/* SECCIÓN DE FILTROS */}
+      <section className="max-w-6xl mx-auto px-6 mb-16">
+        <div className="bg-white/50 backdrop-blur-sm border border-[#6B5E70]/10 p-6 rounded-[2.5rem] flex flex-wrap items-center gap-6">
+          <div className="flex items-center gap-3 text-[#6B5E70] font-black uppercase text-[9px] tracking-widest px-4">
+            <Filter size={14} /> Filtros:
+          </div>
+          
+          <select 
+            className="bg-white border-2 border-[#6B5E70]/5 px-6 py-3 rounded-full text-[9px] font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/20 transition-all min-w-[150px]"
+            value={filtroCantante}
+            onChange={(e) => setFiltroCantante(e.target.value)}
+          >
+            <option value="">Todos los Cantantes</option>
+            {opcionesFiltros.cantantes.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <select 
+            className="bg-white border-2 border-[#6B5E70]/5 px-6 py-3 rounded-full text-[9px] font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/20 transition-all min-w-[150px]"
+            value={filtroIdioma}
+            onChange={(e) => setFiltroIdioma(e.target.value)}
+          >
+            <option value="">Todos los Idiomas</option>
+            {opcionesFiltros.idiomas.map(i => <option key={i} value={i}>{i}</option>)}
+          </select>
+
+          {(filtroCantante || filtroIdioma) && (
+            <button 
+              onClick={() => { setFiltroCantante(""); setFiltroIdioma(""); }}
+              className="text-[#6B5E70]/40 hover:text-red-500 transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2"
+            >
+              <X size={14} /> Limpiar
+            </button>
+          )}
+        </div>
+      </section>
+
       <main className="max-w-6xl mx-auto px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-          {cancionesAMostrar.map((cancion: any) => (
+          {cancionesFiltradas.map((cancion: any) => (
             <CancionCard key={cancion.id} cancion={cancion} isAdmin={isAdmin} onEdit={openEditModal} />
           ))}
         </div>
+        
+        {cancionesFiltradas.length === 0 && (
+          <div className="text-center py-20">
+            <p className="text-[#6B5E70]/20 font-black uppercase tracking-[0.5em] text-xs">No se encontraron soliloquios</p>
+          </div>
+        )}
       </main>
     </div>
   );
