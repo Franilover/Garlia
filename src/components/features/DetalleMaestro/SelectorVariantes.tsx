@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 
 const ICONOS_TIPO: Record<string, React.ReactNode> = {
-  "Errante": <Droplets size={14} />,
+  "Hielo": <Droplets size={14} />,
   "Fuego": <Flame size={14} />,
   "Protector": <Shield size={14} />,
   "Estelares": <Sun size={14} />,
