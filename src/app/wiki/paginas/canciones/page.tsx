@@ -417,7 +417,7 @@ const Canciones = () => {
             </h1>
             <div className="flex items-center gap-4">
               <div className="h-2 w-24 bg-[#6B5E70] rounded-full" />
-              <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.4em]">Archivo de Letras</span>
+              <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.4em]">Covers</span>
             </div>
           </motion.div>
           {isAdmin && (
