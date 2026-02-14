@@ -210,3 +210,5 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     deleteRow // <-- Ahora sí está disponible para compras.tsx
   };
 }
+
+
