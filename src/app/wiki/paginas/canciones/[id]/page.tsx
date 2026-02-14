@@ -698,6 +698,7 @@ export default function CancionDetalle() {
     const { nuevoNombre, nuevaLetraEs, nuevaLetraEn, nuevaLetraJp, nuevaLetraRomaji } = formState;
     if (!nuevoNombre.trim() || !nuevaLetraEs.trim() || modalState.procesando) return;
     dispatchModal({ type: "SET_PROCESANDO", payload: true });
+    let success = false;
     try {
       const { data, error } = await supabase.from("secciones_cancion").insert([{
         cancion_id: id,
@@ -709,13 +710,18 @@ export default function CancionDetalle() {
         orden: secciones.length + 1
       }]).select();
       if (error) throw error;
-      if (data) setSecciones((prev) => [...prev, data[0]]);
-      dispatchForm({ type: "RESET_NUEVA" });
-      dispatchModal({ type: "CLOSE_ADD" });
+      if (data) {
+        setSecciones((prev) => [...prev, data[0]]);
+        success = true;
+      }
     } catch (error) {
       alert("Error: " + (error.message || "No se pudo crear la sección"));
     } finally {
       dispatchModal({ type: "SET_PROCESANDO", payload: false });
+      if (success) {
+        dispatchForm({ type: "RESET_NUEVA" });
+        dispatchModal({ type: "CLOSE_ADD" });
+      }
     }
   };
 
@@ -725,6 +731,7 @@ export default function CancionDetalle() {
     const { selectedSec } = modalState;
     if (!editSecNombre.trim() || !editSecEs.trim() || modalState.procesando) return;
     dispatchModal({ type: "SET_PROCESANDO", payload: true });
+    let success = false;
     try {
       const { error } = await supabase.from("secciones_cancion").update({
         nombre_seccion: editSecNombre.toUpperCase(),
@@ -735,12 +742,15 @@ export default function CancionDetalle() {
       }).eq("id", selectedSec.id);
       if (error) throw error;
       setSecciones((prev) => prev.map((s) => s.id === selectedSec.id ? { ...s, nombre_seccion: editSecNombre.toUpperCase(), letra_es: editSecEs, letra_en: editSecEn, letra_jp: editSecJp, letra_romaji: editSecRomaji } : s));
-      dispatchForm({ type: "RESET_EDIT" });
-      dispatchModal({ type: "CLOSE_EDIT_SEC" });
+      success = true;
     } catch (error) {
       alert("Error: " + (error.message || "No se pudo actualizar la sección"));
     } finally {
       dispatchModal({ type: "SET_PROCESANDO", payload: false });
+      if (success) {
+        dispatchForm({ type: "RESET_EDIT" });
+        dispatchModal({ type: "CLOSE_EDIT_SEC" });
+      }
     }
   };
 
