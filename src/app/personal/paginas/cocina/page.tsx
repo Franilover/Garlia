@@ -28,7 +28,7 @@ export default function CocinaMenuPage() {
           
           {/* Opción: RECETAS */}
           <MenuCard 
-            href="/personal/cocina/recetas"
+            href="/personal/paginas/cocina/recetas"
             title="Recetas"
              icon={<ChefHat size={42} />}
             delay={0.1}
@@ -36,7 +36,7 @@ export default function CocinaMenuPage() {
 
           {/* Opción: INGREDIENTES */}
           <MenuCard 
-            href="/personal/cocina/ingredientes"
+            href="/personal/paginas/cocina/ingredientes"
             title="Ingredientes"
             icon={<Utensils size={42} />}
             delay={0.2}
@@ -52,7 +52,7 @@ export default function CocinaMenuPage() {
           className="mt-16 text-center"
         >
           <Link 
-            href="/personal" 
+            href="/personal/paginas" 
             className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors border-b border-transparent hover:border-primary"
           >
             Volver al Wiki Principal

@@ -45,9 +45,9 @@ const Navbar = () => {
     <div className="flex w-full items-center justify-between px-8 h-full">
       
       {/* 1. PERSONAL (IZQUIERDA) */}
-      <Link href="/personal" onClick={closeAll} className="flex flex-col items-center gap-1">
-        <Camera size={22} className={isInSection("/personal") && !isInSection("/personal/cocina") && !isInSection("/personal/tareas") ? "text-primary" : "text-primary/30"} />
-        <span className={cn("text-[7px] font-black uppercase tracking-widest", isInSection("/personal") && !isInSection("/personal/cocina") ? "text-primary" : "text-primary/20")}>
+      <Link href="/personal/paginas" onClick={closeAll} className="flex flex-col items-center gap-1">
+        <Camera size={22} className={isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") && !isInSection("/personal/paginas/tareas") ? "text-primary" : "text-primary/30"} />
+        <span className={cn("text-[7px] font-black uppercase tracking-widest", isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") ? "text-primary" : "text-primary/20")}>
           "Personal"
         </span>
       </Link>
@@ -87,9 +87,9 @@ const Navbar = () => {
 
           <nav className="flex items-center gap-1 bg-primary/5 p-1 rounded-2xl border border-primary/10">
             <Link 
-              href="/personal" 
+              href="/personal/paginas" 
               className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl", 
-              isInSection("/personal") && !isInSection("/personal/cocina") ? "bg-white text-primary shadow-sm" : "text-primary/40 hover:text-primary")}
+              isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") ? "bg-white text-primary shadow-sm" : "text-primary/40 hover:text-primary")}
             >
               Personal
             </Link>
@@ -103,10 +103,10 @@ const Navbar = () => {
 
             {esFranilover && (
               <div className="flex gap-1 ml-2 pl-2 border-l border-primary/10">
-                <Link href="/personal/cocina" className={cn("p-2 rounded-xl transition-all", isInSection("/personal/cocina") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
+                <Link href="/personal/paginas/cocina" className={cn("p-2 rounded-xl transition-all", isInSection("/personal/paginas/cocina") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <Utensils size={16} />
                 </Link>
-                <Link href="/personal/tareas" className={cn("p-2 rounded-xl transition-all", isInSection("/personal/tareas") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
+                <Link href="/personal/paginas/tareas" className={cn("p-2 rounded-xl transition-all", isInSection("/personal/paginas/tareas") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <CheckSquare size={16} />
                 </Link>
               </div>
@@ -185,7 +185,7 @@ const Navbar = () => {
                   </Link>
                 </div>
               )}
-
+a
               <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-400 rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3 mt-2">
                 "Cerrar Sesión" <LogOut size={16}/>
               </button>
