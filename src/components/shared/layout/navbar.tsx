@@ -46,8 +46,8 @@ const Navbar = () => {
       
       {/* 1. PERSONAL (IZQUIERDA) */}
       <Link href="/personal" onClick={closeAll} className="flex flex-col items-center gap-1">
-        <Camera size={22} className={isInSection("/personal•") && !isInSection("/personal/paginas/cocina") && !isInSection("/personal/paginas/tareas") ? "text-primary" : "text-primary/30"} />
-        <span className={cn("text-[7px] font-black uppercase tracking-widest", isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") ? "text-primary" : "text-primary/20")}>
+        <Camera size={22} className={isInSection("/personal") && !isInSection("/personal/paginas/cocina") && !isInSection("/personal/paginas/tareas") ? "text-primary" : "text-primary/30"} />
+        <span className={cn("text-[7px] font-black uppercase tracking-widest", isInSection("/personal") && !isInSection("/personal/paginas/cocina") ? "text-primary" : "text-primary/20")}>
           Personal
         </span>
       </Link>
@@ -201,4 +201,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;as
+export default Navbar;
