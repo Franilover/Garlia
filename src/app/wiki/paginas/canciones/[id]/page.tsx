@@ -693,8 +693,7 @@ export default function CancionDetalle() {
     }
   };
 
-  const handleCrearSeccion = async (e) => {
-    e.preventDefault();
+  const handleCrearSeccion = async () => {
     const { nuevoNombre, nuevaLetraEs, nuevaLetraEn, nuevaLetraJp, nuevaLetraRomaji } = formState;
     if (!nuevoNombre.trim() || !nuevaLetraEs.trim() || modalState.procesando) return;
     dispatchModal({ type: "SET_PROCESANDO", payload: true });
@@ -725,8 +724,7 @@ export default function CancionDetalle() {
     }
   };
 
-  const handleUpdateSeccion = async (e) => {
-    e.preventDefault();
+  const handleUpdateSeccion = async () => {
     const { editSecNombre, editSecEs, editSecEn, editSecJp, editSecRomaji } = formState;
     const { selectedSec } = modalState;
     if (!editSecNombre.trim() || !editSecEs.trim() || modalState.procesando) return;
