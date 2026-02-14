@@ -1,34 +1,41 @@
 "use client";
 import { supabase } from "@/lib/api/supabase";
 
+/** * ID Único de Franilover (UUID)
+ * Este ID es el que vincula tus perfiles con la ropa
+ */
+const FRANILOVER_ID = "52e9a913-ebb4-44be-847b-f2387b60d4ff";
+
 export const ropaQueries = {
   /**
-   * Obtiene datos (ropa o outfits) filtrados por Franilover
+   * Obtiene los datos de la tabla 'ropa' o 'ropa_outfits'
    */
   getAll: async (opt?: any) => {
-    // El hook llama a esta función. El contexto de la tabla viene implícito
-    // pero forzamos el filtrado por usuario aquí.
-    return await supabase
-      .from(opt?.tabla || "ropa") 
+    const tabla = opt?.tabla || "ropa";
+    
+    const query = supabase
+      .from(tabla)
       .select(opt?.select || "*")
-      .eq("username", "Franilover")
+      .eq("user_id", FRANILOVER_ID) // <--- CAMBIO: Ahora usamos user_id
       .order(opt?.order?.campo || "created_at", { 
         ascending: opt?.order?.asc ?? false 
       });
+
+    return await query;
   },
 
   /**
-   * Añade una prenda o un outfit
+   * Crea un nuevo registro
    */
   create: async (newData: any) => {
-    // Extraemos la tabla del objeto si la envías, o por defecto 'ropa'
     const { tabla_destino, ...datos } = newData;
-    
+    const destino = tabla_destino || "ropa";
+
     const { data, error } = await supabase
-      .from(tabla_destino || "ropa")
+      .from(destino)
       .insert([{ 
         ...datos, 
-        username: "Franilover" 
+        user_id: FRANILOVER_ID // <--- CAMBIO: Inyectamos el UUID
       }])
       .select();
 
@@ -36,17 +43,31 @@ export const ropaQueries = {
   },
 
   /**
-   * Elimina registros (ropa u outfits)
+   * Actualiza un registro existente
    */
-  delete: async (id: string | number) => {
-    // Nota: El hook de Supabase suele pasar el ID. 
-    // Para borrar, necesitamos saber la tabla. Si el hook no la provee a la query,
-    // usamos una lógica genérica o dejamos que la lógica por defecto del hook actúe.
+  update: async (id: string | number, updates: any) => {
+    const { tabla_destino, ...datos } = updates;
+    const destino = tabla_destino || "ropa";
+
+    const { data, error } = await supabase
+      .from(destino)
+      .update(datos)
+      .eq("id", id)
+      .eq("user_id", FRANILOVER_ID) // <--- CAMBIO: Seguridad por UUID
+      .select();
+
+    return { data: data?.[0], error };
+  },
+
+  /**
+   * Elimina un registro
+   */
+  delete: async (id: string | number, tabla: string) => {
     const { error } = await supabase
-      .from("ropa_outfits")
+      .from(tabla || "ropa")
       .delete()
       .eq("id", id)
-      .eq("username", "Franilover");
+      .eq("user_id", FRANILOVER_ID); // <--- CAMBIO: Seguridad por UUID
 
     return { error };
   }

@@ -1,16 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Plus, Trash2, Save, 
-  Layers, ChevronRight, X,
+  Trash2, Save, Layers, X,
   CheckCircle2, Loader2, Shirt
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/api/supabase";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
-import { SmartImage } from "@/components/shared/display/SmartImage";
 
 // --- TIPOS ---
 type Categoria = "Superior" | "Inferior" | "Calzado" | "Accesorios";
@@ -23,20 +20,24 @@ interface Prenda {
 }
 
 export default function ArmarioCanvasPage() {
-  const { data: prendas = [], loading } = useSupabaseData("ropa", {
+  // 1. Cargamos los datos de la tabla "ropa"
+  const { 
+    data: ropa = [], 
+    loading: loadingRopa 
+  } = useSupabaseData<Prenda>("ropa", {
     order: { campo: "created_at", asc: false }
   });
 
-  const { data: outfitsGuardados = [], refetch: refetchOutfits } = useSupabaseData("ropa_outfits", {
+  // 2. Cargamos los datos de la tabla "ropa_outfits"
+  const { 
+    data: ropa_outfits = [], 
+    loading: loadingOutfits,
+    addRow, 
+    deleteRow,
+    refetch: refetchOutfits 
+  } = useSupabaseData("ropa_outfits", {
     order: { campo: "created_at", asc: false }
   });
-
-  // LOG PARA DEPURAR: Abre la consola (F12) y mira qué sale aquí
-  useEffect(() => {
-    if (prendas.length > 0) {
-      console.log("DATOS DE TABRA ROPA:", prendas);
-    }
-  }, [prendas]);
 
   const [selectedPrendas, setSelectedPrendas] = useState<Prenda[]>([]);
   const [nombreOutfit, setNombreOutfit] = useState("");
@@ -53,30 +54,28 @@ export default function ArmarioCanvasPage() {
   const guardarOutfit = async () => {
     if (selectedPrendas.length === 0 || !nombreOutfit) return;
     setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from("ropa_outfits")
-        .insert([{
-          nombre: nombreOutfit,
-          prendas: selectedPrendas, 
-        }]);
-      if (error) throw error;
+    
+    // Usamos addRow apuntando explícitamente a la tabla "ropa_outfits"
+    const { error } = await addRow({
+      nombre: nombreOutfit,
+      prendas: selectedPrendas, // Se guarda como JSONB
+      tabla_destino: "ropa_outfits" 
+    });
+
+    if (!error) {
       setSelectedPrendas([]);
       setNombreOutfit("");
       await refetchOutfits(); 
-    } catch (err) {
-      console.error("Error guardando outfit:", err);
-    } finally {
-      setIsSaving(false);
     }
+    setIsSaving(false);
   };
 
   const borrarOutfit = async (id: string) => {
-    const { error } = await supabase.from("ropa_outfits").delete().eq("id", id);
-    if (!error) await refetchOutfits();
+    // deleteRow ya sabe que está actuando sobre "ropa_outfits" por el contexto del hook
+    await deleteRow(id);
   };
 
-  if (loading) return (
+  if (loadingRopa || loadingOutfits) return (
     <div className="h-screen flex items-center justify-center bg-bg-main">
       <Loader2 className="animate-spin text-primary/20" size={40} />
     </div>
@@ -85,51 +84,45 @@ export default function ArmarioCanvasPage() {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-bg-main">
       
-      {/* --- SECCIÓN IZQUIERDA: GALERÍA DE ROPA --- */}
+      {/* --- GALERÍA (TABLA: ropa) --- */}
       <main className="w-full md:w-2/3 p-6 md:p-10 overflow-y-auto">
         <header className="mb-8">
           <h1 className="text-4xl font-black uppercase tracking-tighter text-primary italic">
             Armario <span className="text-primary/10 italic">Real</span>
           </h1>
           <p className="text-primary/40 text-[10px] font-black uppercase tracking-widest mt-2">
-            Prendas disponibles: {prendas.length}
+            Items en "ropa": {ropa.length}
           </p>
         </header>
 
-        {prendas.length === 0 ? (
+        {ropa.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-20 border-2 border-dashed border-primary/5 rounded-4xl">
             <Shirt className="text-primary/10 mb-4" size={48} />
-            <p className="text-[10px] font-black uppercase text-primary/20">No hay ropa en la tabla "ropa"</p>
+            <p className="text-[10px] font-black uppercase text-primary/20">La tabla "ropa" está vacía</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {prendas.map((prenda: Prenda) => {
-              const estaSeleccionada = selectedPrendas.find(p => p.id === prenda.id);
+            {ropa.map((item: Prenda) => {
+              const estaSeleccionada = selectedPrendas.find(p => p.id === item.id);
               return (
                 <motion.button
-                  key={prenda.id}
+                  key={item.id}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => togglePrendaEnCanvas(prenda)}
+                  onClick={() => togglePrendaEnCanvas(item)}
                   className={cn(
                     "relative aspect-3/4 rounded-3xl border-2 transition-all overflow-hidden bg-white",
                     estaSeleccionada ? "border-primary shadow-xl" : "border-primary/5 hover:border-primary/20"
                   )}
                 >
-                  {/* Visualización de Imagen */}
                   <div className="absolute inset-0 bg-primary/5 flex items-center justify-center">
-                    {prenda.imagen_url ? (
+                    {item.imagen_url ? (
                       <img
-                        src={prenda.imagen_url}
-                        alt={prenda.nombre}
+                        src={item.imagen_url}
+                        alt={item.nombre}
                         className={cn(
                           "w-full h-full object-cover transition-transform duration-500",
                           estaSeleccionada ? "opacity-40 scale-110" : "opacity-100"
                         )}
-                        onError={(e) => {
-                           // Si la URL falla, mostramos un error en consola y ocultamos la img rota
-                           console.error("Error cargando imagen:", prenda.imagen_url);
-                           e.currentTarget.style.display = 'none';
-                        }}
                       />
                     ) : (
                       <Shirt className="text-primary/10" size={32} />
@@ -137,8 +130,8 @@ export default function ArmarioCanvasPage() {
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 p-4 bg-linear-to-t from-black/80 to-transparent">
-                    <p className="text-[9px] font-black text-white uppercase truncate">{prenda.nombre}</p>
-                    <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{prenda.categoria}</p>
+                    <p className="text-[9px] font-black text-white uppercase truncate">{item.nombre}</p>
+                    <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{item.categoria}</p>
                   </div>
 
                   {estaSeleccionada && (
@@ -153,19 +146,18 @@ export default function ArmarioCanvasPage() {
         )}
       </main>
 
-      {/* --- SECCIÓN DERECHA: CONSTRUCTOR (SIDEBAR) --- */}
+      {/* --- CONSTRUCTOR (TABLA: ropa_outfits) --- */}
       <aside className="w-full md:w-1/3 bg-white border-l border-primary/10 p-6 md:p-8 flex flex-col gap-6 sticky top-0 h-screen overflow-y-auto shadow-2xl">
         <div className="flex items-center gap-2 text-primary border-b border-primary/5 pb-4">
           <Layers size={18} />
           <h2 className="text-xs font-black uppercase tracking-widest">Constructor</h2>
         </div>
 
-        {/* Espacio de trabajo */}
         <div className="grow flex flex-col gap-3 min-h-40 p-4 bg-primary/5 rounded-4xl border-2 border-dashed border-primary/10">
           <AnimatePresence mode="popLayout">
             {selectedPrendas.length === 0 ? (
               <div className="h-full flex items-center justify-center text-center opacity-20 py-10 px-4">
-                <p className="text-[9px] font-black uppercase leading-relaxed tracking-widest">Selecciona ropa para crear el conjunto</p>
+                <p className="text-[9px] font-black uppercase leading-relaxed tracking-widest">Selecciona ítems de "ropa"</p>
               </div>
             ) : (
               selectedPrendas.map((p) => (
@@ -186,29 +178,27 @@ export default function ArmarioCanvasPage() {
           </AnimatePresence>
         </div>
 
-        {/* Acciones de Guardado */}
         {selectedPrendas.length > 0 && (
-          <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex flex-col gap-3">
             <input 
               type="text" placeholder="NOMBRE DEL LOOK..." value={nombreOutfit}
               onChange={(e) => setNombreOutfit(e.target.value.toUpperCase())}
-              className="bg-primary/5 border-none rounded-2xl p-4 text-[10px] font-black text-primary placeholder:text-primary/20 outline-none ring-primary/10 focus:ring-2"
+              className="bg-primary/5 border-none rounded-2xl p-4 text-[10px] font-black text-primary placeholder:text-primary/20 outline-none"
             />
             <button 
               onClick={guardarOutfit} disabled={!nombreOutfit || isSaving}
-              className="w-full bg-primary text-white p-4 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3 transition-all hover:brightness-110 active:scale-95 disabled:opacity-30"
+              className="w-full bg-primary text-white p-4 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-30"
             >
               {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} 
-              Guardar Look
+              Guardar en ropa_outfits
             </button>
           </div>
         )}
 
-        {/* Historial */}
         <div className="mt-4 border-t border-primary/5 pt-6">
-          <h3 className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mb-4">Colección Guardada</h3>
+          <h3 className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mb-4">Outfits Guardados</h3>
           <div className="space-y-3">
-            {outfitsGuardados.map((o: any) => (
+            {ropa_outfits.map((o: any) => (
               <div key={o.id} className="group p-4 bg-white border border-primary/5 rounded-3xl hover:border-primary/20 transition-all">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[9px] font-black uppercase text-primary">{o.nombre}</p>
