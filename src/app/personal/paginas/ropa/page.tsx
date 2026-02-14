@@ -20,17 +20,17 @@ interface Prenda {
 }
 
 export default function ArmarioCanvasPage() {
-  // 1. Cargamos los datos de la tabla "ropa"
+  // 1. Cargamos ropa (usa ropaQueries.getAll internamente)
   const { 
-    data: ropa = [], 
+    data: prendas = [], 
     loading: loadingRopa 
   } = useSupabaseData<Prenda>("ropa", {
     order: { campo: "created_at", asc: false }
   });
 
-  // 2. Cargamos los datos de la tabla "ropa_outfits"
+  // 2. Cargamos outfits (usa ropaQueries.getAll internamente)
   const { 
-    data: ropa_outfits = [], 
+    data: outfitsGuardados = [], 
     loading: loadingOutfits,
     addRow, 
     deleteRow,
@@ -55,11 +55,10 @@ export default function ArmarioCanvasPage() {
     if (selectedPrendas.length === 0 || !nombreOutfit) return;
     setIsSaving(true);
     
-    // Usamos addRow apuntando explícitamente a la tabla "ropa_outfits"
+    // IMPORTANTE: addRow usará ropaQueries.create e inyectará tu user_id automáticamente
     const { error } = await addRow({
       nombre: nombreOutfit,
-      prendas: selectedPrendas, // Se guarda como JSONB
-      tabla_destino: "ropa_outfits" 
+      prendas: selectedPrendas, // Se guarda como JSONB en la tabla
     });
 
     if (!error) {
@@ -71,7 +70,7 @@ export default function ArmarioCanvasPage() {
   };
 
   const borrarOutfit = async (id: string) => {
-    // deleteRow ya sabe que está actuando sobre "ropa_outfits" por el contexto del hook
+    // deleteRow usará ropaQueries.delete y filtrará por tu user_id
     await deleteRow(id);
   };
 
@@ -84,41 +83,41 @@ export default function ArmarioCanvasPage() {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-bg-main">
       
-      {/* --- GALERÍA (TABLA: ropa) --- */}
+      {/* --- SECCIÓN IZQUIERDA: GALERÍA DE ROPA --- */}
       <main className="w-full md:w-2/3 p-6 md:p-10 overflow-y-auto">
         <header className="mb-8">
           <h1 className="text-4xl font-black uppercase tracking-tighter text-primary italic">
             Armario <span className="text-primary/10 italic">Real</span>
           </h1>
           <p className="text-primary/40 text-[10px] font-black uppercase tracking-widest mt-2">
-            Items en "ropa": {ropa.length}
+            Prendas disponibles: {prendas.length}
           </p>
         </header>
 
-        {ropa.length === 0 ? (
+        {prendas.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-20 border-2 border-dashed border-primary/5 rounded-4xl">
             <Shirt className="text-primary/10 mb-4" size={48} />
-            <p className="text-[10px] font-black uppercase text-primary/20">La tabla "ropa" está vacía</p>
+            <p className="text-[10px] font-black uppercase text-primary/20">La tabla "ropa" no devuelve datos para Franilover</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {ropa.map((item: Prenda) => {
-              const estaSeleccionada = selectedPrendas.find(p => p.id === item.id);
+            {prendas.map((prenda: Prenda) => {
+              const estaSeleccionada = selectedPrendas.find(p => p.id === prenda.id);
               return (
                 <motion.button
-                  key={item.id}
+                  key={prenda.id}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => togglePrendaEnCanvas(item)}
+                  onClick={() => togglePrendaEnCanvas(prenda)}
                   className={cn(
                     "relative aspect-3/4 rounded-3xl border-2 transition-all overflow-hidden bg-white",
                     estaSeleccionada ? "border-primary shadow-xl" : "border-primary/5 hover:border-primary/20"
                   )}
                 >
                   <div className="absolute inset-0 bg-primary/5 flex items-center justify-center">
-                    {item.imagen_url ? (
+                    {prenda.imagen_url ? (
                       <img
-                        src={item.imagen_url}
-                        alt={item.nombre}
+                        src={prenda.imagen_url}
+                        alt={prenda.nombre}
                         className={cn(
                           "w-full h-full object-cover transition-transform duration-500",
                           estaSeleccionada ? "opacity-40 scale-110" : "opacity-100"
@@ -130,8 +129,8 @@ export default function ArmarioCanvasPage() {
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 p-4 bg-linear-to-t from-black/80 to-transparent">
-                    <p className="text-[9px] font-black text-white uppercase truncate">{item.nombre}</p>
-                    <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{item.categoria}</p>
+                    <p className="text-[9px] font-black text-white uppercase truncate">{prenda.nombre}</p>
+                    <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{prenda.categoria}</p>
                   </div>
 
                   {estaSeleccionada && (
@@ -146,7 +145,7 @@ export default function ArmarioCanvasPage() {
         )}
       </main>
 
-      {/* --- CONSTRUCTOR (TABLA: ropa_outfits) --- */}
+      {/* --- SECCIÓN DERECHA: CONSTRUCTOR --- */}
       <aside className="w-full md:w-1/3 bg-white border-l border-primary/10 p-6 md:p-8 flex flex-col gap-6 sticky top-0 h-screen overflow-y-auto shadow-2xl">
         <div className="flex items-center gap-2 text-primary border-b border-primary/5 pb-4">
           <Layers size={18} />
@@ -157,7 +156,7 @@ export default function ArmarioCanvasPage() {
           <AnimatePresence mode="popLayout">
             {selectedPrendas.length === 0 ? (
               <div className="h-full flex items-center justify-center text-center opacity-20 py-10 px-4">
-                <p className="text-[9px] font-black uppercase leading-relaxed tracking-widest">Selecciona ítems de "ropa"</p>
+                <p className="text-[9px] font-black uppercase leading-relaxed tracking-widest">Selecciona ropa para crear el conjunto</p>
               </div>
             ) : (
               selectedPrendas.map((p) => (
@@ -183,22 +182,22 @@ export default function ArmarioCanvasPage() {
             <input 
               type="text" placeholder="NOMBRE DEL LOOK..." value={nombreOutfit}
               onChange={(e) => setNombreOutfit(e.target.value.toUpperCase())}
-              className="bg-primary/5 border-none rounded-2xl p-4 text-[10px] font-black text-primary placeholder:text-primary/20 outline-none"
+              className="bg-primary/5 border-none rounded-2xl p-4 text-[10px] font-black text-primary outline-none"
             />
             <button 
               onClick={guardarOutfit} disabled={!nombreOutfit || isSaving}
               className="w-full bg-primary text-white p-4 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-30"
             >
               {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} 
-              Guardar en ropa_outfits
+              Guardar Look
             </button>
           </div>
         )}
 
         <div className="mt-4 border-t border-primary/5 pt-6">
-          <h3 className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mb-4">Outfits Guardados</h3>
+          <h3 className="text-[8px] font-black text-primary/30 uppercase tracking-[0.3em] mb-4">Colección Guardada</h3>
           <div className="space-y-3">
-            {ropa_outfits.map((o: any) => (
+            {outfitsGuardados.map((o: any) => (
               <div key={o.id} className="group p-4 bg-white border border-primary/5 rounded-3xl hover:border-primary/20 transition-all">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[9px] font-black uppercase text-primary">{o.nombre}</p>
