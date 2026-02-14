@@ -150,11 +150,6 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
 
           {/* Esta columna crece lateralmente todo lo posible */}
           <div className="flex-1 p-12 lg:p-20 bg-white-custom/30 overflow-hidden">
-            <div className="flex items-center gap-4 mb-8 text-primary/60 font-black uppercase text-xs tracking-[0.3em]">
-              {esPersonaje ? <Fingerprint size={24} /> : <Ghost size={24} />}
-              <span>{esPersonaje ? "Expediente de Individuo" : "Registro de Entidad"}</span>
-            </div>
-
             {editMode ? (
               <div className="space-y-10">
                 <div className="space-y-3">
