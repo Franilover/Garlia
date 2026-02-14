@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Edit3, Save, Plus, Music, Users, 
-  CheckCircle2, Fingerprint, Ghost, Trash2
+  CheckCircle2, Trash2
 } from "lucide-react";
 import Relaciones from "./relaciones"; 
 import { useDetalleMaestro, type Variante } from "@/hooks/useDetalleMaestro"; 
@@ -107,10 +107,6 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
   const imagenVisual = (varianteActiva?.imagen_url) || (data?.img_url || data?.imagen_url) || "/placeholder.png";
 
   return (
-    /* CAMBIO CLAVE: Usamos w-full para que ocupe todo el ancho sin desbordar. 
-       Aumentamos el max-w-screen-2xl para que en monitores muy grandes se vea gigante 
-       pero sin causar scroll lateral.
-    */
     <div className="w-full max-w-[96%] xl:max-w-screen-2xl mx-auto relative pt-10 px-4 pb-32 space-y-8">
       <AnimatePresence>
         {showSuccess && (
@@ -131,7 +127,6 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         </button>
 
         <div className="flex flex-col lg:flex-row items-stretch">
-          {/* Tamaño de imagen respetado */}
           <div className="w-full lg:w-[450px] xl:w-[500px] flex-shrink-0 bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
             <div className="relative w-full aspect-square max-w-sm">
               <div className="w-full h-full rounded-full overflow-hidden border-[12px] border-white-custom shadow-xl bg-white-custom">
@@ -148,7 +143,6 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
             </div>
           </div>
 
-          {/* Esta columna crece lateralmente todo lo posible */}
           <div className="flex-1 p-12 lg:p-20 bg-white-custom/30 overflow-hidden">
             {editMode ? (
               <div className="space-y-10">
@@ -177,7 +171,6 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
                 <div className="w-20 h-2 bg-accent mb-10 rounded-full" />
-                {/* La descripción ahora se estirará hasta el final de la caja blanca */}
                 <p className="text-primary/80 text-xl lg:text-2xl leading-relaxed font-medium mb-12">
                   {varianteActiva ? (varianteActiva.descripcion_variante || "Sin registros.") : editDescripcion}
                 </p>
