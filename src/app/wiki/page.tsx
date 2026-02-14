@@ -22,7 +22,7 @@ export default function WikiMenuPage() {
             <Sparkles size={40} />
           </div>
           <h1 className="text-5xl font-black uppercase tracking-tighter text-primary italic">
-            Enciclopedia
+            Garden of Sins
           </h1>
         </motion.div>
 
