@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useMemo } from 'react';
-// Importamos el Provider y el Visual además del Hook
 import { 
   useLightbox, 
   LightboxProvider, 
@@ -10,9 +9,8 @@ import { GalleryGrid, GalleryItem } from "@/components/shared/display/gallery";
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import Newsletter from "@/components/features/newsletter";
 import FiltrosMaestros from "@/components/shared/forms/Filtros";
-import { typography, components, layout } from '@/lib/config/design-system';
+import { typography, components } from '@/lib/config/design-system';
 
-// Componente Interno que contiene la lógica de la galería
 function DrawingsContent() {
   const { openLightbox } = useLightbox();
   const [filtro, setFiltro] = useState('todos');
@@ -31,9 +29,10 @@ function DrawingsContent() {
     filtrados.map(d => ({ src: d.url_imagen, alt: d.titulo, id: d.id }))
   ), [filtrados]);
 
+  // Cabecera limpia sin comillas literales visibles
   const MiCabecera = (
     <header className="mb-12 text-center px-4 pt-16">
-      <h1 className={typography.pageTitle}>"Galería"</h1>
+      <h1 className={typography.pageTitle}>Galería</h1>
       <div className={components.dividerThick} />
       
       <div className="mt-12">
@@ -48,7 +47,7 @@ function DrawingsContent() {
 
   if (error) return (
     <div className={typography.emptyState}>
-      "Error al conectar con el archivo: {error}"
+      Error al conectar con el archivo: {error}
     </div>
   );
 
@@ -56,7 +55,7 @@ function DrawingsContent() {
     <main className="min-h-screen bg-[#F0F0F0] pb-20 font-sans">
       {loading ? (
         <div className={typography.loading}>
-          "Sincronizando Archivos..."
+          Sincronizando Archivos...
         </div>
       ) : (
         <GalleryGrid headerContent={MiCabecera}>
@@ -78,7 +77,7 @@ function DrawingsContent() {
           
           {filtrados.length === 0 && (
             <div className={`col-span-full ${typography.emptyState}`}>
-              "El lienzo está vacío por ahora"
+              El lienzo está vacío por ahora
             </div>
           )}
         </GalleryGrid>
@@ -88,13 +87,11 @@ function DrawingsContent() {
         <Newsletter />
       </div>
 
-      {/* RENDERIZAMOS EL COMPONENTE VISUAL AQUÍ */}
       <LightboxVisual />
     </main>
   );
 }
 
-// Exportamos el componente envuelto en el Provider
 export default function Drawings() {
   return (
     <LightboxProvider>

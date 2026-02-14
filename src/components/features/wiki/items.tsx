@@ -5,6 +5,7 @@ import DetalleMaestro from "@/components/shared/modal/detalles";
 import FiltrosMaestros from "@/components/shared/forms/Filtros";
 import PageHeader from "@/components/shared/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/components/shared/feedback/StateComponents";
+import { cn } from "@/lib/utils";
 
 // Hooks y Libs unificadas
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -15,16 +16,16 @@ import { getMensaje } from '@/lib/config/constants';
 export default function Inventario() {
   const [selected, setSelected] = useState(null);
 
-  // 1. FETCHING: Sincronizado con tu config global
+  // 1. FETCHING
   const { 
     data: items, 
     setData: setItems, 
     loading 
   } = useSupabaseData('items', {
-    order: { campo: 'nombre', asc: true } // O el orden que prefieras
+    order: { campo: 'nombre', asc: true }
   });
 
-  // 2. FILTROS: Usando la lógica genérica
+  // 2. FILTROS
   const {
     filtros,
     opciones,
@@ -44,13 +45,12 @@ export default function Inventario() {
 
   const handleSelect = (item) => {
     setSelected(item);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Eliminado el scroll automático para evitar saltos bruscos
   };
 
   if (loading) return <LoadingState mensaje={getMensaje('LOADING', 'items')} />;
 
   return (
-    // CAMBIO: bg-bg-main para la estética unificada
     <main className="min-h-screen bg-bg-main pb-20 overflow-x-hidden">
       
       <DetalleMaestro 
@@ -60,13 +60,13 @@ export default function Inventario() {
         onUpdate={handleUpdate} 
         tags={[
           selected?.categoria,
-          selected?.rareza // Si tienes rareza en la DB, aparecerá como tag
+          selected?.rareza
         ].filter(Boolean)}
         mostrarMusica={false}
       />
 
+      {/* Eliminada la prop isDetailOpen para que el build de Vercel sea exitoso */}
       <GalleryGrid 
-        isDetailOpen={!!selected} 
         headerContent={
           <PageHeader titulo="Almacén de Objetos">
             <FiltrosMaestros 
@@ -84,8 +84,7 @@ export default function Inventario() {
             contain={true} 
             onClick={() => handleSelect(item)}
           >
-            {/* CAMBIO: Usando typography.tag y typography.cardTitle para consistencia */}
-            <p className={typography.tag + " mb-1"}>
+            <p className={cn(typography.tag, "mb-1 opacity-60")}>
               {item.categoria}
             </p>
             <h3 className={typography.cardTitle}>
