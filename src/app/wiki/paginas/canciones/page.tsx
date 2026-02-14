@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useReducer, useCallback } from "react";
 import Link from "next/link";
-import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/supabase";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
@@ -13,8 +13,6 @@ import { SmartImage } from "@/components/shared/display/SmartImage";
 // ============================================================================
 
 const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"];
-
-const TIPOS_PARTE = ["ESTROFA", "CORO", "PUENTE", "INTRO", "OUTRO", "SOLO"];
 
 const getEstadoColor = (estado: string) => {
   const colores: Record<string, string> = {
@@ -97,7 +95,7 @@ const CancionCard = ({ cancion, isAdmin, onEdit }: any) => {
         </div>
       )}
 
-      <Link href={`/wiki/canciones/${cancion.id}`}>
+      <Link href={`/wiki/paginas/canciones/${cancion.id}`}>
         <motion.div
           whileHover={{ y: -12 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -167,7 +165,6 @@ const Canciones = () => {
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const [formState, dispatchForm] = useReducer(formReducer, initialFormState);
 
-  // Auth y Datos Iniciales
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setIsAdmin(true);
@@ -180,7 +177,6 @@ const Canciones = () => {
     fetchPersonajes();
   }, []);
 
-  // Handlers de Modal
   const openEditModal = useCallback((e: any, cancion: any) => {
     e.preventDefault();
     e.stopPropagation();
@@ -197,7 +193,6 @@ const Canciones = () => {
     dispatchModal({ type: "OPEN_EDIT", payload: cancion });
   }, []);
 
-  // OPERACIONES CRUD (Limpias de 'partes')
   const handleUpdateCancion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formState.editTitulo.trim() || modalState.isProcessing) return;
@@ -212,7 +207,6 @@ const Canciones = () => {
           estado: formState.editEstado,
           visible: formState.editVisible,
           portada_url: formState.editPortada
-          // AQUÍ YA NO ESTÁ EL CAMPO PARTES
         })
         .eq("id", modalState.selectedCancion.id)
         .select();
@@ -243,7 +237,6 @@ const Canciones = () => {
           estado: formState.nuevoEstado,
           visible: false,
           portada_url: "/placeholder-cover.jpg"
-          // AQUÍ YA NO ESTÁ EL CAMPO PARTES
         }])
         .select();
 
@@ -282,10 +275,10 @@ const Canciones = () => {
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-32 selection:bg-[#6B5E70]/10 selection:text-[#6B5E70]">
       
-      {/* MODAL EDITAR - EL FULL DE 800 LÍNEAS */}
+      {/* MODAL EDITAR */}
       <AnimatePresence>
         {modalState.showEditModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6">
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => dispatchModal({ type: "CLOSE_EDIT" })}
@@ -385,10 +378,10 @@ const Canciones = () => {
         )}
       </AnimatePresence>
 
-      {/* MODAL AÑADIR - EL COMPLETO */}
+      {/* MODAL AÑADIR */}
       <AnimatePresence>
         {modalState.showAddModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => dispatchModal({ type: "CLOSE_ADD" })} className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md" />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl">
               <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.4em] text-center mb-10 italic underline underline-offset-8">Nuevo Registro</h3>
