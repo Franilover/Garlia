@@ -3,7 +3,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 import { Sparkles } from 'lucide-react'; 
-import { SmartImage } from './SmartImage'; // <--- Importamos tu nuevo componente
+import { SmartImage } from './SmartImage';
 
 // --- DEFINICIÓN DE TIPOS ---
 
@@ -24,73 +24,35 @@ interface GalleryItemProps {
   contain?: boolean;
 }
 
-// --- COMPONENTE GALLERY GRID ---
+// --- COMPONENTE GALLERY GRID (Filtros Siempre Visibles) ---
 
 export const GalleryGrid = ({ 
   children, 
   headerContent, 
   className,
-  isDetailOpen: isDetailOpenExternal 
 }: GalleryGridProps) => {
-  const [isDetailOpenInternal, setIsDetailOpenInternal] = useState(false);
-  const isDetailOpen = isDetailOpenExternal !== undefined ? isDetailOpenExternal : isDetailOpenInternal;
 
-  const handleOpenDetail = useCallback(() => {
-    setIsDetailOpenInternal(true);
-  }, []);
-
-  const childrenWithProps = useMemo(() => {
-    return React.Children.map(children, child => {
-      if (React.isValidElement(child)) {
-        return React.cloneElement(child as React.ReactElement<any>, { 
-          onExpand: handleOpenDetail 
-        });
-      }
-      return child;
-    });
-  }, [children, handleOpenDetail]);
-
+  // Eliminamos la lógica de ocultar filtros para que siempre se vea el header
   return (
     <div className="w-full">
-      <AnimatePresence mode="wait">
-        {!isDetailOpen && (
-          <motion.div 
-            key="header-section"
-            initial={{ opacity: 1, y: 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20, height: 0 }}
-            transition={{ duration: 0.4, ease: "circOut" }}
-            className="overflow-hidden"
-          >
-            {headerContent}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* El Header ahora es estático o siempre presente */}
+      <div className="w-full">
+        {headerContent}
+      </div>
 
       <section className={cn(
         "mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 p-4 md:p-8 max-w-[1600px]",
         className
       )}>
         <AnimatePresence mode="popLayout">
-          {childrenWithProps}
+          {children}
         </AnimatePresence>
       </section>
-
-      {isDetailOpenInternal && (
-        <motion.button 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          onClick={() => setIsDetailOpenInternal(false)}
-          className="fixed top-6 right-6 z-[60] bg-[#4a4458] text-[#f4f2f7] px-5 py-2 rounded-full uppercase text-[9px] font-black tracking-widest hover:bg-black transition-all shadow-lg"
-        >
-          "Mostrar Filtros"
-        </motion.button>
-      )}
     </div>
   );
 };
 
-// --- GALLERY ITEM (Optimizado con SmartImage) ---
+// --- GALLERY ITEM ---
 
 export const GalleryItem = React.memo(({ 
   src, 
@@ -140,12 +102,12 @@ export const GalleryItem = React.memo(({
             </div>
           </div>
           <p className="text-[8px] font-black text-[#6b6681]/60 uppercase tracking-[0.4em]">
-            "Inédito"
+            Inédito
           </p>
         </div>
       )}
 
-      {/* Overlay gradiente para legibilidad del texto */}
+      {/* Overlay gradiente */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-60 group-hover:opacity-80 transition-opacity z-20 pointer-events-none" />
 
       <div className="absolute bottom-7 left-7 right-7 transition-all duration-500 z-30 text-white">
