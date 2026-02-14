@@ -51,7 +51,6 @@ const initialFormState = {
   editEstado: "BORRADOR",
   editVisible: false,
   editPortada: "",
-  // Nuevos campos
   editCantante: "",
   editCompositor: "",
   editIdioma: "Español",
@@ -158,6 +157,10 @@ const CancionCard = ({ cancion, isAdmin, onEdit }: any) => {
                 {cancion.cantante || "N/A"}
               </span>
               <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
+                <PenTool size={10} /> 
+                {cancion.compositor || "N/A"}
+              </span>
+              <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
                 <Globe size={10} /> 
                 {cancion.idioma || "Español"}
               </span>
@@ -185,6 +188,7 @@ const Canciones = () => {
 
   // Estados para filtros
   const [filtroCantante, setFiltroCantante] = useState("");
+  const [filtroCompositor, setFiltroCompositor] = useState("");
   const [filtroIdioma, setFiltroIdioma] = useState("");
 
   useEffect(() => {
@@ -206,18 +210,22 @@ const Canciones = () => {
     if (filtroCantante) {
       result = result.filter((c: any) => c.cantante === filtroCantante);
     }
+    if (filtroCompositor) {
+      result = result.filter((c: any) => c.compositor === filtroCompositor);
+    }
     if (filtroIdioma) {
       result = result.filter((c: any) => c.idioma === filtroIdioma);
     }
     
     return result;
-  }, [canciones, isAdmin, filtroCantante, filtroIdioma]);
+  }, [canciones, isAdmin, filtroCantante, filtroCompositor, filtroIdioma]);
 
   // Obtener opciones únicas para los selectores de filtro
   const opcionesFiltros = useMemo(() => {
     return {
-      cantantes: Array.from(new Set(canciones.map((c: any) => c.cantante).filter(Boolean))),
-      idiomas: Array.from(new Set(canciones.map((c: any) => c.idioma).filter(Boolean)))
+      cantantes: Array.from(new Set(canciones.map((c: any) => c.cantante).filter(Boolean))).sort(),
+      compositores: Array.from(new Set(canciones.map((c: any) => c.compositor).filter(Boolean))).sort(),
+      idiomas: Array.from(new Set(canciones.map((c: any) => c.idioma).filter(Boolean))).sort()
     };
   }, [canciones]);
 
@@ -377,7 +385,6 @@ const Canciones = () => {
                     </div>
                   </div>
 
-                  {/* NUEVOS CAMPOS EN EDITAR */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Cantante</label>
@@ -482,9 +489,16 @@ const Canciones = () => {
                 
                 <input 
                   placeholder="CANTANTE"
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30"
+                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none"
                   value={formState.nuevoCantante} 
                   onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoCantante: e.target.value }})}
+                />
+
+                <input 
+                  placeholder="COMPOSITOR"
+                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none"
+                  value={formState.nuevoCompositor} 
+                  onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoCompositor: e.target.value }})}
                 />
 
                 <button type="submit" disabled={modalState.isProcessing} className="w-full bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all">
@@ -519,15 +533,15 @@ const Canciones = () => {
         </div>
       </header>
 
-      {/* SECCIÓN DE FILTROS */}
+      {/* SECCIÓN DE FILTROS ACTUALIZADA */}
       <section className="max-w-6xl mx-auto px-6 mb-16">
-        <div className="bg-white/50 backdrop-blur-sm border border-[#6B5E70]/10 p-6 rounded-[2.5rem] flex flex-wrap items-center gap-6">
+        <div className="bg-white/50 backdrop-blur-sm border border-[#6B5E70]/10 p-6 rounded-[2.5rem] flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-3 text-[#6B5E70] font-black uppercase text-[9px] tracking-widest px-4">
             <Filter size={14} /> Filtros:
           </div>
           
           <select 
-            className="bg-white border-2 border-[#6B5E70]/5 px-6 py-3 rounded-full text-[9px] font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/20 transition-all min-w-[150px]"
+            className="flex-1 min-w-[180px] bg-white border-2 border-[#6B5E70]/5 px-6 py-3 rounded-full text-[9px] font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/20 transition-all"
             value={filtroCantante}
             onChange={(e) => setFiltroCantante(e.target.value)}
           >
@@ -536,7 +550,16 @@ const Canciones = () => {
           </select>
 
           <select 
-            className="bg-white border-2 border-[#6B5E70]/5 px-6 py-3 rounded-full text-[9px] font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/20 transition-all min-w-[150px]"
+            className="flex-1 min-w-[180px] bg-white border-2 border-[#6B5E70]/5 px-6 py-3 rounded-full text-[9px] font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/20 transition-all"
+            value={filtroCompositor}
+            onChange={(e) => setFiltroCompositor(e.target.value)}
+          >
+            <option value="">Todos los Compositores</option>
+            {opcionesFiltros.compositores.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <select 
+            className="flex-1 min-w-[180px] bg-white border-2 border-[#6B5E70]/5 px-6 py-3 rounded-full text-[9px] font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/20 transition-all"
             value={filtroIdioma}
             onChange={(e) => setFiltroIdioma(e.target.value)}
           >
@@ -544,10 +567,10 @@ const Canciones = () => {
             {opcionesFiltros.idiomas.map(i => <option key={i} value={i}>{i}</option>)}
           </select>
 
-          {(filtroCantante || filtroIdioma) && (
+          {(filtroCantante || filtroCompositor || filtroIdioma) && (
             <button 
-              onClick={() => { setFiltroCantante(""); setFiltroIdioma(""); }}
-              className="text-[#6B5E70]/40 hover:text-red-500 transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2"
+              onClick={() => { setFiltroCantante(""); setFiltroCompositor(""); setFiltroIdioma(""); }}
+              className="ml-auto text-[#6B5E70]/40 hover:text-red-500 transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2 px-4"
             >
               <X size={14} /> Limpiar
             </button>
