@@ -45,8 +45,8 @@ const Navbar = () => {
     <div className="flex w-full items-center justify-between px-8 h-full">
       
       {/* 1. PERSONAL (IZQUIERDA) */}
-      <Link href="/personal/paginas" onClick={closeAll} className="flex flex-col items-center gap-1">
-        <Camera size={22} className={isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") && !isInSection("/personal/paginas/tareas") ? "text-primary" : "text-primary/30"} />
+      <Link href="/personal" onClick={closeAll} className="flex flex-col items-center gap-1">
+        <Camera size={22} className={isInSection("/personal•") && !isInSection("/personal/paginas/cocina") && !isInSection("/personal/paginas/tareas") ? "text-primary" : "text-primary/30"} />
         <span className={cn("text-[7px] font-black uppercase tracking-widest", isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") ? "text-primary" : "text-primary/20")}>
           Personal
         </span>
@@ -87,9 +87,9 @@ const Navbar = () => {
 
           <nav className="flex items-center gap-1 bg-primary/5 p-1 rounded-2xl border border-primary/10">
             <Link 
-              href="/personal/paginas" 
+              href="/personal" 
               className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl", 
-              isInSection("/personal/paginas") && !isInSection("/personal/paginas/cocina") ? "bg-white text-primary shadow-sm" : "text-primary/40 hover:text-primary")}
+              isInSection("/personal") && !isInSection("/personal/paginas/cocina") ? "bg-white text-primary shadow-sm" : "text-primary/40 hover:text-primary")}
             >
               Personal
             </Link>
@@ -201,4 +201,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default Navbar;as
