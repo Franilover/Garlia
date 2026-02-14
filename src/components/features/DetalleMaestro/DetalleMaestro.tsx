@@ -177,7 +177,6 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                 {/* Selector de Variantes Dinámico */}
                 {!esPersonaje && variantes.length > 0 && (
                    <div className="mb-10">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/30 mb-4 ml-2">Variaciones Detectadas</p>
                     <SelectorVariantes 
                       variantes={variantes} 
                       varianteActiva={varianteActiva} 
