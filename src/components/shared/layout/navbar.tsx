@@ -51,7 +51,6 @@ const Navbar = () => {
           "Personal"
         </span>
       </Link>
-
       {/* 2. LA FLOR (CENTRO) - ABRE EL MENÚ DE CUENTA */}
       <button 
         onClick={() => user ? setUserMenuOpen(!userMenuOpen) : window.location.href="/auth/login"} 
