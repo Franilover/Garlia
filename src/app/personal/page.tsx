@@ -1,0 +1,85 @@
+"use client";
+import React from "react";
+import { motion } from "framer-motion";
+import { Smile, ImageIcon, Camera, ArrowRight, UserCircle } from "lucide-react";
+import Link from "next/link";
+
+export default function PersonalMenuPage() {
+  return (
+    <div className="min-h-screen bg-bg-main flex items-center justify-center p-6">
+      <div className="max-w-4xl w-full">
+        
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-16"
+        >
+          <div className="inline-flex p-4 bg-primary/5 text-primary rounded-[25px] mb-6">
+            <UserCircle size={40} />
+          </div>
+          <h1 className="text-5xl font-black uppercase tracking-tighter text-primary italic">
+            Personal
+          </h1>
+        </motion.div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          <MenuCard 
+            href="/personal/sobre-mi"
+            title="Sobre Mí"
+            icon={<Smile size={42} />}
+            delay={0.1}
+          />
+          <MenuCard 
+            href="/personal/dibujos"
+            title="Dibujos"
+            icon={<ImageIcon size={42} />}
+            delay={0.2}
+          />
+          <MenuCard 
+            href="/personal/fotos"
+            title="Fotos"
+            icon={<Camera size={42} />}
+            delay={0.3}
+          />
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-16 text-center"
+        >
+          <Link 
+            href="/" 
+            className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors border-b border-transparent hover:border-primary"
+          >
+            Volver al Inicio
+          </Link>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+const MenuCard = ({ href, title, icon, delay }: any) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay }}
+  >
+    <Link href={href} className="group block relative">
+      <div className="bg-white border-2 border-primary/5 rounded-[40px] p-8 h-full transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] group-hover:-translate-y-2">
+        <div className="w-16 h-16 bg-primary/5 text-primary rounded-[25px] flex items-center justify-center mb-6 transition-colors group-hover:bg-primary group-hover:text-white">
+          {icon}
+        </div>
+        <h2 className="text-2xl font-black uppercase tracking-tighter text-primary mb-2 flex items-center gap-2">
+          {title}
+          <ArrowRight className="opacity-0 -translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" size={20} />
+        </h2>
+        <div className="absolute bottom-4 right-6 text-primary/5 font-black text-5xl select-none group-hover:text-primary/10 transition-colors">
+          {title[0]}
+        </div>
+      </div>
+    </Link>
+  </motion.div>
+);
