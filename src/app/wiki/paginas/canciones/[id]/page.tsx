@@ -203,6 +203,7 @@ const MassEditModal = ({ isOpen, onClose, secciones, isProcessing, onSave }) => 
   const [cambiosPendientes, setCambiosPendientes] = useState(false);
   const [guardandoAuto, setGuardandoAuto] = useState(false);
   const [ultimoGuardado, setUltimoGuardado] = useState(null);
+  const [autoGuardadoActivo, setAutoGuardadoActivo] = useState(true); // NUEVO: control manual
   const saveTimerRef = useRef(null);
 
   // Inicializar secciones locales
@@ -215,7 +216,7 @@ const MassEditModal = ({ isOpen, onClose, secciones, isProcessing, onSave }) => 
 
   // 🔥 AUTO-GUARDADO CON DEBOUNCE - ESTO ELIMINA EL LAG
   useEffect(() => {
-    if (cambiosPendientes && !isProcessing && !guardandoAuto) {
+    if (cambiosPendientes && !isProcessing && !guardandoAuto && autoGuardadoActivo) {
       // Cancelar guardado anterior si existe
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
@@ -223,17 +224,33 @@ const MassEditModal = ({ isOpen, onClose, secciones, isProcessing, onSave }) => 
 
       // Programar guardado después de 2 segundos de inactividad
       saveTimerRef.current = setTimeout(async () => {
+        console.log('🔄 Iniciando auto-guardado...', { 
+          totalSecciones: localSecciones.length,
+          secciones: localSecciones.map(s => ({ 
+            id: s.id, 
+            nombre: s.nombre_seccion,
+            esNueva: s.id.toString().startsWith('temp-')
+          }))
+        });
+        
         setGuardandoAuto(true);
         try {
           const seccionesConOrden = localSecciones.map((s, idx) => ({
             ...s,
             orden: idx + 1
           }));
+          
           await onSave(seccionesConOrden);
+          console.log('✅ Auto-guardado exitoso');
           setUltimoGuardado(new Date());
           setCambiosPendientes(false);
         } catch (error) {
-          console.error('Error al auto-guardar:', error);
+          console.error('❌ Error al auto-guardar:', error);
+          // Si hay error de copyright, desactivar auto-guardado
+          if (error.message?.includes('bloqueada') || error.message?.includes('autor')) {
+            setAutoGuardadoActivo(false);
+            alert('⚠️ Auto-guardado desactivado debido a restricciones de contenido. Usa "Guardar Ahora" manualmente.');
+          }
         } finally {
           setGuardandoAuto(false);
         }
@@ -245,7 +262,7 @@ const MassEditModal = ({ isOpen, onClose, secciones, isProcessing, onSave }) => 
         clearTimeout(saveTimerRef.current);
       }
     };
-  }, [cambiosPendientes, localSecciones, isProcessing, guardandoAuto, onSave]);
+  }, [cambiosPendientes, localSecciones, isProcessing, guardandoAuto, autoGuardadoActivo, onSave]);
 
   // 🔥 GUARDADO MANUAL CON CTRL+S o CMD+S
   useEffect(() => {
@@ -381,6 +398,22 @@ const MassEditModal = ({ isOpen, onClose, secciones, isProcessing, onSave }) => 
                   </motion.div>
                 )}
 
+                {/* Toggle de auto-guardado */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setAutoGuardadoActivo(!autoGuardadoActivo)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-colors ${
+                    autoGuardadoActivo 
+                      ? 'bg-green-100 text-green-700 border border-green-200' 
+                      : 'bg-gray-100 text-gray-500 border border-gray-200'
+                  }`}
+                  title={autoGuardadoActivo ? 'Auto-guardado activado' : 'Auto-guardado desactivado'}
+                >
+                  <div className={`w-2 h-2 rounded-full ${autoGuardadoActivo ? 'bg-green-500' : 'bg-gray-400'}`} />
+                  Auto
+                </motion.button>
+
                 <div className="flex gap-1 bg-[#6B5E70]/5 p-1 rounded-xl border border-[#6B5E70]/10">
                   {IDIOMAS.map((lang) => (
                     <button
@@ -454,7 +487,7 @@ const MassEditModal = ({ isOpen, onClose, secciones, isProcessing, onSave }) => 
                     onChange={(e) => handleChange(sec.id, `letra_${activeTab}`, e.target.value)}
                     rows={Math.max(3, (sec[`letra_${activeTab}`]?.split('\n').length || 0))}
                     className="w-full bg-[#FDFCFD] border border-[#6B5E70]/5 rounded-[1.5rem] p-6 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/30 transition-all resize-none"
-                    placeholder={`Escribe la letra en ${IDIOMAS.find(i => i.id === activeTab)?.nombre.toLowerCase()}...`}
+                    placeholder={`Contenido en ${IDIOMAS.find(i => i.id === activeTab)?.nombre.toLowerCase()}...`}
                   />
                 </div>
               ))}
@@ -471,7 +504,11 @@ const MassEditModal = ({ isOpen, onClose, secciones, isProcessing, onSave }) => 
             {/* Footer con info de guardado */}
             <div className="p-8 border-t border-[#6B5E70]/10 bg-white flex justify-between items-center">
               <p className="text-[9px] font-bold text-[#6B5E70]/40 uppercase tracking-wider">
-                💡 Los cambios se guardan automáticamente • Presiona <kbd className="px-2 py-1 bg-[#6B5E70]/5 rounded text-[#6B5E70] font-mono">Ctrl+S</kbd> para guardar ahora
+                {autoGuardadoActivo ? (
+                  <>💡 Los cambios se guardan automáticamente • Presiona <kbd className="px-2 py-1 bg-[#6B5E70]/5 rounded text-[#6B5E70] font-mono">Ctrl+S</kbd> para guardar ahora</>
+                ) : (
+                  <>⚠️ Auto-guardado desactivado • Usa "Guardar Ahora" para guardar cambios</>
+                )}
               </p>
               <div className="flex gap-4">
                 <motion.button
@@ -884,6 +921,11 @@ export default function CancionDetallesPage() {
   };
 
   const handleMassUpdate = async (seccionesEditadas) => {
+    console.log('📝 handleMassUpdate iniciado', {
+      totalSecciones: seccionesEditadas.length,
+      cancionId: id
+    });
+
     try {
       // Separar secciones nuevas de existentes
       const seccionesNuevas = seccionesEditadas.filter(sec => 
@@ -893,39 +935,79 @@ export default function CancionDetallesPage() {
         !sec.id.toString().startsWith("temp-")
       );
 
-      // Primero, insertar las nuevas secciones
+      console.log('📊 Análisis:', {
+        nuevas: seccionesNuevas.length,
+        existentes: seccionesExistentes.length
+      });
+
+      // INSERTAR NUEVAS SECCIONES (una por una para mejor control)
       if (seccionesNuevas.length > 0) {
-        const nuevasParaInsertar = seccionesNuevas.map(sec => {
-          const { id: tempId, ...sinId } = sec;
-          return { ...sinId, cancion_id: parseInt(id) };
-        });
+        console.log('➕ Insertando secciones nuevas...');
         
-        const { error: errorInsert } = await supabase
-          .from("secciones_cancion")
-          .insert(nuevasParaInsertar);
-        
-        if (errorInsert) throw errorInsert;
-      }
-
-      // Luego, actualizar las existentes
-      const promesasUpdate = seccionesExistentes.map(sec => 
-        supabase.from("secciones_cancion").update(sec).eq("id", sec.id)
-      );
-      
-      if (promesasUpdate.length > 0) {
-        const results = await Promise.all(promesasUpdate);
-        const errores = results.filter((r) => r.error);
-        if (errores.length > 0) {
-          console.error("Errores al actualizar:", errores);
-          throw new Error("Algunos cambios fallaron");
+        for (const sec of seccionesNuevas) {
+          const nuevaSeccion = {
+            cancion_id: parseInt(id),
+            nombre_seccion: sec.nombre_seccion,
+            letra_es: sec.letra_es || '',
+            letra_en: sec.letra_en || '',
+            letra_jp: sec.letra_jp || '',
+            letra_romaji: sec.letra_romaji || '',
+            orden: sec.orden
+          };
+          
+          console.log('📤 Insertando:', nuevaSeccion.nombre_seccion);
+          
+          const { error } = await supabase
+            .from("secciones_cancion")
+            .insert([nuevaSeccion]);
+          
+          if (error) {
+            console.error('❌ Error al insertar:', error);
+            throw error;
+          }
         }
+        
+        console.log('✅ Todas las inserciones exitosas');
       }
 
-      // Recargar los datos después de guardar
+      // ACTUALIZAR SECCIONES EXISTENTES (una por una)
+      if (seccionesExistentes.length > 0) {
+        console.log('🔄 Actualizando secciones existentes...');
+        
+        for (const sec of seccionesExistentes) {
+          const updates = {
+            nombre_seccion: sec.nombre_seccion,
+            letra_es: sec.letra_es || '',
+            letra_en: sec.letra_en || '',
+            letra_jp: sec.letra_jp || '',
+            letra_romaji: sec.letra_romaji || '',
+            orden: sec.orden
+          };
+          
+          console.log(`📝 Actualizando sección ${sec.id}:`, sec.nombre_seccion);
+          
+          const { error } = await supabase
+            .from("secciones_cancion")
+            .update(updates)
+            .eq("id", sec.id);
+          
+          if (error) {
+            console.error(`❌ Error al actualizar sección ${sec.id}:`, error);
+            throw error;
+          }
+        }
+        
+        console.log('✅ Todas las actualizaciones exitosas');
+      }
+
+      // Recargar datos
+      console.log('🔄 Recargando datos...');
       await fetchData();
+      console.log('✅ handleMassUpdate completado exitosamente');
+      
     } catch (error) {
-      console.error("Error al guardar cambios masivos:", error);
-      alert("Error al guardar: " + error.message);
+      console.error("❌ Error crítico en handleMassUpdate:", error);
+      alert("Error al guardar: " + (error.message || 'Error desconocido'));
       throw error;
     }
   };
