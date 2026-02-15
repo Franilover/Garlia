@@ -112,11 +112,6 @@ const Navbar = () => {
           </nav>
           
           <div className="flex items-center gap-4">
-            {puedeSubir && (
-               <Link href="/upload" className="p-2 bg-primary/5 text-primary rounded-xl hover:bg-primary hover:text-white transition-all">
-                <Plus size={20} />
-               </Link>
-            )}
             {user ? (
               <div className="relative">
                 <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2">
