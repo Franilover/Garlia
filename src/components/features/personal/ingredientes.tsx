@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { Ingrediente } from "@/lib/types/cocina";
-import { Search, Plus, Zap, ChevronLeft, X, Loader2, Save, Package, PackageX, Minus } from "lucide-react";
+import { Search, Plus, Zap, ChevronLeft, X, Loader2, Save, Package, PackageX, Minus, Droplets } from "lucide-react";
 import Link from "next/link";
 
 export const IngredientesPage = () => {
@@ -30,8 +30,9 @@ export const IngredientesPage = () => {
   
   const filteredItems = useMemo(() => {
     return (ingredientes || []).filter((item) => {
-      const matchesSearch = item.nombre.toLowerCase().includes(filter.toLowerCase()) || 
-                           item.categoria.toLowerCase().includes(filter.toLowerCase());
+      const matchesSearch = 
+        item.nombre?.toLowerCase().includes(filter.toLowerCase()) || 
+        item.categoria?.toLowerCase().includes(filter.toLowerCase());
       
       const hasStock = (item.stock_actual || 0) > 0;
       const matchesStock = stockFilter === "all" ? true : stockFilter === "in-stock" ? hasStock : !hasStock;
@@ -72,7 +73,7 @@ export const IngredientesPage = () => {
           stock_actual: 0, 
           fibra: 0, 
           sodio: 0, 
-          agua_ml: 0 
+          agua_ml: 0
         });
         await mutate();
       }
@@ -195,7 +196,8 @@ export const IngredientesPage = () => {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-2 border-t border-primary/5 pt-4">
+                  {/* MACRONUTRIENTES */}
+                  <div className="grid grid-cols-3 gap-2 border-t border-primary/5 pt-4 pb-3">
                     <div className="text-center">
                       <span className="block text-[7px] font-black text-primary/20 uppercase">Prot</span>
                       <span className="text-xs font-black">{item.proteinas}g</span>
@@ -209,6 +211,32 @@ export const IngredientesPage = () => {
                       <span className="text-xs font-black">{item.grasas}g</span>
                     </div>
                   </div>
+                  
+                  {/* MICRONUTRIENTES */}
+                  {(item.fibra > 0 || item.sodio > 0 || item.agua_ml > 0) && (
+                    <div className="grid grid-cols-3 gap-2 border-t border-primary/5 pt-3 pb-3">
+                      {item.fibra > 0 && (
+                        <div className="text-center">
+                          <span className="block text-[7px] font-black text-blue-400 uppercase">Fibra</span>
+                          <span className="text-[10px] font-black text-blue-600">{item.fibra}g</span>
+                        </div>
+                      )}
+                      {item.sodio > 0 && (
+                        <div className="text-center">
+                          <span className="block text-[7px] font-black text-orange-400 uppercase">Sodio</span>
+                          <span className="text-[10px] font-black text-orange-600">{item.sodio}mg</span>
+                        </div>
+                      )}
+                      {item.agua_ml > 0 && (
+                        <div className="text-center">
+                          <span className="block text-[7px] font-black text-cyan-400 uppercase flex items-center justify-center gap-1">
+                            <Droplets size={8}/> Agua
+                          </span>
+                          <span className="text-[10px] font-black text-cyan-600">{item.agua_ml}ml</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   <div className="mt-4 flex items-center justify-center gap-2 py-2 bg-primary text-white rounded-2xl">
                     <Zap size={10} className="fill-current"/>
@@ -290,6 +318,8 @@ export const IngredientesPage = () => {
                         <option value="Verduras">Verduras</option>
                         <option value="Frutas">Frutas</option>
                         <option value="Lácteos">Lácteos</option>
+                        <option value="Superfoods">Superfoods</option>
+                        <option value="Cereales">Cereales</option>
                       </select>
                     </div>
                     
@@ -302,7 +332,7 @@ export const IngredientesPage = () => {
                         className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold text-primary outline-none" 
                         value={formData.porcion_texto} 
                         onChange={(e) => setFormData({...formData, porcion_texto: e.target.value})} 
-                        placeholder="Ej: 100g, 1 unidad..."
+                        placeholder="100g"
                       />
                     </div>
                     
