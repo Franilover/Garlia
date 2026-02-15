@@ -1,50 +1,63 @@
 import { supabase } from "@/lib/api/supabase";
-import { Ingrediente } from "@/lib/types/cocina"; // Asegúrate de crear este tipo
 
 export const ingredientesQueries = {
-  // Obtener todos los ingredientes
-  getAll: async () => {
+  getAll: async (opciones: any = {}) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: [], error: "No autenticado" };
+
+    let query = supabase
+      .from("ingredientes")
+      .select(opciones.select || "*")
+      .eq("user_id", user.id);
+
+    if (opciones.order) {
+      query = query.order(opciones.order.campo, { 
+        ascending: opciones.order.asc ?? true 
+      });
+    }
+
+    const { data, error } = await query;
+    return { data: data || [], error };
+  },
+
+  create: async (newData: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: "No autenticado" };
+
     const { data, error } = await supabase
       .from("ingredientes")
-      .select("*")
-      .order("nombre", { ascending: true });
+      .insert([{ ...newData, user_id: user.id }])
+      .select()
+      .single();
+
     return { data, error };
   },
 
-  // Obtener por categoría
-  getByCategoria: async (categoria: string) => {
-    const { data, error } = await supabase
-      .from("ingredientes")
-      .select("*")
-      .eq("categoria", categoria);
-    return { data, error };
-  },
+  update: async (id: string | number, updates: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: "No autenticado" };
 
-  // Crear uno nuevo (por si quieres añadirlos desde la web)
-  create: async (ingrediente: Omit<Ingrediente, "id" | "created_at">) => {
-    const { data, error } = await supabase
-      .from("ingredientes")
-      .insert([ingrediente])
-      .select();
-    return { data, error };
-  },
-
-  // Actualizar stock o precio
-  update: async (id: string, updates: Partial<Ingrediente>) => {
     const { data, error } = await supabase
       .from("ingredientes")
       .update(updates)
       .eq("id", id)
-      .select();
+      .eq("user_id", user.id)
+      .select()
+      .single();
+
     return { data, error };
   },
 
-  // Eliminar
-  delete: async (id: string) => {
+  delete: async (id: string | number) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "No autenticado" };
+
     const { error } = await supabase
       .from("ingredientes")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", user.id);
+
     return { error };
   }
-};
+};;
