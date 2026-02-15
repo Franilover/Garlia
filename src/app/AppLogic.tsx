@@ -29,16 +29,15 @@ export default function AppLogic({ children }) {
         // Ctrl+S (Guardar), Ctrl+P (Imprimir), Ctrl+U (Ver código fuente)
         if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p' || e.key === 'u')) {
           
-          // ✅ EXCEPCIÓN: Permitir Ctrl+S en elementos editables (inputs, textareas)
+          // ✅ EXCEPCIÓN: Permitir Ctrl+S SOLO en textareas e inputs
           const target = e.target;
-          const isEditable = target?.tagName === 'TEXTAREA' || 
-                            target?.tagName === 'INPUT' ||
-                            target?.contentEditable === 'true';
+          const isTextarea = target?.tagName === 'TEXTAREA';
+          const isInput = target?.tagName === 'INPUT' && target?.type === 'text';
           
-          // Si Ctrl+S en elemento editable, permitir (para el editor)
-          if (e.key === 's' && isEditable) {
-            console.log('✅ Ctrl+S permitido en editor');
-            return; // No bloquear - dejar que el editor lo maneje
+          // Si Ctrl+S en textarea o input de texto, NO bloquear
+          if (e.key === 's' && (isTextarea || isInput)) {
+            // Permitir que el evento continúe para el editor
+            return;
           }
           
           e.preventDefault();
@@ -66,7 +65,7 @@ export default function AppLogic({ children }) {
   }, [pathname, closeLightbox]); 
 
   return (
-    <div className="app-container select-none"> {/* "select-none impide seleccionar texto" */}
+    <div className="app-container select-none">
       <Navbar />
       <main>{children}</main>
     </div>
