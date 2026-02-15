@@ -9,44 +9,130 @@ import Link from "next/link";
 
 export default function WikiMenuPage() {
   return (
-    <div className="min-h-screen bg-bg-main flex items-center justify-center p-6 py-20">
-      <div className="max-w-6xl w-full">
+    <div className="min-h-screen bg-gradient-to-br from-bg-main via-bg-main to-primary/5 flex items-center justify-center p-6 py-20 relative overflow-hidden">
+      
+      {/* Patrón decorativo de fondo */}
+      <div className="absolute inset-0 opacity-[0.02]">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary rounded-full blur-3xl" />
+      </div>
+
+      <div className="max-w-7xl w-full relative z-10">
         
-        {/* --- TÍTULO DE LA SECCIÓN --- */}
+        {/* --- HEADER MEJORADO --- */}
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
+          className="text-center mb-20"
         >
-          <div className="inline-flex p-4 bg-primary/5 text-primary rounded-[25px] mb-6">
-            <Sparkles size={40} />
-          </div>
-          <h1 className="text-5xl font-black uppercase tracking-tighter text-primary italic">
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            className="inline-flex p-5 bg-gradient-to-br from-primary/10 to-primary/5 text-primary rounded-3xl mb-8 shadow-lg"
+          >
+            <Sparkles size={48} className="animate-pulse" />
+          </motion.div>
+          
+          <h1 className="text-6xl md:text-7xl font-black uppercase tracking-tighter text-primary italic mb-4 drop-shadow-sm">
             Garden of Sins
           </h1>
+          
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-primary/50 font-medium tracking-wide"
+          >
+            Explora el universo y sus misterios
+          </motion.p>
         </motion.div>
 
-        {/* --- GRID DE OPCIONES (6 CARDS) --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <MenuCard href="/wiki/paginas/personajes" title="Personajes" icon={<Users size={38} />} delay={0.1} />
-          <MenuCard href="/wiki/paginas/criaturas" title="Criaturas" icon={<Footprints size={38} />} delay={0.15} />
-          <MenuCard href="/wiki/paginas/items" title="Items" icon={<Package size={38} />} delay={0.2} />
-          <MenuCard href="/wiki/paginas/mapa" title="Mapa" icon={<Map size={38} />} delay={0.25} />
-          <MenuCard href="/wiki/paginas/libros" title="Libros" icon={<BookOpen size={38} />} delay={0.3} />
-          <MenuCard href="/wiki/paginas/canciones" title="Canciones" icon={<Music size={38} />} delay={0.35} />
+        {/* --- GRID DE 2 COLUMNAS --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          
+          {/* COLUMNA IZQUIERDA */}
+          <div className="space-y-6">
+            <MenuCard 
+              href="/wiki/paginas/personajes" 
+              title="Personajes" 
+              description="Conoce a los habitantes de este mundo"
+              icon={<Users size={42} />} 
+              delay={0.1}
+              featured={true}
+            />
+            <MenuCard 
+              href="/wiki/paginas/items" 
+              title="Items" 
+              description="Objetos místicos y artefactos"
+              icon={<Package size={38} />} 
+              delay={0.2} 
+            />
+            <MenuCard 
+              href="/wiki/paginas/libros" 
+              title="Libros" 
+              description="Textos antiguos y conocimiento prohibido"
+              icon={<BookOpen size={38} />} 
+              delay={0.3} 
+            />
+          </div>
+
+          {/* COLUMNA DERECHA */}
+          <div className="space-y-6">
+            <MenuCard 
+              href="/wiki/paginas/criaturas" 
+              title="Criaturas" 
+              description="Bestias y entidades del jardín"
+              icon={<Footprints size={38} />} 
+              delay={0.15} 
+            />
+            <MenuCard 
+              href="/wiki/paginas/mapa" 
+              title="Mapa" 
+              description="Territorios y lugares ocultos"
+              icon={<Map size={38} />} 
+              delay={0.25}
+              featured={true}
+            />
+            <MenuCard 
+              href="/wiki/paginas/canciones" 
+              title="Canciones" 
+              description="Melodías que cuentan historias"
+              icon={<Music size={38} />} 
+              delay={0.35} 
+            />
+          </div>
         </div>
 
-        {/* --- BOTÓN VOLVER --- */}
+        {/* --- FOOTER CON ESTADÃSTICAS OPCIONALES --- */}
         <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-16 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-20 flex flex-col items-center gap-8"
         >
+          {/* Estadísticas decorativas */}
+          <div className="flex gap-8 text-center">
+            <div className="bg-white/50 backdrop-blur-sm rounded-2xl px-6 py-3 border border-primary/10">
+              <div className="text-2xl font-black text-primary">50+</div>
+              <div className="text-xs font-semibold text-primary/60 uppercase tracking-wider">Entradas</div>
+            </div>
+            <div className="bg-white/50 backdrop-blur-sm rounded-2xl px-6 py-3 border border-primary/10">
+              <div className="text-2xl font-black text-primary">12</div>
+              <div className="text-xs font-semibold text-primary/60 uppercase tracking-wider">Capítulos</div>
+            </div>
+            <div className="bg-white/50 backdrop-blur-sm rounded-2xl px-6 py-3 border border-primary/10">
+              <div className="text-2xl font-black text-primary">∞</div>
+              <div className="text-xs font-semibold text-primary/60 uppercase tracking-wider">Secretos</div>
+            </div>
+          </div>
+
+          {/* Botón volver mejorado */}
           <Link 
             href="/" 
-            className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors border-b border-transparent hover:border-primary"
+            className="group inline-flex items-center gap-2 px-6 py-3 text-xs font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all duration-300 border-2 border-primary/10 hover:border-primary rounded-full hover:shadow-lg hover:scale-105"
           >
+            <ArrowRight size={16} className="rotate-180 transition-transform group-hover:-translate-x-1" />
             Volver al Inicio
           </Link>
         </motion.div>
@@ -55,29 +141,63 @@ export default function WikiMenuPage() {
   );
 }
 
-/* --- COMPONENTE INTERNO: CARD DE MENÚ --- */
-const MenuCard = ({ href, title, icon, delay }: any) => (
+/* --- COMPONENTE MEJORADO: CARD DE MENÚ --- */
+const MenuCard = ({ href, title, description, icon, delay, featured = false }: any) => (
   <motion.div
-    initial={{ opacity: 0, scale: 0.9 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ delay }}
+    initial={{ opacity: 0, x: -20 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ delay, type: "spring", stiffness: 100 }}
   >
     <Link href={href} className="group block relative">
-      <div className="bg-white border-2 border-primary/5 rounded-[35px] p-8 h-full transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] group-hover:-translate-y-2">
+      <div className={`
+        bg-white/80 backdrop-blur-sm border-2 border-primary/10 rounded-3xl p-8 h-full 
+        transition-all duration-500 
+        group-hover:border-primary group-hover:bg-white
+        group-hover:shadow-[0_25px_60px_rgba(0,0,0,0.08)] 
+        group-hover:-translate-y-2 group-hover:scale-[1.02]
+        ${featured ? 'lg:row-span-1 border-primary/20' : ''}
+      `}>
         
-        {/* Icono con fondo que cambia al hover */}
-        <div className="w-14 h-14 bg-primary/5 text-primary rounded-[20px] flex items-center justify-center mb-6 transition-colors group-hover:bg-primary group-hover:text-white">
+        {/* Badge "Featured" opcional */}
+        {featured && (
+          <div className="absolute top-4 right-4 bg-primary text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider">
+            Destacado
+          </div>
+        )}
+        
+        {/* Icono con animación */}
+        <motion.div 
+          className="w-16 h-16 bg-gradient-to-br from-primary/10 to-primary/5 text-primary rounded-2xl flex items-center justify-center mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:scale-110"
+          whileHover={{ rotate: [0, -10, 10, 0] }}
+          transition={{ duration: 0.5 }}
+        >
           {icon}
-        </div>
+        </motion.div>
         
-        <h2 className="text-2xl font-black uppercase tracking-tighter text-primary mb-2 flex items-center gap-2">
-          {title}
-          <ArrowRight className="opacity-0 -translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" size={20} />
-        </h2>
+        {/* Título y descripción */}
+        <div className="space-y-2 mb-4">
+          <h2 className="text-3xl font-black uppercase tracking-tighter text-primary flex items-center gap-3 group-hover:gap-4 transition-all">
+            {title}
+            <ArrowRight 
+              className="opacity-0 -translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" 
+              size={24} 
+              strokeWidth={3}
+            />
+          </h2>
+          
+          <p className="text-sm font-medium text-primary/60 group-hover:text-primary/80 transition-colors">
+            {description}
+          </p>
+        </div>
 
-        {/* Letra decorativa de fondo */}
-        <div className="absolute bottom-4 right-6 text-primary/5 font-black text-5xl select-none group-hover:text-primary/10 transition-colors">
+        {/* Letra decorativa de fondo mejorada */}
+        <div className="absolute bottom-6 right-8 text-primary/[0.03] font-black text-7xl select-none group-hover:text-primary/[0.08] transition-all duration-500 group-hover:scale-110">
           {title[0]}
+        </div>
+
+        {/* Borde brillante animado */}
+        <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-transparent via-primary/5 to-transparent blur-xl" />
         </div>
       </div>
     </Link>
