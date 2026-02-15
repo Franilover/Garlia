@@ -1,11 +1,11 @@
 "use client";
-import React, { useEffect, useState, useCallback, useReducer } from "react";
+import React, { useEffect, useState, useCallback, useReducer, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/supabase";
 import { 
   ChevronLeft, Plus, Trash2, X, Edit3, Save, User, List, Music, 
   EyeOff, AlertCircle, Loader2, ChevronDown, Link2, ExternalLink,
-  FileText, Copy, Layers
+  FileText, Copy, Layers, CheckCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/shared/display/SmartImage";
@@ -153,77 +153,164 @@ const EstadoSelector = ({ estado, isAdmin, onchange }) => (
 );
 
 const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
-  <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
+  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
     <div className="flex items-center justify-between mb-4">
       <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] flex items-center gap-2 italic">
-        <Link2 size={12} /> Enlaces
+        <Link2 size={12} />Enlaces
       </h4>
       {isAdmin && (
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onOpenModal}
-          className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors"
-        >
+        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={onOpenModal} className="text-[#6B5E70] hover:text-[#6B5E70]/60 transition-colors">
           <Plus size={14} />
         </motion.button>
       )}
     </div>
-    <div className="space-y-2">
-      {links && links.length > 0 ? (
-        links.map((link, idx) => (
-          <motion.a
-            key={idx}
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            whileHover={{ x: 4 }}
-            className="flex items-center justify-between p-3 bg-white rounded-xl border border-[#6B5E70]/10 hover:border-[#6B5E70] transition-all group"
-          >
-            <span className="text-[10px] font-bold text-[#6B5E70] uppercase italic truncate mr-2">
-              {link.titulo}
-            </span>
-            <ExternalLink size={10} className="text-[#6B5E70]/30 group-hover:text-[#6B5E70]" />
-          </motion.a>
-        ))
-      ) : (
-        <p className="text-[#6B5E70]/30 text-[9px] font-bold uppercase italic text-center py-2">
-          Sin referencias
-        </p>
-      )}
-    </div>
-  </div>
+    {(!links || links.length === 0) ? (
+      <p className="text-[#6B5E70]/40 text-xs italic">Sin enlaces</p>
+    ) : (
+      <div className="space-y-2">
+        {links.map((link, i) => (
+          <div key={i} className="flex items-center justify-between group">
+            <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#6B5E70] hover:text-[#5A4D5F] transition-colors text-xs font-bold truncate flex-1">
+              <ExternalLink size={10} className="flex-shrink-0" />
+              <span className="truncate">{link.titulo}</span>
+            </a>
+            {isAdmin && (
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => onEdit(i)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] p-1">
+                  <Edit3 size={10} />
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => onDelete(i)} className="text-red-400 hover:text-red-600 p-1">
+                  <Trash2 size={10} />
+                </motion.button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+  </motion.div>
 );
 
 // ============================================================================
-// MODAL DE EDICIÓN MASIVA (CON REORDENAR, AÑADIR Y BORRAR)
+// 🔥 MODAL DE EDICIÓN MASIVA - VERSIÓN OPTIMIZADA (SIN LAG)
 // ============================================================================
 
-const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => {
+const MassEditModal = ({ isOpen, onClose, secciones, isProcessing, onSave }) => {
   const [localSecciones, setLocalSecciones] = useState([]);
   const [activeTab, setActiveTab] = useState("es");
+  
+  // Estados para el auto-guardado optimizado
+  const [cambiosPendientes, setCambiosPendientes] = useState(false);
+  const [guardandoAuto, setGuardandoAuto] = useState(false);
+  const [ultimoGuardado, setUltimoGuardado] = useState(null);
+  const saveTimerRef = useRef(null);
 
+  // Inicializar secciones locales
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && secciones) {
       setLocalSecciones(JSON.parse(JSON.stringify(secciones)));
+      setCambiosPendientes(false);
     }
   }, [isOpen, secciones]);
 
-  const handleChange = (id, field, value) => {
-    setLocalSecciones(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+  // 🔥 AUTO-GUARDADO CON DEBOUNCE - ESTO ELIMINA EL LAG
+  useEffect(() => {
+    if (cambiosPendientes && !isProcessing && !guardandoAuto) {
+      // Cancelar guardado anterior si existe
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+
+      // Programar guardado después de 2 segundos de inactividad
+      saveTimerRef.current = setTimeout(async () => {
+        setGuardandoAuto(true);
+        try {
+          const seccionesConOrden = localSecciones.map((s, idx) => ({
+            ...s,
+            orden: idx + 1
+          }));
+          await onSave(seccionesConOrden);
+          setUltimoGuardado(new Date());
+          setCambiosPendientes(false);
+        } catch (error) {
+          console.error('Error al auto-guardar:', error);
+        } finally {
+          setGuardandoAuto(false);
+        }
+      }, 2000); // 2 segundos de espera
+    }
+
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, [cambiosPendientes, localSecciones, isProcessing, guardandoAuto, onSave]);
+
+  // 🔥 GUARDADO MANUAL CON CTRL+S o CMD+S
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's' && isOpen) {
+        e.preventDefault();
+        if (saveTimerRef.current) {
+          clearTimeout(saveTimerRef.current);
+        }
+        handleGuardarManual();
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, localSecciones]);
+
+  // 🔥 HANDLER DE CAMBIOS - ACTUALIZACIÓN INMEDIATA (SIN LAG)
+  const handleChange = useCallback((id, campo, valor) => {
+    setLocalSecciones(prev => {
+      const idx = prev.findIndex(s => s.id === id);
+      if (idx === -1) return prev;
+      const copia = [...prev];
+      copia[idx] = { ...copia[idx], [campo]: valor };
+      return copia;
+    });
+    // Marca que hay cambios pendientes (esto dispara el auto-guardado después de 2 seg)
+    setCambiosPendientes(true);
+  }, []);
+
+  const handleGuardarManual = async () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    setGuardandoAuto(true);
+    try {
+      const seccionesConOrden = localSecciones.map((s, idx) => ({
+        ...s,
+        orden: idx + 1
+      }));
+      await onSave(seccionesConOrden);
+      setUltimoGuardado(new Date());
+      setCambiosPendientes(false);
+    } finally {
+      setGuardandoAuto(false);
+    }
   };
 
   const moverSeccion = (index, direccion) => {
-    const nuevas = [...localSecciones];
-    const [item] = nuevas.splice(index, 1);
-    nuevas.splice(index + direccion, 0, item);
-    setLocalSecciones(nuevas);
+    const newIndex = index + direccion;
+    if (newIndex < 0 || newIndex >= localSecciones.length) return;
+    setLocalSecciones(prev => {
+      const copia = [...prev];
+      [copia[index], copia[newIndex]] = [copia[newIndex], copia[index]];
+      return copia;
+    });
+    setCambiosPendientes(true);
   };
 
   const eliminarSeccion = (index) => {
-    if (confirm("¿Eliminar esta sección de la canción?")) {
-      setLocalSecciones(prev => prev.filter((_, i) => i !== index));
-    }
+    if (!confirm("¿Eliminar esta sección? No se puede deshacer.")) return;
+    setLocalSecciones(prev => prev.filter((_, i) => i !== index));
+    setCambiosPendientes(true);
   };
 
   const añadirSeccion = () => {
@@ -236,15 +323,17 @@ const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => 
       letra_romaji: ""
     };
     setLocalSecciones(prev => [...prev, nueva]);
+    setCambiosPendientes(true);
   };
 
-  const handleGuardar = () => {
-    const seccionesConOrden = localSecciones.map((s, idx) => ({
-      ...s,
-      orden: idx + 1
-    }));
-    onSave(seccionesConOrden);
+  const getEstadoGuardado = () => {
+    if (guardandoAuto) return { text: "Guardando...", color: "text-blue-500 border-blue-200", icon: <Loader2 className="animate-spin" size={14} /> };
+    if (cambiosPendientes) return { text: "Cambios sin guardar", color: "text-yellow-600 border-yellow-200", icon: <Save size={14} /> };
+    if (ultimoGuardado) return { text: "Guardado", color: "text-green-600 border-green-200", icon: <CheckCircle size={14} /> };
+    return { text: "", color: "", icon: null };
   };
+
+  const estadoGuardado = getEstadoGuardado();
 
   return (
     <AnimatePresence>
@@ -280,6 +369,18 @@ const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => 
               </div>
 
               <div className="flex items-center gap-4">
+                {/* Indicador de estado de guardado */}
+                {estadoGuardado.text && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border ${estadoGuardado.color} text-[10px] font-bold uppercase`}
+                  >
+                    {estadoGuardado.icon}
+                    {estadoGuardado.text}
+                  </motion.div>
+                )}
+
                 <div className="flex gap-1 bg-[#6B5E70]/5 p-1 rounded-xl border border-[#6B5E70]/10">
                   {IDIOMAS.map((lang) => (
                     <button
@@ -315,14 +416,14 @@ const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => 
                         <button 
                           disabled={idx === 0}
                           onClick={() => moverSeccion(idx, -1)}
-                          className="text-[#6B5E70]/20 hover:text-[#6B5E70] disabled:opacity-0"
+                          className="text-[#6B5E70]/20 hover:text-[#6B5E70] disabled:opacity-0 transition-all"
                         >
                           <ChevronDown size={14} className="rotate-180" />
                         </button>
                         <button 
                           disabled={idx === localSecciones.length - 1}
                           onClick={() => moverSeccion(idx, 1)}
-                          className="text-[#6B5E70]/20 hover:text-[#6B5E70] disabled:opacity-0"
+                          className="text-[#6B5E70]/20 hover:text-[#6B5E70] disabled:opacity-0 transition-all"
                         >
                           <ChevronDown size={14} />
                         </button>
@@ -347,6 +448,7 @@ const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => 
                     </button>
                   </div>
                   
+                  {/* 🔥 TEXTAREA OPTIMIZADO - Sin lag en la escritura */}
                   <textarea
                     value={sec[`letra_${activeTab}`] || ""}
                     onChange={(e) => handleChange(sec.id, `letra_${activeTab}`, e.target.value)}
@@ -366,34 +468,31 @@ const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => 
               </button>
             </div>
 
-            {/* Footer */}
-            <div className="p-8 border-t border-[#6B5E70]/10 bg-white flex justify-end gap-4">
-              <button
-                onClick={onClose}
-                disabled={isProcessing}
-                className="px-8 py-3 rounded-xl text-[#6B5E70] font-black uppercase text-[10px] hover:bg-[#6B5E70]/5 transition-all"
-              >
-                Descartar cambios
-              </button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleGuardar}
-                disabled={isProcessing}
-                className="bg-[#6B5E70] text-white px-12 py-3 rounded-xl font-black uppercase text-[10px] shadow-xl hover:bg-[#5A4D5F] transition-all flex items-center gap-3"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Sincronizando...
-                  </>
-                ) : (
-                  <>
-                    <Save size={14} />
-                    Guardar todo
-                  </>
-                )}
-              </motion.button>
+            {/* Footer con info de guardado */}
+            <div className="p-8 border-t border-[#6B5E70]/10 bg-white flex justify-between items-center">
+              <p className="text-[9px] font-bold text-[#6B5E70]/40 uppercase tracking-wider">
+                💡 Los cambios se guardan automáticamente • Presiona <kbd className="px-2 py-1 bg-[#6B5E70]/5 rounded text-[#6B5E70] font-mono">Ctrl+S</kbd> para guardar ahora
+              </p>
+              <div className="flex gap-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleGuardarManual}
+                  disabled={!cambiosPendientes || guardandoAuto}
+                  className="px-6 py-3 bg-[#6B5E70] text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#5A4D5F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {guardandoAuto ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  {guardandoAuto ? "Guardando..." : "Guardar Ahora"}
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onClose}
+                  className="px-6 py-3 bg-[#6B5E70]/10 text-[#6B5E70] rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#6B5E70]/20 transition-colors"
+                >
+                  Cerrar
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -403,50 +502,76 @@ const MassEditModal = ({ isOpen, onClose, secciones, onSave, isProcessing }) => 
 };
 
 // ============================================================================
-// MODAL DE LECTURA COMPLETA
+// MODAL DE LETRA COMPLETA
 // ============================================================================
+
 const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
-  // Cambiamos el zoom inicial a 0.8 para que se vea más lejos por defecto
-  const [zoom, setZoom] = React.useState(0.8);
+  const [zoom, setZoom] = useState(1);
 
   const handleCopy = () => {
-    const langCode = Array.isArray(idiomaActivo) ? idiomaActivo[0] : idiomaActivo;
-    const key = `letra_${langCode}`;
-    const textoCompleto = secciones.map(s => s[key] || "").filter(Boolean).join("\n\n");
-    navigator.clipboard.writeText(textoCompleto);
-    alert("¡Letra copiada al portapapeles!");
+    const lang = Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es";
+    const texto = secciones
+      .map((s) => {
+        const letraSeccion = s[`letra_${lang}`];
+        return letraSeccion ? `${s.nombre_seccion}\n\n${letraSeccion}` : "";
+      })
+      .filter(Boolean)
+      .join("\n\n---\n\n");
+    
+    navigator.clipboard.writeText(texto);
+    alert("✅ Letra copiada al portapapeles");
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 md:p-4">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-0 md:p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-[#6B5E70]/90 backdrop-blur-2xl"
+            className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md"
           />
+
           <motion.div
-            initial={{ scale: 0.98, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.98, opacity: 0 }}
-            className="bg-[#FDFCFD] w-full max-w-[98vw] md:rounded-[2rem] shadow-2xl relative z-[10000] border border-[#6B5E70]/20 h-full md:h-[95vh] flex flex-col overflow-hidden"
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            className="bg-[#FDFCFD] w-full max-w-5xl h-full md:h-[90vh] md:rounded-[3rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 flex flex-col"
           >
-            {/* Header del Modal */}
-            <div className="px-8 py-4 border-b border-[#6B5E70]/10 flex items-center justify-between bg-white z-30">
-              <div className="flex items-center gap-4">
-                <Music size={18} className="text-[#6B5E70]" />
-                <h3 className="text-[#6B5E70] font-black uppercase text-[11px] tracking-[0.4em] italic">
-                  Lectura Completa
-                </h3>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 bg-[#6B5E70]/5 rounded-xl px-3 py-1.5">
-                  <button onClick={() => setZoom(prev => Math.max(0.3, prev - 0.1))} className="text-[#6B5E70] hover:scale-110 px-2 font-bold text-lg">−</button>
-                  <span className="text-[10px] font-black text-[#6B5E70]/60 min-w-[35px] text-center">{Math.round(zoom * 100)}%</span>
-                  <button onClick={() => setZoom(prev => Math.min(1.2, prev + 0.1))} className="text-[#6B5E70] hover:scale-110 px-2 font-bold text-lg">+</button>
+            {/* Header fijo */}
+            <div className="px-10 py-6 bg-white border-b border-[#6B5E70]/10 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-[#6B5E70] p-2 rounded-xl text-white">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.3em] italic">
+                      Modo Lectura
+                    </h3>
+                    <p className="text-[8px] font-bold text-[#6B5E70]/40 uppercase tracking-widest mt-1">
+                      {IDIOMAS.find((i) => i.id === (Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es"))?.nombre}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 ml-8">
+                    <button
+                      onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+                      className="w-8 h-8 flex items-center justify-center bg-[#6B5E70]/5 rounded-lg text-[#6B5E70] hover:bg-[#6B5E70]/10 transition-colors text-lg font-bold"
+                    >
+                      -
+                    </button>
+                    <span className="text-[10px] font-black text-[#6B5E70]/60 min-w-[50px] text-center">
+                      {Math.round(zoom * 100)}%
+                    </span>
+                    <button
+                      onClick={() => setZoom(Math.min(2, zoom + 0.1))}
+                      className="w-8 h-8 flex items-center justify-center bg-[#6B5E70]/5 rounded-lg text-[#6B5E70] hover:bg-[#6B5E70]/10 transition-colors text-lg font-bold"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <motion.button
@@ -470,8 +595,8 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
                 className="w-full h-fit p-8 md:p-20 transition-all duration-300 ease-out origin-top"
                 style={{ 
                   transform: `scale(${zoom})`,
-                  width: `${100 / zoom}%`, // Ajusta el ancho para compensar la escala
-                  marginLeft: `${(100 - (100 / zoom)) / 2}%` // Centra el contenido escalado
+                  width: `${100 / zoom}%`,
+                  marginLeft: `${(100 - (100 / zoom)) / 2}%`
                 }}
               >
                 {secciones.map((seccion) => {
@@ -499,6 +624,7 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
     </AnimatePresence>
   );
 };
+
 // ============================================================================
 // MODAL DE ENLACES
 // ============================================================================
@@ -549,40 +675,34 @@ const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNomb
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" />
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-3xl rounded-[2rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 max-h-[85vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-[#6B5E70]/10 flex items-center justify-between">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[11px] tracking-[0.3em] italic">{isEditing ? "✏️ Editar Sección" : "➕ Nueva Sección"}</h3>
-              <motion.button whileHover={{ rotate: 90 }} onClick={onClose} className="text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors"><X size={20} /></motion.button>
-            </div>
-            <div className="overflow-y-auto flex-1 p-6">
-              <div className="space-y-6">
-                <div>
-                  <label className="text-[8px] font-black text-[#6B5E70]/40 uppercase mb-2 block italic tracking-widest">Nombre de la sección</label>
-                  <input autoFocus type="text" placeholder="ESTROFA, CORO, PUENTE, PRE-CORO..." value={nombre} onChange={(e) => onNombreChange(e.target.value)} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-3 px-4 text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] rounded-xl uppercase" />
-                </div>
-                <div className="border-b border-[#6B5E70]/10">
-                  <div className="flex gap-1 overflow-x-auto pb-2">
-                    {IDIOMAS.map((lang) => (
-                      <button key={lang.id} type="button" onClick={() => setActiveTab(lang.id)} className={`px-4 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === lang.id ? "bg-[#6B5E70] text-white shadow-md" : "bg-[#6B5E70]/5 text-[#6B5E70]/60 hover:bg-[#6B5E70]/10"}`}>
-                        {lang.label} - {lang.nombre}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {activeTab === "es" && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2"><label className="text-[8px] font-black text-[#6B5E70]/40 uppercase block italic">Español</label><textarea value={es} onChange={(e) => onEsChange(e.target.value)} placeholder="Escribe la letra en español..." rows={8} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 resize-none italic font-serif leading-relaxed" /><p className="text-[10px] text-[#6B5E70]/40 italic">{es.length} caracteres</p></motion.div>}
-                  {activeTab === "en" && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2"><label className="text-[8px] font-black text-[#6B5E70]/40 uppercase block italic">Inglés</label><textarea value={en} onChange={(e) => onEnChange(e.target.value)} placeholder="Escribe la letra en inglés..." rows={8} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 resize-none italic font-serif leading-relaxed" /><p className="text-[10px] text-[#6B5E70]/40 italic">{en.length} caracteres</p></motion.div>}
-                  {activeTab === "jp" && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2"><label className="text-[8px] font-black text-[#6B5E70]/40 uppercase block italic">Japonés</label><textarea value={jp} onChange={(e) => onJpChange(e.target.value)} placeholder="Escribe la letra en japonés..." rows={8} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 resize-none italic font-serif leading-relaxed" /><p className="text-[10px] text-[#6B5E70]/40 italic">{jp.length} caracteres</p></motion.div>}
-                  {activeTab === "romaji" && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2"><label className="text-[8px] font-black text-[#6B5E70]/40 uppercase block italic">Romaji (Reading)</label><textarea value={romaji} onChange={(e) => onRomajiChange(e.target.value)} placeholder="Escribe la pronunciación romanizada..." rows={8} className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-xl p-4 text-sm text-[#6B5E70] outline-none focus:border-[#6B5E70] focus:ring-2 focus:ring-[#6B5E70]/20 resize-none italic font-serif leading-relaxed" /><p className="text-[10px] text-[#6B5E70]/40 italic">{romaji.length} caracteres</p></motion.div>}
-                </div>
+          <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-white w-full max-w-3xl rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <motion.button whileHover={{ rotate: 90 }} onClick={onClose} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70] transition-colors z-10"><X size={20} /></motion.button>
+            <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">{isEditing ? "Editar Sección" : "Nueva Sección"}</h3>
+            <div className="space-y-6">
+              <input type="text" placeholder="NOMBRE DE LA SECCIÓN (Ej: ESTROFA, CORO)" value={nombre} onChange={(e) => onNombreChange(e.target.value.toUpperCase())} className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase tracking-widest" />
+              <div className="flex gap-1 bg-[#6B5E70]/5 p-1 rounded-xl border border-[#6B5E70]/10">
+                {IDIOMAS.map((lang) => (
+                  <button key={lang.id} type="button" onClick={() => setActiveTab(lang.id)} className={`flex-1 py-2 rounded-lg font-black text-[9px] uppercase transition-all ${activeTab === lang.id ? "bg-[#6B5E70] text-white shadow-md" : "text-[#6B5E70]/40 hover:text-[#6B5E70]"}`}>{lang.label}</button>
+                ))}
               </div>
-            </div>
-            <div className="p-6 border-t border-[#6B5E70]/10 bg-[#FDFCFD] flex gap-3">
-              <button onClick={onClose} disabled={isProcessing} className="flex-1 px-4 py-3 rounded-xl border-2 border-[#6B5E70]/20 text-[#6B5E70] font-black uppercase text-[9px] hover:bg-[#6B5E70]/5 transition-colors">Cancelar</button>
-              <button onClick={onSave} disabled={isProcessing || !nombre.trim() || !es.trim()} type="button" className="flex-1 px-4 py-3 rounded-xl bg-[#6B5E70] text-white font-black uppercase text-[9px] shadow-lg hover:bg-[#5A4D5F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"><Save size={14} />{isProcessing ? "Guardando..." : "Guardar"}</button>
-              {isEditing && onDelete && <button onClick={onDelete} disabled={isProcessing} className="px-4 py-3 rounded-xl bg-red-50 text-red-400 font-black uppercase text-[9px] border-2 border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"><Trash2 size={14} />Borrar</button>}
+              <div className="min-h-[200px]">
+                {activeTab === "es" && <textarea value={es} onChange={(e) => onEsChange(e.target.value)} rows={8} className="w-full bg-[#FDFCFD] border border-[#6B5E70]/5 rounded-[2rem] p-6 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/30 transition-all resize-none" placeholder="Escribe la letra en español..." />}
+                {activeTab === "en" && <textarea value={en} onChange={(e) => onEnChange(e.target.value)} rows={8} className="w-full bg-[#FDFCFD] border border-[#6B5E70]/5 rounded-[2rem] p-6 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/30 transition-all resize-none" placeholder="Escribe la letra en inglés..." />}
+                {activeTab === "jp" && <textarea value={jp} onChange={(e) => onJpChange(e.target.value)} rows={8} className="w-full bg-[#FDFCFD] border border-[#6B5E70]/5 rounded-[2rem] p-6 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/30 transition-all resize-none" placeholder="日本語で歌詞を書く..." />}
+                {activeTab === "romaji" && <textarea value={romaji} onChange={(e) => onRomajiChange(e.target.value)} rows={8} className="w-full bg-[#FDFCFD] border border-[#6B5E70]/5 rounded-[2rem] p-6 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/30 transition-all resize-none" placeholder="Kakikomi romaji..." />}
+              </div>
+              <div className="flex gap-4 pt-4">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onSave} disabled={isProcessing || !nombre.trim()} className="flex-1 bg-[#6B5E70] text-white py-3 rounded-xl font-black uppercase text-[10px] shadow-md hover:bg-[#5A4D5F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                  {isProcessing ? <><Loader2 size={14} className="animate-spin" />Guardando...</> : <><Save size={14} />Guardar Sección</>}
+                </motion.button>
+                {isEditing && onDelete && (
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onDelete} disabled={isProcessing} className="px-6 bg-red-500 text-white py-3 rounded-xl font-black uppercase text-[10px] shadow-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                    <Trash2 size={14} />Eliminar
+                  </motion.button>
+                )}
+              </div>
             </div>
           </motion.div>
         </div>
@@ -595,16 +715,16 @@ const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNomb
 // COMPONENTE PRINCIPAL
 // ============================================================================
 
-export default function CancionDetalle() {
+export default function CancionDetallesPage() {
   const params = useParams();
-  const id = params?.id;
   const router = useRouter();
+  const id = params?.id;
 
   const [cancion, setCancion] = useState(null);
   const [secciones, setSecciones] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [errorAcceso, setErrorAcceso] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [idiomasActivos, setIdiomasActivos] = useState(["es"]);
 
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
@@ -678,139 +798,108 @@ export default function CancionDetalle() {
       const { error } = await supabase.from("canciones").update({ links: filtrados }).eq("id", id);
       if (error) throw error;
       setCancion((prev) => ({ ...prev, links: filtrados }));
+      dispatchModal({ type: "SET_EDITING_LINK", payload: null });
     } catch (error) {
-      alert("Error al borrar el enlace");
+      alert("Error: " + (error.message || "No se pudo eliminar el enlace"));
     }
   };
 
   const handleUpdateEstado = async (nuevoEstado) => {
     try {
-      setCancion((prev) => ({ ...prev, estado: nuevoEstado }));
       const { error } = await supabase.from("canciones").update({ estado: nuevoEstado }).eq("id", id);
       if (error) throw error;
+      setCancion((prev) => ({ ...prev, estado: nuevoEstado }));
     } catch (error) {
-      await fetchData();
+      alert("Error: " + (error.message || "No se pudo actualizar el estado"));
     }
   };
 
   const handleCrearSeccion = async () => {
     const { nuevoNombre, nuevaLetraEs, nuevaLetraEn, nuevaLetraJp, nuevaLetraRomaji } = formState;
-    if (!nuevoNombre.trim() || !nuevaLetraEs.trim() || modalState.procesando) return;
+    if (!nuevoNombre.trim() || modalState.procesando) return;
     dispatchModal({ type: "SET_PROCESANDO", payload: true });
-    let success = false;
     try {
-      const { data, error } = await supabase.from("secciones_cancion").insert([{
+      const maxOrden = secciones.length > 0 ? Math.max(...secciones.map((s) => s.orden || 0)) : 0;
+      const nuevaSeccion = {
         cancion_id: id,
-        nombre_seccion: nuevoNombre.toUpperCase(),
-        letra_es: nuevaLetraEs,
-        letra_en: nuevaLetraEn,
-        letra_jp: nuevaLetraJp,
-        letra_romaji: nuevaLetraRomaji,
-        orden: secciones.length + 1
-      }]).select();
+        nombre_seccion: nuevoNombre.trim(),
+        letra_es: nuevaLetraEs.trim() || null,
+        letra_en: nuevaLetraEn.trim() || null,
+        letra_jp: nuevaLetraJp.trim() || null,
+        letra_romaji: nuevaLetraRomaji.trim() || null,
+        orden: maxOrden + 1
+      };
+      const { data, error } = await supabase.from("secciones_cancion").insert([nuevaSeccion]).select().single();
       if (error) throw error;
-      if (data) {
-        setSecciones((prev) => [...prev, data[0]]);
-        success = true;
-      }
+      setSecciones((prev) => [...prev, data]);
+      dispatchForm({ type: "RESET_NUEVA" });
+      dispatchModal({ type: "CLOSE_ADD" });
     } catch (error) {
       alert("Error: " + (error.message || "No se pudo crear la sección"));
     } finally {
       dispatchModal({ type: "SET_PROCESANDO", payload: false });
-      if (success) {
-        dispatchForm({ type: "RESET_NUEVA" });
-        dispatchModal({ type: "CLOSE_ADD" });
-      }
     }
   };
 
   const handleUpdateSeccion = async () => {
     const { editSecNombre, editSecEs, editSecEn, editSecJp, editSecRomaji } = formState;
-    const { selectedSec } = modalState;
-    if (!editSecNombre.trim() || !editSecEs.trim() || modalState.procesando) return;
+    const sec = modalState.selectedSec;
+    if (!sec || !editSecNombre.trim() || modalState.procesando) return;
     dispatchModal({ type: "SET_PROCESANDO", payload: true });
-    let success = false;
     try {
-      const { error } = await supabase.from("secciones_cancion").update({
-        nombre_seccion: editSecNombre.toUpperCase(),
-        letra_es: editSecEs,
-        letra_en: editSecEn,
-        letra_jp: editSecJp,
-        letra_romaji: editSecRomaji
-      }).eq("id", selectedSec.id);
+      const updates = {
+        nombre_seccion: editSecNombre.trim(),
+        letra_es: editSecEs.trim() || null,
+        letra_en: editSecEn.trim() || null,
+        letra_jp: editSecJp.trim() || null,
+        letra_romaji: editSecRomaji.trim() || null
+      };
+      const { error } = await supabase.from("secciones_cancion").update(updates).eq("id", sec.id);
       if (error) throw error;
-      setSecciones((prev) => prev.map((s) => s.id === selectedSec.id ? { ...s, nombre_seccion: editSecNombre.toUpperCase(), letra_es: editSecEs, letra_en: editSecEn, letra_jp: editSecJp, letra_romaji: editSecRomaji } : s));
-      success = true;
+      setSecciones((prev) => prev.map((s) => (s.id === sec.id ? { ...s, ...updates } : s)));
+      dispatchForm({ type: "RESET_EDIT" });
+      dispatchModal({ type: "CLOSE_EDIT_SEC" });
     } catch (error) {
       alert("Error: " + (error.message || "No se pudo actualizar la sección"));
-    } finally {
-      dispatchModal({ type: "SET_PROCESANDO", payload: false });
-      if (success) {
-        dispatchForm({ type: "RESET_EDIT" });
-        dispatchModal({ type: "CLOSE_EDIT_SEC" });
-      }
-    }
-  };
-
-  // ========================================================================
-  // GUARDADO MASIVO (SINCRONIZACIÓN TOTAL)
-  // ========================================================================
-  const handleMassUpdate = async (seccionesActualizadas) => {
-    dispatchModal({ type: "SET_PROCESANDO", payload: true });
-    try {
-      // 1. Eliminamos las secciones actuales de esta canción
-      const { error: deleteError } = await supabase
-        .from("secciones_cancion")
-        .delete()
-        .eq("cancion_id", id);
-
-      if (deleteError) throw deleteError;
-
-      // 2. Preparamos el nuevo set de datos para insertar
-      const nuevasSecciones = seccionesActualizadas.map((sec) => ({
-        cancion_id: id,
-        nombre_seccion: sec.nombre_seccion,
-        letra_es: sec.letra_es,
-        letra_en: sec.letra_en,
-        letra_jp: sec.letra_jp,
-        letra_romaji: sec.letra_romaji,
-        orden: sec.orden
-      }));
-
-      // 3. Insertamos de golpe
-      const { data: insertedData, error: insertError } = await supabase
-        .from("secciones_cancion")
-        .insert(nuevasSecciones)
-        .select();
-
-      if (insertError) throw insertError;
-
-      // 4. Actualizamos estado local
-      setSecciones(insertedData.sort((a, b) => a.orden - b.orden));
-      dispatchModal({ type: "CLOSE_MASS_EDIT" });
-      alert("¡Estructura de la canción actualizada correctamente!");
-    } catch (error) {
-      console.error("Error en update masivo:", error);
-      alert("Hubo un error al guardar los cambios masivos.");
-      fetchData(); // Resetear estado local por seguridad
     } finally {
       dispatchModal({ type: "SET_PROCESANDO", payload: false });
     }
   };
 
   const deleteSeccion = async () => {
-    const { selectedSec } = modalState;
-    if (!selectedSec) return;
+    const sec = modalState.selectedSec;
+    if (!sec || modalState.procesando) return;
     dispatchModal({ type: "SET_PROCESANDO", payload: true });
     try {
-      const { error } = await supabase.from("secciones_cancion").delete().eq("id", selectedSec.id);
+      const { error } = await supabase.from("secciones_cancion").delete().eq("id", sec.id);
       if (error) throw error;
-      setSecciones((prev) => prev.filter((s) => s.id !== selectedSec.id));
+      setSecciones((prev) => prev.filter((s) => s.id !== sec.id));
+      dispatchForm({ type: "RESET_EDIT" });
       dispatchModal({ type: "CLOSE_EDIT_SEC" });
     } catch (error) {
-      alert("Error al borrar la sección");
+      alert("Error: " + (error.message || "No se pudo eliminar la sección"));
     } finally {
       dispatchModal({ type: "SET_PROCESANDO", payload: false });
+    }
+  };
+
+  const handleMassUpdate = async (seccionesEditadas) => {
+    try {
+      const promises = seccionesEditadas.map((sec) => {
+        if (sec.id.toString().startsWith("temp-")) {
+          const { id: _, ...sinId } = sec;
+          return supabase.from("secciones_cancion").insert([{ ...sinId, cancion_id: id }]).select().single();
+        } else {
+          return supabase.from("secciones_cancion").update(sec).eq("id", sec.id);
+        }
+      });
+      const results = await Promise.all(promises);
+      const errores = results.filter((r) => r.error);
+      if (errores.length > 0) throw new Error("Algunos cambios fallaron");
+      await fetchData();
+    } catch (error) {
+      console.error("Error al guardar cambios masivos:", error);
+      throw error;
     }
   };
 
