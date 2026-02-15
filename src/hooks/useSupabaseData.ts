@@ -38,21 +38,24 @@ interface UseSupabaseOptions {
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
   
+  // Estado inicial desde caché para carga instantánea
   const [data, setData] = useState<T[]>(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState<string | null>(null);
   
   const isMounted = useRef(true);
-  const optionsString = JSON.stringify(opciones); // Para el useEffect
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCount = useRef(0);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Memorizamos las opciones para evitar re-renders infinitos si se pasan objetos literales
+  const optionsString = JSON.stringify(opciones);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
     
-    // Si ya tenemos datos y no es refresh forzado, no ponemos loading para evitar parpadeos
+    // Solo mostramos loading si no hay datos o si es un refresco manual
     if (data.length === 0 || forceRefresh) {
-        setLoading(true);
+      setLoading(true);
     }
     setError(null);
     
@@ -61,7 +64,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let resultado;
       let errorFetch;
 
-      // Usar Map de queries o consulta directa
+      // 1. Lógica de consulta (Queries personalizadas o Supabase genérico)
       if (QUERIES_MAP[tabla]) {
         const res = await QUERIES_MAP[tabla].getAll({ ...opt, tabla });
         resultado = res?.data !== undefined ? res.data : (Array.isArray(res) ? res : []);
@@ -83,21 +86,27 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
       if (errorFetch) throw errorFetch;
 
+      // 2. Éxito: Actualizar estados y caché
       const finalData = (resultado || []) as T[];
       
       if (isMounted.current) {
         setData(finalData);
         updateCache(tabla, finalData);
-        retryCount.current = 0; // Resetear intentos si hubo éxito
+        retryCount.current = 0; // Resetear contador de reintentos
       }
     } catch (err: any) {
       if (isMounted.current) {
-        const isNetworkError = err.message?.includes("fetch") || err.message?.includes("NetworkError");
-        
-        // AUTO-REINTENTO si es error de red (máximo 3 veces)
+        // Detectar si es un error de red (CORS, DNS, Conexión perdida)
+        const isNetworkError = 
+          err.message?.includes("fetch") || 
+          err.message?.includes("NetworkError") || 
+          err.message?.includes("Failed to fetch");
+
+        // Lógica de auto-reintento (hasta 3 veces con delay progresivo)
         if (isNetworkError && retryCount.current < 3) {
           retryCount.current++;
-          setTimeout(() => fetchData(true), 1500); 
+          console.warn(`"Intento de reintento ${retryCount.current} para la tabla ${tabla}..."`);
+          setTimeout(() => fetchData(true), 1000 * retryCount.current);
           return;
         }
 
@@ -107,10 +116,11 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, updateCache, optionsString, data.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabla, updateCache, optionsString]); // Quitamos data.length de aquí para evitar ciclos
 
-  // CRUD Methods (addRow, updateRow, deleteRow) 
-  // Se mantienen iguales pero con logs mejorados
+  // --- MÉTODOS CRUD ---
+
   const addRow = useCallback(async (newData: any) => {
     try {
       let errorInsert;
@@ -162,13 +172,14 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
 
-  // Manejo de Realtime y Polling de respaldo
+  // --- EFECTO DE INICIALIZACIÓN Y REALTIME ---
+
   useEffect(() => {
     isMounted.current = true;
     fetchData();
 
-    // Nombre de canal único para evitar colisiones
-    const channelName = `db-${tabla}-${Math.random().toString(36).substring(2, 9)}`;
+    // Crear un canal de realtime único por instancia del hook
+    const channelName = `realtime-${tabla}-${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
       .channel(channelName)
       .on("postgres_changes", 
@@ -176,12 +187,13 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         () => fetchData(true)
       )
       .subscribe((status) => {
+        // Si el canal de Realtime falla, activamos Polling como respaldo
         if (status === "CHANNEL_ERROR") {
-          // Si Realtime falla, activamos polling cada 15 seg
+          console.warn(`"Realtime falló en ${tabla}, activando polling..."`);
           if (!pollingIntervalRef.current) {
             pollingIntervalRef.current = setInterval(() => {
               if (isMounted.current) fetchData(true);
-            }, 15000);
+            }, 20000); // Polling cada 20 segundos
           }
         }
       });
