@@ -109,7 +109,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla, updateCache, optionsString]);
   
-  // --- MÉTODOS CRUD REPARADOS ---
+  // --- MÉTODOS CRUD CORREGIDOS ---
   
   const addRow = useCallback(async (newData: any) => {
     try {
@@ -117,7 +117,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let insertedData = null;
       
       if (QUERIES_MAP[tabla]?.create) {
-        const res = await QUERIES_MAP[tabla].create({ ...newData, tabla_destino: tabla });
+        const res = await QUERIES_MAP[tabla].create(newData); // ✅ SIN tabla_destino
         errorInsert = res?.error;
         insertedData = res?.data;
       } else {
@@ -144,7 +144,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let updatedData = null;
       
       if (QUERIES_MAP[tabla]?.update) {
-        const res = await QUERIES_MAP[tabla].update(id, { ...updates, tabla_destino: tabla });
+        const res = await QUERIES_MAP[tabla].update(id, updates); // ✅ SIN tabla_destino
         errorUpdate = res?.error;
         updatedData = res?.data;
       } else {
@@ -171,7 +171,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let errorDelete;
       
       if (QUERIES_MAP[tabla]?.delete) {
-        const res = await QUERIES_MAP[tabla].delete(id, tabla);
+        const res = await QUERIES_MAP[tabla].delete(id); // ✅ Sin segundo parámetro
         errorDelete = res?.error;
       } else {
         const { error: err } = await supabase.from(tabla).delete().eq("id", id);
