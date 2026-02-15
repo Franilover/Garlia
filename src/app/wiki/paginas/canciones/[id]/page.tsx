@@ -718,7 +718,7 @@ const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNomb
 export default function CancionDetallesPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params?.id;
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
   const [cancion, setCancion] = useState(null);
   const [secciones, setSecciones] = useState([]);
@@ -885,20 +885,47 @@ export default function CancionDetallesPage() {
 
   const handleMassUpdate = async (seccionesEditadas) => {
     try {
-      const promises = seccionesEditadas.map((sec) => {
-        if (sec.id.toString().startsWith("temp-")) {
-          const { id: _, ...sinId } = sec;
-          return supabase.from("secciones_cancion").insert([{ ...sinId, cancion_id: id }]).select().single();
-        } else {
-          return supabase.from("secciones_cancion").update(sec).eq("id", sec.id);
+      // Separar secciones nuevas de existentes
+      const seccionesNuevas = seccionesEditadas.filter(sec => 
+        sec.id.toString().startsWith("temp-")
+      );
+      const seccionesExistentes = seccionesEditadas.filter(sec => 
+        !sec.id.toString().startsWith("temp-")
+      );
+
+      // Primero, insertar las nuevas secciones
+      if (seccionesNuevas.length > 0) {
+        const nuevasParaInsertar = seccionesNuevas.map(sec => {
+          const { id: tempId, ...sinId } = sec;
+          return { ...sinId, cancion_id: parseInt(id) };
+        });
+        
+        const { error: errorInsert } = await supabase
+          .from("secciones_cancion")
+          .insert(nuevasParaInsertar);
+        
+        if (errorInsert) throw errorInsert;
+      }
+
+      // Luego, actualizar las existentes
+      const promesasUpdate = seccionesExistentes.map(sec => 
+        supabase.from("secciones_cancion").update(sec).eq("id", sec.id)
+      );
+      
+      if (promesasUpdate.length > 0) {
+        const results = await Promise.all(promesasUpdate);
+        const errores = results.filter((r) => r.error);
+        if (errores.length > 0) {
+          console.error("Errores al actualizar:", errores);
+          throw new Error("Algunos cambios fallaron");
         }
-      });
-      const results = await Promise.all(promises);
-      const errores = results.filter((r) => r.error);
-      if (errores.length > 0) throw new Error("Algunos cambios fallaron");
+      }
+
+      // Recargar los datos después de guardar
       await fetchData();
     } catch (error) {
       console.error("Error al guardar cambios masivos:", error);
+      alert("Error al guardar: " + error.message);
       throw error;
     }
   };
