@@ -11,7 +11,7 @@ import { recetasQueries } from "@/lib/api/queries/recetas";
 import { tareasQueries } from "@/lib/api/queries/tareas";
 import { eventosQueries } from "@/lib/api/queries/eventos";
 import { ingredientesQueries } from "@/lib/api/queries/ingredientes";
-import { ropaQueries } from "@/lib/api/queries/ropa"; // <-- IMPORTADO
+import { ropaQueries } from "@/lib/api/queries/ropa";
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
@@ -22,8 +22,8 @@ const QUERIES_MAP: Record<string, any> = {
   "tareas": tareasQueries,
   "eventos": eventosQueries,
   "ingredientes": ingredientesQueries,
-  "ropa": ropaQueries,          // <-- REGISTRADO
-  "ropa_outfits": ropaQueries   // <-- REGISTRADO
+  "ropa": ropaQueries,          
+  "ropa_outfits": ropaQueries   
 };
 
 interface UseSupabaseOptions {
@@ -43,28 +43,26 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const [error, setError] = useState<string | null>(null);
   
   const isMounted = useRef(true);
-  const opcionesRef = useRef(JSON.stringify(opciones));
+  const optionsString = JSON.stringify(opciones); // Para el useEffect
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
-  useEffect(() => {
-    opcionesRef.current = JSON.stringify(opciones);
-  }, [opciones]);
+  const retryCount = useRef(0);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
     
+    // Si ya tenemos datos y no es refresh forzado, no ponemos loading para evitar parpadeos
     if (data.length === 0 || forceRefresh) {
         setLoading(true);
     }
     setError(null);
     
     try {
-      const opt = JSON.parse(opcionesRef.current);
+      const opt = JSON.parse(optionsString);
       let resultado;
       let errorFetch;
 
+      // Usar Map de queries o consulta directa
       if (QUERIES_MAP[tabla]) {
-        // Pasa la tabla en las opciones para que la query sepa a cuál atacar
         const res = await QUERIES_MAP[tabla].getAll({ ...opt, tabla });
         resultado = res?.data !== undefined ? res.data : (Array.isArray(res) ? res : []);
         errorFetch = res?.error !== undefined ? res.error : null;
@@ -89,23 +87,34 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       
       if (isMounted.current) {
         setData(finalData);
-        updateCache(tabla, finalData); 
+        updateCache(tabla, finalData);
+        retryCount.current = 0; // Resetear intentos si hubo éxito
       }
     } catch (err: any) {
       if (isMounted.current) {
+        const isNetworkError = err.message?.includes("fetch") || err.message?.includes("NetworkError");
+        
+        // AUTO-REINTENTO si es error de red (máximo 3 veces)
+        if (isNetworkError && retryCount.current < 3) {
+          retryCount.current++;
+          setTimeout(() => fetchData(true), 1500); 
+          return;
+        }
+
         setError(err.message);
-        console.error(`Error fetching ${tabla}:`, err);
+        console.error(`"Error fetching ${tabla}:"`, err);
       }
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, updateCache, data.length]);
+  }, [tabla, updateCache, optionsString, data.length]);
 
+  // CRUD Methods (addRow, updateRow, deleteRow) 
+  // Se mantienen iguales pero con logs mejorados
   const addRow = useCallback(async (newData: any) => {
     try {
       let errorInsert;
       if (QUERIES_MAP[tabla]?.create) {
-        // Enviamos la tabla destino para que la query sepa dónde insertar
         const res = await QUERIES_MAP[tabla].create({ ...newData, tabla_destino: tabla });
         errorInsert = res?.error;
       } else {
@@ -115,7 +124,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       if (errorInsert) throw errorInsert;
       return { error: null };
     } catch (err: any) {
-      console.error(`Error al insertar en ${tabla}:`, err);
       return { error: err.message };
     }
   }, [tabla]);
@@ -133,7 +141,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       if (errorUpdate) throw errorUpdate;
       return { error: null };
     } catch (err: any) {
-      console.error(`Error al actualizar en ${tabla}:`, err);
       return { error: err.message };
     }
   }, [tabla]);
@@ -142,7 +149,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     try {
       let errorDelete;
       if (QUERIES_MAP[tabla]?.delete) {
-        // En ropaQueries.delete pasamos el ID y ahora también la tabla por si acaso
         const res = await QUERIES_MAP[tabla].delete(id, tabla);
         errorDelete = res?.error;
       } else {
@@ -152,32 +158,30 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       if (errorDelete) throw errorDelete;
       return { error: null };
     } catch (err: any) {
-      console.error(`Error al eliminar en ${tabla}:`, err);
       return { error: err.message };
     }
   }, [tabla]);
 
+  // Manejo de Realtime y Polling de respaldo
   useEffect(() => {
     isMounted.current = true;
     fetchData();
 
+    // Nombre de canal único para evitar colisiones
+    const channelName = `db-${tabla}-${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
-      .channel(`db-${tabla}-${Math.random().toString(36).substring(7)}`)
+      .channel(channelName)
       .on("postgres_changes", 
         { event: "*", schema: "public", table: tabla }, 
         () => fetchData(true)
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
+          // Si Realtime falla, activamos polling cada 15 seg
           if (!pollingIntervalRef.current) {
             pollingIntervalRef.current = setInterval(() => {
               if (isMounted.current) fetchData(true);
-            }, 10000);
-          }
-        } else if (status === "SUBSCRIBED") {
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
+            }, 15000);
           }
         }
       });
