@@ -56,7 +56,7 @@ export default function PersonalMenuPage() {
               description="Conoce más sobre mí"
               icon={<Smile size={42} />}
               delay={0.1}
-              featured={true}
+              hasNewContent={false} // Cambia esto según tu base de datos
             />
             <MenuCard 
               href="/personal/paginas/dibujos"
@@ -64,6 +64,7 @@ export default function PersonalMenuPage() {
               description="Mi galería de arte"
               icon={<ImageIcon size={42} />}
               delay={0.2}
+              hasNewContent={false} // Cambia esto según tu base de datos
             />
           </div>
 
@@ -75,6 +76,7 @@ export default function PersonalMenuPage() {
               description="Momentos capturados"
               icon={<Camera size={42} />}
               delay={0.3}
+              hasNewContent={false} // Cambia esto según tu base de datos
             />
           </div>
         </div>
@@ -100,28 +102,26 @@ export default function PersonalMenuPage() {
   );
 }
 
-/* --- COMPONENTE MEJORADO: CARD DE MENÚ --- */
-const MenuCard = ({ href, title, description, icon, delay, featured = false }: any) => (
+/* --- COMPONENTE MEJORADO: CARD DE MENÚ CON NOTIFICACIONES --- */
+const MenuCard = ({ href, title, description, icon, delay, hasNewContent = false }: any) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay, type: "spring", stiffness: 100 }}
   >
     <Link href={href} className="group block relative">
-      <div className={`
-        bg-white/80 backdrop-blur-sm border-2 border-primary/10 rounded-3xl p-8 h-full 
-        transition-all duration-500 
-        group-hover:border-primary group-hover:bg-white
-        group-hover:shadow-[0_25px_60px_rgba(0,0,0,0.08)] 
-        group-hover:-translate-y-2 group-hover:scale-[1.02]
-        ${featured ? 'border-primary/20' : ''}
-      `}>
+      <div className="bg-white/80 backdrop-blur-sm border-2 border-primary/10 rounded-3xl p-8 h-full transition-all duration-500 group-hover:border-primary group-hover:bg-white group-hover:shadow-[0_25px_60px_rgba(0,0,0,0.08)] group-hover:-translate-y-2 group-hover:scale-[1.02]">
         
-        {/* Badge "Featured" opcional */}
-        {featured && (
-          <div className="absolute top-4 right-4 bg-primary text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider">
-            Destacado
-          </div>
+        {/* Punto de notificación - se muestra cuando hay contenido nuevo */}
+        {hasNewContent && (
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full shadow-lg"
+          >
+            {/* Efecto de pulso */}
+            <span className="absolute inset-0 w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75" />
+          </motion.div>
         )}
         
         {/* Icono con animación */}

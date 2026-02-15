@@ -59,21 +59,23 @@ export default function WikiMenuPage() {
               description="Conoce a los habitantes de este mundo"
               icon={<Users size={42} />} 
               delay={0.1}
-              featured={true}
+              hasNewContent={false} // Cambia esto según tu base de datos
             />
             <MenuCard 
               href="/wiki/paginas/items" 
               title="Items" 
               description="Objetos místicos y artefactos"
               icon={<Package size={38} />} 
-              delay={0.2} 
+              delay={0.2}
+              hasNewContent={false} // Cambia esto según tu base de datos
             />
             <MenuCard 
               href="/wiki/paginas/libros" 
               title="Libros" 
               description="Textos antiguos y conocimiento prohibido"
               icon={<BookOpen size={38} />} 
-              delay={0.3} 
+              delay={0.3}
+              hasNewContent={false} // Cambia esto según tu base de datos
             />
           </div>
 
@@ -84,7 +86,8 @@ export default function WikiMenuPage() {
               title="Criaturas" 
               description="Bestias y entidades del jardín"
               icon={<Footprints size={38} />} 
-              delay={0.15} 
+              delay={0.15}
+              hasNewContent={false} // Cambia esto según tu base de datos
             />
             <MenuCard 
               href="/wiki/paginas/mapa" 
@@ -92,41 +95,26 @@ export default function WikiMenuPage() {
               description="Territorios y lugares ocultos"
               icon={<Map size={38} />} 
               delay={0.25}
-              featured={true}
+              hasNewContent={false} // Cambia esto según tu base de datos
             />
             <MenuCard 
               href="/wiki/paginas/canciones" 
               title="Canciones" 
               description="Melodías que cuentan historias"
               icon={<Music size={38} />} 
-              delay={0.35} 
+              delay={0.35}
+              hasNewContent={false} // Cambia esto según tu base de datos
             />
           </div>
         </div>
 
-        {/* --- FOOTER CON ESTADÃSTICAS OPCIONALES --- */}
+        {/* --- FOOTER --- */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           className="mt-20 flex flex-col items-center gap-8"
         >
-          {/* Estadísticas decorativas */}
-          <div className="flex gap-8 text-center">
-            <div className="bg-white/50 backdrop-blur-sm rounded-2xl px-6 py-3 border border-primary/10">
-              <div className="text-2xl font-black text-primary">50+</div>
-              <div className="text-xs font-semibold text-primary/60 uppercase tracking-wider">Entradas</div>
-            </div>
-            <div className="bg-white/50 backdrop-blur-sm rounded-2xl px-6 py-3 border border-primary/10">
-              <div className="text-2xl font-black text-primary">12</div>
-              <div className="text-xs font-semibold text-primary/60 uppercase tracking-wider">Capítulos</div>
-            </div>
-            <div className="bg-white/50 backdrop-blur-sm rounded-2xl px-6 py-3 border border-primary/10">
-              <div className="text-2xl font-black text-primary">∞</div>
-              <div className="text-xs font-semibold text-primary/60 uppercase tracking-wider">Secretos</div>
-            </div>
-          </div>
-
           {/* Botón volver mejorado */}
           <Link 
             href="/" 
@@ -141,28 +129,26 @@ export default function WikiMenuPage() {
   );
 }
 
-/* --- COMPONENTE MEJORADO: CARD DE MENÚ --- */
-const MenuCard = ({ href, title, description, icon, delay, featured = false }: any) => (
+/* --- COMPONENTE MEJORADO: CARD DE MENÚ CON NOTIFICACIONES --- */
+const MenuCard = ({ href, title, description, icon, delay, hasNewContent = false }: any) => (
   <motion.div
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
     transition={{ delay, type: "spring", stiffness: 100 }}
   >
     <Link href={href} className="group block relative">
-      <div className={`
-        bg-white/80 backdrop-blur-sm border-2 border-primary/10 rounded-3xl p-8 h-full 
-        transition-all duration-500 
-        group-hover:border-primary group-hover:bg-white
-        group-hover:shadow-[0_25px_60px_rgba(0,0,0,0.08)] 
-        group-hover:-translate-y-2 group-hover:scale-[1.02]
-        ${featured ? 'lg:row-span-1 border-primary/20' : ''}
-      `}>
+      <div className="bg-white/80 backdrop-blur-sm border-2 border-primary/10 rounded-3xl p-8 h-full transition-all duration-500 group-hover:border-primary group-hover:bg-white group-hover:shadow-[0_25px_60px_rgba(0,0,0,0.08)] group-hover:-translate-y-2 group-hover:scale-[1.02]">
         
-        {/* Badge "Featured" opcional */}
-        {featured && (
-          <div className="absolute top-4 right-4 bg-primary text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider">
-            Destacado
-          </div>
+        {/* Punto de notificación - se muestra cuando hay contenido nuevo */}
+        {hasNewContent && (
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full shadow-lg"
+          >
+            {/* Efecto de pulso */}
+            <span className="absolute inset-0 w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75" />
+          </motion.div>
         )}
         
         {/* Icono con animación */}
