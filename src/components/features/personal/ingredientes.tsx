@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { Ingrediente } from "@/lib/types/cocina";
-import { Search, Plus, Zap, ChevronLeft, X, Loader2, Save, Package, PackageX, Minus, Droplets } from "lucide-react";
+import { Search, Plus, Zap, ChevronLeft, X, Loader2, Save, Package, PackageX, Minus } from "lucide-react";
 import Link from "next/link";
 
 export const IngredientesPage = () => {
@@ -197,7 +197,7 @@ export const IngredientesPage = () => {
                   </div>
                   
                   {/* MACRONUTRIENTES */}
-                  <div className="grid grid-cols-3 gap-2 border-t border-primary/5 pt-4 pb-3">
+                  <div className="grid grid-cols-3 gap-2 border-t border-primary/5 pt-4">
                     <div className="text-center">
                       <span className="block text-[7px] font-black text-primary/20 uppercase">Prot</span>
                       <span className="text-xs font-black">{item.proteinas}g</span>
@@ -212,29 +212,21 @@ export const IngredientesPage = () => {
                     </div>
                   </div>
                   
-                  {/* MICRONUTRIENTES */}
+                  {/* MICRONUTRIENTES - MISMO ESTILO */}
                   {(item.fibra > 0 || item.sodio > 0 || item.agua_ml > 0) && (
-                    <div className="grid grid-cols-3 gap-2 border-t border-primary/5 pt-3 pb-3">
-                      {item.fibra > 0 && (
-                        <div className="text-center">
-                          <span className="block text-[7px] font-black text-blue-400 uppercase">Fibra</span>
-                          <span className="text-[10px] font-black text-blue-600">{item.fibra}g</span>
-                        </div>
-                      )}
-                      {item.sodio > 0 && (
-                        <div className="text-center">
-                          <span className="block text-[7px] font-black text-orange-400 uppercase">Sodio</span>
-                          <span className="text-[10px] font-black text-orange-600">{item.sodio}mg</span>
-                        </div>
-                      )}
-                      {item.agua_ml > 0 && (
-                        <div className="text-center">
-                          <span className="block text-[7px] font-black text-cyan-400 uppercase flex items-center justify-center gap-1">
-                            <Droplets size={8}/> Agua
-                          </span>
-                          <span className="text-[10px] font-black text-cyan-600">{item.agua_ml}ml</span>
-                        </div>
-                      )}
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <div className="text-center">
+                        <span className="block text-[7px] font-black text-primary/20 uppercase">Fibra</span>
+                        <span className="text-xs font-black">{item.fibra || 0}g</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="block text-[7px] font-black text-primary/20 uppercase">Sodio</span>
+                        <span className="text-xs font-black">{item.sodio || 0}mg</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="block text-[7px] font-black text-primary/20 uppercase">Agua</span>
+                        <span className="text-xs font-black">{item.agua_ml || 0}ml</span>
+                      </div>
                     </div>
                   )}
                   
