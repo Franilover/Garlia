@@ -87,7 +87,7 @@ export default function PersonalMenuPage() {
             <MenuCard 
               href="/personal/paginas/sobre-mi"
               title="Sobre Mí"
-              description="Conoce más sobre mí"
+              description="En caso de dudas :D"
               icon={<Smile size={42} />}
               delay={0.1}
               hasNewContent={notifications["sobre-mi"]}
@@ -96,7 +96,7 @@ export default function PersonalMenuPage() {
             <MenuCard 
               href="/personal/paginas/dibujos"
               title="Dibujos"
-              description="Mi galería de arte"
+              description="Mi gran Atelier"
               icon={<ImageIcon size={42} />}
               delay={0.2}
               hasNewContent={notifications["dibujos"]}
@@ -109,7 +109,7 @@ export default function PersonalMenuPage() {
             <MenuCard 
               href="/personal/paginas/fotos"
               title="Fotos"
-              description="Momentos capturados"
+              description="Recuerdos"
               icon={<Camera size={42} />}
               delay={0.3}
               hasNewContent={notifications["fotos"]}

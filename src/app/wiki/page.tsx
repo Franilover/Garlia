@@ -50,7 +50,7 @@ export default function WikiMenuPage() {
             <MenuCard 
               href="/wiki/paginas/personajes" 
               title="Personajes" 
-              description="Conoce a los habitantes de este mundo"
+              description="Conoce a los habitantes de mi mundo"
               icon={<Users size={42} />} 
               delay={0.1}
               hasNewContent={notifications['personajes']}
@@ -59,7 +59,7 @@ export default function WikiMenuPage() {
             <MenuCard 
               href="/wiki/paginas/items" 
               title="Items" 
-              description="Objetos místicos y artefactos"
+              description="Objetos místicos y artefactos raros"
               icon={<Package size={38} />} 
               delay={0.2}
               hasNewContent={notifications['items']}
@@ -68,7 +68,7 @@ export default function WikiMenuPage() {
             <MenuCard 
               href="/wiki/paginas/libros" 
               title="Libros" 
-              description="Textos antiguos y conocimiento prohibido"
+              description="Relatos sobre los martires de cada reino"
               icon={<BookOpen size={38} />} 
               delay={0.3}
               hasNewContent={notifications['libros']}
@@ -81,7 +81,7 @@ export default function WikiMenuPage() {
             <MenuCard 
               href="/wiki/paginas/criaturas" 
               title="Criaturas" 
-              description="Bestias y entidades del jardín"
+              description="Bestias y entidades"
               icon={<Footprints size={38} />} 
               delay={0.15}
               hasNewContent={notifications['criaturas']}
@@ -90,7 +90,7 @@ export default function WikiMenuPage() {
             <MenuCard 
               href="/wiki/paginas/mapa" 
               title="Mapa" 
-              description="Territorios y lugares ocultos"
+              description="Reinos y territorios"
               icon={<Map size={38} />} 
               delay={0.25}
               hasNewContent={notifications['mapa']}
@@ -99,7 +99,7 @@ export default function WikiMenuPage() {
             <MenuCard 
               href="/wiki/paginas/canciones" 
               title="Canciones" 
-              description="Melodías que cuentan historias"
+              description="Reflexiones internas"
               icon={<Music size={38} />} 
               delay={0.35}
               hasNewContent={notifications['canciones']}
