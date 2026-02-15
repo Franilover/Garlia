@@ -19,7 +19,7 @@ export const IngredientesPage = () => {
     proteinas: 0,
     carbohidratos: 0,
     grasas: 0,
-    porcion_texto: "1unit",
+    porcion_texto: "100g",
     stock_actual: 0,
     fibra: 0,
     sodio: 0,
@@ -53,18 +53,13 @@ export const IngredientesPage = () => {
     e.preventDefault();
     setIsSaving(true);
     
-    console.log("📦 Enviando datos:", formData);
-    
     try {
       const result = await addRow(formData);
-      
-      console.log("📬 Resultado:", result);
       
       if (result.error) {
         console.error("❌ Error del servidor:", result.error);
         alert(`Error al guardar: ${result.error}`);
       } else {
-        console.log("✅ Guardado exitoso");
         setIsModalOpen(false);
         setFormData({ 
           nombre: "", 
@@ -73,7 +68,7 @@ export const IngredientesPage = () => {
           proteinas: 0, 
           carbohidratos: 0, 
           grasas: 0, 
-          porcion_texto: "1unit", 
+          porcion_texto: "100g", 
           stock_actual: 0, 
           fibra: 0, 
           sodio: 0, 
@@ -85,7 +80,6 @@ export const IngredientesPage = () => {
       console.error("💥 Error inesperado:", err);
       alert(`Error inesperado: ${err}`);
     } finally {
-      console.log("🏁 Finalizando guardado");
       setIsSaving(false);
     }
   };
@@ -244,7 +238,7 @@ export const IngredientesPage = () => {
               initial={{ scale: 0.9, y: 20 }} 
               animate={{ scale: 1, y: 0 }} 
               exit={{ scale: 0.9, y: 20 }}
-              className="relative bg-white w-full max-w-lg rounded-[45px] p-8 shadow-2xl overflow-y-auto max-h-[90vh]"
+              className="relative bg-white w-full max-w-2xl rounded-[45px] p-8 shadow-2xl overflow-y-auto max-h-[90vh]"
             >
               <div className="flex justify-between items-center mb-8">
                 <h2 className="text-3xl font-black italic uppercase">
@@ -258,71 +252,195 @@ export const IngredientesPage = () => {
                 </button>
               </div>
               
-              <form onSubmit={handleSave} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1 col-span-2">
-                    <label className="text-[9px] font-black uppercase text-primary/30 ml-4">
-                      Nombre
-                    </label>
-                    <input 
-                      required 
-                      className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold text-primary outline-none" 
-                      value={formData.nombre} 
-                      onChange={(e) => setFormData({...formData, nombre: e.target.value})} 
-                    />
+              <form onSubmit={handleSave} className="space-y-6">
+                {/* INFORMACIÓN BÁSICA */}
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black uppercase text-primary/40 tracking-widest">
+                    Información Básica
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-primary/30 ml-4">
+                        Nombre *
+                      </label>
+                      <input 
+                        required 
+                        className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold text-primary outline-none" 
+                        value={formData.nombre} 
+                        onChange={(e) => setFormData({...formData, nombre: e.target.value})} 
+                        placeholder="Ej: Tomate, Pollo, Arroz..."
+                      />
+                    </div>
                   </div>
                   
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-primary/30 ml-4">
-                      Categoría
-                    </label>
-                    <select 
-                      className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold text-primary outline-none appearance-none"
-                      value={formData.categoria} 
-                      onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-                    >
-                      <option value="Proteínas">Proteínas</option>
-                      <option value="Carbohidratos">Carbohidratos</option>
-                      <option value="Grasas">Grasas</option>
-                      <option value="Verduras">Verduras</option>
-                      <option value="Frutas">Frutas</option>
-                      <option value="Lácteos">Lácteos</option>
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-primary/30 ml-4">
-                      Stock Inicial
-                    </label>
-                    <input 
-                      type="number" 
-                      className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold text-primary outline-none" 
-                      value={formData.stock_actual} 
-                      onChange={(e) => setFormData({...formData, stock_actual: Number(e.target.value)})} 
-                    />
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-primary/30 ml-4">
+                        Categoría
+                      </label>
+                      <select 
+                        className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold text-primary outline-none appearance-none"
+                        value={formData.categoria} 
+                        onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+                      >
+                        <option value="Proteínas">Proteínas</option>
+                        <option value="Carbohidratos">Carbohidratos</option>
+                        <option value="Grasas">Grasas</option>
+                        <option value="Verduras">Verduras</option>
+                        <option value="Frutas">Frutas</option>
+                        <option value="Lácteos">Lácteos</option>
+                      </select>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-primary/30 ml-4">
+                        Porción
+                      </label>
+                      <input 
+                        type="text"
+                        className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold text-primary outline-none" 
+                        value={formData.porcion_texto} 
+                        onChange={(e) => setFormData({...formData, porcion_texto: e.target.value})} 
+                        placeholder="Ej: 100g, 1 unidad..."
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-primary/30 ml-4">
+                        Stock Inicial
+                      </label>
+                      <input 
+                        type="number" 
+                        min="0"
+                        className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-xs font-bold text-primary outline-none" 
+                        value={formData.stock_actual} 
+                        onChange={(e) => setFormData({...formData, stock_actual: Number(e.target.value)})} 
+                      />
+                    </div>
                   </div>
                 </div>
                 
-                <div className="bg-primary/5 rounded-[30px] p-6 grid grid-cols-2 gap-4">
-                  {["kcal", "proteinas", "carbohidratos", "grasas"].map((field) => (
-                    <div key={field} className="space-y-1">
+                {/* MACRONUTRIENTES */}
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black uppercase text-primary/40 tracking-widest">
+                    Macronutrientes (por porción)
+                  </h3>
+                  
+                  <div className="bg-primary/5 rounded-[30px] p-6 grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
                       <span className="text-[7px] font-black uppercase text-primary/30 ml-2">
-                        {field}
+                        Calorías (kcal)
                       </span>
                       <input 
                         type="number" 
+                        min="0"
+                        step="0.1"
                         className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary outline-none" 
-                        value={(formData as any)[field]} 
-                        onChange={(e) => setFormData({...formData, [field]: Number(e.target.value)})}
+                        value={formData.kcal} 
+                        onChange={(e) => setFormData({...formData, kcal: Number(e.target.value)})}
                       />
                     </div>
-                  ))}
+                    
+                    <div className="space-y-1">
+                      <span className="text-[7px] font-black uppercase text-primary/30 ml-2">
+                        Proteínas (g)
+                      </span>
+                      <input 
+                        type="number" 
+                        min="0"
+                        step="0.1"
+                        className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary outline-none" 
+                        value={formData.proteinas} 
+                        onChange={(e) => setFormData({...formData, proteinas: Number(e.target.value)})}
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <span className="text-[7px] font-black uppercase text-primary/30 ml-2">
+                        Carbohidratos (g)
+                      </span>
+                      <input 
+                        type="number" 
+                        min="0"
+                        step="0.1"
+                        className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary outline-none" 
+                        value={formData.carbohidratos} 
+                        onChange={(e) => setFormData({...formData, carbohidratos: Number(e.target.value)})}
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <span className="text-[7px] font-black uppercase text-primary/30 ml-2">
+                        Grasas (g)
+                      </span>
+                      <input 
+                        type="number" 
+                        min="0"
+                        step="0.1"
+                        className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary outline-none" 
+                        value={formData.grasas} 
+                        onChange={(e) => setFormData({...formData, grasas: Number(e.target.value)})}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* MICRONUTRIENTES */}
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black uppercase text-primary/40 tracking-widest">
+                    Micronutrientes (opcional)
+                  </h3>
+                  
+                  <div className="bg-primary/5 rounded-[30px] p-6 grid grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <span className="text-[7px] font-black uppercase text-primary/30 ml-2">
+                        Fibra (g)
+                      </span>
+                      <input 
+                        type="number" 
+                        min="0"
+                        step="0.1"
+                        className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary outline-none" 
+                        value={formData.fibra} 
+                        onChange={(e) => setFormData({...formData, fibra: Number(e.target.value)})}
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <span className="text-[7px] font-black uppercase text-primary/30 ml-2">
+                        Sodio (mg)
+                      </span>
+                      <input 
+                        type="number" 
+                        min="0"
+                        step="1"
+                        className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary outline-none" 
+                        value={formData.sodio} 
+                        onChange={(e) => setFormData({...formData, sodio: Number(e.target.value)})}
+                      />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <span className="text-[7px] font-black uppercase text-primary/30 ml-2">
+                        Agua (ml)
+                      </span>
+                      <input 
+                        type="number" 
+                        min="0"
+                        step="1"
+                        className="w-full bg-white rounded-xl py-2 px-4 text-xs font-bold text-primary outline-none" 
+                        value={formData.agua_ml} 
+                        onChange={(e) => setFormData({...formData, agua_ml: Number(e.target.value)})}
+                      />
+                    </div>
+                  </div>
                 </div>
                 
                 <button 
                   disabled={isSaving} 
                   type="submit" 
-                  className="w-full bg-primary text-white py-5 rounded-[25px] font-black uppercase text-[11px] tracking-[0.3em] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-primary text-white py-5 rounded-[25px] font-black uppercase text-[11px] tracking-[0.3em] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
                 >
                   {isSaving ? (
                     <Loader2 className="animate-spin" size={18}/>
