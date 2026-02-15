@@ -178,12 +178,17 @@ const CancionCard = ({ cancion, isAdmin, onEdit }: any) => {
 // ============================================================================
 
 const Canciones = () => {
-  const { data: canciones = [], loading, setData: setCanciones } = useSupabaseData("canciones", {
+  // 1. CARGA DE CANCIONES (HOOK)
+  const { data: canciones = [], loading: loadingCanciones, setData: setCanciones } = useSupabaseData("canciones", {
     order: { campo: "created_at", asc: false }
   });
 
+  // 2. CARGA DE PERSONAJES (HOOK) - CAMBIO CLAVE: Usamos el hook en lugar de useEffect manual
+  const { data: listaPersonajes = [] } = useSupabaseData("personajes", {
+    order: { campo: "nombre", asc: true }
+  });
+
   const [isAdmin, setIsAdmin] = useState(false);
-  const [listaPersonajes, setListaPersonajes] = useState<any[]>([]);
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const [formState, dispatchForm] = useReducer(formReducer, initialFormState);
 
@@ -192,16 +197,12 @@ const Canciones = () => {
   const [filtroCompositor, setFiltroCompositor] = useState("");
   const [filtroIdioma, setFiltroIdioma] = useState("");
 
+  // Solo mantenemos la lógica de AUTH en el useEffect
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setIsAdmin(true);
     });
-
-    const fetchPersonajes = async () => {
-      const { data } = await supabase.from("personajes").select("nombre").order("nombre");
-      if (data) setListaPersonajes(data);
-    };
-    fetchPersonajes();
+    // Eliminamos el fetchPersonajes manual que causaba conflicto
   }, []);
 
   // Lógica de filtrado
@@ -331,7 +332,7 @@ const Canciones = () => {
     }
   };
 
-  if (loading) return (
+  if (loadingCanciones) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
       <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
         <Loader2 className="text-[#6B5E70]/20" size={40} />
@@ -388,7 +389,7 @@ const Canciones = () => {
                         onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editPersonaje: e.target.value }})}
                       >
                         <option value="">Ninguno</option>
-                        {listaPersonajes.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
+                        {listaPersonajes.map((p: any) => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
                       </select>
                     </div>
                   </div>
@@ -495,7 +496,7 @@ const Canciones = () => {
                   onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoPersonaje: e.target.value }})}
                 >
                   <option value="">Seleccionar Personaje</option>
-                  {listaPersonajes.map(p => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
+                  {listaPersonajes.map((p: any) => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
                 </select>
                 
                 <input 
@@ -568,7 +569,7 @@ const Canciones = () => {
             onChange={(e) => setFiltroCantante(e.target.value)}
           >
             <option value="">Todos los Cantantes</option>
-            {opcionesFiltros.cantantes.map(c => <option key={c} value={c}>{c}</option>)}
+            {opcionesFiltros.cantantes.map((c: any) => <option key={c} value={c}>{c}</option>)}
           </select>
 
           <select 
@@ -577,7 +578,7 @@ const Canciones = () => {
             onChange={(e) => setFiltroCompositor(e.target.value)}
           >
             <option value="">Todos los Compositores</option>
-            {opcionesFiltros.compositores.map(c => <option key={c} value={c}>{c}</option>)}
+            {opcionesFiltros.compositores.map((c: any) => <option key={c} value={c}>{c}</option>)}
           </select>
 
           <select 
