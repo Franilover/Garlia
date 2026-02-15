@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLightbox } from "@/components/shared/modal/lightbox"; 
@@ -11,7 +10,7 @@ export default function AppLogic({ children }) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // 1. Resetear el scroll al cambiar de pÃ¡gina
+      // 1. Resetear el scroll al cambiar de página
       window.scrollTo(0, 0); 
       
       // 2. Cerrar el lightbox al cambiar de ruta
@@ -19,20 +18,33 @@ export default function AppLogic({ children }) {
         closeLightbox();
       }
 
-      // 3. LÃGICA DE PROTECCIÃN TOTAL
+      // 3. LÓGICA DE PROTECCIÓN TOTAL
       const manejarEventos = (e) => {
-        // Bloquear Clic Derecho y Arrastre de imÃ¡genes
+        // Bloquear Clic Derecho y Arrastre de imágenes
         if (e.type === 'contextmenu' || e.type === 'dragstart') {
           e.preventDefault();
         }
-
+        
         // Bloquear atajos de teclado:
-        // Ctrl+S (Guardar), Ctrl+P (Imprimir), Ctrl+U (Ver cÃ³digo fuente)
+        // Ctrl+S (Guardar), Ctrl+P (Imprimir), Ctrl+U (Ver código fuente)
         if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p' || e.key === 'u')) {
+          
+          // ✅ EXCEPCIÓN: Permitir Ctrl+S en elementos editables (inputs, textareas)
+          const target = e.target;
+          const isEditable = target?.tagName === 'TEXTAREA' || 
+                            target?.tagName === 'INPUT' ||
+                            target?.contentEditable === 'true';
+          
+          // Si Ctrl+S en elemento editable, permitir (para el editor)
+          if (e.key === 's' && isEditable) {
+            console.log('✅ Ctrl+S permitido en editor');
+            return; // No bloquear - dejar que el editor lo maneje
+          }
+          
           e.preventDefault();
-          console.warn("AcciÃ³n bloqueada por derechos de autor.");
+          console.warn("Acción bloqueada por derechos de autor.");
         }
-
+        
         // Opcional: Bloquear F12 (Herramientas de desarrollador)
         if (e.key === 'F12') {
           e.preventDefault();
@@ -44,7 +56,7 @@ export default function AppLogic({ children }) {
       document.addEventListener("dragstart", manejarEventos);
       document.addEventListener("keydown", manejarEventos);
 
-      // Limpieza al desmontar o cambiar de pÃ¡gina
+      // Limpieza al desmontar o cambiar de página
       return () => {
         document.removeEventListener("contextmenu", manejarEventos);
         document.removeEventListener("dragstart", manejarEventos);
