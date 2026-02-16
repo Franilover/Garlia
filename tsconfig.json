@@ -16,7 +16,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -26,27 +26,49 @@
     "baseUrl": ".",
     "paths": {
       // Alias principal
-      "@/*": ["./src/*"],
-      
+      "@/*": [
+        "./src/*"
+      ],
       // Componentes
-      "@/components/*": ["./src/components/*"],
-      "@/ui/*": ["./src/components/ui/*"],
-      "@/features/*": ["./src/components/features/*"],
-      "@/shared/*": ["./src/components/shared/*"],
-      "@/providers/*": ["./src/components/providers/*"],
-      
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/ui/*": [
+        "./src/components/ui/*"
+      ],
+      "@/features/*": [
+        "./src/components/features/*"
+      ],
+      "@/shared/*": [
+        "./src/components/shared/*"
+      ],
+      "@/providers/*": [
+        "./src/components/providers/*"
+      ],
       // Hooks
-      "@/hooks/*": ["./src/hooks/*"],
-      
+      "@/hooks/*": [
+        "./src/hooks/*"
+      ],
       // Lib
-      "@/lib/*": ["./src/lib/*"],
-      "@/utils/*": ["./src/lib/utils/*"],
-      "@/api/*": ["./src/lib/api/*"],
-      "@/config/*": ["./src/lib/config/*"],
-      "@/types/*": ["./src/lib/types/*"],
-      
+      "@/lib/*": [
+        "./src/lib/*"
+      ],
+      "@/utils/*": [
+        "./src/lib/utils/*"
+      ],
+      "@/api/*": [
+        "./src/lib/api/*"
+      ],
+      "@/config/*": [
+        "./src/lib/config/*"
+      ],
+      "@/types/*": [
+        "./src/lib/types/*"
+      ],
       // Estilos
-      "@/styles/*": ["./src/styles/*"]
+      "@/styles/*": [
+        "./src/styles/*"
+      ]
     }
   },
   "include": [

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { db } from "@/lib/api/db";
+import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/supabase";
 
 /**
