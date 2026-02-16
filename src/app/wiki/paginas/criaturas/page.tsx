@@ -1,4 +1,4 @@
-import Criaturas from "@/components/features/wiki/criaturas";
+import Criaturas from "@/components/paginas/wiki/criaturas";
 export default function Page() {
   return <Criaturas />;
 }

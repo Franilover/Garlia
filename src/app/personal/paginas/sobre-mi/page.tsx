@@ -1,5 +1,5 @@
 // app/sobre-mi/page.js
-import SobreMi from '@/components/features/personal/sobre-mi';
+import SobreMi from '@/components/paginas/personal/sobre-mi';
 
 export default function Page() {
   return (

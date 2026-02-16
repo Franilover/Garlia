@@ -1,4 +1,4 @@
-import ComprasPage from "@/components/features/personal/compras";
+import ComprasPage from "@/components/paginas/personal/compras";
 
 export default function Page() {
   return <ComprasPage />;
