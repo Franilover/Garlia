@@ -1,4 +1,4 @@
-import { supabase } from "../supabase";
+import { supabase } from "../../client/supabase";
 
 // --- INTERFACES ---
 interface Seccion {

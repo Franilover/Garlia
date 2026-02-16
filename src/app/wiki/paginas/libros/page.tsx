@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Book, ChevronRight, Clock, Plus, Edit3, X, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '@/lib/api/supabase';
+import { supabase } from '@/api/client/supabase';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { SmartImage } from '@/components/shared/display/SmartImage';
 

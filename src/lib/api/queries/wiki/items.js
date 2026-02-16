@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/api/supabase';
+import { supabase } from '@/api/client/supabase';
 
 export const itemsQueries = {
   // Para traer todos los items con su info

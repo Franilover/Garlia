@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/api/supabase';
+import { supabase } from '@/api/client/supabase';
 import { X, Bell, BellRing } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

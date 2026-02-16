@@ -1,5 +1,5 @@
 // lib/api/queries/criaturas.js
-import { supabase } from '../supabase';
+import { supabase } from '@/api/client/supabase';
 
 export const criaturasQueries = {
   getAll: async (opciones = {}) => {

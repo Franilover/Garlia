@@ -4,8 +4,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/useSupabaseData"; 
-import { tareasQueries } from "@/lib/api/queries/tareas";
-import { eventosQueries } from "@/lib/api/queries/eventos";
+import { tareasQueries } from "@/lib/api/queries/personal/tareas";
+import { eventosQueries } from "@/lib/api/queries/wiki/eventos";
 import { 
   CheckSquare, 
   Calendar as CalendarIcon, 

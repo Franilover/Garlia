@@ -4,11 +4,11 @@ import { supabase } from "@/lib/api/supabase";
 import { useDataCache } from "@/components/features/control/DataContext";
 import { personajesQueries } from "@/lib/api/queries/personajes";
 import { criaturasQueries } from "@/lib/api/queries/criaturas";
-import { itemsQueries } from "@/lib/api/queries/items"; 
+import { itemsQueries } from "@/lib/api/queries/wiki/items"; 
 import { librosQueries } from "@/lib/api/queries/libros";
 import { recetasQueries } from "@/lib/api/queries/recetas";
-import { tareasQueries } from "@/lib/api/queries/tareas";
-import { eventosQueries } from "@/lib/api/queries/eventos";
+import { tareasQueries } from "@/lib/api/queries/personal/tareas";
+import { eventosQueries } from "@/lib/api/queries/wiki/eventos";
 import { ingredientesQueries } from "@/lib/api/queries/ingredientes";
 import { ropaQueries } from "@/lib/api/queries/ropa";
 

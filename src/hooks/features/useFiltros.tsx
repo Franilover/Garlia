@@ -1,22 +1,25 @@
 // hooks/useFiltros.ts
 import { useState, useMemo } from 'react';
 
-// ============================================
-// HOOK GENÉRICO PARA FILTROS (EXPORTADO)
-// ============================================
 export function useFiltrosGenericos(data: any[], config: { campos: string[] }) {
   const [filtros, setFiltros] = useState<Record<string, string>>(
     Object.fromEntries(config.campos.map(campo => [campo, 'todos']))
   );
 
-  // Generar opciones únicas por campo
+  // Generar opciones únicas por campo (SIN DUPLICADOS)
   const opciones = useMemo(() => {
     const result: Record<string, string[]> = {};
     
     config.campos.forEach(campo => {
+      // Filtrar valores únicos, eliminar nulls/undefined/vacíos y ordenar
       const valoresUnicos = Array.from(
-        new Set(data.map(item => item[campo]).filter(Boolean))
+        new Set(
+          data
+            .map(item => item[campo])
+            .filter(valor => valor !== null && valor !== undefined && valor !== '')
+        )
       ).sort();
+      
       result[campo] = valoresUnicos;
     });
     
@@ -54,9 +57,7 @@ export function useFiltrosGenericos(data: any[], config: { campos: string[] }) {
   };
 }
 
-// ============================================
-// HOOK SIMPLE PARA FILTROS (SI LO USAS)
-// ============================================
+// Hook simple (si lo usas en otro lugar)
 interface UseFiltrosOptions<T> {
   data: T[];
   filterFn: (item: T, filtro: string) => boolean;
