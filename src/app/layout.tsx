@@ -3,7 +3,7 @@ import { LightboxProvider } from "@/components/shared/modal/lightbox/";
 import { AuthProvider } from "@/components/providers/AuthProvider"; 
 import { DataProvider } from "@/components/providers/DataProvider"; 
 import AppLogic from "@/components/providers/AppLogic";
-import "../components/tailwind.css";
+import "@/style/tailwind.css";
 
 // IMPORTANTE: Este componente activa el hook en el lado del cliente
 import { OfflineSyncActivator } from "@/components/providers/OfflineSyncActivator";

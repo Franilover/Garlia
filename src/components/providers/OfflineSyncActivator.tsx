@@ -1,6 +1,6 @@
 "use client";
 
-import { useOfflineSync } from "@/hooks/features/useOfflineSync";
+import { useOfflineSync } from "@/hooks/data/useOfflineSync";
 
 export function OfflineSyncActivator() {
   // Ejecuta la lógica de escucha de red
