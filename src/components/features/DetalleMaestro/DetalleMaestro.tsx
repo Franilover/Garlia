@@ -5,7 +5,7 @@ import {
   X, Edit3, Save, Plus, CheckCircle2, Trash2 
 } from "lucide-react";
 import Relaciones from "./relaciones"; 
-import { useDetalleMaestro, type Variante } from "@/hooks/useDetalleMaestro"; 
+import { useDetalleMaestro, type Variante } from "@/hooks/features/useDetalleMaestro"; 
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 import { SelectorVariantes } from "./SelectorVariantes";
 

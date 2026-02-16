@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils"; 
-import { useAuth } from "@/components/features/control/authContext"; 
+import { useAuth } from "@/components/providers/AuthProvider"; 
 import { supabase } from "@/lib/api/client/supabase";
-import { useScrollVisibility } from "@/hooks/features/useScrollVisibility";
+import { useScrollVisibility } from "@/hooks/ui/useScrollVisibility";
 import { 
   LogOut, Plus, Camera, Sparkles, 
   CircleUser, Flower2, Sword,
