@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/supabase";
-import { useDataCache } from "@/components/features/control/DataContext";
+import { useDataCache } from "@/components/providers/DataProvider";
 import { personajesQueries } from "@/lib/api/queries/personajes";
 import { criaturasQueries } from "@/lib/api/queries/criaturas";
 import { itemsQueries } from "@/lib/api/queries/wiki/items"; 

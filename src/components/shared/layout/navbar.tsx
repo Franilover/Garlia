@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils"; 
-import { useAuth } from "@/components/features/control/authContext"; 
+import { useAuth } from "@/components/providers/AuthProvider"; 
 import { supabase } from "@/lib/api/supabase";
 import { useScrollVisibility } from "@/hooks/useScrollVisibility";
 import { 
