@@ -14,23 +14,22 @@ export default function FiltrosMaestros({
   onChange
 }: FiltrosMaestrosProps) {
   return (
-    <div className="flex flex-wrap gap-3 items-center">
+    <div className="flex flex-wrap justify-center gap-4 items-end w-full max-w-4xl mx-auto">
       {Object.entries(config).map(([grupo, opciones]) => {
         const opcionesDropdown = [
-          { value: "todos", label: `Todos` },
+          { value: "todos", label: "Todos" },
           ...opciones.map(opt => ({ value: opt, label: opt }))
         ];
 
         return (
-          <div key={grupo} className="flex flex-col gap-1">
-            <label className="text-[9px] font-bold text-[#6B5E70]/50 uppercase tracking-widest px-1">
+          <div key={grupo} className="flex flex-col gap-2 min-w-[160px]">
+            <label className="text-[10px] font-black text-[#6B5E70]/60 uppercase tracking-[0.15em] text-center">
               {grupo}
             </label>
             <Dropdown
               options={opcionesDropdown}
               value={filtrosActivos[grupo] || "todos"}
               onChange={(valor) => onChange(grupo, valor)}
-              className="min-w-[140px]"
             />
           </div>
         );
