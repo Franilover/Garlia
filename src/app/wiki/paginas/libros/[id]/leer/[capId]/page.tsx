@@ -6,7 +6,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { ChevronLeft, ChevronRight, List, Save, Edit3, X } from "lucide-react";
 import { cn } from "@/lib/utils"; 
 import { motion, AnimatePresence } from "framer-motion";
-import { librosQueries, Capitulo } from "@/lib/api/queries/libros";
+import { librosQueries, Capitulo } from "@/lib/api/queries/wiki/libros";
 
 export default function Lector() {
   const params = useParams();

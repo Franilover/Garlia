@@ -2,15 +2,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/components/providers/DataProvider";
-import { personajesQueries } from "@/lib/api/queries/personajes";
-import { criaturasQueries } from "@/lib/api/queries/criaturas";
+import { personajesQueries } from "@/lib/api/queries/personal/personajes";
+import { criaturasQueries } from "@/lib/api/queries/wiki/criaturas";
 import { itemsQueries } from "@/lib/api/queries/wiki/items"; 
-import { librosQueries } from "@/lib/api/queries/libros";
-import { recetasQueries } from "@/lib/api/queries/recetas";
+import { librosQueries } from "@/lib/api/queries/wiki/libros";
+import { recetasQueries } from "@/lib/api/queries/personal/recetas";
 import { tareasQueries } from "@/lib/api/queries/personal/tareas";
-import { eventosQueries } from "@/lib/api/queries/wiki/eventos";
-import { ingredientesQueries } from "@/lib/api/queries/ingredientes";
-import { ropaQueries } from "@/lib/api/queries/ropa";
+import { eventosQueries } from "@/lib/api/queries/personal/eventos";
+import { ingredientesQueries } from "@/lib/api/queries/personal/ingredientes";
+import { ropaQueries } from "@/lib/api/queries/personal/ropa";
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,

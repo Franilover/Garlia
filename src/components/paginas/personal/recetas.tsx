@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData"; 
 import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/types/recetas";
 import { Ingrediente } from "@/lib/types/cocina";
-import { recetasQueries } from "@/lib/api/queries/recetas"; 
+import { recetasQueries } from "@/lib/api/queries/personal/recetas"; 
 import {  
   Utensils,  
   Clock,  

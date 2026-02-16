@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData"; 
 import { tareasQueries } from "@/lib/api/queries/personal/tareas";
-import { eventosQueries } from "@/lib/api/queries/wiki/eventos";
+import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 import { 
   CheckSquare, 
   Calendar as CalendarIcon, 
