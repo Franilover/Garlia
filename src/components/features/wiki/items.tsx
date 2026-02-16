@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 // Hooks y Libs unificadas
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { useFiltrosGenericos } from '@/hooks/useFiltrosGenericos';
+import { useFiltrosGenericos } from '@/hooks/useFiltros';
 import { typography } from '@/lib/config/design-system';
 import { getMensaje } from '@/lib/config/constants';
 

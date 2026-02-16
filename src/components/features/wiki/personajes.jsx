@@ -8,7 +8,7 @@ import { LoadingState } from "@/components/shared/feedback/StateComponents";
 
 // Hooks y Libs
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { useFiltrosGenericos } from '@/hooks/useFiltrosGenericos';
+import { useFiltrosGenericos } from '@/hooks/useFiltros';
 import { typography } from '@/lib/config/design-system';
 import { TABLAS_CONFIG, getMensaje } from '@/lib/config/constants';
 

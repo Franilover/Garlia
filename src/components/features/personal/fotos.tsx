@@ -8,7 +8,7 @@ import { LoadingState, EmptyState } from "@/components/shared/feedback/StateComp
 
 // Hooks y Libs
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { useFiltrosGenericos } from '@/hooks/useFiltrosGenericos';
+import { useFiltrosGenericos } from '@/hooks/useFiltros';
 import { typography } from '@/lib/config/design-system';
 import { CATEGORIAS, getMensaje } from '@/lib/config/constants';
 
