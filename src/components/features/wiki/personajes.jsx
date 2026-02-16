@@ -5,6 +5,7 @@ import DetalleMaestro from "@/components/shared/modal/detalles";
 import FiltrosMaestros from "@/components/shared/forms/Filtros";
 import PageHeader from "@/components/shared/layout/PageHeader";
 import { LoadingState } from "@/components/shared/feedback/StateComponents";
+import { cn } from "@/lib/utils";
 
 // Hooks y Libs
 import { useSupabaseData } from '@/hooks/useSupabaseData';
@@ -25,7 +26,7 @@ export default function PersonajesGrid() {
     { order: TABLAS_CONFIG.personajes.orden }
   );
   
-  // 2. LÃ³gica de filtros automÃ¡tica
+  // 2. Lógica de filtros automática
   const {
     filtros,
     opciones,
@@ -34,14 +35,14 @@ export default function PersonajesGrid() {
   } = useFiltrosGenericos(personajes, {
     campos: TABLAS_CONFIG.personajes.filtros
   });
-
-  // 3. Handler de selecciÃ³n con scroll suave
+  
+  // 3. Handler de selección con scroll suave
   const handleSelect = (p) => {
     setSelected(p);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  // 4. Handler para actualizaciÃ³n (Optimizado con useCallback)
+  
+  // 4. Handler para actualización (Optimizado con useCallback)
   const handleUpdate = useCallback((updatedPersonaje) => {
     // Actualiza el modal actual
     setSelected(updatedPersonaje);
@@ -51,11 +52,11 @@ export default function PersonajesGrid() {
       prev.map(p => p.id === updatedPersonaje.id ? updatedPersonaje : p)
     );
   }, [setPersonajes]);
-
+  
   if (loading) {
     return <LoadingState mensaje={getMensaje('LOADING', 'personajes')} />;
   }
-
+  
   return (
     <main className="min-h-screen bg-bg-main pb-20 overflow-x-hidden">
       
@@ -68,22 +69,22 @@ export default function PersonajesGrid() {
         tags={selected ? [selected.reino, selected.especie] : []}
         mostrarMusica={true}
       />
-
+      
       <GalleryGrid
         isDetailOpen={!!selected}
         headerContent={
-          <PageHeader titulo="Personajes" >
+          <PageHeader titulo="Personajes">
             <FiltrosMaestros
               config={{
-                Reino: opciones.reino,
-                Especie: opciones.especie
+                Reino: opciones.reino || [],
+                Especie: opciones.especie || []
               }}
               filtrosActivos={{
-                Reino: filtros.reino,
-                Especie: filtros.especie
+                Reino: filtros.reino || 'todos',
+                Especie: filtros.especie || 'todos'
               }}
               onChange={(grupo, valor) => {
-                // NormalizaciÃ³n automÃ¡tica: "Reino" -> "reino"
+                // Normalización automática: "Reino" -> "reino"
                 const campo = grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 actualizarFiltro(campo, valor);
               }}
@@ -100,8 +101,8 @@ export default function PersonajesGrid() {
               color={p.color_hex}
               onClick={() => handleSelect(p)}
             >
-              <p className={typography.tag + " mb-1"}>
-                {p.reino} â¢ {p.especie}
+              <p className={cn(typography.tag, "mb-1")}>
+                {p.reino} • {p.especie}
               </p>
               <h3 className={typography.cardTitle}>
                 {p.nombre}
