@@ -4,8 +4,8 @@ import React, { useState, useEffect, useReducer, useCallback, useMemo } from "re
 import Link from "next/link";
 import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2, Filter, Globe, Mic2, PenTool } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/api/supabase";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { supabase } from "@/lib/api/client/supabase";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { SmartImage } from "@/components/shared/display/SmartImage";
 
 // ============================================================================

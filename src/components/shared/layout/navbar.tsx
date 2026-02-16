@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils"; 
 import { useAuth } from "@/components/features/control/authContext"; 
-import { supabase } from "@/lib/api/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 import { useScrollVisibility } from "@/hooks/features/useScrollVisibility";
 import { 
   LogOut, Plus, Camera, Sparkles, 

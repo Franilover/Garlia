@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Loader2, ChevronRight, Compass, ArrowLeft, House, Save, Edit3 } from "lucide-react";
 import QuickPinchZoom, { make3dTransformValue } from "react-quick-pinch-zoom";
-import { supabase } from "@/lib/api/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 
 const Marker = ({ x, y, info, onClick, tipo }) => (
   <div 

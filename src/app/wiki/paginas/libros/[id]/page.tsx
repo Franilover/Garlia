@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/api/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 import { 
   ChevronLeft, Play, ListOrdered, Plus, Trash2, X, Edit3, Save, Calendar, Loader2 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/shared/display/SmartImage";
-import { useSupabaseData } from "@/hooks/useSupabaseData"; 
+import { useSupabaseData } from "@/hooks/data/useSupabaseData"; 
 
 // --- INTERFACES ---
 interface Capitulo {

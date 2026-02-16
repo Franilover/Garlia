@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/api/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 import { Receta, NuevaReceta } from "@/lib/types/recetas";
 
 export const recetasQueries = {

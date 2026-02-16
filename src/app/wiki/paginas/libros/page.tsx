@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Book, ChevronRight, Clock, Plus, Edit3, X, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/api/client/supabase';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { SmartImage } from '@/components/shared/display/SmartImage';
 
 interface Libro {

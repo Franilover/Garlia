@@ -7,7 +7,7 @@ import {
   CheckCircle2, Loader2, Shirt
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
 // --- TIPOS ---
 type Categoria = "Superior" | "Inferior" | "Calzado" | "Accesorios";

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Users, Footprints, Package, Map, BookOpen, Music, ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { supabase } from "@/lib/api/supabase"; // Usando tu cliente configurado
+import { supabase } from "@/lib/api/client/supabase"; // Usando tu cliente configurado
 
 export default function WikiMenuPage() {
   const [notifications, setNotifications] = useState<Record<string, boolean>>({});

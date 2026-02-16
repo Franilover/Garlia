@@ -6,7 +6,7 @@ import FiltrosMaestros from "@/components/shared/forms/Filtros";
 import PageHeader from "@/components/shared/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/components/shared/feedback/StateComponents";
 // Hooks y Libs
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { useFiltrosGenericos } from '@/hooks/useFiltros';
 import { typography } from '@/lib/config/design-system';
 import { CATEGORIAS, getMensaje } from '@/lib/config/constants';

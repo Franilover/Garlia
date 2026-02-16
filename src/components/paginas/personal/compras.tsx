@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Precio, Ingrediente } from "@/lib/types/cocina";
 import { 
   Search, Plus, ChevronLeft, X, Loader2, Save, 

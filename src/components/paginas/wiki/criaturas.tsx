@@ -9,7 +9,7 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Hooks y Libs
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { useFiltrosGenericos } from '@/hooks/useFiltros';
 import { typography } from '@/lib/config/design-system';
 import { TABLAS_CONFIG, getMensaje } from '@/lib/config/constants';

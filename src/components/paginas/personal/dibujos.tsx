@@ -6,7 +6,7 @@ import {
   LightboxVisual 
 } from "@/components/shared/modal/lightbox"; 
 import { GalleryGrid, GalleryItem } from "@/components/shared/display/gallery";
-import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import Newsletter from "@/components/features/newsletter";
 import FiltrosMaestros from "@/components/shared/forms/Filtros";
 import { typography, components } from '@/lib/config/design-system';
