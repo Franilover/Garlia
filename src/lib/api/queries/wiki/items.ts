@@ -1,8 +1,16 @@
 import { supabase } from '@/api/client/supabase';
 
+interface OrderOption {
+  campo: string;
+  asc?: boolean;
+}
+
+interface ItemsOptions {
+  order?: OrderOption;
+}
+
 export const itemsQueries = {
-  // Para traer todos los items con su info
-  getAll: async (opt = {}) => {
+  getAll: async (opt: ItemsOptions = {}) => {
     let query = supabase.from('items').select('*');
     
     if (opt.order) {
@@ -12,7 +20,6 @@ export const itemsQueries = {
     return await query;
   },
 
-  // Esta es la clave: traemos solo las categorías únicas para los filtros
   getFilterOptions: async () => {
     const { data, error } = await supabase
       .from('items')
@@ -21,7 +28,6 @@ export const itemsQueries = {
 
     if (error) return { data: [], error };
 
-    // Formateamos para que siempre sea consistente (ej: "Herramienta", "Arma")
     const unicos = [...new Set(data.map(i => i.categoria))].sort();
     return { data: unicos, error: null };
   }
