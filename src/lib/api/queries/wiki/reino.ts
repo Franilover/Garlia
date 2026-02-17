@@ -1,5 +1,5 @@
 // queries/wiki/reinos.ts
-import { supabase } from '@/lib/api/supabase';
+import { supabase } from '@/lib/api/client/supabase';
 
 export interface Reino {
   id: string; // uuid - NO nullable
