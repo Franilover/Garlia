@@ -3,8 +3,8 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData"; 
-import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/types/recetas";
-import { Ingrediente } from "@/lib/types/cocina";
+import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/types/personal/receta";
+import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas"; 
 import {  
   Utensils,  
@@ -126,7 +126,6 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                 </div>
               </div>
 
-              {/* Grid de Totales */}
               <div className="grid grid-cols-3 gap-4 mb-10">
                 <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/5 text-center">
                   <p className="text-[9px] font-black uppercase text-primary/30 mb-1">Proteínas</p>
@@ -316,8 +315,6 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
         grasas: parseFloat(String(ing.grasas || 0))
       };
       
-      console.log('✅ Ingrediente agregado:', nuevoIng);
-      
       setFormData({
         ...formData,
         ingredientes: [...formData.ingredientes, nuevoIng]
@@ -349,9 +346,6 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
     
     setLoading(true);
     try {
-      console.log('📦 Datos a guardar:', formData);
-      console.log('📋 Ingredientes:', formData.ingredientes);
-      
       const recetaToSave: NuevaReceta = {
         nombre: formData.nombre,
         categoria: formData.categoria,
@@ -362,17 +356,11 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
         descripcion: formData.descripcion || ""
       };
       
-      const { data, error } = await recetasQueries.create(recetaToSave);
-      
-      console.log('📬 Respuesta:', { data, error });
-      
-      if (error) {
-        console.error('❌ Error al guardar:', error);
-        alert(`Error: ${error}`);
-      } else {
-        console.log('✅ Receta guardada exitosamente');
-        onSuccess();
-      }
+      // ✅ create() retorna Receta directamente, no { data, error }
+      const receta = await recetasQueries.create(recetaToSave);
+      console.log('✅ Receta guardada:', receta);
+      onSuccess();
+
     } catch (err) {
       console.error('💥 Error inesperado:', err);
       alert(`Error inesperado: ${err}`);
