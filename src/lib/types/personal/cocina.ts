@@ -16,15 +16,3 @@ export interface Ingrediente {
   user_id?: string;
 }
 
-export interface Precio {
-  id: string;
-  created_at: string;
-  ingrediente_id: string;
-  monto_pagado: number;
-  user_id: string;
-  // "Esta relación permite que Supabase nos devuelva el nombre del ingrediente"
-  ingredientes?: {
-    nombre: string;
-    categoria: string;
-  };
-}

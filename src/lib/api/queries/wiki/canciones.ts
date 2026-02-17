@@ -1,101 +1,207 @@
-import { supabase } from "../../client/supabase";
+import { supabase } from '@/lib/api/supabase';
 
 // --- INTERFACES ---
 interface Seccion {
-  id: number;
-  cancion_id: number;
+  id: string; // ✅ uuid en Supabase
+  cancion_id: string; // ✅ uuid
   nombre_seccion: string;
   letra_es: string;
   letra_en?: string;
   letra_jp?: string;
   letra_romaji?: string;
   orden: number;
+  created_at?: string;
 }
 
 interface Cancion {
-  id: number;
+  id: string; // ✅ uuid
   titulo: string;
-  artista?: string;
-  estado: "BORRADOR" | "EN PROCESO" | "TERMINADA";
+  personaje: string;
+  cantante: string;
+  compositor: string;
+  idioma: string;
+  estado: string; // "BORRADOR" | "EN PROCESO" | "TERMINADA"
+  portada_url: string;
+  links: any; // jsonb
+  visible: boolean;
+  created_at: string;
+  updated_at: string;
   secciones?: Seccion[];
 }
 
 export const cancionesQueries = {
   /**
+   * Obtiene todas las canciones visibles
+   */
+  getAll: async () => {
+    const { data, error } = await supabase
+      .from('canciones')
+      .select('*')
+      .eq('visible', true)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data as Cancion[];
+  },
+
+  /**
    * Obtiene una canción completa con sus secciones ordenadas
    */
-  getById: async (id: string | number) => {
+  getById: async (id: string) => {
     const { data, error } = await supabase
-      .from("canciones")
+      .from('canciones')
       .select(`
         *,
         secciones:secciones_cancion (*)
       `)
-      .eq("id", id)
+      .eq('id', id)
       .single();
 
     if (error) throw error;
 
-    // Ordenar las secciones por el campo 'id' o 'orden' si existe
+    // Ordenar las secciones por el campo 'orden'
     if (data && data.secciones) {
-      data.secciones.sort((a: any, b: any) => a.id - b.id);
+      data.secciones.sort((a: Seccion, b: Seccion) => a.orden - b.orden);
     }
 
-    return data;
+    return data as Cancion;
+  },
+
+  /**
+   * Crear nueva canción
+   */
+  create: async (cancion: Omit<Cancion, 'id' | 'created_at' | 'updated_at' | 'secciones'>) => {
+    const { data, error } = await supabase
+      .from('canciones')
+      .insert(cancion)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Cancion;
   },
 
   /**
    * Actualiza los datos base de la canción
    */
-  update: async (id: string | number, datos: Partial<Cancion>) => {
+  update: async (id: string, datos: Partial<Omit<Cancion, 'id' | 'created_at' | 'secciones'>>) => {
     const { data, error } = await supabase
-      .from("canciones")
-      .update(datos)
-      .eq("id", id)
+      .from('canciones')
+      .update({
+        ...datos,
+        updated_at: new Date().toISOString() // ✅ Actualiza timestamp
+      })
+      .eq('id', id)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return data as Cancion;
+  },
+
+  /**
+   * Eliminar canción
+   */
+  delete: async (id: string) => {
+    const { error } = await supabase
+      .from('canciones')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return true;
+  },
+
+  /**
+   * Filtrar por personaje
+   */
+  getByPersonaje: async (personaje: string) => {
+    const { data, error } = await supabase
+      .from('canciones')
+      .select('*')
+      .eq('personaje', personaje)
+      .eq('visible', true)
+      .order('titulo', { ascending: true });
+
+    if (error) throw error;
+    return data as Cancion[];
   },
 
   /**
    * QUERIES PARA SECCIONES (Estrofas/Coros)
    */
   secciones: {
-    // Crear una nueva sección
-    create: async (datos: Omit<Seccion, "id">) => {
+    /**
+     * Obtener todas las secciones de una canción
+     */
+    getByCancionId: async (cancionId: string) => {
       const { data, error } = await supabase
-        .from("secciones_cancion")
-        .insert([datos])
+        .from('secciones_cancion')
+        .select('*')
+        .eq('cancion_id', cancionId)
+        .order('orden', { ascending: true });
+
+      if (error) throw error;
+      return data as Seccion[];
+    },
+
+    /**
+     * Crear una nueva sección
+     */
+    create: async (datos: Omit<Seccion, 'id' | 'created_at'>) => {
+      const { data, error } = await supabase
+        .from('secciones_cancion')
+        .insert(datos)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Seccion;
     },
 
-    // Actualizar sección existente
-    update: async (id: number, datos: Partial<Seccion>) => {
+    /**
+     * Actualizar sección existente
+     */
+    update: async (id: string, datos: Partial<Omit<Seccion, 'id' | 'created_at'>>) => {
       const { data, error } = await supabase
-        .from("secciones_cancion")
+        .from('secciones_cancion')
         .update(datos)
-        .eq("id", id)
+        .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Seccion;
     },
 
-    // Eliminar sección
-    delete: async (id: number) => {
+    /**
+     * Eliminar sección
+     */
+    delete: async (id: string) => {
       const { error } = await supabase
-        .from("secciones_cancion")
+        .from('secciones_cancion')
         .delete()
-        .eq("id", id);
+        .eq('id', id);
 
       if (error) throw error;
+      return true;
+    },
+
+    /**
+     * Reordenar secciones
+     */
+    reorder: async (secciones: { id: string; orden: number }[]) => {
+      const updates = secciones.map(({ id, orden }) =>
+        supabase
+          .from('secciones_cancion')
+          .update({ orden })
+          .eq('id', id)
+      );
+
+      const results = await Promise.all(updates);
+      const errors = results.filter(r => r.error);
+      
+      if (errors.length > 0) throw errors[0].error;
       return true;
     }
   }
