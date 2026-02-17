@@ -6,10 +6,10 @@ import { personajesQueries } from "@/lib/api/queries/wiki/personajes";
 import { criaturasQueries } from "@/lib/api/queries/wiki/criaturas";
 import { itemsQueries } from "@/lib/api/queries/wiki/items"; 
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
-import { recetasQueries } from "@/lib/api/queries/personal/recetas";
+import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import { tareasQueries } from "@/lib/api/queries/personal/tareas";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
-import { ingredientesQueries } from "@/lib/api/queries/personal/ingredientes";
+import { ingredientesQueries } from "@/lib/api/queries/personal/cocina/ingredientes";
 import { ropaQueries } from "@/lib/api/queries/personal/ropa";
 
 const QUERIES_MAP: Record<string, any> = {
