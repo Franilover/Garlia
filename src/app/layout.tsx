@@ -4,8 +4,6 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 import { DataProvider } from "@/components/providers/DataProvider"; 
 import AppLogic from "@/components/providers/AppLogic";
 import "@/style/tailwind.css";
-
-// IMPORTANTE: Este componente activa el hook en el lado del cliente
 import { OfflineSyncActivator } from "@/components/providers/OfflineSyncActivator";
 
 const montserrat = Montserrat({ 
@@ -37,13 +35,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={montserrat.variable}>
       <body className={`${montserrat.className} antialiased bg-[#F0F0F0] min-h-screen flex flex-col`}>
-        {/* Este componente activa la lógica offline sin romper los metadatos */}
         <OfflineSyncActivator />
-
         <AuthProvider>
           <DataProvider> 
             <LightboxProvider>
-              <div className="flex-grow">
+              {/* pb-28 en móvil para que el navbar flotante no tape contenido */}
+              <div className="flex-grow pb-28 md:pb-0">
                 <AppLogic>
                   {children}
                 </AppLogic>
