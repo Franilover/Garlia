@@ -1,8 +1,8 @@
+// ─── INGREDIENTE ───
 export interface Ingrediente {
   id: string;
   created_at?: string;
   nombre: string;
-  // "El precio ya no vive aquí, ahora se consulta en la tabla precios"
   porcion_texto: string;
   proteinas: number;
   carbohidratos: number;
@@ -15,4 +15,3 @@ export interface Ingrediente {
   stock_actual: number;
   user_id?: string;
 }
-

@@ -1,6 +1,6 @@
 // queries/personal/cocina/recetas.ts
 import { supabase } from '@/lib/api/client/supabase';
-import { Receta, NuevaReceta, RecetaCategoria } from '@/lib/types/personal/recetas';
+import { Receta, NuevaReceta, RecetaCategoria } from '@/lib/types/personal/receta';
 
 export const recetasQueries = {
 
