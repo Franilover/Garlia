@@ -39,7 +39,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <DataProvider> 
             <LightboxProvider>
-              {/* pb-28 en móvil para que el navbar flotante no tape contenido */}
               <div className="flex-grow pb-28 md:pb-0">
                 <AppLogic>
                   {children}
