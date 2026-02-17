@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { Ingrediente } from "@/lib/types/cocina";
+import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import { Search, Plus, Zap, ChevronLeft, X, Loader2, Save, Package, PackageX, Minus } from "lucide-react";
 import Link from "next/link";
 
