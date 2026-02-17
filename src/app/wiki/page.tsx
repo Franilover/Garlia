@@ -3,15 +3,14 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Users, Footprints, Package, Map, BookOpen, Music, ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { supabase } from "@/lib/api/client/supabase"; // Usando tu cliente configurado
+import { supabase } from "@/lib/api/client/supabase";
 
 export default function WikiMenuPage() {
   const [notifications, setNotifications] = useState<Record<string, boolean>>({});
 
-  // 1. Cargar estados de notificación
   useEffect(() => {
     const fetchNotifs = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('wiki_notifications')
         .select('page_name, has_new_content');
       
@@ -26,32 +25,28 @@ export default function WikiMenuPage() {
     fetchNotifs();
   }, []);
 
-  // 2. Función para limpiar el puntito al entrar
   const handleVisit = async (pageName: string) => {
-    if (!notifications[pageName]) return; // Si no hay punto, no hacemos nada
-
+    if (!notifications[pageName]) return;
     await supabase
       .from('wiki_notifications')
       .update({ has_new_content: false })
       .eq('page_name', pageName);
-
     setNotifications(prev => ({ ...prev, [pageName]: false }));
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-bg-main via-bg-main to-primary/5 flex items-center justify-center p-6 py-20 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-bg-main via-bg-main to-primary/5 flex items-center justify-center p-4 md:p-6 py-20 relative overflow-hidden">
       <div className="max-w-7xl w-full relative z-10">
-        
-        {/* HEADER ... (igual a tu código) */}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <div className="grid grid-cols-2 gap-4 md:gap-8 mb-12">
+          
           {/* COLUMNA IZQUIERDA */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <MenuCard 
               href="/wiki/paginas/personajes" 
               title="Personajes" 
               description="Conoce a los habitantes de mi mundo"
-              icon={<Users size={42} />} 
+              icon={<Users size={28} className="md:w-[42px] md:h-[42px]" />}
               delay={0.1}
               hasNewContent={notifications['personajes']}
               onClick={() => handleVisit('personajes')}
@@ -60,7 +55,7 @@ export default function WikiMenuPage() {
               href="/wiki/paginas/items" 
               title="Items" 
               description="Objetos místicos y artefactos raros"
-              icon={<Package size={38} />} 
+              icon={<Package size={28} className="md:w-[38px] md:h-[38px]" />}
               delay={0.2}
               hasNewContent={notifications['items']}
               onClick={() => handleVisit('items')}
@@ -69,7 +64,7 @@ export default function WikiMenuPage() {
               href="/wiki/paginas/libros" 
               title="Libros" 
               description="Relatos sobre los martires de cada reino"
-              icon={<BookOpen size={38} />} 
+              icon={<BookOpen size={28} className="md:w-[38px] md:h-[38px]" />}
               delay={0.3}
               hasNewContent={notifications['libros']}
               onClick={() => handleVisit('libros')}
@@ -77,12 +72,12 @@ export default function WikiMenuPage() {
           </div>
 
           {/* COLUMNA DERECHA */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <MenuCard 
               href="/wiki/paginas/criaturas" 
               title="Criaturas" 
               description="Bestias y entidades"
-              icon={<Footprints size={38} />} 
+              icon={<Footprints size={28} className="md:w-[38px] md:h-[38px]" />}
               delay={0.15}
               hasNewContent={notifications['criaturas']}
               onClick={() => handleVisit('criaturas')}
@@ -91,7 +86,7 @@ export default function WikiMenuPage() {
               href="/wiki/paginas/mapa" 
               title="Mapa" 
               description="Reinos y territorios"
-              icon={<Map size={38} />} 
+              icon={<Map size={28} className="md:w-[38px] md:h-[38px]" />}
               delay={0.25}
               hasNewContent={notifications['mapa']}
               onClick={() => handleVisit('mapa')}
@@ -100,7 +95,7 @@ export default function WikiMenuPage() {
               href="/wiki/paginas/canciones" 
               title="Canciones" 
               description="Reflexiones internas"
-              icon={<Music size={38} />} 
+              icon={<Music size={28} className="md:w-[38px] md:h-[38px]" />}
               delay={0.35}
               hasNewContent={notifications['canciones']}
               onClick={() => handleVisit('canciones')}
@@ -119,24 +114,29 @@ const MenuCard = ({ href, title, description, icon, delay, hasNewContent, onClic
     transition={{ delay, type: "spring", stiffness: 100 }}
   >
     <Link href={href} className="group block relative" onClick={onClick}>
-      <div className="bg-white/80 backdrop-blur-sm border-2 border-primary/10 rounded-3xl p-8 h-full transition-all duration-500 group-hover:border-primary group-hover:bg-white group-hover:shadow-[0_25px_60px_rgba(0,0,0,0.08)] group-hover:-translate-y-2 group-hover:scale-[1.02]">
+      <div className="bg-white/80 backdrop-blur-sm border-2 border-primary/10 rounded-2xl md:rounded-3xl p-4 md:p-8 h-full transition-all duration-500 group-hover:border-primary group-hover:bg-white group-hover:shadow-[0_25px_60px_rgba(0,0,0,0.08)] group-hover:-translate-y-2 group-hover:scale-[1.02]">
         
         {hasNewContent && (
           <motion.div 
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute top-6 right-6 w-4 h-4 bg-red-500 rounded-full shadow-lg z-20"
+            className="absolute top-3 right-3 md:top-6 md:right-6 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full shadow-lg z-20"
           >
-            <span className="absolute inset-0 w-4 h-4 bg-red-500 rounded-full animate-ping opacity-75" />
+            <span className="absolute inset-0 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full animate-ping opacity-75" />
           </motion.div>
         )}
-        
-        {/* Resto del diseño de tu Card... */}
-        <div className="w-16 h-16 bg-gradient-to-br from-primary/10 to-primary/5 text-primary rounded-2xl flex items-center justify-center mb-6">
+
+        <div className="w-10 h-10 md:w-16 md:h-16 bg-gradient-to-br from-primary/10 to-primary/5 text-primary rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white">
           {icon}
         </div>
-        <h2 className="text-3xl font-black uppercase tracking-tighter text-primary">{title}</h2>
-        <p className="text-sm font-medium text-primary/60">{description}</p>
+
+        <h2 className="text-lg md:text-3xl font-black uppercase tracking-tighter text-primary flex items-center gap-1 md:gap-3">
+          {title}
+          <ArrowRight className="opacity-0 -translate-x-4 transition-all group-hover:opacity-100 group-hover:translate-x-0 hidden md:block" size={24} />
+        </h2>
+        <p className="text-xs md:text-sm font-medium text-primary/60 group-hover:text-primary/80 transition-colors mt-1 md:mt-2">
+          {description}
+        </p>
       </div>
     </Link>
   </motion.div>
