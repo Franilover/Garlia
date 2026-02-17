@@ -11,11 +11,13 @@ export function useFiltrosGenericos(data: any[], config: { campos: string[] }) {
     const result: Record<string, string[]> = {};
     
     config.campos.forEach(campo => {
-      // Filtrar valores únicos, eliminar nulls/undefined/vacíos y ordenar
       const valoresUnicos = Array.from(
         new Set(
           data
-            .map(item => item[campo])
+            .map(item => {
+              const val = item[campo];
+              return typeof val === 'string' ? val.trim() : val;
+            })
             .filter(valor => valor !== null && valor !== undefined && valor !== '')
         )
       ).sort();
@@ -32,7 +34,8 @@ export function useFiltrosGenericos(data: any[], config: { campos: string[] }) {
       return config.campos.every(campo => {
         const filtroActivo = filtros[campo];
         if (!filtroActivo || filtroActivo === 'todos') return true;
-        return item[campo] === filtroActivo;
+        const valorItem = typeof item[campo] === 'string' ? item[campo].trim() : item[campo];
+        return valorItem === filtroActivo;
       });
     });
   }, [data, filtros, config.campos]);

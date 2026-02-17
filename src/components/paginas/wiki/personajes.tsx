@@ -71,7 +71,6 @@ export default function PersonajesGrid() {
       />
       
       <GalleryGrid
-        isDetailOpen={!!selected}
         headerContent={
           <PageHeader titulo="Personajes">
             <FiltrosMaestros
