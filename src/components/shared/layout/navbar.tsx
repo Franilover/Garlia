@@ -1,12 +1,11 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils"; 
 import { useAuth } from "@/components/providers/AuthProvider"; 
 import { supabase } from "@/lib/api/client/supabase";
-import { useScrollVisibility } from "@/hooks/ui/useScrollVisibility";
 import { 
   LogOut, Plus, Camera, Sparkles, 
   CircleUser, Flower2, Sword,
@@ -17,13 +16,6 @@ const Navbar = () => {
   const currentPath = usePathname();
   const { user, perfil } = useAuth() as { user: any; perfil: any };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { isVisible } = useScrollVisibility(50);
-
-  useEffect(() => {
-    if (!isVisible) {
-      setUserMenuOpen(false);
-    }
-  }, [isVisible]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -141,20 +133,19 @@ const Navbar = () => {
       <div className="hidden md:block h-20 w-full" />
 
       {/* --- MÓVIL --- */}
-      <motion.div 
-        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100vw-48px)] z-[1000]"
-        initial={false}
-        animate={{ y: isVisible ? 0 : 120, opacity: isVisible ? 1 : 0 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-      >
+      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100vw-48px)] z-[1000]">
         <nav className="bg-bg-main/95 backdrop-blur-xl border border-primary/20 shadow-2xl h-18 rounded-[40px] flex items-center overflow-hidden w-full">
           {navContentMobile}
         </nav>
 
         <AnimatePresence>
           {userMenuOpen && user && (
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 15 }}
-              className="absolute bottom-24 left-0 w-full bg-white border border-primary/10 rounded-[40px] p-4 shadow-2xl flex flex-col gap-2 z-[1001]">
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: 15 }}
+              className="absolute bottom-24 left-0 w-full bg-white border border-primary/10 rounded-[40px] p-4 shadow-2xl flex flex-col gap-2 z-[1001]"
+            >
               <div className="text-center mb-2">
                 <p className="text-[9px] font-black text-primary/20 uppercase tracking-widest">Menú de Usuario</p>
               </div>
@@ -182,7 +173,7 @@ const Navbar = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
 
       {userMenuOpen && (
         <div className="fixed inset-0 z-[999] bg-primary/5 backdrop-blur-[2px]" onClick={closeAll} />
