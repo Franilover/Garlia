@@ -36,8 +36,30 @@ export default function WikiMenuPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-bg-main via-bg-main to-primary/5 flex items-center justify-center p-4 md:p-6 py-20 relative overflow-hidden">
+
+      {/* Patrón decorativo de fondo */}
+      <div className="absolute inset-0 opacity-[0.015] pointer-events-none"
+        style={{ backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "32px 32px" }}
+      />
+
       <div className="max-w-7xl w-full relative z-10">
 
+        {/* --- HEADER --- */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-10 md:mb-14"
+        >
+          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-primary leading-none">
+            Wiki
+          </h1>
+          <p className="text-sm md:text-base font-medium text-primary/50 mt-2">
+            El universo y todo lo que habita en él
+          </p>
+        </motion.div>
+
+        {/* --- GRID DE 2 COLUMNAS --- */}
         <div className="grid grid-cols-2 gap-4 md:gap-8 mb-12">
           
           {/* COLUMNA IZQUIERDA */}
@@ -129,7 +151,6 @@ const MenuCard = ({ href, title, description, icon, delay, hasNewContent, onClic
         <div className="w-10 h-10 md:w-16 md:h-16 bg-gradient-to-br from-primary/10 to-primary/5 text-primary rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white">
           {icon}
         </div>
-
         <h2 className="text-lg md:text-3xl font-black uppercase tracking-tighter text-primary flex items-center gap-1 md:gap-3">
           {title}
           <ArrowRight className="opacity-0 -translate-x-4 transition-all group-hover:opacity-100 group-hover:translate-x-0 hidden md:block" size={24} />
