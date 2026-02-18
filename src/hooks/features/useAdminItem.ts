@@ -1,24 +1,18 @@
-import { useState, useCallback, useEffect } from 'react';
-import { supabase } from "@/lib/api/client/supabase";
+// /hooks/features/useAdminItem.ts
+import { useState, useCallback } from 'react';
+import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 
 interface UseAdminItemOptions<T> {
-  plantilla: T; // objeto vacío con los campos por defecto
+  plantilla: T;
 }
 
 export function useAdminItem<T extends { id?: string }>(
-  datos: T[],
-  setDatos: (fn: (prev: T[]) => T[]) => void,
+  setDatos: (fn: (prev: T[]) => T[]) => void,  // 👈 solo 2 parámetros
   { plantilla }: UseAdminItemOptions<T>
 ) {
+  const isAdmin = useIsAdmin();
   const [selected, setSelected] = useState<T | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setIsAdmin(!!data.session);
-    });
-  }, []);
 
   const handleUpdate = useCallback((newData: T) => {
     if (isCreating) {
@@ -45,13 +39,5 @@ export function useAdminItem<T extends { id?: string }>(
     setIsCreating(false);
   }, []);
 
-  return {
-    selected,
-    isCreating,
-    isAdmin,
-    handleUpdate,
-    handleSelect,
-    handleAddNew,
-    handleClose,
-  };
+  return { selected, isCreating, isAdmin, handleUpdate, handleSelect, handleAddNew, handleClose };
 }
