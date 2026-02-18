@@ -1,35 +1,30 @@
 "use client";
 import { useMemo } from 'react';
-import { useLightbox } from "@/components/shared/modal/lightbox";
+import { 
+  useLightbox,
+  LightboxProvider,
+  LightboxVisual
+} from "@/components/shared/modal/lightbox";
 import { GalleryGrid, GalleryItem } from "@/components/shared/display/gallery";
 import FiltrosMaestros from "@/components/shared/forms/Filtros";
 import PageHeader from "@/components/shared/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/components/shared/feedback/StateComponents";
-// Hooks y Libs
 import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { useFiltrosGenericos } from '@/hooks/features/useFiltros';
 import { typography } from '@/lib/config/design-system';
 import { CATEGORIAS, getMensaje } from '@/lib/config/constants';
 
-export default function Diario() {
+function DiarioContent() {
   const { openLightbox } = useLightbox();
   
-  // 1. Fetching de fotos de la tabla 'diario_fotos'
   const { data: entradas, loading, error } = useSupabaseData('diario_fotos', {
     order: { campo: 'id', asc: false }
   });
   
-  // 2. Lógica de filtros (SIN la propiedad 'inicial')
-  const {
-    filtros,
-    opciones,
-    itemsFiltrados,
-    actualizarFiltro
-  } = useFiltrosGenericos(entradas, {
+  const { filtros, opciones, itemsFiltrados, actualizarFiltro } = useFiltrosGenericos(entradas, {
     campos: ['categoria']
   });
   
-  // 3. Preparar data para el Lightbox
   const lbData = useMemo(() => 
     itemsFiltrados.map(e => ({ 
       src: e.url_imagen, 
@@ -39,24 +34,18 @@ export default function Diario() {
     [itemsFiltrados]
   );
   
-  // Manejo de Error
-  if (error) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-[#F0F0F0]">
-        <p className="text-red-500 font-black uppercase text-xs tracking-widest">
-          Error de Sincronización: {error}
-        </p>
-      </main>
-    );
-  }
-  
-  if (loading) {
-    return <LoadingState mensaje={getMensaje('LOADING', 'fotos')} />;
-  }
+  if (error) return (
+    <main className="min-h-screen flex items-center justify-center bg-[#F0F0F0]">
+      <p className="text-red-500 font-black uppercase text-xs tracking-widest">
+        Error de Sincronización: {error}
+      </p>
+    </main>
+  );
+
+  if (loading) return <LoadingState mensaje={getMensaje('LOADING', 'fotos')} />;
   
   return (
     <main className="min-h-screen bg-[#F0F0F0] py-10 px-4 md:px-8">
-      
       <GalleryGrid 
         headerContent={
           <PageHeader titulo="Diario">
@@ -89,6 +78,18 @@ export default function Diario() {
           </div>
         )}
       </GalleryGrid>
+
+      {/* 👇 Necesario para que el lightbox se renderice */}
+      <LightboxVisual />
     </main>
+  );
+}
+
+// 👇 Provider envuelve todo el contenido
+export default function Diario() {
+  return (
+    <LightboxProvider>
+      <DiarioContent />
+    </LightboxProvider>
   );
 }
