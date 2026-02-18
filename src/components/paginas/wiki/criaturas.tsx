@@ -4,7 +4,7 @@ import DetalleMaestro from "@/components/shared/modal/detalles";
 import FiltrosMaestros from "@/components/shared/forms/Filtros";
 import PageHeader from "@/components/shared/layout/PageHeader";
 import { LoadingState } from "@/components/shared/feedback/StateComponents";
-import { Plus } from "lucide-react";
+import { AdminAddButton } from "@/components/shared/ui/AdminAddButton"; // 👈
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { useFiltrosGenericos } from '@/hooks/features/useFiltros';
@@ -22,24 +22,19 @@ export default function Criaturas() {
     campos: TABLAS_CONFIG.criaturas.filtros
   });
 
-  const {
-    selected,
-    isCreating,
-    isAdmin,
-    handleUpdate,
-    handleSelect,
-    handleAddNew,
-    handleClose,
-  } = useAdminItem(setCriaturas, {
-    plantilla: {
-      nombre: "",
-      descripcion: "",
-      habitat: opciones.habitat?.[0] || "",
-      alma: opciones.alma?.[0] || "",
-      pensamiento: opciones.pensamiento?.[0] || "",
-      imagen_url: ""
+  const { selected, isCreating, isAdmin, handleUpdate, handleSelect, handleAddNew, handleClose } = useAdminItem(
+    setCriaturas,
+    {
+      plantilla: {
+        nombre: "",
+        descripcion: "",
+        habitat: opciones.habitat?.[0] || "",
+        alma: opciones.alma?.[0] || "",
+        pensamiento: opciones.pensamiento?.[0] || "",
+        imagen_url: ""
+      }
     }
-  });
+  );
 
   if (loading) return <LoadingState mensaje={getMensaje('LOADING', 'criaturas')} />;
 
@@ -63,13 +58,7 @@ export default function Criaturas() {
           <PageHeader titulo="Bestiario">
             <div className="flex flex-col gap-4">
               {isAdmin && (
-                <button
-                  onClick={handleAddNew}
-                  className="flex items-center justify-center gap-2 bg-primary text-white py-3 px-4 rounded-[20px] font-black uppercase text-[10px] tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
-                >
-                  <Plus size={18} strokeWidth={3} />
-                  <span>Añadir Criatura</span>
-                </button>
+                <AdminAddButton onClick={handleAddNew} label="Añadir Criatura" /> // 👈
               )}
               <FiltrosMaestros
                 config={{
