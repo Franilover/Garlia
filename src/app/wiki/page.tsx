@@ -61,7 +61,7 @@ export default function WikiMenuPage() {
           </motion.div>
 
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-primary italic mb-4 drop-shadow-sm">
-            Wiki
+            Garden of Sins
           </h1>
 
           <motion.p
@@ -70,7 +70,7 @@ export default function WikiMenuPage() {
             transition={{ delay: 0.4 }}
             className="text-primary/50 font-medium tracking-wide text-sm md:text-base"
           >
-            El universo y todo lo que habita en él
+            Mi espacio creativo
           </motion.p>
         </motion.div>
 

@@ -71,7 +71,7 @@ export default function PersonalMenuPage() {
             transition={{ delay: 0.4 }}
             className="text-primary/50 font-medium tracking-wide text-sm md:text-base"
           >
-            Mi espacio creativo y personal
+            Mi espacio personal
           </motion.p>
         </motion.div>
 
