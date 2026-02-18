@@ -34,7 +34,7 @@ const Navbar = () => {
 
   // --- CONTENIDO MÓVIL ---
   const navContentMobile = useMemo(() => (
-    <div className="flex w-full items-center justify-between px-8 h-full">
+    <div className="flex w-full items-center justify-evenly h-full">
       <Link href="/personal" onClick={closeAll} className="flex flex-col items-center gap-1">
         <Camera
           size={22}
