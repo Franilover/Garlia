@@ -1,5 +1,4 @@
 "use client";
-
 import Image from "next/image";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,6 +38,7 @@ export default function MapaInteractivo() {
   const [puntoSeleccionado, setPuntoSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cargandoImagen, setCargandoImagen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false); // 👈 nuevo
   
   // Estados para la edición
   const [editMode, setEditMode] = useState(false);
@@ -51,6 +51,13 @@ export default function MapaInteractivo() {
       const value = make3dTransformValue({ x, y, scale });
       mapRef.current.style.setProperty("transform", value);
     }
+  }, []);
+
+  // 👇 Verificar sesión al montar
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setIsAdmin(!!data.session);
+    });
   }, []);
 
   useEffect(() => {
@@ -76,7 +83,6 @@ export default function MapaInteractivo() {
       .from("reino_detalles")
       .select("*")
       .eq("reino_id", reino.id);
-
     if (error) console.error(error);
     else setDetallesReino(data);
     
@@ -85,12 +91,9 @@ export default function MapaInteractivo() {
 
   const handleMapClick = (e) => {
     if (!editMode) return;
-
-    // Calculamos la posición relativa al contenedor de la imagen (0-100%)
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-
     if (puntoSeleccionado) {
       setPuntoSeleccionado({ 
         ...puntoSeleccionado, 
@@ -103,7 +106,6 @@ export default function MapaInteractivo() {
         coord_x: parseFloat(x.toFixed(2)), 
         coord_y: parseFloat(y.toFixed(2)) 
       });
-      // Actualización visual inmediata en el array de reinos
       setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? 
         { ...r, coord_x: x.toFixed(2), coord_y: y.toFixed(2) } : r
       ));
@@ -136,7 +138,6 @@ export default function MapaInteractivo() {
             coord_y: reinoSeleccionado.coord_y
           })
           .eq("id", reinoSeleccionado.id);
-
         if (error) throw error;
         setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? reinoSeleccionado : r));
       }
@@ -171,8 +172,9 @@ export default function MapaInteractivo() {
       {/* SECCIÓN DEL MAPA */}
       <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
         
-        {/* Controles de Edición Flotantes */}
-        <div className="absolute top-6 right-6 z-[70] flex gap-2">
+        {/* Controles de Edición Flotantes — solo para admins 👇 */}
+        {isAdmin && (
+          <div className="absolute top-6 right-6 z-[70] flex gap-2">
             <button 
               onClick={() => setEditMode(!editMode)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-xl border ${editMode ? "bg-red-500 text-white border-red-600" : "bg-white text-[#6B5E70] border-[#6B5E70]/20"}`}
@@ -191,7 +193,8 @@ export default function MapaInteractivo() {
                 Guardar
               </button>
             )}
-        </div>
+          </div>
+        )}
 
         <AnimatePresence>
           {cargandoImagen && (
@@ -237,7 +240,6 @@ export default function MapaInteractivo() {
                   setCargandoImagen(false); 
                 }}
               />
-
               {!cargandoImagen && (
                 vistaActual === "global" ? (
                   reinos.map((reino) => (
@@ -316,7 +318,6 @@ export default function MapaInteractivo() {
                 <h2 className="text-[#6B5E70] font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
                   {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
                 </h2>
-
                 <div className="space-y-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
                   <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/5">
                     <p className="text-[#6B5E70] text-sm italic leading-relaxed">
