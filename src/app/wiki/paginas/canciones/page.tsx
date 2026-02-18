@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useReducer, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2, Filter, Globe, Mic2, PenTool } from "lucide-react";
+import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2, Filter, Globe, Mic2, PenTool, LayoutGrid, AlignJustify } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
@@ -196,6 +196,7 @@ const Canciones = () => {
   const [filtroCantante, setFiltroCantante] = useState("");
   const [filtroCompositor, setFiltroCompositor] = useState("");
   const [filtroIdioma, setFiltroIdioma] = useState("");
+  const [vistaGrid, setVistaGrid] = useState(true); // true = grid 2 cols, false = fila
 
   // Solo mantenemos la lógica de AUTH en el useEffect
   useEffect(() => {
@@ -593,16 +594,34 @@ const Canciones = () => {
           {(filtroCantante || filtroCompositor || filtroIdioma) && (
             <button 
               onClick={() => { setFiltroCantante(""); setFiltroCompositor(""); setFiltroIdioma(""); }}
-              className="ml-auto text-[#6B5E70]/40 hover:text-red-500 transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2 px-4"
+              className="text-[#6B5E70]/40 hover:text-red-500 transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2 px-4"
             >
               <X size={14} /> Limpiar
             </button>
           )}
+
+          {/* TOGGLE DE VISTA */}
+          <div className="ml-auto flex items-center gap-1 bg-white border-2 border-[#6B5E70]/5 rounded-full p-1">
+            <button
+              onClick={() => setVistaGrid(true)}
+              className={`p-2 rounded-full transition-all ${vistaGrid ? "bg-[#6B5E70] text-white shadow-md" : "text-[#6B5E70]/40 hover:text-[#6B5E70]"}`}
+              title="Vista cuadrícula"
+            >
+              <LayoutGrid size={14} />
+            </button>
+            <button
+              onClick={() => setVistaGrid(false)}
+              className={`p-2 rounded-full transition-all ${!vistaGrid ? "bg-[#6B5E70] text-white shadow-md" : "text-[#6B5E70]/40 hover:text-[#6B5E70]"}`}
+              title="Vista fila"
+            >
+              <AlignJustify size={14} />
+            </button>
+          </div>
         </div>
       </section>
 
       <main className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+        <div className={`grid gap-12 ${vistaGrid ? "grid-cols-2" : "grid-cols-1"}`}>
           {cancionesFiltradas.map((cancion: any) => (
             <CancionCard key={cancion.id} cancion={cancion} isAdmin={isAdmin} onEdit={openEditModal} />
           ))}
