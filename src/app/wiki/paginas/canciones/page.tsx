@@ -84,7 +84,41 @@ function formReducer(state: any, action: any) {
 // COMPONENTES HIJOS
 // ============================================================================
 
-const CancionCard = ({ cancion, isAdmin, onEdit }: any) => {
+const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
+  if (vistaFila) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="group relative flex items-center justify-between gap-4 bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-[#6B5E70]/10 hover:border-[#6B5E70]/20 rounded-2xl px-6 py-4 transition-all duration-300"
+      >
+        <Link href={`/wiki/paginas/canciones/${cancion.id}`} className="flex-1 min-w-0">
+          <h2 className="text-[#6B5E70] font-black uppercase text-sm group-hover:text-[#9A89A0] transition-colors tracking-tighter italic truncate">
+            {cancion.titulo}
+          </h2>
+        </Link>
+        {isAdmin && (
+          <div className="flex items-center gap-2 shrink-0">
+            {!cancion.visible && (
+              <div className="bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white p-1.5 px-2.5 rounded-full text-[8px] font-black uppercase flex items-center gap-1 shadow">
+                <EyeOff size={10} />
+                Oculto
+              </div>
+            )}
+            <motion.button
+              whileHover={{ scale: 1.15, rotate: 5 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => onEdit(e, cancion)}
+              className="bg-white text-[#6B5E70] p-2 rounded-full shadow border-2 border-[#6B5E70]/20 hover:shadow-[0_0_12px_rgba(107,94,112,0.25)] transition-all"
+            >
+              <Edit3 size={14} />
+            </motion.button>
+          </div>
+        )}
+      </motion.div>
+    );
+  }
+
   return (
     <div className="relative group h-full">
       {isAdmin && (
@@ -537,7 +571,7 @@ const Canciones = () => {
       <header className="max-w-6xl mx-auto pt-24 px-6 mb-12">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
           <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
-            <h1 className="text-7xl font-black text-[#6B5E70] italic uppercase tracking-tighter leading-none mb-4">
+            <h1 className="text-4xl md:text-5xl font-black text-[#6B5E70] italic uppercase tracking-tighter leading-none mb-4">
               Solilo<span className="text-[#6B5E70]/20">quios</span>
             </h1>
             <div className="flex items-center gap-4">
@@ -621,9 +655,9 @@ const Canciones = () => {
       </section>
 
       <main className="max-w-6xl mx-auto px-6">
-        <div className={`grid gap-12 ${vistaGrid ? "grid-cols-2" : "grid-cols-1"}`}>
+        <div className={`grid gap-4 ${vistaGrid ? "grid-cols-2 gap-12" : "grid-cols-1"}`}>
           {cancionesFiltradas.map((cancion: any) => (
-            <CancionCard key={cancion.id} cancion={cancion} isAdmin={isAdmin} onEdit={openEditModal} />
+            <CancionCard key={cancion.id} cancion={cancion} isAdmin={isAdmin} onEdit={openEditModal} vistaFila={!vistaGrid} />
           ))}
         </div>
         

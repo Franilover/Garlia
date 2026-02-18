@@ -34,7 +34,7 @@
         "./src/components/*"
       ],
       "@/ui/*": [
-        "./src/components/ui/*"
+        "src/components/shared/ui/*"
       ],
       "@/features/*": [
         "./src/components/features/*"
@@ -63,7 +63,7 @@
         "./src/lib/config/*"
       ],
       "@/types/*": [
-        "./src/lib/types/*"
+        "src/lib/api/types/*"
       ],
       // Estilos
       "@/styles/*": [
