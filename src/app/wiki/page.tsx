@@ -51,7 +51,8 @@ export default function WikiMenuPage() {
           transition={{ duration: 0.5 }}
           className="text-center mb-10 md:mb-14"
         >
-          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-primary leading-none">
+          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-primary leading-none flex items-center justify-center gap-3">
+            <Sparkles className="text-primary/40" size={36} />
             Wiki
           </h1>
           <p className="text-sm md:text-base font-medium text-primary/50 mt-2">
