@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { GalleryGrid, GalleryItem } from "@/components/shared/display/gallery";
 import DetalleMaestro from "@/components/shared/modal/detalles";
 import FiltrosMaestros from "@/components/shared/forms/Filtros";
@@ -13,10 +13,19 @@ import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { useFiltrosGenericos } from '@/hooks/features/useFiltros';
 import { typography } from '@/lib/config/design-system';
 import { TABLAS_CONFIG, getMensaje } from '@/lib/config/constants';
+import { supabase } from "@/lib/api/client/supabase"; // 👈 agrega este import
 
 export default function Criaturas() {
   const [selected, setSelected] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false); // 👈 nuevo estado
+
+  // 👇 Verificar sesión al montar
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setIsAdmin(!!data.session);
+    });
+  }, []);
   
   // 1. FETCHING
   const { 
@@ -97,14 +106,17 @@ export default function Criaturas() {
         headerContent={
           <PageHeader titulo="Bestiario">
             <div className="flex flex-col gap-4">
-              {/* Botón Añadir */}
-              <button 
-                onClick={handleAddNew}
-                className="flex items-center justify-center gap-2 bg-primary text-white py-3 px-4 rounded-[20px] font-black uppercase text-[10px] tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
-              >
-                <Plus size={18} strokeWidth={3} />
-                <span>Añadir Criatura</span>
-              </button>
+
+              {/* Botón Añadir — solo para admins 👇 */}
+              {isAdmin && (
+                <button 
+                  onClick={handleAddNew}
+                  className="flex items-center justify-center gap-2 bg-primary text-white py-3 px-4 rounded-[20px] font-black uppercase text-[10px] tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                >
+                  <Plus size={18} strokeWidth={3} />
+                  <span>Añadir Criatura</span>
+                </button>
+              )}
               
               {/* Filtros Dropdown */}
               <FiltrosMaestros 
