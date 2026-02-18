@@ -49,8 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </AppLogic>
               </div>
 
-              <footer className="w-full py-6 mt-auto text-center border-t border-gray-300 bg-white/50 backdrop-blur-sm">
-                <p className="text-gray-600 text-[10px] sm:text-xs px-4">
+              <footer className="w-full pt-6 pb-20 md:pb-6 mt-auto text-center border-t border-gray-300 bg-white/50 backdrop-blur-sm">                <p className="text-gray-600 text-[10px] sm:text-xs px-4">
                   © 2026 Franilover. Todos los derechos reservados. Queda estrictamente prohibido el uso o reproducción de las ilustraciones para fines comerciales o entrenamiento de modelos de IA sin autorización.
                 </p>
               </footer>
