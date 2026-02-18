@@ -1,49 +1,47 @@
 "use client";
-import Image from "next/image";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Loader2, ChevronRight, Compass, ArrowLeft, House, Save, Edit3 } from "lucide-react";
+import { X, MapPin, Loader2, ChevronRight, ArrowLeft, House, Save, Edit3 } from "lucide-react";
 import QuickPinchZoom, { make3dTransformValue } from "react-quick-pinch-zoom";
 import { supabase } from "@/lib/api/client/supabase";
+import { useIsAdmin } from '@/hooks/auth/useIsAdmin'; // 👈
 
 const Marker = ({ x, y, info, onClick, tipo }) => (
-  <div 
-    className="absolute z-20 flex flex-col items-center" 
+  <div
+    className="absolute z-20 flex flex-col items-center"
     style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -50%)" }}
   >
     <div className="mb-1 bg-[#6B5E70] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-sm shadow-lg whitespace-nowrap pointer-events-none border border-white/20">
       {info}
     </div>
-    <button 
+    <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       className="relative flex items-center justify-center cursor-pointer outline-none group"
     >
       <div className="absolute w-5 h-5 bg-[#6B5E70]/20 rounded-full animate-ping" />
       <div className="w-4 h-4 bg-[#6B5E70] rounded-full border-2 border-white shadow-md group-hover:bg-white transition-all flex items-center justify-center">
-         {tipo === "reino" ? (
-           <MapPin size={8} className="text-white group-hover:text-[#6B5E70]" />
-         ) : (
-           <House size={8} className="text-white group-hover:text-[#6B5E70]" />
-         )}
+        {tipo === "reino" ? (
+          <MapPin size={8} className="text-white group-hover:text-[#6B5E70]" />
+        ) : (
+          <House size={8} className="text-white group-hover:text-[#6B5E70]" />
+        )}
       </div>
     </button>
   </div>
 );
 
 export default function MapaInteractivo() {
+  const isAdmin = useIsAdmin(); // 👈 una línea
   const [reinos, setReinos] = useState([]);
   const [detallesReino, setDetallesReino] = useState([]);
-  const [vistaActual, setVistaActual] = useState("global"); 
+  const [vistaActual, setVistaActual] = useState("global");
   const [reinoSeleccionado, setReinoSeleccionado] = useState(null);
   const [puntoSeleccionado, setPuntoSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cargandoImagen, setCargandoImagen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false); // 👈 nuevo
-  
-  // Estados para la edición
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const mapRef = useRef(null);
 
   const onUpdate = useCallback(({ x, y, scale }) => {
@@ -51,13 +49,6 @@ export default function MapaInteractivo() {
       const value = make3dTransformValue({ x, y, scale });
       mapRef.current.style.setProperty("transform", value);
     }
-  }, []);
-
-  // 👇 Verificar sesión al montar
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setIsAdmin(!!data.session);
-    });
   }, []);
 
   useEffect(() => {
@@ -71,21 +62,12 @@ export default function MapaInteractivo() {
   }, []);
 
   const handleReinoClick = async (reino) => {
-    if (editMode) {
-        setReinoSeleccionado(reino);
-        return;
-    }
-    
+    if (editMode) { setReinoSeleccionado(reino); return; }
     setCargandoImagen(true);
     setReinoSeleccionado(reino);
-    
-    const { data, error } = await supabase
-      .from("reino_detalles")
-      .select("*")
-      .eq("reino_id", reino.id);
+    const { data, error } = await supabase.from("reino_detalles").select("*").eq("reino_id", reino.id);
     if (error) console.error(error);
     else setDetallesReino(data);
-    
     setVistaActual("reino");
   };
 
@@ -95,20 +77,10 @@ export default function MapaInteractivo() {
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     if (puntoSeleccionado) {
-      setPuntoSeleccionado({ 
-        ...puntoSeleccionado, 
-        coord_x: parseFloat(x.toFixed(2)), 
-        coord_y: parseFloat(y.toFixed(2)) 
-      });
+      setPuntoSeleccionado({ ...puntoSeleccionado, coord_x: parseFloat(x.toFixed(2)), coord_y: parseFloat(y.toFixed(2)) });
     } else if (reinoSeleccionado && vistaActual === "global") {
-      setReinoSeleccionado({ 
-        ...reinoSeleccionado, 
-        coord_x: parseFloat(x.toFixed(2)), 
-        coord_y: parseFloat(y.toFixed(2)) 
-      });
-      setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? 
-        { ...r, coord_x: x.toFixed(2), coord_y: y.toFixed(2) } : r
-      ));
+      setReinoSeleccionado({ ...reinoSeleccionado, coord_x: parseFloat(x.toFixed(2)), coord_y: parseFloat(y.toFixed(2)) });
+      setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, coord_x: x.toFixed(2), coord_y: y.toFixed(2) } : r));
     }
   };
 
@@ -116,28 +88,21 @@ export default function MapaInteractivo() {
     setIsSaving(true);
     try {
       if (puntoSeleccionado) {
-        const { error } = await supabase
-          .from("reino_detalles")
-          .update({
-            nombre: puntoSeleccionado.nombre,
-            descripcion: puntoSeleccionado.descripcion,
-            coord_x: puntoSeleccionado.coord_x,
-            coord_y: puntoSeleccionado.coord_y
-          })
-          .eq("id", puntoSeleccionado.id);
-        
+        const { error } = await supabase.from("reino_detalles").update({
+          nombre: puntoSeleccionado.nombre,
+          descripcion: puntoSeleccionado.descripcion,
+          coord_x: puntoSeleccionado.coord_x,
+          coord_y: puntoSeleccionado.coord_y
+        }).eq("id", puntoSeleccionado.id);
         if (error) throw error;
         setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? puntoSeleccionado : p));
       } else if (reinoSeleccionado) {
-        const { error } = await supabase
-          .from("reinos")
-          .update({
-            nombre: reinoSeleccionado.nombre,
-            descripcion: reinoSeleccionado.descripcion,
-            coord_x: reinoSeleccionado.coord_x,
-            coord_y: reinoSeleccionado.coord_y
-          })
-          .eq("id", reinoSeleccionado.id);
+        const { error } = await supabase.from("reinos").update({
+          nombre: reinoSeleccionado.nombre,
+          descripcion: reinoSeleccionado.descripcion,
+          coord_x: reinoSeleccionado.coord_x,
+          coord_y: reinoSeleccionado.coord_y
+        }).eq("id", reinoSeleccionado.id);
         if (error) throw error;
         setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? reinoSeleccionado : r));
       }
@@ -168,23 +133,20 @@ export default function MapaInteractivo() {
 
   return (
     <div className="flex flex-col md:flex-row w-full min-h-[600px] bg-[#F8F5F2] overflow-hidden">
-      
-      {/* SECCIÓN DEL MAPA */}
       <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
-        
-        {/* Controles de Edición Flotantes — solo para admins 👇 */}
+
+        {/* Controles solo para admins */}
         {isAdmin && (
           <div className="absolute top-6 right-6 z-[70] flex gap-2">
-            <button 
+            <button
               onClick={() => setEditMode(!editMode)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-xl border ${editMode ? "bg-red-500 text-white border-red-600" : "bg-white text-[#6B5E70] border-[#6B5E70]/20"}`}
             >
               {editMode ? <X size={14} /> : <Edit3 size={14} />}
               {editMode ? "Cancelar" : "Editar Mapa"}
             </button>
-            
             {editMode && (
-              <button 
+              <button
                 onClick={handleSaveChanges}
                 disabled={isSaving}
                 className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-full text-[10px] font-black uppercase shadow-xl hover:bg-green-700 disabled:opacity-50 transition-all"
@@ -198,10 +160,7 @@ export default function MapaInteractivo() {
 
         <AnimatePresence>
           {cargandoImagen && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 z-[60] bg-[#F8F5F2] flex flex-col items-center justify-center"
             >
               <Loader2 className="animate-spin text-[#6B5E70] mb-2" />
@@ -213,9 +172,7 @@ export default function MapaInteractivo() {
         <AnimatePresence>
           {vistaActual === "reino" && (
             <motion.button
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               onClick={volverAlGlobal}
               className="absolute top-6 left-6 z-50 bg-white/90 backdrop-blur-md p-3 rounded-full shadow-xl border border-[#6B5E70]/20 text-[#6B5E70] hover:scale-110 transition-transform"
             >
@@ -226,42 +183,25 @@ export default function MapaInteractivo() {
 
         <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5} enabled={!editMode}>
           <div ref={mapRef} className="w-full h-full origin-top-left">
-            <div 
+            <div
               className={`relative inline-block w-full ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
               onClick={handleMapClick}
             >
-              <img 
+              <img
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
-                src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/fanart/01.jpg"} 
+                src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/fanart/01.jpg"}
                 alt="Mapa"
                 className="w-full h-auto block pointer-events-none select-none"
-                onLoad={() => {
-                  window.dispatchEvent(new Event("resize"));
-                  setCargandoImagen(false); 
-                }}
+                onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
               />
               {!cargandoImagen && (
                 vistaActual === "global" ? (
-                  reinos.map((reino) => (
-                    <Marker 
-                      key={reino.id} 
-                      x={reino.coord_x} 
-                      y={reino.coord_y} 
-                      info={reino.nombre} 
-                      tipo="reino"
-                      onClick={() => handleReinoClick(reino)} 
-                    />
+                  reinos.map(reino => (
+                    <Marker key={reino.id} x={reino.coord_x} y={reino.coord_y} info={reino.nombre} tipo="reino" onClick={() => handleReinoClick(reino)} />
                   ))
                 ) : (
-                  detallesReino.map((punto) => (
-                    <Marker 
-                      key={punto.id} 
-                      x={punto.coord_x} 
-                      y={punto.coord_y} 
-                      info={punto.nombre} 
-                      tipo="detalle"
-                      onClick={() => setPuntoSeleccionado(punto)} 
-                    />
+                  detallesReino.map(punto => (
+                    <Marker key={punto.id} x={punto.coord_x} y={punto.coord_y} info={punto.nombre} tipo="detalle" onClick={() => setPuntoSeleccionado(punto)} />
                   ))
                 )
               )}
@@ -270,47 +210,44 @@ export default function MapaInteractivo() {
         </QuickPinchZoom>
       </div>
 
-      {/* SECCIÓN LATERAL */}
       <AnimatePresence>
         {vistaActual === "reino" && reinoSeleccionado && (
-          <motion.div 
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
+          <motion.div
+            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="w-full md:w-1/3 bg-white border-l border-[#6B5E70]/10 p-10 flex flex-col z-40 shadow-[-20px_0_50px_rgba(0,0,0,0.05)]"
           >
             <div className="mb-4 flex items-center gap-2">
-               <div className="h-1px w-8 bg-[#6B5E70]/30" />
-               <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.2em]">
-                 {editMode ? "Editando Información" : (puntoSeleccionado ? "Lugar Hallado" : "Explorando Territorio")}
-               </span>
+              <div className="h-1px w-8 bg-[#6B5E70]/30" />
+              <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.2em]">
+                {editMode ? "Editando Información" : (puntoSeleccionado ? "Lugar Hallado" : "Explorando Territorio")}
+              </span>
             </div>
 
             {editMode ? (
               <div className="flex flex-col gap-4 flex-grow">
                 <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold uppercase text-[#6B5E70]/50 ml-2">Nombre del Lugar</label>
-                    <input 
-                        type="text"
-                        value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
-                        onChange={(e) => {
-                            if (puntoSeleccionado) setPuntoSeleccionado({...puntoSeleccionado, nombre: e.target.value});
-                            else setReinoSeleccionado({...reinoSeleccionado, nombre: e.target.value});
-                        }}
-                        className="w-full bg-[#6B5E70]/5 border border-[#6B5E70]/10 rounded-xl p-4 text-[#6B5E70] font-black uppercase text-xl outline-none focus:bg-white transition-all"
-                    />
+                  <label className="text-[9px] font-bold uppercase text-[#6B5E70]/50 ml-2">Nombre del Lugar</label>
+                  <input
+                    type="text"
+                    value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
+                    onChange={(e) => {
+                      if (puntoSeleccionado) setPuntoSeleccionado({ ...puntoSeleccionado, nombre: e.target.value });
+                      else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
+                    }}
+                    className="w-full bg-[#6B5E70]/5 border border-[#6B5E70]/10 rounded-xl p-4 text-[#6B5E70] font-black uppercase text-xl outline-none focus:bg-white transition-all"
+                  />
                 </div>
                 <div className="flex flex-col gap-1 flex-grow">
-                    <label className="text-[9px] font-bold uppercase text-[#6B5E70]/50 ml-2">Descripción / Lore</label>
-                    <textarea 
-                        value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
-                        onChange={(e) => {
-                            if (puntoSeleccionado) setPuntoSeleccionado({...puntoSeleccionado, descripcion: e.target.value});
-                            else setReinoSeleccionado({...reinoSeleccionado, descripcion: e.target.value});
-                        }}
-                        className="w-full bg-[#6B5E70]/5 border border-[#6B5E70]/10 rounded-xl p-4 text-[#6B5E70] text-sm italic leading-relaxed outline-none focus:bg-white transition-all h-40 resize-none"
-                    />
+                  <label className="text-[9px] font-bold uppercase text-[#6B5E70]/50 ml-2">Descripción / Lore</label>
+                  <textarea
+                    value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
+                    onChange={(e) => {
+                      if (puntoSeleccionado) setPuntoSeleccionado({ ...puntoSeleccionado, descripcion: e.target.value });
+                      else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
+                    }}
+                    className="w-full bg-[#6B5E70]/5 border border-[#6B5E70]/10 rounded-xl p-4 text-[#6B5E70] text-sm italic leading-relaxed outline-none focus:bg-white transition-all h-40 resize-none"
+                  />
                 </div>
               </div>
             ) : (
@@ -318,13 +255,12 @@ export default function MapaInteractivo() {
                 <h2 className="text-[#6B5E70] font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
                   {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
                 </h2>
-                <div className="space-y-6 flex-grow overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-6 flex-grow overflow-y-auto pr-2">
                   <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/5">
                     <p className="text-[#6B5E70] text-sm italic leading-relaxed">
                       "{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}"
                     </p>
                   </div>
-                  
                   {!puntoSeleccionado && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
@@ -341,10 +277,9 @@ export default function MapaInteractivo() {
               </>
             )}
 
-            {/* Botón de acción lateral */}
             <div className="mt-8 flex flex-col gap-3">
               {puntoSeleccionado && !editMode && (
-                <button 
+                <button
                   onClick={() => setPuntoSeleccionado(null)}
                   className="w-full bg-[#F8F5F2] text-[#6B5E70] text-[10px] font-black uppercase py-3 rounded-xl border border-[#6B5E70]/10 hover:bg-white transition-all"
                 >
