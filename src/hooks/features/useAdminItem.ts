@@ -6,8 +6,8 @@ interface UseAdminItemOptions<T> {
   plantilla: T;
 }
 
-export function useAdminItem<T extends { id?: string }>(
-  setDatos: (fn: (prev: T[]) => T[]) => void,  // 👈 solo 2 parámetros
+export function useAdminItem<T extends Record<string, any>>(  // 👈 cambiar la constraint
+  setDatos: (fn: (prev: T[]) => T[]) => void,
   { plantilla }: UseAdminItemOptions<T>
 ) {
   const isAdmin = useIsAdmin();
