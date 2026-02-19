@@ -26,7 +26,7 @@ export const IngredientesPage = () => {
     agua_ml: 0
   });
   
-  const { data: ingredientes, loading, mutate, addRow, updateRow } = useSupabaseData<Ingrediente>("ingredientes");
+  const { data: ingredientes, loading, refetch, addRow, updateRow } = useSupabaseData<Ingrediente>("ingredientes");
   
   const filteredItems = useMemo(() => {
     return (ingredientes || []).filter((item) => {
@@ -45,7 +45,7 @@ export const IngredientesPage = () => {
     if (updateRow) {
       const result = await updateRow(id, { stock_actual: newStock });
       if (!result.error) {
-        mutate();
+        refetch();
       }
     }
   };
@@ -75,7 +75,7 @@ export const IngredientesPage = () => {
           sodio: 0, 
           agua_ml: 0
         });
-        await mutate();
+        await refetch();
       }
     } catch (err) {
       console.error("💥 Error inesperado:", err);

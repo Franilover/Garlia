@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/components/providers/DataProvider";
 
-// Importaciones de queries
+// Importaciones
 import { personajesQueries } from "@/lib/api/queries/wiki/personajes";
 import { criaturasQueries } from "@/lib/api/queries/wiki/criaturas";
 import { itemsQueries } from "@/lib/api/queries/wiki/items"; 
@@ -13,7 +13,7 @@ import { tareasQueries } from "@/lib/api/queries/personal/tareas";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 import { ingredientesQueries } from "@/lib/api/queries/personal/cocina/ingredientes";
 import { ropaQueries } from "@/lib/api/queries/personal/ropa";
-import { cancionesQueries } from "@/lib/api/queries/wiki/canciones";
+import { cancionesQueries } from "@/lib/api/queries/wiki/canciones"; // ✅ Asegura esta ruta
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
@@ -26,84 +26,70 @@ const QUERIES_MAP: Record<string, any> = {
   "ingredientes": ingredientesQueries,
   "ropa": ropaQueries,          
   "ropa_outfits": ropaQueries,
-  "canciones": cancionesQueries 
+  "canciones": cancionesQueries // ✅ Añadido
 };
 
 interface UseSupabaseOptions {
   select?: string;
-  order?: {
-    campo: string;
-    asc?: boolean;
-  };
+  order?: { campo: string; asc?: boolean; };
+  isAdmin?: boolean; // ✅ Para tu lógica de Franilover
   [key: string]: any;
 }
 
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
-  
-  // Inicialización inmediata con caché
-  const [data, setData] = useState<T[]>(() => cache[tabla] || []);
+  const [data, setData] = useState<T[]>(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState<string | null>(null);
-  
   const isMounted = useRef(true);
+  const retryCount = useRef(0);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const optionsString = JSON.stringify(opciones);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
-    
-    // Solo cargando si no hay datos previos
-    if (data.length === 0 && !forceRefresh) {
-      setLoading(true);
-    }
+    if (data.length === 0 || forceRefresh) setLoading(true);
+    setError(null);
     
     try {
-      let resultado: any;
-      const queryManager = QUERIES_MAP[tabla];
-
-      if (queryManager) {
-        /**
-         * CORRECCIÓN PARA CANCIONES:
-         * Tu canciones.ts tiene getAll: async () => ...
-         * No acepta el objeto de opciones.
-         */
-        if (tabla === "canciones") {
-          resultado = await queryManager.getAll();
-        } else {
-          const opt = JSON.parse(optionsString);
-          resultado = await queryManager.getAll({ ...opt, tabla });
-        }
-      } else {
-        // Fallback estándar
-        const opt = JSON.parse(optionsString);
-        let query = supabase.from(tabla).select(opt.select || "*");
-        if (opt.order) {
-          query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
-        }
-        const { data: res, error: err } = await query;
-        if (err) throw err;
-        resultado = res;
-      }
+      const opt = JSON.parse(optionsString);
+      let res: any;
       
-      /**
-       * NORMALIZACIÓN DE RESPUESTA:
-       * canciones.ts devuelve el array directamente. 
-       * Otras queries pueden devolver { data, error }.
-       */
-      const finalData = Array.isArray(resultado) ? resultado : (resultado?.data || []);
+      if (QUERIES_MAP[tabla]) {
+        // CORRECCIÓN: Manejo especial para canciones (sin argumentos o con isAdmin)
+        res = (tabla === "canciones") 
+          ? await QUERIES_MAP[tabla].getAll({ isAdmin: opt.isAdmin }) 
+          : await QUERIES_MAP[tabla].getAll({ ...opt, tabla });
+      } else {
+        // Fallback genérico
+        let query = supabase.from(tabla).select(opt.select || "*");
+        if (opt.order) query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
+        res = await query;
+      }
+
+      // Normalización de respuesta (Array vs {data, error})
+      const finalData = Array.isArray(res) ? res : (res?.data || []);
+      const errorFetch = res?.error || null;
+      if (errorFetch) throw errorFetch;
 
       if (isMounted.current) {
         setData(finalData as T[]);
         updateCache(tabla, finalData);
-        setError(null);
+        retryCount.current = 0;
       }
     } catch (err: any) {
-      console.error(`❌ Error en tabla [${tabla}]:`, err);
+      // Tu lógica de reintentos original
+      const isNetworkError = err.message?.includes("fetch") || err.message?.includes("NetworkError");
+      if (isNetworkError && retryCount.current < 3) {
+        retryCount.current++;
+        setTimeout(() => fetchData(true), 1000 * retryCount.current);
+        return;
+      }
       if (isMounted.current) setError(err.message);
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, updateCache, optionsString, data.length]);
+  }, [tabla, updateCache, optionsString]); // ❌ Quitamos data.length para evitar bucles
 
   // --- MÉTODOS CRUD ---
   const addRow = useCallback(async (newData: any) => {
@@ -111,10 +97,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       const res = QUERIES_MAP[tabla]?.create 
         ? await QUERIES_MAP[tabla].create(newData)
         : await supabase.from(tabla).insert([newData]).select().single();
-      return { data: res?.data || res, error: null };
-    } catch (err: any) {
-      return { data: null, error: err.message };
-    }
+      return { data: res?.data || res, error: res?.error || null };
+    } catch (err: any) { return { data: null, error: err.message }; }
   }, [tabla]);
 
   const updateRow = useCallback(async (id: string | number, updates: any) => {
@@ -122,56 +106,35 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       const res = QUERIES_MAP[tabla]?.update
         ? await QUERIES_MAP[tabla].update(id, updates)
         : await supabase.from(tabla).update(updates).eq("id", id).select().single();
-      return { data: res?.data || res, error: null };
-    } catch (err: any) {
-      return { data: null, error: err.message };
-    }
+      return { data: res?.data || res, error: res?.error || null };
+    } catch (err: any) { return { data: null, error: err.message }; }
   }, [tabla]);
 
   const deleteRow = useCallback(async (id: string | number) => {
     try {
-      if (QUERIES_MAP[tabla]?.delete) {
-        await QUERIES_MAP[tabla].delete(id);
-      } else {
-        await supabase.from(tabla).delete().eq("id", id);
-      }
-      return { error: null };
-    } catch (err: any) {
-      return { error: err.message };
-    }
+      const res = QUERIES_MAP[tabla]?.delete
+        ? await QUERIES_MAP[tabla].delete(id)
+        : await supabase.from(tabla).delete().eq("id", id);
+      return { error: res?.error || null };
+    } catch (err: any) { return { error: err.message }; }
   }, [tabla]);
-  
-  // --- EFECTO DE INICIALIZACIÓN (OPCIÓN B) ---
+
   useEffect(() => {
     isMounted.current = true;
-
-    // Si hay caché, validamos en background (silent refresh)
-    // Si no hay caché, hacemos carga inicial con loader
-    fetchData(!!cache[tabla]);
-    
-    // Suscripción Realtime corregida
-    const channel = supabase
-      .channel(`rt-${tabla}-${Math.random().toString(36).slice(2, 7)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: tabla }, () => {
-        fetchData(true);
-      })
-      .subscribe();
-    
+    fetchData();
+    const channel = supabase.channel(`rt-${tabla}-${Math.random().toString(36).slice(2, 7)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: tabla }, () => fetchData(true))
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR" && !pollingIntervalRef.current) {
+          pollingIntervalRef.current = setInterval(() => fetchData(true), 20000);
+        }
+      });
     return () => {
       isMounted.current = false;
       supabase.removeChannel(channel);
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     };
-  }, [tabla, fetchData]); 
-  
-  return { 
-    data: data || [], 
-    setData, 
-    loading, 
-    error, 
-    refetch: () => fetchData(true),
-    mutate: () => fetchData(true),
-    addRow,
-    updateRow,
-    deleteRow 
-  };
+  }, [tabla, fetchData]);
+
+  return { data, setData, loading, error, refetch: () => fetchData(true), addRow, updateRow, deleteRow };
 }
