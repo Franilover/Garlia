@@ -9,7 +9,8 @@ export default function Inventario() {
     <EntidadPageBase
       tabla="items"
       titulo="Almacén de Objetos"
-      configFiltros={['categoria']}
+      // Añadimos 'conFoto' para activar el botón de la cámara
+      configFiltros={['categoria', 'conFoto']}
       // Etiquetas para el modal: Categoría y Rareza
       getCustomTags={(item) => [
         item?.categoria,

@@ -9,7 +9,8 @@ export default function CriaturasGrid() {
     <EntidadPageBase
       tabla="criaturas"
       titulo="Bestiario"
-      configFiltros={['habitat', 'pensamiento', 'alma']}
+      // Añadimos 'conFoto' al final de la lista
+      configFiltros={['habitat', 'pensamiento', 'alma', 'conFoto']}
       // Etiquetas dinámicas para el modal
       getCustomTags={(c) => [
         c?.habitat,
