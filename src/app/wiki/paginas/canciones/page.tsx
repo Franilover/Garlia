@@ -212,17 +212,18 @@ const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
 // ============================================================================
 
 const Canciones = () => {
+  const [isAdmin, setIsAdmin] = useState(false);
+  
   // 1. CARGA DE CANCIONES (HOOK)
   const { data: canciones = [], loading: loadingCanciones, setData: setCanciones } = useSupabaseData("canciones", {
     order: { campo: "created_at", asc: false }
   });
 
-  // 2. CARGA DE PERSONAJES (HOOK) - CAMBIO CLAVE: Usamos el hook en lugar de useEffect manual
+  // 2. CARGA DE PERSONAJES (HOOK)
   const { data: listaPersonajes = [] } = useSupabaseData("personajes", {
     order: { campo: "nombre", asc: true }
   });
 
-  const [isAdmin, setIsAdmin] = useState(false);
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const [formState, dispatchForm] = useReducer(formReducer, initialFormState);
 
@@ -230,20 +231,29 @@ const Canciones = () => {
   const [filtroCantante, setFiltroCantante] = useState("");
   const [filtroCompositor, setFiltroCompositor] = useState("");
   const [filtroIdioma, setFiltroIdioma] = useState("");
-  const [vistaGrid, setVistaGrid] = useState(true); // true = grid 2 cols, false = fila
+  const [vistaGrid, setVistaGrid] = useState(true);
 
-  // Solo mantenemos la lógica de AUTH en el useEffect
+  // MANEJO DE AUTENTICACIÓN REACTIVA
   useEffect(() => {
+    // Comprobar sesión inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setIsAdmin(true);
+      setIsAdmin(!!session);
     });
-    // Eliminamos el fetchPersonajes manual que causaba conflicto
+
+    // Suscribirse a cambios (Login/Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAdmin(!!session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Lógica de filtrado
+  // Lógica de filtrado corregida
   const cancionesFiltradas = useMemo(() => {
-    let result = isAdmin ? canciones : canciones.filter((c: any) => c.visible);
+    // Primero aplicamos el filtro de visibilidad si NO es admin
+    let result = isAdmin ? [...canciones] : canciones.filter((c: any) => c.visible === true);
     
+    // Luego aplicamos filtros de búsqueda
     if (filtroCantante) {
       result = result.filter((c: any) => c.cantante === filtroCantante);
     }
@@ -257,7 +267,6 @@ const Canciones = () => {
     return result;
   }, [canciones, isAdmin, filtroCantante, filtroCompositor, filtroIdioma]);
 
-  // Obtener opciones únicas para los selectores de filtro
   const opcionesFiltros = useMemo(() => {
     return {
       cantantes: Array.from(new Set(canciones.map((c: any) => c.cantante).filter(Boolean))).sort(),
