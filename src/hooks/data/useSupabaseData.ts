@@ -13,7 +13,7 @@ import { tareasQueries } from "@/lib/api/queries/personal/tareas";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 import { ingredientesQueries } from "@/lib/api/queries/personal/cocina/ingredientes";
 import { ropaQueries } from "@/lib/api/queries/personal/ropa";
-import { cancionesQueries } from "@/lib/api/queries/wiki/canciones"; // ✅ Añadido
+import { cancionesQueries } from "@/lib/api/queries/personal/canciones";
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
@@ -26,7 +26,7 @@ const QUERIES_MAP: Record<string, any> = {
   "ingredientes": ingredientesQueries,
   "ropa": ropaQueries,          
   "ropa_outfits": ropaQueries,
-  "canciones": cancionesQueries // ✅ Añadido al mapa
+  "canciones": cancionesQueries 
 };
 
 interface UseSupabaseOptions {
@@ -41,8 +41,8 @@ interface UseSupabaseOptions {
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // Inicializamos con la caché si existe
-  const [data, setData] = useState<T[]>(cache[tabla] || []);
+  // 1. Inicializar con caché si existe para carga instantánea
+  const [data, setData] = useState<T[]>(() => cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState<string | null>(null);
   
@@ -51,189 +51,124 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const optionsString = JSON.stringify(opciones);
-  
+
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
     
-    // Solo mostramos loading si no hay datos previos o si es un refresh forzado explícito
+    // Solo activamos loading si no hay datos en absoluto
     if (data.length === 0 && !forceRefresh) {
       setLoading(true);
     }
-    setError(null);
     
     try {
       const opt = JSON.parse(optionsString);
-      let resultado;
-      let errorFetch;
+      let resultado: any;
       
       if (QUERIES_MAP[tabla]) {
-        // Usamos la query personalizada (ej: cancionesQueries.getAll())
+        // Llamada a la query personalizada (ej: canciones.getAll)
         const res = await QUERIES_MAP[tabla].getAll({ ...opt, tabla });
-        // Manejo flexible de la respuesta según cómo devuelva los datos tu API
-        resultado = res?.data !== undefined ? res.data : (Array.isArray(res) ? res : []);
-        errorFetch = res?.error !== undefined ? res.error : null;
+        
+        // Manejo de respuesta: cancionesQueries devuelve el array directamente
+        resultado = Array.isArray(res) ? res : (res?.data || []);
       } else {
-        // Fallback a query genérica de Supabase
+        // Fallback genérico a Supabase
         let selectStr = opt.select || "*";
-        if (tabla === "precios" && !opt.select) {
-          selectStr = "*, ingredientes(nombre, categoria)";
-        }
         let query = supabase.from(tabla).select(selectStr);
+        
         if (opt.order) {
           query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
         }
+        
         const { data: res, error: err } = await query;
+        if (err) throw err;
         resultado = res;
-        errorFetch = err;
       }
       
-      if (errorFetch) throw errorFetch;
-      
-      const finalData = (resultado || []) as T[];
-      
       if (isMounted.current) {
+        const finalData = (resultado || []) as T[];
         setData(finalData);
-        updateCache(tabla, finalData);
+        updateCache(tabla, finalData); // Sincroniza con el DataProvider
+        setError(null);
         retryCount.current = 0;
       }
     } catch (err: any) {
+      console.error(`❌ Error en fetchData [${tabla}]:`, err);
       if (isMounted.current) {
-        const isNetworkError = 
-          err.message?.includes("fetch") || 
-          err.message?.includes("NetworkError") || 
-          err.message?.includes("Failed to fetch");
-        
-        if (isNetworkError && retryCount.current < 3) {
-          retryCount.current++;
-          console.warn(`Intento de reintento ${retryCount.current} para la tabla ${tabla}...`);
-          setTimeout(() => fetchData(true), 1000 * retryCount.current);
-          return;
-        }
-        
         setError(err.message);
-        console.error(`Error fetching ${tabla}:`, err);
       }
     } finally {
       if (isMounted.current) setLoading(false);
     }
+    // IMPORTANTE: Quitamos 'cache' de las dependencias para evitar bucles infinitos
   }, [tabla, updateCache, optionsString, data.length]);
 
   // --- MÉTODOS CRUD ---
-  
   const addRow = useCallback(async (newData: any) => {
     try {
-      let errorInsert;
-      let insertedData = null;
-      
+      let res;
       if (QUERIES_MAP[tabla]?.create) {
-        const res = await QUERIES_MAP[tabla].create(newData);
-        errorInsert = res?.error;
-        insertedData = res?.data;
+        res = await QUERIES_MAP[tabla].create(newData);
       } else {
-        const { data, error: err } = await supabase
-          .from(tabla)
-          .insert([newData])
-          .select()
-          .single();
-        errorInsert = err;
-        insertedData = data;
+        res = await supabase.from(tabla).insert([newData]).select().single();
       }
-      
-      if (errorInsert) throw errorInsert;
-      return { data: insertedData, error: null };
+      if (res.error) throw res.error;
+      return { data: res.data || res, error: null };
     } catch (err: any) {
-      console.error(`❌ Error en addRow [${tabla}]:`, err);
       return { data: null, error: err.message };
     }
   }, [tabla]);
-  
+
   const updateRow = useCallback(async (id: string | number, updates: any) => {
     try {
-      let errorUpdate;
-      let updatedData = null;
-      
+      let res;
       if (QUERIES_MAP[tabla]?.update) {
-        const res = await QUERIES_MAP[tabla].update(id, updates);
-        errorUpdate = res?.error;
-        updatedData = res?.data;
+        res = await QUERIES_MAP[tabla].update(id, updates);
       } else {
-        const { data, error: err } = await supabase
-          .from(tabla)
-          .update(updates)
-          .eq("id", id)
-          .select()
-          .single();
-        errorUpdate = err;
-        updatedData = data;
+        res = await supabase.from(tabla).update(updates).eq("id", id).select().single();
       }
-      
-      if (errorUpdate) throw errorUpdate;
-      return { data: updatedData, error: null };
+      if (res.error) throw res.error;
+      return { data: res.data || res, error: null };
     } catch (err: any) {
-      console.error(`❌ Error en updateRow [${tabla}]:`, err);
       return { data: null, error: err.message };
     }
   }, [tabla]);
-  
+
   const deleteRow = useCallback(async (id: string | number) => {
     try {
-      let errorDelete;
-      
+      let res;
       if (QUERIES_MAP[tabla]?.delete) {
-        const res = await QUERIES_MAP[tabla].delete(id);
-        errorDelete = res?.error;
+        res = await QUERIES_MAP[tabla].delete(id);
       } else {
-        const { error: err } = await supabase.from(tabla).delete().eq("id", id);
-        errorDelete = err;
+        res = await supabase.from(tabla).delete().eq("id", id);
       }
-      
-      if (errorDelete) throw errorDelete;
+      if (res?.error) throw res.error;
       return { error: null };
     } catch (err: any) {
-      console.error(`❌ Error en deleteRow [${tabla}]:`, err);
       return { error: err.message };
     }
   }, [tabla]);
   
-  // --- EFECTO DE INICIALIZACIÓN Y REALTIME (OPCIÓN B IMPLEMENTADA) ---
-  
+  // --- EFECTO DE INICIALIZACIÓN (OPCIÓN B: RE-VALIDACIÓN) ---
   useEffect(() => {
     isMounted.current = true;
 
-    // Si hay datos en caché, hacemos un refresh silencioso para asegurar que están actualizados
-    if (cache[tabla] && cache[tabla].length > 0) {
-      fetchData(true); 
-    } else {
-      fetchData();
-    }
+    // Lógica: Si hay algo en caché, lo mostramos (vía useState inicial)
+    // Pero disparamos fetchData(true) para refrescar en background por si hubo cambios
+    fetchData(!!cache[tabla]);
     
-    const channelName = `realtime-${tabla}-${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", 
-        { event: "*", schema: "public", table: tabla }, 
-        () => fetchData(true)
-      )
-      .subscribe((status) => {
-        if (status === status) { // Conexión exitosa
-           // Opcional: log de suscripción
-        }
-        if (status === "CHANNEL_ERROR") {
-          console.warn(`Realtime falló en ${tabla}, activando polling...`);
-          if (!pollingIntervalRef.current) {
-            pollingIntervalRef.current = setInterval(() => {
-              if (isMounted.current) fetchData(true);
-            }, 20000);
-          }
-        }
-      });
+      .channel(`rt-${tabla}-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: tabla }, () => {
+        fetchData(true);
+      })
+      .subscribe();
     
     return () => {
       isMounted.current = false;
-      if (channel) supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     };
-  }, [tabla, fetchData]); // fetchData ya incluye optionsString en sus dependencias
+  }, [tabla, fetchData]); // Solo re-ejecutar si cambia la tabla o la función fetchData
   
   const setSyncedData = useCallback((newDataOrFn: any) => {
     setData(prev => {
