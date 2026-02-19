@@ -213,13 +213,25 @@ const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
 
 const Canciones = () => {
   const [isAdmin, setIsAdmin] = useState(false);
-  
-  // 1. CARGA DE CANCIONES (HOOK)
+  // ✅ FIX: Esperamos a saber el rol antes de lanzar la query
+  const [sessionLoaded, setSessionLoaded] = useState(false);
+
+  // Resolvemos la sesión primero
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAdmin(!!session);
+      setSessionLoaded(true);
+    });
+  }, []);
+
+  // ✅ FIX: Pasamos isAdmin a las opciones del hook.
+  // Cuando sessionLoaded cambia a true, optionsString cambia y el hook
+  // re-ejecuta fetchData con el valor correcto de isAdmin.
   const { data: canciones = [], loading: loadingCanciones, setData: setCanciones } = useSupabaseData("canciones", {
-    order: { campo: "created_at", asc: false }
+    order: { campo: "created_at", asc: false },
+    isAdmin: sessionLoaded ? isAdmin : false,
   });
 
-  // 2. CARGA DE PERSONAJES (HOOK)
   const { data: listaPersonajes = [] } = useSupabaseData("personajes", {
     order: { campo: "nombre", asc: true }
   });
@@ -233,27 +245,10 @@ const Canciones = () => {
   const [filtroIdioma, setFiltroIdioma] = useState("");
   const [vistaGrid, setVistaGrid] = useState(true);
 
-  // MANEJO DE AUTENTICACIÓN REACTIVA
-  useEffect(() => {
-    // Comprobar sesión inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAdmin(!!session);
-    });
-
-    // Suscribirse a cambios (Login/Logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAdmin(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Lógica de filtrado corregida
+  // ✅ FIX: Ya no hace falta filtrar por visible aquí — la query ya trae los datos correctos
   const cancionesFiltradas = useMemo(() => {
-    // Primero aplicamos el filtro de visibilidad si NO es admin
-    let result = isAdmin ? [...canciones] : canciones.filter((c: any) => c.visible === true);
+    let result = canciones;
     
-    // Luego aplicamos filtros de búsqueda
     if (filtroCantante) {
       result = result.filter((c: any) => c.cantante === filtroCantante);
     }
@@ -265,7 +260,7 @@ const Canciones = () => {
     }
     
     return result;
-  }, [canciones, isAdmin, filtroCantante, filtroCompositor, filtroIdioma]);
+  }, [canciones, filtroCantante, filtroCompositor, filtroIdioma]);
 
   const opcionesFiltros = useMemo(() => {
     return {
@@ -376,7 +371,8 @@ const Canciones = () => {
     }
   };
 
-  if (loadingCanciones) return (
+  // Mostramos loader mientras no sabemos la sesión o se están cargando las canciones
+  if (!sessionLoaded || loadingCanciones) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
       <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
         <Loader2 className="text-[#6B5E70]/20" size={40} />
