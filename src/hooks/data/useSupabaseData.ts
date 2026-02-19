@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/components/providers/DataProvider";
 
-// Importaciones
+// Importaciones de queries
 import { personajesQueries } from "@/lib/api/queries/wiki/personajes";
 import { criaturasQueries } from "@/lib/api/queries/wiki/criaturas";
 import { itemsQueries } from "@/lib/api/queries/wiki/items"; 
@@ -13,7 +13,7 @@ import { tareasQueries } from "@/lib/api/queries/personal/tareas";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 import { ingredientesQueries } from "@/lib/api/queries/personal/cocina/ingredientes";
 import { ropaQueries } from "@/lib/api/queries/personal/ropa";
-import { cancionesQueries } from "@/lib/api/queries/wiki/canciones"; // ✅ Asegura esta ruta
+import { cancionesQueries } from "@/lib/api/queries/wiki/canciones"; 
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
@@ -26,29 +26,38 @@ const QUERIES_MAP: Record<string, any> = {
   "ingredientes": ingredientesQueries,
   "ropa": ropaQueries,          
   "ropa_outfits": ropaQueries,
-  "canciones": cancionesQueries // ✅ Añadido
+  "canciones": cancionesQueries 
 };
 
 interface UseSupabaseOptions {
   select?: string;
   order?: { campo: string; asc?: boolean; };
-  isAdmin?: boolean; // ✅ Para tu lógica de Franilover
+  isAdmin?: boolean; 
   [key: string]: any;
 }
 
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
+  
+  // Inicializamos con caché para carga instantánea
   const [data, setData] = useState<T[]>(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState<string | null>(null);
+  
   const isMounted = useRef(true);
   const retryCount = useRef(0);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Memorizamos las opciones para evitar re-renders infinitos
   const optionsString = JSON.stringify(opciones);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
-    if (data.length === 0 || forceRefresh) setLoading(true);
+    
+    // Mostramos loading solo si no hay datos o si se pide explícitamente
+    if (data.length === 0 || forceRefresh) {
+      setLoading(true);
+    }
     setError(null);
     
     try {
@@ -56,20 +65,25 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let res: any;
       
       if (QUERIES_MAP[tabla]) {
-        // CORRECCIÓN: Manejo especial para canciones (sin argumentos o con isAdmin)
-        res = (tabla === "canciones") 
-          ? await QUERIES_MAP[tabla].getAll({ isAdmin: opt.isAdmin }) 
-          : await QUERIES_MAP[tabla].getAll({ ...opt, tabla });
+        // ✅ LÓGICA ESPECIAL PARA CANCIONES: Maneja array directo e isAdmin
+        if (tabla === "canciones") {
+          res = await QUERIES_MAP[tabla].getAll({ isAdmin: opt.isAdmin });
+        } else {
+          res = await QUERIES_MAP[tabla].getAll({ ...opt, tabla });
+        }
       } else {
-        // Fallback genérico
+        // Fallback genérico de Supabase
         let query = supabase.from(tabla).select(opt.select || "*");
-        if (opt.order) query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
+        if (opt.order) {
+          query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
+        }
         res = await query;
       }
 
-      // Normalización de respuesta (Array vs {data, error})
+      // ✅ NORMALIZACIÓN: Acepta tanto [data] como {data, error}
       const finalData = Array.isArray(res) ? res : (res?.data || []);
       const errorFetch = res?.error || null;
+
       if (errorFetch) throw errorFetch;
 
       if (isMounted.current) {
@@ -78,10 +92,11 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         retryCount.current = 0;
       }
     } catch (err: any) {
-      // Tu lógica de reintentos original
+      // ✅ RESILIENCIA: Reintento automático en errores de red
       const isNetworkError = err.message?.includes("fetch") || err.message?.includes("NetworkError");
       if (isNetworkError && retryCount.current < 3) {
         retryCount.current++;
+        console.warn(`Reintento ${retryCount.current} para ${tabla}...`);
         setTimeout(() => fetchData(true), 1000 * retryCount.current);
         return;
       }
@@ -89,7 +104,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, updateCache, optionsString]); // ❌ Quitamos data.length para evitar bucles
+  }, [tabla, updateCache, optionsString]);
 
   // --- MÉTODOS CRUD ---
   const addRow = useCallback(async (newData: any) => {
@@ -119,16 +134,20 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } catch (err: any) { return { error: err.message }; }
   }, [tabla]);
 
+  // --- REALTIME Y POLLING ---
   useEffect(() => {
     isMounted.current = true;
-    fetchData();
+    fetchData(); // Carga inicial
+
     const channel = supabase.channel(`rt-${tabla}-${Math.random().toString(36).slice(2, 7)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: tabla }, () => fetchData(true))
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" && !pollingIntervalRef.current) {
+          // Si el realtime falla, activamos polling cada 20s
           pollingIntervalRef.current = setInterval(() => fetchData(true), 20000);
         }
       });
+
     return () => {
       isMounted.current = false;
       supabase.removeChannel(channel);
@@ -136,5 +155,16 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     };
   }, [tabla, fetchData]);
 
-  return { data, setData, loading, error, refetch: () => fetchData(true), addRow, updateRow, deleteRow };
+  // ✅ RETORNO COMPLETO (Incluye refetch y mutate para compatibilidad)
+  return { 
+    data: data || [], 
+    setData, 
+    loading, 
+    error, 
+    refetch: () => fetchData(true),
+    mutate: () => fetchData(true), 
+    addRow, 
+    updateRow, 
+    deleteRow 
+  };
 }
