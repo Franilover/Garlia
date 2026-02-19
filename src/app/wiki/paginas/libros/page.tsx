@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'; // 👈 quitar useEffect
 import Link from 'next/link';
-import { Book, ChevronRight, Clock, Plus, Edit3, X, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Book, Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/api/client/supabase';
 import { useSupabaseData } from '@/hooks/data/useSupabaseData';
+import { useIsAdmin } from '@/hooks/auth/useIsAdmin'; // 👈
 import { SmartImage } from '@/components/shared/display/SmartImage';
 
 interface Libro {
@@ -18,61 +19,41 @@ interface Libro {
 }
 
 const Biblioteca = () => {
-  // 1. Asegúrate de que el hook 'useSupabaseData' esté devolviendo los datos correctamente.
-  // He añadido una pequeña validación por si 'data' viene envuelto en otro objeto.
-  const { data, loading, error, setData: setLibros } = useSupabaseData('libros', {
+  const isAdmin = useIsAdmin(); // 👈
+
+  // 👇 Un solo estado, sin librosLocal duplicado
+  const { data: libros = [], loading, error, setData: setLibros } = useSupabaseData('libros', {
     order: { campo: 'created_at', asc: false }
   });
 
-  const [libros, setLibrosLocal] = useState<Libro[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedLibro, setSelectedLibro] = useState<Libro | null>(null);
-  const [editTitle, setEditTitle] = useState("");
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
-
-  // Sincronizar data del hook con estado local para actualizaciones optimistas
-  useEffect(() => {
-    if (data) setLibrosLocal(data as Libro[]);
-  }, [data]);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAdmin(!!session);
-    };
-    checkSession();
-  }, []);
 
   const handleAddLibro = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoTitulo.trim() || isUpdating) return;
     
     setIsUpdating(true);
-    const tituloNuevo = nuevoTitulo.toUpperCase();
-
-    const { data: insertedData, error: insertError } = await supabase.from('libros').insert([{ 
-      titulo: tituloNuevo,
-      sinopsis: "Nueva crónica por escribir...",
-      estado: "EN PROCESO",
-      // Si usas portadas por defecto, asegúrate de que no sea null si la base lo requiere
-      portada_url: "" 
-    }]).select();
+    const { data: insertedData, error: insertError } = await supabase
+      .from('libros')
+      .insert([{ 
+        titulo: nuevoTitulo.toUpperCase(),
+        sinopsis: "Nueva crónica por escribir...",
+        estado: "EN PROCESO",
+        portada_url: "" 
+      }])
+      .select();
 
     if (!insertError && insertedData) {
-      setLibrosLocal(prev => [insertedData[0], ...prev]);
+      setLibros(prev => [insertedData[0], ...prev]); // 👈 directo al hook
       setNuevoTitulo("");
       setShowAddModal(false);
     } else {
-      console.error(insertError);
-      alert("Error al sellar el nuevo libro. Revisa los permisos RLS.");
+      alert("Error al sellar el nuevo libro.");
     }
     setIsUpdating(false);
   };
-
-  // --- RENDERS DE ESTADO ---
 
   if (loading && libros.length === 0) return (
     <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
@@ -85,32 +66,32 @@ const Biblioteca = () => {
     </div>
   );
 
-  if (!loading && libros.length === 0 && !error) return (
+  if (!loading && libros.length === 0) return (
     <div className="h-screen flex flex-col items-center justify-center bg-[#FDFCFD] text-[#6B5E70]/40">
-       <Book size={48} className="mb-4 opacity-20" />
-       <p className="font-black uppercase text-[10px] tracking-[0.3em]">La biblioteca está vacía</p>
-       {isAdmin && (
-         <button onClick={() => setShowAddModal(true)} className="mt-6 text-[#6B5E70] font-bold text-xs underline">
-           Escribir el primer tomo
-         </button>
-       )}
+      <Book size={48} className="mb-4 opacity-20" />
+      <p className="font-black uppercase text-[10px] tracking-[0.3em]">La biblioteca está vacía</p>
+      {isAdmin && (
+        <button onClick={() => setShowAddModal(true)} className="mt-6 text-[#6B5E70] font-bold text-xs underline">
+          Escribir el primer tomo
+        </button>
+      )}
     </div>
   );
 
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20">
-      {/* ... (Modales se mantienen igual) ... */}
-      
       <div className="max-w-6xl mx-auto pt-16 px-6 mb-12 flex justify-between items-end">
         <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
           <h1 className="text-4xl font-black text-[#6B5E70] italic tracking-tighter flex items-center gap-3 leading-none">
             <Book size={32} /> BIBLIOTECA
           </h1>
-          <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2">Explora los relatos del mundo</p>
+          <p className="text-[#6B5E70]/50 text-xs font-bold uppercase tracking-widest mt-2">
+            Explora los relatos del mundo
+          </p>
         </motion.div>
         {isAdmin && (
-          <button 
-            onClick={() => setShowAddModal(true)} 
+          <button
+            onClick={() => setShowAddModal(true)}
             className="bg-[#6B5E70] text-white p-4 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all z-50"
           >
             <Plus size={24} />
@@ -119,10 +100,10 @@ const Biblioteca = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-        {libros.map((libro, index) => (
-          <motion.div 
-            key={libro.id} 
-            initial={{ y: 20, opacity: 0 }} 
+        {(libros as Libro[]).map((libro, index) => (
+          <motion.div
+            key={libro.id}
+            initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: index * 0.05 }}
             className="relative group"
@@ -130,8 +111,8 @@ const Biblioteca = () => {
             <Link href={`/wiki/paginas/libros/${libro.id}`}>
               <div className="cursor-pointer">
                 <motion.div whileHover={{ y: -10 }} className="relative aspect-[3/4] rounded-[3rem] overflow-hidden shadow-xl border border-[#6B5E70]/10 bg-white">
-                  <SmartImage 
-                    src={libro.portada_url || "/placeholder-cover.jpg"} 
+                  <SmartImage
+                    src={libro.portada_url || "/placeholder-cover.jpg"}
                     alt={libro.titulo}
                     className="w-full h-full object-cover"
                   />
@@ -155,6 +136,35 @@ const Biblioteca = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* Modal añadir */}
+      {showAddModal && isAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+          <div className="relative bg-white rounded-[3rem] p-10 w-full max-w-sm shadow-2xl border border-[#6B5E70]/10">
+            <h3 className="text-center text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">
+              Nuevo Tomo
+            </h3>
+            <form onSubmit={handleAddLibro} className="space-y-6">
+              <input
+                autoFocus
+                type="text"
+                placeholder="TÍTULO..."
+                value={nuevoTitulo}
+                onChange={(e) => setNuevoTitulo(e.target.value)}
+                className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase"
+              />
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50"
+              >
+                {isUpdating ? "Sellando..." : "Crear"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,8 @@
+// useDetalleMaestro.ts
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
+import { useIsAdmin } from "@/hooks/auth/useIsAdmin"; // 👈
 
 export interface Relacion {
   id?: string;
@@ -19,7 +21,7 @@ export interface Variante {
 }
 
 export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const isAdmin = useIsAdmin(); // 👈 reemplaza el useEffect de abajo
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   
@@ -33,33 +35,21 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
 
   const prevIdRef = useRef<number | string | null>(null);
 
-  // Verificación de Admin
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setIsAdmin(true);
-    };
-    checkUser();
-  }, []);
-
   // Sincronización de estados (Carga inicial)
   useEffect(() => {
     if (!data) return;
 
-    // Si es un ID nuevo o estamos reseteando
     if (prevIdRef.current !== data.id) {
       setEditNombre(data.nombre || "");
       setEditDescripcion(data.sobre || data.descripcion || "");
       setEditRelaciones(data.relaciones || []);
       
-      // Procesar canciones
       const cancionesData = data.canciones || [];
       const idsIniciales = Array.isArray(cancionesData) 
         ? cancionesData.map(c => (typeof c === "object" ? c.id : c)).filter(Boolean)
         : [];
       setEditCanciones(idsIniciales);
 
-      // Cargar Variantes
       if (data.id && !data.sobre) {
         fetchVariantes(data.id);
       } else {
@@ -78,9 +68,7 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
     if (vars) setVariantes(vars);
   };
 
-  // --- LÓGICA DE GUARDADO MEJORADA ---
   const handleSave = async () => {
-    // 1. Validaciones básicas
     if (!editNombre.trim()) {
       alert("El nombre es obligatorio.");
       return;
@@ -94,14 +82,12 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
       
       let finalId = data?.id;
 
-      // 2. OPERACIÓN PRINCIPAL (Insert o Update)
       const payload = {
         nombre: editNombre,
         [campoTexto]: editDescripcion
       };
 
       if (!finalId) {
-        // ES NUEVO: INSERT
         const { data: newRecord, error: insError } = await supabase
           .from(tabla)
           .insert([payload])
@@ -111,7 +97,6 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
         if (insError) throw insError;
         finalId = newRecord.id;
       } else {
-        // EXISTE: UPDATE
         const { error: updError } = await supabase
           .from(tabla)
           .update(payload)
@@ -120,25 +105,18 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
         if (updError) throw updError;
       }
 
-      // 3. ACTUALIZAR CANCIONES (Solo si es personaje)
       if (esPersonaje) {
-        // Desvincular antiguas
         await supabase.from("canciones").update({ personaje: null }).eq("personaje", data?.nombre || editNombre);
-        // Vincular nuevas
         if (editCanciones.length > 0) {
           await supabase.from("canciones").update({ personaje: editNombre }).in("id", editCanciones);
         }
       }
 
-      // 4. ACTUALIZAR VARIANTES (Solo si es criatura)
       if (!esPersonaje && variantes.length > 0) {
         const { error: varError } = await supabase
           .from("criatura_variantes")
           .upsert(
-            variantes.map(v => ({
-              ...v,
-              criatura_id: finalId 
-            })),
+            variantes.map(v => ({ ...v, criatura_id: finalId })),
             { onConflict: "id" }
           );
         if (varError) throw varError;
@@ -146,8 +124,7 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
 
       setEditMode(false);
       if (onUpdate) await onUpdate();
-      
-      return true; // Éxito
+      return true;
 
     } catch (err: any) {
       console.error("Error al guardar:", err);
