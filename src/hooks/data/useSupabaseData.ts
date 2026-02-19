@@ -41,78 +41,77 @@ interface UseSupabaseOptions {
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
   
-  // 1. Inicializar con caché si existe para carga instantánea
+  // Inicialización inmediata con caché
   const [data, setData] = useState<T[]>(() => cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState<string | null>(null);
   
   const isMounted = useRef(true);
-  const retryCount = useRef(0);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
   const optionsString = JSON.stringify(opciones);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
     
-    // Solo activamos loading si no hay datos en absoluto
+    // Solo cargando si no hay datos previos
     if (data.length === 0 && !forceRefresh) {
       setLoading(true);
     }
     
     try {
-      const opt = JSON.parse(optionsString);
       let resultado: any;
-      
-      if (QUERIES_MAP[tabla]) {
-        // Llamada a la query personalizada (ej: canciones.getAll)
-        const res = await QUERIES_MAP[tabla].getAll({ ...opt, tabla });
-        
-        // Manejo de respuesta: cancionesQueries devuelve el array directamente
-        resultado = Array.isArray(res) ? res : (res?.data || []);
+      const queryManager = QUERIES_MAP[tabla];
+
+      if (queryManager) {
+        /**
+         * CORRECCIÓN PARA CANCIONES:
+         * Tu canciones.ts tiene getAll: async () => ...
+         * No acepta el objeto de opciones.
+         */
+        if (tabla === "canciones") {
+          resultado = await queryManager.getAll();
+        } else {
+          const opt = JSON.parse(optionsString);
+          resultado = await queryManager.getAll({ ...opt, tabla });
+        }
       } else {
-        // Fallback genérico a Supabase
-        let selectStr = opt.select || "*";
-        let query = supabase.from(tabla).select(selectStr);
-        
+        // Fallback estándar
+        const opt = JSON.parse(optionsString);
+        let query = supabase.from(tabla).select(opt.select || "*");
         if (opt.order) {
           query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
         }
-        
         const { data: res, error: err } = await query;
         if (err) throw err;
         resultado = res;
       }
       
+      /**
+       * NORMALIZACIÓN DE RESPUESTA:
+       * canciones.ts devuelve el array directamente. 
+       * Otras queries pueden devolver { data, error }.
+       */
+      const finalData = Array.isArray(resultado) ? resultado : (resultado?.data || []);
+
       if (isMounted.current) {
-        const finalData = (resultado || []) as T[];
-        setData(finalData);
-        updateCache(tabla, finalData); // Sincroniza con el DataProvider
+        setData(finalData as T[]);
+        updateCache(tabla, finalData);
         setError(null);
-        retryCount.current = 0;
       }
     } catch (err: any) {
-      console.error(`❌ Error en fetchData [${tabla}]:`, err);
-      if (isMounted.current) {
-        setError(err.message);
-      }
+      console.error(`❌ Error en tabla [${tabla}]:`, err);
+      if (isMounted.current) setError(err.message);
     } finally {
       if (isMounted.current) setLoading(false);
     }
-    // IMPORTANTE: Quitamos 'cache' de las dependencias para evitar bucles infinitos
   }, [tabla, updateCache, optionsString, data.length]);
 
   // --- MÉTODOS CRUD ---
   const addRow = useCallback(async (newData: any) => {
     try {
-      let res;
-      if (QUERIES_MAP[tabla]?.create) {
-        res = await QUERIES_MAP[tabla].create(newData);
-      } else {
-        res = await supabase.from(tabla).insert([newData]).select().single();
-      }
-      if (res.error) throw res.error;
-      return { data: res.data || res, error: null };
+      const res = QUERIES_MAP[tabla]?.create 
+        ? await QUERIES_MAP[tabla].create(newData)
+        : await supabase.from(tabla).insert([newData]).select().single();
+      return { data: res?.data || res, error: null };
     } catch (err: any) {
       return { data: null, error: err.message };
     }
@@ -120,14 +119,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
   const updateRow = useCallback(async (id: string | number, updates: any) => {
     try {
-      let res;
-      if (QUERIES_MAP[tabla]?.update) {
-        res = await QUERIES_MAP[tabla].update(id, updates);
-      } else {
-        res = await supabase.from(tabla).update(updates).eq("id", id).select().single();
-      }
-      if (res.error) throw res.error;
-      return { data: res.data || res, error: null };
+      const res = QUERIES_MAP[tabla]?.update
+        ? await QUERIES_MAP[tabla].update(id, updates)
+        : await supabase.from(tabla).update(updates).eq("id", id).select().single();
+      return { data: res?.data || res, error: null };
     } catch (err: any) {
       return { data: null, error: err.message };
     }
@@ -135,29 +130,28 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
   const deleteRow = useCallback(async (id: string | number) => {
     try {
-      let res;
       if (QUERIES_MAP[tabla]?.delete) {
-        res = await QUERIES_MAP[tabla].delete(id);
+        await QUERIES_MAP[tabla].delete(id);
       } else {
-        res = await supabase.from(tabla).delete().eq("id", id);
+        await supabase.from(tabla).delete().eq("id", id);
       }
-      if (res?.error) throw res.error;
       return { error: null };
     } catch (err: any) {
       return { error: err.message };
     }
   }, [tabla]);
   
-  // --- EFECTO DE INICIALIZACIÓN (OPCIÓN B: RE-VALIDACIÓN) ---
+  // --- EFECTO DE INICIALIZACIÓN (OPCIÓN B) ---
   useEffect(() => {
     isMounted.current = true;
 
-    // Lógica: Si hay algo en caché, lo mostramos (vía useState inicial)
-    // Pero disparamos fetchData(true) para refrescar en background por si hubo cambios
+    // Si hay caché, validamos en background (silent refresh)
+    // Si no hay caché, hacemos carga inicial con loader
     fetchData(!!cache[tabla]);
     
+    // Suscripción Realtime corregida
     const channel = supabase
-      .channel(`rt-${tabla}-${Math.random().toString(36).slice(2)}`)
+      .channel(`rt-${tabla}-${Math.random().toString(36).slice(2, 7)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: tabla }, () => {
         fetchData(true);
       })
@@ -166,24 +160,12 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     return () => {
       isMounted.current = false;
       supabase.removeChannel(channel);
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     };
-  }, [tabla, fetchData]); // Solo re-ejecutar si cambia la tabla o la función fetchData
-  
-  const setSyncedData = useCallback((newDataOrFn: any) => {
-    setData(prev => {
-      const resolved = typeof newDataOrFn === "function" ? newDataOrFn(prev) : newDataOrFn;
-      if (Array.isArray(resolved)) {
-        updateCache(tabla, resolved); 
-        return resolved;
-      }
-      return prev;
-    });
-  }, [tabla, updateCache]);
+  }, [tabla, fetchData]); 
   
   return { 
     data: data || [], 
-    setData: setSyncedData, 
+    setData, 
     loading, 
     error, 
     refetch: () => fetchData(true),
