@@ -31,14 +31,21 @@ interface Cancion {
 
 export const cancionesQueries = {
   /**
-   * Obtiene todas las canciones visibles
+   * Obtiene todas las canciones.
+   * ✅ AHORA ACEPTA OPCIONES: Si es admin ve todas, si no, solo visibles.
    */
-  getAll: async () => {
-    const { data, error } = await supabase
+  getAll: async (options?: { isAdmin?: boolean }) => {
+    let query = supabase
       .from('canciones')
       .select('*')
-      .eq('visible', true)
       .order('created_at', { ascending: false });
+    
+    // Solo filtramos por 'visible' si NO es admin
+    if (!options?.isAdmin) {
+      query = query.eq('visible', true);
+    }
+    
+    const { data, error } = await query;
     
     if (error) throw error;
     return data as Cancion[];
@@ -89,7 +96,7 @@ export const cancionesQueries = {
       .from('canciones')
       .update({
         ...datos,
-        updated_at: new Date().toISOString() // ✅ Actualiza timestamp
+        updated_at: new Date().toISOString()
       })
       .eq('id', id)
       .select()
@@ -115,25 +122,26 @@ export const cancionesQueries = {
   /**
    * Filtrar por personaje
    */
-  getByPersonaje: async (personaje: string) => {
-    const { data, error } = await supabase
+  getByPersonaje: async (personaje: string, options?: { isAdmin?: boolean }) => {
+    let query = supabase
       .from('canciones')
       .select('*')
       .eq('personaje', personaje)
-      .eq('visible', true)
       .order('titulo', { ascending: true });
 
+    if (!options?.isAdmin) {
+      query = query.eq('visible', true);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data as Cancion[];
   },
 
   /**
-   * QUERIES PARA SECCIONES (Estrofas/Coros)
+   * QUERIES PARA SECCIONES
    */
   secciones: {
-    /**
-     * Obtener todas las secciones de una canción
-     */
     getByCancionId: async (cancionId: string) => {
       const { data, error } = await supabase
         .from('secciones_cancion')
@@ -145,9 +153,6 @@ export const cancionesQueries = {
       return data as Seccion[];
     },
 
-    /**
-     * Crear una nueva sección
-     */
     create: async (datos: Omit<Seccion, 'id' | 'created_at'>) => {
       const { data, error } = await supabase
         .from('secciones_cancion')
@@ -159,9 +164,6 @@ export const cancionesQueries = {
       return data as Seccion;
     },
 
-    /**
-     * Actualizar sección existente
-     */
     update: async (id: string, datos: Partial<Omit<Seccion, 'id' | 'created_at'>>) => {
       const { data, error } = await supabase
         .from('secciones_cancion')
@@ -174,9 +176,6 @@ export const cancionesQueries = {
       return data as Seccion;
     },
 
-    /**
-     * Eliminar sección
-     */
     delete: async (id: string) => {
       const { error } = await supabase
         .from('secciones_cancion')
@@ -187,9 +186,6 @@ export const cancionesQueries = {
       return true;
     },
 
-    /**
-     * Reordenar secciones
-     */
     reorder: async (secciones: { id: string; orden: number }[]) => {
       const updates = secciones.map(({ id, orden }) =>
         supabase
