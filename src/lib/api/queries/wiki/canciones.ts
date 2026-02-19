@@ -32,7 +32,7 @@ interface Cancion {
 export const cancionesQueries = {
   /**
    * Obtiene todas las canciones.
-   * ✅ AHORA ACEPTA OPCIONES: Si es admin ve todas, si no, solo visibles.
+   * @param options - Permite pasar { isAdmin: true } para saltar el filtro de visibilidad.
    */
   getAll: async (options?: { isAdmin?: boolean }) => {
     let query = supabase
@@ -40,14 +40,18 @@ export const cancionesQueries = {
       .select('*')
       .order('created_at', { ascending: false });
     
-    // Solo filtramos por 'visible' si NO es admin
+    // 🛡️ Solo aplicamos el filtro de visibilidad si NO es administrador
     if (!options?.isAdmin) {
       query = query.eq('visible', true);
     }
     
     const { data, error } = await query;
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error en cancionesQueries.getAll:", error);
+      throw error;
+    }
+    
     return data as Cancion[];
   },
 
@@ -96,7 +100,7 @@ export const cancionesQueries = {
       .from('canciones')
       .update({
         ...datos,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString() // ✅ Actualiza timestamp
       })
       .eq('id', id)
       .select()
@@ -129,17 +133,19 @@ export const cancionesQueries = {
       .eq('personaje', personaje)
       .order('titulo', { ascending: true });
 
+    // 🛡️ Aplicamos el filtro si NO es administrador
     if (!options?.isAdmin) {
       query = query.eq('visible', true);
     }
 
     const { data, error } = await query;
+
     if (error) throw error;
     return data as Cancion[];
   },
 
   /**
-   * QUERIES PARA SECCIONES
+   * QUERIES PARA SECCIONES (Estrofas/Coros)
    */
   secciones: {
     getByCancionId: async (cancionId: string) => {

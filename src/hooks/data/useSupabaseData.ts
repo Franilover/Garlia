@@ -24,7 +24,7 @@ const QUERIES_MAP: Record<string, any> = {
   "tareas": tareasQueries,
   "eventos": eventosQueries,
   "ingredientes": ingredientesQueries,
-  "ropa": ropaQueries,          
+  "ropa": ropaQueries,           
   "ropa_outfits": ropaQueries,
   "canciones": cancionesQueries 
 };
@@ -54,7 +54,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
     
-    // Mostramos loading solo si no hay datos o si se pide explícitamente
     if (data.length === 0 || forceRefresh) {
       setLoading(true);
     }
@@ -65,12 +64,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let res: any;
       
       if (QUERIES_MAP[tabla]) {
-        // ✅ LÓGICA ESPECIAL PARA CANCIONES: Maneja array directo e isAdmin
-        if (tabla === "canciones") {
-          res = await QUERIES_MAP[tabla].getAll({ isAdmin: opt.isAdmin });
-        } else {
-          res = await QUERIES_MAP[tabla].getAll({ ...opt, tabla });
-        }
+        // ✅ LÓGICA MEJORADA: Pasamos todas las opciones (incluyendo isAdmin) 
+        // a la función getAll de la query correspondiente.
+        res = await QUERIES_MAP[tabla].getAll(opt);
       } else {
         // Fallback genérico de Supabase
         let query = supabase.from(tabla).select(opt.select || "*");
@@ -80,7 +76,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         res = await query;
       }
 
-      // ✅ NORMALIZACIÓN: Acepta tanto [data] como {data, error}
+      // ✅ NORMALIZACIÓN: Maneja tanto el array directo como el objeto {data, error}
       const finalData = Array.isArray(res) ? res : (res?.data || []);
       const errorFetch = res?.error || null;
 
@@ -92,11 +88,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         retryCount.current = 0;
       }
     } catch (err: any) {
-      // ✅ RESILIENCIA: Reintento automático en errores de red
       const isNetworkError = err.message?.includes("fetch") || err.message?.includes("NetworkError");
       if (isNetworkError && retryCount.current < 3) {
         retryCount.current++;
-        console.warn(`Reintento ${retryCount.current} para ${tabla}...`);
         setTimeout(() => fetchData(true), 1000 * retryCount.current);
         return;
       }
@@ -137,13 +131,12 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   // --- REALTIME Y POLLING ---
   useEffect(() => {
     isMounted.current = true;
-    fetchData(); // Carga inicial
+    fetchData();
 
     const channel = supabase.channel(`rt-${tabla}-${Math.random().toString(36).slice(2, 7)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: tabla }, () => fetchData(true))
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" && !pollingIntervalRef.current) {
-          // Si el realtime falla, activamos polling cada 20s
           pollingIntervalRef.current = setInterval(() => fetchData(true), 20000);
         }
       });
@@ -155,7 +148,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     };
   }, [tabla, fetchData]);
 
-  // ✅ RETORNO COMPLETO (Incluye refetch y mutate para compatibilidad)
   return { 
     data: data || [], 
     setData, 
