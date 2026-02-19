@@ -16,9 +16,6 @@ const withPWA = withPWAInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Turbopack aún tiene soporte limitado para Service Workers en algunas versiones,
-  // pero dejar el objeto vacío está bien.
-  turbopack: {}, 
   
   images: {
     remotePatterns: [
