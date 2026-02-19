@@ -771,15 +771,26 @@ export default function CancionDetallesPage() {
     if (!id) return;
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+
+      // ✅ Las 3 requests salen en paralelo — reduce el tiempo de carga ~3x
+      const [
+        { data: { session } },
+        { data: cancionData, error: errorC },
+        { data: seccionesData, error: errorS }
+      ] = await Promise.all([
+        supabase.auth.getSession(),
+        supabase.from("canciones").select("*").eq("id", id).single(),
+        supabase.from("secciones_cancion").select("*").eq("cancion_id", id).order("orden", { ascending: true })
+      ]);
+
       const adminStatus = !!session;
       setIsAdmin(adminStatus);
-      const { data: cancionData, error: errorC } = await supabase.from("canciones").select("*").eq("id", id).single();
+
       if (errorC || !cancionData) { setErrorAcceso(true); return; }
       if (!cancionData.visible && !adminStatus) { setErrorAcceso(true); return; }
-      setCancion(cancionData);
-      const { data: seccionesData, error: errorS } = await supabase.from("secciones_cancion").select("*").eq("cancion_id", id).order("orden", { ascending: true });
       if (errorS) throw errorS;
+
+      setCancion(cancionData);
       setSecciones(seccionesData || []);
     } catch (err) {
       console.error("Error en la carga:", err);
