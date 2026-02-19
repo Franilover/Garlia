@@ -9,7 +9,8 @@ export default function PersonajesGrid() {
     <EntidadPageBase
       tabla="personajes"
       titulo="Personajes"
-      configFiltros={['reino', 'especie']}
+      // Añadimos 'conFoto' aquí para que aparezca el botón global
+      configFiltros={['reino', 'especie', 'conFoto']}
       mostrarMusica={true}
       // Función para extraer los tags que irán al modal
       getCustomTags={(p) => [p?.reino, p?.especie]} 
