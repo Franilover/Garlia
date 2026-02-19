@@ -26,7 +26,7 @@ export default function FiltrosMaestros({
           return (
             <div key={grupo} className="flex flex-col gap-2 items-center">
               <label className="text-[10px] font-black text-[#6B5E70]/60 uppercase tracking-[0.15em] text-center">
-                "Multimedia"
+                Multimedia
               </label>
               <button
                 onClick={() => onChange("conFoto", estaActivo ? "todos" : "solo_con_foto")}
