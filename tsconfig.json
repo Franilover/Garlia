@@ -79,7 +79,7 @@
     "**/*.js",
     "**/*.jsx",
     ".next/dev/types/**/*.ts"
-  ],
+, "src/lib/api/client/db.jt"  ],
   "exclude": [
     "node_modules",
     "supabase"

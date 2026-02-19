@@ -189,7 +189,7 @@ export default function MapaInteractivo() {
             >
               <img
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
-                src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/fanart/01.jpg"}
+                src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
                 className="w-full h-auto block pointer-events-none select-none"
                 onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
