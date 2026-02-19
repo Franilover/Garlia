@@ -2,6 +2,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/components/providers/DataProvider";
+
+// Importaciones de queries
 import { personajesQueries } from "@/lib/api/queries/wiki/personajes";
 import { criaturasQueries } from "@/lib/api/queries/wiki/criaturas";
 import { itemsQueries } from "@/lib/api/queries/wiki/items"; 
@@ -11,6 +13,7 @@ import { tareasQueries } from "@/lib/api/queries/personal/tareas";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 import { ingredientesQueries } from "@/lib/api/queries/personal/cocina/ingredientes";
 import { ropaQueries } from "@/lib/api/queries/personal/ropa";
+import { cancionesQueries } from "@/lib/api/queries/personal/canciones"; // ✅ Añadido
 
 const QUERIES_MAP: Record<string, any> = {
   "personajes": personajesQueries,
@@ -22,7 +25,8 @@ const QUERIES_MAP: Record<string, any> = {
   "eventos": eventosQueries,
   "ingredientes": ingredientesQueries,
   "ropa": ropaQueries,          
-  "ropa_outfits": ropaQueries   
+  "ropa_outfits": ropaQueries,
+  "canciones": cancionesQueries // ✅ Añadido al mapa
 };
 
 interface UseSupabaseOptions {
@@ -37,6 +41,7 @@ interface UseSupabaseOptions {
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
   
+  // Inicializamos con la caché si existe
   const [data, setData] = useState<T[]>(cache[tabla] || []);
   const [loading, setLoading] = useState(!cache[tabla]); 
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +55,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
     
-    if (data.length === 0 || forceRefresh) {
+    // Solo mostramos loading si no hay datos previos o si es un refresh forzado explícito
+    if (data.length === 0 && !forceRefresh) {
       setLoading(true);
     }
     setError(null);
@@ -61,10 +67,13 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let errorFetch;
       
       if (QUERIES_MAP[tabla]) {
+        // Usamos la query personalizada (ej: cancionesQueries.getAll())
         const res = await QUERIES_MAP[tabla].getAll({ ...opt, tabla });
+        // Manejo flexible de la respuesta según cómo devuelva los datos tu API
         resultado = res?.data !== undefined ? res.data : (Array.isArray(res) ? res : []);
         errorFetch = res?.error !== undefined ? res.error : null;
       } else {
+        // Fallback a query genérica de Supabase
         let selectStr = opt.select || "*";
         if (tabla === "precios" && !opt.select) {
           selectStr = "*, ingredientes(nombre, categoria)";
@@ -107,9 +116,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, updateCache, optionsString]);
-  
-  // --- MÉTODOS CRUD CORREGIDOS ---
+  }, [tabla, updateCache, optionsString, data.length]);
+
+  // --- MÉTODOS CRUD ---
   
   const addRow = useCallback(async (newData: any) => {
     try {
@@ -117,7 +126,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let insertedData = null;
       
       if (QUERIES_MAP[tabla]?.create) {
-        const res = await QUERIES_MAP[tabla].create(newData); // ✅ SIN tabla_destino
+        const res = await QUERIES_MAP[tabla].create(newData);
         errorInsert = res?.error;
         insertedData = res?.data;
       } else {
@@ -144,7 +153,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let updatedData = null;
       
       if (QUERIES_MAP[tabla]?.update) {
-        const res = await QUERIES_MAP[tabla].update(id, updates); // ✅ SIN tabla_destino
+        const res = await QUERIES_MAP[tabla].update(id, updates);
         errorUpdate = res?.error;
         updatedData = res?.data;
       } else {
@@ -171,7 +180,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       let errorDelete;
       
       if (QUERIES_MAP[tabla]?.delete) {
-        const res = await QUERIES_MAP[tabla].delete(id); // ✅ Sin segundo parámetro
+        const res = await QUERIES_MAP[tabla].delete(id);
         errorDelete = res?.error;
       } else {
         const { error: err } = await supabase.from(tabla).delete().eq("id", id);
@@ -186,11 +195,17 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
   
-  // --- EFECTO DE INICIALIZACIÓN Y REALTIME ---
+  // --- EFECTO DE INICIALIZACIÓN Y REALTIME (OPCIÓN B IMPLEMENTADA) ---
   
   useEffect(() => {
     isMounted.current = true;
-    fetchData();
+
+    // Si hay datos en caché, hacemos un refresh silencioso para asegurar que están actualizados
+    if (cache[tabla] && cache[tabla].length > 0) {
+      fetchData(true); 
+    } else {
+      fetchData();
+    }
     
     const channelName = `realtime-${tabla}-${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
@@ -200,6 +215,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         () => fetchData(true)
       )
       .subscribe((status) => {
+        if (status === status) { // Conexión exitosa
+           // Opcional: log de suscripción
+        }
         if (status === "CHANNEL_ERROR") {
           console.warn(`Realtime falló en ${tabla}, activando polling...`);
           if (!pollingIntervalRef.current) {
@@ -212,10 +230,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     
     return () => {
       isMounted.current = false;
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     };
-  }, [tabla, fetchData]);
+  }, [tabla, fetchData]); // fetchData ya incluye optionsString en sus dependencias
   
   const setSyncedData = useCallback((newDataOrFn: any) => {
     setData(prev => {
