@@ -14,14 +14,15 @@ export function useFiltrosGenericos(data: any[], config: { campos: string[] }) {
         return;
       }
       const valoresUnicos = Array.from(
-        new Set(
+        new Map(
           data
             .map(item => {
               const val = item[campo];
               return typeof val === 'string' ? val.trim() : val;
             })
             .filter(valor => valor !== null && valor !== undefined && valor !== '')
-        )
+            .map(val => [val.toString().toLowerCase(), val])
+        ).values()
       ).sort();
       result[campo] = valoresUnicos as string[];
     });
