@@ -131,19 +131,19 @@ export default function MapaInteractivo() {
   );
 
   return (
-    <div className="relative flex flex-col md:flex-row w-full bg-[#F8F5F2] overflow-hidden">
+    // Contenedor principal: en móvil es columna, en desktop fila
+    // overflow-hidden para que el panel lateral no genere espacio fantasma
+    <div className="flex flex-col md:flex-row w-full bg-[#F8F5F2] overflow-hidden">
 
-      {/* Contenedor del mapa con tamaño fijo y scroll */}
-      <div
-        className={`relative transition-all duration-500 ease-in-out overflow-auto ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}
-        style={{ height: "600px" }}
-      >
-        {/* Controles solo para admins */}
+      {/* ── SECCIÓN MAPA ── */}
+      <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
+
+        {/* Botones admin */}
         {isAdmin && (
-          <div className="sticky top-6 left-0 right-0 z-[70] flex justify-end gap-2 px-6 pointer-events-none">
+          <div className="absolute top-6 right-6 z-[70] flex gap-2">
             <button
               onClick={() => setEditMode(!editMode)}
-              className={`pointer-events-auto flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-xl border ${editMode ? "bg-red-500 text-white border-red-600" : "bg-white text-[#6B5E70] border-[#6B5E70]/20"}`}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-xl border ${editMode ? "bg-red-500 text-white border-red-600" : "bg-white text-[#6B5E70] border-[#6B5E70]/20"}`}
             >
               {editMode ? <X size={14} /> : <Edit3 size={14} />}
               {editMode ? "Cancelar" : "Editar Mapa"}
@@ -152,7 +152,7 @@ export default function MapaInteractivo() {
               <button
                 onClick={handleSaveChanges}
                 disabled={isSaving}
-                className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-full text-[10px] font-black uppercase shadow-xl hover:bg-green-700 disabled:opacity-50 transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-full text-[10px] font-black uppercase shadow-xl hover:bg-green-700 disabled:opacity-50 transition-all"
               >
                 {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Guardar
@@ -161,7 +161,7 @@ export default function MapaInteractivo() {
           </div>
         )}
 
-        {/* Loader de imagen */}
+        {/* Loader imagen */}
         <AnimatePresence>
           {cargandoImagen && (
             <motion.div
@@ -187,19 +187,18 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
-        {/* Mapa con tamaño fijo 2048x2048 */}
-        <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={1} enabled={!editMode}>
-          <div ref={mapRef} className="origin-top-left" style={{ width: "2048px", height: "2048px" }}>
+        {/* Mapa responsive — se adapta al ancho, pinch/zoom disponible */}
+        <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5} enabled={!editMode}>
+          <div ref={mapRef} className="w-full h-full origin-top-left">
             <div
-              className={`relative w-full h-full ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+              className={`relative inline-block w-full ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
               onClick={handleMapClick}
             >
               <img
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
-                className="block pointer-events-none select-none"
-                style={{ width: "2048px", height: "2048px", objectFit: "cover" }}
+                className="w-full h-auto block pointer-events-none select-none"
                 onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
               />
               {!cargandoImagen && (
@@ -218,14 +217,22 @@ export default function MapaInteractivo() {
         </QuickPinchZoom>
       </div>
 
-      {/* Panel lateral */}
+      {/* ── PANEL LATERAL ──
+          En móvil: cubre toda la pantalla encima del mapa (position absolute)
+          En desktop: ocupa 1/3 al lado del mapa (position relative normal) */}
       <AnimatePresence>
         {vistaActual === "reino" && reinoSeleccionado && (
           <motion.div
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute inset-0 md:relative md:inset-auto w-full md:w-1/3 bg-white border-l border-[#6B5E70]/10 p-10 flex flex-col z-40 shadow-[-20px_0_50px_rgba(0,0,0,0.05)]"
-            style={{ height: "600px" }}
+            className="
+              absolute inset-0 z-40
+              md:relative md:inset-auto md:z-40 md:w-1/3
+              bg-white border-l border-[#6B5E70]/10 p-10
+              flex flex-col
+              shadow-[-20px_0_50px_rgba(0,0,0,0.05)]
+              overflow-y-auto
+            "
           >
             <div className="mb-4 flex items-center gap-2">
               <div className="h-px w-8 bg-[#6B5E70]/30" />
