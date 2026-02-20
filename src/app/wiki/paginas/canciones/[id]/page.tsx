@@ -7,8 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { SmartImage } from "@/components/shared/display/SmartImage";
-import { useFiltrosGenericos } from "@/hooks/useFiltros";
-import FiltrosMaestros from "@/components/shared/filters/Filtros";
+import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
+import FiltrosMaestros from "@/components/shared/forms/Filtros";
 
 // ============================================================================
 // CONSTANTES
@@ -74,7 +74,7 @@ function formReducer(state: any, action: any) {
     case "RESET_ADD": return {
       ...state,
       nuevoTitulo: "",
-      nuevoPersonaje: "",
+      nuevoPersonaje: ""/home/frani/MySpace/Code/agenda-next/src/hooks/features/useFiltros.tsx,
       nuevoEstado: "BORRADOR",
       nuevoCantante: "",
       nuevoCompositor: "",
