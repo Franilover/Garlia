@@ -100,50 +100,6 @@ export default function SobreMi() {
               </div>
             </div>
           </section>
-
-          {/* SECCIÓN 4: CONTACTO */}
-          <section className="pt-10">
-            <div className="bg-primary rounded-[3rem] p-8 md:p-16 text-white shadow-2xl shadow-primary/20">
-              {enviado ? (
-                <div className="text-center py-10">
-                  <Heart size={40} className="mx-auto text-white/40 mb-6 animate-pulse" />
-                  <p className="font-black italic text-2xl uppercase tracking-tighter mb-4">¡Mensaje enviado!</p>
-                  <button onClick={() => setEnviado(false)} className="text-[10px] font-black uppercase tracking-widest border-b border-white/30 pb-1 hover:border-white transition-colors">
-                    Enviar otro
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <h2 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter mb-12 flex items-center gap-4">
-                    <Send size={24} className="opacity-30" /> Contacto
-                  </h2>
-                  
-                  <form onSubmit={handleSubmit} className="space-y-10">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                      <div className="group border-b border-white/20 focus-within:border-white transition-colors">
-                        <label className="text-[8px] font-black uppercase tracking-widest opacity-40">Nombre</label>
-                        <input type="text" name="name" required placeholder="¿Cómo te llamas?" className="w-full bg-transparent py-2 outline-none placeholder:text-white/10 font-medium" />
-                      </div>
-                      <div className="group border-b border-white/20 focus-within:border-white transition-colors">
-                        <label className="text-[8px] font-black uppercase tracking-widest opacity-40">Email</label>
-                        <input type="email" name="_replyto" required placeholder="tu@email.com" className="w-full bg-transparent py-2 outline-none placeholder:text-white/10 font-medium" />
-                      </div>
-                    </div>
-                    <div className="group border-b border-white/20 focus-within:border-white transition-colors">
-                      <label className="text-[8px] font-black uppercase tracking-widest opacity-40">Mensaje</label>
-                      <textarea name="message" required placeholder="Cuéntame lo que quieras..." className="w-full bg-transparent py-2 outline-none min-h-[100px] resize-none placeholder:text-white/10 font-medium"></textarea>
-                    </div>
-                    
-                    <button type="submit" disabled={loading} className="w-full md:w-auto px-12 py-5 bg-white text-primary rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-white/90 transition-all active:scale-95 disabled:opacity-50">
-                      {loading ? "Enviando..." : (
-                        <span className="flex items-center justify-center gap-3">Enviar Mensaje <ArrowRight size={16} /></span>
-                      )}
-                    </button>
-                  </form>
-                </>
-              )}
-            </div>
-          </section>
         </div>
       </main>
     </div>
