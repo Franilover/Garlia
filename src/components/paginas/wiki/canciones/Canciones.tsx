@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useReducer, useCallback } from "react";
 import Link from "next/link";
-import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2, Globe, Mic2, PenTool, LayoutGrid, AlignJustify } from "lucide-react";
+import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2, Globe, Mic2, PenTool, LayoutGrid, AlignJustify, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
@@ -238,6 +238,7 @@ const Canciones = () => {
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const [formState, dispatchForm] = useReducer(formReducer, initialFormState);
   const [vistaGrid, setVistaGrid] = useState(true);
+  const [busqueda, setBusqueda] = useState("");
 
   // ✅ Hook de filtros genérico
   const {
@@ -248,7 +249,12 @@ const Canciones = () => {
     resetearFiltros
   } = useFiltrosGenericos(canciones, FILTROS_CONFIG);
 
-  const hayFiltrosActivos = Object.values(filtros).some(v => v !== "todos");
+  // ✅ Filtro adicional por búsqueda de título
+  const cancionesFinales = cancionesFiltradas.filter((c: any) =>
+    c.titulo.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
+  const hayFiltrosActivos = Object.values(filtros).some(v => v !== "todos") || busqueda !== "";
 
   const openEditModal = useCallback((e: any, cancion: any) => {
     e.preventDefault();
@@ -579,6 +585,35 @@ const Canciones = () => {
       {/* SECCIÓN DE FILTROS */}
       <section className="max-w-6xl mx-auto px-6 mb-16">
         <div className="bg-white/50 backdrop-blur-sm border border-[#6B5E70]/10 p-6 rounded-[2.5rem] flex flex-col gap-4">
+
+          {/* BARRA DE BÚSQUEDA */}
+          <div className="relative">
+            <Search
+              size={16}
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#6B5E70]/30 pointer-events-none"
+            />
+            <input
+              type="text"
+              placeholder="Buscar por título..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 pl-12 pr-12 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30 transition-all placeholder:text-[#6B5E70]/20 placeholder:normal-case placeholder:font-normal"
+            />
+            <AnimatePresence>
+              {busqueda && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={() => setBusqueda("")}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B5E70]/30 hover:text-[#6B5E70] transition-colors p-1"
+                >
+                  <X size={16} />
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
+
           <FiltrosMaestros
             config={opciones}
             filtrosActivos={filtros}
@@ -588,7 +623,7 @@ const Canciones = () => {
           <div className="flex items-center justify-between">
             {hayFiltrosActivos ? (
               <button
-                onClick={resetearFiltros}
+                onClick={() => { resetearFiltros(); setBusqueda(""); }}
                 className="text-[#6B5E70]/40 hover:text-red-500 transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2 px-4"
               >
                 <X size={14} /> Limpiar filtros
@@ -620,12 +655,12 @@ const Canciones = () => {
 
       <main className="max-w-6xl mx-auto px-6">
         <div className={`grid gap-4 ${vistaGrid ? "grid-cols-2 gap-12" : "grid-cols-1"}`}>
-          {cancionesFiltradas.map((cancion: any) => (
+          {cancionesFinales.map((cancion: any) => (
             <CancionCard key={cancion.id} cancion={cancion} isAdmin={isAdmin} onEdit={openEditModal} vistaFila={!vistaGrid} />
           ))}
         </div>
 
-        {cancionesFiltradas.length === 0 && (
+        {cancionesFinales.length === 0 && (
           <div className="text-center py-20">
             <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
             <p className="text-[#6B5E70]/20 font-black uppercase tracking-[0.5em] text-xs">No se encontraron soliloquios</p>
