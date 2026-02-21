@@ -535,14 +535,16 @@ export const GestionPersonal = () => {
   const handleToggle = async (id: string, completada: boolean) => {
     try {
       await tareasQueries.updateStatus(id, !completada);
-      setTareas(tareas.map((t: any) => t.id === id ? { ...t, completada: !completada } : t));
+      // eslint-disable-next-line eqeqeq
+      setTareas(tareas.map((t: any) => t.id == id ? { ...t, completada: !completada } : t));
     } catch (err) { console.error(err); }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await tareasQueries.delete(id);
-      setTareas(tareas.filter((t: any) => t.id !== id));
+      // eslint-disable-next-line eqeqeq
+      setTareas(tareas.filter((t: any) => t.id != id));
     } catch (err) { console.error(err); }
   };
 
