@@ -11,7 +11,6 @@ import PageHeader from "@/components/shared/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/components/shared/feedback/StateComponents";
 import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { useFiltrosGenericos } from '@/hooks/features/useFiltros';
-import { typography } from '@/lib/config/design-system';
 import { CATEGORIAS, getMensaje } from '@/lib/config/constants';
 
 function DiarioContent() {
@@ -41,7 +40,6 @@ function DiarioContent() {
       </p>
     </main>
   );
-
   if (loading) return <LoadingState mensaje={getMensaje('LOADING', 'fotos')} />;
   
   return (
@@ -62,14 +60,7 @@ function DiarioContent() {
             key={e.id} 
             src={e.url_imagen} 
             onClick={() => openLightbox(i, lbData, 'diario_fotos')}
-          >
-            <p className={`${typography.tag} mb-1 opacity-60`}>
-              {e.categoria}
-            </p>
-            <h3 className={typography.cardTitle}>
-              {e.fecha}
-            </h3>
-          </GalleryItem>
+          />
         ))}
         
         {itemsFiltrados.length === 0 && (
@@ -78,14 +69,11 @@ function DiarioContent() {
           </div>
         )}
       </GalleryGrid>
-
-      {/* 👇 Necesario para que el lightbox se renderice */}
       <LightboxVisual />
     </main>
   );
 }
 
-// 👇 Provider envuelve todo el contenido
 export default function Diario() {
   return (
     <LightboxProvider>
