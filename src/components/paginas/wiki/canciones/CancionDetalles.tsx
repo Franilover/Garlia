@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/shared/display/SmartImage";
+import { MassEditModal } from "@/components/paginas/wiki/canciones/MassEditor";
 
 // ============================================================================
 // CONSTANTES Y CONFIGURACIÓN
@@ -190,353 +191,6 @@ const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
     )}
   </motion.div>
 );
-
-// ============================================================================
-// 🔥 MODAL DE EDICIÓN MASIVA - VERSIÓN OPTIMIZADA (SIN LAG)
-// ============================================================================
-
-const MassEditModal = ({ isOpen, onClose, secciones, isProcessing, onSave }) => {
-  const [localSecciones, setLocalSecciones] = useState([]);
-  const [activeTab, setActiveTab] = useState("es");
-  
-  // Estados para el auto-guardado optimizado
-  const [cambiosPendientes, setCambiosPendientes] = useState(false);
-  const [guardandoAuto, setGuardandoAuto] = useState(false);
-  const [ultimoGuardado, setUltimoGuardado] = useState(null);
-  const [autoGuardadoActivo, setAutoGuardadoActivo] = useState(true); // NUEVO: control manual
-  const saveTimerRef = useRef(null);
-
-  // Inicializar secciones locales
-  useEffect(() => {
-    if (isOpen && secciones) {
-      setLocalSecciones(JSON.parse(JSON.stringify(secciones)));
-      setCambiosPendientes(false);
-    }
-  }, [isOpen, secciones]);
-
-  // 🔥 AUTO-GUARDADO CON DEBOUNCE - ESTO ELIMINA EL LAG
-  useEffect(() => {
-    if (cambiosPendientes && !isProcessing && !guardandoAuto && autoGuardadoActivo) {
-      // Cancelar guardado anterior si existe
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-
-      // Programar guardado después de 2 segundos de inactividad
-      saveTimerRef.current = setTimeout(async () => {
-        console.log('🔄 Iniciando auto-guardado...', { 
-          totalSecciones: localSecciones.length,
-          secciones: localSecciones.map(s => ({ 
-            id: s.id, 
-            nombre: s.nombre_seccion,
-            esNueva: s.id.toString().startsWith('temp-')
-          }))
-        });
-        
-        setGuardandoAuto(true);
-        try {
-          const seccionesConOrden = localSecciones.map((s, idx) => ({
-            ...s,
-            orden: idx + 1
-          }));
-          
-          await onSave(seccionesConOrden);
-          console.log('✅ Auto-guardado exitoso');
-          setUltimoGuardado(new Date());
-          setCambiosPendientes(false);
-        } catch (error) {
-          console.error('❌ Error al auto-guardar:', error);
-          // Si hay error de copyright, desactivar auto-guardado
-          if (error.message?.includes('bloqueada') || error.message?.includes('autor')) {
-            setAutoGuardadoActivo(false);
-            alert('⚠️ Auto-guardado desactivado debido a restricciones de contenido. Usa "Guardar Ahora" manualmente.');
-          }
-        } finally {
-          setGuardandoAuto(false);
-        }
-      }, 2000); // 2 segundos de espera
-    }
-
-    return () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-    };
-  }, [cambiosPendientes, localSecciones, isProcessing, guardandoAuto, autoGuardadoActivo, onSave]);
-
-  // 🔥 GUARDADO MANUAL CON CTRL+S o CMD+S
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's' && isOpen) {
-        e.preventDefault();
-        if (saveTimerRef.current) {
-          clearTimeout(saveTimerRef.current);
-        }
-        handleGuardarManual();
-      }
-    };
-
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isOpen, localSecciones]);
-
-  // 🔥 HANDLER DE CAMBIOS - ACTUALIZACIÓN INMEDIATA (SIN LAG)
-  const handleChange = useCallback((id, campo, valor) => {
-    setLocalSecciones(prev => {
-      const idx = prev.findIndex(s => s.id === id);
-      if (idx === -1) return prev;
-      const copia = [...prev];
-      copia[idx] = { ...copia[idx], [campo]: valor };
-      return copia;
-    });
-    // Marca que hay cambios pendientes (esto dispara el auto-guardado después de 2 seg)
-    setCambiosPendientes(true);
-  }, []);
-
-  const handleGuardarManual = async () => {
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-    }
-    setGuardandoAuto(true);
-    try {
-      const seccionesConOrden = localSecciones.map((s, idx) => ({
-        ...s,
-        orden: idx + 1
-      }));
-      await onSave(seccionesConOrden);
-      setUltimoGuardado(new Date());
-      setCambiosPendientes(false);
-    } finally {
-      setGuardandoAuto(false);
-    }
-  };
-
-  const moverSeccion = (index, direccion) => {
-    const newIndex = index + direccion;
-    if (newIndex < 0 || newIndex >= localSecciones.length) return;
-    setLocalSecciones(prev => {
-      const copia = [...prev];
-      [copia[index], copia[newIndex]] = [copia[newIndex], copia[index]];
-      return copia;
-    });
-    setCambiosPendientes(true);
-  };
-
-  const eliminarSeccion = (index) => {
-    if (!confirm("¿Eliminar esta sección? No se puede deshacer.")) return;
-    setLocalSecciones(prev => prev.filter((_, i) => i !== index));
-    setCambiosPendientes(true);
-  };
-
-  const añadirSeccion = () => {
-    const nueva = {
-      id: `temp-${Date.now()}`,
-      nombre_seccion: "NUEVA SECCIÓN",
-      letra_es: "",
-      letra_en: "",
-      letra_jp: "",
-      letra_romaji: ""
-    };
-    setLocalSecciones(prev => [...prev, nueva]);
-    setCambiosPendientes(true);
-  };
-
-  const getEstadoGuardado = () => {
-    if (guardandoAuto) return { text: "Guardando...", color: "text-blue-500 border-blue-200", icon: <Loader2 className="animate-spin" size={14} /> };
-    if (cambiosPendientes) return { text: "Cambios sin guardar", color: "text-yellow-600 border-yellow-200", icon: <Save size={14} /> };
-    if (ultimoGuardado) return { text: "Guardado", color: "text-green-600 border-green-200", icon: <CheckCircle size={14} /> };
-    return { text: "", color: "", icon: null };
-  };
-
-  const estadoGuardado = getEstadoGuardado();
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md"
-          />
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="bg-[#FDFCFD] w-full max-w-6xl h-full md:h-[90vh] md:rounded-[3rem] shadow-2xl relative z-10 border border-[#6B5E70]/10 flex flex-col overflow-hidden"
-          >
-            {/* Header */}
-            <div className="px-10 py-6 border-b border-[#6B5E70]/10 flex items-center justify-between bg-white">
-              <div className="flex items-center gap-4">
-                <div className="bg-[#6B5E70] p-2 rounded-xl text-white">
-                  <Layers size={18} />
-                </div>
-                <div>
-                  <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.3em] italic">
-                    Editor Maestro
-                  </h3>
-                  <p className="text-[8px] font-bold text-[#6B5E70]/40 uppercase tracking-widest mt-1">
-                    Gestionando {localSecciones.length} secciones
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                {/* Indicador de estado de guardado */}
-                {estadoGuardado.text && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border ${estadoGuardado.color} text-[10px] font-bold uppercase`}
-                  >
-                    {estadoGuardado.icon}
-                    {estadoGuardado.text}
-                  </motion.div>
-                )}
-
-                {/* Toggle de auto-guardado */}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setAutoGuardadoActivo(!autoGuardadoActivo)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-colors ${
-                    autoGuardadoActivo 
-                      ? 'bg-green-100 text-green-700 border border-green-200' 
-                      : 'bg-gray-100 text-gray-500 border border-gray-200'
-                  }`}
-                  title={autoGuardadoActivo ? 'Auto-guardado activado' : 'Auto-guardado desactivado'}
-                >
-                  <div className={`w-2 h-2 rounded-full ${autoGuardadoActivo ? 'bg-green-500' : 'bg-gray-400'}`} />
-                  Auto
-                </motion.button>
-
-                <div className="flex gap-1 bg-[#6B5E70]/5 p-1 rounded-xl border border-[#6B5E70]/10">
-                  {IDIOMAS.map((lang) => (
-                    <button
-                      key={lang.id}
-                      onClick={() => setActiveTab(lang.id)}
-                      className={`px-4 py-2 rounded-lg font-black text-[9px] uppercase transition-all ${
-                        activeTab === lang.id
-                          ? "bg-[#6B5E70] text-white shadow-md"
-                          : "text-[#6B5E70]/40 hover:text-[#6B5E70]"
-                      }`}
-                    >
-                      {lang.label}
-                    </button>
-                  ))}
-                </div>
-                <motion.button
-                  whileHover={{ rotate: 90 }}
-                  onClick={onClose}
-                  className="text-[#6B5E70]/20 hover:text-red-500 transition-all p-2"
-                >
-                  <X size={24} />
-                </motion.button>
-              </div>
-            </div>
-
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar">
-              {localSecciones.map((sec, idx) => (
-                <div key={sec.id} className="group relative bg-white border border-[#6B5E70]/5 p-6 rounded-[2rem] hover:shadow-xl transition-all">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex flex-col gap-1">
-                        <button 
-                          disabled={idx === 0}
-                          onClick={() => moverSeccion(idx, -1)}
-                          className="text-[#6B5E70]/20 hover:text-[#6B5E70] disabled:opacity-0 transition-all"
-                        >
-                          <ChevronDown size={14} className="rotate-180" />
-                        </button>
-                        <button 
-                          disabled={idx === localSecciones.length - 1}
-                          onClick={() => moverSeccion(idx, 1)}
-                          className="text-[#6B5E70]/20 hover:text-[#6B5E70] disabled:opacity-0 transition-all"
-                        >
-                          <ChevronDown size={14} />
-                        </button>
-                      </div>
-                      <span className="text-[10px] font-black text-[#6B5E70]/20 uppercase italic">
-                        #{(idx + 1).toString().padStart(2, '0')}
-                      </span>
-                      <input 
-                        type="text"
-                        value={sec.nombre_seccion}
-                        onChange={(e) => handleChange(sec.id, "nombre_seccion", e.target.value.toUpperCase())}
-                        className="bg-transparent border-b border-[#6B5E70]/10 text-[#6B5E70] font-black uppercase text-[10px] tracking-widest outline-none focus:border-[#6B5E70] transition-colors pb-1"
-                        placeholder="NOMBRE DE SECCIÓN"
-                      />
-                    </div>
-                    
-                    <button 
-                      onClick={() => eliminarSeccion(idx)}
-                      className="text-[#6B5E70]/10 hover:text-red-400 transition-colors p-2"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                  
-                  {/* 🔥 TEXTAREA OPTIMIZADO - Sin lag en la escritura */}
-                  <textarea
-                    value={sec[`letra_${activeTab}`] || ""}
-                    onChange={(e) => handleChange(sec.id, `letra_${activeTab}`, e.target.value)}
-                    rows={Math.max(3, (sec[`letra_${activeTab}`]?.split('\n').length || 0))}
-                    className="w-full bg-[#FDFCFD] border border-[#6B5E70]/5 rounded-[1.5rem] p-6 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/30 transition-all resize-none"
-                    placeholder={`Contenido en ${IDIOMAS.find(i => i.id === activeTab)?.nombre.toLowerCase()}...`}
-                  />
-                </div>
-              ))}
-
-              <button 
-                onClick={añadirSeccion}
-                className="w-full py-8 border-2 border-dashed border-[#6B5E70]/10 rounded-[2rem] text-[#6B5E70]/30 hover:border-[#6B5E70]/30 hover:text-[#6B5E70] hover:bg-[#6B5E70]/5 transition-all flex flex-col items-center justify-center gap-2"
-              >
-                <Plus size={20} />
-                <span className="font-black uppercase text-[10px] tracking-widest">Añadir nueva sección</span>
-              </button>
-            </div>
-
-            {/* Footer con info de guardado */}
-            <div className="p-8 border-t border-[#6B5E70]/10 bg-white flex justify-between items-center">
-              <p className="text-[9px] font-bold text-[#6B5E70]/40 uppercase tracking-wider">
-                {autoGuardadoActivo ? (
-                  <>💡 Los cambios se guardan automáticamente • Presiona <kbd className="px-2 py-1 bg-[#6B5E70]/5 rounded text-[#6B5E70] font-mono">Ctrl+S</kbd> para guardar ahora</>
-                ) : (
-                  <>⚠️ Auto-guardado desactivado • Usa "Guardar Ahora" para guardar cambios</>
-                )}
-              </p>
-              <div className="flex gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleGuardarManual}
-                  disabled={!cambiosPendientes || guardandoAuto}
-                  className="px-6 py-3 bg-[#6B5E70] text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#5A4D5F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {guardandoAuto ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  {guardandoAuto ? "Guardando..." : "Guardar Ahora"}
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={onClose}
-                  className="px-6 py-3 bg-[#6B5E70]/10 text-[#6B5E70] rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#6B5E70]/20 transition-colors"
-                >
-                  Cerrar
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-};
 
 // ============================================================================
 // MODAL DE LETRA COMPLETA
@@ -772,7 +426,6 @@ export default function CancionDetallesPage() {
     try {
       setLoading(true);
 
-      // ✅ Las 3 requests salen en paralelo — reduce el tiempo de carga ~3x
       const [
         { data: { session } },
         { data: cancionData, error: errorC },
@@ -932,93 +585,45 @@ export default function CancionDetallesPage() {
   };
 
   const handleMassUpdate = async (seccionesEditadas) => {
-    console.log('📝 handleMassUpdate iniciado', {
-      totalSecciones: seccionesEditadas.length,
-      cancionId: id
-    });
-
     try {
-      // Separar secciones nuevas de existentes
-      const seccionesNuevas = seccionesEditadas.filter(sec => 
-        sec.id.toString().startsWith("temp-")
-      );
-      const seccionesExistentes = seccionesEditadas.filter(sec => 
-        !sec.id.toString().startsWith("temp-")
-      );
+      const seccionesNuevas = seccionesEditadas.filter(sec => sec.id.toString().startsWith("temp-"));
+      const seccionesExistentes = seccionesEditadas.filter(sec => !sec.id.toString().startsWith("temp-"));
 
-      console.log('📊 Análisis:', {
-        nuevas: seccionesNuevas.length,
-        existentes: seccionesExistentes.length
-      });
-
-      // INSERTAR NUEVAS SECCIONES (una por una para mejor control)
       if (seccionesNuevas.length > 0) {
-        console.log('➕ Insertando secciones nuevas...');
-        
         for (const sec of seccionesNuevas) {
           const nuevaSeccion = {
             cancion_id: parseInt(id),
             nombre_seccion: sec.nombre_seccion,
-            letra_es: sec.letra_es || '',
-            letra_en: sec.letra_en || '',
-            letra_jp: sec.letra_jp || '',
-            letra_romaji: sec.letra_romaji || '',
+            letra_es: sec.letra_es || "",
+            letra_en: sec.letra_en || "",
+            letra_jp: sec.letra_jp || "",
+            letra_romaji: sec.letra_romaji || "",
             orden: sec.orden
           };
-          
-          console.log('📤 Insertando:', nuevaSeccion.nombre_seccion);
-          
-          const { error } = await supabase
-            .from("secciones_cancion")
-            .insert([nuevaSeccion]);
-          
-          if (error) {
-            console.error('❌ Error al insertar:', error);
-            throw error;
-          }
+          const { error } = await supabase.from("secciones_cancion").insert([nuevaSeccion]);
+          if (error) throw error;
         }
-        
-        console.log('✅ Todas las inserciones exitosas');
       }
 
-      // ACTUALIZAR SECCIONES EXISTENTES (una por una)
       if (seccionesExistentes.length > 0) {
-        console.log('🔄 Actualizando secciones existentes...');
-        
         for (const sec of seccionesExistentes) {
           const updates = {
             nombre_seccion: sec.nombre_seccion,
-            letra_es: sec.letra_es || '',
-            letra_en: sec.letra_en || '',
-            letra_jp: sec.letra_jp || '',
-            letra_romaji: sec.letra_romaji || '',
+            letra_es: sec.letra_es || "",
+            letra_en: sec.letra_en || "",
+            letra_jp: sec.letra_jp || "",
+            letra_romaji: sec.letra_romaji || "",
             orden: sec.orden
           };
-          
-          console.log(`📝 Actualizando sección ${sec.id}:`, sec.nombre_seccion);
-          
-          const { error } = await supabase
-            .from("secciones_cancion")
-            .update(updates)
-            .eq("id", sec.id);
-          
-          if (error) {
-            console.error(`❌ Error al actualizar sección ${sec.id}:`, error);
-            throw error;
-          }
+          const { error } = await supabase.from("secciones_cancion").update(updates).eq("id", sec.id);
+          if (error) throw error;
         }
-        
-        console.log('✅ Todas las actualizaciones exitosas');
       }
 
-      // Recargar datos
-      console.log('🔄 Recargando datos...');
       await fetchData();
-      console.log('✅ handleMassUpdate completado exitosamente');
-      
     } catch (error) {
-      console.error("❌ Error crítico en handleMassUpdate:", error);
-      alert("Error al guardar: " + (error.message || 'Error desconocido'));
+      console.error("Error en handleMassUpdate:", error);
+      alert("Error al guardar: " + (error.message || "Error desconocido"));
       throw error;
     }
   };
@@ -1049,17 +654,70 @@ export default function CancionDetallesPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20 relative">
-      <LinksModal isOpen={modalState.showLinksModal} onClose={() => { dispatchModal({ type: "CLOSE_LINKS" }); dispatchForm({ type: "RESET_LINK" }); }} isProcessing={modalState.procesando} titulo={formState.nuevoLinkTitulo} onTituloChange={(val) => dispatchForm({ type: "SET_LINK", payload: { nuevoLinkTitulo: val } })} url={formState.nuevoLinkUrl} onUrlChange={(val) => dispatchForm({ type: "SET_LINK", payload: { nuevoLinkUrl: val } })} onSave={handleSaveLink} links={cancion?.links || []} onEdit={prepararEdicionLink} onDelete={removeLink} isEditing={modalState.linkEditandoIndex !== null} />
-      <SeccionModal isOpen={modalState.showAddModal} isEditing={false} onClose={() => { dispatchModal({ type: "CLOSE_ADD" }); dispatchForm({ type: "RESET_NUEVA" }); }} isProcessing={modalState.procesando} nombre={formState.nuevoNombre} onNombreChange={(val) => dispatchForm({ type: "SET_NUEVA_SECCION", payload: { nuevoNombre: val } })} es={formState.nuevaLetraEs} onEsChange={(val) => dispatchForm({ type: "SET_NUEVA_SECCION", payload: { nuevaLetraEs: val } })} en={formState.nuevaLetraEn} onEnChange={(val) => dispatchForm({ type: "SET_NUEVA_SECCION", payload: { nuevaLetraEn: val } })} jp={formState.nuevaLetraJp} onJpChange={(val) => dispatchForm({ type: "SET_NUEVA_SECCION", payload: { nuevaLetraJp: val } })} romaji={formState.nuevaLetraRomaji} onRomajiChange={(val) => dispatchForm({ type: "SET_NUEVA_SECCION", payload: { nuevaLetraRomaji: val } })} onSave={handleCrearSeccion} />
-      <SeccionModal isOpen={modalState.showEditSecModal} isEditing={true} onClose={() => { dispatchModal({ type: "CLOSE_EDIT_SEC" }); dispatchForm({ type: "RESET_EDIT" }); }} isProcessing={modalState.procesando} nombre={formState.editSecNombre} onNombreChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecNombre: val } })} es={formState.editSecEs} onEsChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecEs: val } })} en={formState.editSecEn} onEnChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecEn: val } })} jp={formState.editSecJp} onJpChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecJp: val } })} romaji={formState.editSecRomaji} onRomajiChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecRomaji: val } })} onSave={handleUpdateSeccion} onDelete={() => { if (confirm("¿Borrar esta sección? No se puede deshacer.")) deleteSeccion(); }} />
-      <FullLyricsModal isOpen={modalState.showFullLyricsModal} onClose={() => dispatchModal({ type: "CLOSE_FULL_LYRICS" })} secciones={secciones} idiomaActivo={idiomasActivos} />
-      
-      <MassEditModal 
+      <LinksModal
+        isOpen={modalState.showLinksModal}
+        onClose={() => { dispatchModal({ type: "CLOSE_LINKS" }); dispatchForm({ type: "RESET_LINK" }); }}
+        isProcessing={modalState.procesando}
+        titulo={formState.nuevoLinkTitulo}
+        onTituloChange={(val) => dispatchForm({ type: "SET_LINK", payload: { nuevoLinkTitulo: val } })}
+        url={formState.nuevoLinkUrl}
+        onUrlChange={(val) => dispatchForm({ type: "SET_LINK", payload: { nuevoLinkUrl: val } })}
+        onSave={handleSaveLink}
+        links={cancion?.links || []}
+        onEdit={prepararEdicionLink}
+        onDelete={removeLink}
+        isEditing={modalState.linkEditandoIndex !== null}
+      />
+      <SeccionModal
+        isOpen={modalState.showAddModal}
+        isEditing={false}
+        onClose={() => { dispatchModal({ type: "CLOSE_ADD" }); dispatchForm({ type: "RESET_NUEVA" }); }}
+        isProcessing={modalState.procesando}
+        nombre={formState.nuevoNombre}
+        onNombreChange={(val) => dispatchForm({ type: "SET_NUEVA_SECCION", payload: { nuevoNombre: val } })}
+        es={formState.nuevaLetraEs}
+        onEsChange={(val) => dispatchForm({ type: "SET_NUEVA_SECCION", payload: { nuevaLetraEs: val } })}
+        en={formState.nuevaLetraEn}
+        onEnChange={(val) => dispatchForm({ type: "SET_NUEVA_SECCION", payload: { nuevaLetraEn: val } })}
+        jp={formState.nuevaLetraJp}
+        onJpChange={(val) => dispatchForm({ type: "SET_NUEVA_SECCION", payload: { nuevaLetraJp: val } })}
+        romaji={formState.nuevaLetraRomaji}
+        onRomajiChange={(val) => dispatchForm({ type: "SET_NUEVA_SECCION", payload: { nuevaLetraRomaji: val } })}
+        onSave={handleCrearSeccion}
+      />
+      <SeccionModal
+        isOpen={modalState.showEditSecModal}
+        isEditing={true}
+        onClose={() => { dispatchModal({ type: "CLOSE_EDIT_SEC" }); dispatchForm({ type: "RESET_EDIT" }); }}
+        isProcessing={modalState.procesando}
+        nombre={formState.editSecNombre}
+        onNombreChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecNombre: val } })}
+        es={formState.editSecEs}
+        onEsChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecEs: val } })}
+        en={formState.editSecEn}
+        onEnChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecEn: val } })}
+        jp={formState.editSecJp}
+        onJpChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecJp: val } })}
+        romaji={formState.editSecRomaji}
+        onRomajiChange={(val) => dispatchForm({ type: "SET_EDIT_SECCION", payload: { editSecRomaji: val } })}
+        onSave={handleUpdateSeccion}
+        onDelete={() => { if (confirm("¿Borrar esta sección? No se puede deshacer.")) deleteSeccion(); }}
+      />
+      <FullLyricsModal
+        isOpen={modalState.showFullLyricsModal}
+        onClose={() => dispatchModal({ type: "CLOSE_FULL_LYRICS" })}
+        secciones={secciones}
+        idiomaActivo={idiomasActivos}
+      />
+
+      {/* ✅ NUEVO: MassEditModal importado desde MassEditor.tsx */}
+      <MassEditModal
         isOpen={modalState.showMassEditModal}
         onClose={() => dispatchModal({ type: "CLOSE_MASS_EDIT" })}
         secciones={secciones}
         isProcessing={modalState.procesando}
         onSave={handleMassUpdate}
+        cancionId={id}
       />
 
       <motion.button whileHover={{ x: -4 }} onClick={() => router.push("/wiki/paginas/canciones")} className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase transition-colors italic"><ChevronLeft size={16} />Volver al Cancionero</motion.button>
