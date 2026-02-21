@@ -28,7 +28,7 @@ interface Evento {
 }
 
 interface CalendarioSemanalProps {
-  eventos: Evento[];
+  eventos?: Evento[];
   capitulosRaw?: any[];
   onAddEvento?: (fecha: string, titulo: string, tipo: string) => Promise<void>;
   isAddingEvento?: boolean;
@@ -426,3 +426,5 @@ export const CalendarioSemanal = ({
     </div>
   );
 };
+
+export { CalendarioSemanal as GestionPersonal };

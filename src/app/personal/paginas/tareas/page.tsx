@@ -1,5 +1,6 @@
 "use client";
-import { GestionPersonal } from "@/components/paginas/personal/tareas"; // Asegúrate de que el nombre coincida con el export de tu archivo
+
+import { GestionPersonal } from "@/components/paginas/personal/tareas";
 import { Clock } from "lucide-react";
 
 export default function TareasPage() {
@@ -11,8 +12,6 @@ export default function TareasPage() {
           <span>Agenda <span className="text-primary/40 text-2xl">Personal</span></span>
         </h1>
       </header>
-
-      {/* Aquí insertamos el componente que tienes en features */}
       <GestionPersonal />
     </main>
   );
