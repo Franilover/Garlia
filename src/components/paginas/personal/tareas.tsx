@@ -103,6 +103,7 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
   const [pomSegundos, setPomSegundos] = useState(25 * 60);
   const [pomActivo, setPomActivo] = useState(false);
   const [pomTerminado, setPomTerminado] = useState(false);
+  const [pomPantallaCompleta, setPomPantallaCompleta] = useState(false);
   const pomRef = useCallback((node: any) => {}, []);
 
   // Reloj real
@@ -194,7 +195,7 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
             <span className="text-3xl font-black tracking-tighter tabular-nums italic text-primary">{formatoHora}</span>
           </div>
         </div>
-        <div className="hidden sm:block h-10 w-[1px] bg-primary/10 mx-2" />
+        <div className="hidden sm:block h-10 w-px bg-primary/10 mx-2" />
         <div className="flex flex-col items-center sm:items-start flex-1">
           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 italic">Actividad Programada</span>
           <span className="text-sm font-black uppercase tracking-tight italic text-primary">
@@ -237,11 +238,19 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
                 </span>
               </div>
 
-              <div className="hidden sm:block w-[1px] h-32 bg-primary/8 shrink-0" />
+              <div className="hidden sm:block w-px h-32 bg-primary/8 shrink-0" />
 
               {/* POMODORO */}
               <div className="flex flex-col items-center gap-4 flex-1 w-full">
-                <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30 italic">Pomodoro</span>
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30 italic">Pomodoro</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setPomPantallaCompleta(true); }}
+                    className="text-[8px] font-black uppercase tracking-widest text-primary/30 hover:text-primary border border-primary/10 hover:border-primary/30 px-2.5 py-1 rounded-lg transition-all flex items-center gap-1"
+                  >
+                    ⛶ Enfocar
+                  </button>
+                </div>
 
                 {/* Círculo progreso */}
                 <div className="relative w-28 h-28 cursor-pointer" onClick={(e) => { e.stopPropagation(); togglePomodoro(); }}>
@@ -313,7 +322,7 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
                 </div>
 
                 {/* Tiempo personalizado */}
-                <div className="flex items-center gap-2 w-full max-w-[180px]" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-2 w-full max-w-45" onClick={e => e.stopPropagation()}>
                   <input
                     type="number" min="1" max="180"
                     value={pomPersonalizado}
@@ -330,6 +339,142 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
                   </button>
                 </div>
               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── MODAL PANTALLA COMPLETA ── */}
+      <AnimatePresence>
+        {pomPantallaCompleta && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+            style={{ backgroundColor: "hsl(var(--primary))" }}
+          >
+            {/* Botón salir */}
+            <button
+              onClick={() => setPomPantallaCompleta(false)}
+              className="absolute top-6 right-6 text-white/40 hover:text-white text-[9px] font-black uppercase tracking-widest border border-white/15 hover:border-white/40 px-4 py-2 rounded-xl transition-all"
+            >
+              ✕ Salir
+            </button>
+
+            {/* Hora real pequeña arriba */}
+            <span className="absolute top-6 left-6 text-white/20 text-sm font-black tabular-nums tracking-tighter italic">
+              {formatoHora}
+            </span>
+
+            {/* Círculo gigante */}
+            <div
+              className="relative cursor-pointer mb-8"
+              style={{ width: "min(70vw, 400px)", height: "min(70vw, 400px)" }}
+              onClick={togglePomodoro}
+            >
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
+                <circle cx="100" cy="100" r="88" fill="none" stroke="white" strokeWidth="6" opacity="0.1" />
+                <motion.circle
+                  cx="100" cy="100" r="88"
+                  fill="none" stroke="white" strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 88}
+                  strokeDashoffset={2 * Math.PI * 88 * (1 - pct)}
+                  opacity={pomTerminado ? 0 : 0.9}
+                  style={{ transition: "stroke-dashoffset 1s linear" }}
+                />
+                {pomTerminado && (
+                  <circle cx="100" cy="100" r="88" fill="none" stroke="#34d399" strokeWidth="6" opacity="0.9" />
+                )}
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                {pomTerminado ? (
+                  <>
+                    <span className="text-4xl font-black text-emerald-300 uppercase tracking-tight">¡Listo!</span>
+                    <span className="text-white/40 text-xs font-black uppercase tracking-widest">Sesión completada</span>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      className="font-black tabular-nums text-white tracking-tighter leading-none italic"
+                      style={{ fontSize: "min(18vw, 100px)" }}
+                    >
+                      {minDisplay}:{secDisplay}
+                    </span>
+                    <span className="text-white/30 text-xs font-black uppercase tracking-[0.3em]">
+                      {pomActivo ? "concentrado" : "en pausa"}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Actividad actual */}
+            {actividadActual && (
+              <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em] italic mb-6">
+                {actividadActual.actividad}
+              </p>
+            )}
+
+            {/* Controles */}
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={togglePomodoro}
+                className={cn(
+                  "font-black uppercase tracking-widest px-8 py-3 rounded-2xl transition-all text-sm",
+                  pomActivo
+                    ? "bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                    : "bg-white text-primary shadow-2xl hover:scale-105 active:scale-95"
+                )}
+              >
+                {pomTerminado ? "Reiniciar" : pomActivo ? "Pausar" : "Iniciar"}
+              </button>
+              {(pomActivo || pomSegundos !== pomMinutos * 60) && !pomTerminado && (
+                <button
+                  onClick={resetPomodoro}
+                  className="text-white/30 hover:text-white text-[9px] font-black uppercase tracking-widest border border-white/10 hover:border-white/30 px-4 py-3 rounded-2xl transition-all"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            {/* Selector de tiempo */}
+            <div className="flex flex-wrap justify-center gap-2 max-w-xs">
+              {OPCIONES_POMODORO.map(op => (
+                <button
+                  key={op.valor}
+                  onClick={() => seleccionarTiempo(op.valor)}
+                  className={cn(
+                    "text-[9px] font-black uppercase tracking-wide px-3 py-2 rounded-xl transition-all",
+                    pomMinutos === op.valor
+                      ? "bg-white/20 text-white border border-white/30"
+                      : "text-white/25 hover:text-white hover:bg-white/10 border border-transparent"
+                  )}
+                >
+                  {op.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Input personalizado */}
+            <div className="flex items-center gap-2 mt-4">
+              <input
+                type="number" min="1" max="180"
+                value={pomPersonalizado}
+                onChange={e => setPomPersonalizado(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && aplicarPersonalizado()}
+                placeholder="Min..."
+                className="bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/20 outline-none focus:border-white/40 w-24 text-center"
+              />
+              <button
+                onClick={aplicarPersonalizado}
+                className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-wide border border-white/15 hover:border-white/30 transition-all"
+              >
+                OK
+              </button>
             </div>
           </motion.div>
         )}
@@ -472,7 +617,7 @@ const VistaMes = ({
         </div>
         <div className="flex items-center gap-4">
           <button onClick={() => cambiarMes(-1)} className="p-2 hover:bg-primary/5 rounded-xl text-primary/40"><ChevronLeft size={20} /></button>
-          <span className="text-[11px] font-black uppercase tracking-widest text-primary min-w-[140px] text-center">
+          <span className="text-[11px] font-black uppercase tracking-widest text-primary min-w-35 text-center">
             {MESES[mesActual]} {añoActual}
           </span>
           <button onClick={() => cambiarMes(1)} className="p-2 hover:bg-primary/5 rounded-xl text-primary/40"><ChevronRight size={20} /></button>
@@ -805,7 +950,7 @@ export const GestionPersonal = () => {
       <section className="lg:col-span-5">
         <RelojDigital horario={horarioRaw || []} />
 
-        <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 min-h-[520px] flex flex-col">
+        <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 min-h-130 flex flex-col">
           <div className="flex items-center gap-3 mb-8 px-2">
             <CheckSquare className="text-primary" size={20} />
             <h2 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Lista de Pendientes</h2>
@@ -824,7 +969,7 @@ export const GestionPersonal = () => {
             </button>
           </div>
 
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+          <div className="space-y-3 flex-1 overflow-y-auto max-h-100 pr-2 custom-scrollbar">
             <AnimatePresence mode="popLayout">
               {tareas.map((t: any) => (
                 <motion.div key={t.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
