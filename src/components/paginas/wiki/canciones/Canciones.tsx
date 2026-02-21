@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useReducer, useCallback } from "react";
+import React, { useState, useEffect, useReducer, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2, Globe, Mic2, PenTool, LayoutGrid, AlignJustify, Search } from "lucide-react";
+import { 
+  Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, 
+  Loader2, Save, Trash2, Globe, Mic2, PenTool, 
+  LayoutGrid, AlignJustify, Search, Youtube, Link2, ExternalLink, 
+  AlertCircle, Camera 
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
@@ -11,490 +16,379 @@ import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
 import FiltrosMaestros from "@/components/shared/forms/Filtros";
 
 // ============================================================================
-// CONSTANTES
+// CONSTANTES Y CONFIGURACIÓN
 // ============================================================================
 
 const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"];
 const IDIOMAS_DISPONIBLES = ["Español", "Inglés", "Japonés"];
 
-const FILTROS_CONFIG = { campos: ["cantante", "compositor", "idioma"] };
+// Ajustamos la config para que coincida con lo que espera tu componente FiltrosMaestros
+const FILTROS_CONFIG = { 
+  cantante: [], // Se llenarán dinámicamente o puedes poner fijos
+  compositor: [], 
+  idioma: IDIOMAS_DISPONIBLES 
+};
 
 const getEstadoColor = (estado: string) => {
   const colores: Record<string, string> = {
-    "TERMINADA": "bg-gradient-to-r from-emerald-500/20 to-emerald-400/10 text-emerald-700 border-emerald-300/30",
-    "EN PROCESO": "bg-gradient-to-r from-amber-500/20 to-amber-400/10 text-amber-700 border-amber-300/30",
-    "BORRADOR": "bg-gradient-to-r from-slate-500/20 to-slate-400/10 text-slate-600 border-slate-300/30"
+    "TERMINADA": "bg-linear-to-r from-emerald-500/20 to-emerald-400/10 text-emerald-700 border-emerald-300/30 shadow-[0_4px_12px_rgba(16,185,129,0.1)]",
+    "EN PROCESO": "bg-linear-to-r from-amber-500/20 to-amber-400/10 text-amber-700 border-amber-300/30 shadow-[0_4px_12px_rgba(245,158,11,0.1)]",
+    "BORRADOR": "bg-linear-to-r from-slate-500/10 to-slate-400/5 text-slate-500 border-slate-200"
   };
   return colores[estado] || colores["BORRADOR"];
 };
 
 // ============================================================================
-// REDUCERS PARA ESTADO COMPLEJO
+// COMPONENTES AUXILIARES
 // ============================================================================
 
-const initialModalState = {
-  showEditModal: false,
-  showAddModal: false,
-  isProcessing: false,
-  selectedCancion: null
-};
-
-function modalReducer(state: any, action: any) {
-  switch (action.type) {
-    case "OPEN_EDIT": return { ...state, showEditModal: true, selectedCancion: action.payload };
-    case "CLOSE_EDIT": return { ...state, showEditModal: false, selectedCancion: null };
-    case "OPEN_ADD": return { ...state, showAddModal: true };
-    case "CLOSE_ADD": return { ...state, showAddModal: false };
-    case "SET_PROCESSING": return { ...state, isProcessing: action.payload };
-    default: return state;
-  }
-}
-
-const initialFormState = {
-  editTitulo: "",
-  editPersonaje: "",
-  editEstado: "BORRADOR",
-  editVisible: false,
-  editPortada: "",
-  editCantante: "",
-  editCompositor: "",
-  editIdioma: "Español",
-  nuevoTitulo: "",
-  nuevoPersonaje: "",
-  nuevoEstado: "BORRADOR",
-  nuevoCantante: "",
-  nuevoCompositor: "",
-  nuevoIdioma: "Español"
-};
-
-function formReducer(state: any, action: any) {
-  switch (action.type) {
-    case "SET_EDIT_FORM": return { ...state, ...action.payload };
-    case "SET_ADD_FORM": return { ...state, ...action.payload };
-    case "RESET_ADD": return {
-      ...state,
-      nuevoTitulo: "",
-      nuevoPersonaje: "",
-      nuevoEstado: "BORRADOR",
-      nuevoCantante: "",
-      nuevoCompositor: "",
-      nuevoIdioma: "Español"
-    };
-    default: return state;
-  }
-}
-
-// ============================================================================
-// COMPONENTES HIJOS
-// ============================================================================
-
-const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
-  if (vistaFila) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="group relative flex items-center justify-between gap-4 bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-[#6B5E70]/10 hover:border-[#6B5E70]/20 rounded-2xl px-6 py-4 transition-all duration-300"
-      >
-        <Link href={`/wiki/paginas/canciones/${cancion.id}`} className="flex-1 min-w-0">
-          <h2 className="text-[#6B5E70] font-black uppercase text-sm group-hover:text-[#9A89A0] transition-colors tracking-tighter italic truncate">
-            {cancion.titulo}
-          </h2>
-        </Link>
-        {isAdmin && (
-          <div className="flex items-center gap-2 shrink-0">
-            {!cancion.visible && (
-              <div className="bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white p-1.5 px-2.5 rounded-full text-[8px] font-black uppercase flex items-center gap-1 shadow">
-                <EyeOff size={10} />
-                Oculto
-              </div>
-            )}
-            <motion.button
-              whileHover={{ scale: 1.15, rotate: 5 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => onEdit(e, cancion)}
-              className="bg-white text-[#6B5E70] p-2 rounded-full shadow border-2 border-[#6B5E70]/20 hover:shadow-[0_0_12px_rgba(107,94,112,0.25)] transition-all"
-            >
-              <Edit3 size={14} />
-            </motion.button>
+const CancionCard = ({ cancion, isAdmin, onEdit, onDelete, vistaFila }: any) => {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className={`bg-white group rounded-[3rem] border border-[#6B5E70]/5 overflow-hidden hover:shadow-[0_40px_80px_-15px_rgba(107,94,112,0.12)] transition-all duration-700 ${
+        vistaFila ? "flex items-center p-6 gap-8" : "flex flex-col"
+      }`}
+    >
+      <div className={`relative overflow-hidden shrink-0 ${vistaFila ? "w-40 h-40" : "aspect-4/5"} rounded-[2.5rem] shadow-2xl`}>
+        <SmartImage 
+          src={cancion.portada_url} 
+          alt={cancion.titulo} 
+          className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-110 transition-all duration-1000 ease-out"
+        />
+        <div className="absolute top-6 left-6 flex flex-col gap-2">
+          <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] border backdrop-blur-md transition-all ${getEstadoColor(cancion.estado)}`}>
+            {cancion.estado}
+          </span>
+        </div>
+        {!cancion.visible && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+            <EyeOff size={24} className="text-white opacity-60" />
           </div>
         )}
-      </motion.div>
-    );
-  }
+      </div>
 
-  return (
-    <div className="relative group h-full">
-      {isAdmin && (
-        <div className="absolute top-4 right-4 z-[50] flex gap-2">
-          {!cancion.visible && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white p-2 px-3 rounded-full text-[8px] font-black uppercase flex items-center gap-1.5 shadow-xl backdrop-blur-sm border border-white/20"
-            >
-              <EyeOff size={12} />
-              Oculto
-            </motion.div>
-          )}
-          <motion.button
-            whileHover={{ scale: 1.15, rotate: 5 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={(e) => onEdit(e, cancion)}
-            className="bg-white/95 text-[#6B5E70] p-3 rounded-full shadow-2xl border-2 border-[#6B5E70]/20 hover:shadow-[0_0_20px_rgba(107,94,112,0.3)] transition-all backdrop-blur-sm group/btn"
-          >
-            <Edit3 size={16} className="group-hover/btn:scale-110 transition-transform" />
-          </motion.button>
-        </div>
-      )}
-
-      <Link href={`/wiki/paginas/canciones/${cancion.id}`}>
-        <motion.div
-          whileHover={{ y: -12 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="cursor-pointer h-full flex flex-col"
-        >
-          <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/10 to-[#6B5E70]/5 group-hover:shadow-[0_20px_40px_rgba(107,94,112,0.15)] transition-all duration-500">
-            <SmartImage
-              src={cancion.portada_url || "/placeholder-cover.jpg"}
-              alt={cancion.titulo}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            />
-
-            <div className="absolute inset-0 bg-gradient-to-t from-[#6B5E70]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-            <motion.div
-              className={`absolute top-6 left-6 z-20 backdrop-blur-md px-4 py-2 rounded-full border font-black text-[9px] uppercase tracking-widest shadow-lg ${getEstadoColor(cancion.estado)}`}
-            >
-              {cancion.estado}
-            </motion.div>
-
-            {cancion.personaje && (
-              <div className="absolute bottom-6 right-6 z-20 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full border border-[#6B5E70]/20 flex items-center gap-2 shadow-lg">
-                <User size={11} className="text-[#6B5E70]" />
-                <span className="text-[9px] font-black text-[#6B5E70] uppercase italic tracking-tighter">
-                  {cancion.personaje}
-                </span>
-              </div>
-            )}
-
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
-              <div className="bg-white/90 p-5 rounded-full shadow-2xl backdrop-blur-sm border-2 border-[#6B5E70]/10">
-                <ChevronRight size={32} className="text-[#6B5E70] ml-1" />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex-1 flex flex-col px-2">
-            <h2 className="text-[#6B5E70] font-black uppercase text-lg group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tighter italic line-clamp-2">
+      <div className={`flex flex-col flex-1 ${vistaFila ? "py-2" : "p-10"}`}>
+        <div className="flex justify-between items-start gap-4 mb-6">
+          <div className="space-y-1">
+            <h3 className="text-3xl font-serif italic font-light text-[#6B5E70] leading-tight group-hover:text-black transition-colors duration-500">
               {cancion.titulo}
-            </h2>
-
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-[#6B5E70]/40 font-bold text-[8px] uppercase tracking-[0.2em]">
-              <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
-                <Mic2 size={10} />
-                {cancion.cantante || "N/A"}
-              </span>
-              <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
-                <PenTool size={10} />
-                {cancion.compositor || "N/A"}
-              </span>
-              <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
-                <Globe size={10} />
-                {cancion.idioma || "Español"}
-              </span>
+            </h3>
+            <div className="flex items-center gap-3 opacity-30 group-hover:opacity-60 transition-opacity">
+              <User size={12} className="text-[#6B5E70]" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">{cancion.personaje}</span>
             </div>
           </div>
-        </motion.div>
-      </Link>
-    </div>
+          
+          <Link href={`/wiki/canciones/${cancion.id}`}>
+            <motion.div 
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              className="p-4 rounded-full bg-[#6B5E70]/5 text-[#6B5E70] group-hover:bg-[#6B5E70] group-hover:text-white transition-all shadow-sm"
+            >
+              <ChevronRight size={20} />
+            </motion.div>
+          </Link>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-8">
+          {cancion.cantante && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-[#6B5E70]/5 rounded-full border border-[#6B5E70]/5 group-hover:border-[#6B5E70]/10 transition-colors">
+              <Mic2 size={10} className="text-[#6B5E70] opacity-40" />
+              <span className="text-[9px] font-bold uppercase opacity-60 tracking-tighter">{cancion.cantante}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100">
+            <Globe size={10} className="opacity-30" />
+            <span className="text-[9px] font-bold uppercase opacity-40">{cancion.idioma}</span>
+          </div>
+        </div>
+
+        {isAdmin && (
+          <div className="mt-auto pt-6 border-t border-[#6B5E70]/5 flex items-center justify-between">
+            <div className="flex gap-1">
+              <button 
+                onClick={() => onEdit(cancion)}
+                className="p-3 rounded-2xl hover:bg-amber-50 text-amber-600 transition-all hover:scale-110 active:scale-90"
+              >
+                <Edit3 size={16} />
+              </button>
+              <button 
+                onClick={() => onDelete(cancion.id)}
+                className="p-3 rounded-2xl hover:bg-red-50 text-red-600 transition-all hover:scale-110 active:scale-90"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+            <div className="flex items-center gap-4 opacity-20 group-hover:opacity-100 transition-all">
+               {cancion.links?.youtube && <Youtube size={14} className="text-red-500" />}
+               <span className="text-[8px] font-black uppercase tracking-widest">{new Date(cancion.created_at).getFullYear()}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
+};
+
+// ============================================================================
+// REDUCER DE FORMULARIO
+// ============================================================================
+
+const formReducer = (state: any, action: any) => {
+  switch (action.type) {
+    case "SET_FIELD": return { ...state, [action.field]: action.value };
+    case "SET_LINK": return { ...state, links: { ...state.links, [action.field]: action.value } };
+    case "RESET": return {
+      titulo: "", personaje: "", cantante: "", compositor: "",
+      idioma: "Español", estado: "BORRADOR", portada_url: "",
+      links: { youtube: "", spotify: "" }, visible: true
+    };
+    case "EDIT": return { ...action.payload, links: action.payload.links || { youtube: "", spotify: "" } };
+    default: return state;
+  }
 };
 
 // ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
 
-const Canciones = () => {
+export default function CancionesPage() {
+  const { data: canciones, setData: setCanciones, loading } = useSupabaseData("canciones");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [sessionLoaded, setSessionLoaded] = useState(false);
+  
+  // UI States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [vistaGrid, setVistaGrid] = useState(true);
+  const [errorLocal, setErrorLocal] = useState<string | null>(null);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [query, setQuery] = useState(""); 
+
+  // Hook de filtros genéricos
+  const { 
+    filtros, 
+    actualizarFiltro, 
+    resetearFiltros, 
+    itemsFiltrados 
+  } = useFiltrosGenericos(canciones, { campos: Object.keys(FILTROS_CONFIG) });
+
+  // Generamos opciones dinámicas basadas en los datos para el componente FiltrosMaestros
+  const configDinamica = useMemo(() => {
+    return {
+      cantante: Array.from(new Set(canciones.map((c: any) => c.cantante).filter(Boolean))) as string[],
+      compositor: Array.from(new Set(canciones.map((c: any) => c.compositor).filter(Boolean))) as string[],
+      idioma: IDIOMAS_DISPONIBLES
+    };
+  }, [canciones]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setIsAdmin(!!session);
-      setSessionLoaded(true);
-    });
+    };
+    checkUser();
   }, []);
 
-  const { data: canciones = [], loading: loadingCanciones, setData: setCanciones } = useSupabaseData("canciones", {
-    order: { campo: "created_at", asc: false },
-    isAdmin: sessionLoaded ? isAdmin : false,
+  const cancionesFinales = useMemo(() => {
+    let filtradas = itemsFiltrados;
+    if (query) {
+      const lowQuery = query.toLowerCase();
+      filtradas = filtradas.filter((c: any) => 
+        c.titulo?.toLowerCase().includes(lowQuery) || 
+        c.personaje?.toLowerCase().includes(lowQuery)
+      );
+    }
+    return filtradas;
+  }, [itemsFiltrados, query]);
+
+  const [form, dispatchForm] = useReducer(formReducer, {
+    titulo: "", personaje: "", cantante: "", compositor: "",
+    idioma: "Español", estado: "BORRADOR", portada_url: "",
+    links: { youtube: "", spotify: "" }, visible: true
   });
 
-  const { data: listaPersonajes = [] } = useSupabaseData("personajes", {
-    order: { campo: "nombre", asc: true }
-  });
-
-  const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
-  const [formState, dispatchForm] = useReducer(formReducer, initialFormState);
-  const [vistaGrid, setVistaGrid] = useState(true);
-  const [busqueda, setBusqueda] = useState("");
-
-  // ✅ Hook de filtros genérico
-  const {
-    filtros,
-    opciones,
-    itemsFiltrados: cancionesFiltradas,
-    actualizarFiltro,
-    resetearFiltros
-  } = useFiltrosGenericos(canciones, FILTROS_CONFIG);
-
-  // ✅ Filtro adicional por búsqueda de título
-  const cancionesFinales = cancionesFiltradas.filter((c: any) =>
-    c.titulo.toLowerCase().includes(busqueda.toLowerCase())
-  );
-
-  const hayFiltrosActivos = Object.values(filtros).some(v => v !== "todos") || busqueda !== "";
-
-  const openEditModal = useCallback((e: any, cancion: any) => {
+  // --- HANDLERS ---
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    dispatchForm({
-      type: "SET_EDIT_FORM",
-      payload: {
-        editTitulo: cancion.titulo,
-        editPersonaje: cancion.personaje || "",
-        editEstado: cancion.estado || "BORRADOR",
-        editVisible: cancion.visible || false,
-        editPortada: cancion.portada_url || "",
-        editCantante: cancion.cantante || "",
-        editCompositor: cancion.compositor || "",
-        editIdioma: cancion.idioma || "Español"
-      }
-    });
-    dispatchModal({ type: "OPEN_EDIT", payload: cancion });
-  }, []);
-
-  const handleUpdateCancion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formState.editTitulo.trim() || modalState.isProcessing) return;
-    dispatchModal({ type: "SET_PROCESSING", payload: true });
-    let success = false;
-
+    if (isSaving) return;
     try {
-      const { data, error } = await supabase
-        .from("canciones")
-        .update({
-          titulo: formState.editTitulo.toUpperCase(),
-          personaje: formState.editPersonaje || null,
-          estado: formState.editEstado,
-          visible: formState.editVisible,
-          portada_url: formState.editPortada,
-          cantante: formState.editCantante,
-          compositor: formState.editCompositor,
-          idioma: formState.editIdioma
-        })
-        .eq("id", modalState.selectedCancion.id)
-        .select();
-
-      if (error) throw error;
-      if (data) {
-        setCanciones((prev: any[]) => prev.map(c => c.id === data[0].id ? data[0] : c));
-        success = true;
+      setIsSaving(true);
+      setErrorLocal(null);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Acceso denegado.");
+      const payload = { ...form, user_id: user.id, updated_at: new Date().toISOString() };
+      if (editId) {
+        const { error } = await supabase.from("canciones").update(payload).eq("id", editId);
+        if (error) throw error;
+        setCanciones(canciones.map((c: any) => c.id === editId ? { ...c, ...payload } : c));
+      } else {
+        const nuevoId = crypto.randomUUID();
+        const { error } = await supabase.from("canciones").insert([{ ...payload, id: nuevoId }]);
+        if (error) throw error;
+        setCanciones([{ ...payload, id: nuevoId, created_at: new Date().toISOString() }, ...canciones]);
       }
-    } catch (err) {
-      console.error(err);
+      setIsModalOpen(false);
+      dispatchForm({ type: "RESET" });
+      setEditId(null);
+    } catch (err: any) {
+      setErrorLocal(err.message);
     } finally {
-      dispatchModal({ type: "SET_PROCESSING", payload: false });
-      if (success) {
-        dispatchModal({ type: "CLOSE_EDIT" });
-      }
+      setIsSaving(false);
     }
   };
 
-  const handleAddCancion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formState.nuevoTitulo.trim() || modalState.isProcessing) return;
-    dispatchModal({ type: "SET_PROCESSING", payload: true });
-    let success = false;
-
-    try {
-      const { data, error } = await supabase
-        .from("canciones")
-        .insert([{
-          titulo: formState.nuevoTitulo.toUpperCase(),
-          personaje: formState.nuevoPersonaje || null,
-          estado: formState.nuevoEstado,
-          visible: false,
-          portada_url: "/placeholder-cover.jpg",
-          cantante: formState.nuevoCantante,
-          compositor: formState.nuevoCompositor,
-          idioma: formState.nuevoIdioma
-        }])
-        .select();
-
-      if (error) throw error;
-      if (data) {
-        setCanciones((prev: any[]) => [data[0], ...prev]);
-        success = true;
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      dispatchModal({ type: "SET_PROCESSING", payload: false });
-      if (success) {
-        dispatchModal({ type: "CLOSE_ADD" });
-        dispatchForm({ type: "RESET_ADD" });
-      }
-    }
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Deseas eliminar esta composición?")) return;
+    await supabase.from("canciones").delete().eq("id", id);
+    setCanciones(canciones.filter((c: any) => c.id !== id));
   };
 
-  const handleDeleteCancion = async (id: number) => {
-    if (!confirm("¿Seguro que quieres borrar este soliloquio?")) return;
-    const { error } = await supabase.from("canciones").delete().eq("id", id);
-    if (!error) {
-      setCanciones((prev: any[]) => prev.filter(c => c.id !== id));
-      dispatchModal({ type: "CLOSE_EDIT" });
-    }
+  const openEditModal = (cancion: any) => {
+    setEditId(cancion.id);
+    dispatchForm({ type: "EDIT", payload: cancion });
+    setIsModalOpen(true);
   };
-
-  if (!sessionLoaded || loadingCanciones) return (
-    <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
-      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
-        <Loader2 className="text-[#6B5E70]/20" size={40} />
-      </motion.div>
-    </div>
-  );
 
   return (
-    <div className="min-h-screen bg-[#FDFCFD] pb-32 selection:bg-[#6B5E70]/10 selection:text-[#6B5E70]">
+    <div className="min-h-screen bg-[#FDFCFD] pb-40 selection:bg-[#6B5E70]/10">
+      <header className="relative pt-32 pb-20 px-6 overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-linear-to-l from-[#6B5E70]/5 to-transparent pointer-events-none" />
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-12 mb-20">
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="flex items-center gap-4 mb-6 opacity-40">
+                <div className="h-px w-12 bg-[#6B5E70]" />
+                <span className="text-[10px] font-black uppercase tracking-[0.5em]">Laboratorio Musical</span>
+              </div>
+              <h1 className="text-7xl md:text-9xl font-black italic tracking-tighter uppercase leading-[0.75] text-[#6B5E70]">
+                Música <br />
+                <span className="font-serif font-light opacity-60 text-5xl md:text-7xl lowercase tracking-normal">fran.atelier</span>
+              </h1>
+            </motion.div>
+            {isAdmin && (
+              <motion.button
+                whileHover={{ scale: 1.05, y: -5 }} whileTap={{ scale: 0.95 }}
+                onClick={() => { setEditId(null); dispatchForm({ type: "RESET" }); setIsModalOpen(true); }}
+                className="bg-[#6B5E70] text-white px-10 py-5 rounded-full font-black uppercase text-[10px] tracking-[0.4em] shadow-[0_20px_40px_rgba(107,94,112,0.2)] flex items-center gap-4 group"
+              >
+                <Plus size={18} className="group-hover:rotate-180 transition-transform duration-700" />
+                Registrar Composición
+              </motion.button>
+            )}
+          </div>
 
-      {/* MODAL EDITAR */}
-      <AnimatePresence>
-        {modalState.showEditModal && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 sm:p-6">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => dispatchModal({ type: "CLOSE_EDIT" })}
-              className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-            >
-              <div className="p-8 sm:p-12 overflow-y-auto">
-                <div className="flex justify-between items-center mb-10">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-[#6B5E70] rounded-2xl text-white shadow-lg shadow-[#6B5E70]/20">
-                      <Edit3 size={20} />
-                    </div>
-                    <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.4em] italic">Ajustes del Soliloquio</h3>
-                  </div>
-                  <button onClick={() => dispatchModal({ type: "CLOSE_EDIT" })} className="p-2 hover:bg-[#6B5E70]/5 rounded-full transition-colors text-[#6B5E70]/40 hover:text-[#6B5E70]">
-                    <X size={24} />
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-3 rounded-[3rem] shadow-[0_10px_40px_-10px_rgba(107,94,112,0.08)] border border-[#6B5E70]/5">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-8 top-1/2 -translate-y-1/2 opacity-20 text-[#6B5E70]" size={20} />
+                <input
+                  type="text"
+                  placeholder="Explorar por título..."
+                  className="w-full bg-transparent py-6 pl-20 pr-8 outline-none text-sm font-medium text-[#6B5E70] placeholder:opacity-20 placeholder:italic"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-3 pr-4">
+                <button 
+                  onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                  className={`px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${mostrarFiltros ? "bg-[#6B5E70]/10 text-[#6B5E70]" : "hover:bg-[#6B5E70]/5 opacity-40"}`}
+                >
+                  Filtros {Object.keys(filtros).length > 0 && `(${Object.keys(filtros).length})`}
+                </button>
+                <div className="h-8 w-px bg-[#6B5E70]/10 mx-2" />
+                <div className="flex bg-[#6B5E70]/5 p-1.5 rounded-full">
+                  <button onClick={() => setVistaGrid(true)} className={`p-3 rounded-full transition-all ${vistaGrid ? "bg-white text-[#6B5E70] shadow-md" : "text-[#6B5E70]/30 hover:text-[#6B5E70]"}`}>
+                    <LayoutGrid size={16} />
+                  </button>
+                  <button onClick={() => setVistaGrid(false)} className={`p-3 rounded-full transition-all ${!vistaGrid ? "bg-white text-[#6B5E70] shadow-md" : "text-[#6B5E70]/30 hover:text-[#6B5E70]"}`}>
+                    <AlignJustify size={16} />
                   </button>
                 </div>
+              </div>
+            </div>
 
-                <form onSubmit={handleUpdateCancion} className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Título</label>
-                      <input
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30 transition-all"
-                        value={formState.editTitulo}
-                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editTitulo: e.target.value } })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Personaje</label>
-                      <select
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none appearance-none"
-                        value={formState.editPersonaje}
-                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editPersonaje: e.target.value } })}
+            <AnimatePresence>
+              {mostrarFiltros && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                  <div className="bg-white/50 backdrop-blur-sm rounded-[2.5rem] p-8 border border-[#6B5E70]/5">
+                    {/* AQUI ESTA LA CORRECCIÓN CLAVE: */}
+                    <FiltrosMaestros
+                      config={configDinamica}
+                      filtrosActivos={filtros}
+                      onChange={(grupo, valor) => actualizarFiltro(grupo, valor)}
+                    />
+                    {Object.keys(filtros).length > 0 && (
+                      <button 
+                        onClick={resetearFiltros}
+                        className="mt-6 mx-auto block text-[9px] font-black uppercase tracking-[0.2em] text-[#6B5E70] opacity-40 hover:opacity-100 transition-all"
                       >
-                        <option value="">Ninguno</option>
-                        {listaPersonajes.map((p: any) => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Cantante</label>
-                      <input
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none"
-                        value={formState.editCantante}
-                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editCantante: e.target.value } })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Compositor</label>
-                      <input
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none"
-                        value={formState.editCompositor}
-                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editCompositor: e.target.value } })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Idioma</label>
-                      <select
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none appearance-none"
-                        value={formState.editIdioma}
-                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editIdioma: e.target.value } })}
-                      >
-                        {IDIOMAS_DISPONIBLES.map(idioma => <option key={idioma} value={idioma}>{idioma}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Estado</label>
-                      <div className="flex gap-2 p-1 bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-[1.5rem]">
-                        {ESTADOS.map(est => (
-                          <button
-                            key={est} type="button"
-                            onClick={() => dispatchForm({ type: "SET_EDIT_FORM", payload: { editEstado: est } })}
-                            className={`flex-1 py-3 rounded-xl text-[9px] font-black transition-all ${formState.editEstado === est ? 'bg-[#6B5E70] text-white shadow-lg' : 'text-[#6B5E70]/40 hover:bg-[#6B5E70]/5'}`}
-                          >
-                            {est}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Visibilidad</label>
-                      <button
-                        type="button"
-                        onClick={() => dispatchForm({ type: "SET_EDIT_FORM", payload: { editVisible: !formState.editVisible } })}
-                        className={`w-full flex items-center justify-between py-4 px-6 rounded-[1.5rem] border-2 transition-all ${formState.editVisible ? 'border-emerald-500/30 bg-emerald-50/50 text-emerald-700' : 'border-slate-500/30 bg-slate-50/50 text-slate-700'}`}
-                      >
-                        <span className="text-[10px] font-black uppercase tracking-widest">{formState.editVisible ? 'Público' : 'Privado'}</span>
-                        {formState.editVisible ? <Eye size={18} /> : <EyeOff size={18} />}
+                        Limpiar todos los filtros
                       </button>
-                    </div>
+                    )}
                   </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </header>
 
-                  <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                    <button
-                      type="submit" disabled={modalState.isProcessing}
-                      className="flex-[2] bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-[#6B5E70]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {modalState.isProcessing ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                      {modalState.isProcessing ? "Guardando..." : "Guardar Cambios"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCancion(modalState.selectedCancion.id)}
-                      disabled={modalState.isProcessing}
-                      className="flex-1 bg-red-50 text-red-500 py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Trash2 size={18} />
-                      Borrar
+      <main className="max-w-6xl mx-auto px-6">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-60 opacity-20">
+            <Loader2 className="animate-spin mb-6 text-[#6B5E70]" size={48} />
+            <p className="font-black uppercase tracking-[0.8em] text-[10px]">Cargando...</p>
+          </div>
+        ) : (
+          <motion.div layout className={`grid gap-12 ${vistaGrid ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
+            <AnimatePresence mode="popLayout">
+              {cancionesFinales.map((cancion: any) => (
+                <CancionCard key={cancion.id} cancion={cancion} isAdmin={isAdmin} onEdit={openEditModal} onDelete={handleDelete} vistaFila={!vistaGrid} />
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </main>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-12">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !isSaving && setIsModalOpen(false)} className="absolute inset-0 bg-[#6B5E70]/30 backdrop-blur-2xl" />
+            <motion.div initial={{ scale: 0.9, y: 100, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.9, y: 100, opacity: 0 }} className="relative w-full max-w-6xl bg-white rounded-4xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[85vh] md:h-[80vh]">
+              <div className="w-full md:w-[38%] bg-[#FDFCFD] p-12 flex flex-col border-r border-[#6B5E70]/5">
+                <div className="w-full aspect-3/4 rounded-[3.5rem] bg-white shadow-inner mb-12 overflow-hidden">
+                  {form.portada_url ? <img src={form.portada_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Music size={80} /></div>}
+                </div>
+                <input placeholder="URL Portada" className="w-full bg-white px-8 py-5 rounded-2xl border border-[#6B5E70]/10 outline-none text-[11px]" value={form.portada_url} onChange={(e) => dispatchForm({ type: "SET_FIELD", field: "portada_url", value: e.target.value })} />
+              </div>
+              <div className="flex-1 p-12 md:p-20 overflow-y-auto custom-scrollbar bg-white">
+                <div className="flex justify-between items-center mb-16">
+                  <h2 className="text-4xl font-black italic uppercase tracking-tighter text-[#6B5E70]">{editId ? "Editar" : "Nuevo"}</h2>
+                  <button onClick={() => setIsModalOpen(false)} className="p-5 rounded-full hover:bg-red-50 text-red-400 transition-all"><X size={24} /></button>
+                </div>
+                <form onSubmit={handleSave} className="space-y-12">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <input required placeholder="Título" className="w-full bg-[#6B5E70]/5 px-10 py-6 rounded-full outline-none font-serif italic text-2xl" value={form.titulo} onChange={(e) => dispatchForm({ type: "SET_FIELD", field: "titulo", value: e.target.value })} />
+                    <input required placeholder="Personaje" className="w-full bg-[#6B5E70]/5 px-10 py-6 rounded-full outline-none font-bold" value={form.personaje} onChange={(e) => dispatchForm({ type: "SET_FIELD", field: "personaje", value: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <input placeholder="Cantante" className="w-full bg-[#6B5E70]/5 px-8 py-5 rounded-full outline-none" value={form.cantante} onChange={(e) => dispatchForm({ type: "SET_FIELD", field: "cantante", value: e.target.value })} />
+                    <select className="w-full bg-[#6B5E70]/5 px-8 py-5 rounded-full outline-none text-[10px] font-black uppercase" value={form.estado} onChange={(e) => dispatchForm({ type: "SET_FIELD", field: "estado", value: e.target.value })}>
+                      {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
+                    <button type="button" onClick={() => dispatchForm({ type: "SET_FIELD", field: "visible", value: !form.visible })} className={`py-5 rounded-full text-[10px] font-black uppercase transition-all ${form.visible ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"}`}>
+                      {form.visible ? "Público" : "Privado"}
                     </button>
                   </div>
+                  <button disabled={isSaving} className="w-full bg-[#6B5E70] text-white py-8 rounded-full font-black uppercase tracking-[0.5em] text-[11px] shadow-2xl flex items-center justify-center gap-6">
+                    {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                    {isSaving ? "Guardando..." : "Sincronizar"}
+                  </button>
                 </form>
               </div>
             </motion.div>
@@ -502,173 +396,10 @@ const Canciones = () => {
         )}
       </AnimatePresence>
 
-      {/* MODAL AÑADIR */}
-      <AnimatePresence>
-        {modalState.showAddModal && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => dispatchModal({ type: "CLOSE_ADD" })} className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.4em] text-center mb-10 italic underline underline-offset-8">Nuevo Registro</h3>
-              <form onSubmit={handleAddCancion} className="space-y-6">
-                <input
-                  placeholder="TÍTULO DEL SOLILOQUIO"
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30"
-                  value={formState.nuevoTitulo}
-                  onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoTitulo: e.target.value } })}
-                />
-                <select
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none"
-                  value={formState.nuevoPersonaje}
-                  onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoPersonaje: e.target.value } })}
-                >
-                  <option value="">Seleccionar Personaje</option>
-                  {listaPersonajes.map((p: any) => <option key={p.nombre} value={p.nombre}>{p.nombre}</option>)}
-                </select>
-
-                <input
-                  placeholder="CANTANTE"
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none"
-                  value={formState.nuevoCantante}
-                  onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoCantante: e.target.value } })}
-                />
-
-                <input
-                  placeholder="COMPOSITOR"
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none"
-                  value={formState.nuevoCompositor}
-                  onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoCompositor: e.target.value } })}
-                />
-
-                <div className="space-y-2 px-2">
-                  <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest">Idioma</label>
-                  <select
-                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none appearance-none"
-                    value={formState.nuevoIdioma}
-                    onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoIdioma: e.target.value } })}
-                  >
-                    {IDIOMAS_DISPONIBLES.map(idioma => <option key={idioma} value={idioma}>{idioma}</option>)}
-                  </select>
-                </div>
-
-                <button type="submit" disabled={modalState.isProcessing} className="w-full bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
-                  {modalState.isProcessing ? <><Loader2 className="animate-spin" size={16} />Registrando...</> : "Crear Soliloquio"}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      <header className="max-w-6xl mx-auto pt-24 px-6 mb-12">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
-          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
-            <h1 className="text-4xl md:text-5xl font-black text-[#6B5E70] italic uppercase tracking-tighter leading-none mb-4">
-              Solilo<span className="text-[#6B5E70]/20">quios</span>
-            </h1>
-            <div className="flex items-center gap-4">
-              <div className="h-2 w-24 bg-[#6B5E70] rounded-full" />
-              <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.4em]">Covers</span>
-            </div>
-          </motion.div>
-          {isAdmin && (
-            <motion.button
-              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-              onClick={() => dispatchModal({ type: "OPEN_ADD" })}
-              className="bg-[#6B5E70] text-white px-10 py-5 rounded-full shadow-2xl shadow-[#6B5E70]/30 flex items-center gap-4 font-black uppercase text-[10px] tracking-[0.2em]"
-            >
-              <Plus size={20} /> Añadir Canción
-            </motion.button>
-          )}
-        </div>
-      </header>
-
-      {/* SECCIÓN DE FILTROS */}
-      <section className="max-w-6xl mx-auto px-6 mb-16">
-        <div className="bg-white/50 backdrop-blur-sm border border-[#6B5E70]/10 p-6 rounded-[2.5rem] flex flex-col gap-4">
-
-          {/* BARRA DE BÚSQUEDA */}
-          <div className="relative">
-            <Search
-              size={16}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#6B5E70]/30 pointer-events-none"
-            />
-            <input
-              type="text"
-              placeholder="Buscar por título..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 pl-12 pr-12 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30 transition-all placeholder:text-[#6B5E70]/20 placeholder:normal-case placeholder:font-normal"
-            />
-            <AnimatePresence>
-              {busqueda && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  onClick={() => setBusqueda("")}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B5E70]/30 hover:text-[#6B5E70] transition-colors p-1"
-                >
-                  <X size={16} />
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <FiltrosMaestros
-            config={opciones}
-            filtrosActivos={filtros}
-            onChange={actualizarFiltro}
-          />
-
-          <div className="flex items-center justify-between">
-            {hayFiltrosActivos ? (
-              <button
-                onClick={() => { resetearFiltros(); setBusqueda(""); }}
-                className="text-[#6B5E70]/40 hover:text-red-500 transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2 px-4"
-              >
-                <X size={14} /> Limpiar filtros
-              </button>
-            ) : (
-              <span />
-            )}
-
-            {/* TOGGLE DE VISTA */}
-            <div className="flex items-center gap-1 bg-white border-2 border-[#6B5E70]/5 rounded-full p-1">
-              <button
-                onClick={() => setVistaGrid(true)}
-                className={`p-2 rounded-full transition-all ${vistaGrid ? "bg-[#6B5E70] text-white shadow-md" : "text-[#6B5E70]/40 hover:text-[#6B5E70]"}`}
-                title="Vista cuadrícula"
-              >
-                <LayoutGrid size={14} />
-              </button>
-              <button
-                onClick={() => setVistaGrid(false)}
-                className={`p-2 rounded-full transition-all ${!vistaGrid ? "bg-[#6B5E70] text-white shadow-md" : "text-[#6B5E70]/40 hover:text-[#6B5E70]"}`}
-                title="Vista fila"
-              >
-                <AlignJustify size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <main className="max-w-6xl mx-auto px-6">
-        <div className={`grid gap-4 ${vistaGrid ? "grid-cols-2 gap-12" : "grid-cols-1"}`}>
-          {cancionesFinales.map((cancion: any) => (
-            <CancionCard key={cancion.id} cancion={cancion} isAdmin={isAdmin} onEdit={openEditModal} vistaFila={!vistaGrid} />
-          ))}
-        </div>
-
-        {cancionesFinales.length === 0 && (
-          <div className="text-center py-20">
-            <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
-            <p className="text-[#6B5E70]/20 font-black uppercase tracking-[0.5em] text-xs">No se encontraron soliloquios</p>
-          </div>
-        )}
-      </main>
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(107, 94, 112, 0.15); border-radius: 20px; }
+      `}</style>
     </div>
   );
-};
-
-export default Canciones;
+}
