@@ -2,229 +2,225 @@
 import React, { useState, useEffect } from "react";
 import { 
   BookOpen, Files, PenTool, Hash, Save, 
-  ExternalLink, ChevronLeft, Folder, FileText, ArrowLeft 
+  ExternalLink, ChevronLeft, Folder, FileText, 
+  ArrowLeft, Plus, Trash2, FolderPlus, Edit3
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface ZoteroSource {
-  title: string;
-  author: string;
-  year: string;
+interface Ensayo {
+  id: string;
+  titulo: string;
+  contenido: string;
 }
 
-// Estructura de datos para organizar tu biblioteca
-const BIBLIOTECA_INICIAL = {
-  "Psicología": ["Análisis del Comportamiento", "Teoría del Vínculo", "Somatización en el Arte"],
-  "Política": ["Geopolítica 2026", "Sistemas de Control", "El Jardín Digital"],
-  "Economía": ["Valor Simbólico", "Economía de la Atención"],
-  "Filosofía": ["Estética del Vacío", "Fenomenología de la Luz"]
-};
+interface Categoria {
+  id: string;
+  nombre: string;
+  ensayos: Ensayo[];
+}
 
-export default function EnsayosView() {
+export default function LaboratorioDinamico() {
   const [mounted, setMounted] = useState(false);
-  const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
-  const [ensayoActivo, setEnsayoActivo] = useState<string | null>(null);
-  
-  // Estados del editor
-  const [essayContent, setEssayContent] = useState("");
-  const [essayTitle, setEssayTitle] = useState("");
-  const [sources, setSources] = useState<ZoteroSource[]>([]);
+  const [biblioteca, setBiblioteca] = useState<Categoria[]>([]);
+  const [catActivaId, setCatActivaId] = useState<string | null>(null);
+  const [ensayoActivoId, setEnsayoActivoId] = useState<string | null>(null);
 
+  // 1. Cargar Biblioteca Completa al Iniciar
   useEffect(() => {
+    const savedData = localStorage.getItem("fran-biblioteca-pro");
+    if (savedData) {
+      setBiblioteca(JSON.parse(savedData));
+    }
     setMounted(true);
   }, []);
 
-  // Cargar ensayo específico del LocalStorage
+  // 2. Persistencia Total (Cada vez que cambia algo, se guarda)
   useEffect(() => {
-    if (mounted && ensayoActivo) {
-      const savedTitle = localStorage.getItem(`ensayo-titulo-${ensayoActivo}`);
-      const savedContent = localStorage.getItem(`ensayo-contenido-${ensayoActivo}`);
-      setEssayTitle(savedTitle || ensayoActivo);
-      setEssayContent(savedContent || "");
+    if (mounted) {
+      localStorage.setItem("fran-biblioteca-pro", JSON.stringify(biblioteca));
     }
-  }, [ensayoActivo, mounted]);
+  }, [biblioteca, mounted]);
 
-  // Autoguardado
-  useEffect(() => {
-    if (mounted && ensayoActivo) {
-      localStorage.setItem(`ensayo-titulo-${ensayoActivo}`, essayTitle);
-      localStorage.setItem(`ensayo-contenido-${ensayoActivo}`, essayContent);
-    }
-  }, [essayTitle, essayContent, ensayoActivo, mounted]);
+  // --- FUNCIONES DE GESTIÓN ---
 
-  const handleZoteroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string);
-        const formatted = json.map((item: any) => ({
-          title: item.title || "Sin título",
-          author: item.author?.[0]?.family || "Anónimo",
-          year: item.issued?.["date-parts"]?.[0]?.[0] || "s.f."
-        }));
-        setSources(formatted);
-      } catch (err) {
-        alert("Error al procesar Zotero.");
-      }
+  const crearCategoria = () => {
+    const nombre = prompt("Nombre de la nueva categoría (ej: Psicología):");
+    if (!nombre) return;
+    const nuevaCat: Categoria = {
+      id: Date.now().toString(),
+      nombre,
+      ensayos: []
     };
-    reader.readAsText(file);
+    setBiblioteca([...biblioteca, nuevaCat]);
+  };
+
+  const crearEnsayo = (catId: string) => {
+    const titulo = prompt("Título del nuevo ensayo:");
+    if (!titulo) return;
+    const nuevoEnsayo: Ensayo = {
+      id: `ens-${Date.now()}`,
+      titulo,
+      contenido: ""
+    };
+    setBiblioteca(prev => prev.map(cat => 
+      cat.id === catId ? { ...cat, ensayos: [...cat.ensayos, nuevoEnsayo] } : cat
+    ));
+    setEnsayoActivoId(nuevoEnsayo.id);
+  };
+
+  const eliminarCategoria = (e: React.MouseEvent, catId: string) => {
+    e.stopPropagation();
+    if (confirm("¿Eliminar categoría y todos sus ensayos?")) {
+      setBiblioteca(prev => prev.filter(c => c.id !== catId));
+      if (catActivaId === catId) setCatActivaId(null);
+    }
+  };
+
+  const actualizarContenido = (nuevoTexto: string) => {
+    setBiblioteca(prev => prev.map(cat => ({
+      ...cat,
+      ensayos: cat.ensayos.map(ens => 
+        ens.id === ensayoActivoId ? { ...ens, contenido: nuevoTexto } : ens
+      )
+    })));
+  };
+
+  const actualizarTitulo = (nuevoTitulo: string) => {
+    setBiblioteca(prev => prev.map(cat => ({
+      ...cat,
+      ensayos: cat.ensayos.map(ens => 
+        ens.id === ensayoActivoId ? { ...ens, titulo: nuevoTitulo } : ens
+      )
+    })));
   };
 
   if (!mounted) return null;
 
-  const sectionTag = "text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-3 mb-8 opacity-40 text-primary";
+  // Helpers para encontrar datos activos
+  const catActiva = biblioteca.find(c => c.id === catActivaId);
+  const ensayoActivo = catActiva?.ensayos.find(e => e.id === ensayoActivoId);
 
   return (
     <div className="w-full bg-bg-main min-h-screen text-primary selection:bg-primary/10">
       <nav className="max-w-6xl mx-auto px-6 pt-8 flex justify-between items-center">
-        <button 
-          onClick={() => window.history.back()} 
-          className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold opacity-40 hover:opacity-100 transition-opacity"
-        >
-          <ChevronLeft size={14} /> Volver
+        <button onClick={() => window.history.back()} className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-black opacity-40 hover:opacity-100 transition-all">
+          <ChevronLeft size={14} /> Volver al Atelier
         </button>
         <div className="flex items-center gap-4">
-          <span className="text-[10px] uppercase tracking-widest font-bold opacity-20 italic">"Gabinete de Trabajo: Franilover"</span>
+          <span className="text-[10px] uppercase tracking-[0.3em] font-black opacity-20 italic">"Gabinete de Escritura Dinámica"</span>
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-6 pb-32 pt-16 font-sans">
+      <main className="max-w-7xl mx-auto px-6 pb-32 pt-16 font-sans">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           
-          {/* PANEL IZQUIERDO: NAVEGADOR DE CATEGORÍAS Y ENSAYOS */}
-          <aside className="lg:col-span-4 space-y-12">
-            <section>
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-3 opacity-40 text-primary">
-                  <Files size={14} /> Biblioteca
-                </h3>
-                {categoriaActiva && (
-                  <button 
-                    onClick={() => {setCategoriaActiva(null); setEnsayoActivo(null);}}
-                    className="text-[9px] uppercase tracking-widest font-bold opacity-60 hover:text-accent flex items-center gap-1"
-                  >
-                    <ArrowLeft size={10} /> Categorías
-                  </button>
-                )}
-              </div>
+          {/* ASIDE: GESTOR DE ARCHIVOS */}
+          <aside className="lg:col-span-4 space-y-8">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 flex items-center gap-3">
+                <Files size={14} /> Biblioteca Personal
+              </h3>
+              <button onClick={crearCategoria} className="p-2 bg-primary text-white rounded-full hover:scale-110 transition-transform shadow-lg">
+                <FolderPlus size={14} />
+              </button>
+            </div>
 
-              <div className="space-y-3">
-                <AnimatePresence mode="wait">
-                  {!categoriaActiva ? (
-                    // VISTA DE CATEGORÍAS
-                    <motion.div 
-                      key="categorias"
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
-                      className="space-y-3"
-                    >
-                      {Object.keys(BIBLIOTECA_INICIAL).map((cat) => (
-                        <button 
-                          key={cat} 
-                          onClick={() => setCategoriaActiva(cat)}
-                          className="w-full p-6 bg-white/40 border border-primary/5 rounded-[1.8rem] flex items-center justify-between group hover:bg-white hover:shadow-xl transition-all duration-500"
-                        >
-                          <div className="flex items-center gap-4">
-                            <Folder size={16} className="opacity-20 group-hover:text-accent transition-colors" />
-                            <span className="text-sm font-medium italic opacity-70">{cat}</span>
-                          </div>
-                          <span className="text-[10px] opacity-20 font-bold">{(BIBLIOTECA_INICIAL as any)[cat].length}</span>
-                        </button>
-                      ))}
-                    </motion.div>
-                  ) : (
-                    // VISTA DE ENSAYOS DENTRO DE CATEGORÍA
-                    <motion.div 
-                      key="ensayos"
-                      initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
-                      className="space-y-3"
-                    >
-                      <div className="px-2 mb-4">
-                        <p className="text-[10px] font-black uppercase text-accent tracking-tighter">Carpeta: {categoriaActiva}</p>
+            <div className="space-y-4">
+              <AnimatePresence mode="wait">
+                {!catActivaId ? (
+                  /* VISTA: CATEGORÍAS */
+                  <motion.div key="list-cat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+                    {biblioteca.length === 0 && (
+                      <p className="text-[10px] italic opacity-30 text-center py-10 border-2 border-dashed border-primary/5 rounded-[2rem]">"No hay categorías creadas."</p>
+                    )}
+                    {biblioteca.map(cat => (
+                      <div key={cat.id} onClick={() => setCatActivaId(cat.id)} className="group relative w-full p-6 bg-white border border-primary/5 rounded-[2rem] flex items-center justify-between cursor-pointer hover:shadow-2xl hover:border-accent/20 transition-all duration-500">
+                        <div className="flex items-center gap-4">
+                          <Folder size={18} className="text-accent opacity-40 group-hover:opacity-100" />
+                          <span className="text-sm font-serif italic font-bold">{cat.nombre}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[9px] font-black opacity-20">{cat.ensayos.length}</span>
+                          <button onClick={(e) => eliminarCategoria(e, cat.id)} className="opacity-0 group-hover:opacity-40 hover:text-red-500 transition-all">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
-                      {(BIBLIOTECA_INICIAL as any)[categoriaActiva].map((ens) => (
-                        <button 
-                          key={ens} 
-                          onClick={() => setEnsayoActivo(ens)}
-                          className={`w-full p-5 rounded-[1.5rem] flex items-center justify-between transition-all duration-300 ${
-                            ensayoActivo === ens 
-                            ? "bg-primary text-white shadow-lg" 
-                            : "bg-white/60 border border-primary/5 hover:bg-white"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <FileText size={14} className={ensayoActivo === ens ? "opacity-100" : "opacity-20"} />
-                            <span className="text-xs font-medium">{ens}</span>
-                          </div>
-                          <Hash size={10} className="opacity-20" />
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </section>
+                    ))}
+                  </motion.div>
+                ) : (
+                  /* VISTA: ENSAYOS */
+                  <motion.div key="list-ens" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
+                    <button onClick={() => {setCatActivaId(null); setEnsayoActivoId(null);}} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 mb-6 transition-all">
+                      <ArrowLeft size={12} /> Volver a Carpetas
+                    </button>
+                    
+                    <div className="flex items-center justify-between px-2 mb-4">
+                      <p className="text-[10px] font-black uppercase text-accent tracking-tighter italic">Carpeta: {catActiva?.nombre}</p>
+                      <button onClick={() => crearEnsayo(catActivaId)} className="flex items-center gap-2 text-[9px] font-black uppercase bg-primary/5 px-3 py-1 rounded-full hover:bg-primary hover:text-white transition-all">
+                        <Plus size={10} /> Nuevo Ensayo
+                      </button>
+                    </div>
 
-            {/* ZOTERO PERMANECE ABAJO */}
-            <section className="pt-8 border-t border-primary/5">
-              <h3 className={sectionTag}><BookOpen size={14} /> Fuentes Zotero</h3>
-              <div className="bg-white/50 p-6 rounded-[2rem] border border-primary/5 shadow-sm">
-                <label className="block w-full border-2 border-dashed border-primary/10 rounded-xl p-4 text-center cursor-pointer hover:border-accent transition-all">
-                  <span className="text-[9px] font-bold uppercase tracking-widest opacity-40 italic">Vincular Better BibTeX</span>
-                  <input type="file" className="hidden" onChange={handleZoteroUpload} accept=".json" />
-                </label>
-              </div>
-            </section>
+                    {catActiva?.ensayos.map(ens => (
+                      <button key={ens.id} onClick={() => setEnsayoActivoId(ens.id)} className={`w-full p-5 rounded-[1.5rem] flex items-center justify-between transition-all duration-300 ${ensayoActivoId === ens.id ? "bg-primary text-white shadow-xl translate-x-2" : "bg-white/60 hover:bg-white border border-primary/5"}`}>
+                        <div className="flex items-center gap-3">
+                          <FileText size={14} className={ensayoActivoId === ens.id ? "opacity-100" : "opacity-20"} />
+                          <span className="text-xs font-bold uppercase tracking-tight">{ens.titulo}</span>
+                        </div>
+                        <Edit3 size={10} className="opacity-20" />
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </aside>
 
-          {/* ÁREA DE EDICIÓN CONDICIONAL */}
+          {/* EDITOR ÁREA */}
           <section className="lg:col-span-8">
             <AnimatePresence mode="wait">
               {ensayoActivo ? (
-                <motion.div 
-                  key="editor-activo"
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                  className="space-y-8"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className={sectionTag}><PenTool size={14} /> Escritura Activa</h3>
-                    <span className="text-[9px] font-black uppercase tracking-widest opacity-20">Guardado Automático</span>
+                <motion.div key={ensayoActivo.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                  <div className="flex justify-between items-center px-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-2 w-2 bg-accent rounded-full animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-widest opacity-40 italic">
+                        Editando en {catActiva?.nombre}
+                      </span>
+                    </div>
+                    <div className="flex gap-4">
+                       <button className="flex items-center gap-2 text-[9px] font-black uppercase opacity-20 hover:opacity-100 transition-all">
+                         <Save size={12} /> Guardado local
+                       </button>
+                    </div>
                   </div>
 
-                  <div className="bg-white p-10 md:p-20 shadow-2xl rounded-[3.5rem] min-h-[800px] border border-primary/5 relative">
+                  <div className="bg-white p-10 md:p-20 shadow-[0_30px_100px_rgba(0,0,0,0.05)] rounded-[4rem] min-h-[850px] border border-primary/5">
                     <input 
                       type="text" 
-                      value={essayTitle}
-                      onChange={(e) => setEssayTitle(e.target.value)}
-                      className="w-full text-4xl md:text-5xl font-serif italic mb-12 outline-none bg-transparent text-primary border-b border-primary/5 pb-6"
+                      value={ensayoActivo.titulo}
+                      onChange={(e) => actualizarTitulo(e.target.value)}
+                      className="w-full text-4xl md:text-6xl font-serif italic mb-12 outline-none bg-transparent text-primary border-b border-primary/5 pb-8 focus:border-accent transition-colors"
+                      placeholder="Título sin nombre..."
                     />
                     <textarea 
-                      className="w-full h-[550px] text-xl leading-relaxed font-light outline-none resize-none bg-transparent custom-scrollbar"
-                      placeholder="Empieza tu investigación..."
-                      value={essayContent}
-                      onChange={(e) => setEssayContent(e.target.value)}
+                      value={ensayoActivo.contenido}
+                      onChange={(e) => actualizarContenido(e.target.value)}
+                      className="w-full h-[600px] text-xl leading-[1.8] font-light outline-none resize-none bg-transparent placeholder:opacity-10 custom-scrollbar"
+                      placeholder="Empieza a escribir, Franilover..."
                     />
-                    <footer className="mt-16 pt-8 border-t border-primary/5 flex justify-between items-center text-[9px] font-black uppercase tracking-[0.3em] opacity-30">
-                      <span>Palabras: {essayContent.split(/\s+/).filter(Boolean).length}</span>
-                      <div className="flex items-center gap-2">
-                        <ExternalLink size={10} /> {categoriaActiva} / {ensayoActivo}
-                      </div>
+                    <footer className="mt-16 pt-8 border-t border-primary/5 flex justify-between items-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30">
+                      <span>{ensayoActivo.contenido.split(/\s+/).filter(Boolean).length} palabras</span>
+                      <span className="flex items-center gap-2"><ExternalLink size={12}/> Archivo Privado</span>
                     </footer>
                   </div>
                 </motion.div>
               ) : (
-                // PANTALLA VACÍA (PLACEHOLDER)
-                <motion.div 
-                  key="empty-state"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="h-full min-h-[600px] flex flex-col items-center justify-center text-center opacity-20 border-2 border-dashed border-primary/10 rounded-[4rem]"
-                >
-                  <PenTool size={48} className="mb-6 stroke-[1px]" />
-                  <p className="text-sm font-serif italic tracking-widest">
-                    "Selecciona un ensayo de tu biblioteca para comenzar la sesión."
-                  </p>
-                </motion.div>
+                <div className="h-[850px] flex flex-col items-center justify-center text-center border-2 border-dashed border-primary/10 rounded-[5rem] opacity-20">
+                  <PenTool size={60} strokeWidth={1} className="mb-6" />
+                  <p className="text-sm font-serif italic tracking-[0.2em]">"Selecciona o crea un ensayo para iniciar el laboratorio."</p>
+                </div>
               )}
             </AnimatePresence>
           </section>
@@ -233,8 +229,9 @@ export default function EnsayosView() {
       </main>
 
       <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(var(--primary-rgb), 0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(var(--primary-rgb), 0.05); border-radius: 20px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(var(--primary-rgb), 0.2); }
       `}</style>
     </div>
   );
