@@ -181,7 +181,7 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
   const secDisplay = (pomSegundos % 60).toString().padStart(2, "0");
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 relative z-10">
       {/* BARRA COMPACTA */}
       <motion.div
         layout
@@ -216,24 +216,24 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
       <AnimatePresence>
         {expandido && (
           <motion.div
-            initial={{ opacity: 0, height: 0, y: -10 }}
-            animate={{ opacity: 1, height: "auto", y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -10 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden"
+            className="overflow-hidden relative z-10"
           >
-            <div className="mt-3 bg-white border border-primary/10 rounded-[30px] p-6 shadow-xl shadow-primary/5 flex flex-col sm:flex-row gap-8 items-center">
+            <div className="mt-3 bg-white border border-primary/10 rounded-[30px] p-6 shadow-xl shadow-primary/5 flex flex-col sm:flex-row gap-6 items-center">
 
               {/* RELOJ GRANDE */}
-              <div className="flex flex-col items-center gap-1 shrink-0">
+              <div className="flex flex-col items-center gap-1 shrink-0 bg-primary/4 rounded-2xl px-6 py-4 border border-primary/8">
                 <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30 italic">Hora Actual</span>
-                <span className="text-6xl font-black tracking-tighter tabular-nums text-primary italic leading-none">
+                <span className="text-5xl font-black tracking-tighter tabular-nums text-primary italic leading-none">
                   {hora.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false })}
                 </span>
-                <span className="text-lg font-black tabular-nums text-primary/30 tracking-tight">
+                <span className="text-base font-black tabular-nums text-primary/30 tracking-tight">
                   :{hora.toLocaleTimeString("es-CL", { second: "2-digit", hour12: false })}
                 </span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 mt-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 mt-1 text-center">
                   {actividadActual ? actividadActual.actividad : "Tiempo Libre"}
                 </span>
               </div>
