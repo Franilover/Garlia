@@ -9,7 +9,8 @@ import { supabase } from "@/lib/api/client/supabase";
 import {
   LogOut, Plus, Camera, Sparkles,
   CircleUser, Flower2, Sword,
-  Utensils, CheckSquare, Dumbbell // <-- Importado Dumbbell
+  Utensils, CheckSquare, Dumbbell,
+  PenTool // <-- Importado PenTool para el Laboratorio
 } from "lucide-react";
 
 const Navbar = () => {
@@ -17,7 +18,7 @@ const Navbar = () => {
   const { user, perfil } = useAuth() as { user: any; perfil: any };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  // --- LÓGICA DE PERMISOS (COHERENTE CON WIKI) ---
+  // --- LÓGICA DE PERMISOS ---
   const esFranilover = perfil?.username === "Franilover";
   const puedeSubir = perfil?.rol === "admin" || perfil?.rol === "autor";
 
@@ -34,7 +35,8 @@ const Navbar = () => {
   const isPersonal = currentPath?.startsWith("/personal") && 
                     !currentPath.includes("/paginas/cocina") && 
                     !currentPath.includes("/paginas/tareas") &&
-                    !currentPath.includes("/paginas/ejercicios"); // <-- Añadido a la exclusión
+                    !currentPath.includes("/paginas/ejercicios") &&
+                    !currentPath.includes("/paginas/ensayos"); // <-- Añadido Ensayos
 
   // --- CONTENIDO MÓVIL ---
   const navContentMobile = useMemo(() => (
@@ -97,7 +99,7 @@ const Navbar = () => {
               Wiki
             </Link>
 
-            {/* 🔒 SOLO FRANILOVER: Accesos directos a herramientas de gestión */}
+            {/* 🔒 SOLO FRANILOVER: Herramientas */}
             {esFranilover && (
               <div className="flex gap-1 ml-2 pl-2 border-l border-primary/10">
                 <Link
@@ -112,12 +114,18 @@ const Navbar = () => {
                 >
                   <CheckSquare size={16} />
                 </Link>
-                {/* NUEVO: Ejercicios */}
                 <Link
                   href="/personal/paginas/ejercicios"
                   className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ejercicios") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}
                 >
                   <Dumbbell size={16} />
+                </Link>
+                {/* NUEVO: Laboratorio de Ensayos */}
+                <Link
+                  href="/personal/paginas/ensayos"
+                  className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ensayos") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}
+                >
+                  <PenTool size={16} />
                 </Link>
               </div>
             )}
@@ -149,7 +157,6 @@ const Navbar = () => {
                         <Sword size={14} /> Mi Personaje
                       </Link>
 
-                      {/* 🔒 SOLO ADMIN/AUTOR: Botón de subida rápida */}
                       {puedeSubir && (
                         <Link
                           href="/upload"
@@ -201,7 +208,6 @@ const Navbar = () => {
                 <Sword size={18} /> Mi Personaje
               </Link>
 
-              {/* 🔒 MÓVIL: Permisos para Franilover/Admins */}
               {puedeSubir && (
                 <Link href="/upload" onClick={closeAll} className="w-full p-4 bg-primary text-white rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                   <Plus size={18} /> Subir Contenido
@@ -210,17 +216,20 @@ const Navbar = () => {
 
               {esFranilover && (
                 <div className="flex flex-col gap-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link href="/personal/paginas/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                      <Utensils size={16} /> Cocina
+                  <div className="grid grid-cols-3 gap-2"> {/* Cambiado a grid-cols-3 */}
+                    <Link href="/personal/paginas/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center">
+                      <Utensils size={16} />
                     </Link>
-                    <Link href="/personal/paginas/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                      <CheckSquare size={16} /> Agenda
+                    <Link href="/personal/paginas/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center">
+                      <CheckSquare size={16} />
+                    </Link>
+                    <Link href="/personal/paginas/ejercicios" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center">
+                      <Dumbbell size={16} />
                     </Link>
                   </div>
-                  {/* NUEVO: Ejercicios en Móvil */}
-                  <Link href="/personal/paginas/ejercicios" onClick={closeAll} className="w-full p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    <Dumbbell size={16} /> Ejercicios
+                  {/* NUEVO: Botón ancho para Ensayos en Móvil */}
+                  <Link href="/personal/paginas/ensayos" onClick={closeAll} className="w-full p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                    <PenTool size={16} /> Laboratorio de Ensayos
                   </Link>
                 </div>
               )}
