@@ -13,20 +13,40 @@ export default function EnsayosView() {
   const [sources, setSources] = useState<ZoteroSource[]>([]);
   const [essayContent, setEssayContent] = useState("");
   const [essayTitle, setEssayTitle] = useState("");
+  // Estado para saber qué ensayo estamos editando
+  const [activeEnsayo, setActiveEnsayo] = useState("Investigaciones 2026");
+  const [mounted, setMounted] = useState(false);
 
-  // Efecto para cargar datos guardados al iniciar
+  // Lista de directorios/ensayos
+  const directorios = ["Investigaciones 2026", "Garden of Sins - Ref", "Ensayos Terminados"];
+
+  // 1. Marcar como montado para evitar errores de LocalStorage en SSR
   useEffect(() => {
-    const savedTitle = localStorage.getItem("fran-essay-title");
-    const savedContent = localStorage.getItem("fran-essay-content");
-    if (savedTitle) setEssayTitle(savedTitle);
-    if (savedContent) setEssayContent(savedContent);
+    setMounted(true);
   }, []);
 
-  // Efecto para autoguardar mientras escribes
+  // 2. Cargar contenido cuando cambia el ensayo activo
   useEffect(() => {
-    localStorage.setItem("fran-essay-title", essayTitle);
-    localStorage.setItem("fran-essay-content", essayContent);
-  }, [essayTitle, essayContent]);
+    if (!mounted) return;
+    
+    const savedTitle = localStorage.getItem(`ensayo-title-${activeEnsayo}`);
+    const savedContent = localStorage.getItem(`ensayo-content-${activeEnsayo}`);
+    
+    setEssayTitle(savedTitle || "");
+    setEssayContent(savedContent || "");
+  }, [activeEnsayo, mounted]);
+
+  // 3. Autoguardado automático al escribir
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem(`ensayo-title-${activeEnsayo}`, essayTitle);
+      localStorage.setItem(`ensayo-content-${activeEnsayo}`, essayContent);
+    }, 500); // Pequeño debounce para rendimiento
+
+    return () => clearTimeout(timeoutId);
+  }, [essayTitle, essayContent, activeEnsayo, mounted]);
 
   const sectionTag = "text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-3 mb-8 opacity-40 text-primary";
 
@@ -50,6 +70,8 @@ export default function EnsayosView() {
     };
     reader.readAsText(file);
   };
+
+  if (!mounted) return <div className="min-h-screen bg-bg-main" />;
 
   return (
     <div className="w-full bg-bg-main min-h-screen text-primary selection:bg-primary/10">
@@ -75,7 +97,10 @@ export default function EnsayosView() {
             <div className="h-1.5 w-20 bg-primary mt-8 opacity-20 rounded-full" />
           </motion.div>
           
-          <button className="px-8 py-4 bg-white border border-primary/10 rounded-full text-[10px] uppercase tracking-widest font-bold hover:bg-primary hover:text-white transition-all shadow-sm flex items-center gap-2 group">
+          <button 
+            onClick={() => alert("Copia de seguridad guardada localmente.")}
+            className="px-8 py-4 bg-white border border-primary/10 rounded-full text-[10px] uppercase tracking-widest font-bold hover:bg-primary hover:text-white transition-all shadow-sm flex items-center gap-2 group"
+          >
             <Save size={14} /> Forzar Guardado
           </button>
         </header>
@@ -85,11 +110,21 @@ export default function EnsayosView() {
             <section>
               <h3 className={sectionTag}><Files size={14} /> Directorios Locales</h3>
               <div className="space-y-3">
-                {["Investigaciones 2026", "Garden of Sins - Ref", "Ensayos Terminados"].map((folder) => (
-                  <div key={folder} className="p-5 bg-white/40 border border-primary/5 rounded-[1.5rem] flex items-center justify-between group cursor-pointer hover:bg-white transition-all duration-300">
-                    <span className="text-sm font-medium italic opacity-70 group-hover:opacity-100">{folder}</span>
-                    <Hash size={12} className="opacity-10 group-hover:opacity-40" />
-                  </div>
+                {directorios.map((folder) => (
+                  <button 
+                    key={folder} 
+                    onClick={() => setActiveEnsayo(folder)}
+                    className={`w-full p-5 border rounded-[1.5rem] flex items-center justify-between group transition-all duration-300 ${
+                      activeEnsayo === folder 
+                      ? "bg-primary text-white border-primary shadow-lg scale-[1.02]" 
+                      : "bg-white/40 border-primary/5 hover:bg-white text-primary"
+                    }`}
+                  >
+                    <span className={`text-sm font-medium italic ${activeEnsayo === folder ? "opacity-100" : "opacity-70 group-hover:opacity-100"}`}>
+                      {folder}
+                    </span>
+                    <Hash size={12} className={activeEnsayo === folder ? "opacity-100" : "opacity-10 group-hover:opacity-40"} />
+                  </button>
                 ))}
               </div>
             </section>
@@ -114,7 +149,7 @@ export default function EnsayosView() {
           </aside>
 
           <section className="lg:col-span-8">
-            <h3 className={sectionTag}><PenTool size={14} /> Escritura Activa</h3>
+            <h3 className={sectionTag}><PenTool size={14} /> Editando: {activeEnsayo}</h3>
             <div className="bg-white p-10 md:p-20 shadow-2xl rounded-[3.5rem] min-h-[800px] border border-primary/5 relative">
               <input 
                 type="text" 
