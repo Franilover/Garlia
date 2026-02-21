@@ -185,28 +185,28 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
       <motion.div
         layout
         onClick={() => setExpandido(e => !e)}
-        className="flex flex-col sm:flex-row items-center gap-6 bg-primary text-white px-6 py-5 rounded-[30px] shadow-lg shadow-primary/20 border border-white/10 cursor-pointer hover:brightness-110 transition-all select-none"
+        className="flex flex-col sm:flex-row items-center gap-6 bg-white text-primary px-6 py-5 rounded-[30px] shadow-xl shadow-primary/5 border border-primary/10 cursor-pointer hover:border-primary/30 transition-all select-none"
       >
         <div className="flex items-center gap-4">
-          <Clock size={24} className={cn("text-white/80", !expandido && "animate-pulse")} />
+          <Clock size={24} className={cn("text-primary/60", !expandido && "animate-pulse")} />
           <div className="flex flex-col">
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-50 italic">Tiempo Real</span>
-            <span className="text-3xl font-black tracking-tighter tabular-nums italic">{formatoHora}</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 italic">Tiempo Real</span>
+            <span className="text-3xl font-black tracking-tighter tabular-nums italic text-primary">{formatoHora}</span>
           </div>
         </div>
-        <div className="hidden sm:block h-10 w-[1px] bg-white/20 mx-2" />
+        <div className="hidden sm:block h-10 w-[1px] bg-primary/10 mx-2" />
         <div className="flex flex-col items-center sm:items-start flex-1">
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-50 italic">Actividad Programada</span>
-          <span className="text-sm font-black uppercase tracking-tight italic text-white/90">
+          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 italic">Actividad Programada</span>
+          <span className="text-sm font-black uppercase tracking-tight italic text-primary">
             {actividadActual ? actividadActual.actividad : "Tiempo Libre"}
           </span>
         </div>
         <div className="hidden sm:flex items-center gap-2 ml-auto">
-          <span className="text-[8px] font-black uppercase tracking-widest opacity-40 italic">
+          <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 italic">
             {expandido ? "Cerrar" : "Pomodoro"}
           </span>
           <motion.div animate={{ rotate: expandido ? 180 : 0 }} transition={{ duration: 0.3 }}>
-            <ChevronLeft size={14} className="opacity-40 -rotate-90" />
+            <ChevronLeft size={14} className="text-primary/30 -rotate-90" />
           </motion.div>
         </div>
       </motion.div>
@@ -246,7 +246,7 @@ const RelojDigital = ({ horario }: { horario: any[] }) => {
                 {/* Círculo progreso */}
                 <div className="relative w-28 h-28 cursor-pointer" onClick={(e) => { e.stopPropagation(); togglePomodoro(); }}>
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 88 88">
-                    <circle cx="44" cy="44" r={r} fill="none" stroke="currentColor" strokeWidth="6" className="text-primary/8" />
+                    <circle cx="44" cy="44" r={r} fill="none" stroke="currentColor" strokeWidth="6" className="text-primary/10" />
                     <motion.circle
                       cx="44" cy="44" r={r} fill="none"
                       stroke="currentColor" strokeWidth="6"
