@@ -9,7 +9,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import {
   LogOut, Plus, Camera, Sparkles,
   CircleUser, Flower2, Sword,
-  Utensils, CheckSquare
+  Utensils, CheckSquare, Dumbbell // <-- Importado Dumbbell
 } from "lucide-react";
 
 const Navbar = () => {
@@ -33,7 +33,8 @@ const Navbar = () => {
   const isWiki = currentPath?.startsWith("/wiki") && currentPath !== "/wiki/personal";
   const isPersonal = currentPath?.startsWith("/personal") && 
                     !currentPath.includes("/paginas/cocina") && 
-                    !currentPath.includes("/paginas/tareas");
+                    !currentPath.includes("/paginas/tareas") &&
+                    !currentPath.includes("/paginas/ejercicios"); // <-- Añadido a la exclusión
 
   // --- CONTENIDO MÓVIL ---
   const navContentMobile = useMemo(() => (
@@ -110,6 +111,13 @@ const Navbar = () => {
                   className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/tareas") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}
                 >
                   <CheckSquare size={16} />
+                </Link>
+                {/* NUEVO: Ejercicios */}
+                <Link
+                  href="/personal/paginas/ejercicios"
+                  className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ejercicios") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}
+                >
+                  <Dumbbell size={16} />
                 </Link>
               </div>
             )}
@@ -201,12 +209,18 @@ const Navbar = () => {
               )}
 
               {esFranilover && (
-                <div className="grid grid-cols-2 gap-2">
-                  <Link href="/personal/paginas/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    <Utensils size={16} /> Cocina
-                  </Link>
-                  <Link href="/personal/paginas/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    <CheckSquare size={16} /> Agenda
+                <div className="flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href="/personal/paginas/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                      <Utensils size={16} /> Cocina
+                    </Link>
+                    <Link href="/personal/paginas/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                      <CheckSquare size={16} /> Agenda
+                    </Link>
+                  </div>
+                  {/* NUEVO: Ejercicios en Móvil */}
+                  <Link href="/personal/paginas/ejercicios" onClick={closeAll} className="w-full p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+                    <Dumbbell size={16} /> Ejercicios
                   </Link>
                 </div>
               )}
