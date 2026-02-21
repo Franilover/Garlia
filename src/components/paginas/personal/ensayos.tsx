@@ -1,7 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { BookOpen, Files, PenTool, Hash, Save, ExternalLink, ChevronLeft } from "lucide-react";
-import { motion } from "framer-motion";
+import { 
+  BookOpen, Files, PenTool, Hash, Save, 
+  ExternalLink, ChevronLeft, Folder, FileText, ArrowLeft 
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ZoteroSource {
   title: string;
@@ -9,69 +12,69 @@ interface ZoteroSource {
   year: string;
 }
 
+// Estructura de datos para organizar tu biblioteca
+const BIBLIOTECA_INICIAL = {
+  "Psicología": ["Análisis del Comportamiento", "Teoría del Vínculo", "Somatización en el Arte"],
+  "Política": ["Geopolítica 2026", "Sistemas de Control", "El Jardín Digital"],
+  "Economía": ["Valor Simbólico", "Economía de la Atención"],
+  "Filosofía": ["Estética del Vacío", "Fenomenología de la Luz"]
+};
+
 export default function EnsayosView() {
-  const [sources, setSources] = useState<ZoteroSource[]>([]);
+  const [mounted, setMounted] = useState(false);
+  const [categoriaActiva, setCategoriaActiva] = useState<string | null>(null);
+  const [ensayoActivo, setEnsayoActivo] = useState<string | null>(null);
+  
+  // Estados del editor
   const [essayContent, setEssayContent] = useState("");
   const [essayTitle, setEssayTitle] = useState("");
-  // Estado para saber qué ensayo estamos editando
-  const [activeEnsayo, setActiveEnsayo] = useState("Investigaciones 2026");
-  const [mounted, setMounted] = useState(false);
+  const [sources, setSources] = useState<ZoteroSource[]>([]);
 
-  // Lista de directorios/ensayos
-  const directorios = ["Investigaciones 2026", "Garden of Sins - Ref", "Ensayos Terminados"];
-
-  // 1. Marcar como montado para evitar errores de LocalStorage en SSR
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 2. Cargar contenido cuando cambia el ensayo activo
+  // Cargar ensayo específico del LocalStorage
   useEffect(() => {
-    if (!mounted) return;
-    
-    const savedTitle = localStorage.getItem(`ensayo-title-${activeEnsayo}`);
-    const savedContent = localStorage.getItem(`ensayo-content-${activeEnsayo}`);
-    
-    setEssayTitle(savedTitle || "");
-    setEssayContent(savedContent || "");
-  }, [activeEnsayo, mounted]);
+    if (mounted && ensayoActivo) {
+      const savedTitle = localStorage.getItem(`ensayo-titulo-${ensayoActivo}`);
+      const savedContent = localStorage.getItem(`ensayo-contenido-${ensayoActivo}`);
+      setEssayTitle(savedTitle || ensayoActivo);
+      setEssayContent(savedContent || "");
+    }
+  }, [ensayoActivo, mounted]);
 
-  // 3. Autoguardado automático al escribir
+  // Autoguardado
   useEffect(() => {
-    if (!mounted) return;
-    
-    const timeoutId = setTimeout(() => {
-      localStorage.setItem(`ensayo-title-${activeEnsayo}`, essayTitle);
-      localStorage.setItem(`ensayo-content-${activeEnsayo}`, essayContent);
-    }, 500); // Pequeño debounce para rendimiento
-
-    return () => clearTimeout(timeoutId);
-  }, [essayTitle, essayContent, activeEnsayo, mounted]);
-
-  const sectionTag = "text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-3 mb-8 opacity-40 text-primary";
+    if (mounted && ensayoActivo) {
+      localStorage.setItem(`ensayo-titulo-${ensayoActivo}`, essayTitle);
+      localStorage.setItem(`ensayo-contenido-${ensayoActivo}`, essayContent);
+    }
+  }, [essayTitle, essayContent, ensayoActivo, mounted]);
 
   const handleZoteroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
         const formatted = json.map((item: any) => ({
           title: item.title || "Sin título",
-          author: item.author?.[0]?.family || item.author?.[0]?.name || "Anónimo",
+          author: item.author?.[0]?.family || "Anónimo",
           year: item.issued?.["date-parts"]?.[0]?.[0] || "s.f."
         }));
         setSources(formatted);
       } catch (err) {
-        alert("Error al procesar el archivo local de Zotero.");
+        alert("Error al procesar Zotero.");
       }
     };
     reader.readAsText(file);
   };
 
-  if (!mounted) return <div className="min-h-screen bg-bg-main" />;
+  if (!mounted) return null;
+
+  const sectionTag = "text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-3 mb-8 opacity-40 text-primary";
 
   return (
     <div className="w-full bg-bg-main min-h-screen text-primary selection:bg-primary/10">
@@ -83,97 +86,149 @@ export default function EnsayosView() {
           <ChevronLeft size={14} /> Volver
         </button>
         <div className="flex items-center gap-4">
-          <span className="text-[10px] uppercase tracking-widest font-bold opacity-20 italic">"Acceso Exclusivo: Franilover"</span>
-          <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+          <span className="text-[10px] uppercase tracking-widest font-bold opacity-20 italic">"Gabinete de Trabajo: Franilover"</span>
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-6 pb-32 pt-16 md:pt-24 font-sans">
-        <header className="mb-24 flex flex-col md:flex-row justify-between items-end gap-8">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none">
-              Laboratorio <span className="font-serif font-light text-primary/60">Textual</span>
-            </h1>
-            <div className="h-1.5 w-20 bg-primary mt-8 opacity-20 rounded-full" />
-          </motion.div>
-          
-          <button 
-            onClick={() => alert("Copia de seguridad guardada localmente.")}
-            className="px-8 py-4 bg-white border border-primary/10 rounded-full text-[10px] uppercase tracking-widest font-bold hover:bg-primary hover:text-white transition-all shadow-sm flex items-center gap-2 group"
-          >
-            <Save size={14} /> Forzar Guardado
-          </button>
-        </header>
-
+      <main className="max-w-6xl mx-auto px-6 pb-32 pt-16 font-sans">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+          
+          {/* PANEL IZQUIERDO: NAVEGADOR DE CATEGORÍAS Y ENSAYOS */}
           <aside className="lg:col-span-4 space-y-12">
             <section>
-              <h3 className={sectionTag}><Files size={14} /> Directorios Locales</h3>
-              <div className="space-y-3">
-                {directorios.map((folder) => (
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-3 opacity-40 text-primary">
+                  <Files size={14} /> Biblioteca
+                </h3>
+                {categoriaActiva && (
                   <button 
-                    key={folder} 
-                    onClick={() => setActiveEnsayo(folder)}
-                    className={`w-full p-5 border rounded-[1.5rem] flex items-center justify-between group transition-all duration-300 ${
-                      activeEnsayo === folder 
-                      ? "bg-primary text-white border-primary shadow-lg scale-[1.02]" 
-                      : "bg-white/40 border-primary/5 hover:bg-white text-primary"
-                    }`}
+                    onClick={() => {setCategoriaActiva(null); setEnsayoActivo(null);}}
+                    className="text-[9px] uppercase tracking-widest font-bold opacity-60 hover:text-accent flex items-center gap-1"
                   >
-                    <span className={`text-sm font-medium italic ${activeEnsayo === folder ? "opacity-100" : "opacity-70 group-hover:opacity-100"}`}>
-                      {folder}
-                    </span>
-                    <Hash size={12} className={activeEnsayo === folder ? "opacity-100" : "opacity-10 group-hover:opacity-40"} />
+                    <ArrowLeft size={10} /> Categorías
                   </button>
-                ))}
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <AnimatePresence mode="wait">
+                  {!categoriaActiva ? (
+                    // VISTA DE CATEGORÍAS
+                    <motion.div 
+                      key="categorias"
+                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+                      className="space-y-3"
+                    >
+                      {Object.keys(BIBLIOTECA_INICIAL).map((cat) => (
+                        <button 
+                          key={cat} 
+                          onClick={() => setCategoriaActiva(cat)}
+                          className="w-full p-6 bg-white/40 border border-primary/5 rounded-[1.8rem] flex items-center justify-between group hover:bg-white hover:shadow-xl transition-all duration-500"
+                        >
+                          <div className="flex items-center gap-4">
+                            <Folder size={16} className="opacity-20 group-hover:text-accent transition-colors" />
+                            <span className="text-sm font-medium italic opacity-70">{cat}</span>
+                          </div>
+                          <span className="text-[10px] opacity-20 font-bold">{(BIBLIOTECA_INICIAL as any)[cat].length}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  ) : (
+                    // VISTA DE ENSAYOS DENTRO DE CATEGORÍA
+                    <motion.div 
+                      key="ensayos"
+                      initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
+                      className="space-y-3"
+                    >
+                      <div className="px-2 mb-4">
+                        <p className="text-[10px] font-black uppercase text-accent tracking-tighter">Carpeta: {categoriaActiva}</p>
+                      </div>
+                      {(BIBLIOTECA_INICIAL as any)[categoriaActiva].map((ens) => (
+                        <button 
+                          key={ens} 
+                          onClick={() => setEnsayoActivo(ens)}
+                          className={`w-full p-5 rounded-[1.5rem] flex items-center justify-between transition-all duration-300 ${
+                            ensayoActivo === ens 
+                            ? "bg-primary text-white shadow-lg" 
+                            : "bg-white/60 border border-primary/5 hover:bg-white"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <FileText size={14} className={ensayoActivo === ens ? "opacity-100" : "opacity-20"} />
+                            <span className="text-xs font-medium">{ens}</span>
+                          </div>
+                          <Hash size={10} className="opacity-20" />
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </section>
 
-            <section>
+            {/* ZOTERO PERMANECE ABAJO */}
+            <section className="pt-8 border-t border-primary/5">
               <h3 className={sectionTag}><BookOpen size={14} /> Fuentes Zotero</h3>
-              <div className="bg-white p-8 rounded-[2.5rem] border border-primary/5 shadow-sm overflow-hidden">
-                <label className="block w-full border-2 border-dashed border-primary/10 rounded-2xl p-6 text-center cursor-pointer hover:border-primary/40 transition-all mb-6 group">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-40 group-hover:opacity-100 italic">Importar JSON de Zotero</span>
+              <div className="bg-white/50 p-6 rounded-[2rem] border border-primary/5 shadow-sm">
+                <label className="block w-full border-2 border-dashed border-primary/10 rounded-xl p-4 text-center cursor-pointer hover:border-accent transition-all">
+                  <span className="text-[9px] font-bold uppercase tracking-widest opacity-40 italic">Vincular Better BibTeX</span>
                   <input type="file" className="hidden" onChange={handleZoteroUpload} accept=".json" />
                 </label>
-                <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
-                  {sources.length > 0 ? sources.map((src, i) => (
-                    <div key={i} className="text-sm border-b border-primary/5 pb-4 last:border-0">
-                      <p className="font-bold leading-tight">{src.title}</p>
-                      <p className="text-[9px] uppercase tracking-wider opacity-40 italic font-mono">{src.author} • {src.year}</p>
-                    </div>
-                  )) : <div className="py-10 text-center italic opacity-30 text-xs px-4">"Carga bibliográfica vacía."</div>}
-                </div>
               </div>
             </section>
           </aside>
 
+          {/* ÁREA DE EDICIÓN CONDICIONAL */}
           <section className="lg:col-span-8">
-            <h3 className={sectionTag}><PenTool size={14} /> Editando: {activeEnsayo}</h3>
-            <div className="bg-white p-10 md:p-20 shadow-2xl rounded-[3.5rem] min-h-[800px] border border-primary/5 relative">
-              <input 
-                type="text" 
-                placeholder="Título del Ensayo..." 
-                value={essayTitle}
-                onChange={(e) => setEssayTitle(e.target.value)}
-                className="w-full text-4xl md:text-6xl font-serif italic mb-12 outline-none bg-transparent placeholder:opacity-10 text-primary border-b border-primary/5 pb-6"
-              />
-              <textarea 
-                className="w-full h-[550px] text-xl leading-relaxed font-light outline-none resize-none bg-transparent placeholder:opacity-10 custom-scrollbar"
-                placeholder="Escribe, Franilover..."
-                value={essayContent}
-                onChange={(e) => setEssayContent(e.target.value)}
-              />
-              <footer className="mt-16 pt-8 border-t border-primary/5 flex flex-wrap justify-between items-center gap-4 text-[9px] font-black uppercase tracking-[0.3em] opacity-30">
-                <div className="flex gap-8">
-                  <span>Palabras: {essayContent.split(/\s+/).filter(Boolean).length}</span>
-                </div>
-                <div className="flex items-center gap-2 bg-primary/5 px-4 py-2 rounded-full uppercase tracking-tighter">
-                  <ExternalLink size={10} /> Solo visible para Franilover
-                </div>
-              </footer>
-            </div>
+            <AnimatePresence mode="wait">
+              {ensayoActivo ? (
+                <motion.div 
+                  key="editor-activo"
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  className="space-y-8"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className={sectionTag}><PenTool size={14} /> Escritura Activa</h3>
+                    <span className="text-[9px] font-black uppercase tracking-widest opacity-20">Guardado Automático</span>
+                  </div>
+
+                  <div className="bg-white p-10 md:p-20 shadow-2xl rounded-[3.5rem] min-h-[800px] border border-primary/5 relative">
+                    <input 
+                      type="text" 
+                      value={essayTitle}
+                      onChange={(e) => setEssayTitle(e.target.value)}
+                      className="w-full text-4xl md:text-5xl font-serif italic mb-12 outline-none bg-transparent text-primary border-b border-primary/5 pb-6"
+                    />
+                    <textarea 
+                      className="w-full h-[550px] text-xl leading-relaxed font-light outline-none resize-none bg-transparent custom-scrollbar"
+                      placeholder="Empieza tu investigación..."
+                      value={essayContent}
+                      onChange={(e) => setEssayContent(e.target.value)}
+                    />
+                    <footer className="mt-16 pt-8 border-t border-primary/5 flex justify-between items-center text-[9px] font-black uppercase tracking-[0.3em] opacity-30">
+                      <span>Palabras: {essayContent.split(/\s+/).filter(Boolean).length}</span>
+                      <div className="flex items-center gap-2">
+                        <ExternalLink size={10} /> {categoriaActiva} / {ensayoActivo}
+                      </div>
+                    </footer>
+                  </div>
+                </motion.div>
+              ) : (
+                // PANTALLA VACÍA (PLACEHOLDER)
+                <motion.div 
+                  key="empty-state"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="h-full min-h-[600px] flex flex-col items-center justify-center text-center opacity-20 border-2 border-dashed border-primary/10 rounded-[4rem]"
+                >
+                  <PenTool size={48} className="mb-6 stroke-[1px]" />
+                  <p className="text-sm font-serif italic tracking-widest">
+                    "Selecciona un ensayo de tu biblioteca para comenzar la sesión."
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </section>
+
         </div>
       </main>
 
