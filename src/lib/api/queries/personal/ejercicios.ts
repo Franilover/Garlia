@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/api/client/supabase";
 
 // ─── RUTINAS ──────────────────────────────────────────────────────────────────
 export const rutinasQueries = {
