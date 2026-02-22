@@ -43,9 +43,8 @@ export function Sidebar({
   onZoteroUpload,
 }: SidebarProps) {
   return (
-    <aside className="h-full flex flex-col gap-4 overflow-y-auto p-4
-                      border-r border-primary/20 bg-bg-menu
-                      scrollbar-thin scrollbar-thumb-white/10">
+    <aside style={{ background: "#4a3d50" }} className="h-full flex flex-col gap-4 overflow-y-auto p-4
+                      border-r border-black/20 scrollbar-thin scrollbar-thumb-white/10">
 
       {/* Search */}
       <div className="relative">
@@ -55,24 +54,25 @@ export function Sidebar({
           placeholder="Buscar notas..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full bg-white/10 border border-white/10 rounded-xl
-                     py-2.5 pl-9 pr-3 text-[12px] text-white/80 outline-none
-                     placeholder:text-white/25 focus:border-accent/60 transition-colors"
+          className="w-full rounded-xl py-2.5 pl-9 pr-3 text-[12px] text-white/80 outline-none
+                     placeholder:text-white/25 transition-colors"
+          style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
         />
       </div>
 
       {/* Tags section */}
-      <div className="rounded-2xl border border-[#67556d] bg-white/5 p-3 flex flex-col gap-2.5">
-        <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">
+      <div className="rounded-2xl p-3 flex flex-col gap-2.5"
+           style={{ background: "rgba(0,0,0,0.15)", border: "1px solid rgba(255,255,255,0.18)" }}>
+        <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">
           <Hash size={10} /> Etiquetas
         </p>
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => onTagClick(null)}
-            className={`px-3 py-1 rounded-full font-mono text-[9px] uppercase tracking-wide border transition-all
-              ${!tagActivo
-                ? "bg-white text-bg-menu border-white"
-                : "bg-transparent text-white/50 border-[#67556d] hover:border-white/40 hover:text-white/70"}`}
+            style={!tagActivo
+              ? { background: "rgba(255,255,255,0.9)", color: "#4a3d50", border: "1px solid rgba(255,255,255,0.9)" }
+              : { background: "transparent", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.2)" }}
+            className="px-3 py-1 rounded-full font-mono text-[9px] uppercase tracking-wide transition-all hover:border-white/40 hover:text-white/80"
           >
             Todos
           </button>
@@ -80,10 +80,10 @@ export function Sidebar({
             <button
               key={tag}
               onClick={() => onTagClick(tag === tagActivo ? null : tag)}
-              className={`px-3 py-1 rounded-full font-mono text-[9px] uppercase tracking-wide border transition-all
-                ${tagActivo === tag
-                  ? "bg-white/20 text-white border-white/60"
-                  : "bg-transparent text-white/50 border-[#67556d] hover:border-white/40 hover:text-white/70"}`}
+              style={tagActivo === tag
+                ? { background: "rgba(255,255,255,0.2)", color: "white", border: "1px solid rgba(255,255,255,0.5)" }
+                : { background: "transparent", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.2)" }}
+              className="px-3 py-1 rounded-full font-mono text-[9px] uppercase tracking-wide transition-all hover:border-white/40 hover:text-white/80"
             >
               #{tag}
             </button>
@@ -92,15 +92,16 @@ export function Sidebar({
       </div>
 
       {/* Notes section */}
-      <div className="rounded-2xl border border-[#67556d] bg-white/5 p-3 flex flex-col gap-2.5 flex-1 min-h-0">
+      <div className="rounded-2xl p-3 flex flex-col gap-2.5 flex-1 min-h-0"
+           style={{ background: "rgba(0,0,0,0.15)", border: "1px solid rgba(255,255,255,0.18)" }}>
         <div className="flex items-center justify-between">
-          <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">
+          <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">
             <FileText size={10} /> Notas
           </p>
           <button
             onClick={onCrearEnsayo}
-            className="w-6 h-6 rounded-full bg-accent/80 hover:bg-accent text-white
-                       flex items-center justify-center transition-all hover:scale-110"
+            className="w-6 h-6 rounded-full text-white flex items-center justify-center transition-all hover:scale-110"
+            style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)" }}
           >
             <Plus size={11} />
           </button>
@@ -116,14 +117,14 @@ export function Sidebar({
                 exit={{ opacity: 0, x: -6 }}
                 transition={{ delay: i * 0.025 }}
                 onClick={() => onEnsayoClick(ens.id)}
-                className={`group px-3 py-2.5 rounded-xl cursor-pointer border transition-all
-                  ${ensayoActivoId === ens.id
-                    ? "bg-white/15 border-white/35"
-                    : "border-transparent hover:bg-white/8 hover:border-white/10"}`}
+                className="group px-3 py-2.5 rounded-xl cursor-pointer transition-all"
+                style={ensayoActivoId === ens.id
+                  ? { background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.3)" }
+                  : { background: "transparent", border: "1px solid transparent" }}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className={`text-[12px] font-medium leading-snug truncate flex-1 transition-colors
-                    ${ensayoActivoId === ens.id ? "text-white" : "text-white/70"}`}>
+                  <span className="text-[12px] font-medium leading-snug truncate flex-1 transition-colors"
+                        style={{ color: ensayoActivoId === ens.id ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.65)" }}>
                     {ens.titulo || "Sin título"}
                   </span>
                   <button
@@ -137,7 +138,7 @@ export function Sidebar({
                 {ens.tags?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {ens.tags.slice(0, 3).map((t: string) => (
-                      <span key={t} className="font-mono text-[9px] text-white/25">#{t}</span>
+                      <span key={t} className="font-mono text-[9px] text-white/30">#{t}</span>
                     ))}
                   </div>
                 )}
@@ -148,14 +149,15 @@ export function Sidebar({
       </div>
 
       {/* Bibliography section */}
-      <div className="rounded-2xl border border-[#67556d] bg-white/5 p-3 flex flex-col gap-2.5">
-        <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">
+      <div className="rounded-2xl p-3 flex flex-col gap-2.5"
+           style={{ background: "rgba(0,0,0,0.15)", border: "1px solid rgba(255,255,255,0.18)" }}>
+        <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">
           <BookOpen size={10} /> Bibliografía
         </p>
 
-        <label className="flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed
-                          border-white/15 cursor-pointer hover:border-accent/50 transition-colors
-                          text-white/30 hover:text-accent/80 text-[10px] font-mono">
+        <label className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-colors
+                          text-white/35 hover:text-white/70 text-[10px] font-mono"
+               style={{ border: "1px dashed rgba(255,255,255,0.2)" }}>
           <UploadCloud size={13} />
           Sync Zotero JSON
           <input type="file" className="hidden" onChange={onZoteroUpload} accept=".json" />
@@ -164,9 +166,9 @@ export function Sidebar({
         {sources.length > 0 && (
           <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
             {sources.map((src, i) => (
-              <div key={i} className="border-b border-white/8 pb-2">
+              <div key={i} className="pb-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                 <p className="text-[10px] font-medium text-white/60 leading-snug">{src.title}</p>
-                <p className="font-mono text-[9px] text-white/25 mt-0.5">{src.author} · {src.year}</p>
+                <p className="font-mono text-[9px] text-white/30 mt-0.5">{src.author} · {src.year}</p>
               </div>
             ))}
           </div>
