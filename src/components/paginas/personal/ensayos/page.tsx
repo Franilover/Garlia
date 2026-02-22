@@ -144,8 +144,8 @@ export default function Ensayos() {
 
   if (!mounted || loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-bg-main">
-        <Loader2 className="animate-spin text-primary/20" size={36} />
+      <div className="h-screen w-full flex items-center justify-center bg-white">
+        <Loader2 className="animate-spin text-[#4a3d50]/20" size={36} />
       </div>
     );
   }
@@ -153,22 +153,21 @@ export default function Ensayos() {
   const ensayoActivo = ensayos.find((e) => e.id === ensayoActivoId);
 
   return (
-    <div className="min-h-screen bg-bg-main text-primary selection:bg-accent/20"
-         style={{ background: "linear-gradient(135deg, #ede6f0 0%, #e8e0ed 100%)" }}>
+    <div className="min-h-screen bg-[#fcfafc] text-[#4a3d50] selection:bg-[#4a3d50]/10">
 
       {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-primary/10
+      <nav className="sticky top-0 z-50 border-b border-[#4a3d50]/10
                       backdrop-blur-md px-6 py-4
-                      flex items-center justify-between max-w-screen-2xl mx-auto"
-           style={{ background: "rgba(237, 230, 240, 0.85)" }}>
+                      flex items-center justify-between max-w-screen-2xl mx-auto
+                      bg-white/80">
         <button
           onClick={() => window.history.back()}
           className="flex items-center gap-1.5 text-[10px] font-black uppercase
-                     tracking-[0.2em] text-primary/40 hover:text-primary transition-colors"
+                     tracking-[0.2em] text-[#4a3d50]/40 hover:text-[#4a3d50] transition-colors"
         >
           <ChevronLeft size={13} /> Grafos
         </button>
-        <span className="font-mono text-[9px] uppercase tracking-[0.35em] text-primary/20">
+        <span className="font-mono text-[9px] uppercase tracking-[0.35em] text-[#4a3d50]/20">
           Knowledge Base
         </span>
         <div className="w-20" />
@@ -210,150 +209,6 @@ export default function Ensayos() {
           </AnimatePresence>
         </main>
       </div>
-
-      {/* Markdown prose styles — uses your CSS vars */}
-      <style jsx global>{`
-        .sidebar-label {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-family: ui-monospace, monospace;
-          font-size: 9px;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: var(--primary);
-          opacity: 0.35;
-        }
-
-        .note-row {
-          padding: 10px 12px;
-          border-radius: 14px;
-          cursor: pointer;
-          border: 1px solid transparent;
-          transition: all 0.15s ease;
-        }
-        .note-row:hover { background: rgba(103, 85, 109, 0.06); }
-        .note-row--active {
-          background-color: rgba(240, 235, 244, 0.6);
-          border-color: rgba(103, 85, 109, 0.25);
-          box-shadow: 0 2px 12px rgba(103, 85, 109, 0.12);
-        }
-
-        /* tag-chip styles moved to inline styles in Sidebar.tsx */
-
-        /* Markdown preview */
-        .prose-fran h1 {
-          font-family: Georgia, serif;
-          font-size: 2.4rem;
-          font-style: italic;
-          color: var(--primary);
-          margin-bottom: 1.2rem;
-          line-height: 1.2;
-        }
-        .prose-fran h2 {
-          font-family: Georgia, serif;
-          font-size: 1.6rem;
-          font-style: italic;
-          color: var(--primary);
-          margin-top: 2rem;
-          margin-bottom: 0.7rem;
-        }
-        .prose-fran h3 {
-          font-size: 0.85rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: rgba(103, 85, 109, 0.6);
-          margin-top: 1.8rem;
-          margin-bottom: 0.4rem;
-        }
-        .prose-fran p {
-          font-size: 16px;
-          line-height: 1.85;
-          font-weight: 300;
-          color: var(--primary);
-          margin-bottom: 1.2rem;
-          opacity: 0.85;
-        }
-        .prose-fran strong {
-          font-weight: 700;
-          color: var(--accent);
-          opacity: 1;
-        }
-        .prose-fran em {
-          font-style: italic;
-          color: var(--primary);
-          opacity: 0.7;
-        }
-        .prose-fran ul, .prose-fran ol {
-          padding-left: 1.6rem;
-          margin-bottom: 1.2rem;
-        }
-        .prose-fran li {
-          font-size: 15px;
-          line-height: 1.75;
-          font-weight: 300;
-          color: var(--primary);
-          opacity: 0.8;
-          margin-bottom: 0.3rem;
-        }
-        .prose-fran blockquote {
-          border-left: 3px solid var(--accent);
-          padding: 12px 20px;
-          margin: 1.8rem 0;
-          background: rgba(190, 151, 209, 0.08);
-          border-radius: 0 12px 12px 0;
-        }
-        .prose-fran blockquote p {
-          font-style: italic;
-          opacity: 0.7;
-          margin-bottom: 0;
-        }
-        .prose-fran code {
-          font-family: ui-monospace, monospace;
-          font-size: 12px;
-          background: rgba(103, 85, 109, 0.08);
-          border: 1px solid rgba(103, 85, 109, 0.12);
-          padding: 2px 6px;
-          border-radius: 5px;
-          color: var(--accent);
-        }
-        .prose-fran pre {
-          background: var(--primary);
-          color: var(--white-custom);
-          padding: 18px 22px;
-          border-radius: 16px;
-          margin: 1.4rem 0;
-          overflow-x: auto;
-        }
-        .prose-fran pre code {
-          background: none;
-          border: none;
-          padding: 0;
-          color: inherit;
-          font-size: 13px;
-        }
-        .prose-fran a {
-          color: var(--accent);
-          text-decoration: underline;
-          text-underline-offset: 3px;
-        }
-        .prose-fran hr {
-          border: none;
-          border-top: 1px solid rgba(103, 85, 109, 0.12);
-          margin: 2rem 0;
-        }
-
-        /* Nav background — tinted pastel instead of raw bg-main */
-        nav.top-nav-tinted {
-          background: rgba(237, 230, 240, 0.85);
-        }
-
-        /* Subtle tag-chip border using bg-menu color */
-        .tag-chip {
-          border-color: rgba(103, 85, 109, 0.2);
-        }
-      `}</style>
     </div>
   );
 }
