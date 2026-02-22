@@ -27,9 +27,9 @@ export default function Ensayos() {
   const [ensayoActivoId, setEnsayoActivoId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- DATA ---
   const fetchData = useCallback(async () => {
     if (!user) return;
+    setLoading(true);
     const { data: ens } = await supabase
       .from("ensayos")
       .select("*")
@@ -45,19 +45,6 @@ export default function Ensayos() {
     if (saved) setSources(JSON.parse(saved));
   }, [fetchData]);
 
-  // Shortcut Ctrl/Cmd+E: toggle edit/preview
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "e") {
-        e.preventDefault();
-        setEditMode((p) => !p);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
-  // --- TAGS ---
   const todosLosTags = useMemo(() => {
     const tags = new Set<string>();
     ensayos.forEach((e) => e.tags?.forEach((t: string) => tags.add(t)));
@@ -74,7 +61,6 @@ export default function Ensayos() {
     });
   }, [ensayos, tagActivo, searchTerm]);
 
-  // --- CRUD ---
   const crearEnsayo = async () => {
     const titulo = prompt("Título del nuevo pensamiento:");
     if (!titulo || !user) return;
@@ -96,56 +82,14 @@ export default function Ensayos() {
     if (ensayoActivoId === id) setEnsayoActivoId(null);
   };
 
-  const guardarEnsayo = useCallback(
-    async (id: string, titulo: string, contenido: string, tags: string[]) => {
-      await supabase
-        .from("ensayos")
-        .update({ titulo, contenido, tags, updated_at: new Date() })
-        .eq("id", id);
-    },
-    []
-  );
-
-  // Autosave debounce 1s
-  useEffect(() => {
-    const active = ensayos.find((e) => e.id === ensayoActivoId);
-    if (!active) return;
-    const t = setTimeout(
-      () => guardarEnsayo(active.id, active.titulo, active.contenido, active.tags || []),
-      1000
-    );
-    return () => clearTimeout(t);
-  }, [ensayos, ensayoActivoId, guardarEnsayo]);
-
   const actualizarLocal = useCallback((id: string, field: string, value: any) => {
     setEnsayos((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
   }, []);
 
-  const handleZoteroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const json = JSON.parse(ev.target?.result as string);
-        const formatted = json.map((item: any) => ({
-          title: item.title || "Sin título",
-          author: item.author?.[0]?.family || "Anónimo",
-          year: item.issued?.["date-parts"]?.[0]?.[0] || "s.f.",
-        }));
-        setSources(formatted);
-        localStorage.setItem("fran-zotero-cache", JSON.stringify(formatted));
-      } catch {
-        alert("Error al leer el JSON de Zotero");
-      }
-    };
-    reader.readAsText(file);
-  };
-
   if (!mounted || loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-white">
-        <Loader2 className="animate-spin text-[#4a3d50]/20" size={36} />
+      <div className="h-screen w-full flex items-center justify-center bg-bg-main">
+        <Loader2 className="animate-spin text-primary/20" size={36} />
       </div>
     );
   }
@@ -153,22 +97,20 @@ export default function Ensayos() {
   const ensayoActivo = ensayos.find((e) => e.id === ensayoActivoId);
 
   return (
-    <div className="min-h-screen bg-[#fcfafc] text-[#4a3d50] selection:bg-[#4a3d50]/10">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-[#4a3d50]/10 backdrop-blur-md px-6 py-4 flex items-center justify-between max-w-screen-2xl mx-auto bg-white/80">
+    <div className="min-h-screen bg-bg-main text-primary selection:bg-accent/20">
+      <nav className="sticky top-0 z-50 border-b border-primary/10 backdrop-blur-md px-6 py-4 flex items-center justify-between max-w-screen-2xl mx-auto bg-bg-main/80">
         <button
           onClick={() => window.history.back()}
-          className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#4a3d50]/40 hover:text-[#4a3d50] transition-colors"
+          className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-colors"
         >
           <ChevronLeft size={13} /> Grafos
         </button>
-        <span className="font-mono text-[9px] uppercase tracking-[0.35em] text-[#4a3d50]/20">
+        <span className="font-mono text-[9px] uppercase tracking-[0.35em] text-primary/20">
           Knowledge Base
         </span>
         <div className="w-20" />
       </nav>
 
-      {/* Body: sidebar + main */}
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] max-w-screen-2xl mx-auto min-h-[calc(100vh-57px)]">
         <Sidebar
           ensayos={ensayos}
@@ -183,7 +125,7 @@ export default function Ensayos() {
           onCrearEnsayo={crearEnsayo}
           onEliminarEnsayo={eliminarEnsayo}
           onSearchChange={setSearchTerm}
-          onZoteroUpload={handleZoteroUpload}
+          onZoteroUpload={() => {}} 
         />
 
         <main className="p-8 lg:p-12">
@@ -197,7 +139,7 @@ export default function Ensayos() {
                 onUpdateField={actualizarLocal}
               />
             ) : (
-              <EmptyState key="empty" />
+              <EmptyState />
             )}
           </AnimatePresence>
         </main>
