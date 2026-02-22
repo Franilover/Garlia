@@ -239,32 +239,7 @@ export default function Ensayos() {
           box-shadow: 0 2px 12px rgba(103, 85, 109, 0.12);
         }
 
-        .tag-chip {
-          padding: 4px 12px;
-          border-radius: 999px;
-          font-family: ui-monospace, monospace;
-          font-size: 9px;
-          letter-spacing: 0.06em;
-          border: 1px solid rgba(103, 85, 109, 0.15);
-          background: transparent;
-          color: rgba(103, 85, 109, 0.5);
-          cursor: pointer;
-          transition: all 0.15s;
-        }
-        .tag-chip:hover {
-          border-color: var(--primary);
-          color: var(--primary);
-        }
-        .tag-chip--on {
-          background: var(--primary);
-          color: var(--white-custom);
-          border-color: var(--primary);
-        }
-        .tag-chip--accent {
-          background: var(--accent);
-          color: white;
-          border-color: var(--accent);
-        }
+        /* tag-chip styles moved to inline styles in Sidebar.tsx */
 
         /* Markdown preview */
         .prose-fran h1 {
