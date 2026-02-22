@@ -153,12 +153,14 @@ export default function Ensayos() {
   const ensayoActivo = ensayos.find((e) => e.id === ensayoActivoId);
 
   return (
-    <div className="min-h-screen bg-bg-main text-primary selection:bg-accent/20">
+    <div className="min-h-screen bg-bg-main text-primary selection:bg-accent/20"
+         style={{ background: "linear-gradient(135deg, #ede6f0 0%, #e8e0ed 100%)" }}>
 
       {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-primary/10
-                      bg-bg-main/80 backdrop-blur-md px-6 py-4
-                      flex items-center justify-between max-w-screen-2xl mx-auto">
+                      backdrop-blur-md px-6 py-4
+                      flex items-center justify-between max-w-screen-2xl mx-auto"
+           style={{ background: "rgba(237, 230, 240, 0.85)" }}>
         <button
           onClick={() => window.history.back()}
           className="flex items-center gap-1.5 text-[10px] font-black uppercase
@@ -232,10 +234,9 @@ export default function Ensayos() {
         }
         .note-row:hover { background: rgba(103, 85, 109, 0.06); }
         .note-row--active {
-          background: white/60;
-          border-color: rgba(103, 85, 109, 0.12);
-          box-shadow: 0 2px 12px rgba(103, 85, 109, 0.08);
-          background-color: rgba(255,255,255,0.45);
+          background-color: rgba(240, 235, 244, 0.6);
+          border-color: rgba(103, 85, 109, 0.25);
+          box-shadow: 0 2px 12px rgba(103, 85, 109, 0.12);
         }
 
         .tag-chip {
@@ -366,6 +367,16 @@ export default function Ensayos() {
           border: none;
           border-top: 1px solid rgba(103, 85, 109, 0.12);
           margin: 2rem 0;
+        }
+
+        /* Nav background — tinted pastel instead of raw bg-main */
+        nav.top-nav-tinted {
+          background: rgba(237, 230, 240, 0.85);
+        }
+
+        /* Subtle tag-chip border using bg-menu color */
+        .tag-chip {
+          border-color: rgba(103, 85, 109, 0.2);
         }
       `}</style>
     </div>

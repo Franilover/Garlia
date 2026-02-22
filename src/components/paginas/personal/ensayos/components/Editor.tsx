@@ -54,7 +54,7 @@ export function Editor({ ensayo, editMode, onToggleEditMode, onUpdateField }: Ed
 
       {/* Main editor card */}
       <div className="card-main flex flex-col gap-0 flex-1
-                      bg-white/60 border-primary/15">
+                      bg-[#f0ebf4] border-primary/20">
 
         {/* Title */}
         <input

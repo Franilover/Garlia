@@ -10,7 +10,7 @@ export function EmptyState() {
       animate={{ opacity: 1 }}
       className="flex flex-col items-center justify-center min-h-[70vh]
                  border-2 border-dashed border-primary/15 rounded-4xl text-center gap-4
-                 bg-primary/5"
+                 bg-[#f0ebf4]/60"
     >
       <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/15
                       flex items-center justify-center text-primary/40">
