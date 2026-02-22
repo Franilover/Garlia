@@ -62,7 +62,7 @@ export function Sidebar({
       </div>
 
       {/* Tags section */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-3 flex flex-col gap-2.5">
+      <div className="rounded-2xl border border-[#67556d] bg-white/5 p-3 flex flex-col gap-2.5">
         <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">
           <Hash size={10} /> Etiquetas
         </p>
@@ -72,7 +72,7 @@ export function Sidebar({
             className={`px-3 py-1 rounded-full font-mono text-[9px] uppercase tracking-wide border transition-all
               ${!tagActivo
                 ? "bg-white text-bg-menu border-white"
-                : "bg-transparent text-white/40 border-white/15 hover:border-white/30 hover:text-white/60"}`}
+                : "bg-transparent text-white/50 border-[#67556d] hover:border-white/40 hover:text-white/70"}`}
           >
             Todos
           </button>
@@ -82,8 +82,8 @@ export function Sidebar({
               onClick={() => onTagClick(tag === tagActivo ? null : tag)}
               className={`px-3 py-1 rounded-full font-mono text-[9px] uppercase tracking-wide border transition-all
                 ${tagActivo === tag
-                  ? "bg-accent text-white border-accent"
-                  : "bg-transparent text-white/40 border-white/15 hover:border-accent/50 hover:text-white/60"}`}
+                  ? "bg-white/20 text-white border-white/60"
+                  : "bg-transparent text-white/50 border-[#67556d] hover:border-white/40 hover:text-white/70"}`}
             >
               #{tag}
             </button>
@@ -92,7 +92,7 @@ export function Sidebar({
       </div>
 
       {/* Notes section */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-3 flex flex-col gap-2.5 flex-1 min-h-0">
+      <div className="rounded-2xl border border-[#67556d] bg-white/5 p-3 flex flex-col gap-2.5 flex-1 min-h-0">
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">
             <FileText size={10} /> Notas
@@ -118,12 +118,12 @@ export function Sidebar({
                 onClick={() => onEnsayoClick(ens.id)}
                 className={`group px-3 py-2.5 rounded-xl cursor-pointer border transition-all
                   ${ensayoActivoId === ens.id
-                    ? "bg-accent/20 border-accent/40"
+                    ? "bg-white/15 border-white/35"
                     : "border-transparent hover:bg-white/8 hover:border-white/10"}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <span className={`text-[12px] font-medium leading-snug truncate flex-1 transition-colors
-                    ${ensayoActivoId === ens.id ? "text-accent" : "text-white/70"}`}>
+                    ${ensayoActivoId === ens.id ? "text-white" : "text-white/70"}`}>
                     {ens.titulo || "Sin título"}
                   </span>
                   <button
@@ -148,7 +148,7 @@ export function Sidebar({
       </div>
 
       {/* Bibliography section */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-3 flex flex-col gap-2.5">
+      <div className="rounded-2xl border border-[#67556d] bg-white/5 p-3 flex flex-col gap-2.5">
         <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">
           <BookOpen size={10} /> Bibliografía
         </p>
