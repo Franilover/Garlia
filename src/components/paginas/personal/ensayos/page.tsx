@@ -30,7 +30,6 @@ export default function Ensayos() {
   // --- DATA ---
   const fetchData = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
     const { data: ens } = await supabase
       .from("ensayos")
       .select("*")
@@ -84,7 +83,7 @@ export default function Ensayos() {
       .insert([{ titulo, user_id: user.id, contenido: "", tags: tagActivo ? [tagActivo] : [] }])
       .select();
     if (data) {
-      setEnsayos([data[0], ...ensayos]);
+      setEnsayos((prev) => [data[0], ...prev]);
       setEnsayoActivoId(data[0].id);
       setEditMode(true);
     }
@@ -93,7 +92,7 @@ export default function Ensayos() {
   const eliminarEnsayo = async (id: string) => {
     if (!confirm("¿Eliminar esta nota?")) return;
     await supabase.from("ensayos").delete().eq("id", id);
-    setEnsayos(ensayos.filter((e) => e.id !== id));
+    setEnsayos((prev) => prev.filter((e) => e.id !== id));
     if (ensayoActivoId === id) setEnsayoActivoId(null);
   };
 
@@ -118,8 +117,9 @@ export default function Ensayos() {
     return () => clearTimeout(t);
   }, [ensayos, ensayoActivoId, guardarEnsayo]);
 
-  const actualizarLocal = (id: string, field: string, value: any) =>
+  const actualizarLocal = useCallback((id: string, field: string, value: any) => {
     setEnsayos((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
+  }, []);
 
   const handleZoteroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -154,16 +154,11 @@ export default function Ensayos() {
 
   return (
     <div className="min-h-screen bg-[#fcfafc] text-[#4a3d50] selection:bg-[#4a3d50]/10">
-
       {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-[#4a3d50]/10
-                      backdrop-blur-md px-6 py-4
-                      flex items-center justify-between max-w-screen-2xl mx-auto
-                      bg-white/80">
+      <nav className="sticky top-0 z-50 border-b border-[#4a3d50]/10 backdrop-blur-md px-6 py-4 flex items-center justify-between max-w-screen-2xl mx-auto bg-white/80">
         <button
           onClick={() => window.history.back()}
-          className="flex items-center gap-1.5 text-[10px] font-black uppercase
-                     tracking-[0.2em] text-[#4a3d50]/40 hover:text-[#4a3d50] transition-colors"
+          className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[#4a3d50]/40 hover:text-[#4a3d50] transition-colors"
         >
           <ChevronLeft size={13} /> Grafos
         </button>
@@ -174,9 +169,7 @@ export default function Ensayos() {
       </nav>
 
       {/* Body: sidebar + main */}
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] max-w-screen-2xl mx-auto
-                      min-h-[calc(100vh-57px)]">
-
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] max-w-screen-2xl mx-auto min-h-[calc(100vh-57px)]">
         <Sidebar
           ensayos={ensayos}
           ensayosFiltrados={ensayosFiltrados}
