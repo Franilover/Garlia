@@ -13,6 +13,8 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
     "@tailwindcss/postcss": "^4.1.18",
+    "@tiptap/core": "^3.20.0",
+    "@tiptap/starter-kit": "^3.20.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dexie": "^4.3.0",
@@ -26,6 +28,7 @@
     "react-quick-pinch-zoom": "^5.1.1",
     "remark-gfm": "^4.0.1",
     "sass": "^1.97.1",
+    "sharp": "^0.34.5",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "web-push": "^3.6.7"

@@ -70,7 +70,7 @@ const Navbar = () => {
   return (
     <>
       {/* ── PC NAVBAR ── */}
-      <header className="hidden md:block fixed top-0 left-0 w-full z-[1000] bg-bg-main/80 backdrop-blur-md border-b border-primary/10">
+      <header className="hidden md:block fixed top-0 left-0 w-full z-[100] bg-bg-main/80 backdrop-blur-md border-b border-primary/10">
         <div className="max-w-7xl mx-auto h-20 flex items-center justify-between px-8">
           <div className="flex items-center gap-6">
             <Link href="/" className="text-xl font-black italic tracking-tighter text-primary flex items-center gap-2">
