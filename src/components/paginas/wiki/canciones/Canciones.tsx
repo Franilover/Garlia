@@ -4,7 +4,7 @@ import React, { useState, useEffect, useReducer, useCallback } from "react";
 import Link from "next/link";
 import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, Trash2, Globe, Mic2, PenTool, LayoutGrid, AlignJustify, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/api/queries/client/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { SmartImage } from "@/components/shared/display/SmartImage";
 import { useFiltrosGenericos } from "@/hooks/features/useFiltros";

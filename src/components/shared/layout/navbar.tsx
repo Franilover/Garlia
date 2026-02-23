@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { supabase } from "@/lib/api/queries/client/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 import {
   LogOut, Plus, Camera, Sparkles,
   CircleUser, Flower2, Sword,

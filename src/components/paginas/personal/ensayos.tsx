@@ -7,7 +7,7 @@ import {
   Eye, Edit3
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/api/queries/client/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";

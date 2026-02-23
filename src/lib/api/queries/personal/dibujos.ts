@@ -1,5 +1,5 @@
 // queries/personal/dibujos.ts
-import { supabase } from '@/lib/api/queries/client/supabase';
+import { supabase } from '@/lib/api/client/supabase';
 
 export interface Dibujo {
   id: number; // int4

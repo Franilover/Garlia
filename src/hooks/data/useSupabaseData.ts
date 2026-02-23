@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from "@/lib/api/queries/client/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/components/providers/DataProvider";
 import { db } from "@/lib/api/client/db"; // 👈 Dexie
 
