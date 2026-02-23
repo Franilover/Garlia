@@ -67,7 +67,7 @@ export default function SobreMi() {
               </p>
             </div>
           </section>
-
+ 
           {/* SECCIÓN 2: HERRAMIENTAS */}
           <section className="space-y-10">
             <h3 className={sectionTag}>

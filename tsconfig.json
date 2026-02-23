@@ -79,7 +79,7 @@
     "**/*.js",
     "**/*.jsx",
     ".next/dev/types/**/*.ts",
-    "src/lib/api/queries/client/db.js"
+    "src/lib/api/client/db.js"
   ],
   "exclude": [
     "node_modules",
