@@ -71,15 +71,16 @@
       ]
     }
   },
-  "include": [
+"include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
     "**/*.js",
     "**/*.jsx",
-    ".next/dev/types/**/*.ts"
-, "src/lib/api/client/db.jt
+    ".next/dev/types/**/*.ts",
+    "src/lib/api/client/db.js"
+  ],
   "exclude": [
     "node_modules",
     "supabase"
