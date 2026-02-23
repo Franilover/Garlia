@@ -1,5 +1,5 @@
 // queries/personal/diario_fotos.ts
-import { supabase } from '@/lib/api/client/supabase';
+import { supabase } from '@/lib/api/queries/client/supabase';
 
 export interface DiarioFoto {
   id: number; // int8

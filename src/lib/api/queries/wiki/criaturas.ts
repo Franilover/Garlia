@@ -1,5 +1,5 @@
 // queries/wiki/criaturas.ts
-import { supabase } from '@/lib/api/client/supabase';
+import { supabase } from '@/lib/api/queries/client/supabase';
 import { Criatura, CriaturaConVariantes, CriaturaVariante } from '@/lib/types/wiki/criatura';
 
 interface OrderConfig {

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { db } from "@/lib/api/client/db";
-import { supabase } from "@/lib/api/client/supabase";
+import { supabase } from "@/lib/api/queries/client/supabase";
 
 /**
  * Definimos la interfaz de la nota para que TypeScript 
