@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/api/queries/client/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 import { ChevronLeft, ChevronRight, List, Save, Edit3, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";

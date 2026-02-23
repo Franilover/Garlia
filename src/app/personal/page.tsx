@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Smile, ImageIcon, Camera, ArrowRight, UserCircle } from "lucide-react";
 import Link from "next/link";
-import { supabase } from "@/lib/api/queries/client/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 
 export default function PersonalMenuPage() {
   const [notifications, setNotifications] = useState<Record<string, boolean>>({});

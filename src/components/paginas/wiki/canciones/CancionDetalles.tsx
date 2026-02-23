@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useReducer, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/api/queries/client/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 import { 
   ChevronLeft, Plus, Trash2, X, Edit3, Save, User, List, Music, 
   EyeOff, AlertCircle, Loader2, ChevronDown, Link2, ExternalLink,

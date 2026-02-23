@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/api/queries/client/supabase';
+import { supabase } from '@/lib/api/client/supabase';
 
 interface OrderOption {
   campo: string;

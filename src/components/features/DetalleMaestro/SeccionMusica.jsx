@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { supabase } from "@/lib/api/queries/client/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlayCircle, Check, ChevronsUpDown, X, Music } from "lucide-react";
 
