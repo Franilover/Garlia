@@ -4,7 +4,7 @@ import React, { useState } from 'react'; // 👈 quitar useEffect
 import Link from 'next/link';
 import { Book, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/api/client/supabase';
+import { supabase } from '@/lib/api/queries/client/supabase';
 import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { useIsAdmin } from '@/hooks/auth/useIsAdmin'; // 👈
 import { SmartImage } from '@/components/shared/display/SmartImage';

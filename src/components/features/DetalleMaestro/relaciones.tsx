@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/api/client/supabase";
+import { supabase } from "@/lib/api/queries/client/supabase";
 import { Plus, Trash2, X } from "lucide-react";
 
 interface Relacion {

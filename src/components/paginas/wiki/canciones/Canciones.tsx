@@ -17,7 +17,19 @@ import FiltrosMaestros from "@/components/shared/forms/Filtros";
 const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"];
 const IDIOMAS_DISPONIBLES = ["Español", "Inglés", "Japonés"];
 
-const FILTROS_CONFIG = { campos: ["cantante", "compositor", "idioma"] };
+const TEMAS_DISPONIBLES = [
+  "Amor", "Desamor", "Amistad", "Soledad", "Identidad", "Libertad",
+  "Pérdida", "Esperanza", "Venganza", "Redención", "Familia", "Guerra",
+  "Nostalgia", "Sueños", "Muerte", "Renacimiento"
+];
+
+const EMOCIONES_DISPONIBLES = [
+  "Melancólica", "Alegre", "Triste", "Épica", "Romántica", "Angustiante",
+  "Serena", "Intensa", "Oscura", "Tierna", "Eufórica", "Desesperada",
+  "Misteriosa", "Esperanzadora", "Rabiosa", "Nostálgica"
+];
+
+const FILTROS_CONFIG = { campos: ["cantante", "compositor", "idioma", "tema", "emocion"] };
 
 const getEstadoColor = (estado: string) => {
   const colores: Record<string, string> = {
@@ -59,12 +71,16 @@ const initialFormState = {
   editCantante: "",
   editCompositor: "",
   editIdioma: "Español",
+  editTema: "",
+  editEmocion: "",
   nuevoTitulo: "",
   nuevoPersonaje: "",
   nuevoEstado: "BORRADOR",
   nuevoCantante: "",
   nuevoCompositor: "",
-  nuevoIdioma: "Español"
+  nuevoIdioma: "Español",
+  nuevoTema: "",
+  nuevoEmocion: ""
 };
 
 function formReducer(state: any, action: any) {
@@ -78,7 +94,9 @@ function formReducer(state: any, action: any) {
       nuevoEstado: "BORRADOR",
       nuevoCantante: "",
       nuevoCompositor: "",
-      nuevoIdioma: "Español"
+      nuevoIdioma: "Español",
+      nuevoTema: "",
+      nuevoEmocion: ""
     };
     default: return state;
   }
@@ -269,7 +287,9 @@ const Canciones = () => {
         editPortada: cancion.portada_url || "",
         editCantante: cancion.cantante || "",
         editCompositor: cancion.compositor || "",
-        editIdioma: cancion.idioma || "Español"
+        editIdioma: cancion.idioma || "Español",
+        editTema: cancion.tema || "",
+        editEmocion: cancion.emocion || ""
       }
     });
     dispatchModal({ type: "OPEN_EDIT", payload: cancion });
@@ -292,7 +312,9 @@ const Canciones = () => {
           portada_url: formState.editPortada,
           cantante: formState.editCantante,
           compositor: formState.editCompositor,
-          idioma: formState.editIdioma
+          idioma: formState.editIdioma,
+          tema: formState.editTema || null,
+          emocion: formState.editEmocion || null
         })
         .eq("id", modalState.selectedCancion.id)
         .select();
@@ -329,7 +351,9 @@ const Canciones = () => {
           portada_url: "/placeholder-cover.jpg",
           cantante: formState.nuevoCantante,
           compositor: formState.nuevoCompositor,
-          idioma: formState.nuevoIdioma
+          idioma: formState.nuevoIdioma,
+          tema: formState.nuevoTema || null,
+          emocion: formState.nuevoEmocion || null
         }])
         .select();
 
@@ -449,6 +473,31 @@ const Canciones = () => {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Tema / Motivo</label>
+                      <select
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                        value={formState.editTema}
+                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editTema: e.target.value } })}
+                      >
+                        <option value="">Sin tema</option>
+                        {TEMAS_DISPONIBLES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Emoción / Temple</label>
+                      <select
+                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                        value={formState.editEmocion}
+                        onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editEmocion: e.target.value } })}
+                      >
+                        <option value="">Sin emoción</option>
+                        {EMOCIONES_DISPONIBLES.map(em => <option key={em} value={em}>{em}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Estado</label>
@@ -547,6 +596,30 @@ const Canciones = () => {
                     onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoIdioma: e.target.value } })}
                   >
                     {IDIOMAS_DISPONIBLES.map(idioma => <option key={idioma} value={idioma}>{idioma}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-2 px-2">
+                  <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest">Tema / Motivo</label>
+                  <select
+                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                    value={formState.nuevoTema}
+                    onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoTema: e.target.value } })}
+                  >
+                    <option value="">Sin tema</option>
+                    {TEMAS_DISPONIBLES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-2 px-2">
+                  <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest">Emoción / Temple</label>
+                  <select
+                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                    value={formState.nuevoEmocion}
+                    onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoEmocion: e.target.value } })}
+                  >
+                    <option value="">Sin emoción</option>
+                    {EMOCIONES_DISPONIBLES.map(em => <option key={em} value={em}>{em}</option>)}
                   </select>
                 </div>
 

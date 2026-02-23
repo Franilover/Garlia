@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/api/client/supabase";
+import { supabase } from "@/lib/api/queries/client/supabase";
 import { 
   ChevronLeft, Play, ListOrdered, Plus, Trash2, X, Edit3, Save, Calendar, Loader2 
 } from "lucide-react";

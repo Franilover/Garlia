@@ -1,5 +1,5 @@
 "use client";
-import { supabase } from "@/lib/api/client/supabase";
+import { supabase } from "@/lib/api/queries/client/supabase";
 
 /** * ID Único de Franilover (UUID)
  * Este ID es el que vincula tus perfiles con la ropa

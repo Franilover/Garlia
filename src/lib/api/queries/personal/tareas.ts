@@ -1,5 +1,5 @@
 "use client";
-import { supabase } from "@/lib/api/client/supabase";
+import { supabase } from "@/lib/api/queries/client/supabase";
 
 const USERNAME = "franilover"; // ← una sola fuente de verdad
 

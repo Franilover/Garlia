@@ -1,7 +1,7 @@
 // useDetalleMaestro.ts
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/lib/api/client/supabase";
+import { supabase } from "@/lib/api/queries/client/supabase";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin"; // 👈
 
 export interface Relacion {
