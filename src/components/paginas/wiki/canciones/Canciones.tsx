@@ -18,36 +18,17 @@ const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"];
 const IDIOMAS_DISPONIBLES = ["Español", "Inglés", "Japonés"];
 
 const TEMAS_DISPONIBLES = [
-  "Relaciones",     // Cubre amor, desamor, amistad, traición y familia.
-  "Identidad",      // Cubre quién soy, salud mental, ego y crecimiento.
-  "Realidad",       // Cubre crítica social, calle, dinero y política.
-  "Nostalgia",      // Cubre el pasado, recuerdos y lo que se perdió.
-  "Deseo",          // Cubre pasión, ambición, sexo y anhelos.
-  "Existencialismo",// Cubre la vida, la muerte, el tiempo y la soledad.
-  "Conflicto",      // Cubre guerra, peleas, lucha interna y rabia.
-  "Escapismo",      // Cubre viajes, fiesta, drogas, sueños y libertad.
-  "Superación",     // Cubre éxito, resiliencia y nuevos comienzos.
-  "Misticismo",     // Cubre destino, espiritualidad, fe y lo abstracto.
-  "Naturaleza",     // Cubre el entorno, paisajes y la conexión con el mundo.
-  "Cotidianidad"    // Cubre el día a día, la rutina y momentos simples.
+  "Relaciones", "Identidad", "Realidad", "Nostalgia", "Deseo",
+  "Existencialismo", "Conflicto", "Escapismo", "Superación",
+  "Misticismo", "Naturaleza", "Cotidianidad"
 ];
 
 const EMOCIONES_DISPONIBLES = [
-  "Enérgica",      // Canciones de fiesta, deporte, motivación o ritmos altos.
-  "Melancólica",   // Tristeza, pero con esa belleza de los recuerdos o la lluvia.
-  "Relajada",      // Chill, lo-fi, playa, momentos de calma.
-  "Agresiva",      // Rock pesado, rap crudo, rabia, distorsión.
-  "Optimista",     // Alegría pura, felicidad, buen rollo, luz.
-  "Íntima",        // Acústicos, voz susurrada, cercanía, vulnerabilidad.
-  "Atmosférica",   // Espacial, envolvente, sintetizadores, para dejarse llevar.
-  "Misteriosa",    // Oscura, intriga, tensión, nocturna.
-  "Épica",         // Grandes orquestas, himnos de estadio, triunfal.
-  "Ansiosa",       // Ritmos frenéticos, tensión, estrés, urgencia.
-  "Cálida",        // Orgánica, instrumentos de madera, amor tranquilo, hogar.
-  "Fría"           // Minimalista, electrónica seca, desapego, soledad urbana.
+  "Enérgica", "Melancólica", "Relajada", "Agresiva", "Optimista",
+  "Íntima", "Atmosférica", "Misteriosa", "Épica", "Ansiosa", "Cálida", "Fría"
 ];
 
-const FILTROS_CONFIG = { campos: ["cantante", "compositor", "idioma", "tema", "emocion"] };
+const FILTROS_CONFIG = { campos: ["personaje", "cantante", "compositor", "idioma", "tema", "emocion"] };
 
 const getEstadoColor = (estado: string) => {
   const colores: Record<string, string> = {
