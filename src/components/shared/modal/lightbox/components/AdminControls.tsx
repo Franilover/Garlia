@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { Edit3, Save, X } from 'lucide-react';
-import { supabase } from '@/api/client/supabase';
+import { supabase } from '@/lib/api/client/supabase';
 import { useLightbox } from '../LightboxProvider';
 
 export const AdminControls = () => {

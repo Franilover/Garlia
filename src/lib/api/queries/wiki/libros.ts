@@ -1,4 +1,4 @@
-import { supabase } from "@/api/client/supabase";
+import { supabase } from "@/lib/api/client/supabase";
 
 export interface Capitulo {
   id: string;

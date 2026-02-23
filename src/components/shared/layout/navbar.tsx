@@ -10,7 +10,7 @@ import {
   LogOut, Plus, Camera, Sparkles,
   CircleUser, Flower2, Sword,
   Utensils, CheckSquare, Dumbbell,
-  PenTool // <-- Importado PenTool para el Laboratorio
+  PenTool
 } from "lucide-react";
 
 const Navbar = () => {
@@ -32,11 +32,11 @@ const Navbar = () => {
 
   // Detección de secciones activas
   const isWiki = currentPath?.startsWith("/wiki") && currentPath !== "/wiki/personal";
-  const isPersonal = currentPath?.startsWith("/personal") && 
-                    !currentPath.includes("/paginas/cocina") && 
-                    !currentPath.includes("/paginas/tareas") &&
-                    !currentPath.includes("/paginas/ejercicios") &&
-                    !currentPath.includes("/paginas/ensayos"); // <-- Añadido Ensayos
+  const isPersonal = currentPath?.startsWith("/personal") &&
+    !currentPath.includes("/paginas/cocina") &&
+    !currentPath.includes("/paginas/tareas") &&
+    !currentPath.includes("/paginas/ejercicios") &&
+    !currentPath.includes("/paginas/ensayos");
 
   // --- CONTENIDO MÓVIL ---
   const navContentMobile = useMemo(() => (
@@ -120,7 +120,6 @@ const Navbar = () => {
                 >
                   <Dumbbell size={16} />
                 </Link>
-                {/* NUEVO: Laboratorio de Ensayos */}
                 <Link
                   href="/personal/paginas/ensayos"
                   className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ensayos") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}
@@ -214,22 +213,20 @@ const Navbar = () => {
                 </Link>
               )}
 
+              {/* 🔒 SOLO FRANILOVER: grilla 2x2 solo iconos */}
               {esFranilover && (
-                <div className="flex flex-col gap-2">
-                  <div className="grid grid-cols-3 gap-2"> {/* Cambiado a grid-cols-3 */}
-                    <Link href="/personal/paginas/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center">
-                      <Utensils size={16} />
-                    </Link>
-                    <Link href="/personal/paginas/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center">
-                      <CheckSquare size={16} />
-                    </Link>
-                    <Link href="/personal/paginas/ejercicios" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center">
-                      <Dumbbell size={16} />
-                    </Link>
-                  </div>
-                  {/* NUEVO: Botón ancho para Ensayos en Móvil */}
-                  <Link href="/personal/paginas/ensayos" onClick={closeAll} className="w-full p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                    <PenTool size={16} /> Laboratorio de Ensayos
+                <div className="grid grid-cols-2 gap-2">
+                  <Link href="/personal/paginas/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                    <Utensils size={18} />
+                  </Link>
+                  <Link href="/personal/paginas/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                    <CheckSquare size={18} />
+                  </Link>
+                  <Link href="/personal/paginas/ejercicios" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                    <Dumbbell size={18} />
+                  </Link>
+                  <Link href="/personal/paginas/ensayos" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                    <PenTool size={18} />
                   </Link>
                 </div>
               )}
