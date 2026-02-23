@@ -19,7 +19,7 @@ const Navbar = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // --- LÓGICA DE PERMISOS ---
-  const esFranilover = perfil?.username === "franilover";
+  const esFranilover = perfil?.username?.toLowerCase() === "franilover";
   const puedeSubir = perfil?.rol === "admin" || perfil?.rol === "autor";
 
   const handleLogout = async () => {
