@@ -6,19 +6,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/api/client/supabase";
+import { useDarkMode } from "@/hooks/features/useDarkMode";
 import {
   LogOut, Plus, Camera, Sparkles,
   CircleUser, Flower2, Sword,
   Utensils, CheckSquare, Dumbbell,
-  PenTool
+  PenTool, Moon, Sun
 } from "lucide-react";
 
 const Navbar = () => {
   const currentPath = usePathname();
   const { user, perfil } = useAuth() as { user: any; perfil: any };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { isDark, toggle } = useDarkMode();
 
-  // --- LÓGICA DE PERMISOS ---
   const esFranilover = perfil?.username?.toLowerCase() === "franilover";
   const puedeSubir = perfil?.rol === "admin" || perfil?.rol === "autor";
 
@@ -30,13 +31,35 @@ const Navbar = () => {
 
   const closeAll = () => setUserMenuOpen(false);
 
-  // Detección de secciones activas
   const isWiki = currentPath?.startsWith("/wiki") && currentPath !== "/wiki/personal";
   const isPersonal = currentPath?.startsWith("/personal") &&
     !currentPath.includes("/paginas/cocina") &&
     !currentPath.includes("/paginas/tareas") &&
     !currentPath.includes("/paginas/ejercicios") &&
     !currentPath.includes("/paginas/ensayos");
+
+  // Botón del toggle reutilizable
+  const DarkToggleBtn = () => (
+    <motion.button
+      onClick={toggle}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.9 }}
+      aria-label={isDark ? "Modo claro" : "Modo oscuro"}
+      className="p-2 rounded-xl text-primary/40 hover:text-primary hover:bg-primary/5 transition-all"
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {isDark ? (
+          <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
+            <Sun size={16} />
+          </motion.span>
+        ) : (
+          <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
+            <Moon size={16} />
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  );
 
   // --- CONTENIDO MÓVIL ---
   const navContentMobile = useMemo(() => (
@@ -99,48 +122,38 @@ const Navbar = () => {
               Wiki
             </Link>
 
-            {/* 🔒 SOLO FRANILOVER: Herramientas */}
             {esFranilover && (
               <div className="flex gap-1 ml-2 pl-2 border-l border-primary/10">
-                <Link
-                  href="/personal/paginas/cocina"
-                  className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/cocina") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}
-                >
+                <Link href="/personal/paginas/cocina" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/cocina") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <Utensils size={16} />
                 </Link>
-                <Link
-                  href="/personal/paginas/tareas"
-                  className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/tareas") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}
-                >
+                <Link href="/personal/paginas/tareas" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/tareas") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <CheckSquare size={16} />
                 </Link>
-                <Link
-                  href="/personal/paginas/ejercicios"
-                  className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ejercicios") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}
-                >
+                <Link href="/personal/paginas/ejercicios" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ejercicios") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <Dumbbell size={16} />
                 </Link>
-                <Link
-                  href="/personal/paginas/ensayos"
-                  className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ensayos") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}
-                >
+                <Link href="/personal/paginas/ensayos" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ensayos") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <PenTool size={16} />
                 </Link>
               </div>
             )}
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Toggle modo oscuro — PC */}
+            <DarkToggleBtn />
+
             {user ? (
               <div className="relative">
-                <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-full border border-primary/10 hover:bg-primary/10 transition-all">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-full border border-primary/10 hover:bg-primary/10 transition-all"
+                >
                   <span className="text-[10px] font-black uppercase text-primary/60 tracking-widest">
                     {perfil?.username}
                   </span>
-                  <CircleUser
-                    className={cn("transition-colors", userMenuOpen ? "text-primary" : "text-primary/40")}
-                    size={24}
-                  />
+                  <CircleUser className={cn("transition-colors", userMenuOpen ? "text-primary" : "text-primary/40")} size={24} />
                 </button>
                 <AnimatePresence>
                   {userMenuOpen && (
@@ -148,28 +161,15 @@ const Navbar = () => {
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
                       className="absolute top-full right-0 mt-3 w-48 bg-white border border-primary/10 rounded-2xl shadow-xl p-2 z-[1001]"
                     >
-                      <Link
-                        href="/wiki/personal"
-                        onClick={closeAll}
-                        className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all"
-                      >
+                      <Link href="/wiki/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
                         <Sword size={14} /> Mi Personaje
                       </Link>
-
                       {puedeSubir && (
-                        <Link
-                          href="/upload"
-                          onClick={closeAll}
-                          className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary bg-primary/5 rounded-xl transition-all mb-1"
-                        >
+                        <Link href="/upload" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary bg-primary/5 rounded-xl transition-all mb-1">
                           <Plus size={14} /> Subir Contenido
                         </Link>
                       )}
-
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase text-red-400 hover:bg-red-50 rounded-xl transition-all border-t border-primary/5"
-                      >
+                      <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase text-red-400 hover:bg-red-50 rounded-xl transition-all border-t border-primary/5">
                         <LogOut size={14} /> Salir
                       </button>
                     </motion.div>
@@ -213,7 +213,6 @@ const Navbar = () => {
                 </Link>
               )}
 
-              {/* 🔒 SOLO FRANILOVER: grilla 2x2 solo iconos */}
               {esFranilover && (
                 <div className="grid grid-cols-2 gap-2">
                   <Link href="/personal/paginas/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
@@ -230,6 +229,15 @@ const Navbar = () => {
                   </Link>
                 </div>
               )}
+
+              {/* Toggle modo oscuro — menú móvil */}
+              <button
+                onClick={toggle}
+                className="w-full p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3 transition-all hover:bg-primary/5"
+              >
+                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                {isDark ? "Modo Claro" : "Modo Oscuro"}
+              </button>
 
               <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-400 rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3 mt-2">
                 Cerrar Sesión <LogOut size={16} />

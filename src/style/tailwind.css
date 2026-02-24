@@ -8,6 +8,7 @@
   --color-bg-main: var(--bg-main);
   --color-bg-menu: var(--bg-menu);
   --color-white-custom: var(--white-custom);
+  --color-foreground: var(--foreground);
   
   /* Animaciones */
   --animate-terminal-flicker: flicker 0.15s infinite;
@@ -31,7 +32,7 @@
   }
 }
 
-/* TAMAÑO BASE PARA MÓVILES */
+/* ── MODO CLARO (default) ── */
 :root {
   --primary: #67556d;
   --accent: #be97d1;
@@ -39,19 +40,32 @@
   --bg-menu: #67556d;
   --white-custom: #e4d7e6;
   --foreground: #ffffff;
-  font-size: 14px; 
+
+  font-size: 14px;
 }
 
-/* TAMAÑO BASE PARA ESCRITORIO */
 @media (min-width: 768px) {
   :root {
-    font-size: 15px; 
+    font-size: 15px;
   }
+}
+
+/* ── MODO OSCURO ──
+   Se activa cuando el <html> tiene la clase "dark".
+   Solo cambias estos valores y todo el sitio se adapta. */
+.dark {
+  --primary: #c9aedd;
+  --accent: #be97d1;
+  --bg-main: #1a1420;
+  --bg-menu: #2a1f30;
+  --white-custom: #2a1f30;
+  --foreground: #f0e8f5;
 }
 
 @layer base {
   body {
     @apply bg-[var(--bg-main)] text-[var(--foreground)] antialiased font-sans;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
@@ -59,27 +73,22 @@
   .card-main {
     @apply bg-white/5 border border-primary/10 rounded-[2rem] p-6 backdrop-blur-sm transition-all;
   }
-
   .btn-brand {
     @apply bg-primary text-white font-bold px-8 py-3 rounded-xl 
            hover:scale-105 active:scale-95 transition-all shadow-lg 
            flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50;
   }
-
   .input-brand {
     @apply w-full bg-bg-main border border-primary/20 rounded-xl px-4 py-3 
            text-primary focus:ring-2 focus:ring-primary/40 outline-none transition-all;
   }
-
   .char-card-base {
     @apply relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl 
            grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
   }
-
   .char-card-active { 
     @apply ring-8 ring-primary z-20 scale-95 grayscale-0 shadow-2xl; 
   }
-
   .scanlines {
     @apply relative overflow-hidden;
   }
