@@ -8,7 +8,7 @@
   --color-bg-menu: var(--bg-menu);
   --color-white-custom: var(--white-custom);
   --color-foreground: var(--foreground);
-  
+
   --animate-terminal-flicker: flicker 0.15s infinite;
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
@@ -36,28 +36,24 @@
   --accent: #be97d1;
   --bg-main: #e4d7e6;
   --bg-menu: #67556d;
-  --white-custom: #e4d7e6;
+  --white-custom: #ffffff;   /* cards blancas en claro */
   --foreground: #3a2e3d;
 
   font-size: 14px;
 }
 
 @media (min-width: 768px) {
-  :root {
-    font-size: 15px;
-  }
+  :root { font-size: 15px; }
 }
 
-/* ── MODO OSCURO ──
-   Fondo plano, morado desaturado oscuro.
-   Sin degradados — todo legible. */
+/* ── MODO OSCURO ── */
 .dark {
-  --primary: #c4a8d4;        /* lila claro para que resalte sobre fondo oscuro */
+  --primary: #c4a8d4;         /* lila claro — legible sobre fondo oscuro */
   --accent: #a67dbf;
-  --bg-main: #1e1722;        /* morado muy oscuro desaturado, plano */
-  --bg-menu: #2a2030;        /* un tono más claro para el menú */
-  --white-custom: #2a2030;
-  --foreground: #ede0f5;     /* casi blanco con tinte lila — muy legible */
+  --bg-main: #1e1722;         /* fondo: morado muy oscuro, plano */
+  --bg-menu: #2a2030;         /* navbar */
+  --white-custom: #2a1f32;    /* cards: un tono más claro que el fondo para que se distingan */
+  --foreground: #ede0f5;      /* texto casi blanco con tinte lila */
 }
 
 @layer base {
@@ -65,34 +61,27 @@
     @apply bg-[var(--bg-main)] text-[var(--foreground)] antialiased font-sans;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
-
-  /* Eliminar cualquier degradado de fondo en modo oscuro */
-  .dark body,
-  .dark main,
-  .dark #__next {
-    background-image: none !important;
-  }
 }
 
 @layer components {
   .card-main {
-    @apply bg-white/5 border border-primary/10 rounded-[2rem] p-6 backdrop-blur-sm transition-all;
+    @apply bg-white-custom border border-primary/10 rounded-[2rem] p-6 transition-all;
   }
   .btn-brand {
-    @apply bg-primary text-white font-bold px-8 py-3 rounded-xl 
-           hover:scale-105 active:scale-95 transition-all shadow-lg 
+    @apply bg-primary text-white font-bold px-8 py-3 rounded-xl
+           hover:scale-105 active:scale-95 transition-all shadow-lg
            flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50;
   }
   .input-brand {
-    @apply w-full bg-bg-main border border-primary/20 rounded-xl px-4 py-3 
+    @apply w-full bg-bg-main border border-primary/20 rounded-xl px-4 py-3
            text-primary focus:ring-2 focus:ring-primary/40 outline-none transition-all;
   }
   .char-card-base {
-    @apply relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl 
+    @apply relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl
            grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
   }
-  .char-card-active { 
-    @apply ring-8 ring-primary z-20 scale-95 grayscale-0 shadow-2xl; 
+  .char-card-active {
+    @apply ring-8 ring-primary z-20 scale-95 grayscale-0 shadow-2xl;
   }
   .scanlines {
     @apply relative overflow-hidden;
