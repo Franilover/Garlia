@@ -4,7 +4,7 @@ import {
   X, Save, Plus, Trash2, ChevronUp, ChevronDown,
   Layers, Loader2, CheckCircle, WifiOff, Wifi,
   AlertTriangle, GripVertical, ChevronLeft, ChevronRight,
-  RotateCcw
+  RotateCcw, Columns
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -133,6 +133,8 @@ function SeccionCard({
   idx,
   total,
   activeTab,
+  splitTab,
+  splitMode,
   onChange,
   onMover,
   onEliminar,
@@ -143,6 +145,8 @@ function SeccionCard({
   idx: number;
   total: number;
   activeTab: string;
+  splitTab: string | null;
+  splitMode: boolean;
   onChange: (id: string | number, campo: string, valor: string) => void;
   onMover: (idx: number, dir: number) => void;
   onEliminar: (idx: number) => void;
@@ -153,6 +157,11 @@ function SeccionCard({
   const letraKey = `letra_${activeTab}`;
   const letraVal = (sec as any)[letraKey] || "";
   const lineCount = letraVal.split("\n").length;
+
+  const splitLetraKey = splitTab ? `letra_${splitTab}` : null;
+  const splitLetraVal = splitLetraKey ? ((sec as any)[splitLetraKey] || "") : "";
+  const splitLineCount = splitLetraVal.split("\n").length;
+  const maxRows = Math.max(4, lineCount + 1, splitLineCount + 1);
 
   return (
     <motion.div
@@ -229,15 +238,40 @@ function SeccionCard({
             transition={{ duration: 0.2, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-4 md:px-5 md:pb-5">
-              <textarea
-                value={letraVal}
-                onChange={(e) => onChange(sec.id, letraKey, e.target.value)}
-                rows={Math.max(4, lineCount + 1)}
-                className="w-full bg-[#FDFCFD] border border-[#6B5E70]/10 rounded-[1rem] p-4 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/40 transition-all resize-none"
-                placeholder={`Contenido en ${IDIOMAS.find((i) => i.id === activeTab)?.nombre.toLowerCase()}...`}
-                style={{ fontSize: "16px" /* evita zoom en iOS */ }}
-              />
+            <div className={`px-3 pb-4 md:px-5 md:pb-5 ${splitMode && splitLetraKey ? "grid grid-cols-2 gap-3" : ""}`}>
+              {/* Columna principal */}
+              <div className="flex flex-col gap-1">
+                {splitMode && splitLetraKey && (
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/50 px-1">
+                    {IDIOMAS.find((i) => i.id === activeTab)?.nombre}
+                  </span>
+                )}
+                <textarea
+                  value={letraVal}
+                  onChange={(e) => onChange(sec.id, letraKey, e.target.value)}
+                  rows={maxRows}
+                  className="w-full bg-[#FDFCFD] border border-[#6B5E70]/10 rounded-[1rem] p-4 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/40 transition-all resize-none"
+                  placeholder={`Contenido en ${IDIOMAS.find((i) => i.id === activeTab)?.nombre.toLowerCase()}...`}
+                  style={{ fontSize: "16px" }}
+                />
+              </div>
+
+              {/* Columna secundaria (split) */}
+              {splitMode && splitLetraKey && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/50 px-1">
+                    {IDIOMAS.find((i) => i.id === splitTab)?.nombre}
+                  </span>
+                  <textarea
+                    value={splitLetraVal}
+                    onChange={(e) => onChange(sec.id, splitLetraKey, e.target.value)}
+                    rows={maxRows}
+                    className="w-full bg-[#F5F0F7] border border-[#6B5E70]/15 rounded-[1rem] p-4 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/40 transition-all resize-none"
+                    placeholder={`Contenido en ${IDIOMAS.find((i) => i.id === splitTab)?.nombre.toLowerCase()}...`}
+                    style={{ fontSize: "16px" }}
+                  />
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -278,6 +312,8 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
 }) => {
   const [localSecciones, setLocalSecciones] = useState<Seccion[]>([]);
   const [activeTab, setActiveTab] = useState("es");
+  const [splitMode, setSplitMode] = useState(false);
+  const [splitTab, setSplitTab] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string | number>>(new Set());
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [cambiosPendientes, setCambiosPendientes] = useState(false);
@@ -506,7 +542,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
             </div>
 
             {/* Selector de idioma — scrollable en móvil */}
-            <div className="px-4 pb-3 md:px-8 md:pb-4">
+            <div className="px-4 pb-3 md:px-8 md:pb-4 flex flex-col gap-2">
               <div className="flex gap-1 bg-[#6B5E70]/5 p-1 rounded-xl border border-[#6B5E70]/10 overflow-x-auto scrollbar-none">
                 {IDIOMAS.map((lang) => (
                   <button
@@ -524,7 +560,66 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                     </span>
                   </button>
                 ))}
+
+                {/* Botón split */}
+                <button
+                  onClick={() => {
+                    if (splitMode) {
+                      setSplitMode(false);
+                      setSplitTab(null);
+                    } else {
+                      const other = IDIOMAS.find((i) => i.id !== activeTab);
+                      setSplitTab(other?.id ?? null);
+                      setSplitMode(true);
+                    }
+                  }}
+                  title="Modo doble idioma"
+                  className={`flex items-center gap-1 px-3 py-2.5 rounded-lg font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap flex-shrink-0 ${
+                    splitMode
+                      ? "bg-violet-600 text-white shadow-md"
+                      : "text-[#6B5E70]/50 hover:text-[#6B5E70]"
+                  }`}
+                >
+                  <Columns size={12} />
+                  <span className="hidden md:inline">Split</span>
+                </button>
               </div>
+
+              {/* Selector del segundo idioma cuando split está activo */}
+              <AnimatePresence>
+                {splitMode && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-violet-500 whitespace-nowrap flex-shrink-0">
+                        2do idioma:
+                      </span>
+                      <div className="flex gap-1 bg-violet-50 p-1 rounded-xl border border-violet-200 overflow-x-auto scrollbar-none flex-1">
+                        {IDIOMAS.filter((i) => i.id !== activeTab).map((lang) => (
+                          <button
+                            key={lang.id}
+                            onClick={() => setSplitTab(lang.id)}
+                            className={`flex-1 min-w-[3.5rem] py-2 rounded-lg font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap ${
+                              splitTab === lang.id
+                                ? "bg-violet-600 text-white shadow-md"
+                                : "text-violet-400 hover:text-violet-700"
+                            }`}
+                          >
+                            {lang.label}
+                            <span className="hidden md:inline ml-1 font-normal normal-case opacity-60">
+                              · {lang.nombre}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
@@ -595,6 +690,8 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                   idx={idx}
                   total={localSecciones.length}
                   activeTab={activeTab}
+                  splitTab={splitTab}
+                  splitMode={splitMode}
                   onChange={handleChange}
                   onMover={moverSeccion}
                   onEliminar={eliminarSeccion}
