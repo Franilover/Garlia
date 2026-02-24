@@ -29,12 +29,10 @@ function DrawingsContent() {
     filtrados.map(d => ({ src: d.url_imagen, alt: d.titulo, id: d.id }))
   ), [filtrados]);
 
-  // Cabecera limpia sin comillas literales visibles
   const MiCabecera = (
     <header className="mb-12 text-center px-4 pt-16">
       <h1 className={typography.pageTitle}>Galería</h1>
       <div className={components.dividerThick} />
-      
       <div className="mt-12">
         <FiltrosMaestros 
           config={{ categorias: categorias }}
@@ -52,7 +50,7 @@ function DrawingsContent() {
   );
 
   return (
-    <main className="min-h-screen bg-[#F0F0F0] pb-20 font-sans">
+    <main className="min-h-screen bg-bg-main pb-20 font-sans">
       {loading ? (
         <div className={typography.loading}>
           Sincronizando Archivos...
@@ -66,12 +64,8 @@ function DrawingsContent() {
               alt={dibujo.titulo}
               onClick={() => openLightbox(index, lbData, 'dibujos')}
             >
-              <p className={typography.tag}>
-                {dibujo.categoria}
-              </p>
-              <h3 className={typography.cardTitle}>
-                {dibujo.titulo}
-              </h3>
+              <p className={typography.tag}>{dibujo.categoria}</p>
+              <h3 className={typography.cardTitle}>{dibujo.titulo}</h3>
             </GalleryItem>
           ))}
           

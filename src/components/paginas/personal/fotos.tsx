@@ -34,7 +34,7 @@ function DiarioContent() {
   );
   
   if (error) return (
-    <main className="min-h-screen flex items-center justify-center bg-[#F0F0F0]">
+    <main className="min-h-screen flex items-center justify-center bg-bg-main">
       <p className="text-red-500 font-black uppercase text-xs tracking-widest">
         Error de Sincronización: {error}
       </p>
@@ -43,7 +43,7 @@ function DiarioContent() {
   if (loading) return <LoadingState mensaje={getMensaje('LOADING', 'fotos')} />;
   
   return (
-    <main className="min-h-screen bg-[#F0F0F0] py-10 px-4 md:px-8">
+    <main className="min-h-screen bg-bg-main py-10 px-4 md:px-8">
       <GalleryGrid 
         headerContent={
           <PageHeader titulo="Diario">
