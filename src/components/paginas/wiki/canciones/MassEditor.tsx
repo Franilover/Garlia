@@ -321,12 +321,26 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(false);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localSeccionesRef = useRef<Seccion[]>([]);
+  const isSavingRef = useRef(false);
   const { isOnline, isSlow } = useNetworkStatus();
   const { saveDraft, loadDraft, clearDraft } = useDraftStorage(String(cancionId));
 
-  // Inicializar datos y verificar si hay borrador recuperable
+  // Mantener ref sincronizada con el estado (sin causar re-renders en autosave)
   useEffect(() => {
-    if (!isOpen) return;
+    localSeccionesRef.current = localSecciones;
+  }, [localSecciones]);
+
+  // Inicializar datos — solo cuando el modal se ABRE (no en cada re-render)
+  const isOpenRef = useRef(false);
+  useEffect(() => {
+    if (!isOpen) {
+      isOpenRef.current = false;
+      return;
+    }
+    if (isOpenRef.current) return; // Ya inicializado, no pisar datos actuales
+    isOpenRef.current = true;
+
     const draft = loadDraft();
     const ahora = Date.now();
     const MAX_DRAFT_AGE = 1000 * 60 * 60 * 4; // 4 horas
@@ -343,41 +357,18 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
       setCambiosPendientes(false);
       setSaveStatus("idle");
     }
-    // Expandir la primera sección por defecto
     if (secciones.length > 0) {
       setExpandedIds(new Set([secciones[0].id]));
     }
   }, [isOpen]);
 
-  // Auto-guardado inteligente (respeta conexión lenta)
-  useEffect(() => {
-    if (!cambiosPendientes || isProcessing) return;
-
-    // Siempre guardar borrador local inmediatamente
-    saveDraft(localSecciones);
-
-    if (!isOnline) {
-      setSaveStatus("offline");
-      return;
-    }
-
-    // Debounce más largo si red lenta
-    const delay = isSlow ? 5000 : 2500;
-
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      await guardarEnServidor();
-    }, delay);
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [cambiosPendientes, localSecciones, isOnline, isSlow, isProcessing]);
-
-  const guardarEnServidor = async () => {
+  // guardarEnServidor siempre lee de la ref, nunca del closure
+  const guardarEnServidor = useCallback(async () => {
+    if (isSavingRef.current) return; // evitar guardados duplicados
+    isSavingRef.current = true;
     setSaveStatus("saving");
     try {
-      const conOrden = localSecciones.map((s, i) => ({ ...s, orden: i + 1 }));
+      const conOrden = localSeccionesRef.current.map((s, i) => ({ ...s, orden: i + 1 }));
       await onSave(conOrden);
       clearDraft();
       setCambiosPendientes(false);
@@ -385,8 +376,36 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
       setTimeout(() => setSaveStatus("idle"), 3000);
     } catch (err) {
       setSaveStatus("error");
+    } finally {
+      isSavingRef.current = false;
     }
-  };
+  }, [onSave, clearDraft]);
+
+  // Auto-guardado: solo se dispara cuando cambia cambiosPendientes, NO en cada keystroke
+  useEffect(() => {
+    if (!cambiosPendientes || isProcessing) return;
+
+    // Borrador local inmediato (no bloquea UI)
+    saveDraft(localSeccionesRef.current);
+
+    if (!isOnline) {
+      setSaveStatus("offline");
+      return;
+    }
+
+    const delay = isSlow ? 5000 : 2500;
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      guardarEnServidor();
+    }, delay);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  // ⚠️ localSecciones INTENCIONALMENTE excluido de deps — usamos ref para leer el valor actual
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cambiosPendientes, isOnline, isSlow, isProcessing, guardarEnServidor]);
 
   // Ctrl+S / Cmd+S
   useEffect(() => {
@@ -399,7 +418,8 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
     };
     if (isOpen) window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isOpen, localSecciones]);
+  // guardarEnServidor es estable (useCallback), localSecciones se lee via ref
+  }, [isOpen, guardarEnServidor]);
 
   const handleChange = useCallback((id: string | number, campo: string, valor: string) => {
     setLocalSecciones((prev) => {
