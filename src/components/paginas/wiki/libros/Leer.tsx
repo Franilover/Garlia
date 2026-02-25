@@ -160,7 +160,6 @@ function SoundInline({ url, volume }: { url: string; volume: number }) {
       role="button"
       title={playing ? "Detener ambientación" : "Reproducir ambientación"}
     >
-      {/* Ícono / ondas */}
       {playing ? (
         <span className="inline-flex items-end gap-px h-3">
           {[0,1,2].map(i => (
@@ -283,7 +282,6 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
             transition={{ type: "spring", damping: 28, stiffness: 340 }}
             className="fixed z-[71] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[680px] bg-white rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             style={{ maxHeight: "88vh" }}>
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#6B5E70]/8 shrink-0">
               <div>
                 <h3 className="text-sm font-black text-[#2C262E] uppercase tracking-tight">Explorador de imágenes</h3>
@@ -293,7 +291,6 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
             </div>
 
             <div className="flex flex-1 overflow-hidden min-h-0">
-              {/* Árbol */}
               <div className="w-1/2 border-r border-[#6B5E70]/8 overflow-y-auto py-2">
                 {loading && <div className="flex items-center justify-center h-32 gap-2 text-[#6B5E70]/30"><Loader2 size={16} className="animate-spin" /><span className="text-[10px] font-black uppercase tracking-widest">Cargando…</span></div>}
                 {error && <div className="p-6 text-center"><p className="text-[11px] text-red-400 font-bold">{error}</p><p className="text-[10px] text-[#6B5E70]/30 mt-1">Asegurate que existe <code className="font-mono">app/api/dibujos/route.ts</code></p></div>}
@@ -305,7 +302,6 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
                 )}
               </div>
 
-              {/* Panel derecho */}
               <div className="w-1/2 flex flex-col overflow-y-auto">
                 {selected ? (
                   <>
@@ -358,7 +354,6 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
               </div>
             </div>
 
-            {/* Footer */}
             <div className="px-6 py-4 border-t border-[#6B5E70]/8 shrink-0 flex items-center justify-between gap-4">
               <p className="text-[10px] text-[#6B5E70]/30 font-bold uppercase tracking-widest">{selected ? "Lista para insertar" : "Ninguna seleccionada"}</p>
               <div className="flex items-center gap-2">
@@ -415,6 +410,125 @@ function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ─── PANEL DE ÍNDICE (DRAWER LATERAL) ───────────────────────────────────────
+function IndexPanel({
+  open,
+  onClose,
+  lista,
+  capIdActual,
+  isAdmin,
+  libroTitulo,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  lista: CapituloLista[];
+  capIdActual: string;
+  isAdmin: boolean;
+  libroTitulo?: string;
+  onSelect: (id: string) => void;
+}) {
+  const hoy = new Date().toISOString().split("T")[0];
+  const capActualRef = useRef<HTMLButtonElement>(null);
+
+  // Scroll al capítulo actual cuando abre
+  useEffect(() => {
+    if (open) setTimeout(() => capActualRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }), 120);
+  }, [open]);
+
+  // Cerrar con Escape
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [onClose]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-[60] bg-[#1A1218]/30 backdrop-blur-sm"
+          />
+          {/* Drawer */}
+          <motion.div
+            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 32, stiffness: 320 }}
+            className="fixed right-0 top-0 bottom-0 z-[61] w-full max-w-sm bg-[#FDFCFD] shadow-2xl flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#6B5E70]/8 shrink-0">
+              <div>
+                {libroTitulo && (
+                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[#6B5E70]/35 italic mb-0.5">{libroTitulo}</p>
+                )}
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#6B5E70] flex items-center gap-2">
+                  <List size={13} /> Índice
+                </h3>
+              </div>
+              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#6B5E70]/6 hover:bg-[#6B5E70]/12 flex items-center justify-center text-[#6B5E70]/40 hover:text-[#6B5E70] transition-all">
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Lista de capítulos */}
+            <div className="flex-1 overflow-y-auto py-3 px-3">
+              {lista.map((cap) => {
+                const publicado = isAdmin || cap.fecha_publicacion <= hoy;
+                const esActual = cap.id === capIdActual;
+                const futuro = !publicado;
+                return (
+                  <button
+                    key={cap.id}
+                    ref={esActual ? capActualRef : undefined}
+                    disabled={futuro}
+                    onClick={() => { onSelect(cap.id); onClose(); }}
+                    className={cn(
+                      "w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition-all mb-1",
+                      esActual
+                        ? "bg-[#6B5E70] text-white"
+                        : publicado
+                        ? "hover:bg-[#6B5E70]/6 text-[#2C262E]"
+                        : "opacity-35 cursor-not-allowed text-[#2C262E]/50"
+                    )}
+                  >
+                    {/* Número */}
+                    <span className={cn(
+                      "text-[10px] font-black w-6 shrink-0 text-center",
+                      esActual ? "text-white/60" : "text-[#6B5E70]/40"
+                    )}>
+                      {cap.orden}
+                    </span>
+
+                    {/* Título */}
+                    <span className={cn("text-[12px] font-bold flex-1 leading-snug uppercase tracking-tight", esActual ? "text-white" : "")}>
+                      {cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}
+                    </span>
+
+                    {/* Estado */}
+                    {esActual ? (
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
+                    ) : futuro ? (
+                      <span className="text-[8px] font-black uppercase tracking-widest text-[#6B5E70]/30 shrink-0">
+                        {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                      </span>
+                    ) : (
+                      <ChevronR size={13} className="text-[#6B5E70]/20 shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -527,11 +641,46 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
   );
 }
 
+// ─── SKELETON DE CARGA ───────────────────────────────────────────────────────
+function LectorSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#FDFCFD] pb-24 animate-pulse">
+      {/* Nav */}
+      <div className="sticky top-0 z-50 bg-[#FDFCFD]/80 backdrop-blur-md border-b border-[#6B5E70]/5 px-6 py-4">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+          <div className="w-6 h-6 rounded-lg bg-[#6B5E70]/10" />
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-2 w-24 rounded-full bg-[#6B5E70]/10" />
+            <div className="h-6 w-32 rounded-xl bg-[#6B5E70]/10" />
+          </div>
+          <div className="w-6 h-6 rounded-lg bg-[#6B5E70]/10" />
+        </div>
+      </div>
+      {/* Article */}
+      <div className="max-w-2xl mx-auto px-6 py-12 md:py-20">
+        <div className="text-center mb-12 space-y-3">
+          <div className="h-10 w-16 rounded-xl bg-[#6B5E70]/8 mx-auto" />
+          <div className="h-8 w-2/3 rounded-xl bg-[#6B5E70]/10 mx-auto" />
+          <div className="h-3 w-40 rounded-full bg-[#6B5E70]/8 mx-auto" />
+        </div>
+        <div className="space-y-4">
+          {[100, 85, 95, 70, 90, 60, 80, 75].map((w, i) => (
+            <div key={i} className={`h-4 rounded-full bg-[#6B5E70]/8`} style={{ width: `${w}%` }} />
+          ))}
+          <div className="h-4 w-1/2 rounded-full bg-[#6B5E70]/8" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPONENTE PRINCIPAL ────────────────────────────────────────────────────
 export default function Lector() {
   const params = useParams();
   const id = params?.id as string;
   const capId = params?.capId as string;
   const router = useRouter();
+
   const [capitulo, setCapitulo] = useState<Capitulo | null>(null);
   const [listaCapitulos, setListaCapitulos] = useState<CapituloLista[]>([]);
   const [loading, setLoading] = useState(true);
@@ -539,6 +688,7 @@ export default function Lector() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [showIndex, setShowIndex] = useState(false);
   const [nuevoContenido, setNuevoContenido] = useState("");
   const [saving, setSaving] = useState(false);
   const isInitialMount = useRef(true);
@@ -547,58 +697,112 @@ export default function Lector() {
   const { words: wordsEdit } = useTextStats(nuevoContenido);
 
   useEffect(() => {
-    const fetchDatos = async () => {
-      if (!capId || !id) return;
-      try {
-        if (isInitialMount.current) setLoading(true);
-        setError(null);
-        const [sessionRes, queryRes] = await Promise.all([supabase.auth.getSession(), librosQueries.getCapituloParaLectura(capId, id, true)]);
-        setIsAdmin(!!sessionRes.data.session);
-        if (queryRes.error || !queryRes.data) { setError(queryRes.error || "No se pudo cargar el capítulo"); }
-        else { setCapitulo(queryRes.data.capitulo); setListaCapitulos(queryRes.data.listaCapitulos); setNuevoContenido(queryRes.data.capitulo.contenido || ""); }
-      } catch (err) { console.error("Error crítico en Lector:", err); setError("Error al abrir el pergamino"); }
-      finally { setLoading(false); isInitialMount.current = false; }
-    };
-    fetchDatos();
+    if (!capId || !id) return;
+
+    // ✅ Auth y capítulo en paralelo — no se espera uno al otro
+    Promise.all([
+      supabase.auth.getSession(),
+      librosQueries.getCapituloParaLectura(capId, id, true),
+    ]).then(([sessionRes, queryRes]) => {
+      setIsAdmin(!!sessionRes.data.session);
+      if (queryRes.error || !queryRes.data) {
+        setError(queryRes.error || "No se pudo cargar el capítulo");
+      } else {
+        setCapitulo(queryRes.data.capitulo);
+        setListaCapitulos(queryRes.data.listaCapitulos);
+        setNuevoContenido(queryRes.data.capitulo.contenido || "");
+      }
+    }).catch((err) => {
+      console.error("Error crítico en Lector:", err);
+      setError("Error al abrir el pergamino");
+    }).finally(() => {
+      setLoading(false);
+      isInitialMount.current = false;
+    });
   }, [capId, id]);
 
   const handleSave = async () => {
     if (!capitulo || !capId) return;
     const contenidoPrevio = capitulo.contenido;
-    setCapitulo({ ...capitulo, contenido: nuevoContenido }); setEditMode(false); setSaving(true);
-    try { const { error: saveError } = await librosQueries.updateContenido(capId, nuevoContenido); if (saveError) throw saveError; }
-    catch (err: any) { setCapitulo({ ...capitulo, contenido: contenidoPrevio }); setNuevoContenido(contenidoPrevio); setEditMode(true); alert("Error al guardar: " + err.message); }
-    finally { setSaving(false); }
+    setCapitulo({ ...capitulo, contenido: nuevoContenido });
+    setEditMode(false);
+    setSaving(true);
+    try {
+      const { error: saveError } = await librosQueries.updateContenido(capId, nuevoContenido);
+      if (saveError) throw saveError;
+    } catch (err: any) {
+      setCapitulo({ ...capitulo, contenido: contenidoPrevio });
+      setNuevoContenido(contenidoPrevio);
+      setEditMode(true);
+      alert("Error al guardar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleCancelEdit = () => { setEditMode(false); setNuevoContenido(capitulo?.contenido ?? ""); setPreviewMode(false); };
-  const handleChapterSelect = useCallback((newCapId: string) => router.push(`/wiki/paginas/libros/${id}/leer/${newCapId}`), [id, router]);
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setNuevoContenido(capitulo?.contenido ?? "");
+    setPreviewMode(false);
+  };
+
+  const handleChapterSelect = useCallback(
+    (newCapId: string) => router.push(`/wiki/paginas/libros/${id}/leer/${newCapId}`),
+    [id, router]
+  );
 
   const hoy = new Date().toISOString().split("T")[0];
   const indiceActual = listaCapitulos.findIndex(c => c.id === capId);
   const anteriorCap = listaCapitulos.slice(0, indiceActual).reverse().find(c => isAdmin || c.fecha_publicacion <= hoy);
   const siguienteCap = listaCapitulos.slice(indiceActual + 1).find(c => isAdmin || c.fecha_publicacion <= hoy);
 
-  if (loading && !capitulo) return <div className="h-screen flex items-center justify-center bg-[#FDFCFD]"><div className="animate-pulse text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em]">Abriendo pergamino...</div></div>;
-  if (error || !capitulo) return <div className="h-screen flex flex-col items-center justify-center bg-[#FDFCFD] text-[#6B5E70] p-6 text-center"><h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">{error || "Capítulo no encontrado"}</h2><button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-[#6B5E70] pb-1">Volver al índice</button></div>;
+  // ✅ Skeleton en lugar de pantalla en blanco — el contenido se muestra en su lugar
+  if (loading && !capitulo) return <LectorSkeleton />;
+  if (error || !capitulo) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-[#FDFCFD] text-[#6B5E70] p-6 text-center">
+      <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">{error || "Capítulo no encontrado"}</h2>
+      <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-[#6B5E70] pb-1">Volver al índice</button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#FDFCFD] text-[#2C262E] pb-24">
+      <IndexPanel
+        open={showIndex}
+        onClose={() => setShowIndex(false)}
+        lista={listaCapitulos}
+        capIdActual={capId}
+        isAdmin={isAdmin}
+        libroTitulo={capitulo.libros?.titulo}
+        onSelect={handleChapterSelect}
+      />
       <nav className="sticky top-0 z-50 bg-[#FDFCFD]/80 backdrop-blur-md border-b border-[#6B5E70]/5 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors shrink-0"><ChevronLeft size={24} /></button>
           <div className="flex flex-col items-center gap-1 min-w-0">
             <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-[#6B5E70]/40 leading-none truncate">{capitulo.libros?.titulo}</h2>
-            {listaCapitulos.length > 1 ? <ChapterSelector lista={listaCapitulos} capIdActual={capId} isAdmin={isAdmin} onSelect={handleChapterSelect} /> : <p className="text-[11px] font-bold text-[#6B5E70] uppercase">Capítulo {capitulo.orden}</p>}
+            {listaCapitulos.length > 1
+              ? <ChapterSelector lista={listaCapitulos} capIdActual={capId} isAdmin={isAdmin} onSelect={handleChapterSelect} />
+              : <p className="text-[11px] font-bold text-[#6B5E70] uppercase">Capítulo {capitulo.orden}</p>
+            }
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {isAdmin && !editMode && <button onClick={() => setEditMode(true)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors p-1"><Edit3 size={20} /></button>}
-            <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70]"><List size={24} /></button>
+            <button onClick={() => setShowIndex(true)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors"><List size={24} /></button>
           </div>
         </div>
       </nav>
 
-      {isAdmin && editMode && <EditorToolbar textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>} value={nuevoContenido} onChange={setNuevoContenido} onSave={handleSave} onCancel={handleCancelEdit} saving={saving} />}
+      {isAdmin && editMode && (
+        <EditorToolbar
+          textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
+          value={nuevoContenido}
+          onChange={setNuevoContenido}
+          onSave={handleSave}
+          onCancel={handleCancelEdit}
+          saving={saving}
+        />
+      )}
 
       <article className="max-w-2xl mx-auto px-6 py-12 md:py-20">
         <header className="mb-12 text-center">
@@ -629,7 +833,11 @@ export default function Lector() {
                 }
               </AnimatePresence>
               <div className="flex justify-end mt-3 px-2">
-                {wordsEdit !== wordsPublicado && wordsEdit > 0 && <span className={cn("text-[9px] font-black uppercase tracking-widest", wordsEdit > wordsPublicado ? "text-emerald-400" : "text-amber-400")}>{wordsEdit > wordsPublicado ? "+" : ""}{wordsEdit - wordsPublicado} palabras vs. guardado</span>}
+                {wordsEdit !== wordsPublicado && wordsEdit > 0 && (
+                  <span className={cn("text-[9px] font-black uppercase tracking-widest", wordsEdit > wordsPublicado ? "text-emerald-400" : "text-amber-400")}>
+                    {wordsEdit > wordsPublicado ? "+" : ""}{wordsEdit - wordsPublicado} palabras vs. guardado
+                  </span>
+                )}
               </div>
             </div>
           ) : (
@@ -639,12 +847,28 @@ export default function Lector() {
 
         {!editMode && (
           <footer className="mt-20 pt-10 border-t border-[#6B5E70]/10 flex flex-col items-center gap-8">
-            <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="flex items-center gap-2 text-[#6B5E70]/40 hover:text-[#6B5E70] font-black text-[10px] uppercase tracking-widest transition-all"><List size={16} /> Volver al Índice</button>
+            <button onClick={() => setShowIndex(true)} className="flex items-center gap-2 text-[#6B5E70]/40 hover:text-[#6B5E70] font-black text-[10px] uppercase tracking-widest transition-all"><List size={16} /> Índice</button>
             <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-              <button onClick={() => anteriorCap && router.push(`/wiki/paginas/libros/${id}/leer/${anteriorCap.id}`)} disabled={!anteriorCap} className={cn("p-5 rounded-2xl border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all", !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-[#6B5E70]/10 text-[#6B5E70]/60 hover:bg-[#6B5E70]/5 active:scale-95")}><ChevronLeft size={14} /> Anterior</button>
-              <button onClick={() => siguienteCap ? router.push(`/wiki/paginas/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/paginas/libros/${id}`)} className="p-5 rounded-2xl bg-[#6B5E70] text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg hover:shadow-[#6B5E70]/30 active:scale-95 transition-all">{siguienteCap ? "Siguiente" : "Finalizar"} <ChevronRight size={14} /></button>
+              <button
+                onClick={() => anteriorCap && router.push(`/wiki/paginas/libros/${id}/leer/${anteriorCap.id}`)}
+                disabled={!anteriorCap}
+                className={cn("p-5 rounded-2xl border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all", !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-[#6B5E70]/10 text-[#6B5E70]/60 hover:bg-[#6B5E70]/5 active:scale-95")}
+              >
+                <ChevronLeft size={14} /> Anterior
+              </button>
+              <button
+                onClick={() => siguienteCap ? router.push(`/wiki/paginas/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/paginas/libros/${id}`)}
+                className="p-5 rounded-2xl bg-[#6B5E70] text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg hover:shadow-[#6B5E70]/30 active:scale-95 transition-all"
+              >
+                {siguienteCap ? "Siguiente" : "Finalizar"} <ChevronRight size={14} />
+              </button>
             </div>
-            {!isAdmin && !siguienteCap && listaCapitulos[indiceActual + 1] && <p className="text-[#6B5E70]/40 font-bold text-[10px] uppercase tracking-widest italic text-center">Próximo capítulo el{" "}{new Date(listaCapitulos[indiceActual + 1].fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}</p>}
+            {!isAdmin && !siguienteCap && listaCapitulos[indiceActual + 1] && (
+              <p className="text-[#6B5E70]/40 font-bold text-[10px] uppercase tracking-widest italic text-center">
+                Próximo capítulo el{" "}
+                {new Date(listaCapitulos[indiceActual + 1].fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}
+              </p>
+            )}
           </footer>
         )}
       </article>
