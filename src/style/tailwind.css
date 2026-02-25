@@ -30,13 +30,12 @@
   }
 }
 
-/* ── MODO CLARO ── */
 :root {
   --primary: #67556d;
   --accent: #be97d1;
   --bg-main: #e4d7e6;
   --bg-menu: #67556d;
-  --white-custom: #ffffff;   /* cards blancas en claro */
+  --white-custom: #ffffff;   
   --foreground: #3a2e3d;
 
   font-size: 14px;
@@ -46,14 +45,13 @@
   :root { font-size: 15px; }
 }
 
-/* ── MODO OSCURO ── */
 .dark {
-  --primary: #c4a8d4;         /* lila claro — legible sobre fondo oscuro */
-  --accent: #a67dbf;
-  --bg-main: #1e1722;         /* fondo: morado muy oscuro, plano */
-  --bg-menu: #2a2030;         /* navbar */
-  --white-custom: #2a1f32;    /* cards: un tono más claro que el fondo para que se distingan */
-  --foreground: #ede0f5;      /* texto casi blanco con tinte lila */
+  --primary: #c4a8d4;        
+  --accent: #3b343f;
+  --bg-main: #1e1722;        
+  --bg-menu: #2a2030;         
+  --white-custom: #2a1f32;   
+  --foreground: #ede0f5;      
 }
 
 @layer base {

@@ -23,7 +23,7 @@
         "name": "next"
       }
     ],
-    "baseUrl": ".",
+    "baseUrl": "https://franilover.vercel.app/",
     "paths": {
       // Alias principal
       "@/*": [
