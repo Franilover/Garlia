@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
 import { 
@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/shared/display/SmartImage";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData"; 
 
 // --- INTERFACES ---
 interface Capitulo {
@@ -37,6 +36,10 @@ export default function LibroDetalle() {
   const [procesando, setProcesando] = useState(false);
   const [loadingLibro, setLoadingLibro] = useState(true);
 
+  // 👇 Estado propio para capítulos (ya no usamos el hook genérico)
+  const [capitulos, setCapitulos] = useState<Capitulo[]>([]);
+  const [loadingCaps, setLoadingCaps] = useState(true);
+
   // --- MODALES ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditCapModal, setShowEditCapModal] = useState(false);
@@ -48,7 +51,6 @@ export default function LibroDetalle() {
   const [editCapTitle, setEditCapTitle] = useState("");
   const [editCapFecha, setEditCapFecha] = useState("");
 
-  // Helper para cerrar modales de forma segura
   const closeModals = () => {
     if (!procesando) {
       setShowAddModal(false);
@@ -56,44 +58,48 @@ export default function LibroDetalle() {
     }
   };
 
-  // 1. CARGA DE DATOS (PARALELIZADA)
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
-      try {
-        const [authRes, libroRes] = await Promise.all([
-          supabase.auth.getSession(),
-          supabase.from("libros").select("*").eq("id", id).single()
-        ]);
+  // 👇 Función reutilizable para recargar caps (con el valor de admin ya conocido)
+  const fetchCaps = useCallback(async (admin: boolean) => {
+    if (!id) return;
+    const hoy = new Date().toISOString().split('T')[0];
 
-        setIsAdmin(!!authRes.data.session);
-        if (libroRes.data) setLibro(libroRes.data);
-      } catch (err) {
-        console.error("Error al cargar detalle:", err);
-      } finally {
-        setLoadingLibro(false);
-      }
-    };
-    fetchData();
+    let query = supabase
+      .from("capitulos")
+      .select("*")
+      .eq("libro_id", id)          // ✅ Filtro en BD, no en cliente
+      .order("orden", { ascending: true });
+
+    if (!admin) {
+      query = query.lte("fecha_publicacion", hoy); // ✅ También filtrado en BD
+    }
+
+    const { data } = await query;
+    if (data) setCapitulos(data);
+    setLoadingCaps(false);
   }, [id]);
 
-  // 2. CARGA DE CAPÍTULOS CON HOOK
-  const { 
-    data: capitulosRaw, 
-    loading: loadingCaps, 
-    refetch: refetchCaps 
-  } = useSupabaseData("capitulos", {
-    select: "*",
-    order: { campo: "orden", asc: true }
-  });
+  // ✅ Un solo useEffect: auth + libro + caps todo en paralelo
+  useEffect(() => {
+    const fetchAll = async () => {
+      if (!id) return;
 
-  const capitulos = useMemo(() => {
-    const hoy = new Date().toISOString().split('T')[0];
-    const raw = (capitulosRaw as Capitulo[]) || [];
-    return raw
-      .filter(cap => cap.libro_id === id)
-      .filter(cap => isAdmin || cap.fecha_publicacion <= hoy);
-  }, [capitulosRaw, id, isAdmin]);
+      // Libro y auth en paralelo
+      const [authRes, libroRes] = await Promise.all([
+        supabase.auth.getSession(),
+        supabase.from("libros").select("*").eq("id", id).single()
+      ]);
+
+      const admin = !!authRes.data.session;
+      setIsAdmin(admin);
+      if (libroRes.data) setLibro(libroRes.data);
+      setLoadingLibro(false);
+
+      // Caps inmediatamente después, con el valor de admin ya resuelto
+      await fetchCaps(admin);
+    };
+
+    fetchAll();
+  }, [id, fetchCaps]);
 
   // --- ACCIONES ---
   const handleCrearCapitulo = async (e: React.FormEvent) => {
@@ -112,7 +118,7 @@ export default function LibroDetalle() {
     if (!error) {
       setNuevoTitulo("");
       setShowAddModal(false);
-      refetchCaps();
+      fetchCaps(isAdmin); // 👈 recarga solo los caps de este libro
     } else {
       alert("Error al crear el capítulo");
     }
@@ -125,13 +131,13 @@ export default function LibroDetalle() {
     
     setProcesando(true);
     const { error } = await supabase.from("capitulos").update({ 
-        titulo_capitulo: editCapTitle.toUpperCase(),
-        fecha_publicacion: editCapFecha 
+      titulo_capitulo: editCapTitle.toUpperCase(),
+      fecha_publicacion: editCapFecha 
     }).eq("id", selectedCap.id);
 
     if (!error) {
       setShowEditCapModal(false);
-      refetchCaps();
+      fetchCaps(isAdmin);
     } else {
       alert("Error al actualizar");
     }
@@ -145,7 +151,7 @@ export default function LibroDetalle() {
     const { error } = await supabase.from("capitulos").delete().eq("id", selectedCap.id);
     if (!error) {
       setShowEditCapModal(false);
-      refetchCaps();
+      fetchCaps(isAdmin);
     } else {
       alert("No se pudo eliminar");
     }
@@ -191,13 +197,13 @@ export default function LibroDetalle() {
                   className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" 
                 />
                 <div className="text-left">
-                    <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Fecha de estreno</label>
-                    <input 
-                      type="date" 
-                      value={showAddModal ? nuevaFecha : editCapFecha} 
-                      onChange={(e) => showAddModal ? setNuevaFecha(e.target.value) : setEditCapFecha(e.target.value)} 
-                      className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none" 
-                    />
+                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Fecha de estreno</label>
+                  <input 
+                    type="date" 
+                    value={showAddModal ? nuevaFecha : editCapFecha} 
+                    onChange={(e) => showAddModal ? setNuevaFecha(e.target.value) : setEditCapFecha(e.target.value)} 
+                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none" 
+                  />
                 </div>
                 
                 {showAddModal ? (
@@ -237,8 +243,12 @@ export default function LibroDetalle() {
           </div>
           {!loadingLibro && libro?.fecha_proximo_capitulo && (
             <div className="mt-8 p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
-               <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic"><Calendar size={12} /> Próximo Capítulo</h4>
-               <p className="text-[#6B5E70] font-bold text-sm">{new Date(libro.fecha_proximo_capitulo).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}</p>
+              <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
+                <Calendar size={12} /> Próximo Capítulo
+              </h4>
+              <p className="text-[#6B5E70] font-bold text-sm">
+                {new Date(libro.fecha_proximo_capitulo).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}
+              </p>
             </div>
           )}
         </aside>
@@ -253,16 +263,20 @@ export default function LibroDetalle() {
             ) : (
               <>
                 <h1 className="text-5xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.9] mb-6 uppercase">{libro?.titulo}</h1>
-                <p className="text-[#6B5E70]/70 leading-relaxed text-lg font-medium italic">"{libro?.sinopsis}"</p>
+                <p className="text-[#6B5E70]/70 leading-relaxed text-lg font-medium italic">&quot;{libro?.sinopsis}&quot;</p>
               </>
             )}
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-8 border-b border-[#6B5E70]/10 pb-4">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic"><ListOrdered size={16} /> Índice</h3>
+              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
+                <ListOrdered size={16} /> Índice
+              </h3>
               {isAdmin && (
-                <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"><Plus size={18} /></button>
+                <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform">
+                  <Plus size={18} />
+                </button>
               )}
             </div>
             
@@ -279,11 +293,13 @@ export default function LibroDetalle() {
                     className="w-full flex items-center justify-between p-6 bg-white border border-[#6B5E70]/5 rounded-3xl hover:border-[#6B5E70]/20 transition-all text-left group"
                   >
                     <div className="flex flex-col gap-1">
-                        <span className="text-[#6B5E70] font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform">{cap.orden}. {cap.titulo_capitulo}</span>
-                        <span className="text-[#6B5E70]/40 font-bold text-[9px] uppercase tracking-wider italic">
-                            {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "} 
-                            {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
-                        </span>
+                      <span className="text-[#6B5E70] font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform">
+                        {cap.orden}. {cap.titulo_capitulo}
+                      </span>
+                      <span className="text-[#6B5E70]/40 font-bold text-[9px] uppercase tracking-wider italic">
+                        {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "} 
+                        {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
+                      </span>
                     </div>
                     {isAdmin ? (
                       <div 
@@ -298,7 +314,9 @@ export default function LibroDetalle() {
                       >
                         <Edit3 size={16} />
                       </div>
-                    ) : <Play size={14} fill="currentColor" className="text-[#6B5E70]" />}
+                    ) : (
+                      <Play size={14} fill="currentColor" className="text-[#6B5E70]" />
+                    )}
                   </button>
                 ))
               )}
