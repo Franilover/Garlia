@@ -30,6 +30,7 @@
   }
 }
 
+/* ── MODO CLARO ── */
 :root {
   --primary: #67556d;
   --accent: #be97d1;
@@ -45,9 +46,10 @@
   :root { font-size: 15px; }
 }
 
+/* ── MODO OSCURO ── */
 .dark {
   --primary: #c4a8d4;        
-  --accent: #3b343f;
+  --accent: #a67dbf;
   --bg-main: #1e1722;        
   --bg-menu: #2a2030;         
   --white-custom: #2a1f32;   
