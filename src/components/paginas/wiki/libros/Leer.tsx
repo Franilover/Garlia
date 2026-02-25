@@ -479,51 +479,57 @@ function IndexPanel({
 
             {/* Lista de capítulos */}
             <div className="flex-1 overflow-y-auto py-3 px-3">
-              {lista.map((cap) => {
-                const publicado = isAdmin || cap.fecha_publicacion <= hoy;
-                const esActual = cap.id === capIdActual;
-                const futuro = !publicado;
-                return (
-                  <button
-                    key={cap.id}
-                    ref={esActual ? capActualRef : undefined}
-                    disabled={futuro}
-                    onClick={() => { onSelect(cap.id); onClose(); }}
-                    className={cn(
-                      "w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition-all mb-1",
-                      esActual
-                        ? "bg-[#6B5E70] text-white"
-                        : publicado
-                        ? "hover:bg-[#6B5E70]/6 text-[#2C262E]"
-                        : "opacity-35 cursor-not-allowed text-[#2C262E]/50"
-                    )}
-                  >
-                    {/* Número */}
-                    <span className={cn(
-                      "text-[10px] font-black w-6 shrink-0 text-center",
-                      esActual ? "text-white/60" : "text-[#6B5E70]/40"
-                    )}>
-                      {cap.orden}
-                    </span>
-
-                    {/* Título */}
-                    <span className={cn("text-[12px] font-bold flex-1 leading-snug uppercase tracking-tight", esActual ? "text-white" : "")}>
-                      {cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}
-                    </span>
-
-                    {/* Estado */}
-                    {esActual ? (
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
-                    ) : futuro ? (
-                      <span className="text-[8px] font-black uppercase tracking-widest text-[#6B5E70]/30 shrink-0">
-                        {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+              {lista
+                // ✅ No-admin solo ve capítulos ya publicados
+                .filter(cap => isAdmin || cap.fecha_publicacion <= hoy)
+                .map((cap) => {
+                  const esActual = cap.id === capIdActual;
+                  // Admin puede ver futuros (programados)
+                  const esFuturo = isAdmin && cap.fecha_publicacion > hoy;
+                  return (
+                    <button
+                      key={cap.id}
+                      ref={esActual ? capActualRef : undefined}
+                      onClick={() => { onSelect(cap.id); onClose(); }}
+                      className={cn(
+                        "w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition-all mb-1",
+                        esActual
+                          ? "bg-[#6B5E70] text-white"
+                          : "hover:bg-[#6B5E70]/6 text-[#2C262E]"
+                      )}
+                    >
+                      {/* Número */}
+                      <span className={cn(
+                        "text-[10px] font-black w-6 shrink-0 text-center tabular-nums",
+                        esActual ? "text-white/60" : "text-[#6B5E70]/40"
+                      )}>
+                        {cap.orden}
                       </span>
-                    ) : (
-                      <ChevronR size={13} className="text-[#6B5E70]/20 shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
+
+                      {/* Título — siempre visible */}
+                      <div className="flex-1 min-w-0">
+                        <span className={cn(
+                          "block text-[12px] font-bold leading-snug uppercase tracking-tight truncate",
+                          esActual ? "text-white" : "text-[#2C262E]"
+                        )}>
+                          {cap.titulo_capitulo || `Capítulo ${cap.orden}`}
+                        </span>
+                        {/* Fecha solo para admin cuando está programado */}
+                        {esFuturo && (
+                          <span className="text-[8px] font-black uppercase tracking-widest text-[#6B5E70]/40 mt-0.5 block">
+                            Programado · {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Indicador derecho */}
+                      {esActual
+                        ? <span className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
+                        : <ChevronR size={13} className="text-[#6B5E70]/20 shrink-0" />
+                      }
+                    </button>
+                  );
+                })}
             </div>
           </motion.div>
         </>
