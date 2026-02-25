@@ -35,7 +35,7 @@ export default function SobreMi() {
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none"
           >
-            Sobre <span className="font-serif font-light text-primary/60">Mi</span>
+            Sobre Mi
           </motion.h1>
           <div className="h-1.5 w-20 bg-primary mt-8 opacity-20 rounded-full" />
         </header>
@@ -50,7 +50,7 @@ export default function SobreMi() {
                 <Heart size={14} /> Mi Atelier
               </h3>
               <p className="text-2xl md:text-3xl leading-snug font-light italic">
-                Bienvenido a mi pequeño <span className="font-bold text-primary">jardín digital</span>.
+                Bienvenido a mi pequeño jardín digital
               </p>
             </div>
           </section>
