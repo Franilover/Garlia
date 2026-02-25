@@ -5,7 +5,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import {
   ChevronLeft, ChevronRight, List, Save, Edit3, X,
   BookOpen, Clock, AlignLeft, Maximize2, Minimize2,
-  ChevronDown, Check, Eye, Type, Feather, Globe, Image, Quote
+  ChevronDown, Check, Eye, Type, Image, Quote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,320 +20,323 @@ interface CapituloLista {
   titulo_capitulo?: string;
 }
 
-type SecretType = "autor" | "lore" | "imagen" | "cita";
+// Tipos de bloques especiales:
+// [[cita|Texto de la cita. — Fuente]]           → bloque visual decorativo
+// [[img|https://url.jpg|Caption opcional]]       → imagen full-width inline
+// [[float|palabra visible|https://url.jpg|Caption]] → palabra clickeable que muestra imagen flotante
 
-interface Secret {
-  word: string;
-  type: SecretType;
-  content: string;
-}
+type BlockType = "cita" | "img" | "float";
 
-// ─── PARSER DE SECRETOS ───────────────────────────────────────────────────────
-// Sintaxis: [[palabra visible|tipo|contenido del secreto]]
-// Tipos válidos: autor | lore | imagen | cita
-// Ej: [[espada|lore|Fue forjada en las minas de Keth, hace tres siglos.]]
-// Ej: [[susurró|autor|Reescribí esta línea 12 veces.]]
-// Ej: [[imagen|imagen|https://url.jpg]]
-// Ej: [[silencio|cita|"Hablar es mentir dos veces." — Éter, cap. 3]]
+interface CitaBlock  { kind: "cita";  content: string }
+interface ImgBlock   { kind: "img";   url: string; caption?: string }
+interface FloatBlock { kind: "float"; word: string; url: string; caption?: string }
 
-function parseContenido(
-  texto: string
-): Array<{ type: "text"; value: string } | { type: "secret"; secret: Secret }> {
-  const regex = /\[\[([^\]|]+)\|([^\]|]+)\|([^\]]+)\]\]/g;
-  const partes: Array<{ type: "text"; value: string } | { type: "secret"; secret: Secret }> = [];
+type SpecialBlock = CitaBlock | ImgBlock | FloatBlock;
+
+type Segment =
+  | { type: "text"; value: string }
+  | { type: "special"; block: SpecialBlock };
+
+// ─── PARSER ──────────────────────────────────────────────────────────────────
+// [[cita|contenido]]
+// [[img|url|caption]]
+// [[float|palabra|url|caption]]
+
+function parseContenido(texto: string): Segment[] {
+  const regex = /\[\[(\w+)\|([^\]]+)\]\]/g;
+  const segments: Segment[] = [];
   let lastIndex = 0;
-  let match;
+  let match: RegExpExecArray | null;
 
   while ((match = regex.exec(texto)) !== null) {
     if (match.index > lastIndex) {
-      partes.push({ type: "text", value: texto.slice(lastIndex, match.index) });
+      segments.push({ type: "text", value: texto.slice(lastIndex, match.index) });
     }
-    partes.push({
-      type: "secret",
-      secret: {
-        word: match[1],
-        type: match[2].trim() as SecretType,
-        content: match[3],
-      },
-    });
+
+    const [, kind, rest] = match;
+    const parts = rest.split("|").map(p => p.trim());
+
+    if (kind === "cita") {
+      segments.push({ type: "special", block: { kind: "cita", content: parts[0] } });
+    } else if (kind === "img") {
+      segments.push({ type: "special", block: { kind: "img", url: parts[0], caption: parts[1] } });
+    } else if (kind === "float") {
+      segments.push({ type: "special", block: { kind: "float", word: parts[0], url: parts[1], caption: parts[2] } });
+    } else {
+      // desconocido, lo tratamos como texto
+      segments.push({ type: "text", value: match[0] });
+    }
+
     lastIndex = match.index + match[0].length;
   }
 
   if (lastIndex < texto.length) {
-    partes.push({ type: "text", value: texto.slice(lastIndex) });
+    segments.push({ type: "text", value: texto.slice(lastIndex) });
   }
 
-  return partes;
+  return segments;
 }
 
-// ─── CONFIG POR TIPO DE SECRETO ──────────────────────────────────────────────
+// ─── CITA VISUAL ─────────────────────────────────────────────────────────────
 
-const SECRET_CONFIG: Record<
-  SecretType,
-  {
-    label: string;
-    icon: React.ElementType;
-    accent: string;
-    bg: string;
-    glowColor: string;
-    underlineColor: string;
-    badge: string;
-  }
-> = {
-  autor: {
-    label: "Nota del autor",
-    icon: Feather,
-    accent: "#B08850",
-    bg: "from-amber-50 to-orange-50",
-    glowColor: "rgba(176,136,80,0.18)",
-    underlineColor: "#B08850",
-    badge: "bg-amber-100 text-amber-700",
-  },
-  lore: {
-    label: "Lore del universo",
-    icon: Globe,
-    accent: "#4E7B6E",
-    bg: "from-emerald-50 to-teal-50",
-    glowColor: "rgba(78,123,110,0.18)",
-    underlineColor: "#4E7B6E",
-    badge: "bg-emerald-100 text-emerald-700",
-  },
-  imagen: {
-    label: "Ilustración",
-    icon: Image,
-    accent: "#7B5EA7",
-    bg: "from-purple-50 to-fuchsia-50",
-    glowColor: "rgba(123,94,167,0.18)",
-    underlineColor: "#9B7BAA",
-    badge: "bg-purple-100 text-purple-700",
-  },
-  cita: {
-    label: "Cita",
-    icon: Quote,
-    accent: "#4A6580",
-    bg: "from-sky-50 to-blue-50",
-    glowColor: "rgba(74,101,128,0.18)",
-    underlineColor: "#4A6580",
-    badge: "bg-sky-100 text-sky-700",
-  },
-};
-
-// ─── PALABRA INTERACTIVA ──────────────────────────────────────────────────────
-
-function SecretWord({ secret, onClick }: { secret: Secret; onClick: (s: Secret) => void }) {
-  const cfg = SECRET_CONFIG[secret.type] ?? SECRET_CONFIG.lore;
-  const [hovered, setHovered] = useState(false);
+function CitaVisual({ content }: { content: string }) {
+  // Separa texto de fuente si hay " — "
+  const dashIdx = content.lastIndexOf(" — ");
+  const texto = dashIdx !== -1 ? content.slice(0, dashIdx) : content;
+  const fuente = dashIdx !== -1 ? content.slice(dashIdx + 3) : null;
 
   return (
-    <span className="relative inline">
-      <button
-        onClick={() => onClick(secret)}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        className="relative inline font-serif cursor-pointer transition-all duration-200"
-        style={{ color: hovered ? cfg.accent : "inherit" }}
-      >
+    <div className="my-10 mx-0 relative">
+      {/* Línea lateral decorativa */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full"
+        style={{
+          background: "linear-gradient(to bottom, #C4A882, #6B5E70, #C4A882)",
+        }}
+      />
+      {/* Ornamento superior */}
+      <div className="absolute -top-3 left-[-1px] w-[5px] h-[5px] rounded-full bg-[#C4A882]" />
+      <div className="absolute -bottom-3 left-[-1px] w-[5px] h-[5px] rounded-full bg-[#6B5E70]" />
+
+      <div className="pl-7 py-2 bg-gradient-to-r from-[#F7F3EE] to-transparent rounded-r-2xl">
+        {/* Comilla decorativa */}
         <span
-          style={{
-            backgroundImage: `linear-gradient(${cfg.underlineColor}, ${cfg.underlineColor})`,
-            backgroundRepeat: "no-repeat",
-            backgroundSize: hovered ? "100% 2px" : "100% 1px",
-            backgroundPosition: "0 100%",
-            paddingBottom: "1px",
-            transition: "background-size 0.2s ease, color 0.2s ease",
-            opacity: hovered ? 1 : 0.85,
-          }}
+          className="block font-serif text-5xl leading-none mb-2 select-none"
+          style={{ color: "#C4A882", opacity: 0.5, fontStyle: "italic" }}
+          aria-hidden
         >
-          {secret.word}
+          "
         </span>
-        {/* Punto brillante indicador */}
-        <motion.span
-          animate={hovered ? { opacity: 1, scale: 1 } : { opacity: 0.4, scale: 0.7 }}
-          transition={{ duration: 0.15 }}
-          className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full"
-          style={{ backgroundColor: cfg.accent }}
-        />
-      </button>
-    </span>
+        <p className="font-serif text-lg md:text-xl italic leading-[1.9] text-[#2C262E]/75">
+          {texto}
+        </p>
+        {fuente && (
+          <p className="mt-3 text-[11px] font-black uppercase tracking-widest text-[#6B5E70]/40 not-italic">
+            — {fuente}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
-// ─── MODAL DE SECRETO ─────────────────────────────────────────────────────────
+// ─── IMAGEN INLINE ───────────────────────────────────────────────────────────
 
-function SecretModal({ secret, onClose }: { secret: Secret | null; onClose: () => void }) {
-  const cfg = secret ? (SECRET_CONFIG[secret.type] ?? SECRET_CONFIG.lore) : SECRET_CONFIG.lore;
-  const IconComp = cfg.icon;
+function ImgInline({ url, caption }: { url: string; caption?: string }) {
+  return (
+    <figure className="my-12 -mx-6 md:-mx-12">
+      <div className="relative overflow-hidden rounded-2xl md:rounded-3xl shadow-xl shadow-[#2C262E]/10">
+        <img
+          src={url}
+          alt={caption ?? ""}
+          className="w-full object-cover"
+          style={{ maxHeight: "520px" }}
+        />
+        {/* Gradiente sutil inferior */}
+        {caption && (
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#1A1218]/60 to-transparent" />
+        )}
+      </div>
+      {caption && (
+        <figcaption className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.2em] text-[#6B5E70]/35">
+          {caption}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
 
+// ─── IMAGEN FLOTANTE (WORD) ──────────────────────────────────────────────────
+
+function FloatWord({
+  word, url, caption,
+}: {
+  word: string;
+  url: string;
+  caption?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const handleClick = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      // Posiciona el float centrado sobre/cerca de la palabra
+      setPos({
+        x: rect.left + rect.width / 2,
+        y: rect.top + window.scrollY,
+      });
+    }
+    setOpen(v => !v);
+  };
+
+  // Cerrar con Escape
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, []);
 
   return (
-    <AnimatePresence>
-      {secret && (
-        <>
-          {/* Overlay */}
-          <motion.div
-            key="overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[60] bg-[#1A1218]/60 backdrop-blur-sm"
-          />
+    <>
+      <button
+        ref={btnRef}
+        onClick={handleClick}
+        className="relative inline font-serif cursor-pointer group"
+      >
+        <span
+          className="relative transition-colors duration-200"
+          style={{
+            backgroundImage: `linear-gradient(#9B7BAA, #9B7BAA)`,
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "100% 1px",
+            backgroundPosition: "0 100%",
+            paddingBottom: "1px",
+          }}
+        >
+          {word}
+        </span>
+        {/* Punto indicador */}
+        <span className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-[#9B7BAA]/60 group-hover:bg-[#9B7BAA] transition-colors" />
+      </button>
 
-          {/* Modal */}
-          <motion.div
-            key="modal"
-            initial={{ opacity: 0, scale: 0.9, y: 24 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 10 }}
-            transition={{ type: "spring", damping: 26, stiffness: 360 }}
-            className="fixed inset-0 z-[61] flex items-center justify-center p-6 pointer-events-none"
-          >
-            <div
-              className="pointer-events-auto w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl"
+      {/* Imagen flotante anclada al lugar en la página */}
+      <AnimatePresence>
+        {open && pos && (
+          <>
+            {/* Overlay traslúcido para cerrar */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-[55]"
+              style={{ background: "transparent" }}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.88, y: 8 }}
+              transition={{ type: "spring", damping: 24, stiffness: 340 }}
+              className="fixed z-[56] pointer-events-auto"
               style={{
-                boxShadow: `0 32px 80px ${cfg.glowColor}, 0 8px 24px rgba(0,0,0,0.10)`,
+                // Posiciona la imagen centrada horizontalmente sobre la palabra,
+                // ligeramente por encima de ella
+                left: Math.min(Math.max(pos.x - 160, 12), window.innerWidth - 332),
+                top: Math.max(pos.y - 280 - window.scrollY, 12),
+                width: 320,
               }}
             >
-              {/* Cabecera con color del tipo */}
-              <div className={`bg-gradient-to-br ${cfg.bg} px-7 pt-7 pb-5 relative overflow-hidden`}>
-                {/* Textura de puntos decorativa */}
-                <div
-                  className="absolute inset-0 opacity-[0.045]"
-                  style={{
-                    backgroundImage: `radial-gradient(circle at 1px 1px, ${cfg.accent} 1px, transparent 0)`,
-                    backgroundSize: "18px 18px",
-                  }}
-                />
-                {/* Ícono grande decorativo de fondo */}
-                <div className="absolute -right-4 -bottom-4 opacity-[0.07]">
-                  <IconComp size={96} style={{ color: cfg.accent }} />
-                </div>
-
-                <div className="flex items-start justify-between mb-5 relative">
-                  <span
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${cfg.badge}`}
-                  >
-                    <IconComp size={10} />
-                    {cfg.label}
-                  </span>
+              <div
+                className="rounded-2xl overflow-hidden shadow-2xl"
+                style={{
+                  boxShadow: "0 24px 64px rgba(44,38,46,0.22), 0 4px 16px rgba(44,38,46,0.12)",
+                }}
+              >
+                {/* Imagen */}
+                <div className="relative">
+                  <img
+                    src={url}
+                    alt={caption ?? word}
+                    className="w-full object-cover"
+                    style={{ maxHeight: 260 }}
+                  />
+                  {/* Botón cerrar sobre la imagen */}
                   <button
-                    onClick={onClose}
-                    className="w-7 h-7 rounded-full bg-black/6 hover:bg-black/12 flex items-center justify-center transition-all text-[#2C262E]/40 shrink-0"
+                    onClick={() => setOpen(false)}
+                    className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-[#1A1218]/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-[#1A1218]/70 transition-all"
                   >
                     <X size={13} />
                   </button>
                 </div>
 
-                <p
-                  className="relative text-[10px] font-black uppercase tracking-[0.2em] mb-1 opacity-40"
-                  style={{ color: cfg.accent }}
-                >
-                  Secreto de
-                </p>
-                <h3
-                  className="relative text-2xl font-black italic tracking-tighter leading-tight"
-                  style={{ color: cfg.accent }}
-                >
-                  «{secret.word}»
-                </h3>
-              </div>
-
-              {/* Cuerpo del secreto */}
-              <div className="bg-white px-7 py-6">
-                {secret.type === "imagen" ? (
-                  secret.content.startsWith("http") ? (
-                    <div className="rounded-xl overflow-hidden border border-[#6B5E70]/10">
-                      <img
-                        src={secret.content}
-                        alt={secret.word}
-                        className="w-full object-cover max-h-64"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).parentElement!.innerHTML =
-                            `<p class="p-6 text-sm font-serif italic text-[#6B5E70]/40 text-center">No se pudo cargar la imagen.</p>`;
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="rounded-xl bg-[#6B5E70]/5 p-6 flex items-center justify-center min-h-28">
-                      <p className="text-sm font-serif italic text-[#6B5E70]/50 text-center">
-                        {secret.content}
-                      </p>
-                    </div>
-                  )
-                ) : secret.type === "cita" ? (
-                  <blockquote className="pl-5 border-l-2 border-[#4A6580]/25">
-                    <p className="font-serif text-lg italic leading-relaxed text-[#2C262E]/80">
-                      {secret.content}
+                {/* Caption */}
+                {caption && (
+                  <div className="bg-white px-4 py-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#6B5E70]/50 text-center">
+                      {caption}
                     </p>
-                  </blockquote>
-                ) : (
-                  <p className="font-serif text-base leading-relaxed text-[#2C262E]/80">
-                    {secret.content}
-                  </p>
+                  </div>
                 )}
-
-                <button
-                  onClick={onClose}
-                  className="mt-5 w-full py-2.5 rounded-xl border border-[#6B5E70]/10 text-[10px] font-black uppercase tracking-widest text-[#6B5E70]/35 hover:bg-[#6B5E70]/5 hover:text-[#6B5E70]/55 transition-all"
-                >
-                  Cerrar
-                </button>
               </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+
+              {/* Flecha apuntando hacia la palabra */}
+              <div
+                className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0"
+                style={{
+                  borderLeft: "8px solid transparent",
+                  borderRight: "8px solid transparent",
+                  borderTop: caption ? "8px solid white" : "8px solid #2C262E",
+                }}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
-// ─── RENDERIZADOR INTERACTIVO ─────────────────────────────────────────────────
+// ─── RENDERIZADOR DE CONTENIDO ────────────────────────────────────────────────
 
-function ContenidoInteractivo({
-  texto,
-  onSecretClick,
-}: {
-  texto: string;
-  onSecretClick: (s: Secret) => void;
-}) {
-  const partes = parseContenido(texto);
+function ContenidoInteractivo({ texto }: { texto: string }) {
+  const segments = parseContenido(texto);
 
+  // Dividimos los segments en "líneas" para poder aplicar first-letter solo al primero
+  // y mantener el whitespace-pre-line
   return (
-    <div className="text-lg md:text-xl leading-[2.2] text-[#2C262E]/90 font-serif whitespace-pre-line first-letter:text-7xl first-letter:font-black first-letter:text-[#6B5E70] first-letter:mr-4 first-letter:float-left first-letter:mt-3">
-      {partes.map((parte, i) =>
-        parte.type === "text" ? (
-          <React.Fragment key={i}>{parte.value}</React.Fragment>
-        ) : (
-          <SecretWord key={i} secret={parte.secret} onClick={onSecretClick} />
-        )
-      )}
+    <div className="text-lg md:text-xl leading-[2.2] text-[#2C262E]/90 font-serif">
+      {segments.map((seg, i) => {
+        if (seg.type === "text") {
+          const isFirst = i === 0;
+          return (
+            <span
+              key={i}
+              className={cn(
+                "whitespace-pre-line",
+                isFirst &&
+                  "first-letter:text-7xl first-letter:font-black first-letter:text-[#6B5E70] first-letter:mr-4 first-letter:float-left first-letter:mt-3"
+              )}
+            >
+              {seg.value}
+            </span>
+          );
+        }
+
+        const { block } = seg;
+
+        if (block.kind === "cita") {
+          return <CitaVisual key={i} content={block.content} />;
+        }
+        if (block.kind === "img") {
+          return <ImgInline key={i} url={block.url} caption={block.caption} />;
+        }
+        if (block.kind === "float") {
+          return (
+            <FloatWord key={i} word={block.word} url={block.url} caption={block.caption} />
+          );
+        }
+        return null;
+      })}
     </div>
   );
 }
 
-// ─── LEYENDA DE SECRETOS ─────────────────────────────────────────────────────
+// ─── HOOK: estadísticas ───────────────────────────────────────────────────────
 
-function SecretLegend({ count }: { count: number }) {
-  if (count === 0) return null;
-  return (
-    <motion.p
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.6 }}
-      className="text-center text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/25 mt-6 flex items-center justify-center gap-1.5"
-    >
-      <span className="w-1.5 h-1.5 rounded-full bg-[#B08850]/40 inline-block" />
-      {count} {count === 1 ? "secreto oculto" : "secretos ocultos"} en este capítulo
-    </motion.p>
-  );
+function useTextStats(text: string) {
+  const textoLimpio = text
+    .replace(/\[\[cita\|[^\]]+\]\]/g, "")
+    .replace(/\[\[img\|[^\]]+\]\]/g, "")
+    .replace(/\[\[float\|([^|]+)\|[^\]]+\]\]/g, "$1");
+  const words = textoLimpio.trim() ? textoLimpio.trim().split(/\s+/).length : 0;
+  const readMin = Math.max(1, Math.round(words / 200));
+  const citas   = (text.match(/\[\[cita\|/g) || []).length;
+  const imgs    = (text.match(/\[\[img\|/g) || []).length;
+  const floats  = (text.match(/\[\[float\|/g) || []).length;
+  return { words, readMin, citas, imgs, floats };
 }
 
 // ─── AYUDA DE SINTAXIS ────────────────────────────────────────────────────────
@@ -343,27 +346,44 @@ function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const h = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const ejemplos: { label: string; snippet: string; type: SecretType }[] = [
-    { label: "Nota del autor", type: "autor", snippet: "[[palabra|autor|Tu nota aquí]]" },
-    { label: "Lore", type: "lore", snippet: "[[palabra|lore|Dato del universo]]" },
-    { label: "Imagen", type: "imagen", snippet: "[[descripción|imagen|https://url-imagen.jpg]]" },
-    { label: "Cita", type: "cita", snippet: '[[palabra|cita|"Frase célebre." — Personaje]]' },
+  const bloques = [
+    {
+      label: "Cita visual",
+      icon: Quote,
+      badge: "bg-amber-100 text-amber-700",
+      snippet: "[[cita|El texto de la cita va aquí. — Fuente o personaje]]",
+      desc: "Bloque decorativo con línea lateral. No es clickeable.",
+    },
+    {
+      label: "Imagen inline",
+      icon: Image,
+      badge: "bg-emerald-100 text-emerald-700",
+      snippet: "[[img|https://url-de-imagen.jpg|Caption opcional]]",
+      desc: "Imagen full-width que aparece en el flujo del texto.",
+    },
+    {
+      label: "Imagen flotante",
+      icon: Image,
+      badge: "bg-purple-100 text-purple-700",
+      snippet: "[[float|nombre del personaje|https://url-imagen.jpg|Caption opcional]]",
+      desc: "Palabra subrayada. Al tocarla, aparece la imagen flotando encima.",
+    },
   ];
 
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(v => !v)}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#6B5E70]/50 hover:bg-[#6B5E70]/8 hover:text-[#6B5E70] transition-all border border-dashed border-[#6B5E70]/20"
       >
-        ✦ Secretos
+        ✦ Insertar
         <ChevronDown size={11} className={cn("transition-transform", open && "rotate-180")} />
       </button>
 
@@ -374,49 +394,38 @@ function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 top-full mt-2 w-80 bg-white border border-[#6B5E70]/10 rounded-2xl shadow-2xl shadow-[#6B5E70]/10 z-50 overflow-hidden"
+            className="absolute left-0 top-full mt-2 w-96 bg-white border border-[#6B5E70]/10 rounded-2xl shadow-2xl shadow-[#6B5E70]/10 z-50 overflow-hidden"
           >
             <div className="px-4 pt-4 pb-1">
-              <p className="text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/30 mb-3">
-                Sintaxis: [[texto|tipo|contenido]]
-              </p>
-              {ejemplos.map((ej) => {
-                const cfg = SECRET_CONFIG[ej.type];
+              {bloques.map((b) => {
+                const Icon = b.icon;
                 return (
                   <button
-                    key={ej.label}
-                    onClick={() => { onInsert(ej.snippet); setOpen(false); }}
+                    key={b.label}
+                    onClick={() => { onInsert(b.snippet); setOpen(false); }}
                     className="w-full text-left p-3 rounded-xl hover:bg-[#6B5E70]/5 transition-all mb-1 group"
                   >
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${cfg.badge}`}>
-                      {ej.label}
-                    </span>
-                    <code className="block mt-1.5 text-[10px] text-[#6B5E70]/40 group-hover:text-[#6B5E70]/60 font-mono break-all">
-                      {ej.snippet}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${b.badge}`}>
+                        <Icon size={9} /> {b.label}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[#6B5E70]/40 mb-1.5">{b.desc}</p>
+                    <code className="text-[10px] text-[#6B5E70]/40 group-hover:text-[#6B5E70]/60 font-mono break-all block">
+                      {b.snippet}
                     </code>
                   </button>
                 );
               })}
             </div>
-            <p className="px-4 pb-4 text-[9px] text-[#6B5E70]/25 leading-relaxed">
-              Hacé click en un ejemplo para insertarlo en el cursor.
+            <p className="px-4 pb-4 text-[9px] text-[#6B5E70]/25">
+              Clic en un bloque para insertarlo en la posición del cursor.
             </p>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
-}
-
-// ─── HOOK: estadísticas ───────────────────────────────────────────────────────
-
-function useTextStats(text: string) {
-  const textoLimpio = text.replace(/\[\[([^\]|]+)\|[^\]|]+\|[^\]]+\]\]/g, "$1");
-  const words = textoLimpio.trim() ? textoLimpio.trim().split(/\s+/).length : 0;
-  const chars = textoLimpio.length;
-  const readMin = Math.max(1, Math.round(words / 200));
-  const secrets = (text.match(/\[\[[^\]]+\|[^\]]+\|[^\]]+\]\]/g) || []).length;
-  return { words, chars, readMin, secrets };
 }
 
 // ─── SELECTOR DE CAPÍTULOS ───────────────────────────────────────────────────
@@ -434,19 +443,19 @@ function ChapterSelector({
   const hoy = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const h = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const capActual = lista.find((c) => c.id === capIdActual);
+  const capActual = lista.find(c => c.id === capIdActual);
 
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(v => !v)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#6B5E70]/15 bg-[#6B5E70]/5 hover:bg-[#6B5E70]/10 transition-all text-[#6B5E70] text-[10px] font-black uppercase tracking-widest"
       >
         <BookOpen size={13} />
@@ -464,7 +473,7 @@ function ChapterSelector({
             className="absolute left-0 top-full mt-2 w-64 bg-white border border-[#6B5E70]/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
           >
             <div className="max-h-72 overflow-y-auto">
-              {lista.map((cap) => {
+              {lista.map(cap => {
                 const publicado = isAdmin || cap.fecha_publicacion <= hoy;
                 const esActual = cap.id === capIdActual;
                 return (
@@ -512,7 +521,7 @@ function EditorToolbar({
   onCancel: () => void;
   saving: boolean;
 }) {
-  const { words, readMin, secrets } = useTextStats(value);
+  const { words, readMin, citas, imgs, floats } = useTextStats(value);
   const [focusMode, setFocusMode] = useState(false);
 
   const insertAtCursor = useCallback((snippet: string) => {
@@ -543,7 +552,7 @@ function EditorToolbar({
     { label: "¶", title: "Párrafo", action: () => insertAtCursor("\n\n") },
   ];
 
-  const BarContent = ({ isFocus = false }) => (
+  const BarContent = ({ isFocus = false }: { isFocus?: boolean }) => (
     <div className={cn("flex items-center gap-2 flex-wrap", isFocus ? "px-8 py-4" : "px-4 py-2")}>
       <div className="flex items-center gap-1 pr-3 border-r border-[#6B5E70]/10">
         {tools.map((t, i) => (
@@ -566,8 +575,12 @@ function EditorToolbar({
       <div className="ml-auto flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/30">
         <span className="flex items-center gap-1"><Type size={10} /> {words.toLocaleString()}</span>
         <span className="flex items-center gap-1"><Clock size={10} /> ~{readMin}min</span>
-        {secrets > 0 && (
-          <span className="text-[#B08850]/50">✦ {secrets} secreto{secrets !== 1 ? "s" : ""}</span>
+        {(citas + imgs + floats) > 0 && (
+          <span className="text-[#9B7BAA]/60">
+            {citas > 0 && `${citas} cita${citas !== 1 ? "s" : ""}`}
+            {imgs > 0 && ` · ${imgs} img`}
+            {floats > 0 && ` · ${floats} float`}
+          </span>
         )}
       </div>
 
@@ -607,10 +620,10 @@ function EditorToolbar({
               <textarea
                 ref={textareaRef}
                 value={value}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={e => onChange(e.target.value)}
                 autoFocus
                 className="w-full max-w-2xl bg-transparent font-serif text-xl leading-[2.2] text-[#2C262E] focus:outline-none resize-none"
-                placeholder={"Escribe aquí…\n\nUsá [[palabra|tipo|secreto]] para añadir secretos interactivos.\nTipos: autor · lore · imagen · cita"}
+                placeholder={"Escribe aquí…\n\nBloques disponibles:\n[[cita|Texto. — Fuente]]\n[[img|https://url.jpg|Caption]]\n[[float|palabra|https://url.jpg|Caption]]"}
               />
             </div>
           </motion.div>
@@ -637,11 +650,10 @@ export default function Lector() {
   const [previewMode, setPreviewMode] = useState(false);
   const [nuevoContenido, setNuevoContenido] = useState("");
   const [saving, setSaving] = useState(false);
-  const [secretoActivo, setSecretoActivo] = useState<Secret | null>(null);
   const isInitialMount = useRef(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { words: wordsPublicado, secrets: secretsPublicado } = useTextStats(capitulo?.contenido ?? "");
+  const { words: wordsPublicado } = useTextStats(capitulo?.contenido ?? "");
   const { words: wordsEdit } = useTextStats(nuevoContenido);
 
   useEffect(() => {
@@ -704,7 +716,7 @@ export default function Lector() {
   );
 
   const hoy = new Date().toISOString().split("T")[0];
-  const indiceActual = listaCapitulos.findIndex((c) => c.id === capId);
+  const indiceActual = listaCapitulos.findIndex(c => c.id === capId);
   const anteriorCap = listaCapitulos.slice(0, indiceActual).reverse().find(c => isAdmin || c.fecha_publicacion <= hoy);
   const siguienteCap = listaCapitulos.slice(indiceActual + 1).find(c => isAdmin || c.fecha_publicacion <= hoy);
 
@@ -730,9 +742,6 @@ export default function Lector() {
 
   return (
     <div className="min-h-screen bg-[#FDFCFD] text-[#2C262E] pb-24">
-
-      {/* MODAL DE SECRETO */}
-      <SecretModal secret={secretoActivo} onClose={() => setSecretoActivo(null)} />
 
       {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-[#FDFCFD]/80 backdrop-blur-md border-b border-[#6B5E70]/5 px-6 py-4">
@@ -761,7 +770,7 @@ export default function Lector() {
           <div className="flex items-center gap-2 shrink-0">
             {isAdmin && !editMode && (
               <button onClick={() => setEditMode(true)}
-                className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors p-1" title="Editar">
+                className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors p-1">
                 <Edit3 size={20} />
               </button>
             )}
@@ -805,7 +814,6 @@ export default function Lector() {
         <div className="min-h-[50vh]">
           {isAdmin && editMode ? (
             <div>
-              {/* Toggle Editar / Preview */}
               <div className="flex items-center gap-2 mb-3">
                 {[
                   { key: false, icon: Edit3, label: "Editar" },
@@ -825,16 +833,16 @@ export default function Lector() {
                 {previewMode ? (
                   <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     className="min-h-[60vh] p-8 bg-white border border-[#6B5E70]/10 rounded-[2.5rem] overflow-hidden">
-                    <ContenidoInteractivo texto={nuevoContenido} onSecretClick={setSecretoActivo} />
+                    <ContenidoInteractivo texto={nuevoContenido} />
                   </motion.div>
                 ) : (
                   <motion.textarea key="editor" ref={textareaRef as any}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     value={nuevoContenido}
-                    onChange={(e) => setNuevoContenido(e.target.value)}
+                    onChange={e => setNuevoContenido(e.target.value)}
                     className="w-full min-h-[60vh] p-8 bg-white border border-[#6B5E70]/10 rounded-[2.5rem] font-serif text-lg leading-relaxed text-[#2C262E] focus:outline-none focus:border-[#6B5E70]/30 shadow-inner resize-none"
                     autoFocus
-                    placeholder={"Escribe aquí…\n\nUsá [[palabra|tipo|contenido]] para secretos interactivos.\nTipos: autor · lore · imagen · cita"}
+                    placeholder={"Escribe aquí…\n\nBloques disponibles:\n[[cita|Texto de la cita. — Fuente]]\n[[img|https://url.jpg|Caption opcional]]\n[[float|nombre del personaje|https://url.jpg|Caption opcional]]"}
                   />
                 )}
               </AnimatePresence>
@@ -849,10 +857,7 @@ export default function Lector() {
               </div>
             </div>
           ) : (
-            <>
-              <ContenidoInteractivo texto={capitulo.contenido} onSecretClick={setSecretoActivo} />
-              <SecretLegend count={secretsPublicado} />
-            </>
+            <ContenidoInteractivo texto={capitulo.contenido} />
           )}
         </div>
 
