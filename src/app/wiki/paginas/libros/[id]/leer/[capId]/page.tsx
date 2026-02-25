@@ -7,7 +7,9 @@ import {
   BookOpen, Clock, AlignLeft, Maximize2, Minimize2,
   ChevronDown, Check, Eye, Type, Image, Quote,
   Folder, FolderOpen, ChevronRight as ChevronR, Loader2,
+  Music2, Volume2, VolumeX,
 } from "lucide-react";
+import { SoundPicker } from "@/components/shared/ui/SoundPicker";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { librosQueries, Capitulo } from "@/lib/api/queries/wiki/libros";
@@ -22,7 +24,8 @@ type Segment =
   | { type: "text"; value: string }
   | { type: "cita"; content: string }
   | { type: "img"; url: string; caption?: string }
-  | { type: "float"; word: string; url: string; caption?: string };
+  | { type: "float"; word: string; url: string; caption?: string }
+  | { type: "sound"; url: string; volume: number };
 
 function parseContenido(texto: string): Segment[] {
   const regex = /\[\[(\w+)\|([^\]]+)\]\]/g;
@@ -35,6 +38,7 @@ function parseContenido(texto: string): Segment[] {
     if (kind === "cita") segs.push({ type: "cita", content: parts[0] });
     else if (kind === "img") segs.push({ type: "img", url: parts[0], caption: parts[1] });
     else if (kind === "float") segs.push({ type: "float", word: parts[0], url: parts[1], caption: parts[2] });
+    else if (kind === "sound") segs.push({ type: "sound", url: parts[0], volume: parseFloat(parts[1] ?? "0.5") });
     else segs.push({ type: "text", value: match[0] });
     lastIndex = match.index + match[0].length;
   }
@@ -118,18 +122,111 @@ function FloatWord({ word, url, caption }: { word: string; url: string; caption?
   );
 }
 
+// ─── REPRODUCTOR AMBIENTAL ───────────────────────────────────────────────────
+function AmbientPlayer({ sounds }: { sounds: { url: string; volume: number }[] }) {
+  const [active, setActive] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const audiosRef = useRef<HTMLAudioElement[]>([]);
+
+  useEffect(() => {
+    // Crear los audios al montar
+    audiosRef.current = sounds.map(s => {
+      const a = new Audio(s.url);
+      a.loop = true;
+      a.volume = s.volume;
+      return a;
+    });
+    return () => {
+      audiosRef.current.forEach(a => { a.pause(); a.src = ""; });
+    };
+  }, [sounds.map(s => s.url).join(",")]);
+
+  useEffect(() => {
+    audiosRef.current.forEach(a => {
+      if (active && !muted) a.play().catch(() => {});
+      else a.pause();
+    });
+  }, [active, muted]);
+
+  useEffect(() => {
+    audiosRef.current.forEach((a, i) => {
+      a.volume = muted ? 0 : (sounds[i]?.volume ?? 0.5);
+    });
+  }, [muted]);
+
+  if (sounds.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="fixed bottom-6 right-6 z-50 flex items-center gap-2"
+    >
+      <AnimatePresence>
+        {active && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, x: 8 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.9, x: 8 }}
+            className="flex items-center gap-2 bg-white/90 backdrop-blur-md border border-[#6B5E70]/10 rounded-2xl px-4 py-2 shadow-lg shadow-[#6B5E70]/10"
+          >
+            {/* Ondas animadas */}
+            <div className="flex items-center gap-0.5">
+              {[0, 1, 2, 3].map(i => (
+                <motion.div
+                  key={i}
+                  className="w-0.5 bg-[#6B5E70]/50 rounded-full"
+                  animate={{ height: muted ? 4 : [6, 14, 8, 16, 6][i % 5] }}
+                  transition={{ duration: 0.6 + i * 0.15, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+                />
+              ))}
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/50">
+              {muted ? "Silenciado" : "Ambientación activa"}
+            </span>
+            <button
+              onClick={() => setMuted(v => !v)}
+              className="p-1 rounded-lg hover:bg-[#6B5E70]/8 text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors"
+            >
+              {muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <button
+        onClick={() => setActive(v => !v)}
+        title={active ? "Detener ambientación" : "Activar ambientación sonora"}
+        className={cn(
+          "w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all",
+          active
+            ? "bg-[#6B5E70] text-white shadow-[#6B5E70]/30 hover:scale-105"
+            : "bg-white text-[#6B5E70]/50 border border-[#6B5E70]/15 hover:bg-[#6B5E70]/8"
+        )}
+      >
+        <Music2 size={17} />
+      </button>
+    </motion.div>
+  );
+}
+
 function ContenidoInteractivo({ texto }: { texto: string }) {
   const segs = parseContenido(texto);
+  const sounds = segs.filter(s => s.type === "sound") as { type: "sound"; url: string; volume: number }[];
   return (
-    <div className="text-lg md:text-xl leading-[2.2] text-[#2C262E]/90 font-serif">
-      {segs.map((seg, i) => {
-        if (seg.type === "text") return <span key={i} className={cn("whitespace-pre-line", i === 0 && "first-letter:text-7xl first-letter:font-black first-letter:text-[#6B5E70] first-letter:mr-4 first-letter:float-left first-letter:mt-3")}>{seg.value}</span>;
-        if (seg.type === "cita")  return <CitaVisual key={i} content={seg.content} />;
-        if (seg.type === "img")   return <ImgInline key={i} url={seg.url} caption={seg.caption} />;
-        if (seg.type === "float") return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
-        return null;
-      })}
-    </div>
+    <>
+      <div className="text-lg md:text-xl leading-[2.2] text-[#2C262E]/90 font-serif">
+        {segs.map((seg, i) => {
+          if (seg.type === "text")  return <span key={i} className={cn("whitespace-pre-line", i === 0 && "first-letter:text-7xl first-letter:font-black first-letter:text-[#6B5E70] first-letter:mr-4 first-letter:float-left first-letter:mt-3")}>{seg.value}</span>;
+          if (seg.type === "cita")  return <CitaVisual key={i} content={seg.content} />;
+          if (seg.type === "img")   return <ImgInline key={i} url={seg.url} caption={seg.caption} />;
+          if (seg.type === "float") return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
+          if (seg.type === "sound") return null; // invisible, solo activa el player
+          return null;
+        })}
+      </div>
+      <AmbientPlayer sounds={sounds} />
+    </>
   );
 }
 
@@ -392,6 +489,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
   const { words, readMin } = useTextStats(value);
   const [focusMode, setFocusMode] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [soundPickerOpen, setSoundPickerOpen] = useState(false);
 
   const insertAtCursor = useCallback((snippet: string) => {
     const el = textareaRef.current;
@@ -426,6 +524,9 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
       <button onClick={() => setPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#6B5E70]/50 hover:bg-[#6B5E70]/8 hover:text-[#6B5E70] transition-all border border-[#6B5E70]/15" title="Explorador de imágenes">
         <Image size={12} /> Imágenes
       </button>
+      <button onClick={() => setSoundPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#6B5E70]/50 hover:bg-[#6B5E70]/8 hover:text-[#6B5E70] transition-all border border-[#6B5E70]/15" title="Biblioteca de sonidos">
+        <Music2 size={12} /> Sonido
+      </button>
       {!isFocus && <button onClick={() => setFocusMode(true)} className="p-1.5 rounded-lg text-[#6B5E70]/50 hover:text-[#6B5E70] hover:bg-[#6B5E70]/8 transition-all"><Maximize2 size={14} /></button>}
       <div className="ml-auto flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/30">
         <span className="flex items-center gap-1"><Type size={10} /> {words.toLocaleString()}</span>
@@ -442,6 +543,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
   return (
     <>
       <ImagePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onInsert={insertAtCursor} />
+      <SoundPicker open={soundPickerOpen} onClose={() => setSoundPickerOpen(false)} onInsert={insertAtCursor} />
       <div className="sticky top-[65px] z-40 bg-white/90 backdrop-blur-md border-b border-[#6B5E70]/8"><BarContent isFocus={false} /></div>
       <AnimatePresence>
         {focusMode && (
