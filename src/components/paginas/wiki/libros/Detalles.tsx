@@ -30,23 +30,21 @@ export default function LibroDetalle() {
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
-  
+
   const [libro, setLibro] = useState<Libro | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [procesando, setProcesando] = useState(false);
   const [loadingLibro, setLoadingLibro] = useState(true);
-
-  // 👇 Estado propio para capítulos (ya no usamos el hook genérico)
   const [capitulos, setCapitulos] = useState<Capitulo[]>([]);
   const [loadingCaps, setLoadingCaps] = useState(true);
 
   // --- MODALES ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditCapModal, setShowEditCapModal] = useState(false);
-  
+
   // --- FORMULARIOS ---
   const [nuevoTitulo, setNuevoTitulo] = useState("");
-  const [nuevaFecha, setNuevaFecha] = useState(new Date().toISOString().split('T')[0]); 
+  const [nuevaFecha, setNuevaFecha] = useState(new Date().toISOString().split('T')[0]);
   const [selectedCap, setSelectedCap] = useState<Capitulo | null>(null);
   const [editCapTitle, setEditCapTitle] = useState("");
   const [editCapFecha, setEditCapFecha] = useState("");
@@ -58,67 +56,63 @@ export default function LibroDetalle() {
     }
   };
 
-  // 👇 Función reutilizable para recargar caps (con el valor de admin ya conocido)
-  const fetchCaps = useCallback(async (admin: boolean) => {
+  // Recarga caps tras mutaciones
+  const refetchCaps = useCallback(async (admin: boolean) => {
     if (!id) return;
     const hoy = new Date().toISOString().split('T')[0];
-
-    let query = supabase
+    let q = supabase
       .from("capitulos")
       .select("*")
-      .eq("libro_id", id)          // ✅ Filtro en BD, no en cliente
+      .eq("libro_id", id)
       .order("orden", { ascending: true });
-
-    if (!admin) {
-      query = query.lte("fecha_publicacion", hoy); // ✅ También filtrado en BD
-    }
-
-    const { data } = await query;
+    if (!admin) q = q.lte("fecha_publicacion", hoy);
+    const { data } = await q;
     if (data) setCapitulos(data);
-    setLoadingCaps(false);
   }, [id]);
 
-  // ✅ Un solo useEffect: auth + libro + caps todo en paralelo
   useEffect(() => {
-    const fetchAll = async () => {
-      if (!id) return;
+    if (!id) return;
 
-      // Libro y auth en paralelo
-      const [authRes, libroRes] = await Promise.all([
-        supabase.auth.getSession(),
-        supabase.from("libros").select("*").eq("id", id).single()
-      ]);
+    const hoy = new Date().toISOString().split('T')[0];
 
+    // ✅ Las 4 queries se lanzan TODAS A LA VEZ sin esperar ninguna
+    // Lanzamos caps para admin Y para público simultáneamente,
+    // luego usamos la correcta según el resultado de auth
+    Promise.all([
+      supabase.auth.getSession(),
+      supabase.from("libros").select("*").eq("id", id).single(),
+      supabase.from("capitulos").select("*").eq("libro_id", id).order("orden", { ascending: true }),
+      supabase.from("capitulos").select("*").eq("libro_id", id).lte("fecha_publicacion", hoy).order("orden", { ascending: true }),
+    ]).then(([authRes, libroRes, capsAll, capsPublic]) => {
       const admin = !!authRes.data.session;
+
       setIsAdmin(admin);
       if (libroRes.data) setLibro(libroRes.data);
+      setCapitulos((admin ? capsAll.data : capsPublic.data) ?? []);
+    }).finally(() => {
       setLoadingLibro(false);
-
-      // Caps inmediatamente después, con el valor de admin ya resuelto
-      await fetchCaps(admin);
-    };
-
-    fetchAll();
-  }, [id, fetchCaps]);
+      setLoadingCaps(false);
+    });
+  }, [id]);
 
   // --- ACCIONES ---
   const handleCrearCapitulo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoTitulo.trim() || procesando) return;
-    
+
     setProcesando(true);
-    const { error } = await supabase.from("capitulos").insert([{ 
-      libro_id: id, 
-      titulo_capitulo: nuevoTitulo.toUpperCase(), 
-      orden: capitulos.length + 1, 
+    const { error } = await supabase.from("capitulos").insert([{
+      libro_id: id,
+      titulo_capitulo: nuevoTitulo.toUpperCase(),
+      orden: capitulos.length + 1,
       contenido: "Nueva crónica...",
-      fecha_publicacion: nuevaFecha 
+      fecha_publicacion: nuevaFecha
     }]);
 
     if (!error) {
       setNuevoTitulo("");
       setShowAddModal(false);
-      fetchCaps(isAdmin); // 👈 recarga solo los caps de este libro
+      await refetchCaps(isAdmin);
     } else {
       alert("Error al crear el capítulo");
     }
@@ -128,16 +122,16 @@ export default function LibroDetalle() {
   const handleUpdateCapitulo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editCapTitle.trim() || !selectedCap || procesando) return;
-    
+
     setProcesando(true);
-    const { error } = await supabase.from("capitulos").update({ 
+    const { error } = await supabase.from("capitulos").update({
       titulo_capitulo: editCapTitle.toUpperCase(),
-      fecha_publicacion: editCapFecha 
+      fecha_publicacion: editCapFecha
     }).eq("id", selectedCap.id);
 
     if (!error) {
       setShowEditCapModal(false);
-      fetchCaps(isAdmin);
+      await refetchCaps(isAdmin);
     } else {
       alert("Error al actualizar");
     }
@@ -146,12 +140,12 @@ export default function LibroDetalle() {
 
   const deleteCapitulo = async () => {
     if (!selectedCap || !confirm("¿Eliminar permanentemente este capítulo?")) return;
-    
+
     setProcesando(true);
     const { error } = await supabase.from("capitulos").delete().eq("id", selectedCap.id);
     if (!error) {
       setShowEditCapModal(false);
-      fetchCaps(isAdmin);
+      await refetchCaps(isAdmin);
     } else {
       alert("No se pudo eliminar");
     }
@@ -161,26 +155,25 @@ export default function LibroDetalle() {
   return (
     <div className="min-h-screen bg-[#FDFCFD] pb-20 relative">
       <AnimatePresence>
-        {/* MODAL: AÑADIR O EDITAR */}
         {(showAddModal || showEditCapModal) && (
           <div className="fixed inset-0 z-120 flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
-              onClick={closeModals} 
-              className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm" 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeModals}
+              className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm"
             />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.9, opacity: 0 }} 
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10"
             >
               <button onClick={closeModals} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]">
                 <X size={20} />
               </button>
-              
+
               <div className="text-center mb-8">
                 <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] italic">
                   {showAddModal ? "Nuevo Capítulo" : "Gestionar Capítulo"}
@@ -188,34 +181,34 @@ export default function LibroDetalle() {
               </div>
 
               <form onSubmit={showAddModal ? handleCrearCapitulo : handleUpdateCapitulo} className="space-y-6">
-                <input 
-                  autoFocus 
-                  type="text" 
-                  placeholder="TÍTULO..." 
-                  value={showAddModal ? nuevoTitulo : editCapTitle} 
-                  onChange={(e) => showAddModal ? setNuevoTitulo(e.target.value) : setEditCapTitle(e.target.value)} 
-                  className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase" 
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="TÍTULO..."
+                  value={showAddModal ? nuevoTitulo : editCapTitle}
+                  onChange={(e) => showAddModal ? setNuevoTitulo(e.target.value) : setEditCapTitle(e.target.value)}
+                  className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase"
                 />
                 <div className="text-left">
                   <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Fecha de estreno</label>
-                  <input 
-                    type="date" 
-                    value={showAddModal ? nuevaFecha : editCapFecha} 
-                    onChange={(e) => showAddModal ? setNuevaFecha(e.target.value) : setEditCapFecha(e.target.value)} 
-                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none" 
+                  <input
+                    type="date"
+                    value={showAddModal ? nuevaFecha : editCapFecha}
+                    onChange={(e) => showAddModal ? setNuevaFecha(e.target.value) : setEditCapFecha(e.target.value)}
+                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none"
                   />
                 </div>
-                
+
                 {showAddModal ? (
-                  <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform">
+                  <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
                     {procesando ? "Sellando..." : "Revelar"}
                   </button>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
-                    <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                    <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50">
                       <Save size={14} /> Guardar
                     </button>
-                    <button type="button" onClick={deleteCapitulo} disabled={procesando} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 active:scale-95 transition-transform">
+                    <button type="button" onClick={deleteCapitulo} disabled={procesando} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 active:scale-95 transition-transform disabled:opacity-50">
                       <Trash2 size={14} /> Borrar
                     </button>
                   </div>
@@ -262,7 +255,9 @@ export default function LibroDetalle() {
               </div>
             ) : (
               <>
-                <h1 className="text-5xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.9] mb-6 uppercase">{libro?.titulo}</h1>
+                <h1 className="text-5xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.9] mb-6 uppercase">
+                  {libro?.titulo}
+                </h1>
                 <p className="text-[#6B5E70]/70 leading-relaxed text-lg font-medium italic">&quot;{libro?.sinopsis}&quot;</p>
               </>
             )}
@@ -279,15 +274,19 @@ export default function LibroDetalle() {
                 </button>
               )}
             </div>
-            
+
             <div className="grid gap-3">
               {loadingCaps ? (
                 [1, 2, 3].map(i => (
                   <div key={i} className="w-full h-24 bg-[#6B5E70]/5 animate-pulse rounded-3xl" />
                 ))
+              ) : capitulos.length === 0 ? (
+                <p className="text-center text-[#6B5E70]/30 font-bold text-xs uppercase tracking-widest py-12 italic">
+                  Aún no hay capítulos publicados
+                </p>
               ) : (
                 capitulos.map((cap) => (
-                  <button 
+                  <button
                     key={cap.id}
                     onClick={() => router.push(`/wiki/paginas/libros/${id}/leer/${cap.id}`)}
                     className="w-full flex items-center justify-between p-6 bg-white border border-[#6B5E70]/5 rounded-3xl hover:border-[#6B5E70]/20 transition-all text-left group"
@@ -297,19 +296,19 @@ export default function LibroDetalle() {
                         {cap.orden}. {cap.titulo_capitulo}
                       </span>
                       <span className="text-[#6B5E70]/40 font-bold text-[9px] uppercase tracking-wider italic">
-                        {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "} 
+                        {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "}
                         {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
                       </span>
                     </div>
                     {isAdmin ? (
-                      <div 
+                      <div
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedCap(cap);
                           setEditCapTitle(cap.titulo_capitulo);
                           setEditCapFecha(cap.fecha_publicacion || "");
                           setShowEditCapModal(true);
-                        }} 
+                        }}
                         className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors"
                       >
                         <Edit3 size={16} />
