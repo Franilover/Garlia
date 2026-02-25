@@ -50,7 +50,7 @@ export default function SobreMi() {
                 <Heart size={14} /> Mi Atelier
               </h3>
               <p className="text-2xl md:text-3xl leading-snug font-light italic">
-                Bienvenido a mi pequeño jardín digital
+                Bienvenido a mi pequeño jardín digital. Este refleja temas que considero importantes a través de personajes basados en quienees han dejado una marca en mí.
               </p>
             </div>
           </section>
@@ -74,10 +74,7 @@ export default function SobreMi() {
           <section className="space-y-8 border-t border-primary/10 pt-16">
             <h2 className="text-4xl md:text-6xl font-black italic text-primary uppercase tracking-tighter">Garden of Sins</h2>
             <div className="max-w-2xl space-y-6 text-lg md:text-xl leading-relaxed font-light opacity-90">
-              <p>
-                Este refleja temas que considero importantes a través de personajes basados en personas que han dejado una marca en mí.
-              </p>
-              {/* ✅ bg-white-custom en vez de bg-white */}
+     {/* ✅ bg-white-custom en vez de bg-white */}
               <div className="p-8 bg-white-custom rounded-[2.5rem] border-l-8 border-primary shadow-sm italic font-medium">
                 &quot;Cada flor de este jardín está basada en una experiencia o emoción que necesito quitarme de encima.&quot;
               </div>
