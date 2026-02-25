@@ -43,11 +43,10 @@ export const librosQueries = {
       return { data: null, error: "Este capítulo aún no ha sido revelado." };
     }
 
-    let navQuery = supabase
-      .from("capitulos")
-      .select("id, orden")
-      .eq("libro_id", libroId);
-
+let navQuery = supabase
+  .from("capitulos")
+  .select("id, orden, titulo_capitulo, fecha_publicacion")
+  .eq("libro_id", libroId);
     if (!isAdmin) {
       navQuery = navQuery.lte("fecha_publicacion", hoy);
     }
