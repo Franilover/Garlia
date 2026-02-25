@@ -7,7 +7,7 @@ import {
   BookOpen, Clock, AlignLeft, Maximize2, Minimize2,
   ChevronDown, Check, Eye, Type, Image, Quote,
   Folder, FolderOpen, ChevronRight as ChevronR, Loader2,
-  Music2, Volume2, VolumeX,
+  Music2,
 } from "lucide-react";
 import { SoundPicker } from "@/components/shared/ui/SoundPicker";
 import { cn } from "@/lib/utils";
@@ -122,111 +122,78 @@ function FloatWord({ word, url, caption }: { word: string; url: string; caption?
   );
 }
 
-// ─── REPRODUCTOR AMBIENTAL ───────────────────────────────────────────────────
-function AmbientPlayer({ sounds }: { sounds: { url: string; volume: number }[] }) {
-  const [active, setActive] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const audiosRef = useRef<HTMLAudioElement[]>([]);
+// ─── BOTÓN DE SONIDO INLINE ──────────────────────────────────────────────────
+function SoundInline({ url, volume }: { url: string; volume: number }) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Crear los audios al montar
-    audiosRef.current = sounds.map(s => {
-      const a = new Audio(s.url);
-      a.loop = true;
-      a.volume = s.volume;
-      return a;
-    });
-    return () => {
-      audiosRef.current.forEach(a => { a.pause(); a.src = ""; });
-    };
-  }, [sounds.map(s => s.url).join(",")]);
+    return () => { audioRef.current?.pause(); };
+  }, []);
 
-  useEffect(() => {
-    audiosRef.current.forEach(a => {
-      if (active && !muted) a.play().catch(() => {});
-      else a.pause();
-    });
-  }, [active, muted]);
+  const toggle = () => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio(url);
+      audioRef.current.loop = true;
+      audioRef.current.volume = volume;
+      audioRef.current.onended = () => setPlaying(false);
+    }
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      audioRef.current.play().catch(() => {});
+      setPlaying(true);
+    }
+  };
 
-  useEffect(() => {
-    audiosRef.current.forEach((a, i) => {
-      a.volume = muted ? 0 : (sounds[i]?.volume ?? 0.5);
-    });
-  }, [muted]);
-
-  if (sounds.length === 0) return null;
+  const label = url.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "sonido";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2"
+    <span className="inline-flex items-center gap-2 mx-1 my-2 px-3 py-1.5 rounded-xl border align-middle transition-all select-none cursor-pointer"
+      style={{
+        background: playing ? "#6B5E70" : "rgba(107,94,112,0.06)",
+        borderColor: playing ? "#6B5E70" : "rgba(107,94,112,0.15)",
+        color: playing ? "white" : "rgba(107,94,112,0.6)",
+      }}
+      onClick={toggle}
+      role="button"
+      title={playing ? "Detener ambientación" : "Reproducir ambientación"}
     >
-      <AnimatePresence>
-        {active && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, x: 8 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.9, x: 8 }}
-            className="flex items-center gap-2 bg-white/90 backdrop-blur-md border border-[#6B5E70]/10 rounded-2xl px-4 py-2 shadow-lg shadow-[#6B5E70]/10"
-          >
-            {/* Ondas animadas */}
-            <div className="flex items-center gap-0.5">
-              {[0, 1, 2, 3].map(i => (
-                <motion.div
-                  key={i}
-                  className="w-0.5 bg-[#6B5E70]/50 rounded-full"
-                  animate={{ height: muted ? 4 : [6, 14, 8, 16, 6][i % 5] }}
-                  transition={{ duration: 0.6 + i * 0.15, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
-                />
-              ))}
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/50">
-              {muted ? "Silenciado" : "Ambientación activa"}
-            </span>
-            <button
-              onClick={() => setMuted(v => !v)}
-              className="p-1 rounded-lg hover:bg-[#6B5E70]/8 text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors"
-            >
-              {muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <button
-        onClick={() => setActive(v => !v)}
-        title={active ? "Detener ambientación" : "Activar ambientación sonora"}
-        className={cn(
-          "w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all",
-          active
-            ? "bg-[#6B5E70] text-white shadow-[#6B5E70]/30 hover:scale-105"
-            : "bg-white text-[#6B5E70]/50 border border-[#6B5E70]/15 hover:bg-[#6B5E70]/8"
-        )}
-      >
-        <Music2 size={17} />
-      </button>
-    </motion.div>
+      {/* Ícono / ondas */}
+      {playing ? (
+        <span className="inline-flex items-end gap-px h-3">
+          {[0,1,2].map(i => (
+            <motion.span
+              key={i}
+              className="w-px rounded-full bg-white"
+              style={{ display: "inline-block" }}
+              animate={{ height: ["4px","10px","5px","12px","4px"][i % 5] }}
+              transition={{ duration: 0.5 + i * 0.1, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+            />
+          ))}
+        </span>
+      ) : (
+        <Music2 size={12} />
+      )}
+      <span className="text-[10px] font-black uppercase tracking-widest leading-none">{label}</span>
+    </span>
   );
 }
 
 function ContenidoInteractivo({ texto }: { texto: string }) {
   const segs = parseContenido(texto);
-  const sounds = segs.filter(s => s.type === "sound") as { type: "sound"; url: string; volume: number }[];
   return (
-    <>
-      <div className="text-lg md:text-xl leading-[2.2] text-[#2C262E]/90 font-serif">
-        {segs.map((seg, i) => {
-          if (seg.type === "text")  return <span key={i} className={cn("whitespace-pre-line", i === 0 && "first-letter:text-7xl first-letter:font-black first-letter:text-[#6B5E70] first-letter:mr-4 first-letter:float-left first-letter:mt-3")}>{seg.value}</span>;
-          if (seg.type === "cita")  return <CitaVisual key={i} content={seg.content} />;
-          if (seg.type === "img")   return <ImgInline key={i} url={seg.url} caption={seg.caption} />;
-          if (seg.type === "float") return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
-          if (seg.type === "sound") return null; // invisible, solo activa el player
-          return null;
-        })}
-      </div>
-      <AmbientPlayer sounds={sounds} />
-    </>
+    <div className="text-lg md:text-xl leading-[2.2] text-[#2C262E]/90 font-serif">
+      {segs.map((seg, i) => {
+        if (seg.type === "text")  return <span key={i} className={cn("whitespace-pre-line", i === 0 && "first-letter:text-7xl first-letter:font-black first-letter:text-[#6B5E70] first-letter:mr-4 first-letter:float-left first-letter:mt-3")}>{seg.value}</span>;
+        if (seg.type === "cita")  return <CitaVisual key={i} content={seg.content} />;
+        if (seg.type === "img")   return <ImgInline key={i} url={seg.url} caption={seg.caption} />;
+        if (seg.type === "float") return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
+        if (seg.type === "sound") return <SoundInline key={i} url={seg.url} volume={seg.volume} />;
+        return null;
+      })}
+    </div>
   );
 }
 
