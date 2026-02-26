@@ -11,42 +11,35 @@ export async function GET(req: Request) {
   const tipo = searchParams.get("tipo");
 
   try {
-    // 💡 Consultas simplificadas para evitar el Error 500 por columnas inexistentes
     const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
       (!tipo || tipo === "item")
-        ? supabase.from("items").select("id, nombre, categoria").order("nombre")
+        ? supabase.from("items").select("id, nombre, categoria, imagen_url") // Aquí es imagen_url
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "criatura")
-        ? supabase.from("criaturas").select("id, nombre, habitat").order("nombre")
+        ? supabase.from("criaturas").select("id, nombre, habitat, img_url") // Aquí es img_url
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "personaje")
-        ? supabase.from("personajes").select("id, nombre, visible").order("nombre")
+        ? supabase.from("personajes").select("id, nombre, visible, img_url") // Aquí es img_url
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-    // Revisar si hubo error en Supabase
-    if (itemsRes.error) throw new Error(`Items: ${itemsRes.error.message}`);
-    if (criaturasRes.error) throw new Error(`Criaturas: ${criaturasRes.error.message}`);
-    if (personajesRes.error) throw new Error(`Personajes: ${personajesRes.error.message}`);
+    if (itemsRes.error || criaturasRes.error || personajesRes.error) {
+      throw new Error("Fallo en una de las consultas de Supabase");
+    }
 
-    // 🔥 LA ESTRUCTURA CORRECTA: d.ok y d.data
     return NextResponse.json({
       ok: true,
       data: {
-        items: itemsRes.data || [],
-        criaturas: criaturasRes.data || [],
-        personajes: personajesRes.data || [],
+        // Normalizamos los datos para que el frontend siempre vea "imagen_url"
+        items: itemsRes.data?.map(i => ({ ...i, tipo: 'item' })) || [],
+        criaturas: criaturasRes.data?.map(c => ({ ...c, imagen_url: c.img_url, tipo: 'criatura' })) || [],
+        personajes: personajesRes.data?.map(p => ({ ...p, imagen_url: p.img_url, tipo: 'personaje' })) || [],
       }
     });
 
   } catch (err: any) {
-    console.error("DETALLE DEL ERROR:", err.message);
     return NextResponse.json(
-      { 
-        ok: false, 
-        error: "Error de consistencia en base de datos",
-        detalle: err.message 
-      }, 
+      { ok: false, error: "Error de consistencia", detalle: err.message },
       { status: 500 }
     );
   }
