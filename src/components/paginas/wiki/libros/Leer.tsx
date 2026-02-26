@@ -7,9 +7,11 @@ import {
   BookOpen, Clock, AlignLeft, Maximize2, Minimize2,
   ChevronDown, Check, Eye, Type, Image, Quote,
   Folder, FolderOpen, ChevronRight as ChevronR, Loader2,
-  Music2,
+  Music2, Sword, Package,
 } from "lucide-react";
 import { SoundPicker } from "@/components/shared/ui/SoundPicker";
+import { EntidadPicker } from "@/components/shared/ui/EntidadPicker";
+import { DropWord } from "@/components/shared/ui/DropWord";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { librosQueries, Capitulo } from "@/lib/api/queries/wiki/libros";
@@ -25,7 +27,8 @@ type Segment =
   | { type: "cita"; content: string }
   | { type: "img"; url: string; caption?: string }
   | { type: "float"; word: string; url: string; caption?: string }
-  | { type: "sound"; url: string; volume: number };
+  | { type: "sound"; url: string; volume: number }
+  | { type: "drop"; word: string; entidadTipo: "item" | "criatura"; entidadId: string; entidadNombre: string };
 
 function parseContenido(texto: string): Segment[] {
   const regex = /\[\[(\w+)\|([^\]]+)\]\]/g;
@@ -39,6 +42,13 @@ function parseContenido(texto: string): Segment[] {
     else if (kind === "img") segs.push({ type: "img", url: parts[0], caption: parts[1] });
     else if (kind === "float") segs.push({ type: "float", word: parts[0], url: parts[1], caption: parts[2] });
     else if (kind === "sound") segs.push({ type: "sound", url: parts[0], volume: parseFloat(parts[1] ?? "0.5") });
+    else if (kind === "drop") segs.push({
+      type: "drop",
+      word: parts[0],
+      entidadTipo: (parts[1] as "item" | "criatura"),
+      entidadId: parts[2],
+      entidadNombre: parts[3] ?? parts[0],
+    });
     else segs.push({ type: "text", value: match[0] });
     lastIndex = match.index + match[0].length;
   }
@@ -127,9 +137,7 @@ function SoundInline({ url, volume }: { url: string; volume: number }) {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    return () => { audioRef.current?.pause(); };
-  }, []);
+  useEffect(() => { return () => { audioRef.current?.pause(); }; }, []);
 
   const toggle = () => {
     if (!audioRef.current) {
@@ -138,43 +146,33 @@ function SoundInline({ url, volume }: { url: string; volume: number }) {
       audioRef.current.volume = volume;
       audioRef.current.onended = () => setPlaying(false);
     }
-    if (playing) {
-      audioRef.current.pause();
-      setPlaying(false);
-    } else {
-      audioRef.current.play().catch(() => {});
-      setPlaying(true);
-    }
+    if (playing) { audioRef.current.pause(); setPlaying(false); }
+    else { audioRef.current.play().catch(() => {}); setPlaying(true); }
   };
 
   const label = url.split("/").pop()?.replace(/\.[^.]+$/, "") ?? "sonido";
 
   return (
-    <span className="inline-flex items-center gap-2 mx-1 my-2 px-3 py-1.5 rounded-xl border align-middle transition-all select-none cursor-pointer"
+    <span
+      className="inline-flex items-center gap-2 mx-1 my-2 px-3 py-1.5 rounded-xl border align-middle transition-all select-none cursor-pointer"
       style={{
         background: playing ? "var(--color-primary, #6B5E70)" : "rgba(var(--color-primary-rgb, 107,94,112), 0.06)",
         borderColor: playing ? "var(--color-primary, #6B5E70)" : "rgba(var(--color-primary-rgb, 107,94,112), 0.15)",
         color: playing ? "white" : "rgba(107,94,112,0.6)",
       }}
-      onClick={toggle}
-      role="button"
+      onClick={toggle} role="button"
       title={playing ? "Detener ambientación" : "Reproducir ambientación"}
     >
       {playing ? (
         <span className="inline-flex items-end gap-px h-3">
           {[0,1,2].map(i => (
-            <motion.span
-              key={i}
-              className="w-px rounded-full bg-white"
-              style={{ display: "inline-block" }}
+            <motion.span key={i} className="w-px rounded-full bg-white" style={{ display: "inline-block" }}
               animate={{ height: ["4px","10px","5px","12px","4px"][i % 5] }}
               transition={{ duration: 0.5 + i * 0.1, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
             />
           ))}
         </span>
-      ) : (
-        <Music2 size={12} />
-      )}
+      ) : <Music2 size={12} />}
       <span className="text-[10px] font-black uppercase tracking-widest leading-none">{label}</span>
     </span>
   );
@@ -190,6 +188,7 @@ function ContenidoInteractivo({ texto }: { texto: string }) {
         if (seg.type === "img")   return <ImgInline key={i} url={seg.url} caption={seg.caption} />;
         if (seg.type === "float") return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
         if (seg.type === "sound") return <SoundInline key={i} url={seg.url} volume={seg.volume} />;
+        if (seg.type === "drop")  return <DropWord key={i} word={seg.word} tipo={seg.entidadTipo} entidadId={seg.entidadId} entidadNombre={seg.entidadNombre} />;
         return null;
       })}
     </div>
@@ -268,8 +267,7 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
     let snippet = "";
     if (mode === "img") snippet = caption ? `[[img|${selected}|${caption}]]` : `[[img|${selected}]]`;
     else { const w = word.trim() || "personaje"; snippet = caption ? `[[float|${w}|${selected}|${caption}]]` : `[[float|${w}|${selected}]]`; }
-    onInsert(snippet);
-    onClose();
+    onInsert(snippet); onClose();
   };
 
   return (
@@ -301,7 +299,6 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
                     : <ImageThumb key={i} node={node} depth={0} onSelect={setSelected} selected={selected} />
                 )}
               </div>
-
               <div className="w-1/2 flex flex-col overflow-y-auto">
                 {selected ? (
                   <>
@@ -353,12 +350,11 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
                 )}
               </div>
             </div>
-
             <div className="px-6 py-4 border-t border-primary/8 shrink-0 flex items-center justify-between gap-4">
               <p className="text-[10px] text-primary/30 font-bold uppercase tracking-widest">{selected ? "Lista para insertar" : "Ninguna seleccionada"}</p>
               <div className="flex items-center gap-2">
                 <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-                <button onClick={handleInsert} disabled={!selected || (mode === "float" && !word.trim())} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-primary text-white hover:bg-[#5a4e5f] transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5">
+                <button onClick={handleInsert} disabled={!selected || (mode === "float" && !word.trim())} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-primary text-white hover:bg-primary/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5">
                   <Image size={12} /> Insertar
                 </button>
               </div>
@@ -384,9 +380,10 @@ function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);
   }, []);
   const bloques = [
-    { label: "Cita visual", icon: Quote, badge: "bg-amber-100 text-amber-700", snippet: "[[cita|El texto de la cita. — Fuente]]", desc: "Bloque decorativo con línea lateral." },
-    { label: "Imagen inline", icon: Image, badge: "bg-emerald-100 text-emerald-700", snippet: "[[img|/dibujos/imagen.jpg|Caption opcional]]", desc: "Imagen full-width en el flujo." },
-    { label: "Imagen flotante", icon: Image, badge: "bg-purple-100 text-purple-700", snippet: "[[float|nombre|/dibujos/imagen.jpg|Caption]]", desc: "Palabra clickeable que muestra la imagen." },
+    { label: "Cita visual",       icon: Quote,   badge: "bg-amber-100 text-amber-700",    snippet: "[[cita|El texto de la cita. — Fuente]]",           desc: "Bloque decorativo con línea lateral." },
+    { label: "Imagen inline",     icon: Image,   badge: "bg-emerald-100 text-emerald-700", snippet: "[[img|/dibujos/imagen.jpg|Caption opcional]]",      desc: "Imagen full-width en el flujo." },
+    { label: "Imagen flotante",   icon: Image,   badge: "bg-purple-100 text-purple-700",   snippet: "[[float|nombre|/dibujos/imagen.jpg|Caption]]",      desc: "Palabra clickeable que muestra la imagen." },
+    { label: "Drop (easter egg)", icon: Sword,   badge: "bg-amber-50 text-amber-600",      snippet: "[[drop|palabra|item|uuid|Nombre Item]]",            desc: "Otorga un item o criatura al lector." },
   ];
   return (
     <div ref={ref} className="relative">
@@ -414,32 +411,17 @@ function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
 }
 
 // ─── PANEL DE ÍNDICE (DRAWER LATERAL) ───────────────────────────────────────
-function IndexPanel({
-  open,
-  onClose,
-  lista,
-  capIdActual,
-  isAdmin,
-  libroTitulo,
-  onSelect,
-}: {
-  open: boolean;
-  onClose: () => void;
-  lista: CapituloLista[];
-  capIdActual: string;
-  isAdmin: boolean;
-  libroTitulo?: string;
-  onSelect: (id: string) => void;
+function IndexPanel({ open, onClose, lista, capIdActual, isAdmin, libroTitulo, onSelect }: {
+  open: boolean; onClose: () => void; lista: CapituloLista[]; capIdActual: string;
+  isAdmin: boolean; libroTitulo?: string; onSelect: (id: string) => void;
 }) {
   const hoy = new Date().toISOString().split("T")[0];
   const capActualRef = useRef<HTMLButtonElement>(null);
 
-  // Scroll al capítulo actual cuando abre
   useEffect(() => {
     if (open) setTimeout(() => capActualRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }), 120);
   }, [open]);
 
-  // Cerrar con Escape
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", h);
@@ -450,86 +432,34 @@ function IndexPanel({
     <AnimatePresence>
       {open && (
         <>
-          {/* Overlay */}
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[60] bg-primary-dark/30 backdrop-blur-sm"
-          />
-          {/* Drawer */}
-          <motion.div
-            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 32, stiffness: 320 }}
-            className="fixed right-0 top-0 bottom-0 z-[61] w-full max-w-sm bg-bg-main shadow-2xl flex flex-col"
-          >
-            {/* Header */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[60] bg-primary-dark/30 backdrop-blur-sm" />
+          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 32, stiffness: 320 }} className="fixed right-0 top-0 bottom-0 z-[61] w-full max-w-sm bg-bg-main shadow-2xl flex flex-col">
             <div className="flex items-center justify-between px-6 py-5 border-b border-primary/8 shrink-0">
               <div>
-                {libroTitulo && (
-                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 italic mb-0.5">{libroTitulo}</p>
-                )}
-                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-                  <List size={13} /> Índice
-                </h3>
+                {libroTitulo && <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 italic mb-0.5">{libroTitulo}</p>}
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2"><List size={13} /> Índice</h3>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/40 hover:text-primary transition-all">
-                <X size={15} />
-              </button>
+              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/40 hover:text-primary transition-all"><X size={15} /></button>
             </div>
-
-            {/* Lista de capítulos */}
             <div className="flex-1 overflow-y-auto py-3 px-3">
-              {lista
-                // ✅ No-admin solo ve capítulos ya publicados
-                .filter(cap => isAdmin || cap.fecha_publicacion <= hoy)
-                .map((cap) => {
-                  const esActual = cap.id === capIdActual;
-                  // Admin puede ver futuros (programados)
-                  const esFuturo = isAdmin && cap.fecha_publicacion > hoy;
-                  return (
-                    <button
-                      key={cap.id}
-                      ref={esActual ? capActualRef : undefined}
-                      onClick={() => { onSelect(cap.id); onClose(); }}
-                      className={cn(
-                        "w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition-all mb-1",
-                        esActual
-                          ? "bg-primary text-white"
-                          : "hover:bg-primary/6 text-primary-dark"
-                      )}
-                    >
-                      {/* Número */}
-                      <span className={cn(
-                        "text-[10px] font-black w-6 shrink-0 text-center tabular-nums",
-                        esActual ? "text-white/60" : "text-primary/40"
-                      )}>
-                        {cap.orden}
+              {lista.filter(cap => isAdmin || cap.fecha_publicacion <= hoy).map((cap) => {
+                const esActual = cap.id === capIdActual;
+                const esFuturo = isAdmin && cap.fecha_publicacion > hoy;
+                return (
+                  <button key={cap.id} ref={esActual ? capActualRef : undefined} onClick={() => { onSelect(cap.id); onClose(); }}
+                    className={cn("w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition-all mb-1", esActual ? "bg-primary text-white" : "hover:bg-primary/6 text-primary-dark")}
+                  >
+                    <span className={cn("text-[10px] font-black w-6 shrink-0 text-center tabular-nums", esActual ? "text-white/60" : "text-primary/40")}>{cap.orden}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className={cn("block text-[12px] font-bold leading-snug uppercase tracking-tight truncate", esActual ? "text-white" : "text-primary-dark")}>
+                        {cap.titulo_capitulo || `Capítulo ${cap.orden}`}
                       </span>
-
-                      {/* Título — siempre visible */}
-                      <div className="flex-1 min-w-0">
-                        <span className={cn(
-                          "block text-[12px] font-bold leading-snug uppercase tracking-tight truncate",
-                          esActual ? "text-white" : "text-primary-dark"
-                        )}>
-                          {cap.titulo_capitulo || `Capítulo ${cap.orden}`}
-                        </span>
-                        {/* Fecha solo para admin cuando está programado */}
-                        {esFuturo && (
-                          <span className="text-[8px] font-black uppercase tracking-widest text-primary/40 mt-0.5 block">
-                            Programado · {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Indicador derecho */}
-                      {esActual
-                        ? <span className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
-                        : <ChevronR size={13} className="text-primary/20 shrink-0" />
-                      }
-                    </button>
-                  );
-                })}
+                      {esFuturo && <span className="text-[8px] font-black uppercase tracking-widest text-primary/40 mt-0.5 block">Programado · {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</span>}
+                    </div>
+                    {esActual ? <span className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" /> : <ChevronR size={13} className="text-primary/20 shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
         </>
@@ -556,14 +486,20 @@ function ChapterSelector({ lista, capIdActual, isAdmin, onSelect }: { lista: Cap
         {open && (
           <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-64 bg-white-custom border border-primary/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
             <div className="max-h-72 overflow-y-auto">
-              {lista.map(cap => { const publicado = isAdmin || cap.fecha_publicacion <= hoy; const esActual = cap.id === capIdActual; return (
-                <button key={cap.id} disabled={!publicado} onClick={() => { onSelect(cap.id); setOpen(false); }} className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-all", esActual ? "bg-primary/8 text-primary" : publicado ? "hover:bg-primary/5 text-primary-dark/80" : "opacity-30 cursor-not-allowed text-primary-dark/40")}>
-                  <span className="text-[10px] font-black text-primary/40 w-6 shrink-0">{cap.orden}</span>
-                  <span className="text-xs font-semibold truncate flex-1">{cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}</span>
-                  {esActual && <Check size={12} className="text-primary shrink-0" />}
-                  {!publicado && <span className="text-[9px] text-primary/30 shrink-0">{new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</span>}
-                </button>
-              ); })}
+              {lista.map(cap => {
+                const publicado = isAdmin || cap.fecha_publicacion <= hoy;
+                const esActual = cap.id === capIdActual;
+                return (
+                  <button key={cap.id} disabled={!publicado} onClick={() => { onSelect(cap.id); setOpen(false); }}
+                    className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-all", esActual ? "bg-primary/8 text-primary" : publicado ? "hover:bg-primary/5 text-primary-dark/80" : "opacity-30 cursor-not-allowed text-primary-dark/40")}
+                  >
+                    <span className="text-[10px] font-black text-primary/40 w-6 shrink-0">{cap.orden}</span>
+                    <span className="text-xs font-semibold truncate flex-1">{cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}</span>
+                    {esActual && <Check size={12} className="text-primary shrink-0" />}
+                    {!publicado && <span className="text-[9px] text-primary/30 shrink-0">{new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</span>}
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
         )}
@@ -572,11 +508,15 @@ function ChapterSelector({ lista, capIdActual, isAdmin, onSelect }: { lista: Cap
   );
 }
 
-function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving }: { textareaRef: React.RefObject<HTMLTextAreaElement>; value: string; onChange: (v: string) => void; onSave: () => void; onCancel: () => void; saving: boolean }) {
+function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving }: {
+  textareaRef: React.RefObject<HTMLTextAreaElement>; value: string; onChange: (v: string) => void;
+  onSave: () => void; onCancel: () => void; saving: boolean;
+}) {
   const { words, readMin } = useTextStats(value);
   const [focusMode, setFocusMode] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
+  const [dropPickerOpen, setDropPickerOpen] = useState(false);
 
   const insertAtCursor = useCallback((snippet: string) => {
     const el = textareaRef.current;
@@ -595,11 +535,11 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
   };
 
   const tools = [
-    { label: "—", title: "Separador", action: () => insertAtCursor("\n— — —\n") },
+    { label: "—",  title: "Separador",       action: () => insertAtCursor("\n— — —\n") },
     { label: "« »", title: "Comillas latinas", action: () => insertAround("«", "»") },
-    { label: "…", title: "Elipsis", action: () => insertAtCursor("…") },
-    { label: "—", title: "Guión largo", action: () => insertAtCursor("—") },
-    { label: "¶", title: "Párrafo", action: () => insertAtCursor("\n\n") },
+    { label: "…",  title: "Elipsis",          action: () => insertAtCursor("…") },
+    { label: "—",  title: "Guión largo",      action: () => insertAtCursor("—") },
+    { label: "¶",  title: "Párrafo",          action: () => insertAtCursor("\n\n") },
   ];
 
   const BarContent = ({ isFocus = false }: { isFocus?: boolean }) => (
@@ -614,6 +554,9 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
       <button onClick={() => setSoundPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-primary/15" title="Biblioteca de sonidos">
         <Music2 size={12} /> Sonido
       </button>
+      <button onClick={() => setDropPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-primary/15" title="Easter egg — Drop de item o criatura">
+        <Sword size={12} /> Drop
+      </button>
       {!isFocus && <button onClick={() => setFocusMode(true)} className="p-1.5 rounded-lg text-primary/50 hover:text-primary hover:bg-primary/8 transition-all"><Maximize2 size={14} /></button>}
       <div className="ml-auto flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-primary/30">
         <span className="flex items-center gap-1"><Type size={10} /> {words.toLocaleString()}</span>
@@ -621,7 +564,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
       </div>
       <div className="flex items-center gap-2 pl-3 border-l border-primary/10">
         <button onClick={onCancel} className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase text-red-400 hover:bg-red-50 transition-all flex items-center gap-1"><X size={12} /> Cancelar</button>
-        <button onClick={onSave} disabled={saving} className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase bg-primary text-white hover:bg-[#5a4e5f] transition-all flex items-center gap-1.5 disabled:opacity-50"><Save size={12} /> {saving ? "..." : "Guardar"}</button>
+        <button onClick={onSave} disabled={saving} className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase bg-primary text-white hover:bg-primary/80 transition-all flex items-center gap-1.5 disabled:opacity-50"><Save size={12} /> {saving ? "..." : "Guardar"}</button>
         {isFocus && <button onClick={() => setFocusMode(false)} className="p-2 rounded-xl text-primary/50 hover:text-primary hover:bg-primary/8 transition-all"><Minimize2 size={14} /></button>}
       </div>
     </div>
@@ -631,14 +574,18 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
     <>
       <ImagePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onInsert={insertAtCursor} />
       <SoundPicker open={soundPickerOpen} onClose={() => setSoundPickerOpen(false)} onInsert={insertAtCursor} />
+      <EntidadPicker open={dropPickerOpen} onClose={() => setDropPickerOpen(false)} onInsert={insertAtCursor} />
       <div className="sticky top-[65px] z-40 bg-white-custom/90 backdrop-blur-md border-b border-primary/8"><BarContent isFocus={false} /></div>
       <AnimatePresence>
         {focusMode && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-bg-main z-50 flex flex-col">
             <ImagePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onInsert={insertAtCursor} />
+            <EntidadPicker open={dropPickerOpen} onClose={() => setDropPickerOpen(false)} onInsert={insertAtCursor} />
             <div className="bg-white-custom/80 backdrop-blur-md border-b border-primary/8"><BarContent isFocus={true} /></div>
             <div className="flex-1 overflow-auto flex justify-center py-12 px-6">
-              <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} autoFocus className="w-full max-w-2xl bg-transparent font-serif text-xl leading-[2.2] text-primary-dark focus:outline-none resize-none" placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]"} />
+              <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} autoFocus
+                className="w-full max-w-2xl bg-transparent font-serif text-xl leading-[2.2] text-primary-dark focus:outline-none resize-none"
+                placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]\n[[drop|palabra|item|uuid|Nombre]]"} />
             </div>
           </motion.div>
         )}
@@ -651,7 +598,6 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
 function LectorSkeleton() {
   return (
     <div className="min-h-screen bg-bg-main pb-24 animate-pulse">
-      {/* Nav */}
       <div className="sticky top-0 z-50 bg-bg-main/80 backdrop-blur-md border-b border-primary/5 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <div className="w-6 h-6 rounded-lg bg-primary/10" />
@@ -662,7 +608,6 @@ function LectorSkeleton() {
           <div className="w-6 h-6 rounded-lg bg-primary/10" />
         </div>
       </div>
-      {/* Article */}
       <div className="max-w-2xl mx-auto px-6 py-12 md:py-20">
         <div className="text-center mb-12 space-y-3">
           <div className="h-10 w-16 rounded-xl bg-primary/8 mx-auto" />
@@ -671,7 +616,7 @@ function LectorSkeleton() {
         </div>
         <div className="space-y-4">
           {[100, 85, 95, 70, 90, 60, 80, 75].map((w, i) => (
-            <div key={i} className={`h-4 rounded-full bg-primary/8`} style={{ width: `${w}%` }} />
+            <div key={i} className="h-4 rounded-full bg-primary/8" style={{ width: `${w}%` }} />
           ))}
           <div className="h-4 w-1/2 rounded-full bg-primary/8" />
         </div>
@@ -704,8 +649,6 @@ export default function Lector() {
 
   useEffect(() => {
     if (!capId || !id) return;
-
-    // ✅ Auth y capítulo en paralelo — no se espera uno al otro
     Promise.all([
       supabase.auth.getSession(),
       librosQueries.getCapituloParaLectura(capId, id, true),
@@ -762,7 +705,6 @@ export default function Lector() {
   const anteriorCap = listaCapitulos.slice(0, indiceActual).reverse().find(c => isAdmin || c.fecha_publicacion <= hoy);
   const siguienteCap = listaCapitulos.slice(indiceActual + 1).find(c => isAdmin || c.fecha_publicacion <= hoy);
 
-  // ✅ Skeleton en lugar de pantalla en blanco — el contenido se muestra en su lugar
   if (loading && !capitulo) return <LectorSkeleton />;
   if (error || !capitulo) return (
     <div className="h-screen flex flex-col items-center justify-center bg-bg-main text-primary p-6 text-center">
@@ -835,7 +777,7 @@ export default function Lector() {
               <AnimatePresence mode="wait">
                 {previewMode
                   ? <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] overflow-hidden"><ContenidoInteractivo texto={nuevoContenido} /></motion.div>
-                  : <motion.textarea key="editor" ref={textareaRef as any} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} value={nuevoContenido} onChange={e => setNuevoContenido(e.target.value)} className="w-full min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] font-serif text-lg leading-relaxed text-primary-dark focus:outline-none focus:border-primary/30 shadow-inner resize-none" autoFocus placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]"} />
+                  : <motion.textarea key="editor" ref={textareaRef as any} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} value={nuevoContenido} onChange={e => setNuevoContenido(e.target.value)} className="w-full min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] font-serif text-lg leading-relaxed text-primary-dark focus:outline-none focus:border-primary/30 shadow-inner resize-none" autoFocus placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]\n[[drop|palabra|item|uuid|Nombre]]"} />
                 }
               </AnimatePresence>
               <div className="flex justify-end mt-3 px-2">
