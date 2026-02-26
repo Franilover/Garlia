@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Book, Plus, Edit2, X } from "lucide-react";
+import { Book, Plus, Edit2, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
@@ -30,7 +30,7 @@ const Biblioteca = () => {
   const [libroAEditar, setLibroAEditar] = useState<Libro | null>(null);
   
   const [nuevoTitulo, setNuevoTitulo] = useState("");
-  const [editForm, setEditForm] = useState({ titulo: "", sinopsis: "" });
+  const [editForm, setEditForm] = useState({ titulo: "", sinopsis: "", estado: "" });
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleAddLibro = async (e: React.FormEvent) => {
@@ -62,7 +62,11 @@ const Biblioteca = () => {
     e.preventDefault();
     e.stopPropagation();
     setLibroAEditar(libro);
-    setEditForm({ titulo: libro.titulo, sinopsis: libro.sinopsis });
+    setEditForm({ 
+      titulo: libro.titulo, 
+      sinopsis: libro.sinopsis,
+      estado: libro.estado 
+    });
     setShowEditModal(true);
   };
 
@@ -75,14 +79,15 @@ const Biblioteca = () => {
       .from("libros")
       .update({
         titulo: editForm.titulo.toUpperCase(),
-        sinopsis: editForm.sinopsis
+        sinopsis: editForm.sinopsis,
+        estado: editForm.estado
       })
       .eq("id", libroAEditar.id);
 
     if (!updateError) {
       setLibros(prev => prev.map(l => 
         l.id === libroAEditar.id 
-          ? { ...l, titulo: editForm.titulo.toUpperCase(), sinopsis: editForm.sinopsis } 
+          ? { ...l, ...editForm, titulo: editForm.titulo.toUpperCase() } 
           : l
       ));
       setShowEditModal(false);
@@ -184,40 +189,16 @@ const Biblioteca = () => {
         ))}
       </div>
 
-      {/* Modal Añadir */}
+      {/* Modales */}
       <AnimatePresence>
         {showAddModal && isAdmin && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-primary/20 backdrop-blur-sm" 
-              onClick={() => setShowAddModal(false)} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative bg-white-custom rounded-[3rem] p-10 w-full max-w-sm shadow-2xl border border-primary/10"
-            >
-              <h3 className="text-center text-primary font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">
-                Nuevo Tomo
-              </h3>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white-custom rounded-[3rem] p-10 w-full max-w-sm shadow-2xl border border-primary/10">
+              <h3 className="text-center text-primary font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">Nuevo Tomo</h3>
               <form onSubmit={handleAddLibro} className="space-y-6">
-                <input
-                  autoFocus
-                  type="text"
-                  placeholder="TÍTULO..."
-                  value={nuevoTitulo}
-                  onChange={(e) => setNuevoTitulo(e.target.value)}
-                  className="w-full bg-bg-main border-b-2 border-primary/10 py-4 text-center text-sm font-black text-primary outline-none focus:border-primary uppercase"
-                />
-                <button
-                  type="submit"
-                  disabled={isUpdating}
-                  className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50"
-                >
+                <input autoFocus type="text" placeholder="TÍTULO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-bg-main border-b-2 border-primary/10 py-4 text-center text-sm font-black text-primary outline-none focus:border-primary uppercase" />
+                <button type="submit" disabled={isUpdating} className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
                   {isUpdating ? "Sellando..." : "Crear"}
                 </button>
               </form>
@@ -225,57 +206,46 @@ const Biblioteca = () => {
           </div>
         )}
 
-        {/* Modal Editar */}
         {showEditModal && isAdmin && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-primary/20 backdrop-blur-sm" 
-              onClick={() => setShowEditModal(false)} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative bg-white-custom rounded-[3rem] p-10 w-full max-w-md shadow-2xl border border-primary/10"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white-custom rounded-[3rem] p-10 w-full max-w-md shadow-2xl border border-primary/10">
               <div className="flex justify-between items-center mb-6">
-                <span className="text-primary font-black uppercase text-[10px] tracking-[0.3em] italic">
-                  Editar Registro
-                </span>
-                <button onClick={() => setShowEditModal(false)} className="text-primary/40 hover:text-primary">
-                  <X size={20} />
-                </button>
+                <span className="text-primary font-black uppercase text-[10px] tracking-[0.3em] italic">Editar Registro</span>
+                <button onClick={() => setShowEditModal(false)} className="text-primary/40 hover:text-primary"><X size={20} /></button>
               </div>
 
               <form onSubmit={handleUpdateLibro} className="space-y-6">
-                <div>
-                  <label className="text-[9px] font-black text-primary/40 uppercase mb-2 block">Título del Tomo</label>
-                  <input
-                    type="text"
-                    value={editForm.titulo}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, titulo: e.target.value }))}
-                    className="w-full bg-bg-main border-b-2 border-primary/10 py-3 text-sm font-black text-primary outline-none focus:border-primary uppercase"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className="text-[9px] font-black text-primary/40 uppercase mb-2 block tracking-widest">Título</label>
+                    <input type="text" value={editForm.titulo} onChange={(e) => setEditForm(prev => ({ ...prev, titulo: e.target.value }))} className="w-full bg-bg-main border-b-2 border-primary/10 py-3 text-sm font-black text-primary outline-none focus:border-primary uppercase" />
+                  </div>
+                  
+                  <div className="col-span-2 relative">
+                    <label className="text-[9px] font-black text-primary/40 uppercase mb-2 block tracking-widest">Estado del Relato</label>
+                    <div className="relative">
+                      <select 
+                        value={editForm.estado} 
+                        onChange={(e) => setEditForm(prev => ({ ...prev, estado: e.target.value }))}
+                        className="w-full bg-bg-main border-b-2 border-primary/10 py-3 text-sm font-black text-primary outline-none focus:border-primary appearance-none cursor-pointer uppercase"
+                      >
+                        <option value="EN PROCESO">EN PROCESO</option>
+                        <option value="FINALIZADO">FINALIZADO</option>
+                        <option value="PAUSADO">PAUSADO</option>
+                        <option value="ARCHIVADO">ARCHIVADO</option>
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
+                    </div>
+                  </div>
                 </div>
                 
                 <div>
-                  <label className="text-[9px] font-black text-primary/40 uppercase mb-2 block">Sinopsis / Crónica</label>
-                  <textarea
-                    rows={4}
-                    value={editForm.sinopsis}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, sinopsis: e.target.value }))}
-                    className="w-full bg-bg-main border-2 border-primary/10 p-4 rounded-2xl text-sm font-medium text-primary outline-none focus:border-primary italic"
-                  />
+                  <label className="text-[9px] font-black text-primary/40 uppercase mb-2 block tracking-widest">Sinopsis / Crónica</label>
+                  <textarea rows={4} value={editForm.sinopsis} onChange={(e) => setEditForm(prev => ({ ...prev, sinopsis: e.target.value }))} className="w-full bg-bg-main border-2 border-primary/10 p-4 rounded-2xl text-sm font-medium text-primary outline-none focus:border-primary italic" />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isUpdating}
-                  className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50"
-                >
+                <button type="submit" disabled={isUpdating} className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
                   {isUpdating ? "Actualizando..." : "Guardar Cambios"}
                 </button>
               </form>
