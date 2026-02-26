@@ -64,6 +64,7 @@ export default function LibroDetalle() {
       .from("capitulos")
       .select("*")
       .eq("libro_id", id)
+      .not("titulo_capitulo", "like", "[Ruta]%")
       .order("orden", { ascending: true });
     if (!admin) q = q.lte("fecha_publicacion", hoy);
     const { data } = await q;
@@ -81,8 +82,8 @@ export default function LibroDetalle() {
     Promise.all([
       supabase.auth.getSession(),
       supabase.from("libros").select("*").eq("id", id).single(),
-      supabase.from("capitulos").select("*").eq("libro_id", id).order("orden", { ascending: true }),
-      supabase.from("capitulos").select("*").eq("libro_id", id).lte("fecha_publicacion", hoy).order("orden", { ascending: true }),
+      supabase.from("capitulos").select("*").eq("libro_id", id).not("titulo_capitulo", "like", "[Ruta]%").order("orden", { ascending: true }),
+      supabase.from("capitulos").select("*").eq("libro_id", id).lte("fecha_publicacion", hoy).not("titulo_capitulo", "like", "[Ruta]%").order("orden", { ascending: true }),
     ]).then(([authRes, libroRes, capsAll, capsPublic]) => {
       const admin = !!authRes.data.session;
 
