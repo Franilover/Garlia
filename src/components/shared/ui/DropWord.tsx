@@ -1,17 +1,17 @@
 "use client";
 // components/shared/ui/DropWord.tsx
-// Palabra interactiva en el lector que otorga un item o criatura al usuario al hacer click.
+// Palabra interactiva en el lector que otorga un item, criatura o personaje al usuario.
 // Sintaxis en el texto: [[drop|palabra|tipo|id|Nombre Entidad]]
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sword, Package, Sparkles, X, Check, Loader2 } from "lucide-react";
+import { Sword, Package, Sparkles, X, Check, Loader2, User } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { cn } from "@/lib/utils";
 
 interface DropWordProps {
   word: string;
-  tipo: "item" | "criatura";
+  tipo: "item" | "criatura" | "personaje";
   entidadId: string;
   entidadNombre: string;
 }
@@ -37,61 +37,57 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
     const userId = session.user.id;
 
     try {
-      if (tipo === "item") {
-        // Verificar si ya lo tiene
-        const { data: existing } = await supabase
-          .from("inventario_usuario")
-          .select("id")
-          .eq("perfil_id", userId) // Cambiado a perfil_id
-          .eq("item_id", entidadId)
-          .maybeSingle();
+      // 1. Verificar si ya existe el descubrimiento (independientemente del tipo)
+      const { data: existing, error: checkError } = await supabase
+        .from("descubrimientos")
+        .select("id")
+        .eq("perfil_id", userId)
+        .eq("entidad_id", entidadId)
+        .eq("tipo", tipo)
+        .maybeSingle();
 
-        if (existing) {
-          setState("already");
-          return;
-        }
+      if (checkError) throw checkError;
 
-        const { error } = await supabase
-          .from("inventario_usuario")
-          .insert({ perfil_id: userId, item_id: entidadId, equipado: false }); // Cambiado a perfil_id
-
-        if (error) throw error;
-
-      } else {
-        // Verificar si ya lo descubrió
-        const { data: existing } = await supabase
-          .from("descubrimientos")
-          .select("id")
-          .eq("perfil_id", userId) // Cambiado a perfil_id
-          .eq("criatura_id", entidadId)
-          .maybeSingle();
-
-        if (existing) {
-          setState("already");
-          return;
-        }
-
-        const { error } = await supabase
-          .from("descubrimientos")
-          .insert({ perfil_id: userId, criatura_id: entidadId }); // Cambiado a perfil_id
-
-        if (error) throw error;
+      if (existing) {
+        setState("already");
+        return;
       }
+
+      // 2. Insertar el nuevo descubrimiento
+      const { error: insertError } = await supabase
+        .from("descubrimientos")
+        .insert({
+          perfil_id: userId,
+          entidad_id: entidadId,
+          tipo: tipo
+        });
+
+      if (insertError) throw insertError;
 
       setState("success");
     } catch (err) {
-      console.error("[DropWord]", err);
+      console.error("[DropWord Error]", err);
       setState("error");
     }
   };
 
-  const Icon = tipo === "item" ? Package : Sword;
+  // Definir icono según el tipo
+  const getIcon = () => {
+    switch (tipo) {
+      case "item": return Package;
+      case "criatura": return Sword;
+      case "personaje": return User;
+      default: return Sparkles;
+    }
+  };
+
+  const Icon = getIcon();
 
   const messages: Record<DropState, { title: string; sub: string; color: string }> = {
     idle:    { title: "", sub: "", color: "" },
     loading: { title: "Sellando...", sub: "", color: "text-primary" },
     success: {
-      title: tipo === "item" ? "¡Item obtenido!" : "¡Criatura descubierta!",
+      title: tipo === "item" ? "¡Item obtenido!" : tipo === "criatura" ? "¡Criatura descubierta!" : "¡Personaje conocido!",
       sub: `${entidadNombre} ha sido añadido a tu perfil`,
       color: "text-emerald-500",
     },
@@ -146,7 +142,6 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
               className="fixed z-[81] left-1/2 -translate-x-1/2 top-1/3 w-72 bg-white-custom rounded-3xl shadow-2xl overflow-hidden"
               style={{ boxShadow: "0 24px 64px rgba(44,38,46,0.22)" }}
             >
-              {/* Header decorativo */}
               <div className="h-1.5 w-full bg-gradient-to-r from-[#C4A882] via-primary to-[#C4A882]" />
 
               <div className="p-6 flex flex-col items-center text-center gap-4">
@@ -185,7 +180,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
                       )}
                     </div>
 
-                    {state === "success" && (
+                    {(state === "success" || state === "already") && (
                       <motion.div
                         initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                         className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-full"
