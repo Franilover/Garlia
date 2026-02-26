@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Book, Plus, Edit2, X, ChevronDown } from "lucide-react";
+import { Book, Plus, Edit2, X, ChevronDown, EyeOff } from "lucide-react"; // Añadido EyeOff
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
@@ -33,6 +33,11 @@ const Biblioteca = () => {
   const [editForm, setEditForm] = useState({ titulo: "", sinopsis: "", estado: "" });
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Filtrado de libros: Si no es admin, ocultamos los "BORRADOR"
+  const librosVisibles = (libros as Libro[]).filter(libro => 
+    isAdmin || libro.estado !== "BORRADOR"
+  );
+
   const handleAddLibro = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoTitulo.trim() || isUpdating) return;
@@ -43,7 +48,7 @@ const Biblioteca = () => {
       .insert([{ 
         titulo: nuevoTitulo.toUpperCase(),
         sinopsis: "Nueva crónica por escribir...",
-        estado: "EN PROCESO",
+        estado: "BORRADOR", // Ahora nacen como borrador por defecto
         portada_url: "" 
       }])
       .select();
@@ -109,18 +114,6 @@ const Biblioteca = () => {
     </div>
   );
 
-  if (!loading && libros.length === 0) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-bg-main text-primary/40">
-      <Book size={48} className="mb-4 opacity-20" />
-      <p className="font-black uppercase text-[10px] tracking-[0.3em]">La biblioteca está vacía</p>
-      {isAdmin && (
-        <button onClick={() => setShowAddModal(true)} className="mt-6 text-primary font-bold text-xs underline">
-          Escribir el primer tomo
-        </button>
-      )}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-bg-main pb-20">
       <div className="max-w-6xl mx-auto pt-16 px-6 mb-12 flex justify-between items-end">
@@ -143,13 +136,13 @@ const Biblioteca = () => {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-        {(libros as Libro[]).map((libro, index) => (
+        {librosVisibles.map((libro, index) => (
           <motion.div
             key={libro.id}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: index * 0.05 }}
-            className="relative group"
+            className={`relative group ${libro.estado === "BORRADOR" ? "opacity-60" : ""}`}
           >
             <Link href={`/wiki/paginas/libros/${libro.id}`}>
               <div className="cursor-pointer relative">
@@ -168,7 +161,8 @@ const Biblioteca = () => {
                     alt={libro.titulo}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute top-6 left-6 z-20 bg-white-custom/90 backdrop-blur-md px-4 py-1.5 rounded-full border border-primary/10">
+                  <div className="absolute top-6 left-6 z-20 bg-white-custom/90 backdrop-blur-md px-4 py-1.5 rounded-full border border-primary/10 flex items-center gap-2">
+                    {libro.estado === "BORRADOR" && <EyeOff size={10} className="text-primary" />}
                     <span className="text-[9px] font-black uppercase text-primary tracking-widest">
                       {libro.estado}
                     </span>
@@ -199,7 +193,7 @@ const Biblioteca = () => {
               <form onSubmit={handleAddLibro} className="space-y-6">
                 <input autoFocus type="text" placeholder="TÍTULO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-bg-main border-b-2 border-primary/10 py-4 text-center text-sm font-black text-primary outline-none focus:border-primary uppercase" />
                 <button type="submit" disabled={isUpdating} className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
-                  {isUpdating ? "Sellando..." : "Crear"}
+                  {isUpdating ? "Creando Borrador..." : "Crear"}
                 </button>
               </form>
             </motion.div>
@@ -223,17 +217,17 @@ const Biblioteca = () => {
                   </div>
                   
                   <div className="col-span-2 relative">
-                    <label className="text-[9px] font-black text-primary/40 uppercase mb-2 block tracking-widest">Estado del Relato</label>
+                    <label className="text-[9px] font-black text-primary/40 uppercase mb-2 block tracking-widest">Visibilidad y Estado</label>
                     <div className="relative">
                       <select 
                         value={editForm.estado} 
                         onChange={(e) => setEditForm(prev => ({ ...prev, estado: e.target.value }))}
                         className="w-full bg-bg-main border-b-2 border-primary/10 py-3 text-sm font-black text-primary outline-none focus:border-primary appearance-none cursor-pointer uppercase"
                       >
-                        <option value="EN PROCESO">EN PROCESO</option>
-                        <option value="FINALIZADO">FINALIZADO</option>
-                        <option value="PAUSADO">PAUSADO</option>
-                        <option value="ARCHIVADO">ARCHIVADO</option>
+                        <option value="BORRADOR">BORRADOR (OCULTO)</option>
+                        <option value="EN PROCESO">EN PROCESO (PÚBLICO)</option>
+                        <option value="FINALIZADO">FINALIZADO (PÚBLICO)</option>
+                        <option value="PAUSADO">PAUSADO (PÚBLICO)</option>
                       </select>
                       <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
                     </div>
