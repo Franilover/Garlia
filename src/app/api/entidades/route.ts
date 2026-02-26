@@ -13,27 +13,36 @@ export async function GET(req: Request) {
   try {
     const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
       (!tipo || tipo === "item")
-        ? supabase.from("items").select("id, nombre, categoria, imagen_url") // Aquí es imagen_url
+        ? supabase.from("items").select("id, nombre, categoria, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "criatura")
-        ? supabase.from("criaturas").select("id, nombre, habitat, img_url") // Aquí es img_url
+        ? supabase.from("criaturas").select("id, nombre, habitat, img_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "personaje")
-        ? supabase.from("personajes").select("id, nombre, visible, img_url") // Aquí es img_url
+        ? supabase.from("personajes").select("id, nombre, visible, img_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-    if (itemsRes.error || criaturasRes.error || personajesRes.error) {
-      throw new Error("Fallo en una de las consultas de Supabase");
-    }
+    // Verificación de errores individuales
+    if (itemsRes.error) console.error("Error en Items:", itemsRes.error.message);
+    if (criaturasRes.error) console.error("Error en Criaturas:", criaturasRes.error.message);
+    if (personajesRes.error) console.error("Error en Personajes:", personajesRes.error.message);
 
     return NextResponse.json({
       ok: true,
       data: {
-        // Normalizamos los datos para que el frontend siempre vea "imagen_url"
+        // Normalizamos los nombres para el Picker (usamos siempre imagen_url)
         items: itemsRes.data?.map(i => ({ ...i, tipo: 'item' })) || [],
-        criaturas: criaturasRes.data?.map(c => ({ ...c, imagen_url: c.img_url, tipo: 'criatura' })) || [],
-        personajes: personajesRes.data?.map(p => ({ ...p, imagen_url: p.img_url, tipo: 'personaje' })) || [],
+        criaturas: criaturasRes.data?.map(c => ({ 
+          ...c, 
+          imagen_url: c.img_url, // Mapeamos img_url -> imagen_url
+          tipo: 'criatura' 
+        })) || [],
+        personajes: personajesRes.data?.map(p => ({ 
+          ...p, 
+          imagen_url: p.img_url, // Mapeamos img_url -> imagen_url
+          tipo: 'personaje' 
+        })) || [],
       }
     });
 
