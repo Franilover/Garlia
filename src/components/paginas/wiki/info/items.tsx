@@ -23,9 +23,6 @@ export default function Inventario() {
           contain={true} 
           onClick={onClick}
         >
-          <p className={cn(typography.tag, "mb-1 opacity-60")}>
-            {item.categoria}
-          </p>
           <h3 className={typography.cardTitle}>
             {item.nombre}
           </h3>
