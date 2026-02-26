@@ -96,16 +96,16 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
               initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 12, scale: 0.98 }}
               transition={{ type: "spring", damping: 28, stiffness: 340 }}
-              className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden"
+              className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white-custom rounded-3xl shadow-2xl overflow-hidden"
               style={{ boxShadow: "0 32px 80px rgba(44,38,46,0.18)" }}
             >
               {/* Preview de la imagen elegida */}
-              <div className="relative bg-[#F7F3EE]" style={{ aspectRatio: "16/9" }}>
+              <div className="relative bg-primary/5" style={{ aspectRatio: "16/9" }}>
                 <img src={url} alt="" className="w-full h-full object-cover" />
                 {/* Botón para volver a elegir imagen */}
                 <button
                   onClick={() => { setStep('pick'); setPickerOpen(true); }}
-                  className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-white/80 backdrop-blur-sm text-[10px] font-black uppercase tracking-widest text-[#6B5E70] hover:bg-white transition-all"
+                  className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-white-custom/80 backdrop-blur-sm text-[10px] font-black uppercase tracking-widest text-primary hover:bg-white-custom transition-all"
                 >
                   Cambiar
                 </button>
@@ -113,7 +113,7 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
 
               <div className="px-6 py-5 flex flex-col gap-4">
                 <div>
-                  <label className="block text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/40 mb-1.5">
+                  <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">
                     Título
                   </label>
                   <input
@@ -121,12 +121,12 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
                     onChange={e => setTitulo(e.target.value)}
                     placeholder="Nombre del dibujo…"
                     autoFocus
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#6B5E70]/12 text-sm font-serif text-[#2C262E] focus:outline-none focus:border-[#6B5E70]/30 placeholder:text-[#6B5E70]/20"
+                    className="w-full px-3 py-2.5 rounded-xl border border-primary/12 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/30 placeholder:text-primary/20"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/40 mb-2">
+                  <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-2">
                     Categoría
                   </label>
                   <div className="flex gap-2 flex-wrap">
@@ -137,8 +137,8 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
                         className={cn(
                           "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                           categoria === cat
-                            ? "bg-[#6B5E70] text-white"
-                            : "border border-[#6B5E70]/15 text-[#6B5E70]/50 hover:bg-[#6B5E70]/8"
+                            ? "bg-primary text-white"
+                            : "border border-primary/15 text-primary/50 hover:bg-primary/8"
                         )}
                       >
                         {cat}
@@ -153,13 +153,13 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
 
                 <div className="flex items-center gap-2 pt-1">
                   <button onClick={handleClose}
-                    className="flex-1 py-2.5 rounded-xl border border-[#6B5E70]/10 text-[10px] font-black uppercase tracking-widest text-[#6B5E70]/40 hover:bg-[#6B5E70]/5 transition-all">
+                    className="flex-1 py-2.5 rounded-xl border border-primary/10 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:bg-primary/5 transition-all">
                     Cancelar
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={!titulo.trim() || saving || saved}
-                    className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[#6B5E70] text-white hover:bg-[#5a4e5f] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-white hover:bg-primary/80 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   >
                     {saved
                       ? <><Check size={13} /> Guardado</>
@@ -239,10 +239,7 @@ function DrawingsContent() {
               src={dibujo.url_imagen}
               alt={dibujo.titulo}
               onClick={() => openLightbox(index, lbData, 'dibujos')}
-            >
-              <p className={typography.tag}>{dibujo.categoria}</p>
-              <h3 className={typography.cardTitle}>{dibujo.titulo}</h3>
-            </GalleryItem>
+            />
           ))}
           {filtrados.length === 0 && (
             <div className={`col-span-full ${typography.emptyState}`}>
@@ -266,7 +263,7 @@ function DrawingsContent() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             onClick={() => setAddOpen(true)}
-            className="fixed bottom-8 right-6 z-50 flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-[#6B5E70] text-white shadow-2xl shadow-[#6B5E70]/30 hover:bg-[#5a4e5f] active:scale-95 transition-all"
+            className="fixed bottom-8 right-6 z-50 flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-primary text-white shadow-2xl shadow-primary/30 hover:bg-primary/80 active:scale-95 transition-all"
           >
             <Plus size={18} />
             <span className="text-[11px] font-black uppercase tracking-widest">Añadir dibujo</span>
