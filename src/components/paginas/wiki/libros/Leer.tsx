@@ -52,13 +52,13 @@ function CitaVisual({ content }: { content: string }) {
   const fuente = dashIdx !== -1 ? content.slice(dashIdx + 3) : null;
   return (
     <div className="my-10 mx-0 relative">
-      <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full" style={{ background: "linear-gradient(to bottom, #C4A882, #6B5E70, #C4A882)" }} />
+      <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full" style={{ background: "linear-gradient(to bottom, #C4A882, var(--color-primary, #6B5E70), #C4A882)" }} />
       <div className="absolute -top-3 left-[-1px] w-[5px] h-[5px] rounded-full bg-[#C4A882]" />
-      <div className="absolute -bottom-3 left-[-1px] w-[5px] h-[5px] rounded-full bg-[#6B5E70]" />
-      <div className="pl-7 py-2 bg-gradient-to-r from-[#F7F3EE] to-transparent rounded-r-2xl">
+      <div className="absolute -bottom-3 left-[-1px] w-[5px] h-[5px] rounded-full bg-primary" />
+      <div className="pl-7 py-2 bg-gradient-to-r from-primary/5 to-transparent rounded-r-2xl">
         <span className="block font-serif text-5xl leading-none mb-2 select-none" style={{ color: "#C4A882", opacity: 0.5, fontStyle: "italic" }} aria-hidden>"</span>
-        <p className="font-serif text-lg md:text-xl italic leading-[1.9] text-[#2C262E]/75">{texto}</p>
-        {fuente && <p className="mt-3 text-[11px] font-black uppercase tracking-widest text-[#6B5E70]/40">— {fuente}</p>}
+        <p className="font-serif text-lg md:text-xl italic leading-[1.9] text-primary-dark/75">{texto}</p>
+        {fuente && <p className="mt-3 text-[11px] font-black uppercase tracking-widest text-primary/40">— {fuente}</p>}
       </div>
     </div>
   );
@@ -71,7 +71,7 @@ function ImgInline({ url, caption }: { url: string; caption?: string }) {
         <img src={url} alt={caption ?? ""} className="w-full object-cover" style={{ maxHeight: 520 }} />
         {caption && <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#1A1218]/60 to-transparent" />}
       </div>
-      {caption && <figcaption className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.2em] text-[#6B5E70]/35">{caption}</figcaption>}
+      {caption && <figcaption className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.2em] text-primary/35">{caption}</figcaption>}
     </figure>
   );
 }
@@ -109,9 +109,9 @@ function FloatWord({ word, url, caption }: { word: string; url: string; caption?
               <div className="rounded-2xl overflow-hidden shadow-2xl" style={{ boxShadow: "0 24px 64px rgba(44,38,46,0.22), 0 4px 16px rgba(44,38,46,0.12)" }}>
                 <div className="relative">
                   <img src={url} alt={caption ?? word} className="w-full object-cover" style={{ maxHeight: 260 }} />
-                  <button onClick={() => setOpen(false)} className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-[#1A1218]/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-[#1A1218]/70 transition-all"><X size={13} /></button>
+                  <button onClick={() => setOpen(false)} className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-primary-dark/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-primary-dark/70 transition-all"><X size={13} /></button>
                 </div>
-                {caption && <div className="bg-white px-4 py-3"><p className="text-[10px] font-black uppercase tracking-widest text-[#6B5E70]/50 text-center">{caption}</p></div>}
+                {caption && <div className="bg-white-custom px-4 py-3"><p className="text-[10px] font-black uppercase tracking-widest text-primary/50 text-center">{caption}</p></div>}
               </div>
               <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0" style={{ borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: caption ? "8px solid white" : "8px solid #2C262E" }} />
             </motion.div>
@@ -152,8 +152,8 @@ function SoundInline({ url, volume }: { url: string; volume: number }) {
   return (
     <span className="inline-flex items-center gap-2 mx-1 my-2 px-3 py-1.5 rounded-xl border align-middle transition-all select-none cursor-pointer"
       style={{
-        background: playing ? "#6B5E70" : "rgba(107,94,112,0.06)",
-        borderColor: playing ? "#6B5E70" : "rgba(107,94,112,0.15)",
+        background: playing ? "var(--color-primary, #6B5E70)" : "rgba(var(--color-primary-rgb, 107,94,112), 0.06)",
+        borderColor: playing ? "var(--color-primary, #6B5E70)" : "rgba(var(--color-primary-rgb, 107,94,112), 0.15)",
         color: playing ? "white" : "rgba(107,94,112,0.6)",
       }}
       onClick={toggle}
@@ -183,9 +183,9 @@ function SoundInline({ url, volume }: { url: string; volume: number }) {
 function ContenidoInteractivo({ texto }: { texto: string }) {
   const segs = parseContenido(texto);
   return (
-    <div className="text-lg md:text-xl leading-[2.2] text-[#2C262E]/90 font-serif">
+    <div className="text-lg md:text-xl leading-[2.2] text-primary-dark/90 font-serif">
       {segs.map((seg, i) => {
-        if (seg.type === "text")  return <span key={i} className={cn("whitespace-pre-line", i === 0 && "first-letter:text-7xl first-letter:font-black first-letter:text-[#6B5E70] first-letter:mr-4 first-letter:float-left first-letter:mt-3")}>{seg.value}</span>;
+        if (seg.type === "text")  return <span key={i} className={cn("whitespace-pre-line", i === 0 && "first-letter:text-7xl first-letter:font-black first-letter:text-primary first-letter:mr-4 first-letter:float-left first-letter:mt-3")}>{seg.value}</span>;
         if (seg.type === "cita")  return <CitaVisual key={i} content={seg.content} />;
         if (seg.type === "img")   return <ImgInline key={i} url={seg.url} caption={seg.caption} />;
         if (seg.type === "float") return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
@@ -203,10 +203,10 @@ function FolderNode({ node, depth, onSelect, selected }: { node: FolderEntry; de
   const [expanded, setExpanded] = useState(depth === 0);
   return (
     <div>
-      <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-2 w-full text-left rounded-lg hover:bg-[#6B5E70]/5 transition-all py-1.5" style={{ paddingLeft: `${12 + depth * 16}px`, paddingRight: 12 }}>
+      <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-2 w-full text-left rounded-lg hover:bg-primary/5 transition-all py-1.5" style={{ paddingLeft: `${12 + depth * 16}px`, paddingRight: 12 }}>
         {expanded ? <FolderOpen size={14} className="text-[#B08850] shrink-0" /> : <Folder size={14} className="text-[#B08850]/60 shrink-0" />}
-        <span className="text-[11px] font-bold text-[#2C262E]/70 truncate">{node.name}</span>
-        <ChevronR size={11} className={cn("ml-auto text-[#6B5E70]/30 transition-transform shrink-0", expanded && "rotate-90")} />
+        <span className="text-[11px] font-bold text-primary-dark/70 truncate">{node.name}</span>
+        <ChevronR size={11} className={cn("ml-auto text-primary/30 transition-transform shrink-0", expanded && "rotate-90")} />
       </button>
       <AnimatePresence>
         {expanded && (
@@ -216,7 +216,7 @@ function FolderNode({ node, depth, onSelect, selected }: { node: FolderEntry; de
                 ? <FolderNode key={i} node={child} depth={depth + 1} onSelect={onSelect} selected={selected} />
                 : <ImageThumb key={i} node={child} depth={depth + 1} onSelect={onSelect} selected={selected} />
             )}
-            {node.children.length === 0 && <p className="text-[10px] text-[#6B5E70]/25 italic py-2" style={{ paddingLeft: `${28 + depth * 16}px` }}>Sin imágenes</p>}
+            {node.children.length === 0 && <p className="text-[10px] text-primary/25 italic py-2" style={{ paddingLeft: `${28 + depth * 16}px` }}>Sin imágenes</p>}
           </motion.div>
         )}
       </AnimatePresence>
@@ -227,12 +227,12 @@ function FolderNode({ node, depth, onSelect, selected }: { node: FolderEntry; de
 function ImageThumb({ node, depth, onSelect, selected }: { node: FileEntry; depth: number; onSelect: (url: string) => void; selected: string | null }) {
   const isSelected = selected === node.url;
   return (
-    <button onClick={() => onSelect(node.url)} className={cn("flex items-center gap-3 w-full text-left rounded-lg transition-all py-2", isSelected ? "bg-[#6B5E70]/12" : "hover:bg-[#6B5E70]/5")} style={{ paddingLeft: `${12 + depth * 16}px`, paddingRight: 12 }}>
-      <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 border border-[#6B5E70]/10 bg-[#6B5E70]/5">
+    <button onClick={() => onSelect(node.url)} className={cn("flex items-center gap-3 w-full text-left rounded-lg transition-all py-2", isSelected ? "bg-primary/12" : "hover:bg-primary/5")} style={{ paddingLeft: `${12 + depth * 16}px`, paddingRight: 12 }}>
+      <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 border border-primary/10 bg-primary/5">
         <img src={node.url} alt={node.name} className="w-full h-full object-cover" loading="lazy" />
       </div>
-      <span className={cn("text-[11px] truncate flex-1", isSelected ? "font-bold text-[#6B5E70]" : "text-[#2C262E]/60")}>{node.name}</span>
-      {isSelected && <Check size={12} className="text-[#6B5E70] shrink-0" />}
+      <span className={cn("text-[11px] truncate flex-1", isSelected ? "font-bold text-primary" : "text-primary-dark/60")}>{node.name}</span>
+      {isSelected && <Check size={12} className="text-primary shrink-0" />}
     </button>
   );
 }
@@ -276,25 +276,25 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
     <AnimatePresence>
       {open && (
         <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[70] bg-[#1A1218]/50 backdrop-blur-sm" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[70] bg-primary-dark/50 backdrop-blur-sm" />
           <motion.div
             initial={{ opacity: 0, y: 32, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ type: "spring", damping: 28, stiffness: 340 }}
-            className="fixed z-[71] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[680px] bg-white rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            className="fixed z-[71] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[680px] bg-white-custom rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             style={{ maxHeight: "88vh" }}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#6B5E70]/8 shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-primary/8 shrink-0">
               <div>
-                <h3 className="text-sm font-black text-[#2C262E] uppercase tracking-tight">Explorador de imágenes</h3>
-                <p className="text-[10px] text-[#6B5E70]/40 font-bold uppercase tracking-widest mt-0.5">/public/dibujos</p>
+                <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight">Explorador de imágenes</h3>
+                <p className="text-[10px] text-primary/40 font-bold uppercase tracking-widest mt-0.5">/public/dibujos</p>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#6B5E70]/6 hover:bg-[#6B5E70]/12 flex items-center justify-center text-[#6B5E70]/50 transition-all"><X size={15} /></button>
+              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/50 transition-all"><X size={15} /></button>
             </div>
 
             <div className="flex flex-1 overflow-hidden min-h-0">
-              <div className="w-1/2 border-r border-[#6B5E70]/8 overflow-y-auto py-2">
-                {loading && <div className="flex items-center justify-center h-32 gap-2 text-[#6B5E70]/30"><Loader2 size={16} className="animate-spin" /><span className="text-[10px] font-black uppercase tracking-widest">Cargando…</span></div>}
-                {error && <div className="p-6 text-center"><p className="text-[11px] text-red-400 font-bold">{error}</p><p className="text-[10px] text-[#6B5E70]/30 mt-1">Asegurate que existe <code className="font-mono">app/api/dibujos/route.ts</code></p></div>}
-                {!loading && !error && tree.length === 0 && <p className="text-[11px] text-[#6B5E70]/30 italic text-center py-10 px-4">No hay imágenes en /public/dibujos</p>}
+              <div className="w-1/2 border-r border-primary/8 overflow-y-auto py-2">
+                {loading && <div className="flex items-center justify-center h-32 gap-2 text-primary/30"><Loader2 size={16} className="animate-spin" /><span className="text-[10px] font-black uppercase tracking-widest">Cargando…</span></div>}
+                {error && <div className="p-6 text-center"><p className="text-[11px] text-red-400 font-bold">{error}</p><p className="text-[10px] text-primary/30 mt-1">Asegurate que existe <code className="font-mono">app/api/dibujos/route.ts</code></p></div>}
+                {!loading && !error && tree.length === 0 && <p className="text-[11px] text-primary/30 italic text-center py-10 px-4">No hay imágenes en /public/dibujos</p>}
                 {!loading && !error && tree.map((node, i) =>
                   node.type === "folder"
                     ? <FolderNode key={i} node={node} depth={0} onSelect={setSelected} selected={selected} />
@@ -305,21 +305,21 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
               <div className="w-1/2 flex flex-col overflow-y-auto">
                 {selected ? (
                   <>
-                    <div className="relative bg-[#F7F3EE] shrink-0" style={{ aspectRatio: "4/3" }}>
+                    <div className="relative bg-primary/5 shrink-0" style={{ aspectRatio: "4/3" }}>
                       <img src={selected} alt="" className="w-full h-full object-contain p-4" />
                     </div>
                     <div className="p-5 flex flex-col gap-4 flex-1">
                       <div>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/30 mb-1">Ruta</p>
-                        <code className="text-[10px] text-[#6B5E70]/60 font-mono break-all bg-[#6B5E70]/5 rounded-lg px-2 py-1 block">{selected}</code>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Ruta</p>
+                        <code className="text-[10px] text-primary/60 font-mono break-all bg-primary/5 rounded-lg px-2 py-1 block">{selected}</code>
                       </div>
                       <div>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/30 mb-2">Tipo de inserción</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Tipo de inserción</p>
                         <div className="flex gap-2">
                           {([{ key: "img" as InsertMode, label: "Inline", desc: "Full-width en el texto" }, { key: "float" as InsertMode, label: "Flotante", desc: "Click en una palabra" }] as const).map(opt => (
-                            <button key={opt.key} onClick={() => setMode(opt.key)} className={cn("flex-1 py-2 px-3 rounded-xl text-left transition-all border", mode === opt.key ? "bg-[#6B5E70] border-[#6B5E70] text-white" : "border-[#6B5E70]/10 hover:bg-[#6B5E70]/5")}>
-                              <p className={cn("text-[11px] font-black uppercase tracking-widest", mode === opt.key ? "text-white" : "text-[#6B5E70]")}>{opt.label}</p>
-                              <p className={cn("text-[9px] mt-0.5", mode === opt.key ? "text-white/60" : "text-[#6B5E70]/30")}>{opt.desc}</p>
+                            <button key={opt.key} onClick={() => setMode(opt.key)} className={cn("flex-1 py-2 px-3 rounded-xl text-left transition-all border", mode === opt.key ? "bg-primary border-primary text-white" : "border-primary/10 hover:bg-primary/5")}>
+                              <p className={cn("text-[11px] font-black uppercase tracking-widest", mode === opt.key ? "text-white" : "text-primary")}>{opt.label}</p>
+                              <p className={cn("text-[9px] mt-0.5", mode === opt.key ? "text-white/60" : "text-primary/30")}>{opt.desc}</p>
                             </button>
                           ))}
                         </div>
@@ -327,18 +327,18 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
                       <AnimatePresence>
                         {mode === "float" && (
                           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                            <label className="block text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/30 mb-1.5">Palabra en el texto</label>
-                            <input value={word} onChange={e => setWord(e.target.value)} placeholder="ej: Kael, la espada, el castillo…" className="w-full px-3 py-2 rounded-xl border border-[#6B5E70]/12 bg-[#6B5E70]/3 text-sm font-serif text-[#2C262E] focus:outline-none focus:border-[#6B5E70]/30 placeholder:text-[#6B5E70]/20" />
+                            <label className="block text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Palabra en el texto</label>
+                            <input value={word} onChange={e => setWord(e.target.value)} placeholder="ej: Kael, la espada, el castillo…" className="w-full px-3 py-2 rounded-xl border border-primary/12 bg-primary/3 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/30 placeholder:text-primary/20" />
                           </motion.div>
                         )}
                       </AnimatePresence>
                       <div>
-                        <label className="block text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/30 mb-1.5">Caption <span className="font-normal opacity-50">(opcional)</span></label>
-                        <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Descripción breve…" className="w-full px-3 py-2 rounded-xl border border-[#6B5E70]/12 bg-[#6B5E70]/3 text-sm font-serif text-[#2C262E] focus:outline-none focus:border-[#6B5E70]/30 placeholder:text-[#6B5E70]/20" />
+                        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Caption <span className="font-normal opacity-50">(opcional)</span></label>
+                        <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Descripción breve…" className="w-full px-3 py-2 rounded-xl border border-primary/12 bg-primary/3 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/30 placeholder:text-primary/20" />
                       </div>
                       <div>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/30 mb-1">Resultado</p>
-                        <code className="text-[10px] text-[#6B5E70]/50 font-mono break-all bg-[#6B5E70]/5 rounded-lg px-2 py-1.5 block leading-relaxed">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Resultado</p>
+                        <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-lg px-2 py-1.5 block leading-relaxed">
                           {mode === "img" ? `[[img|${selected}${caption ? `|${caption}` : ""}]]` : `[[float|${word || "palabra"}|${selected}${caption ? `|${caption}` : ""}]]`}
                         </code>
                       </div>
@@ -346,19 +346,19 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
                   </>
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                    <Image size={32} className="text-[#6B5E70]/15 mb-3" />
-                    <p className="text-[11px] font-bold text-[#6B5E70]/30 uppercase tracking-widest">Seleccioná una imagen</p>
-                    <p className="text-[10px] text-[#6B5E70]/20 mt-1">del árbol de la izquierda</p>
+                    <Image size={32} className="text-primary/15 mb-3" />
+                    <p className="text-[11px] font-bold text-primary/30 uppercase tracking-widest">Seleccioná una imagen</p>
+                    <p className="text-[10px] text-primary/20 mt-1">del árbol de la izquierda</p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-[#6B5E70]/8 shrink-0 flex items-center justify-between gap-4">
-              <p className="text-[10px] text-[#6B5E70]/30 font-bold uppercase tracking-widest">{selected ? "Lista para insertar" : "Ninguna seleccionada"}</p>
+            <div className="px-6 py-4 border-t border-primary/8 shrink-0 flex items-center justify-between gap-4">
+              <p className="text-[10px] text-primary/30 font-bold uppercase tracking-widest">{selected ? "Lista para insertar" : "Ninguna seleccionada"}</p>
               <div className="flex items-center gap-2">
-                <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-[#6B5E70]/40 hover:bg-[#6B5E70]/5 transition-all">Cancelar</button>
-                <button onClick={handleInsert} disabled={!selected || (mode === "float" && !word.trim())} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-[#6B5E70] text-white hover:bg-[#5a4e5f] transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5">
+                <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+                <button onClick={handleInsert} disabled={!selected || (mode === "float" && !word.trim())} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-primary text-white hover:bg-[#5a4e5f] transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5">
                   <Image size={12} /> Insertar
                 </button>
               </div>
@@ -390,22 +390,22 @@ function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
   ];
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(v => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#6B5E70]/50 hover:bg-[#6B5E70]/8 hover:text-[#6B5E70] transition-all border border-dashed border-[#6B5E70]/20">
+      <button onClick={() => setOpen(v => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-dashed border-primary/20">
         ✦ Insertar <ChevronDown size={11} className={cn("transition-transform", open && "rotate-180")} />
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-96 bg-white border border-[#6B5E70]/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
+          <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-96 bg-white-custom border border-primary/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
             <div className="px-4 pt-4 pb-1">
               {bloques.map(b => { const Icon = b.icon; return (
-                <button key={b.label} onClick={() => { onInsert(b.snippet); setOpen(false); }} className="w-full text-left p-3 rounded-xl hover:bg-[#6B5E70]/5 transition-all mb-1 group">
+                <button key={b.label} onClick={() => { onInsert(b.snippet); setOpen(false); }} className="w-full text-left p-3 rounded-xl hover:bg-primary/5 transition-all mb-1 group">
                   <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full w-fit mb-1.5 ${b.badge}`}><Icon size={9} /> {b.label}</span>
-                  <p className="text-[10px] text-[#6B5E70]/40 mb-1">{b.desc}</p>
-                  <code className="text-[10px] text-[#6B5E70]/40 group-hover:text-[#6B5E70]/60 font-mono break-all block">{b.snippet}</code>
+                  <p className="text-[10px] text-primary/40 mb-1">{b.desc}</p>
+                  <code className="text-[10px] text-primary/40 group-hover:text-primary/60 font-mono break-all block">{b.snippet}</code>
                 </button>
               ); })}
             </div>
-            <p className="px-4 pb-4 text-[9px] text-[#6B5E70]/25">Clic para insertar en el cursor.</p>
+            <p className="px-4 pb-4 text-[9px] text-primary/25">Clic para insertar en el cursor.</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -454,25 +454,25 @@ function IndexPanel({
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-[60] bg-[#1A1218]/30 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] bg-primary-dark/30 backdrop-blur-sm"
           />
           {/* Drawer */}
           <motion.div
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
-            className="fixed right-0 top-0 bottom-0 z-[61] w-full max-w-sm bg-[#FDFCFD] shadow-2xl flex flex-col"
+            className="fixed right-0 top-0 bottom-0 z-[61] w-full max-w-sm bg-bg-main shadow-2xl flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#6B5E70]/8 shrink-0">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-primary/8 shrink-0">
               <div>
                 {libroTitulo && (
-                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[#6B5E70]/35 italic mb-0.5">{libroTitulo}</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 italic mb-0.5">{libroTitulo}</p>
                 )}
-                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#6B5E70] flex items-center gap-2">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
                   <List size={13} /> Índice
                 </h3>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#6B5E70]/6 hover:bg-[#6B5E70]/12 flex items-center justify-center text-[#6B5E70]/40 hover:text-[#6B5E70] transition-all">
+              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/40 hover:text-primary transition-all">
                 <X size={15} />
               </button>
             </div>
@@ -494,14 +494,14 @@ function IndexPanel({
                       className={cn(
                         "w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition-all mb-1",
                         esActual
-                          ? "bg-[#6B5E70] text-white"
-                          : "hover:bg-[#6B5E70]/6 text-[#2C262E]"
+                          ? "bg-primary text-white"
+                          : "hover:bg-primary/6 text-primary-dark"
                       )}
                     >
                       {/* Número */}
                       <span className={cn(
                         "text-[10px] font-black w-6 shrink-0 text-center tabular-nums",
-                        esActual ? "text-white/60" : "text-[#6B5E70]/40"
+                        esActual ? "text-white/60" : "text-primary/40"
                       )}>
                         {cap.orden}
                       </span>
@@ -510,13 +510,13 @@ function IndexPanel({
                       <div className="flex-1 min-w-0">
                         <span className={cn(
                           "block text-[12px] font-bold leading-snug uppercase tracking-tight truncate",
-                          esActual ? "text-white" : "text-[#2C262E]"
+                          esActual ? "text-white" : "text-primary-dark"
                         )}>
                           {cap.titulo_capitulo || `Capítulo ${cap.orden}`}
                         </span>
                         {/* Fecha solo para admin cuando está programado */}
                         {esFuturo && (
-                          <span className="text-[8px] font-black uppercase tracking-widest text-[#6B5E70]/40 mt-0.5 block">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-primary/40 mt-0.5 block">
                             Programado · {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
                           </span>
                         )}
@@ -525,7 +525,7 @@ function IndexPanel({
                       {/* Indicador derecho */}
                       {esActual
                         ? <span className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
-                        : <ChevronR size={13} className="text-[#6B5E70]/20 shrink-0" />
+                        : <ChevronR size={13} className="text-primary/20 shrink-0" />
                       }
                     </button>
                   );
@@ -549,19 +549,19 @@ function ChapterSelector({ lista, capIdActual, isAdmin, onSelect }: { lista: Cap
   const capActual = lista.find(c => c.id === capIdActual);
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(v => !v)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#6B5E70]/15 bg-[#6B5E70]/5 hover:bg-[#6B5E70]/10 transition-all text-[#6B5E70] text-[10px] font-black uppercase tracking-widest">
+      <button onClick={() => setOpen(v => !v)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-primary/15 bg-primary/5 hover:bg-primary/10 transition-all text-primary text-[10px] font-black uppercase tracking-widest">
         <BookOpen size={13} /> Cap. {capActual?.orden ?? "—"} <ChevronDown size={12} className={cn("transition-transform", open && "rotate-180")} />
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-64 bg-white border border-[#6B5E70]/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
+          <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-64 bg-white-custom border border-primary/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
             <div className="max-h-72 overflow-y-auto">
               {lista.map(cap => { const publicado = isAdmin || cap.fecha_publicacion <= hoy; const esActual = cap.id === capIdActual; return (
-                <button key={cap.id} disabled={!publicado} onClick={() => { onSelect(cap.id); setOpen(false); }} className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-all", esActual ? "bg-[#6B5E70]/8 text-[#6B5E70]" : publicado ? "hover:bg-[#6B5E70]/5 text-[#2C262E]/80" : "opacity-30 cursor-not-allowed text-[#2C262E]/40")}>
-                  <span className="text-[10px] font-black text-[#6B5E70]/40 w-6 shrink-0">{cap.orden}</span>
+                <button key={cap.id} disabled={!publicado} onClick={() => { onSelect(cap.id); setOpen(false); }} className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-all", esActual ? "bg-primary/8 text-primary" : publicado ? "hover:bg-primary/5 text-primary-dark/80" : "opacity-30 cursor-not-allowed text-primary-dark/40")}>
+                  <span className="text-[10px] font-black text-primary/40 w-6 shrink-0">{cap.orden}</span>
                   <span className="text-xs font-semibold truncate flex-1">{cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}</span>
-                  {esActual && <Check size={12} className="text-[#6B5E70] shrink-0" />}
-                  {!publicado && <span className="text-[9px] text-[#6B5E70]/30 shrink-0">{new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</span>}
+                  {esActual && <Check size={12} className="text-primary shrink-0" />}
+                  {!publicado && <span className="text-[9px] text-primary/30 shrink-0">{new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</span>}
                 </button>
               ); })}
             </div>
@@ -604,25 +604,25 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
 
   const BarContent = ({ isFocus = false }: { isFocus?: boolean }) => (
     <div className={cn("flex items-center gap-2 flex-wrap", isFocus ? "px-8 py-4" : "px-4 py-2")}>
-      <div className="flex items-center gap-1 pr-3 border-r border-[#6B5E70]/10">
-        {tools.map((t, i) => <button key={i} title={t.title} onClick={t.action} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-[#6B5E70]/60 hover:text-[#6B5E70] hover:bg-[#6B5E70]/8 transition-all font-mono">{t.label}</button>)}
+      <div className="flex items-center gap-1 pr-3 border-r border-primary/10">
+        {tools.map((t, i) => <button key={i} title={t.title} onClick={t.action} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-primary/60 hover:text-primary hover:bg-primary/8 transition-all font-mono">{t.label}</button>)}
       </div>
       <SyntaxHelper onInsert={insertAtCursor} />
-      <button onClick={() => setPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#6B5E70]/50 hover:bg-[#6B5E70]/8 hover:text-[#6B5E70] transition-all border border-[#6B5E70]/15" title="Explorador de imágenes">
+      <button onClick={() => setPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-primary/15" title="Explorador de imágenes">
         <Image size={12} /> Imágenes
       </button>
-      <button onClick={() => setSoundPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#6B5E70]/50 hover:bg-[#6B5E70]/8 hover:text-[#6B5E70] transition-all border border-[#6B5E70]/15" title="Biblioteca de sonidos">
+      <button onClick={() => setSoundPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-primary/15" title="Biblioteca de sonidos">
         <Music2 size={12} /> Sonido
       </button>
-      {!isFocus && <button onClick={() => setFocusMode(true)} className="p-1.5 rounded-lg text-[#6B5E70]/50 hover:text-[#6B5E70] hover:bg-[#6B5E70]/8 transition-all"><Maximize2 size={14} /></button>}
-      <div className="ml-auto flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/30">
+      {!isFocus && <button onClick={() => setFocusMode(true)} className="p-1.5 rounded-lg text-primary/50 hover:text-primary hover:bg-primary/8 transition-all"><Maximize2 size={14} /></button>}
+      <div className="ml-auto flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-primary/30">
         <span className="flex items-center gap-1"><Type size={10} /> {words.toLocaleString()}</span>
         <span className="flex items-center gap-1"><Clock size={10} /> ~{readMin}min</span>
       </div>
-      <div className="flex items-center gap-2 pl-3 border-l border-[#6B5E70]/10">
+      <div className="flex items-center gap-2 pl-3 border-l border-primary/10">
         <button onClick={onCancel} className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase text-red-400 hover:bg-red-50 transition-all flex items-center gap-1"><X size={12} /> Cancelar</button>
-        <button onClick={onSave} disabled={saving} className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase bg-[#6B5E70] text-white hover:bg-[#5a4e5f] transition-all flex items-center gap-1.5 disabled:opacity-50"><Save size={12} /> {saving ? "..." : "Guardar"}</button>
-        {isFocus && <button onClick={() => setFocusMode(false)} className="p-2 rounded-xl text-[#6B5E70]/50 hover:text-[#6B5E70] hover:bg-[#6B5E70]/8 transition-all"><Minimize2 size={14} /></button>}
+        <button onClick={onSave} disabled={saving} className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase bg-primary text-white hover:bg-[#5a4e5f] transition-all flex items-center gap-1.5 disabled:opacity-50"><Save size={12} /> {saving ? "..." : "Guardar"}</button>
+        {isFocus && <button onClick={() => setFocusMode(false)} className="p-2 rounded-xl text-primary/50 hover:text-primary hover:bg-primary/8 transition-all"><Minimize2 size={14} /></button>}
       </div>
     </div>
   );
@@ -631,14 +631,14 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
     <>
       <ImagePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onInsert={insertAtCursor} />
       <SoundPicker open={soundPickerOpen} onClose={() => setSoundPickerOpen(false)} onInsert={insertAtCursor} />
-      <div className="sticky top-[65px] z-40 bg-white/90 backdrop-blur-md border-b border-[#6B5E70]/8"><BarContent isFocus={false} /></div>
+      <div className="sticky top-[65px] z-40 bg-white-custom/90 backdrop-blur-md border-b border-primary/8"><BarContent isFocus={false} /></div>
       <AnimatePresence>
         {focusMode && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-[#FAF8FA] z-50 flex flex-col">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-bg-main z-50 flex flex-col">
             <ImagePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onInsert={insertAtCursor} />
-            <div className="bg-white/80 backdrop-blur-md border-b border-[#6B5E70]/8"><BarContent isFocus={true} /></div>
+            <div className="bg-white-custom/80 backdrop-blur-md border-b border-primary/8"><BarContent isFocus={true} /></div>
             <div className="flex-1 overflow-auto flex justify-center py-12 px-6">
-              <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} autoFocus className="w-full max-w-2xl bg-transparent font-serif text-xl leading-[2.2] text-[#2C262E] focus:outline-none resize-none" placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]"} />
+              <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} autoFocus className="w-full max-w-2xl bg-transparent font-serif text-xl leading-[2.2] text-primary-dark focus:outline-none resize-none" placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]"} />
             </div>
           </motion.div>
         )}
@@ -650,30 +650,30 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
 // ─── SKELETON DE CARGA ───────────────────────────────────────────────────────
 function LectorSkeleton() {
   return (
-    <div className="min-h-screen bg-[#FDFCFD] pb-24 animate-pulse">
+    <div className="min-h-screen bg-bg-main pb-24 animate-pulse">
       {/* Nav */}
-      <div className="sticky top-0 z-50 bg-[#FDFCFD]/80 backdrop-blur-md border-b border-[#6B5E70]/5 px-6 py-4">
+      <div className="sticky top-0 z-50 bg-bg-main/80 backdrop-blur-md border-b border-primary/5 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <div className="w-6 h-6 rounded-lg bg-[#6B5E70]/10" />
+          <div className="w-6 h-6 rounded-lg bg-primary/10" />
           <div className="flex flex-col items-center gap-2">
-            <div className="h-2 w-24 rounded-full bg-[#6B5E70]/10" />
-            <div className="h-6 w-32 rounded-xl bg-[#6B5E70]/10" />
+            <div className="h-2 w-24 rounded-full bg-primary/10" />
+            <div className="h-6 w-32 rounded-xl bg-primary/10" />
           </div>
-          <div className="w-6 h-6 rounded-lg bg-[#6B5E70]/10" />
+          <div className="w-6 h-6 rounded-lg bg-primary/10" />
         </div>
       </div>
       {/* Article */}
       <div className="max-w-2xl mx-auto px-6 py-12 md:py-20">
         <div className="text-center mb-12 space-y-3">
-          <div className="h-10 w-16 rounded-xl bg-[#6B5E70]/8 mx-auto" />
-          <div className="h-8 w-2/3 rounded-xl bg-[#6B5E70]/10 mx-auto" />
-          <div className="h-3 w-40 rounded-full bg-[#6B5E70]/8 mx-auto" />
+          <div className="h-10 w-16 rounded-xl bg-primary/8 mx-auto" />
+          <div className="h-8 w-2/3 rounded-xl bg-primary/10 mx-auto" />
+          <div className="h-3 w-40 rounded-full bg-primary/8 mx-auto" />
         </div>
         <div className="space-y-4">
           {[100, 85, 95, 70, 90, 60, 80, 75].map((w, i) => (
-            <div key={i} className={`h-4 rounded-full bg-[#6B5E70]/8`} style={{ width: `${w}%` }} />
+            <div key={i} className={`h-4 rounded-full bg-primary/8`} style={{ width: `${w}%` }} />
           ))}
-          <div className="h-4 w-1/2 rounded-full bg-[#6B5E70]/8" />
+          <div className="h-4 w-1/2 rounded-full bg-primary/8" />
         </div>
       </div>
     </div>
@@ -765,14 +765,14 @@ export default function Lector() {
   // ✅ Skeleton en lugar de pantalla en blanco — el contenido se muestra en su lugar
   if (loading && !capitulo) return <LectorSkeleton />;
   if (error || !capitulo) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-[#FDFCFD] text-[#6B5E70] p-6 text-center">
+    <div className="h-screen flex flex-col items-center justify-center bg-bg-main text-primary p-6 text-center">
       <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">{error || "Capítulo no encontrado"}</h2>
-      <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-[#6B5E70] pb-1">Volver al índice</button>
+      <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-primary pb-1">Volver al índice</button>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#FDFCFD] text-[#2C262E] pb-24">
+    <div className="min-h-screen bg-bg-main text-primary-dark pb-24">
       <IndexPanel
         open={showIndex}
         onClose={() => setShowIndex(false)}
@@ -782,19 +782,19 @@ export default function Lector() {
         libroTitulo={capitulo.libros?.titulo}
         onSelect={handleChapterSelect}
       />
-      <nav className="sticky top-0 z-50 bg-[#FDFCFD]/80 backdrop-blur-md border-b border-[#6B5E70]/5 px-6 py-4">
+      <nav className="sticky top-0 z-50 bg-bg-main/80 backdrop-blur-md border-b border-primary/5 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors shrink-0"><ChevronLeft size={24} /></button>
+          <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-primary/40 hover:text-primary transition-colors shrink-0"><ChevronLeft size={24} /></button>
           <div className="flex flex-col items-center gap-1 min-w-0">
-            <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-[#6B5E70]/40 leading-none truncate">{capitulo.libros?.titulo}</h2>
+            <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40 leading-none truncate">{capitulo.libros?.titulo}</h2>
             {listaCapitulos.length > 1
               ? <ChapterSelector lista={listaCapitulos} capIdActual={capId} isAdmin={isAdmin} onSelect={handleChapterSelect} />
-              : <p className="text-[11px] font-bold text-[#6B5E70] uppercase">Capítulo {capitulo.orden}</p>
+              : <p className="text-[11px] font-bold text-primary uppercase">Capítulo {capitulo.orden}</p>
             }
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {isAdmin && !editMode && <button onClick={() => setEditMode(true)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors p-1"><Edit3 size={20} /></button>}
-            <button onClick={() => setShowIndex(true)} className="text-[#6B5E70]/40 hover:text-[#6B5E70] transition-colors"><List size={24} /></button>
+            {isAdmin && !editMode && <button onClick={() => setEditMode(true)} className="text-primary/40 hover:text-primary transition-colors p-1"><Edit3 size={20} /></button>}
+            <button onClick={() => setShowIndex(true)} className="text-primary/40 hover:text-primary transition-colors"><List size={24} /></button>
           </div>
         </div>
       </nav>
@@ -812,10 +812,10 @@ export default function Lector() {
 
       <article className="max-w-2xl mx-auto px-6 py-12 md:py-20">
         <header className="mb-12 text-center">
-          <span className="text-[#6B5E70]/20 font-serif italic text-4xl block mb-2">§ {capitulo.orden}</span>
-          <h1 className="text-3xl md:text-4xl font-black text-[#6B5E70] tracking-tighter uppercase italic leading-none">{capitulo.titulo_capitulo}</h1>
+          <span className="text-primary/20 font-serif italic text-4xl block mb-2">§ {capitulo.orden}</span>
+          <h1 className="text-3xl md:text-4xl font-black text-primary tracking-tighter uppercase italic leading-none">{capitulo.titulo_capitulo}</h1>
           {!editMode && (
-            <div className="flex items-center justify-center gap-4 mt-4 text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/25">
+            <div className="flex items-center justify-center gap-4 mt-4 text-[9px] font-black uppercase tracking-widest text-primary/25">
               <span className="flex items-center gap-1"><AlignLeft size={9} /> {wordsPublicado.toLocaleString()} palabras</span>
               <span className="flex items-center gap-1"><Clock size={9} /> ~{Math.max(1, Math.round(wordsPublicado / 200))} min</span>
             </div>
@@ -827,15 +827,15 @@ export default function Lector() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 {([{ key: false, icon: Edit3, label: "Editar" }, { key: true, icon: Eye, label: "Preview" }] as const).map(({ key, icon: Icon, label }) => (
-                  <button key={String(key)} onClick={() => setPreviewMode(key as boolean)} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", previewMode === key ? "bg-[#6B5E70] text-white" : "text-[#6B5E70]/50 hover:bg-[#6B5E70]/8")}>
+                  <button key={String(key)} onClick={() => setPreviewMode(key as boolean)} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", previewMode === key ? "bg-primary text-white" : "text-primary/50 hover:bg-primary/8")}>
                     <Icon size={11} /> {label}
                   </button>
                 ))}
               </div>
               <AnimatePresence mode="wait">
                 {previewMode
-                  ? <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-[60vh] p-8 bg-white border border-[#6B5E70]/10 rounded-[2.5rem] overflow-hidden"><ContenidoInteractivo texto={nuevoContenido} /></motion.div>
-                  : <motion.textarea key="editor" ref={textareaRef as any} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} value={nuevoContenido} onChange={e => setNuevoContenido(e.target.value)} className="w-full min-h-[60vh] p-8 bg-white border border-[#6B5E70]/10 rounded-[2.5rem] font-serif text-lg leading-relaxed text-[#2C262E] focus:outline-none focus:border-[#6B5E70]/30 shadow-inner resize-none" autoFocus placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]"} />
+                  ? <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] overflow-hidden"><ContenidoInteractivo texto={nuevoContenido} /></motion.div>
+                  : <motion.textarea key="editor" ref={textareaRef as any} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} value={nuevoContenido} onChange={e => setNuevoContenido(e.target.value)} className="w-full min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] font-serif text-lg leading-relaxed text-primary-dark focus:outline-none focus:border-primary/30 shadow-inner resize-none" autoFocus placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]"} />
                 }
               </AnimatePresence>
               <div className="flex justify-end mt-3 px-2">
@@ -852,25 +852,25 @@ export default function Lector() {
         </div>
 
         {!editMode && (
-          <footer className="mt-20 pt-10 border-t border-[#6B5E70]/10 flex flex-col items-center gap-8">
-            <button onClick={() => setShowIndex(true)} className="flex items-center gap-2 text-[#6B5E70]/40 hover:text-[#6B5E70] font-black text-[10px] uppercase tracking-widest transition-all"><List size={16} /> Índice</button>
+          <footer className="mt-20 pt-10 border-t border-primary/10 flex flex-col items-center gap-8">
+            <button onClick={() => setShowIndex(true)} className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"><List size={16} /> Índice</button>
             <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
               <button
                 onClick={() => anteriorCap && router.push(`/wiki/paginas/libros/${id}/leer/${anteriorCap.id}`)}
                 disabled={!anteriorCap}
-                className={cn("p-5 rounded-2xl border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all", !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-[#6B5E70]/10 text-[#6B5E70]/60 hover:bg-[#6B5E70]/5 active:scale-95")}
+                className={cn("p-5 rounded-2xl border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all", !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-primary/10 text-primary/60 hover:bg-primary/5 active:scale-95")}
               >
                 <ChevronLeft size={14} /> Anterior
               </button>
               <button
                 onClick={() => siguienteCap ? router.push(`/wiki/paginas/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/paginas/libros/${id}`)}
-                className="p-5 rounded-2xl bg-[#6B5E70] text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg hover:shadow-[#6B5E70]/30 active:scale-95 transition-all"
+                className="p-5 rounded-2xl bg-primary text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg hover:shadow-primary/30 active:scale-95 transition-all"
               >
                 {siguienteCap ? "Siguiente" : "Finalizar"} <ChevronRight size={14} />
               </button>
             </div>
             {!isAdmin && !siguienteCap && listaCapitulos[indiceActual + 1] && (
-              <p className="text-[#6B5E70]/40 font-bold text-[10px] uppercase tracking-widest italic text-center">
+              <p className="text-primary/40 font-bold text-[10px] uppercase tracking-widest italic text-center">
                 Próximo capítulo el{" "}
                 {new Date(listaCapitulos[indiceActual + 1].fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}
               </p>

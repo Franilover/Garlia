@@ -153,7 +153,7 @@ export default function LibroDetalle() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCFD] pb-20 relative">
+    <div className="min-h-screen bg-bg-main pb-20 relative">
       <AnimatePresence>
         {(showAddModal || showEditCapModal) && (
           <div className="fixed inset-0 z-120 flex items-center justify-center p-6">
@@ -162,20 +162,20 @@ export default function LibroDetalle() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeModals}
-              className="absolute inset-0 bg-[#6B5E70]/20 backdrop-blur-sm"
+              className="absolute inset-0 bg-primary/20 backdrop-blur-sm"
             />
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-[#6B5E70]/10"
+              className="bg-white-custom w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-primary/10"
             >
-              <button onClick={closeModals} className="absolute top-8 right-8 text-[#6B5E70]/20 hover:text-[#6B5E70]">
+              <button onClick={closeModals} className="absolute top-8 right-8 text-primary/20 hover:text-primary">
                 <X size={20} />
               </button>
 
               <div className="text-center mb-8">
-                <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.3em] italic">
+                <h3 className="text-primary font-black uppercase text-[10px] tracking-[0.3em] italic">
                   {showAddModal ? "Nuevo Capítulo" : "Gestionar Capítulo"}
                 </h3>
               </div>
@@ -187,25 +187,25 @@ export default function LibroDetalle() {
                   placeholder="TÍTULO..."
                   value={showAddModal ? nuevoTitulo : editCapTitle}
                   onChange={(e) => showAddModal ? setNuevoTitulo(e.target.value) : setEditCapTitle(e.target.value)}
-                  className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-4 text-center text-sm font-black text-[#6B5E70] outline-none focus:border-[#6B5E70] uppercase"
+                  className="w-full bg-bg-main border-b-2 border-primary/10 py-4 text-center text-sm font-black text-primary outline-none focus:border-primary uppercase"
                 />
                 <div className="text-left">
-                  <label className="text-[9px] font-black text-[#6B5E70]/40 uppercase ml-2 italic">Fecha de estreno</label>
+                  <label className="text-[9px] font-black text-primary/40 uppercase ml-2 italic">Fecha de estreno</label>
                   <input
                     type="date"
                     value={showAddModal ? nuevaFecha : editCapFecha}
                     onChange={(e) => showAddModal ? setNuevaFecha(e.target.value) : setEditCapFecha(e.target.value)}
-                    className="w-full bg-[#FDFCFD] border-b-2 border-[#6B5E70]/10 py-3 text-center text-sm font-black text-[#6B5E70] outline-none"
+                    className="w-full bg-bg-main border-b-2 border-primary/10 py-3 text-center text-sm font-black text-primary outline-none"
                   />
                 </div>
 
                 {showAddModal ? (
-                  <button type="submit" disabled={procesando} className="w-full bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
+                  <button type="submit" disabled={procesando} className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
                     {procesando ? "Sellando..." : "Revelar"}
                   </button>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
-                    <button type="submit" disabled={procesando} className="bg-[#6B5E70] text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50">
+                    <button type="submit" disabled={procesando} className="bg-primary text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50">
                       <Save size={14} /> Guardar
                     </button>
                     <button type="button" onClick={deleteCapitulo} disabled={procesando} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 active:scale-95 transition-transform disabled:opacity-50">
@@ -219,27 +219,27 @@ export default function LibroDetalle() {
         )}
       </AnimatePresence>
 
-      <button onClick={() => router.push("/wiki/paginas/libros")} className="p-8 text-[#6B5E70]/40 hover:text-[#6B5E70] flex items-center gap-2 font-black text-[10px] uppercase group italic">
+      <button onClick={() => router.push("/wiki/paginas/libros")} className="p-8 text-primary/40 hover:text-primary flex items-center gap-2 font-black text-[10px] uppercase group italic">
         <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Volver
       </button>
 
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[320px_1fr] gap-16 mt-4">
         <aside>
-          <div className="aspect-3/4 rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-white relative">
+          <div className="aspect-3/4 rounded-[2.5rem] overflow-hidden shadow-2xl border border-primary/10 bg-white-custom relative">
             {loadingLibro ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                <Loader2 className="animate-spin text-[#6B5E70]/20" />
+                <Loader2 className="animate-spin text-primary/20" />
               </div>
             ) : (
               <SmartImage src={libro?.portada_url || "/placeholder-cover.jpg"} alt={libro?.titulo || "Libro"} className="w-full h-full" />
             )}
           </div>
           {!loadingLibro && libro?.fecha_proximo_capitulo && (
-            <div className="mt-8 p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/10">
-              <h4 className="text-[#6B5E70] font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
+            <div className="mt-8 p-6 bg-primary/5 rounded-[2rem] border border-primary/10">
+              <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
                 <Calendar size={12} /> Próximo Capítulo
               </h4>
-              <p className="text-[#6B5E70] font-bold text-sm">
+              <p className="text-primary font-bold text-sm">
                 {new Date(libro.fecha_proximo_capitulo).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}
               </p>
             </div>
@@ -250,26 +250,26 @@ export default function LibroDetalle() {
           <div className="mb-12">
             {loadingLibro ? (
               <div className="space-y-4">
-                <div className="h-12 w-3/4 bg-[#6B5E70]/5 animate-pulse rounded-xl" />
-                <div className="h-20 w-full bg-[#6B5E70]/5 animate-pulse rounded-xl" />
+                <div className="h-12 w-3/4 bg-primary/5 animate-pulse rounded-xl" />
+                <div className="h-20 w-full bg-primary/5 animate-pulse rounded-xl" />
               </div>
             ) : (
               <>
-                <h1 className="text-5xl font-black text-[#6B5E70] italic tracking-tighter leading-[0.9] mb-6 uppercase">
+                <h1 className="text-5xl font-black text-primary italic tracking-tighter leading-[0.9] mb-6 uppercase">
                   {libro?.titulo}
                 </h1>
-                <p className="text-[#6B5E70]/70 leading-relaxed text-lg font-medium italic">&quot;{libro?.sinopsis}&quot;</p>
+                <p className="text-primary/70 leading-relaxed text-lg font-medium italic">&quot;{libro?.sinopsis}&quot;</p>
               </>
             )}
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between mb-8 border-b border-[#6B5E70]/10 pb-4">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
+            <div className="flex items-center justify-between mb-8 border-b border-primary/10 pb-4">
+              <h3 className="text-primary font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
                 <ListOrdered size={16} /> Índice
               </h3>
               {isAdmin && (
-                <button onClick={() => setShowAddModal(true)} className="bg-[#6B5E70] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform">
+                <button onClick={() => setShowAddModal(true)} className="bg-primary text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform">
                   <Plus size={18} />
                 </button>
               )}
@@ -278,10 +278,10 @@ export default function LibroDetalle() {
             <div className="grid gap-3">
               {loadingCaps ? (
                 [1, 2, 3].map(i => (
-                  <div key={i} className="w-full h-24 bg-[#6B5E70]/5 animate-pulse rounded-3xl" />
+                  <div key={i} className="w-full h-24 bg-primary/5 animate-pulse rounded-3xl" />
                 ))
               ) : capitulos.length === 0 ? (
-                <p className="text-center text-[#6B5E70]/30 font-bold text-xs uppercase tracking-widest py-12 italic">
+                <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
                   Aún no hay capítulos publicados
                 </p>
               ) : (
@@ -289,13 +289,13 @@ export default function LibroDetalle() {
                   <button
                     key={cap.id}
                     onClick={() => router.push(`/wiki/paginas/libros/${id}/leer/${cap.id}`)}
-                    className="w-full flex items-center justify-between p-6 bg-white border border-[#6B5E70]/5 rounded-3xl hover:border-[#6B5E70]/20 transition-all text-left group"
+                    className="w-full flex items-center justify-between p-6 bg-white-custom border border-primary/5 rounded-3xl hover:border-primary/20 transition-all text-left group"
                   >
                     <div className="flex flex-col gap-1">
-                      <span className="text-[#6B5E70] font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform">
+                      <span className="text-primary font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform">
                         {cap.orden}. {cap.titulo_capitulo}
                       </span>
-                      <span className="text-[#6B5E70]/40 font-bold text-[9px] uppercase tracking-wider italic">
+                      <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
                         {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "}
                         {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
                       </span>
@@ -309,12 +309,12 @@ export default function LibroDetalle() {
                           setEditCapFecha(cap.fecha_publicacion || "");
                           setShowEditCapModal(true);
                         }}
-                        className="bg-[#6B5E70]/5 p-2 rounded-xl text-[#6B5E70] hover:bg-[#6B5E70] hover:text-white transition-colors"
+                        className="bg-primary/5 p-2 rounded-xl text-primary hover:bg-primary hover:text-white transition-colors"
                       >
                         <Edit3 size={16} />
                       </div>
                     ) : (
-                      <Play size={14} fill="currentColor" className="text-[#6B5E70]" />
+                      <Play size={14} fill="currentColor" className="text-primary" />
                     )}
                   </button>
                 ))
