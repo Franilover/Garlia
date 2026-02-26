@@ -64,8 +64,8 @@ export default function LibroDetalle() {
       .from("capitulos")
       .select("*")
       .eq("libro_id", id)
-      .not("titulo_capitulo", "like", "[Ruta]%")
       .order("orden", { ascending: true });
+    if (!admin) q = q.not("titulo_capitulo", "like", "[Ruta]%");
     if (!admin) q = q.lte("fecha_publicacion", hoy);
     const { data } = await q;
     if (data) setCapitulos(data);
@@ -82,7 +82,7 @@ export default function LibroDetalle() {
     Promise.all([
       supabase.auth.getSession(),
       supabase.from("libros").select("*").eq("id", id).single(),
-      supabase.from("capitulos").select("*").eq("libro_id", id).not("titulo_capitulo", "like", "[Ruta]%").order("orden", { ascending: true }),
+      supabase.from("capitulos").select("*").eq("libro_id", id).order("orden", { ascending: true }),
       supabase.from("capitulos").select("*").eq("libro_id", id).lte("fecha_publicacion", hoy).not("titulo_capitulo", "like", "[Ruta]%").order("orden", { ascending: true }),
     ]).then(([authRes, libroRes, capsAll, capsPublic]) => {
       const admin = !!authRes.data.session;
@@ -286,15 +286,20 @@ export default function LibroDetalle() {
                   Aún no hay capítulos publicados
                 </p>
               ) : (
-                capitulos.map((cap) => (
+                capitulos.map((cap) => {
+                  const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
+                  return (
                   <button
                     key={cap.id}
                     onClick={() => router.push(`/wiki/paginas/libros/${id}/leer/${cap.id}`)}
-                    className="w-full flex items-center justify-between p-6 bg-white-custom border border-primary/5 rounded-3xl hover:border-primary/20 transition-all text-left group"
+                    className={`w-full flex items-center justify-between p-6 border rounded-3xl hover:border-primary/20 transition-all text-left group ${esRuta ? "bg-blue-50/60 border-blue-100" : "bg-white-custom border-primary/5"}`}
                   >
                     <div className="flex flex-col gap-1">
+                      {esRuta && (
+                        <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>
+                      )}
                       <span className="text-primary font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform">
-                        {cap.orden}. {cap.titulo_capitulo}
+                        {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
                       </span>
                       <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
                         {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "}
@@ -318,7 +323,8 @@ export default function LibroDetalle() {
                       <Play size={14} fill="currentColor" className="text-primary" />
                     )}
                   </button>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

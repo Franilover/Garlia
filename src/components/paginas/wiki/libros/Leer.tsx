@@ -30,7 +30,25 @@ type Segment =
   | { type: "sound"; url: string; volume: number }
   | { type: "drop"; word: string; entidadTipo: "item" | "criatura"; entidadId: string; entidadNombre: string }
   | { type: "choice"; label: string; target: string }
-  | { type: "use"; word: string; itemId: string; targetSuccess: string; targetFail?: string };
+  | { type: "use"; word: string; itemId: string; targetSuccess: string; targetFail?: string }
+  | { type: "section"; id: string; label?: string };
+
+// ─── PARSER DE SECCIONES ─────────────────────────────────────────────────────
+type SectionMap = Record<string, Segment[]>;
+
+function parseSections(segs: Segment[]): SectionMap {
+  const map: SectionMap = { "": [] };
+  let current = "";
+  for (const seg of segs) {
+    if (seg.type === "section") {
+      current = seg.id;
+      if (!map[current]) map[current] = [];
+    } else {
+      map[current].push(seg);
+    }
+  }
+  return map;
+}
 
 function parseContenido(texto: string): Segment[] {
   const regex = /\[\[(\w+)\|([^\]]+)\]\]/g;
@@ -52,6 +70,7 @@ function parseContenido(texto: string): Segment[] {
       entidadNombre: parts[3] ?? parts[0],
     });
     else if (kind === "choice") segs.push({ type: "choice", label: parts[0], target: parts[1] });
+    else if (kind === "section") segs.push({ type: "section", id: parts[0], label: parts[1] });
     else if (kind === "use") segs.push({ 
       type: "use", 
       word: parts[0], 
@@ -228,21 +247,97 @@ function UseWord({ word, itemId, targetSuccess, targetFail, onNavigate }: { word
   );
 }
 
-function ContenidoInteractivo({ texto, onNavigate }: { texto: string; onNavigate: (capId: string) => void }) {
-  const segs = parseContenido(texto);
+// ─── RENDERIZADOR DE SEGMENTOS ───────────────────────────────────────────────
+function RenderSegmentos({ segs, onNavigate, isFirst = false }: {
+  segs: Segment[]; onNavigate: (id: string) => void; isFirst?: boolean;
+}) {
   return (
-    <div className="text-lg md:text-xl leading-[2.2] text-primary-dark/90 font-serif">
+    <>
       {segs.map((seg, i) => {
-        if (seg.type === "text")  return <span key={i} className={cn("whitespace-pre-line", i === 0 && "first-letter:text-7xl first-letter:font-black first-letter:text-primary first-letter:mr-4 first-letter:float-left first-letter:mt-3")}>{seg.value}</span>;
-        if (seg.type === "cita")  return <CitaVisual key={i} content={seg.content} />;
-        if (seg.type === "img")   return <ImgInline key={i} url={seg.url} caption={seg.caption} />;
-        if (seg.type === "float") return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
-        if (seg.type === "sound") return <SoundInline key={i} url={seg.url} volume={seg.volume} />;
-        if (seg.type === "drop")  return <DropWord key={i} word={seg.word} tipo={seg.entidadTipo} entidadId={seg.entidadId} entidadNombre={seg.entidadNombre} />;
+        const firstText = isFirst && i === 0;
+        if (seg.type === "text")   return <span key={i} className={cn("whitespace-pre-line", firstText && "first-letter:text-7xl first-letter:font-black first-letter:text-primary first-letter:mr-4 first-letter:float-left first-letter:mt-3")}>{seg.value}</span>;
+        if (seg.type === "cita")   return <CitaVisual key={i} content={seg.content} />;
+        if (seg.type === "img")    return <ImgInline key={i} url={seg.url} caption={seg.caption} />;
+        if (seg.type === "float")  return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
+        if (seg.type === "sound")  return <SoundInline key={i} url={seg.url} volume={seg.volume} />;
+        if (seg.type === "drop")   return <DropWord key={i} word={seg.word} tipo={seg.entidadTipo} entidadId={seg.entidadId} entidadNombre={seg.entidadNombre} />;
         if (seg.type === "choice") return <ChoiceButton key={i} label={seg.label} onSelect={() => onNavigate(seg.target)} />;
-        if (seg.type === "use")   return <UseWord key={i} word={seg.word} itemId={seg.itemId} targetSuccess={seg.targetSuccess} targetFail={seg.targetFail} onNavigate={onNavigate} />;
+        if (seg.type === "use")    return <UseWord key={i} word={seg.word} itemId={seg.itemId} targetSuccess={seg.targetSuccess} targetFail={seg.targetFail} onNavigate={onNavigate} />;
         return null;
       })}
+    </>
+  );
+}
+
+function ContenidoInteractivo({ texto, onNavigate }: { texto: string; onNavigate: (capId: string) => void }) {
+  const allSegs      = parseContenido(texto);
+  const sectionMap   = parseSections(allSegs);
+  const hasSections  = Object.keys(sectionMap).length > 1; // hay al menos una [[section]]
+
+  // historial de secciones visitadas: empieza en la raíz ""
+  const [history, setHistory] = useState<string[]>([""]);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  // Resetear al cambiar de capítulo
+  useEffect(() => { setHistory([""]); }, [texto]);
+
+  const handleNavigate = (target: string) => {
+    // Si el target existe como sección local, navegar dentro
+    if (hasSections && sectionMap[target] !== undefined) {
+      setHistory(prev => [...prev, target]);
+      setTimeout(() => sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    } else {
+      // Es un capítulo externo → delegar al padre
+      onNavigate(target);
+    }
+  };
+
+  const handleBack = () => setHistory(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
+
+  const currentId   = history[history.length - 1];
+  const currentSegs = sectionMap[currentId] ?? sectionMap[""] ?? [];
+  const canGoBack   = history.length > 1;
+
+  return (
+    <div className="text-lg md:text-xl leading-[2.2] text-primary-dark/90 font-serif">
+      {/* Texto raíz — siempre visible */}
+      <RenderSegmentos segs={sectionMap[""]} onNavigate={handleNavigate} isFirst />
+
+      {/* Sección activa — con fade */}
+      <AnimatePresence mode="wait">
+        {currentId !== "" && (
+          <motion.div
+            key={currentId}
+            ref={sectionRef}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="mt-2"
+          >
+            {/* Separador visual + breadcrumb */}
+            <div className="flex items-center gap-3 my-8">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+              <div className="flex items-center gap-2">
+                {canGoBack && (
+                  <button
+                    onClick={handleBack}
+                    className="text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors flex items-center gap-1"
+                  >
+                    <ChevronLeft size={10} /> volver
+                  </button>
+                )}
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary/20 italic">
+                  {history.filter(h => h !== "").join(" › ")}
+                </span>
+              </div>
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+            </div>
+
+            <RenderSegmentos segs={currentSegs} onNavigate={handleNavigate} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -424,13 +519,14 @@ function useTextStats(text: string) {
   return { words, readMin: Math.max(1, Math.round(words / 200)) };
 }
 
-function SyntaxHelper({ onInsert, onOpenCita, onOpenImg, onOpenDrop, onOpenChoice, onOpenUse }: {
+function SyntaxHelper({ onInsert, onOpenCita, onOpenImg, onOpenDrop, onOpenChoice, onOpenUse, onOpenSection }: {
   onInsert: (s: string) => void;
   onOpenCita: () => void;
   onOpenImg: () => void;
   onOpenDrop: () => void;
   onOpenChoice: () => void;
   onOpenUse: () => void;
+  onOpenSection: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -445,6 +541,7 @@ function SyntaxHelper({ onInsert, onOpenCita, onOpenImg, onOpenDrop, onOpenChoic
     { label: "Drop (easter egg)", icon: Sword,             badge: "bg-amber-50 text-amber-600",       desc: "Otorga un item o criatura al lector.",        action: onOpenDrop,   gui: true },
     { label: "Botón Decisión",    icon: GitMerge,          badge: "bg-blue-100 text-blue-700",        desc: "Genera capítulo nuevo y lo enlaza.",          action: onOpenChoice, gui: true },
     { label: "Usar Ítem",         icon: MousePointerClick, badge: "bg-rose-100 text-rose-700",        desc: "Requiere un ítem del inventario para avanzar.", action: onOpenUse,  gui: true },
+    { label: "Sección / Rama",    icon: GitMerge,          badge: "bg-violet-100 text-violet-700",    desc: "Divide el capítulo en ramas sin crear nuevos caps.", action: onOpenSection, gui: true },
   ];
 
   return (
@@ -472,6 +569,73 @@ function SyntaxHelper({ onInsert, onOpenCita, onOpenImg, onOpenDrop, onOpenChoic
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ─── MODAL GUI: SECCIÓN ─────────────────────────────────────────────────────
+function SectionModal({ open, onClose, onInsert }: { open: boolean; onClose: () => void; onInsert: (s: string) => void }) {
+  const [sectionId, setSectionId] = useState("");
+  const [label, setLabel]         = useState("");
+  useEffect(() => { if (open) { setSectionId(""); setLabel(""); } }, [open]);
+  if (!open) return null;
+
+  // slug automático desde el label
+  const autoId = sectionId || label.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  const snippet = `[[section|${autoId}${label ? `|${label}` : ""}]]`;
+
+  const handleInsert = () => {
+    if (!autoId) return;
+    onInsert(snippet);
+    onClose();
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
+        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
+          <GitMerge size={16} className="text-violet-500" /> Nueva Sección
+        </h3>
+        <p className="text-[10px] text-primary/40 mb-5">
+          Divide el capítulo en ramas. Usa <code className="font-mono bg-primary/8 px-1 rounded">[[choice|Texto|id]]</code> para que el lector elija y aterrice aquí.
+        </p>
+
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Nombre visible <span className="font-normal opacity-50">(opcional)</span></label>
+        <input value={label} onChange={e => setLabel(e.target.value)} placeholder="ej: Abrir el cofre"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
+
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">ID de la sección <span className="font-normal opacity-50">(debe coincidir con el target del choice)</span></label>
+        <input value={sectionId} onChange={e => setSectionId(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+          placeholder={autoId || "ej: cofre"}
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
+          onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
+        />
+
+        <div className="mb-4 p-3 bg-violet-50 rounded-xl border border-violet-100">
+          <p className="text-[9px] font-black uppercase tracking-widest text-violet-400 mb-1">Snippet que se insertará</p>
+          <code className="text-[11px] text-violet-600 font-mono">{snippet}</code>
+        </div>
+
+        <div className="p-3 bg-primary/4 rounded-xl mb-4">
+          <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Ejemplo de uso completo</p>
+          <code className="text-[10px] text-primary/40 font-mono leading-relaxed block whitespace-pre">{`[[choice|Abrir el cofre|${autoId || "cofre"}]]
+[[choice|Ignorarlo|seguir]]
+
+[[section|${autoId || "cofre"}|Abrir el cofre]]
+Encontraste una espada...
+
+[[section|seguir|Ignorarlo]]
+Decidiste seguir adelante...`}</code>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleInsert} disabled={!autoId} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-violet-600 text-white hover:bg-violet-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
+            <GitMerge size={12} /> Insertar Sección
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -763,6 +927,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
   const [nodeCreatorOpen, setNodeCreatorOpen] = useState(false);
   const [citaModalOpen, setCitaModalOpen] = useState(false);
   const [useModalOpen, setUseModalOpen] = useState(false);
+  const [sectionModalOpen, setSectionModalOpen] = useState(false);
 
   const insertAtCursor = useCallback((snippet: string) => {
     const el = textareaRef.current;
@@ -800,6 +965,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
         onOpenDrop={() => setDropPickerOpen(true)}
         onOpenChoice={() => setNodeCreatorOpen(true)}
         onOpenUse={() => setUseModalOpen(true)}
+        onOpenSection={() => setSectionModalOpen(true)}
       />
       
 
@@ -833,6 +999,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
       <EntidadPicker open={dropPickerOpen} onClose={() => setDropPickerOpen(false)} onInsert={insertAtCursor} />
       <CitaModal open={citaModalOpen} onClose={() => setCitaModalOpen(false)} onInsert={insertAtCursor} />
       <UseModal open={useModalOpen} onClose={() => setUseModalOpen(false)} onInsert={insertAtCursor} listaCapitulos={listaCapitulos} />
+      <SectionModal open={sectionModalOpen} onClose={() => setSectionModalOpen(false)} onInsert={insertAtCursor} />
       <div className="sticky top-[65px] z-40 bg-white-custom/90 backdrop-blur-md border-b border-primary/8"><BarContent isFocus={false} /></div>
       <AnimatePresence>
         {focusMode && (
