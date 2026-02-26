@@ -1,8 +1,4 @@
 "use client";
-/**
- * ARCHIVO: app/personal/page.tsx
- * Corregido comparando con la versión funcional anterior.
- */
 import Personal from "@/components/paginas/personal/personal";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { LoadingState } from "@/components/shared/feedback/StateComponents";
@@ -12,44 +8,37 @@ import { useAuth } from "@/components/providers/AuthProvider";
 export default function Page() {
   const { perfil: authPerfil } = useAuth() as { perfil: any };
 
-  // Volvemos a la selección simple que funcionaba, pero incluyendo los nuevos campos
+  // 💡 HE CORREGIDO EL SELECT: 
+  // Eliminamos los campos internos de descubrimientos momentáneamente 
+  // para verificar qué relación está fallando.
   const { data: perfiles, loading, error } = useSupabaseData("perfiles", {
     select: `
       username, 
       status, 
       avatar_url,
-      descubrimientos(
-        tipo,
-        entidad_id,
-        fecha_descubrimiento
-      ), 
-      inventario_usuario(
+      descubrimientos ( * ),
+      inventario_usuario (
         equipado, 
-        items(id, nombre, categoria, imagen_url)
+        items ( * )
       )
     `
   });
 
-  // COMPARACIÓN CRÍTICA: 
-  // Forzamos que tanto el nombre de la DB como el de Auth sean idénticos para el filtro
   const perfil = perfiles?.find(
-    p => p.username?.toString().toLowerCase().trim() === authPerfil?.username?.toString().toLowerCase().trim()
+    p => p.username?.toLowerCase().trim() === authPerfil?.username?.toLowerCase().trim()
   );
 
   if (loading) return <LoadingState mensaje={getMensaje("LOADING", "perfiles")} />;
   
   if (error || !perfil) {
-    // Si llegas aquí, imprime en consola para ver qué nombres están llegando realmente
-    console.log("Auth User:", authPerfil?.username);
-    console.log("DB Users:", perfiles?.map(p => p.username));
-    
+    console.log("Error detectado:", error); // Esto nos dirá qué columna falla
     return (
       <main className="min-h-screen pt-32 flex flex-col items-center justify-center bg-bg-main px-4">
         <div className="text-primary/50 font-black uppercase text-[10px] tracking-widest text-center">
-          "Perfil no encontrado o error de conexión"
+          "{error ? "Error de Base de Datos" : "Perfil no encontrado"}"
         </div>
         <p className="text-[9px] text-primary/20 uppercase font-bold mt-2">
-          User: {authPerfil?.username || "No detectado"}
+          User logueado: {authPerfil?.username || "Cargando..."}
         </p>
       </main>
     );
