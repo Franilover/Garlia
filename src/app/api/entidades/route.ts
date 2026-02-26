@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   const tipo = searchParams.get("tipo");
 
   try {
-    // 💡 Consultas optimizadas con las columnas que sí existen en tu DB
+    // 💡 Consultas en paralelo con las columnas reales de tu DB
     const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
       (!tipo || tipo === "item")
         ? supabase.from("items").select("id, nombre, categoria, imagen_url").order("nombre")
@@ -25,15 +25,14 @@ export async function GET(req: Request) {
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-    // Verificamos errores específicos
-    if (itemsRes.error) throw new Error(`Error en tabla 'items': ${itemsRes.error.message}`);
-    if (criaturasRes.error) throw new Error(`Error en tabla 'criaturas': ${criaturasRes.error.message}`);
-    if (personajesRes.error) throw new Error(`Error en tabla 'personajes': ${personajesRes.error.message}`);
+    // Verificamos si alguna tabla dio error
+    if (itemsRes.error) throw new Error(`Error en 'items': ${itemsRes.error.message}`);
+    if (criaturasRes.error) throw new Error(`Error en 'criaturas': ${criaturasRes.error.message}`);
+    if (personajesRes.error) throw new Error(`Error en 'personajes': ${personajesRes.error.message}`);
 
+    // 🔥 LA CLAVE: El Picker espera que todo esté dentro de "data"
     return NextResponse.json({
       ok: true,
-      // ⚠️ IMPORTANTE: El Picker busca "data.items", "data.criaturas", etc.
-      // Envolvemos todo en un objeto "data" para que coincida con el .then(d => d.data)
       data: {
         items: itemsRes.data ?? [],
         criaturas: criaturasRes.data ?? [],
