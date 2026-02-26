@@ -248,7 +248,7 @@ const Navbar = () => {
       </div>
 
       {userMenuOpen && (
-        <div className="fixed inset-0 z-[999] bg-primary/5 backdrop-blur-[2px]" onClick={closeAll} />
+        <div className="fixed inset-0 z-[101] bg-primary/5" onClick={closeAll} />
       )}
     </>
   );
