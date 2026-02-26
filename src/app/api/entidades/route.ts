@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! 
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // service role para leer sin RLS
 );
 
 export async function GET(req: Request) {
@@ -17,9 +17,9 @@ export async function GET(req: Request) {
         ? supabase.from("items").select("id, nombre, categoria, descripcion, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "criatura")
-        ? supabase.from("criaturas").select("id, nombre, habitat, alma, descripcion, imagen_url").order("nombre")
+        ? supabase.from("criaturas").select("id, nombre, habitat, descripcion, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
-      (!tipo || tipo === "personaje") // 👈 Nueva consulta para personajes
+      (!tipo || tipo === "personaje")
         ? supabase.from("personajes").select("id, nombre, ocupacion, descripcion, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
     ]);
@@ -32,10 +32,10 @@ export async function GET(req: Request) {
       ok: true,
       items: itemsRes.data ?? [],
       criaturas: criaturasRes.data ?? [],
-      personajes: personajesRes.data ?? [], // 👈 Enviamos los personajes al frontend
+      personajes: personajesRes.data ?? [], // 👈 Añadido
     });
   } catch (err) {
     console.error("[entidades API]", err);
-    return NextResponse.json({ ok: false, items: [], criaturas: [], personajes: [], error: String(err) }, { status: 500 });
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }
