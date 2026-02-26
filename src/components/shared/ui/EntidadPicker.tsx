@@ -34,13 +34,12 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
     setSelected(null); setQuery(""); setPalabra("");
     setLoading(true); setError(null);
 
-    // Llamada a la API que consulta las entidades
     fetch(`/api/entidades?tipo=${tipoFijo ?? ""}`)
       .then(r => r.json())
       .then(d => {
         if (!d.ok) throw new Error(d.error);
         
-        // Mapeo defensivo: Si la columna no existe, usamos fallbacks para no romper el render
+        // Mapeo de Items (usan imagen_url)
         const items = (d.data?.items ?? []).map((x: any) => ({
           id: x.id, 
           nombre: x.nombre, 
@@ -50,29 +49,31 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
           descripcion: x.descripcion
         }));
         
+        // Mapeo de Criaturas (usan img_url en DB)
         const criaturas = (d.data?.criaturas ?? []).map((x: any) => ({
           id: x.id, 
           nombre: x.nombre, 
           tipo: "criatura" as const,
           subtipo: x.habitat || "Criatura",
-          imagen_url: x.imagen_url,
-          descripcion: x.descripcion
+          imagen_url: x.img_url || x.imagen_url, // 🔥 Fallback para ambos nombres
+          descripcion: x.descripcion || x.sobre
         }));
 
+        // Mapeo de Personajes (usan img_url en DB)
         const personajes = (d.data?.personajes ?? []).map((x: any) => ({
           id: x.id, 
           nombre: x.nombre, 
           tipo: "personaje" as const,
           subtipo: x.ocupacion || (x.visible ? "Poblador" : "Misterioso"),
-          imagen_url: x.imagen_url,
-          descripcion: x.descripcion
+          imagen_url: x.img_url || x.imagen_url, // 🔥 Fallback para ambos nombres
+          descripcion: x.descripcion || x.sobre
         }));
 
         setEntidades([...items, ...criaturas, ...personajes]);
       })
       .catch(e => {
         console.error("Error en Picker:", e);
-        setError("Error de consistencia en base de datos");
+        setError("Error al cargar entidades");
       })
       .finally(() => setLoading(false));
   }, [open, tipoFijo]);
@@ -83,7 +84,6 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
 
   const handleInsert = () => {
     if (!selected || !palabra.trim()) return;
-    // Formato del snippet: [[drop|palabra|tipo|id|Nombre]]
     const snippet = `[[drop|${palabra.trim()}|${selected.tipo}|${selected.id}|${selected.nombre}]]`;
     onInsert(snippet);
     onClose();
@@ -115,7 +115,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
             </div>
 
             <div className="flex flex-1 overflow-hidden min-h-0">
-              {/* Panel izquierdo */}
+              {/* Panel izquierdo: Lista */}
               <div className="w-1/2 border-r border-primary/8 flex flex-col">
                 <div className="flex border-b border-primary/8 shrink-0">
                   {(["item", "criatura", "personaje"] as const).map(t => (
@@ -144,10 +144,14 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
                     <div className="flex items-center justify-center h-24 gap-2 text-primary/30"><Loader2 size={14} className="animate-spin" /><span className="text-[10px] font-black uppercase">Cargando…</span></div>
                   ) : error ? (
                     <div className="p-4 text-center text-[9px] text-red-400 font-bold uppercase italic leading-tight">{error}</div>
+                  ) : lista.length === 0 ? (
+                    <div className="p-8 text-center text-[9px] text-primary/20 font-black uppercase tracking-widest">Sin resultados</div>
                   ) : lista.map(e => (
                     <button key={e.id} onClick={() => setSelected(e)} className={cn("w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all", selected?.id === e.id ? "bg-primary/10 shadow-inner" : "hover:bg-primary/5")}>
                       <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-primary/10 bg-primary/5 flex items-center justify-center">
-                        {e.imagen_url ? <img src={e.imagen_url} className="w-full h-full object-cover" /> : getIcon(e.tipo)}
+                        {e.imagen_url ? (
+                          <img src={e.imagen_url} className="w-full h-full object-cover" alt={e.nombre} />
+                        ) : getIcon(e.tipo)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={cn("text-[11px] font-bold truncate", selected?.id === e.id ? "text-primary" : "text-primary-dark")}>{e.nombre}</p>
@@ -158,13 +162,13 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
                 </div>
               </div>
 
-              {/* Panel derecho */}
+              {/* Panel derecho: Configuración */}
               <div className="w-1/2 flex flex-col overflow-y-auto bg-primary/[0.01]">
                 {selected ? (
                   <div className="p-5 flex flex-col gap-5 flex-1">
                     <div className="flex items-center gap-3 p-3 bg-white border border-primary/8 rounded-2xl shadow-sm">
                       <div className="w-12 h-12 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center shrink-0">
-                        {selected.imagen_url ? <img src={selected.imagen_url} className="w-full h-full object-cover" /> : getIcon(selected.tipo, 16)}
+                        {selected.imagen_url ? <img src={selected.imagen_url} className="w-full h-full object-cover" alt="" /> : getIcon(selected.tipo, 16)}
                       </div>
                       <div>
                         <p className="text-[11px] font-black text-primary uppercase tracking-tight">{selected.nombre}</p>
@@ -173,7 +177,12 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
                     </div>
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-primary/40 uppercase tracking-widest ml-1">Palabra en el texto</label>
-                      <input value={palabra} onChange={e => setPalabra(e.target.value)} placeholder="Ej: la espada antigua..." className="w-full px-4 py-3 rounded-xl border border-primary/12 text-sm focus:outline-none focus:border-primary/30 transition-all bg-white shadow-sm" />
+                      <input 
+                        value={palabra} 
+                        onChange={e => setPalabra(e.target.value)} 
+                        placeholder="Ej: la espada antigua..." 
+                        className="w-full px-4 py-3 rounded-xl border border-primary/12 text-sm focus:outline-none focus:border-primary/30 transition-all bg-white shadow-sm" 
+                      />
                     </div>
                   </div>
                 ) : (

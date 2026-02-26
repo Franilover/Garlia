@@ -11,25 +11,18 @@ export async function GET(req: Request) {
   const tipo = searchParams.get("tipo");
 
   try {
-    // 1. Ejecutamos las consultas en paralelo
     const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
       (!tipo || tipo === "item")
         ? supabase.from("items").select("id, nombre, categoria, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "criatura")
-        ? supabase.from("criaturas").select("id, nombre, habitat, img_url").order("nombre")
+        ? supabase.from("criaturas").select("id, nombre, img_url").order("nombre") // Solo columnas seguras
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "personaje")
         ? supabase.from("personajes").select("id, nombre, img_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-    // 2. Logs de control en la consola de Vercel
-    if (itemsRes.error) console.error("Error Items:", itemsRes.error.message);
-    if (criaturasRes.error) console.error("Error Criaturas:", criaturasRes.error.message);
-    if (personajesRes.error) console.error("Error Personajes:", personajesRes.error.message);
-
-    // 3. Formateo de los datos para el componente EntidadPicker
     const data = {
       items: (itemsRes.data || []).map((i: any) => ({
         ...i,
@@ -37,31 +30,18 @@ export async function GET(req: Request) {
       })),
       criaturas: (criaturasRes.data || []).map((c: any) => ({
         ...c,
-        imagen_url: c.img_url, // 👈 Importante: mapeamos img_url a imagen_url
+        imagen_url: c.img_url, // Normalizamos para el Picker
         tipo: "criatura"
       })),
       personajes: (personajesRes.data || []).map((p: any) => ({
         ...p,
-        imagen_url: p.img_url, // 👈 Importante: mapeamos img_url a imagen_url
+        imagen_url: p.img_url, // Normalizamos para el Picker
         tipo: "personaje"
       }))
     };
 
-    // 4. Retorno de la respuesta exitosa
-    return NextResponse.json({
-      ok: true,
-      data: data
-    });
-
+    return NextResponse.json({ ok: true, data });
   } catch (err: any) {
-    console.error("DETALLE DEL ERROR:", err.message);
-    return NextResponse.json(
-      { 
-        ok: false, 
-        error: "Error de consistencia en base de datos", 
-        detalle: err.message 
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
 }
