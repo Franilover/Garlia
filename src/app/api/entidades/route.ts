@@ -1,34 +1,34 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// Usamos Service Role para asegurar lectura si hay RLS restrictivas
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Service role para saltar el RLS si es necesario
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const tipo = searchParams.get("tipo"); 
+  const tipo = searchParams.get("tipo");
 
   try {
-    // 💡 IMPORTANTE: Si la columna imagen_url te dio error antes, 
-    // asegúrate de que se llame así en todas las tablas.
+    // 💡 He ajustado los .select() basándome en tus archivos .ts reales
     const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
       (!tipo || tipo === "item")
-        ? supabase.from("items").select("id, nombre, categoria, descripcion").order("nombre")
+        ? supabase.from("items").select("id, nombre, categoria").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "criatura")
-        ? supabase.from("criaturas").select("id, nombre, habitat, descripcion").order("nombre")
+        ? supabase.from("criaturas").select("id, nombre, habitat").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "personaje")
-        ? supabase.from("personajes").select("id, nombre, ocupacion, descripcion").order("nombre")
+        ? supabase.from("personajes").select("id, nombre, visible").order("nombre")
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-    // Verificación de errores individual
-    if (itemsRes.error) throw new Error(`Error en Items: ${itemsRes.error.message}`);
-    if (criaturasRes.error) throw new Error(`Error en Criaturas: ${criaturasRes.error.message}`);
-    if (personajesRes.error) throw new Error(`Error en Personajes: ${personajesRes.error.message}`);
+    // Verificamos cuál falló específicamente para darte un error claro
+    if (itemsRes.error) throw new Error(`Error en tabla 'items': ${itemsRes.error.message}`);
+    if (criaturasRes.error) throw new Error(`Error en tabla 'criaturas': ${criaturasRes.error.message}`);
+    if (personajesRes.error) throw new Error(`Error en tabla 'personajes': ${personajesRes.error.message}`);
 
     return NextResponse.json({
       ok: true,
@@ -37,18 +37,22 @@ export async function GET(req: Request) {
         criaturas: criaturasRes.data ?? [],
         personajes: personajesRes.data ?? [],
       },
-      // 💡 También devolvemos una lista plana por si el componente la necesita
+      // Lista plana para buscadores globales
       all: [
-        ...(itemsRes.data?.map(i => ({ ...i, tipo: "item" })) || []),
-        ...(criaturasRes.data?.map(c => ({ ...c, tipo: "criatura" })) || []),
-        ...(personajesRes.data?.map(p => ({ ...p, tipo: "personaje" })) || []),
+        ...(itemsRes.data?.map((i: any) => ({ ...i, tipo: "item" })) || []),
+        ...(criaturasRes.data?.map((c: any) => ({ ...c, tipo: "criatura" })) || []),
+        ...(personajesRes.data?.map((p: any) => ({ ...p, tipo: "personaje" })) || []),
       ]
     });
 
   } catch (err: any) {
-    console.error("[entidades API]", err.message);
+    console.error("[entidades API Error]:", err.message);
     return NextResponse.json(
-      { ok: false, error: err.message }, 
+      { 
+        ok: false, 
+        error: "Error de consistencia en base de datos",
+        detalle: err.message 
+      }, 
       { status: 500 }
     );
   }
