@@ -75,7 +75,7 @@ const Navbar = () => {
         onClick={() => user ? setUserMenuOpen(!userMenuOpen) : window.location.href = "/auth/login"}
         className={cn(
           "p-3 rounded-full transition-all duration-300 shadow-lg",
-          userMenuOpen ? "bg-white text-primary scale-110" : "bg-primary text-white shadow-primary/30"
+          userMenuOpen ? "bg-white-custom text-primary-dark scale-110" : "bg-primary text-white shadow-primary/30"
         )}
       >
         <Flower2 size={24} strokeWidth={2.5} />
@@ -107,7 +107,7 @@ const Navbar = () => {
               href="/personal"
               className={cn(
                 "px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl",
-                isPersonal ? "bg-white text-primary shadow-sm" : "text-primary/40 hover:text-primary"
+                isPersonal ? "bg-white-custom text-primary dark:text-primary-dark shadow-sm" : "text-primary/40 hover:text-primary"
               )}
             >
               Personal
@@ -116,7 +116,7 @@ const Navbar = () => {
               href="/wiki"
               className={cn(
                 "px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl",
-                isWiki ? "bg-white text-primary shadow-sm" : "text-primary/40 hover:text-primary"
+                isWiki ? "bg-white-custom text-primary dark:text-primary-dark shadow-sm" : "text-primary/40 hover:text-primary"
               )}
             >
               Wiki
@@ -159,7 +159,7 @@ const Navbar = () => {
                   {userMenuOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                      className="absolute top-full right-0 mt-3 w-48 bg-white border border-primary/10 rounded-2xl shadow-xl p-2 z-[1001]"
+                      className="absolute top-full right-0 mt-3 w-48 bg-white-custom border border-primary/10 rounded-2xl shadow-xl p-2 z-[1001]"
                     >
                       <Link href="/wiki/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
                         <Sword size={14} /> Mi Personaje
@@ -195,7 +195,7 @@ const Navbar = () => {
           {userMenuOpen && user && (
             <motion.div
               initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 15 }}
-              className="absolute bottom-16 left-4 right-4 bg-white border border-primary/10 rounded-[40px] p-4 shadow-2xl flex flex-col gap-2 z-[1001]"
+              className="absolute bottom-16 left-4 right-4 bg-white-custom border border-primary/10 rounded-[40px] p-4 shadow-2xl flex flex-col gap-2 z-[1001]"
             >
               <div className="text-center mb-2">
                 <p className="text-[9px] font-black text-primary/20 uppercase tracking-widest">
