@@ -19,7 +19,7 @@ export async function GET(req: Request) {
         ? supabase.from("items").select("id, nombre, categoria, descripcion, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "criatura")
-        ? supabase.from("criaturas").select("id, nombre, tipo, descripcion, imagen_url").order("nombre")
+        ? supabase.from("criaturas").select("id, nombre, habitat, alma, descripcion, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
     ]);
 

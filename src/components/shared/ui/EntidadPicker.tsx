@@ -49,7 +49,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
         }));
         const criaturas: Entidad[] = (d.criaturas ?? []).map((x: any) => ({
           id: x.id, nombre: x.nombre, tipo: "criatura" as const,
-          subtipo: x.tipo, imagen_url: x.imagen_url, descripcion: x.descripcion,
+          subtipo: x.habitat ?? x.alma ?? undefined, imagen_url: x.imagen_url, descripcion: x.descripcion,
         }));
         setEntidades([...items, ...criaturas]);
       })
