@@ -42,7 +42,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
         const { data: existing } = await supabase
           .from("inventario_usuario")
           .select("id")
-          .eq("user_id", userId)
+          .eq("perfil_id", userId) // Cambiado a perfil_id
           .eq("item_id", entidadId)
           .maybeSingle();
 
@@ -53,7 +53,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
 
         const { error } = await supabase
           .from("inventario_usuario")
-          .insert({ user_id: userId, item_id: entidadId, equipado: false });
+          .insert({ perfil_id: userId, item_id: entidadId, equipado: false }); // Cambiado a perfil_id
 
         if (error) throw error;
 
@@ -62,7 +62,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
         const { data: existing } = await supabase
           .from("descubrimientos")
           .select("id")
-          .eq("user_id", userId)
+          .eq("perfil_id", userId) // Cambiado a perfil_id
           .eq("criatura_id", entidadId)
           .maybeSingle();
 
@@ -73,7 +73,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
 
         const { error } = await supabase
           .from("descubrimientos")
-          .insert({ user_id: userId, criatura_id: entidadId });
+          .insert({ perfil_id: userId, criatura_id: entidadId }); // Cambiado a perfil_id
 
         if (error) throw error;
       }
