@@ -11,59 +11,43 @@ export async function GET(req: Request) {
   const tipo = searchParams.get("tipo");
 
   try {
-    // Ejecutamos las promesas y manejamos el error interno de cada una
     const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
       (!tipo || tipo === "item")
-        ? supabase.from("items").select("id, nombre, imagen_url").order("nombre")
+        ? supabase.from("items").select("id, nombre, categoria, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "criatura")
-        ? supabase.from("criaturas").select("id, nombre, img_url").order("nombre")
+        ? supabase.from("criaturas").select("id, nombre, habitat, img_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "personaje")
         ? supabase.from("personajes").select("id, nombre, img_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-    // Logs de error en consola de servidor para depuración
-    if (itemsRes.error) console.error("Error Items:", itemsRes.error.message);
-    if (criaturasRes.error) console.error("Error Criaturas:", criaturasRes.error.message);
-    if (personajesRes.error) console.error("Error Personajes:", personajesRes.error.message);
-
-    // Mapeo seguro de datos
-    const safeItems = itemsRes.data?.map((i: any) => ({ 
-      ...i, 
-      tipo: 'item' 
-    })) || [];
-
-    const safeCriaturas = criaturasRes.data?.map((c: any) => ({ 
-      ...c, 
-      imagen_url: c.img_url, // Normalizamos para el Picker
-      tipo: 'criatura' 
-    })) || [];
-
-    const safePersonajes = personajesRes.data?.map((p: any) => ({ 
-      ...p, 
-      imagen_url: p.img_url, // Normalizamos para el Picker
-      tipo: 'personaje' 
-    })) || [];
+    if (itemsRes.error) throw new Error(`Items: ${itemsRes.error.message}`);
+    if (criaturasRes.error) throw new Error(`Criaturas: ${criaturasRes.error.message}`);
+    if (personajesRes.error) throw new Error(`Personajes: ${personajesRes.error.message}`);
 
     return NextResponse.json({
       ok: true,
       data: {
-        items: safeItems,
-        criaturas: safeCriaturas,
-        personajes: safePersonajes
+        items: itemsRes.data?.map((i: any) => ({ ...i, tipo: "item" })) || [],
+        criaturas: criaturasRes.data?.map((c: any) => ({ 
+          ...c, 
+          imagen_url: c.img_url, 
+          tipo: "criatura" 
+        })) || [],
+        personajes: personajesRes.data?.map((p: any) => ({ 
+          ...p, 
+          imagen_url: p.img_url, 
+          tipo: "personaje" 
+        })) || [],
       }
     });
 
   } catch (err: any) {
-    console.error("[entidades API Error]:", err.message);
+    console.error("DETALLE DEL ERROR:", err.message);
     return NextResponse.json(
-      { 
-        ok: false, 
-        error: "Error de consistencia en base de datos",
-        detalle: err.message 
-      }, 
+      { ok: false, error: "Error de consistencia en base de datos", detalle: err.message },
       { status: 500 }
     );
   }
