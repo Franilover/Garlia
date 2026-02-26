@@ -111,17 +111,17 @@ const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="group relative flex items-center justify-between gap-4 bg-white/50 hover:bg-white/80 backdrop-blur-sm border border-[#6B5E70]/10 hover:border-[#6B5E70]/20 rounded-2xl px-6 py-4 transition-all duration-300"
+        className="group relative flex items-center justify-between gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm border border-primary/10 hover:border-primary/20 rounded-2xl px-6 py-4 transition-all duration-300"
       >
         <Link href={`/wiki/paginas/canciones/${cancion.id}`} className="flex-1 min-w-0">
-          <h2 className="text-[#6B5E70] font-black uppercase text-sm group-hover:text-[#9A89A0] transition-colors tracking-tighter italic truncate">
+          <h2 className="text-primary font-black uppercase text-sm group-hover:text-[#9A89A0] transition-colors tracking-tighter italic truncate">
             {cancion.titulo}
           </h2>
         </Link>
         {isAdmin && (
           <div className="flex items-center gap-2 shrink-0">
             {!cancion.visible && (
-              <div className="bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white p-1.5 px-2.5 rounded-full text-[8px] font-black uppercase flex items-center gap-1 shadow">
+              <div className="bg-gradient-to-r from-primary to-primary/70 text-white p-1.5 px-2.5 rounded-full text-[8px] font-black uppercase flex items-center gap-1 shadow">
                 <EyeOff size={10} />
                 Oculto
               </div>
@@ -130,7 +130,7 @@ const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
               whileHover={{ scale: 1.15, rotate: 5 }}
               whileTap={{ scale: 0.9 }}
               onClick={(e) => onEdit(e, cancion)}
-              className="bg-white text-[#6B5E70] p-2 rounded-full shadow border-2 border-[#6B5E70]/20 hover:shadow-[0_0_12px_rgba(107,94,112,0.25)] transition-all"
+              className="bg-white-custom text-primary p-2 rounded-full shadow border-2 border-primary/20 hover:shadow-[0_0_12px_rgba(107,94,112,0.25)] transition-all"
             >
               <Edit3 size={14} />
             </motion.button>
@@ -148,7 +148,7 @@ const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-gradient-to-r from-[#6B5E70] to-[#8B7A90] text-white p-2 px-3 rounded-full text-[8px] font-black uppercase flex items-center gap-1.5 shadow-xl backdrop-blur-sm border border-white/20"
+              className="bg-gradient-to-r from-primary to-primary/70 text-white p-2 px-3 rounded-full text-[8px] font-black uppercase flex items-center gap-1.5 shadow-xl backdrop-blur-sm border border-white/20"
             >
               <EyeOff size={12} />
               Oculto
@@ -158,7 +158,7 @@ const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
             whileHover={{ scale: 1.15, rotate: 5 }}
             whileTap={{ scale: 0.9 }}
             onClick={(e) => onEdit(e, cancion)}
-            className="bg-white/95 text-[#6B5E70] p-3 rounded-full shadow-2xl border-2 border-[#6B5E70]/20 hover:shadow-[0_0_20px_rgba(107,94,112,0.3)] transition-all backdrop-blur-sm group/btn"
+            className="bg-white-custom/95 text-primary p-3 rounded-full shadow-2xl border-2 border-primary/20 hover:shadow-[0_0_20px_rgba(107,94,112,0.3)] transition-all backdrop-blur-sm group/btn"
           >
             <Edit3 size={16} className="group-hover/btn:scale-110 transition-transform" />
           </motion.button>
@@ -171,14 +171,14 @@ const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="cursor-pointer h-full flex flex-col"
         >
-          <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#6B5E70]/10 bg-gradient-to-br from-[#6B5E70]/10 to-[#6B5E70]/5 group-hover:shadow-[0_20px_40px_rgba(107,94,112,0.15)] transition-all duration-500">
+          <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-primary/10 bg-gradient-to-br from-primary/10 to-primary/5 group-hover:shadow-[0_20px_40px_rgba(var(--color-primary-rgb, 107,94,112), 0.15)] transition-all duration-500">
             <SmartImage
               src={cancion.portada_url || "/placeholder-cover.jpg"}
               alt={cancion.titulo}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />
 
-            <div className="absolute inset-0 bg-gradient-to-t from-[#6B5E70]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
             <motion.div
               className={`absolute top-6 left-6 z-20 backdrop-blur-md px-4 py-2 rounded-full border font-black text-[9px] uppercase tracking-widest shadow-lg ${getEstadoColor(cancion.estado)}`}
@@ -187,36 +187,36 @@ const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
             </motion.div>
 
             {cancion.personaje && (
-              <div className="absolute bottom-6 right-6 z-20 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full border border-[#6B5E70]/20 flex items-center gap-2 shadow-lg">
-                <User size={11} className="text-[#6B5E70]" />
-                <span className="text-[9px] font-black text-[#6B5E70] uppercase italic tracking-tighter">
+              <div className="absolute bottom-6 right-6 z-20 bg-white-custom/95 backdrop-blur-md px-4 py-2 rounded-full border border-primary/20 flex items-center gap-2 shadow-lg">
+                <User size={11} className="text-primary" />
+                <span className="text-[9px] font-black text-primary uppercase italic tracking-tighter">
                   {cancion.personaje}
                 </span>
               </div>
             )}
 
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
-              <div className="bg-white/90 p-5 rounded-full shadow-2xl backdrop-blur-sm border-2 border-[#6B5E70]/10">
-                <ChevronRight size={32} className="text-[#6B5E70] ml-1" />
+              <div className="bg-white-custom/90 p-5 rounded-full shadow-2xl backdrop-blur-sm border-2 border-primary/10">
+                <ChevronRight size={32} className="text-primary ml-1" />
               </div>
             </div>
           </div>
 
           <div className="mt-6 flex-1 flex flex-col px-2">
-            <h2 className="text-[#6B5E70] font-black uppercase text-lg group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tighter italic line-clamp-2">
+            <h2 className="text-primary font-black uppercase text-lg group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tighter italic line-clamp-2">
               {cancion.titulo}
             </h2>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-[#6B5E70]/40 font-bold text-[8px] uppercase tracking-[0.2em]">
-              <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-primary/40 font-bold text-[8px] uppercase tracking-[0.2em]">
+              <span className="flex items-center gap-2 group-hover:text-primary transition-colors">
                 <Mic2 size={10} />
                 {cancion.cantante || "N/A"}
               </span>
-              <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
+              <span className="flex items-center gap-2 group-hover:text-primary transition-colors">
                 <PenTool size={10} />
                 {cancion.compositor || "N/A"}
               </span>
-              <span className="flex items-center gap-2 group-hover:text-[#6B5E70] transition-colors">
+              <span className="flex items-center gap-2 group-hover:text-primary transition-colors">
                 <Globe size={10} />
                 {cancion.idioma || "Español"}
               </span>
@@ -382,15 +382,15 @@ const Canciones = () => {
   };
 
   if (!sessionLoaded || loadingCanciones) return (
-    <div className="h-screen flex items-center justify-center bg-[#FDFCFD]">
+    <div className="h-screen flex items-center justify-center bg-bg-main">
       <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
-        <Loader2 className="text-[#6B5E70]/20" size={40} />
+        <Loader2 className="text-primary/20" size={40} />
       </motion.div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#FDFCFD] pb-32 selection:bg-[#6B5E70]/10 selection:text-[#6B5E70]">
+    <div className="min-h-screen bg-bg-main pb-32 selection:bg-primary/10 selection:text-primary">
 
       {/* MODAL EDITAR */}
       <AnimatePresence>
@@ -399,23 +399,23 @@ const Canciones = () => {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => dispatchModal({ type: "CLOSE_EDIT" })}
-              className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md"
+              className="absolute inset-0 bg-primary/40 backdrop-blur-md"
             />
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-white w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative bg-white-custom w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="p-8 sm:p-12 overflow-y-auto">
                 <div className="flex justify-between items-center mb-10">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 bg-[#6B5E70] rounded-2xl text-white shadow-lg shadow-[#6B5E70]/20">
+                    <div className="p-3 bg-primary rounded-2xl text-white shadow-lg shadow-primary/20">
                       <Edit3 size={20} />
                     </div>
-                    <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.4em] italic">Ajustes del Soliloquio</h3>
+                    <h3 className="text-primary font-black uppercase text-[12px] tracking-[0.4em] italic">Ajustes del Soliloquio</h3>
                   </div>
-                  <button onClick={() => dispatchModal({ type: "CLOSE_EDIT" })} className="p-2 hover:bg-[#6B5E70]/5 rounded-full transition-colors text-[#6B5E70]/40 hover:text-[#6B5E70]">
+                  <button onClick={() => dispatchModal({ type: "CLOSE_EDIT" })} className="p-2 hover:bg-primary/5 rounded-full transition-colors text-primary/40 hover:text-primary">
                     <X size={24} />
                   </button>
                 </div>
@@ -423,17 +423,17 @@ const Canciones = () => {
                 <form onSubmit={handleUpdateCancion} className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Título</label>
+                      <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Título</label>
                       <input
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30 transition-all"
+                        className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all"
                         value={formState.editTitulo}
                         onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editTitulo: e.target.value } })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Personaje</label>
+                      <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Personaje</label>
                       <select
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                        className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none appearance-none"
                         value={formState.editPersonaje}
                         onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editPersonaje: e.target.value } })}
                       >
@@ -445,25 +445,25 @@ const Canciones = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Cantante</label>
+                      <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Cantante</label>
                       <input
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none"
+                        className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none"
                         value={formState.editCantante}
                         onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editCantante: e.target.value } })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Compositor</label>
+                      <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Compositor</label>
                       <input
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none"
+                        className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none"
                         value={formState.editCompositor}
                         onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editCompositor: e.target.value } })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Idioma</label>
+                      <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Idioma</label>
                       <select
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                        className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none appearance-none"
                         value={formState.editIdioma}
                         onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editIdioma: e.target.value } })}
                       >
@@ -474,9 +474,9 @@ const Canciones = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Tema / Motivo</label>
+                      <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Tema / Motivo</label>
                       <select
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                        className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none appearance-none"
                         value={formState.editTema}
                         onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editTema: e.target.value } })}
                       >
@@ -485,9 +485,9 @@ const Canciones = () => {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Emoción / Temple</label>
+                      <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Emoción / Temple</label>
                       <select
-                        className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                        className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none appearance-none"
                         value={formState.editEmocion}
                         onChange={(e) => dispatchForm({ type: "SET_EDIT_FORM", payload: { editEmocion: e.target.value } })}
                       >
@@ -499,13 +499,13 @@ const Canciones = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Estado</label>
-                      <div className="flex gap-2 p-1 bg-[#FDFCFD] border-2 border-[#6B5E70]/10 rounded-[1.5rem]">
+                      <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Estado</label>
+                      <div className="flex gap-2 p-1 bg-bg-main border-2 border-primary/10 rounded-[1.5rem]">
                         {ESTADOS.map(est => (
                           <button
                             key={est} type="button"
                             onClick={() => dispatchForm({ type: "SET_EDIT_FORM", payload: { editEstado: est } })}
-                            className={`flex-1 py-3 rounded-xl text-[9px] font-black transition-all ${formState.editEstado === est ? 'bg-[#6B5E70] text-white shadow-lg' : 'text-[#6B5E70]/40 hover:bg-[#6B5E70]/5'}`}
+                            className={`flex-1 py-3 rounded-xl text-[9px] font-black transition-all ${formState.editEstado === est ? 'bg-primary text-white shadow-lg' : 'text-primary/40 hover:bg-primary/5'}`}
                           >
                             {est}
                           </button>
@@ -513,7 +513,7 @@ const Canciones = () => {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-[#6B5E70]/40 ml-4 tracking-widest">Visibilidad</label>
+                      <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Visibilidad</label>
                       <button
                         type="button"
                         onClick={() => dispatchForm({ type: "SET_EDIT_FORM", payload: { editVisible: !formState.editVisible } })}
@@ -528,7 +528,7 @@ const Canciones = () => {
                   <div className="flex flex-col sm:flex-row gap-4 pt-6">
                     <button
                       type="submit" disabled={modalState.isProcessing}
-                      className="flex-[2] bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-[#6B5E70]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-[2] bg-primary text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {modalState.isProcessing ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                       {modalState.isProcessing ? "Guardando..." : "Guardar Cambios"}
@@ -554,18 +554,18 @@ const Canciones = () => {
       <AnimatePresence>
         {modalState.showAddModal && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => dispatchModal({ type: "CLOSE_ADD" })} className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
-              <h3 className="text-[#6B5E70] font-black uppercase text-[12px] tracking-[0.4em] text-center mb-10 italic underline underline-offset-8">Nuevo Registro</h3>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => dispatchModal({ type: "CLOSE_ADD" })} className="absolute inset-0 bg-primary/40 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white-custom w-full max-w-md rounded-[3rem] p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
+              <h3 className="text-primary font-black uppercase text-[12px] tracking-[0.4em] text-center mb-10 italic underline underline-offset-8">Nuevo Registro</h3>
               <form onSubmit={handleAddCancion} className="space-y-6">
                 <input
                   placeholder="TÍTULO DEL SOLILOQUIO"
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30"
+                  className="w-full bg-bg-main border-2 border-primary/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-primary uppercase outline-none focus:border-primary/30"
                   value={formState.nuevoTitulo}
                   onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoTitulo: e.target.value } })}
                 />
                 <select
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none"
+                  className="w-full bg-bg-main border-2 border-primary/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-primary uppercase outline-none"
                   value={formState.nuevoPersonaje}
                   onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoPersonaje: e.target.value } })}
                 >
@@ -575,22 +575,22 @@ const Canciones = () => {
 
                 <input
                   placeholder="CANTANTE"
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none"
+                  className="w-full bg-bg-main border-2 border-primary/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-primary uppercase outline-none"
                   value={formState.nuevoCantante}
                   onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoCantante: e.target.value } })}
                 />
 
                 <input
                   placeholder="COMPOSITOR"
-                  className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none"
+                  className="w-full bg-bg-main border-2 border-primary/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-primary uppercase outline-none"
                   value={formState.nuevoCompositor}
                   onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoCompositor: e.target.value } })}
                 />
 
                 <div className="space-y-2 px-2">
-                  <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest">Idioma</label>
+                  <label className="text-[9px] font-black uppercase text-primary/40 tracking-widest">Idioma</label>
                   <select
-                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                    className="w-full bg-bg-main border-2 border-primary/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-primary uppercase outline-none appearance-none"
                     value={formState.nuevoIdioma}
                     onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoIdioma: e.target.value } })}
                   >
@@ -599,9 +599,9 @@ const Canciones = () => {
                 </div>
 
                 <div className="space-y-2 px-2">
-                  <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest">Tema / Motivo</label>
+                  <label className="text-[9px] font-black uppercase text-primary/40 tracking-widest">Tema / Motivo</label>
                   <select
-                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                    className="w-full bg-bg-main border-2 border-primary/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-primary uppercase outline-none appearance-none"
                     value={formState.nuevoTema}
                     onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoTema: e.target.value } })}
                   >
@@ -611,9 +611,9 @@ const Canciones = () => {
                 </div>
 
                 <div className="space-y-2 px-2">
-                  <label className="text-[9px] font-black uppercase text-[#6B5E70]/40 tracking-widest">Emoción / Temple</label>
+                  <label className="text-[9px] font-black uppercase text-primary/40 tracking-widest">Emoción / Temple</label>
                   <select
-                    className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-[#6B5E70] uppercase outline-none appearance-none"
+                    className="w-full bg-bg-main border-2 border-primary/10 py-5 px-8 rounded-[1.5rem] text-xs font-black text-primary uppercase outline-none appearance-none"
                     value={formState.nuevoEmocion}
                     onChange={(e) => dispatchForm({ type: "SET_ADD_FORM", payload: { nuevoEmocion: e.target.value } })}
                   >
@@ -622,7 +622,7 @@ const Canciones = () => {
                   </select>
                 </div>
 
-                <button type="submit" disabled={modalState.isProcessing} className="w-full bg-[#6B5E70] text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
+                <button type="submit" disabled={modalState.isProcessing} className="w-full bg-primary text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
                   {modalState.isProcessing ? <><Loader2 className="animate-spin" size={16} />Registrando...</> : "Crear Soliloquio"}
                 </button>
               </form>
@@ -634,19 +634,19 @@ const Canciones = () => {
       <header className="max-w-6xl mx-auto pt-24 px-6 mb-12">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
           <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
-            <h1 className="text-4xl md:text-5xl font-black text-[#6B5E70] italic uppercase tracking-tighter leading-none mb-4">
-              Solilo<span className="text-[#6B5E70]/20">quios</span>
+            <h1 className="text-4xl md:text-5xl font-black text-primary italic uppercase tracking-tighter leading-none mb-4">
+              Solilo<span className="text-primary/20">quios</span>
             </h1>
             <div className="flex items-center gap-4">
-              <div className="h-2 w-24 bg-[#6B5E70] rounded-full" />
-              <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.4em]">Covers</span>
+              <div className="h-2 w-24 bg-primary rounded-full" />
+              <span className="text-[10px] font-black text-primary/40 uppercase tracking-[0.4em]">Covers</span>
             </div>
           </motion.div>
           {isAdmin && (
             <motion.button
               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
               onClick={() => dispatchModal({ type: "OPEN_ADD" })}
-              className="bg-[#6B5E70] text-white px-10 py-5 rounded-full shadow-2xl shadow-[#6B5E70]/30 flex items-center gap-4 font-black uppercase text-[10px] tracking-[0.2em]"
+              className="bg-primary text-white px-10 py-5 rounded-full shadow-2xl shadow-primary/30 flex items-center gap-4 font-black uppercase text-[10px] tracking-[0.2em]"
             >
               <Plus size={20} /> Añadir Canción
             </motion.button>
@@ -656,20 +656,20 @@ const Canciones = () => {
 
       {/* SECCIÓN DE FILTROS */}
       <section className="max-w-6xl mx-auto px-6 mb-16">
-        <div className="bg-white/50 backdrop-blur-sm border border-[#6B5E70]/10 p-6 rounded-[2.5rem] flex flex-col gap-4">
+        <div className="bg-white-custom/50 backdrop-blur-sm border border-primary/10 p-6 rounded-[2.5rem] flex flex-col gap-4">
 
           {/* BARRA DE BÚSQUEDA */}
           <div className="relative">
             <Search
               size={16}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#6B5E70]/30 pointer-events-none"
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none"
             />
             <input
               type="text"
               placeholder="Buscar por título..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full bg-[#FDFCFD] border-2 border-[#6B5E70]/10 py-4 pl-12 pr-12 rounded-[1.5rem] text-sm font-black text-[#6B5E70] uppercase outline-none focus:border-[#6B5E70]/30 transition-all placeholder:text-[#6B5E70]/20 placeholder:normal-case placeholder:font-normal"
+              className="w-full bg-bg-main border-2 border-primary/10 py-4 pl-12 pr-12 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all placeholder:text-primary/20 placeholder:normal-case placeholder:font-normal"
             />
             <AnimatePresence>
               {busqueda && (
@@ -678,7 +678,7 @@ const Canciones = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   onClick={() => setBusqueda("")}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B5E70]/30 hover:text-[#6B5E70] transition-colors p-1"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors p-1"
                 >
                   <X size={16} />
                 </motion.button>
@@ -696,7 +696,7 @@ const Canciones = () => {
             {hayFiltrosActivos ? (
               <button
                 onClick={() => { resetearFiltros(); setBusqueda(""); }}
-                className="text-[#6B5E70]/40 hover:text-red-500 transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2 px-4"
+                className="text-primary/40 hover:text-red-500 transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2 px-4"
               >
                 <X size={14} /> Limpiar filtros
               </button>
@@ -705,17 +705,17 @@ const Canciones = () => {
             )}
 
             {/* TOGGLE DE VISTA */}
-            <div className="flex items-center gap-1 bg-white border-2 border-[#6B5E70]/5 rounded-full p-1">
+            <div className="flex items-center gap-1 bg-white-custom border-2 border-primary/5 rounded-full p-1">
               <button
                 onClick={() => setVistaGrid(true)}
-                className={`p-2 rounded-full transition-all ${vistaGrid ? "bg-[#6B5E70] text-white shadow-md" : "text-[#6B5E70]/40 hover:text-[#6B5E70]"}`}
+                className={`p-2 rounded-full transition-all ${vistaGrid ? "bg-primary text-white shadow-md" : "text-primary/40 hover:text-primary"}`}
                 title="Vista cuadrícula"
               >
                 <LayoutGrid size={14} />
               </button>
               <button
                 onClick={() => setVistaGrid(false)}
-                className={`p-2 rounded-full transition-all ${!vistaGrid ? "bg-[#6B5E70] text-white shadow-md" : "text-[#6B5E70]/40 hover:text-[#6B5E70]"}`}
+                className={`p-2 rounded-full transition-all ${!vistaGrid ? "bg-primary text-white shadow-md" : "text-primary/40 hover:text-primary"}`}
                 title="Vista fila"
               >
                 <AlignJustify size={14} />
@@ -734,8 +734,8 @@ const Canciones = () => {
 
         {cancionesFinales.length === 0 && (
           <div className="text-center py-20">
-            <Music size={48} className="mx-auto text-[#6B5E70]/20 mb-4" />
-            <p className="text-[#6B5E70]/20 font-black uppercase tracking-[0.5em] text-xs">No se encontraron soliloquios</p>
+            <Music size={48} className="mx-auto text-primary/20 mb-4" />
+            <p className="text-primary/20 font-black uppercase tracking-[0.5em] text-xs">No se encontraron soliloquios</p>
           </div>
         )}
       </main>

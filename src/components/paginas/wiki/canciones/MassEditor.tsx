@@ -172,13 +172,13 @@ function SeccionCard({
       className={`rounded-[1.5rem] border transition-all ${
         isNew
           ? "border-amber-200 bg-amber-50/50"
-          : "border-[#6B5E70]/10 bg-white"
-      } ${expanded ? "shadow-xl shadow-[#6B5E70]/8" : "shadow-sm"}`}
+          : "border-primary/10 bg-white-custom"
+      } ${expanded ? "shadow-xl shadow-primary/8" : "shadow-sm"}`}
     >
       {/* Header de la tarjeta */}
       <div className="flex items-center gap-2 p-3 md:p-4">
         {/* Número */}
-        <span className="text-[10px] font-black text-[#6B5E70]/30 italic w-7 text-center flex-shrink-0">
+        <span className="text-[10px] font-black text-primary/30 italic w-7 text-center flex-shrink-0">
           {(idx + 1).toString().padStart(2, "0")}
         </span>
 
@@ -187,7 +187,7 @@ function SeccionCard({
           type="text"
           value={sec.nombre_seccion}
           onChange={(e) => onChange(sec.id, "nombre_seccion", e.target.value.toUpperCase())}
-          className="flex-1 min-w-0 bg-transparent text-[#6B5E70] font-black uppercase text-[11px] tracking-widest outline-none border-b border-transparent focus:border-[#6B5E70]/30 transition-colors pb-0.5 truncate"
+          className="flex-1 min-w-0 bg-transparent text-primary font-black uppercase text-[11px] tracking-widest outline-none border-b border-transparent focus:border-primary/30 transition-colors pb-0.5 truncate"
           placeholder="NOMBRE DE SECCIÓN"
         />
 
@@ -196,14 +196,14 @@ function SeccionCard({
           <button
             disabled={idx === 0}
             onClick={() => onMover(idx, -1)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6B5E70]/40 hover:text-[#6B5E70] hover:bg-[#6B5E70]/5 disabled:opacity-20 active:scale-90 transition-all touch-manipulation"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/5 disabled:opacity-20 active:scale-90 transition-all touch-manipulation"
           >
             <ChevronUp size={14} />
           </button>
           <button
             disabled={idx === total - 1}
             onClick={() => onMover(idx, 1)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6B5E70]/40 hover:text-[#6B5E70] hover:bg-[#6B5E70]/5 disabled:opacity-20 active:scale-90 transition-all touch-manipulation"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/5 disabled:opacity-20 active:scale-90 transition-all touch-manipulation"
           >
             <ChevronDown size={14} />
           </button>
@@ -212,7 +212,7 @@ function SeccionCard({
         {/* Expand/Collapse */}
         <button
           onClick={onToggleExpand}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#6B5E70]/5 text-[#6B5E70] active:scale-90 transition-all touch-manipulation flex-shrink-0"
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/5 text-primary active:scale-90 transition-all touch-manipulation flex-shrink-0"
         >
           <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
             <ChevronDown size={14} />
@@ -242,7 +242,7 @@ function SeccionCard({
               {/* Columna principal */}
               <div className="flex flex-col gap-1">
                 {splitMode && splitLetraKey && (
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/50 px-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-primary/50 px-1">
                     {IDIOMAS.find((i) => i.id === activeTab)?.nombre}
                   </span>
                 )}
@@ -250,7 +250,7 @@ function SeccionCard({
                   value={letraVal}
                   onChange={(e) => onChange(sec.id, letraKey, e.target.value)}
                   rows={maxRows}
-                  className="w-full bg-[#FDFCFD] border border-[#6B5E70]/10 rounded-[1rem] p-4 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/40 transition-all resize-none"
+                  className="w-full bg-bg-main border border-primary/10 rounded-[1rem] p-4 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/40 transition-all resize-none"
                   placeholder={`Contenido en ${IDIOMAS.find((i) => i.id === activeTab)?.nombre.toLowerCase()}...`}
                   style={{ fontSize: "16px" }}
                 />
@@ -259,14 +259,14 @@ function SeccionCard({
               {/* Columna secundaria (split) */}
               {splitMode && splitLetraKey && (
                 <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/50 px-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-primary/50 px-1">
                     {IDIOMAS.find((i) => i.id === splitTab)?.nombre}
                   </span>
                   <textarea
                     value={splitLetraVal}
                     onChange={(e) => onChange(sec.id, splitLetraKey, e.target.value)}
                     rows={maxRows}
-                    className="w-full bg-[#F5F0F7] border border-[#6B5E70]/15 rounded-[1rem] p-4 text-[#6B5E70] text-sm italic font-serif leading-relaxed outline-none focus:bg-white focus:border-[#6B5E70]/40 transition-all resize-none"
+                    className="w-full bg-[#F5F0F7] border border-primary/15 rounded-[1rem] p-4 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/40 transition-all resize-none"
                     placeholder={`Contenido en ${IDIOMAS.find((i) => i.id === splitTab)?.nombre.toLowerCase()}...`}
                     style={{ fontSize: "16px" }}
                   />
@@ -280,7 +280,7 @@ function SeccionCard({
       {/* Preview de líneas cuando colapsado */}
       {!expanded && letraVal && (
         <div className="px-4 pb-3">
-          <p className="text-[#6B5E70]/40 text-[11px] italic font-serif leading-relaxed line-clamp-2">
+          <p className="text-primary/40 text-[11px] italic font-serif leading-relaxed line-clamp-2">
             {letraVal.split("\n").slice(0, 2).join(" · ")}
           </p>
         </div>
@@ -501,7 +501,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-[#6B5E70]/40 backdrop-blur-md"
+          className="absolute inset-0 bg-primary/40 backdrop-blur-md"
         />
 
         {/* Panel principal — bottom sheet en móvil, modal centrado en desktop */}
@@ -511,30 +511,30 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
           exit={{ y: "100%", opacity: 0 }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
           className="
-            relative z-10 w-full bg-[#FDFCFD] flex flex-col
+            relative z-10 w-full bg-bg-main flex flex-col
             h-[96dvh] rounded-t-[2rem]
             md:h-[92vh] md:max-w-4xl md:rounded-[2.5rem] md:mx-4
-            shadow-2xl border border-[#6B5E70]/10 overflow-hidden
+            shadow-2xl border border-primary/10 overflow-hidden
           "
         >
           {/* ───── HEADER ───── */}
-          <div className="flex-shrink-0 bg-white border-b border-[#6B5E70]/10">
+          <div className="flex-shrink-0 bg-white-custom border-b border-primary/10">
             {/* Pill de drag en móvil */}
             <div className="flex justify-center pt-3 pb-1 md:hidden">
-              <div className="w-10 h-1 bg-[#6B5E70]/20 rounded-full" />
+              <div className="w-10 h-1 bg-primary/20 rounded-full" />
             </div>
 
             <div className="px-4 py-3 md:px-8 md:py-5 flex items-center gap-3">
               {/* Icono + título */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="bg-[#6B5E70] p-2 rounded-xl text-white flex-shrink-0">
+                <div className="bg-primary p-2 rounded-xl text-white flex-shrink-0">
                   <Layers size={16} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-[#6B5E70] font-black uppercase text-[11px] tracking-[0.25em] italic truncate">
+                  <h3 className="text-primary font-black uppercase text-[11px] tracking-[0.25em] italic truncate">
                     Editor Maestro
                   </h3>
-                  <p className="text-[9px] font-bold text-[#6B5E70]/40 uppercase tracking-widest">
+                  <p className="text-[9px] font-bold text-primary/40 uppercase tracking-widest">
                     {localSecciones.length} secciones
                   </p>
                 </div>
@@ -555,7 +555,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
               {/* Cerrar */}
               <button
                 onClick={onClose}
-                className="w-10 h-10 flex items-center justify-center rounded-xl text-[#6B5E70]/30 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90 touch-manipulation flex-shrink-0"
+                className="w-10 h-10 flex items-center justify-center rounded-xl text-primary/30 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90 touch-manipulation flex-shrink-0"
               >
                 <X size={20} />
               </button>
@@ -563,15 +563,15 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
 
             {/* Selector de idioma — scrollable en móvil */}
             <div className="px-4 pb-3 md:px-8 md:pb-4 flex flex-col gap-2">
-              <div className="flex gap-1 bg-[#6B5E70]/5 p-1 rounded-xl border border-[#6B5E70]/10 overflow-x-auto scrollbar-none">
+              <div className="flex gap-1 bg-primary/5 p-1 rounded-xl border border-primary/10 overflow-x-auto scrollbar-none">
                 {IDIOMAS.map((lang) => (
                   <button
                     key={lang.id}
                     onClick={() => setActiveTab(lang.id)}
                     className={`flex-1 min-w-[3.5rem] py-2.5 rounded-lg font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap ${
                       activeTab === lang.id
-                        ? "bg-[#6B5E70] text-white shadow-md"
-                        : "text-[#6B5E70]/50 hover:text-[#6B5E70]"
+                        ? "bg-primary text-white shadow-md"
+                        : "text-primary/50 hover:text-primary"
                     }`}
                   >
                     {lang.label}
@@ -597,7 +597,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                   className={`flex items-center gap-1 px-3 py-2.5 rounded-lg font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap flex-shrink-0 ${
                     splitMode
                       ? "bg-violet-600 text-white shadow-md"
-                      : "text-[#6B5E70]/50 hover:text-[#6B5E70]"
+                      : "text-primary/50 hover:text-primary"
                   }`}
                 >
                   <Columns size={12} />
@@ -680,22 +680,22 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
           </AnimatePresence>
 
           {/* ───── TOOLBAR DE SECCIONES ───── */}
-          <div className="flex-shrink-0 px-4 py-2 md:px-8 flex items-center gap-2 border-b border-[#6B5E70]/5 bg-white/50">
+          <div className="flex-shrink-0 px-4 py-2 md:px-8 flex items-center gap-2 border-b border-primary/5 bg-white-custom/50">
             <button
               onClick={expandAll}
-              className="text-[10px] font-bold text-[#6B5E70]/50 hover:text-[#6B5E70] transition-colors touch-manipulation px-2 py-1"
+              className="text-[10px] font-bold text-primary/50 hover:text-primary transition-colors touch-manipulation px-2 py-1"
             >
               Expandir todo
             </button>
-            <span className="text-[#6B5E70]/20">·</span>
+            <span className="text-primary/20">·</span>
             <button
               onClick={collapseAll}
-              className="text-[10px] font-bold text-[#6B5E70]/50 hover:text-[#6B5E70] transition-colors touch-manipulation px-2 py-1"
+              className="text-[10px] font-bold text-primary/50 hover:text-primary transition-colors touch-manipulation px-2 py-1"
             >
               Colapsar todo
             </button>
             <div className="flex-1" />
-            <span className="text-[9px] font-bold text-[#6B5E70]/30 uppercase tracking-widest hidden md:block">
+            <span className="text-[9px] font-bold text-primary/30 uppercase tracking-widest hidden md:block">
               {isSlow ? "🐢 Red lenta · guardado cada 5s" : "Auto-guardado activado"}
             </span>
           </div>
@@ -725,7 +725,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
             <motion.button
               layout
               onClick={añadirSeccion}
-              className="w-full py-6 md:py-8 border-2 border-dashed border-[#6B5E70]/15 rounded-[1.5rem] text-[#6B5E70]/40 hover:border-[#6B5E70]/40 hover:text-[#6B5E70] hover:bg-[#6B5E70]/3 active:scale-[0.98] transition-all flex flex-col items-center gap-2 touch-manipulation"
+              className="w-full py-6 md:py-8 border-2 border-dashed border-primary/15 rounded-[1.5rem] text-primary/40 hover:border-primary/40 hover:text-primary hover:bg-primary/3 active:scale-[0.98] transition-all flex flex-col items-center gap-2 touch-manipulation"
             >
               <Plus size={20} />
               <span className="font-black uppercase text-[10px] tracking-widest">
@@ -738,10 +738,10 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
           </div>
 
           {/* ───── FOOTER ───── */}
-          <div className="flex-shrink-0 bg-white border-t border-[#6B5E70]/10 px-4 py-3 md:px-8 md:py-5">
+          <div className="flex-shrink-0 bg-white-custom border-t border-primary/10 px-4 py-3 md:px-8 md:py-5">
             <div className="flex items-center gap-3">
               {/* Info de guardado */}
-              <p className="flex-1 text-[9px] font-bold text-[#6B5E70]/40 uppercase tracking-wider hidden md:block">
+              <p className="flex-1 text-[9px] font-bold text-primary/40 uppercase tracking-wider hidden md:block">
                 {isOnline
                   ? `💡 Ctrl+S para guardar · ${isSlow ? "Red lenta: guardado cada 5s" : "Auto: cada 2.5s"}`
                   : "⚠️ Sin conexión · Los cambios están en borrador local"}
@@ -750,7 +750,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
               {/* Cerrar sin guardar */}
               <button
                 onClick={onClose}
-                className="px-5 py-3 md:px-6 bg-[#6B5E70]/8 text-[#6B5E70] rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#6B5E70]/15 transition-colors touch-manipulation"
+                className="px-5 py-3 md:px-6 bg-primary/8 text-primary rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-primary/15 transition-colors touch-manipulation"
               >
                 Cerrar
               </button>
@@ -764,7 +764,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                 disabled={!cambiosPendientes || saveStatus === "saving" || !isOnline}
                 className="
                   flex items-center gap-2 px-5 py-3 md:px-7
-                  bg-[#6B5E70] text-white rounded-xl font-black uppercase text-[10px] tracking-widest
+                  bg-primary text-white rounded-xl font-black uppercase text-[10px] tracking-widest
                   hover:bg-[#5A4D5F] active:scale-95
                   disabled:opacity-40 disabled:cursor-not-allowed
                   transition-all touch-manipulation
