@@ -1,7 +1,7 @@
 "use client";
 /**
  * ARCHIVO: EntidadPicker.tsx
- * Versión final corregida para sincronizar con la API de entidades.
+ * Versión final corregida y sincronizada con la API de entidades.
  */
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,8 +13,6 @@ interface Entidad {
   nombre: string;
   tipo: "item" | "criatura" | "personaje";
   subtipo?: string;
-  imagen_url?: string;
-  descripcion?: string;
 }
 
 interface EntidadPickerProps {
@@ -35,31 +33,28 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
 
   useEffect(() => {
     if (!open) return;
-    setSelected(null); 
-    setQuery(""); 
-    setPalabra("");
-    setLoading(true); 
-    setError(null);
+    setSelected(null); setQuery(""); setPalabra("");
+    setLoading(true); setError(null);
 
-    // Llamada a la API con el parámetro de tipo
+    // Llamada a la API corregida
     fetch(`/api/entidades?tipo=${tipoFijo ?? ""}`)
       .then(r => r.json())
       .then(d => {
         if (!d.ok) throw new Error(d.error);
         
-        // Mapeo seguro usando la estructura d.data devuelta por la API
+        // Mapeo seguro usando la estructura d.data
         const items = (d.data?.items ?? []).map((x: any) => ({
           id: x.id, 
           nombre: x.nombre, 
           tipo: "item" as const,
-          subtipo: x.categoria || "Item",
+          subtipo: x.categoria || "Objeto",
         }));
         
         const criaturas = (d.data?.criaturas ?? []).map((x: any) => ({
           id: x.id, 
           nombre: x.nombre, 
           tipo: "criatura" as const,
-          subtipo: x.habitat || "Hábitat desconocido",
+          subtipo: x.habitat || "Criatura",
         }));
 
         const personajes = (d.data?.personajes ?? []).map((x: any) => ({
@@ -71,7 +66,10 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
 
         setEntidades([...items, ...criaturas, ...personajes]);
       })
-      .catch(e => setError(e.message ?? "Error al cargar"))
+      .catch(e => {
+        console.error("Error en Picker:", e);
+        setError(e.message ?? "Error al cargar");
+      })
       .finally(() => setLoading(false));
   }, [open, tipoFijo]);
 
@@ -81,7 +79,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
 
   const handleInsert = () => {
     if (!selected || !palabra.trim()) return;
-    // Formato de snippet para el sistema de Drops
+    // Generación del snippet para el sistema de Drops
     const snippet = `[[drop|${palabra.trim()}|${selected.tipo}|${selected.id}|${selected.nombre}]]`;
     onInsert(snippet);
     onClose();
@@ -98,16 +96,12 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
       {open && (
         <>
           <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
             onClick={onClose} 
             className="fixed inset-0 z-[72] bg-primary-dark/50 backdrop-blur-sm" 
           />
           <motion.div
-            initial={{ opacity: 0, y: 32, scale: 0.97 }} 
-            animate={{ opacity: 1, y: 0, scale: 1 }} 
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            initial={{ opacity: 0, y: 32, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.98 }}
             className="fixed z-[73] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[600px] bg-white rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             style={{ maxHeight: "85vh" }}
           >
@@ -159,17 +153,19 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
                       <span className="text-[10px] font-black uppercase">Cargando…</span>
                     </div>
                   ) : error ? (
-                    <div className="p-4 text-center text-[9px] text-red-400 font-bold uppercase italic">{error}</div>
+                    <div className="p-4 text-center text-[9px] text-red-400 font-bold uppercase italic leading-tight">
+                      "{error}"
+                    </div>
                   ) : lista.map(e => (
                     <button 
                       key={e.id} 
                       onClick={() => setSelected(e)} 
                       className={cn(
                         "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all", 
-                        selected?.id === e.id ? "bg-primary/10" : "hover:bg-primary/5"
+                        selected?.id === e.id ? "bg-primary/10 shadow-inner" : "hover:bg-primary/5"
                       )}
                     >
-                      <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-primary/10 bg-primary/5 flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-xl shrink-0 border border-primary/10 bg-primary/5 flex items-center justify-center">
                         {getIcon(e.tipo)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -186,11 +182,11 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
               </div>
 
               {/* Panel derecho: Configuración */}
-              <div className="w-1/2 flex flex-col overflow-y-auto">
+              <div className="w-1/2 flex flex-col overflow-y-auto bg-primary/[0.01]">
                 {selected ? (
                   <div className="p-5 flex flex-col gap-5 flex-1">
-                    <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-2xl">
-                      <div className="w-12 h-12 rounded-xl overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-3 p-3 bg-white border border-primary/8 rounded-2xl shadow-sm">
+                      <div className="w-12 h-12 rounded-xl border border-primary/10 bg-primary/5 flex items-center justify-center shrink-0">
                         {getIcon(selected.tipo, 16)}
                       </div>
                       <div>
@@ -199,26 +195,31 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-black text-primary/40 uppercase tracking-widest ml-1">Palabra disparadora</label>
+                      <label className="text-[9px] font-black text-primary/40 uppercase tracking-widest ml-1">Palabra en el texto</label>
                       <input 
                         value={palabra} 
                         onChange={e => setPalabra(e.target.value)} 
-                        placeholder="Ej: espada, poción..." 
-                        className="w-full px-4 py-3 rounded-xl border border-primary/12 text-sm focus:outline-none focus:border-primary/30 transition-all bg-primary/[0.02]" 
+                        placeholder="Ej: la espada antigua..." 
+                        className="w-full px-4 py-3 rounded-xl border border-primary/12 text-sm focus:outline-none focus:border-primary/30 transition-all bg-white" 
                       />
                     </div>
                   </div>
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center p-8 text-center opacity-20">
                     {getIcon(tab, 24)}
-                    <p className="text-[10px] font-black uppercase mt-2">Selecciona un {tab}</p>
+                    <p className="text-[10px] font-black uppercase mt-2 italic">"Selecciona un {tab}"</p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-primary/8 shrink-0 flex items-center justify-between bg-primary/[0.01]">
-              <button onClick={onClose} className="text-[10px] font-black uppercase text-primary/40 hover:text-primary/60 transition-colors">Cancelar</button>
+            <div className="px-6 py-4 border-t border-primary/8 shrink-0 flex items-center justify-between bg-white">
+              <button 
+                onClick={onClose} 
+                className="text-[10px] font-black uppercase text-primary/40 hover:text-primary/60 transition-colors"
+              >
+                Cancelar
+              </button>
               <button 
                 onClick={handleInsert} 
                 disabled={!selected || !palabra.trim()} 
