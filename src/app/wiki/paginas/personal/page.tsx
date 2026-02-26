@@ -1,4 +1,8 @@
 "use client";
+/**
+ * ARCHIVO: app/personal/page.tsx
+ * Corregido comparando con la versión funcional anterior.
+ */
 import Personal from "@/components/paginas/personal/personal";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { LoadingState } from "@/components/shared/feedback/StateComponents";
@@ -8,38 +12,44 @@ import { useAuth } from "@/components/providers/AuthProvider";
 export default function Page() {
   const { perfil: authPerfil } = useAuth() as { perfil: any };
 
+  // Volvemos a la selección simple que funcionaba, pero incluyendo los nuevos campos
   const { data: perfiles, loading, error } = useSupabaseData("perfiles", {
     select: `
       username, 
       status, 
       avatar_url,
-      descubrimientos(tipo, entidad_id, fecha_descubrimiento), 
-      inventario_usuario(equipado, items(id, nombre, categoria, imagen_url))
+      descubrimientos(
+        tipo,
+        entidad_id,
+        fecha_descubrimiento
+      ), 
+      inventario_usuario(
+        equipado, 
+        items(id, nombre, categoria, imagen_url)
+      )
     `
   });
 
-  // 1. Buscamos con trim() y toLowerCase() para evitar errores de dedo
+  // COMPARACIÓN CRÍTICA: 
+  // Forzamos que tanto el nombre de la DB como el de Auth sean idénticos para el filtro
   const perfil = perfiles?.find(
-    p => p.username?.trim().toLowerCase() === authPerfil?.username?.trim().toLowerCase()
+    p => p.username?.toString().toLowerCase().trim() === authPerfil?.username?.toString().toLowerCase().trim()
   );
-
-  // Debug: Esto te ayudará a ver por qué no machea en la consola (F12)
-  if (!loading && perfiles) {
-    console.log("Buscando a:", authPerfil?.username);
-    console.log("Lista de perfiles en DB:", perfiles.map(p => p.username));
-  }
 
   if (loading) return <LoadingState mensaje={getMensaje("LOADING", "perfiles")} />;
   
-  // 2. Si hay error o no existe el perfil, mostramos el mensaje que te salió
   if (error || !perfil) {
+    // Si llegas aquí, imprime en consola para ver qué nombres están llegando realmente
+    console.log("Auth User:", authPerfil?.username);
+    console.log("DB Users:", perfiles?.map(p => p.username));
+    
     return (
-      <main className="min-h-screen pt-32 flex flex-col items-center justify-center bg-bg-main px-4 gap-4">
+      <main className="min-h-screen pt-32 flex flex-col items-center justify-center bg-bg-main px-4">
         <div className="text-primary/50 font-black uppercase text-[10px] tracking-widest text-center">
           "Perfil no encontrado o error de conexión"
         </div>
-        <p className="text-[9px] text-primary/20 uppercase font-bold">
-          User logueado: {authPerfil?.username || "Ninguno"}
+        <p className="text-[9px] text-primary/20 uppercase font-bold mt-2">
+          User: {authPerfil?.username || "No detectado"}
         </p>
       </main>
     );
