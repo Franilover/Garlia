@@ -7,7 +7,7 @@ import {
   BookOpen, Clock, AlignLeft, Maximize2, Minimize2,
   ChevronDown, Check, Eye, Type, Image, Quote,
   Folder, FolderOpen, ChevronRight as ChevronR, Loader2,
-  Music2, Sword, Package,
+  Music2, Sword, Package, GitMerge, MousePointerClick,
 } from "lucide-react";
 import { SoundPicker } from "@/components/shared/ui/SoundPicker";
 import { EntidadPicker } from "@/components/shared/ui/EntidadPicker";
@@ -28,7 +28,9 @@ type Segment =
   | { type: "img"; url: string; caption?: string }
   | { type: "float"; word: string; url: string; caption?: string }
   | { type: "sound"; url: string; volume: number }
-  | { type: "drop"; word: string; entidadTipo: "item" | "criatura"; entidadId: string; entidadNombre: string };
+  | { type: "drop"; word: string; entidadTipo: "item" | "criatura"; entidadId: string; entidadNombre: string }
+  | { type: "choice"; label: string; target: string }
+  | { type: "use"; word: string; itemId: string; targetSuccess: string; targetFail?: string };
 
 function parseContenido(texto: string): Segment[] {
   const regex = /\[\[(\w+)\|([^\]]+)\]\]/g;
@@ -48,6 +50,14 @@ function parseContenido(texto: string): Segment[] {
       entidadTipo: (parts[1] as "item" | "criatura"),
       entidadId: parts[2],
       entidadNombre: parts[3] ?? parts[0],
+    });
+    else if (kind === "choice") segs.push({ type: "choice", label: parts[0], target: parts[1] });
+    else if (kind === "use") segs.push({ 
+      type: "use", 
+      word: parts[0], 
+      itemId: parts[1], 
+      targetSuccess: parts[2], 
+      targetFail: parts[3] 
     });
     else segs.push({ type: "text", value: match[0] });
     lastIndex = match.index + match[0].length;
@@ -178,7 +188,47 @@ function SoundInline({ url, volume }: { url: string; volume: number }) {
   );
 }
 
-function ContenidoInteractivo({ texto }: { texto: string }) {
+// ─── LÓGICA DE DECISIONES Y USO DE ITEMS ─────────────────────────────────────
+function ChoiceButton({ label, onSelect }: { label: string; onSelect: () => void }) {
+  return (
+    <motion.button
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onSelect}
+      className="flex items-center justify-between w-full my-3 p-4 rounded-2xl border border-primary/20 bg-primary/5 hover:bg-primary text-primary hover:text-white transition-all group"
+    >
+      <span className="font-black uppercase text-xs tracking-widest">{label}</span>
+      <ChevronR size={16} className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+    </motion.button>
+  );
+}
+
+function UseWord({ word, itemId, targetSuccess, targetFail, onNavigate }: { word: string; itemId: string; targetSuccess: string; targetFail?: string; onNavigate: (capId: string) => void }) {
+  const handleUse = async () => {
+    // AQUÍ VA TU LÓGICA REAL PARA VERIFICAR SI FRANILOVER TIENE EL ITEM.
+    // Simulando por ahora:
+    const confirmar = confirm(`¿Quieres usar "${word}" (ID: ${itemId})?`);
+    if (confirmar) {
+      // Si tiene el item, lo consumes en DB y navegas:
+      onNavigate(targetSuccess);
+    } else {
+      // Si no lo tiene o cancela, navega al fallo (si existe) o da un aviso.
+      if (targetFail) {
+        onNavigate(targetFail);
+      } else {
+        alert("No tienes el objeto necesario o decidiste no usarlo.");
+      }
+    }
+  };
+
+  return (
+    <button onClick={handleUse} className="relative inline font-serif cursor-pointer group text-amber-600 hover:text-amber-700 font-bold transition-colors">
+      <span style={{ borderBottom: "2px dotted currentColor" }}>{word}</span>
+    </button>
+  );
+}
+
+function ContenidoInteractivo({ texto, onNavigate }: { texto: string; onNavigate: (capId: string) => void }) {
   const segs = parseContenido(texto);
   return (
     <div className="text-lg md:text-xl leading-[2.2] text-primary-dark/90 font-serif">
@@ -189,6 +239,8 @@ function ContenidoInteractivo({ texto }: { texto: string }) {
         if (seg.type === "float") return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
         if (seg.type === "sound") return <SoundInline key={i} url={seg.url} volume={seg.volume} />;
         if (seg.type === "drop")  return <DropWord key={i} word={seg.word} tipo={seg.entidadTipo} entidadId={seg.entidadId} entidadNombre={seg.entidadNombre} />;
+        if (seg.type === "choice") return <ChoiceButton key={i} label={seg.label} onSelect={() => onNavigate(seg.target)} />;
+        if (seg.type === "use")   return <UseWord key={i} word={seg.word} itemId={seg.itemId} targetSuccess={seg.targetSuccess} targetFail={seg.targetFail} onNavigate={onNavigate} />;
         return null;
       })}
     </div>
@@ -380,10 +432,12 @@ function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);
   }, []);
   const bloques = [
-    { label: "Cita visual",       icon: Quote,   badge: "bg-amber-100 text-amber-700",    snippet: "[[cita|El texto de la cita. — Fuente]]",           desc: "Bloque decorativo con línea lateral." },
-    { label: "Imagen inline",     icon: Image,   badge: "bg-emerald-100 text-emerald-700", snippet: "[[img|/dibujos/imagen.jpg|Caption opcional]]",      desc: "Imagen full-width en el flujo." },
-    { label: "Imagen flotante",   icon: Image,   badge: "bg-purple-100 text-purple-700",   snippet: "[[float|nombre|/dibujos/imagen.jpg|Caption]]",      desc: "Palabra clickeable que muestra la imagen." },
-    { label: "Drop (easter egg)", icon: Sword,   badge: "bg-amber-50 text-amber-600",      snippet: "[[drop|palabra|item|uuid|Nombre Item]]",            desc: "Otorga un item o criatura al lector." },
+    { label: "Cita visual",       icon: Quote,             badge: "bg-amber-100 text-amber-700",    snippet: "[[cita|El texto de la cita. — Fuente]]",           desc: "Bloque decorativo con línea lateral." },
+    { label: "Imagen inline",     icon: Image,             badge: "bg-emerald-100 text-emerald-700", snippet: "[[img|/dibujos/imagen.jpg|Caption opcional]]",      desc: "Imagen full-width en el flujo." },
+    { label: "Imagen flotante",   icon: Image,             badge: "bg-purple-100 text-purple-700",   snippet: "[[float|nombre|/dibujos/imagen.jpg|Caption]]",      desc: "Palabra clickeable que muestra la imagen." },
+    { label: "Drop (easter egg)", icon: Sword,             badge: "bg-amber-50 text-amber-600",      snippet: "[[drop|palabra|item|uuid|Nombre Item]]",            desc: "Otorga un item o criatura al lector." },
+    { label: "Botón Decisión",    icon: GitMerge,          badge: "bg-blue-100 text-blue-700",       snippet: "[[choice|Texto de la opción|id-capitulo-destino]]", desc: "Crea una opción de ruta en la historia." },
+    { label: "Usar Ítem",         icon: MousePointerClick, badge: "bg-rose-100 text-rose-700",       snippet: "[[use|usar llave|id-item|id-cap-exito|id-cap-fallo]]", desc: "Requiere un ítem para avanzar." },
   ];
   return (
     <div ref={ref} className="relative">
@@ -776,8 +830,8 @@ export default function Lector() {
               </div>
               <AnimatePresence mode="wait">
                 {previewMode
-                  ? <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] overflow-hidden"><ContenidoInteractivo texto={nuevoContenido} /></motion.div>
-                  : <motion.textarea key="editor" ref={textareaRef as any} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} value={nuevoContenido} onChange={e => setNuevoContenido(e.target.value)} className="w-full min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] font-serif text-lg leading-relaxed text-primary-dark focus:outline-none focus:border-primary/30 shadow-inner resize-none" autoFocus placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]\n[[drop|palabra|item|uuid|Nombre]]"} />
+                  ? <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] overflow-hidden"><ContenidoInteractivo texto={nuevoContenido} onNavigate={handleChapterSelect} /></motion.div>
+                  : <motion.textarea key="editor" ref={textareaRef as any} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} value={nuevoContenido} onChange={e => setNuevoContenido(e.target.value)} className="w-full min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] font-serif text-lg leading-relaxed text-primary-dark focus:outline-none focus:border-primary/30 shadow-inner resize-none" autoFocus placeholder={"Escribe aquí…\n\n[[choice|Opción|ID_Capitulo]]"} />
                 }
               </AnimatePresence>
               <div className="flex justify-end mt-3 px-2">
@@ -789,7 +843,7 @@ export default function Lector() {
               </div>
             </div>
           ) : (
-            <ContenidoInteractivo texto={capitulo.contenido} />
+            <ContenidoInteractivo texto={capitulo.contenido} onNavigate={handleChapterSelect} />
           )}
         </div>
 
