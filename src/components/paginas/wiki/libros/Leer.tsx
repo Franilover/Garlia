@@ -424,21 +424,29 @@ function useTextStats(text: string) {
   return { words, readMin: Math.max(1, Math.round(words / 200)) };
 }
 
-function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
+function SyntaxHelper({ onInsert, onOpenCita, onOpenImg, onOpenDrop, onOpenChoice, onOpenUse }: {
+  onInsert: (s: string) => void;
+  onOpenCita: () => void;
+  onOpenImg: () => void;
+  onOpenDrop: () => void;
+  onOpenChoice: () => void;
+  onOpenUse: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);
   }, []);
+
   const bloques = [
-    { label: "Cita visual",       icon: Quote,             badge: "bg-amber-100 text-amber-700",    snippet: "[[cita|El texto de la cita. — Fuente]]",           desc: "Bloque decorativo con línea lateral." },
-    { label: "Imagen inline",     icon: Image,             badge: "bg-emerald-100 text-emerald-700", snippet: "[[img|/dibujos/imagen.jpg|Caption opcional]]",      desc: "Imagen full-width en el flujo." },
-    { label: "Imagen flotante",   icon: Image,             badge: "bg-purple-100 text-purple-700",   snippet: "[[float|nombre|/dibujos/imagen.jpg|Caption]]",      desc: "Palabra clickeable que muestra la imagen." },
-    { label: "Drop (easter egg)", icon: Sword,             badge: "bg-amber-50 text-amber-600",      snippet: "[[drop|palabra|item|uuid|Nombre Item]]",            desc: "Otorga un item o criatura al lector." },
-    { label: "Botón Decisión",    icon: GitMerge,          badge: "bg-blue-100 text-blue-700",       snippet: "[[choice|Texto de la opción|id-capitulo-destino]]", desc: "Crea una opción manual en la historia." },
-    { label: "Usar Ítem",         icon: MousePointerClick, badge: "bg-rose-100 text-rose-700",       snippet: "[[use|usar llave|id-item|id-cap-exito|id-cap-fallo]]", desc: "Requiere un ítem para avanzar." },
+    { label: "Cita visual",       icon: Quote,             badge: "bg-amber-100 text-amber-700",     desc: "Bloque decorativo con línea lateral.",        action: onOpenCita,   gui: true },
+    { label: "Imagen / Flotante", icon: Image,             badge: "bg-emerald-100 text-emerald-700",  desc: "Imagen inline o flotante clickeable.",        action: onOpenImg,    gui: true },
+    { label: "Drop (easter egg)", icon: Sword,             badge: "bg-amber-50 text-amber-600",       desc: "Otorga un item o criatura al lector.",        action: onOpenDrop,   gui: true },
+    { label: "Botón Decisión",    icon: GitMerge,          badge: "bg-blue-100 text-blue-700",        desc: "Genera capítulo nuevo y lo enlaza.",          action: onOpenChoice, gui: true },
+    { label: "Usar Ítem",         icon: MousePointerClick, badge: "bg-rose-100 text-rose-700",        desc: "Requiere un ítem del inventario para avanzar.", action: onOpenUse,  gui: true },
   ];
+
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(v => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-dashed border-primary/20">
@@ -446,21 +454,131 @@ function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-96 bg-white-custom border border-primary/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
-            <div className="px-4 pt-4 pb-1">
+          <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-80 bg-white-custom border border-primary/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
+            <div className="px-3 pt-3 pb-1">
               {bloques.map(b => { const Icon = b.icon; return (
-                <button key={b.label} onClick={() => { onInsert(b.snippet); setOpen(false); }} className="w-full text-left p-3 rounded-xl hover:bg-primary/5 transition-all mb-1 group">
-                  <span className={`flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full w-fit mb-1.5 ${b.badge}`}><Icon size={9} /> {b.label}</span>
-                  <p className="text-[10px] text-primary/40 mb-1">{b.desc}</p>
-                  <code className="text-[10px] text-primary/40 group-hover:text-primary/60 font-mono break-all block">{b.snippet}</code>
+                <button key={b.label} onClick={() => { b.action(); setOpen(false); }} className="w-full text-left p-3 rounded-xl hover:bg-primary/5 transition-all mb-1 group flex items-center gap-3">
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-xl shrink-0 ${b.badge}`}><Icon size={14} /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-primary-dark leading-none mb-0.5">{b.label}</p>
+                    <p className="text-[10px] text-primary/40 leading-snug">{b.desc}</p>
+                  </div>
+                  {b.gui && <span className="text-[8px] font-black uppercase tracking-widest bg-primary/8 text-primary/50 px-1.5 py-0.5 rounded-md shrink-0">GUI</span>}
                 </button>
               ); })}
             </div>
-            <p className="px-4 pb-4 text-[9px] text-primary/25">Clic para insertar en el cursor.</p>
+            <p className="px-4 pb-3 text-[9px] text-primary/25">Todos abren un formulario visual.</p>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ─── MODAL GUI: CITA VISUAL ──────────────────────────────────────────────────
+function CitaModal({ open, onClose, onInsert }: { open: boolean; onClose: () => void; onInsert: (s: string) => void }) {
+  const [texto, setTexto] = useState("");
+  const [fuente, setFuente] = useState("");
+  useEffect(() => { if (open) { setTexto(""); setFuente(""); } }, [open]);
+  if (!open) return null;
+  const snippet = fuente.trim() ? `[[cita|${texto} — ${fuente}]]` : `[[cita|${texto}]]`;
+  const handleInsert = () => { if (!texto.trim()) return; onInsert(snippet); onClose(); };
+  return (
+    <>
+      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
+        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
+          <Quote size={16} className="text-amber-500" /> Cita visual
+        </h3>
+        <p className="text-[10px] text-primary/40 mb-4">Bloque decorativo con línea lateral y tipografía serif.</p>
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Texto de la cita *</label>
+        <textarea
+          autoFocus rows={3} value={texto} onChange={e => setTexto(e.target.value)}
+          placeholder="El texto que será citado…"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3 resize-none"
+        />
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Fuente <span className="font-normal opacity-50">(opcional)</span></label>
+        <input value={fuente} onChange={e => setFuente(e.target.value)} placeholder="ej: Crónicas del Norte, vol. II"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
+          onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
+        />
+        {texto.trim() && (
+          <div className="mb-4">
+            <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Vista previa del snippet</p>
+            <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-lg px-3 py-2 block leading-relaxed">{snippet}</code>
+          </div>
+        )}
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleInsert} disabled={!texto.trim()} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-amber-500 text-white hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center gap-1.5">
+            <Quote size={12} /> Insertar Cita
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── MODAL GUI: USAR ÍTEM ────────────────────────────────────────────────────
+function UseModal({ open, onClose, onInsert, listaCapitulos }: { open: boolean; onClose: () => void; onInsert: (s: string) => void; listaCapitulos: CapituloLista[] }) {
+  const [word, setWord] = useState("");
+  const [itemId, setItemId] = useState("");
+  const [targetSuccess, setTargetSuccess] = useState("");
+  const [targetFail, setTargetFail] = useState("");
+  useEffect(() => { if (open) { setWord(""); setItemId(""); setTargetSuccess(""); setTargetFail(""); } }, [open]);
+  if (!open) return null;
+  const snippet = `[[use|${word || "palabra"}|${itemId || "id-item"}|${targetSuccess || "id-cap-exito"}${targetFail ? `|${targetFail}` : ""}]]`;
+  const handleInsert = () => {
+    if (!word.trim() || !itemId.trim() || !targetSuccess.trim()) return;
+    onInsert(`[[use|${word}|${itemId}|${targetSuccess}${targetFail.trim() ? `|${targetFail}` : ""}]]`);
+    onClose();
+  };
+  const hoy = new Date().toISOString().split("T")[0];
+  const caps = listaCapitulos.filter(c => c.fecha_publicacion <= hoy || true);
+  return (
+    <>
+      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10 overflow-y-auto" style={{ maxHeight: "90vh" }}>
+        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
+          <MousePointerClick size={16} className="text-rose-500" /> Usar Ítem
+        </h3>
+        <p className="text-[10px] text-primary/40 mb-4">Requiere un ítem del inventario para avanzar a un capítulo.</p>
+
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Palabra en el texto *</label>
+        <input value={word} onChange={e => setWord(e.target.value)} placeholder="ej: usar llave, abrir cofre…"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
+
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">ID del ítem (UUID) *</label>
+        <input value={itemId} onChange={e => setItemId(e.target.value)} placeholder="ej: 550e8400-e29b-41d4-a716-446655440000"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
+
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Capítulo si TIENE el ítem (éxito) *</label>
+        <select value={targetSuccess} onChange={e => setTargetSuccess(e.target.value)}
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-3">
+          <option value="">— Seleccionar capítulo —</option>
+          {caps.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo || `Capítulo ${c.orden}`}</option>)}
+        </select>
+
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Capítulo si NO tiene el ítem (fallo) <span className="font-normal opacity-50">(opcional)</span></label>
+        <select value={targetFail} onChange={e => setTargetFail(e.target.value)}
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-4">
+          <option value="">— Ninguno (aviso genérico) —</option>
+          {caps.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo || `Capítulo ${c.orden}`}</option>)}
+        </select>
+
+        <div className="mb-4">
+          <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Vista previa del snippet</p>
+          <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-lg px-3 py-2 block leading-relaxed">{snippet}</code>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleInsert} disabled={!word.trim() || !itemId.trim() || !targetSuccess} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
+            <MousePointerClick size={12} /> Insertar
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -632,9 +750,10 @@ function ChapterSelector({ lista, capIdActual, isAdmin, onSelect }: { lista: Cap
   );
 }
 
-function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving, libroId, nextOrder }: {
+function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving, libroId, nextOrder, listaCapitulos }: {
   textareaRef: React.RefObject<HTMLTextAreaElement>; value: string; onChange: (v: string) => void;
   onSave: () => void; onCancel: () => void; saving: boolean; libroId: string; nextOrder: number;
+  listaCapitulos: CapituloLista[];
 }) {
   const { words, readMin } = useTextStats(value);
   const [focusMode, setFocusMode] = useState(false);
@@ -642,6 +761,8 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
   const [dropPickerOpen, setDropPickerOpen] = useState(false);
   const [nodeCreatorOpen, setNodeCreatorOpen] = useState(false);
+  const [citaModalOpen, setCitaModalOpen] = useState(false);
+  const [useModalOpen, setUseModalOpen] = useState(false);
 
   const insertAtCursor = useCallback((snippet: string) => {
     const el = textareaRef.current;
@@ -672,12 +793,15 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
       <div className="flex items-center gap-1 pr-3 border-r border-primary/10">
         {tools.map((t, i) => <button key={i} title={t.title} onClick={t.action} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-primary/60 hover:text-primary hover:bg-primary/8 transition-all font-mono">{t.label}</button>)}
       </div>
-      <SyntaxHelper onInsert={insertAtCursor} />
+      <SyntaxHelper
+        onInsert={insertAtCursor}
+        onOpenCita={() => setCitaModalOpen(true)}
+        onOpenImg={() => setPickerOpen(true)}
+        onOpenDrop={() => setDropPickerOpen(true)}
+        onOpenChoice={() => setNodeCreatorOpen(true)}
+        onOpenUse={() => setUseModalOpen(true)}
+      />
       
-      {/* NUEVO BOTÓN PARA CREAR RUTA GUI */}
-      <button onClick={() => setNodeCreatorOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 transition-all border border-blue-200" title="Genera un capítulo nuevo y lo enlaza automáticamente">
-        <GitMerge size={12} /> Crear Ruta GUI
-      </button>
 
       <button onClick={() => setPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-primary/15" title="Explorador de imágenes">
         <Image size={12} /> Imágenes
@@ -707,6 +831,8 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
       <ImagePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onInsert={insertAtCursor} />
       <SoundPicker open={soundPickerOpen} onClose={() => setSoundPickerOpen(false)} onInsert={insertAtCursor} />
       <EntidadPicker open={dropPickerOpen} onClose={() => setDropPickerOpen(false)} onInsert={insertAtCursor} />
+      <CitaModal open={citaModalOpen} onClose={() => setCitaModalOpen(false)} onInsert={insertAtCursor} />
+      <UseModal open={useModalOpen} onClose={() => setUseModalOpen(false)} onInsert={insertAtCursor} listaCapitulos={listaCapitulos} />
       <div className="sticky top-[65px] z-40 bg-white-custom/90 backdrop-blur-md border-b border-primary/8"><BarContent isFocus={false} /></div>
       <AnimatePresence>
         {focusMode && (
@@ -883,6 +1009,7 @@ export default function Lector() {
           saving={saving}
           libroId={id}
           nextOrder={listaCapitulos.length + 1}
+          listaCapitulos={listaCapitulos}
         />
       )}
 
