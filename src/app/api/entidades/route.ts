@@ -11,31 +11,25 @@ export async function GET(req: Request) {
   const tipo = searchParams.get("tipo");
 
   try {
-    // 1. Ejecutamos las consultas por separado para identificar cuál falla
-    const itemsReq = (!tipo || tipo === "item")
-      ? supabase.from("items").select("id, nombre, imagen_url").order("nombre")
-      : Promise.resolve({ data: [], error: null });
-
-    const criaturasReq = (!tipo || tipo === "criatura")
-      ? supabase.from("criaturas").select("id, nombre, img_url").order("nombre")
-      : Promise.resolve({ data: [], error: null });
-
-    const personajesReq = (!tipo || tipo === "personaje")
-      ? supabase.from("personajes").select("id, nombre, img_url").order("nombre")
-      : Promise.resolve({ data: [], error: null });
-
+    // 1. Ejecutamos las consultas en paralelo
     const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
-      itemsReq,
-      criaturasReq,
-      personajesReq
+      (!tipo || tipo === "item")
+        ? supabase.from("items").select("id, nombre, categoria, imagen_url").order("nombre")
+        : Promise.resolve({ data: [], error: null }),
+      (!tipo || tipo === "criatura")
+        ? supabase.from("criaturas").select("id, nombre, habitat, img_url").order("nombre")
+        : Promise.resolve({ data: [], error: null }),
+      (!tipo || tipo === "personaje")
+        ? supabase.from("personajes").select("id, nombre, img_url").order("nombre")
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
-    // 2. Logs detallados para que veas en Vercel exactamente qué tabla falla
-    if (itemsRes.error) console.error("Error en tabla ITEMS:", itemsRes.error.message);
-    if (criaturasRes.error) console.error("Error en tabla CRIATURAS:", criaturasRes.error.message);
-    if (personajesRes.error) console.error("Error en tabla PERSONAJES:", personajesRes.error.message);
+    // 2. Logs de control en la consola de Vercel
+    if (itemsRes.error) console.error("Error Items:", itemsRes.error.message);
+    if (criaturasRes.error) console.error("Error Criaturas:", criaturasRes.error.message);
+    if (personajesRes.error) console.error("Error Personajes:", personajesRes.error.message);
 
-    // 3. Formateo de respuesta seguro
+    // 3. Formateo de los datos para el componente EntidadPicker
     const data = {
       items: (itemsRes.data || []).map((i: any) => ({
         ...i,
@@ -43,29 +37,30 @@ export async function GET(req: Request) {
       })),
       criaturas: (criaturasRes.data || []).map((c: any) => ({
         ...c,
-        imagen_url: c.img_url || null,
+        imagen_url: c.img_url, // 👈 Importante: mapeamos img_url a imagen_url
         tipo: "criatura"
       })),
       personajes: (personajesRes.data || []).map((p: any) => ({
         ...p,
-        imagen_url: p.img_url || null,
+        imagen_url: p.img_url, // 👈 Importante: mapeamos img_url a imagen_url
         tipo: "personaje"
       }))
     };
 
+    // 4. Retorno de la respuesta exitosa
     return NextResponse.json({
       ok: true,
       data: data
     });
 
   } catch (err: any) {
-    console.error("CRITICAL API ERROR:", err.message);
+    console.error("DETALLE DEL ERROR:", err.message);
     return NextResponse.json(
       { 
         ok: false, 
-        error: "Error interno del servidor",
+        error: "Error de consistencia en base de datos", 
         detalle: err.message 
-      }, 
+      },
       { status: 500 }
     );
   }
