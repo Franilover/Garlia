@@ -203,7 +203,7 @@ const Navbar = () => {
                 </p>
               </div>
 
-              <Link href="/wiki/paginas/personal/page.tsx" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+              <Link href="/wiki/paginas/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                 <Sword size={18} /> Mi Personaje
               </Link>
 
