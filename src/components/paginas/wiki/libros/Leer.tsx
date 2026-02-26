@@ -7,7 +7,7 @@ import {
   BookOpen, Clock, AlignLeft, Maximize2, Minimize2,
   ChevronDown, Check, Eye, Type, Image, Quote,
   Folder, FolderOpen, ChevronRight as ChevronR, Loader2,
-  Music2, Sword, Package, GitMerge, MousePointerClick,
+  Music2, Sword, Package, GitMerge, MousePointerClick, PlusCircle
 } from "lucide-react";
 import { SoundPicker } from "@/components/shared/ui/SoundPicker";
 import { EntidadPicker } from "@/components/shared/ui/EntidadPicker";
@@ -436,7 +436,7 @@ function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
     { label: "Imagen inline",     icon: Image,             badge: "bg-emerald-100 text-emerald-700", snippet: "[[img|/dibujos/imagen.jpg|Caption opcional]]",      desc: "Imagen full-width en el flujo." },
     { label: "Imagen flotante",   icon: Image,             badge: "bg-purple-100 text-purple-700",   snippet: "[[float|nombre|/dibujos/imagen.jpg|Caption]]",      desc: "Palabra clickeable que muestra la imagen." },
     { label: "Drop (easter egg)", icon: Sword,             badge: "bg-amber-50 text-amber-600",      snippet: "[[drop|palabra|item|uuid|Nombre Item]]",            desc: "Otorga un item o criatura al lector." },
-    { label: "Botón Decisión",    icon: GitMerge,          badge: "bg-blue-100 text-blue-700",       snippet: "[[choice|Texto de la opción|id-capitulo-destino]]", desc: "Crea una opción de ruta en la historia." },
+    { label: "Botón Decisión",    icon: GitMerge,          badge: "bg-blue-100 text-blue-700",       snippet: "[[choice|Texto de la opción|id-capitulo-destino]]", desc: "Crea una opción manual en la historia." },
     { label: "Usar Ítem",         icon: MousePointerClick, badge: "bg-rose-100 text-rose-700",       snippet: "[[use|usar llave|id-item|id-cap-exito|id-cap-fallo]]", desc: "Requiere un ítem para avanzar." },
   ];
   return (
@@ -461,6 +461,76 @@ function SyntaxHelper({ onInsert }: { onInsert: (s: string) => void }) {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ─── GENERADOR DE RUTAS (GUI) ────────────────────────────────────────────────
+function NodeCreatorModal({ open, onClose, onInsert, libroId, nextOrder }: { open: boolean; onClose: () => void; onInsert: (s: string) => void; libroId: string; nextOrder: number }) {
+  const [label, setLabel] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) setLabel("");
+  }, [open]);
+
+  if (!open) return null;
+
+  const handleCreate = async () => {
+    if (!label.trim()) return;
+    setLoading(true);
+    try {
+      // NOTA: Si tu tabla en Supabase no se llama "capitulos" (ej: wiki_capitulos), cámbialo aquí abajo.
+      const { data, error } = await supabase
+        .from("capitulos")
+        .insert({
+          libro_id: libroId,
+          titulo_capitulo: `[Ruta] ${label}`,
+          contenido: "Continúa escribiendo tu historia aquí...",
+          orden: nextOrder,
+          fecha_publicacion: new Date().toISOString().split("T")[0],
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      onInsert(`[[choice|${label}|${data.id}]]`);
+      onClose();
+    } catch (err: any) {
+      alert("Error al crear el nuevo nodo/capítulo: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-sm bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
+        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-2 flex items-center gap-2">
+          <GitMerge size={16} className="text-blue-500" /> Crear nueva ruta
+        </h3>
+        <p className="text-[10px] text-primary/50 mb-4">Esto generará automáticamente un nuevo capítulo vinculado a este libro y creará el botón en el editor actual.</p>
+        
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Texto de la opción</label>
+        <input 
+          autoFocus
+          value={label} 
+          onChange={e => setLabel(e.target.value)} 
+          placeholder="ej: Abrir el cofre" 
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-5"
+          onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
+        />
+
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleCreate} disabled={loading || !label.trim()} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <PlusCircle size={12} />} 
+            {loading ? "Creando..." : "Crear Ruta"}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -562,15 +632,16 @@ function ChapterSelector({ lista, capIdActual, isAdmin, onSelect }: { lista: Cap
   );
 }
 
-function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving }: {
+function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving, libroId, nextOrder }: {
   textareaRef: React.RefObject<HTMLTextAreaElement>; value: string; onChange: (v: string) => void;
-  onSave: () => void; onCancel: () => void; saving: boolean;
+  onSave: () => void; onCancel: () => void; saving: boolean; libroId: string; nextOrder: number;
 }) {
   const { words, readMin } = useTextStats(value);
   const [focusMode, setFocusMode] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
   const [dropPickerOpen, setDropPickerOpen] = useState(false);
+  const [nodeCreatorOpen, setNodeCreatorOpen] = useState(false);
 
   const insertAtCursor = useCallback((snippet: string) => {
     const el = textareaRef.current;
@@ -602,6 +673,12 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
         {tools.map((t, i) => <button key={i} title={t.title} onClick={t.action} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-primary/60 hover:text-primary hover:bg-primary/8 transition-all font-mono">{t.label}</button>)}
       </div>
       <SyntaxHelper onInsert={insertAtCursor} />
+      
+      {/* NUEVO BOTÓN PARA CREAR RUTA GUI */}
+      <button onClick={() => setNodeCreatorOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 transition-all border border-blue-200" title="Genera un capítulo nuevo y lo enlaza automáticamente">
+        <GitMerge size={12} /> Crear Ruta GUI
+      </button>
+
       <button onClick={() => setPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-primary/15" title="Explorador de imágenes">
         <Image size={12} /> Imágenes
       </button>
@@ -626,6 +703,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving 
 
   return (
     <>
+      <NodeCreatorModal open={nodeCreatorOpen} onClose={() => setNodeCreatorOpen(false)} onInsert={insertAtCursor} libroId={libroId} nextOrder={nextOrder} />
       <ImagePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onInsert={insertAtCursor} />
       <SoundPicker open={soundPickerOpen} onClose={() => setSoundPickerOpen(false)} onInsert={insertAtCursor} />
       <EntidadPicker open={dropPickerOpen} onClose={() => setDropPickerOpen(false)} onInsert={insertAtCursor} />
@@ -803,6 +881,8 @@ export default function Lector() {
           onSave={handleSave}
           onCancel={handleCancelEdit}
           saving={saving}
+          libroId={id}
+          nextOrder={listaCapitulos.length + 1}
         />
       )}
 
