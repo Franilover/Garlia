@@ -784,6 +784,90 @@ function UseModal({ open, onClose, onInsert, listaCapitulos }: { open: boolean; 
   );
 }
 
+// ─── MODAL GUI: CHOICE (botón de decisión inline) ────────────────────────────
+function ChoiceModal({ open, onClose, onInsert, listaCapitulos }: {
+  open: boolean; onClose: () => void; onInsert: (s: string) => void; listaCapitulos: CapituloLista[];
+}) {
+  const [label, setLabel]   = useState("");
+  const [target, setTarget] = useState("");
+  const [mode, setMode]     = useState<"existing" | "manual">("existing");
+  useEffect(() => { if (open) { setLabel(""); setTarget(""); setMode("existing"); } }, [open]);
+  if (!open) return null;
+
+  const snippet = label.trim() && target.trim() ? `[[choice|${label}|${target}]]` : "";
+  const handleInsert = () => { if (!label.trim() || !target.trim()) return; onInsert(snippet); onClose(); };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
+        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
+          <ChevronR size={16} className="text-blue-500" /> Botón de decisión
+        </h3>
+        <p className="text-[10px] text-primary/40 mb-4">Crea un botón que lleva al lector a otra sección o capítulo.</p>
+
+        {/* Tabs: sección del mismo cap vs capítulo existente */}
+        <div className="flex gap-1 p-1 bg-primary/5 rounded-xl mb-4">
+          {([
+            { key: "existing", label: "Capítulo existente" },
+            { key: "manual",   label: "Sección / ID manual" },
+          ] as const).map(tab => (
+            <button key={tab.key} onClick={() => { setMode(tab.key); setTarget(""); }}
+              className={cn("flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                mode === tab.key ? "bg-white-custom shadow text-primary" : "text-primary/40 hover:text-primary")}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Texto del botón *</label>
+        <input autoFocus value={label} onChange={e => setLabel(e.target.value)}
+          placeholder="ej: Abrir el cofre, Huir, Atacar…"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3"
+          onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
+        />
+
+        {mode === "existing" ? (
+          <>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Capítulo destino *</label>
+            <select value={target} onChange={e => setTarget(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-4">
+              <option value="">— Seleccionar capítulo —</option>
+              {listaCapitulos.map(c => (
+                <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo || `Capítulo ${c.orden}`}</option>
+              ))}
+            </select>
+          </>
+        ) : (
+          <>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">ID de sección o capítulo *</label>
+            <input value={target} onChange={e => setTarget(e.target.value)}
+              placeholder="ej: cofre  (debe coincidir con [[section|cofre]])"
+              className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
+              onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
+            />
+          </>
+        )}
+
+        {snippet && (
+          <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+            <p className="text-[9px] font-black uppercase tracking-widest text-blue-400 mb-1">Snippet</p>
+            <code className="text-[11px] text-blue-600 font-mono">{snippet}</code>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleInsert} disabled={!label.trim() || !target.trim()}
+            className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-blue-500 text-white hover:bg-blue-600 transition-all disabled:opacity-50 flex items-center gap-1.5">
+            <ChevronR size={12} /> Insertar Choice
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── MODAL GUI: SECCIÓN ──────────────────────────────────────────────────────
 function SectionModal({ open, onClose, onInsert }: { open: boolean; onClose: () => void; onInsert: (s: string) => void }) {
   const [sectionId, setSectionId] = useState("");
@@ -901,6 +985,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
   const [citaModalOpen, setCitaModalOpen] = useState(false);
   const [useModalOpen, setUseModalOpen] = useState(false);
   const [sectionModalOpen, setSectionModalOpen] = useState(false);
+  const [choiceModalOpen, setChoiceModalOpen] = useState(false);
 
   const insertAtCursor = useCallback((snippet: string) => {
     const el = textareaRef.current;
@@ -958,6 +1043,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
           <p className="text-[8px] font-black uppercase tracking-widest text-primary/25 px-2 mb-1">Narrativa ramificada</p>
           <DropdownItem icon={GitMerge}          label="Nueva ruta"     desc="Crea cap. y enlaza choice"      color="text-blue-500"   onClick={() => setNodeCreatorOpen(true)} />
           <DropdownItem icon={ChevronR}          label="Sección / Rama" desc="Rama dentro del mismo capítulo" color="text-violet-500" onClick={() => setSectionModalOpen(true)} />
+          <DropdownItem icon={GitMerge}          label="Choice (botón)"  desc="Apunta a sección o capítulo"    color="text-blue-400"   onClick={() => setChoiceModalOpen(true)} />
         </div>
         <DropdownDivider />
         <div className="px-2 py-1.5">
@@ -1006,6 +1092,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
       <CitaModal open={citaModalOpen} onClose={() => setCitaModalOpen(false)} onInsert={insertAtCursor} />
       <UseModal open={useModalOpen} onClose={() => setUseModalOpen(false)} onInsert={insertAtCursor} listaCapitulos={listaCapitulos} />
       <SectionModal open={sectionModalOpen} onClose={() => setSectionModalOpen(false)} onInsert={insertAtCursor} />
+      <ChoiceModal open={choiceModalOpen} onClose={() => setChoiceModalOpen(false)} onInsert={insertAtCursor} listaCapitulos={listaCapitulos} />
       <div className="sticky top-[65px] z-40 bg-white-custom/90 backdrop-blur-md border-b border-primary/8">
         <BarContent isFocus={false} />
       </div>
