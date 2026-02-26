@@ -31,9 +31,6 @@ export default function CriaturasGrid() {
           src={c.imagen_url} 
           onClick={onClick}
         >
-          <p className={cn(typography.tag, "mb-1 opacity-60")}>
-            {c.habitat} • {c.alma}
-          </p>
           <h3 className={typography.cardTitle}>{c.nombre}</h3>
         </GalleryItem>
       )}
