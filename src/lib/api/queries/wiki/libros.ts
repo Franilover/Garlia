@@ -11,24 +11,19 @@ export interface Capitulo {
 }
 
 export const librosQueries = {
-  // ESTA ES LA FUNCIÓN QUE FALTABA
+
   getAll: async (options: any = {}) => {
     let query = supabase.from("libros").select("*");
-
     if (options.order) {
-      query = query.order(options.order.campo, { 
-        ascending: options.order.asc ?? false 
-      });
+      query = query.order(options.order.campo, { ascending: options.order.asc ?? false });
     } else {
       query = query.order("created_at", { ascending: false });
     }
-
     return await query;
   },
 
   getCapituloParaLectura: async (capId: string, libroId: string, isAdmin: boolean) => {
-    // Corregido: Usamos la fecha completa para comparar
-    const hoy = new Date().toISOString(); 
+    const hoy = new Date().toISOString();
 
     const { data: capitulo, error: capError } = await supabase
       .from("capitulos")
@@ -38,15 +33,15 @@ export const librosQueries = {
 
     if (capError) throw capError;
     if (!capitulo) return { data: null, error: "Capítulo no encontrado" };
-
     if (!isAdmin && capitulo.fecha_publicacion > hoy) {
       return { data: null, error: "Este capítulo aún no ha sido revelado." };
     }
 
-let navQuery = supabase
-  .from("capitulos")
-  .select("id, orden, titulo_capitulo, fecha_publicacion")
-  .eq("libro_id", libroId);
+    let navQuery = supabase
+      .from("capitulos")
+      .select("id, orden, titulo_capitulo, fecha_publicacion")
+      .eq("libro_id", libroId);
+
     if (!isAdmin) {
       navQuery = navQuery.lte("fecha_publicacion", hoy);
     }
@@ -56,20 +51,41 @@ let navQuery = supabase
     return {
       data: {
         capitulo: capitulo as Capitulo,
-        listaCapitulos: navegacion || []
+        listaCapitulos: navegacion || [],
       },
-      error: null
+      error: null,
     };
   },
 
   updateContenido: async (capId: string, contenido: string) => {
-    const { data, error } = await supabase
+    // 1. Hacer el update
+    const { error: updateError } = await supabase
       .from("capitulos")
       .update({ contenido })
+      .eq("id", capId);
+
+    if (updateError) return { data: null, error: updateError };
+
+    // 2. Verificar que realmente se guardó en BD
+    // (detecta fallos silenciosos de RLS donde error viene null pero no guardó nada)
+    const { data, error: fetchError } = await supabase
+      .from("capitulos")
+      .select("id, contenido")
       .eq("id", capId)
-      .select()
       .single();
 
-    return { data, error };
-  }
+    if (fetchError) return { data: null, error: fetchError };
+
+    if (data.contenido !== contenido) {
+      return {
+        data: null,
+        error: {
+          message: "⚠️ El contenido no se guardó. Revisá los permisos RLS en Supabase (tabla capitulos, política UPDATE).",
+          code: "RLS_SILENT_BLOCK",
+        },
+      };
+    }
+
+    return { data, error: null };
+  },
 };
