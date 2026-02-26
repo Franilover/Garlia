@@ -12,37 +12,33 @@ export async function GET(req: Request) {
   const tipo = searchParams.get("tipo");
 
   try {
-    // 💡 He ajustado los .select() basándome en tus archivos .ts reales
+    // 💡 Consultas optimizadas con las columnas que sí existen en tu DB
     const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
       (!tipo || tipo === "item")
-        ? supabase.from("items").select("id, nombre, categoria").order("nombre")
+        ? supabase.from("items").select("id, nombre, categoria, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "criatura")
-        ? supabase.from("criaturas").select("id, nombre, habitat").order("nombre")
+        ? supabase.from("criaturas").select("id, nombre, habitat, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "personaje")
-        ? supabase.from("personajes").select("id, nombre, visible").order("nombre")
+        ? supabase.from("personajes").select("id, nombre, visible, imagen_url, ocupacion").order("nombre")
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-    // Verificamos cuál falló específicamente para darte un error claro
+    // Verificamos errores específicos
     if (itemsRes.error) throw new Error(`Error en tabla 'items': ${itemsRes.error.message}`);
     if (criaturasRes.error) throw new Error(`Error en tabla 'criaturas': ${criaturasRes.error.message}`);
     if (personajesRes.error) throw new Error(`Error en tabla 'personajes': ${personajesRes.error.message}`);
 
     return NextResponse.json({
       ok: true,
+      // ⚠️ IMPORTANTE: El Picker busca "data.items", "data.criaturas", etc.
+      // Envolvemos todo en un objeto "data" para que coincida con el .then(d => d.data)
       data: {
         items: itemsRes.data ?? [],
         criaturas: criaturasRes.data ?? [],
         personajes: personajesRes.data ?? [],
-      },
-      // Lista plana para buscadores globales
-      all: [
-        ...(itemsRes.data?.map((i: any) => ({ ...i, tipo: "item" })) || []),
-        ...(criaturasRes.data?.map((c: any) => ({ ...c, tipo: "criatura" })) || []),
-        ...(personajesRes.data?.map((p: any) => ({ ...p, tipo: "personaje" })) || []),
-      ]
+      }
     });
 
   } catch (err: any) {

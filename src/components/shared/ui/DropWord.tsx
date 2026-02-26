@@ -23,21 +23,24 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
   const [open, setOpen] = useState(false);
 
   const handleClick = async () => {
+    // Si ya se obtuvo o ya lo tenía, no hacemos nada más que mostrar el éxito si se desea
     if (state === "success" || state === "already") return;
+    
     setOpen(true);
     setState("loading");
 
-    // Verificar sesión
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    // 1. CONSULTA DIRECTA A AUTH (Ignorando la tabla perfiles para evitar errores de columnas)
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
       setState("no_auth");
       return;
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     try {
-      // 1. Verificar si ya existe el descubrimiento (independientemente del tipo)
+      // 2. Verificar si ya existe el descubrimiento en la tabla correspondiente
       const { data: existing, error: checkError } = await supabase
         .from("descubrimientos")
         .select("id")
@@ -53,7 +56,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
         return;
       }
 
-      // 2. Insertar el nuevo descubrimiento
+      // 3. Insertar el nuevo descubrimiento vinculado al ID de Auth
       const { error: insertError } = await supabase
         .from("descubrimientos")
         .insert({
@@ -71,7 +74,6 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
     }
   };
 
-  // Definir icono según el tipo
   const getIcon = () => {
     switch (tipo) {
       case "item": return Package;
@@ -118,28 +120,26 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
         }}>
           {word}
         </span>
-        {/* Indicador de drop */}
         <span className={cn(
           "absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full transition-colors",
           state === "success" ? "bg-emerald-400" : "bg-[#C4A882]/60 group-hover:bg-[#C4A882] animate-pulse"
         )} />
       </button>
 
-      {/* Popup de feedback */}
       <AnimatePresence>
         {open && state !== "idle" && (
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => { if (state !== "loading") setOpen(false); }}
-              className="fixed inset-0 z-[80]"
+              className="fixed inset-0 z-[80] bg-black/5 backdrop-blur-[2px]"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.85, y: -8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: -4 }}
               transition={{ type: "spring", damping: 24, stiffness: 340 }}
-              className="fixed z-[81] left-1/2 -translate-x-1/2 top-1/3 w-72 bg-white-custom rounded-3xl shadow-2xl overflow-hidden"
+              className="fixed z-[81] left-1/2 -translate-x-1/2 top-1/3 w-72 bg-white rounded-3xl shadow-2xl overflow-hidden"
               style={{ boxShadow: "0 24px 64px rgba(44,38,46,0.22)" }}
             >
               <div className="h-1.5 w-full bg-gradient-to-r from-[#C4A882] via-primary to-[#C4A882]" />
@@ -149,26 +149,19 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
                   <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center">
                     <Loader2 size={24} className="text-primary/40 animate-spin" />
                   </div>
-                ) : state === "success" ? (
-                  <motion.div
-                    initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    transition={{ type: "spring", damping: 16, stiffness: 300, delay: 0.1 }}
-                    className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100"
-                  >
-                    <Icon size={24} className="text-emerald-500" />
-                  </motion.div>
-                ) : state === "already" ? (
-                  <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center">
-                    <Check size={24} className="text-primary/40" />
-                  </div>
                 ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
-                    <Sparkles size={24} className="text-amber-400" />
-                  </div>
-                )}
-
-                {state !== "loading" && (
                   <>
+                    <motion.div
+                      initial={{ scale: 0 }} animate={{ scale: 1 }}
+                      transition={{ type: "spring", damping: 16, stiffness: 300, delay: 0.1 }}
+                      className={cn(
+                        "w-14 h-14 rounded-2xl flex items-center justify-center border",
+                        state === "success" ? "bg-emerald-50 border-emerald-100" : "bg-primary/5 border-primary/5"
+                      )}
+                    >
+                      {state === "already" ? <Check size={24} className="text-primary/40" /> : <Icon size={24} className={messages[state].color} />}
+                    </motion.div>
+
                     <div>
                       <p className={cn("font-black uppercase text-[11px] tracking-widest", messages[state].color)}>
                         {messages[state].title}
