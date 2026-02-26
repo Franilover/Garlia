@@ -7,7 +7,7 @@ import {
   BookOpen, Clock, AlignLeft, Maximize2, Minimize2,
   ChevronDown, Check, Eye, Type, Image, Quote,
   Folder, FolderOpen, ChevronRight as ChevronR, Loader2,
-  Music2, Sword, Package, GitMerge, MousePointerClick, PlusCircle
+  Music2, Sword, GitMerge, MousePointerClick, PlusCircle
 } from "lucide-react";
 import { SoundPicker } from "@/components/shared/ui/SoundPicker";
 import { EntidadPicker } from "@/components/shared/ui/EntidadPicker";
@@ -519,234 +519,6 @@ function useTextStats(text: string) {
   return { words, readMin: Math.max(1, Math.round(words / 200)) };
 }
 
-function SyntaxHelper({ onInsert, onOpenCita, onOpenImg, onOpenDrop, onOpenChoice, onOpenUse, onOpenSection }: {
-  onInsert: (s: string) => void;
-  onOpenCita: () => void;
-  onOpenImg: () => void;
-  onOpenDrop: () => void;
-  onOpenChoice: () => void;
-  onOpenUse: () => void;
-  onOpenSection: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  const bloques = [
-    { label: "Cita visual",       icon: Quote,             badge: "bg-amber-100 text-amber-700",     desc: "Bloque decorativo con línea lateral.",        action: onOpenCita,   gui: true },
-    { label: "Imagen / Flotante", icon: Image,             badge: "bg-emerald-100 text-emerald-700",  desc: "Imagen inline o flotante clickeable.",        action: onOpenImg,    gui: true },
-    { label: "Drop (easter egg)", icon: Sword,             badge: "bg-amber-50 text-amber-600",       desc: "Otorga un item o criatura al lector.",        action: onOpenDrop,   gui: true },
-    { label: "Botón Decisión",    icon: GitMerge,          badge: "bg-blue-100 text-blue-700",        desc: "Genera capítulo nuevo y lo enlaza.",          action: onOpenChoice, gui: true },
-    { label: "Usar Ítem",         icon: MousePointerClick, badge: "bg-rose-100 text-rose-700",        desc: "Requiere un ítem del inventario para avanzar.", action: onOpenUse,  gui: true },
-    { label: "Sección / Rama",    icon: GitMerge,          badge: "bg-violet-100 text-violet-700",    desc: "Divide el capítulo en ramas sin crear nuevos caps.", action: onOpenSection, gui: true },
-  ];
-
-  return (
-    <div ref={ref} className="relative">
-      <button onClick={() => setOpen(v => !v)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-dashed border-primary/20">
-        ✦ Insertar <ChevronDown size={11} className={cn("transition-transform", open && "rotate-180")} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-80 bg-white-custom border border-primary/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
-            <div className="px-3 pt-3 pb-1">
-              {bloques.map(b => { const Icon = b.icon; return (
-                <button key={b.label} onClick={() => { b.action(); setOpen(false); }} className="w-full text-left p-3 rounded-xl hover:bg-primary/5 transition-all mb-1 group flex items-center gap-3">
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-xl shrink-0 ${b.badge}`}><Icon size={14} /></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-primary-dark leading-none mb-0.5">{b.label}</p>
-                    <p className="text-[10px] text-primary/40 leading-snug">{b.desc}</p>
-                  </div>
-                  {b.gui && <span className="text-[8px] font-black uppercase tracking-widest bg-primary/8 text-primary/50 px-1.5 py-0.5 rounded-md shrink-0">GUI</span>}
-                </button>
-              ); })}
-            </div>
-            <p className="px-4 pb-3 text-[9px] text-primary/25">Todos abren un formulario visual.</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ─── MODAL GUI: SECCIÓN ─────────────────────────────────────────────────────
-function SectionModal({ open, onClose, onInsert }: { open: boolean; onClose: () => void; onInsert: (s: string) => void }) {
-  const [sectionId, setSectionId] = useState("");
-  const [label, setLabel]         = useState("");
-  useEffect(() => { if (open) { setSectionId(""); setLabel(""); } }, [open]);
-  if (!open) return null;
-
-  // slug automático desde el label
-  const autoId = sectionId || label.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-  const snippet = `[[section|${autoId}${label ? `|${label}` : ""}]]`;
-
-  const handleInsert = () => {
-    if (!autoId) return;
-    onInsert(snippet);
-    onClose();
-  };
-
-  return (
-    <>
-      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
-        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
-          <GitMerge size={16} className="text-violet-500" /> Nueva Sección
-        </h3>
-        <p className="text-[10px] text-primary/40 mb-5">
-          Divide el capítulo en ramas. Usa <code className="font-mono bg-primary/8 px-1 rounded">[[choice|Texto|id]]</code> para que el lector elija y aterrice aquí.
-        </p>
-
-        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Nombre visible <span className="font-normal opacity-50">(opcional)</span></label>
-        <input value={label} onChange={e => setLabel(e.target.value)} placeholder="ej: Abrir el cofre"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
-
-        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">ID de la sección <span className="font-normal opacity-50">(debe coincidir con el target del choice)</span></label>
-        <input value={sectionId} onChange={e => setSectionId(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
-          placeholder={autoId || "ej: cofre"}
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
-          onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
-        />
-
-        <div className="mb-4 p-3 bg-violet-50 rounded-xl border border-violet-100">
-          <p className="text-[9px] font-black uppercase tracking-widest text-violet-400 mb-1">Snippet que se insertará</p>
-          <code className="text-[11px] text-violet-600 font-mono">{snippet}</code>
-        </div>
-
-        <div className="p-3 bg-primary/4 rounded-xl mb-4">
-          <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Ejemplo de uso completo</p>
-          <code className="text-[10px] text-primary/40 font-mono leading-relaxed block whitespace-pre">{`[[choice|Abrir el cofre|${autoId || "cofre"}]]
-[[choice|Ignorarlo|seguir]]
-
-[[section|${autoId || "cofre"}|Abrir el cofre]]
-Encontraste una espada...
-
-[[section|seguir|Ignorarlo]]
-Decidiste seguir adelante...`}</code>
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleInsert} disabled={!autoId} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-violet-600 text-white hover:bg-violet-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
-            <GitMerge size={12} /> Insertar Sección
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── MODAL GUI: CITA VISUAL ──────────────────────────────────────────────────
-function CitaModal({ open, onClose, onInsert }: { open: boolean; onClose: () => void; onInsert: (s: string) => void }) {
-  const [texto, setTexto] = useState("");
-  const [fuente, setFuente] = useState("");
-  useEffect(() => { if (open) { setTexto(""); setFuente(""); } }, [open]);
-  if (!open) return null;
-  const snippet = fuente.trim() ? `[[cita|${texto} — ${fuente}]]` : `[[cita|${texto}]]`;
-  const handleInsert = () => { if (!texto.trim()) return; onInsert(snippet); onClose(); };
-  return (
-    <>
-      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
-        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
-          <Quote size={16} className="text-amber-500" /> Cita visual
-        </h3>
-        <p className="text-[10px] text-primary/40 mb-4">Bloque decorativo con línea lateral y tipografía serif.</p>
-        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Texto de la cita *</label>
-        <textarea
-          autoFocus rows={3} value={texto} onChange={e => setTexto(e.target.value)}
-          placeholder="El texto que será citado…"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3 resize-none"
-        />
-        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Fuente <span className="font-normal opacity-50">(opcional)</span></label>
-        <input value={fuente} onChange={e => setFuente(e.target.value)} placeholder="ej: Crónicas del Norte, vol. II"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
-          onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
-        />
-        {texto.trim() && (
-          <div className="mb-4">
-            <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Vista previa del snippet</p>
-            <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-lg px-3 py-2 block leading-relaxed">{snippet}</code>
-          </div>
-        )}
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleInsert} disabled={!texto.trim()} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-amber-500 text-white hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center gap-1.5">
-            <Quote size={12} /> Insertar Cita
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── MODAL GUI: USAR ÍTEM ────────────────────────────────────────────────────
-function UseModal({ open, onClose, onInsert, listaCapitulos }: { open: boolean; onClose: () => void; onInsert: (s: string) => void; listaCapitulos: CapituloLista[] }) {
-  const [word, setWord] = useState("");
-  const [itemId, setItemId] = useState("");
-  const [targetSuccess, setTargetSuccess] = useState("");
-  const [targetFail, setTargetFail] = useState("");
-  useEffect(() => { if (open) { setWord(""); setItemId(""); setTargetSuccess(""); setTargetFail(""); } }, [open]);
-  if (!open) return null;
-  const snippet = `[[use|${word || "palabra"}|${itemId || "id-item"}|${targetSuccess || "id-cap-exito"}${targetFail ? `|${targetFail}` : ""}]]`;
-  const handleInsert = () => {
-    if (!word.trim() || !itemId.trim() || !targetSuccess.trim()) return;
-    onInsert(`[[use|${word}|${itemId}|${targetSuccess}${targetFail.trim() ? `|${targetFail}` : ""}]]`);
-    onClose();
-  };
-  const hoy = new Date().toISOString().split("T")[0];
-  const caps = listaCapitulos.filter(c => c.fecha_publicacion <= hoy || true);
-  return (
-    <>
-      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10 overflow-y-auto" style={{ maxHeight: "90vh" }}>
-        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
-          <MousePointerClick size={16} className="text-rose-500" /> Usar Ítem
-        </h3>
-        <p className="text-[10px] text-primary/40 mb-4">Requiere un ítem del inventario para avanzar a un capítulo.</p>
-
-        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Palabra en el texto *</label>
-        <input value={word} onChange={e => setWord(e.target.value)} placeholder="ej: usar llave, abrir cofre…"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
-
-        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">ID del ítem (UUID) *</label>
-        <input value={itemId} onChange={e => setItemId(e.target.value)} placeholder="ej: 550e8400-e29b-41d4-a716-446655440000"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
-
-        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Capítulo si TIENE el ítem (éxito) *</label>
-        <select value={targetSuccess} onChange={e => setTargetSuccess(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-3">
-          <option value="">— Seleccionar capítulo —</option>
-          {caps.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo || `Capítulo ${c.orden}`}</option>)}
-        </select>
-
-        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Capítulo si NO tiene el ítem (fallo) <span className="font-normal opacity-50">(opcional)</span></label>
-        <select value={targetFail} onChange={e => setTargetFail(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-4">
-          <option value="">— Ninguno (aviso genérico) —</option>
-          {caps.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo || `Capítulo ${c.orden}`}</option>)}
-        </select>
-
-        <div className="mb-4">
-          <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Vista previa del snippet</p>
-          <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-lg px-3 py-2 block leading-relaxed">{snippet}</code>
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleInsert} disabled={!word.trim() || !itemId.trim() || !targetSuccess} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
-            <MousePointerClick size={12} /> Insertar
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── GENERADOR DE RUTAS (GUI) ────────────────────────────────────────────────
 function NodeCreatorModal({ open, onClose, onInsert, libroId, nextOrder }: { open: boolean; onClose: () => void; onInsert: (s: string) => void; libroId: string; nextOrder: number }) {
   const [label, setLabel] = useState("");
   const [loading, setLoading] = useState(false);
@@ -914,6 +686,207 @@ function ChapterSelector({ lista, capIdActual, isAdmin, onSelect }: { lista: Cap
   );
 }
 
+// ─── MODAL GUI: CITA VISUAL ──────────────────────────────────────────────────
+function CitaModal({ open, onClose, onInsert }: { open: boolean; onClose: () => void; onInsert: (s: string) => void }) {
+  const [texto, setTexto] = useState("");
+  const [fuente, setFuente] = useState("");
+  useEffect(() => { if (open) { setTexto(""); setFuente(""); } }, [open]);
+  if (!open) return null;
+  const snippet = fuente.trim() ? `[[cita|${texto} — ${fuente}]]` : `[[cita|${texto}]]`;
+  const handleInsert = () => { if (!texto.trim()) return; onInsert(snippet); onClose(); };
+  return (
+    <>
+      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
+        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
+          <Quote size={16} className="text-amber-500" /> Cita visual
+        </h3>
+        <p className="text-[10px] text-primary/40 mb-4">Bloque decorativo con línea lateral y tipografía serif.</p>
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Texto de la cita *</label>
+        <textarea autoFocus rows={3} value={texto} onChange={e => setTexto(e.target.value)}
+          placeholder="El texto que será citado…"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3 resize-none"
+        />
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Fuente <span className="font-normal opacity-50">(opcional)</span></label>
+        <input value={fuente} onChange={e => setFuente(e.target.value)} placeholder="ej: Crónicas del Norte, vol. II"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
+          onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
+        />
+        {texto.trim() && (
+          <div className="mb-4">
+            <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Vista previa</p>
+            <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-lg px-3 py-2 block">{snippet}</code>
+          </div>
+        )}
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleInsert} disabled={!texto.trim()} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-amber-500 text-white hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center gap-1.5">
+            <Quote size={12} /> Insertar Cita
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── MODAL GUI: USAR ÍTEM ────────────────────────────────────────────────────
+function UseModal({ open, onClose, onInsert, listaCapitulos }: { open: boolean; onClose: () => void; onInsert: (s: string) => void; listaCapitulos: CapituloLista[] }) {
+  const [word, setWord] = useState("");
+  const [itemId, setItemId] = useState("");
+  const [targetSuccess, setTargetSuccess] = useState("");
+  const [targetFail, setTargetFail] = useState("");
+  useEffect(() => { if (open) { setWord(""); setItemId(""); setTargetSuccess(""); setTargetFail(""); } }, [open]);
+  if (!open) return null;
+  const snippet = `[[use|${word || "palabra"}|${itemId || "id-item"}|${targetSuccess || "id-cap-exito"}${targetFail ? `|${targetFail}` : ""}]]`;
+  const handleInsert = () => {
+    if (!word.trim() || !itemId.trim() || !targetSuccess.trim()) return;
+    onInsert(`[[use|${word}|${itemId}|${targetSuccess}${targetFail.trim() ? `|${targetFail}` : ""}]]`);
+    onClose();
+  };
+  return (
+    <>
+      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10 overflow-y-auto" style={{ maxHeight: "90vh" }}>
+        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
+          <MousePointerClick size={16} className="text-rose-500" /> Usar Ítem
+        </h3>
+        <p className="text-[10px] text-primary/40 mb-4">Requiere un ítem del inventario para avanzar.</p>
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Palabra en el texto *</label>
+        <input value={word} onChange={e => setWord(e.target.value)} placeholder="ej: usar llave, abrir cofre…"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">ID del ítem (UUID) *</label>
+        <input value={itemId} onChange={e => setItemId(e.target.value)} placeholder="ej: 550e8400-e29b-41d4-a716-446655440000"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Capítulo si TIENE el ítem *</label>
+        <select value={targetSuccess} onChange={e => setTargetSuccess(e.target.value)}
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-3">
+          <option value="">— Seleccionar capítulo —</option>
+          {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo || `Capítulo ${c.orden}`}</option>)}
+        </select>
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Capítulo si NO tiene el ítem <span className="font-normal opacity-50">(opcional)</span></label>
+        <select value={targetFail} onChange={e => setTargetFail(e.target.value)}
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-4">
+          <option value="">— Ninguno —</option>
+          {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo || `Capítulo ${c.orden}`}</option>)}
+        </select>
+        <div className="mb-4">
+          <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Vista previa</p>
+          <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-lg px-3 py-2 block">{snippet}</code>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleInsert} disabled={!word.trim() || !itemId.trim() || !targetSuccess} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
+            <MousePointerClick size={12} /> Insertar
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── MODAL GUI: SECCIÓN ──────────────────────────────────────────────────────
+function SectionModal({ open, onClose, onInsert }: { open: boolean; onClose: () => void; onInsert: (s: string) => void }) {
+  const [sectionId, setSectionId] = useState("");
+  const [label, setLabel]         = useState("");
+  useEffect(() => { if (open) { setSectionId(""); setLabel(""); } }, [open]);
+  if (!open) return null;
+  const autoId = sectionId || label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  const snippet = label ? `[[section|${autoId}|${label}]]` : `[[section|${autoId}]]`;
+  const handleInsert = () => { if (!autoId) return; onInsert(snippet); onClose(); };
+  return (
+    <>
+      <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
+        <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
+          <GitMerge size={16} className="text-violet-500" /> Nueva Sección
+        </h3>
+        <p className="text-[10px] text-primary/40 mb-5">
+          Divide el capítulo en ramas. Apunta con <code className="font-mono bg-primary/8 px-1 rounded">[[choice|Texto|id]]</code> al mismo ID.
+        </p>
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Nombre visible <span className="font-normal opacity-50">(opcional)</span></label>
+        <input value={label} onChange={e => setLabel(e.target.value)} placeholder="ej: Abrir el cofre"
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
+        <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">ID <span className="font-normal opacity-50">(debe coincidir con el target del choice)</span></label>
+        <input value={sectionId} onChange={e => setSectionId(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+          placeholder={autoId || "ej: cofre"}
+          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
+          onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
+        />
+        <div className="mb-4 p-3 bg-violet-50 rounded-xl border border-violet-100">
+          <p className="text-[9px] font-black uppercase tracking-widest text-violet-400 mb-1">Snippet</p>
+          <code className="text-[11px] text-violet-600 font-mono">{snippet}</code>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleInsert} disabled={!autoId} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-violet-600 text-white hover:bg-violet-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
+            <GitMerge size={12} /> Insertar Sección
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── TOOLBAR DROPDOWN HELPER ─────────────────────────────────────────────────
+function ToolbarDropdown({ label, icon: Icon, color = "text-primary/50", children }: {
+  label: string; icon: React.ElementType; color?: string; children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-primary/8 border border-transparent hover:border-primary/10", color, open && "bg-primary/8 border-primary/10")}
+      >
+        <Icon size={13} />
+        <span>{label}</span>
+        <ChevronDown size={10} className={cn("transition-transform opacity-50", open && "rotate-180")} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.13 }}
+            className="absolute left-0 top-full mt-1.5 bg-white-custom border border-primary/10 rounded-2xl shadow-2xl z-50 overflow-hidden min-w-[180px]"
+            onClick={() => setOpen(false)}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function DropdownItem({ icon: Icon, label, desc, color = "text-primary-dark", onClick }: {
+  icon: React.ElementType; label: string; desc?: string; color?: string; onClick: () => void;
+}) {
+  return (
+    <button onClick={onClick} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-primary/5 transition-all text-left group">
+      <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-primary/6 group-hover:bg-primary/12 transition-all", color)}>
+        <Icon size={13} />
+      </div>
+      <div>
+        <p className="text-[11px] font-black uppercase tracking-widest text-primary-dark leading-none">{label}</p>
+        {desc && <p className="text-[9px] text-primary/35 mt-0.5 leading-snug">{desc}</p>}
+      </div>
+    </button>
+  );
+}
+
+function DropdownDivider() {
+  return <div className="mx-3 my-1 h-px bg-primary/8" />;
+}
+
+// ─── EDITOR TOOLBAR ──────────────────────────────────────────────────────────
 function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving, libroId, nextOrder, listaCapitulos }: {
   textareaRef: React.RefObject<HTMLTextAreaElement>; value: string; onChange: (v: string) => void;
   onSave: () => void; onCancel: () => void; saving: boolean; libroId: string; nextOrder: number;
@@ -945,48 +918,81 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
     setTimeout(() => { el.focus(); el.setSelectionRange(s + before.length, e + before.length); }, 0);
   };
 
-  const tools = [
-    { label: "—",  title: "Separador",       action: () => insertAtCursor("\n— — —\n") },
-    { label: "« »", title: "Comillas latinas", action: () => insertAround("«", "»") },
-    { label: "…",  title: "Elipsis",          action: () => insertAtCursor("…") },
-    { label: "—",  title: "Guión largo",      action: () => insertAtCursor("—") },
-    { label: "¶",  title: "Párrafo",          action: () => insertAtCursor("\n\n") },
-  ];
-
   const BarContent = ({ isFocus = false }: { isFocus?: boolean }) => (
-    <div className={cn("flex items-center gap-2 flex-wrap", isFocus ? "px-8 py-4" : "px-4 py-2")}>
-      <div className="flex items-center gap-1 pr-3 border-r border-primary/10">
-        {tools.map((t, i) => <button key={i} title={t.title} onClick={t.action} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-primary/60 hover:text-primary hover:bg-primary/8 transition-all font-mono">{t.label}</button>)}
-      </div>
-      <SyntaxHelper
-        onInsert={insertAtCursor}
-        onOpenCita={() => setCitaModalOpen(true)}
-        onOpenImg={() => setPickerOpen(true)}
-        onOpenDrop={() => setDropPickerOpen(true)}
-        onOpenChoice={() => setNodeCreatorOpen(true)}
-        onOpenUse={() => setUseModalOpen(true)}
-        onOpenSection={() => setSectionModalOpen(true)}
-      />
-      
+    <div className={cn("flex items-center gap-1.5 flex-wrap", isFocus ? "px-8 py-3" : "px-4 py-2")}>
 
-      <button onClick={() => setPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-primary/15" title="Explorador de imágenes">
-        <Image size={12} /> Imágenes
-      </button>
-      <button onClick={() => setSoundPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-primary/15" title="Biblioteca de sonidos">
-        <Music2 size={12} /> Sonido
-      </button>
-      <button onClick={() => setDropPickerOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/50 hover:bg-primary/8 hover:text-primary transition-all border border-primary/15" title="Easter egg — Drop de item o criatura">
-        <Sword size={12} /> Drop
-      </button>
-      {!isFocus && <button onClick={() => setFocusMode(true)} className="p-1.5 rounded-lg text-primary/50 hover:text-primary hover:bg-primary/8 transition-all"><Maximize2 size={14} /></button>}
-      <div className="ml-auto flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-primary/30">
-        <span className="flex items-center gap-1"><Type size={10} /> {words.toLocaleString()}</span>
-        <span className="flex items-center gap-1"><Clock size={10} /> ~{readMin}min</span>
+      {/* ── TEXTO ───────────────────────────────────────────── */}
+      <ToolbarDropdown label="Texto" icon={Type} color="text-primary/50">
+        <div className="px-2 py-1.5">
+          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25 px-2 mb-1">Caracteres especiales</p>
+          {([
+            { label: "« Comillas »",   title: "Comillas latinas", action: () => insertAround("«", "»") },
+            { label: "— — — Separador", title: "Separador",       action: () => insertAtCursor("\n— — —\n") },
+            { label: "… Elipsis",      title: "Elipsis",          action: () => insertAtCursor("…") },
+            { label: "— Guión largo",  title: "Guión largo",      action: () => insertAtCursor("—") },
+            { label: "¶ Párrafo",      title: "Párrafo",          action: () => insertAtCursor("\n\n") },
+          ] as const).map((t) => (
+            <button key={t.title} onClick={t.action} title={t.title}
+              className="w-full text-left px-3 py-2 rounded-xl text-[11px] font-mono font-bold text-primary/60 hover:text-primary hover:bg-primary/6 transition-all">
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <DropdownDivider />
+        <div className="px-2 py-1.5">
+          <DropdownItem icon={Quote} label="Cita visual" desc="Bloque decorativo con fuente" onClick={() => setCitaModalOpen(true)} />
+        </div>
+      </ToolbarDropdown>
+
+      {/* ── MEDIOS ──────────────────────────────────────────── */}
+      <ToolbarDropdown label="Medios" icon={Image} color="text-emerald-600">
+        <div className="px-2 py-1.5">
+          <DropdownItem icon={Image}  label="Imagen / Flotante" desc="Inline o clickeable en palabra" color="text-emerald-600" onClick={() => setPickerOpen(true)} />
+          <DropdownItem icon={Music2} label="Sonido ambiente"   desc="Música o efecto de fondo"      color="text-indigo-500"  onClick={() => setSoundPickerOpen(true)} />
+        </div>
+      </ToolbarDropdown>
+
+      {/* ── INTERACCIÓN ─────────────────────────────────────── */}
+      <ToolbarDropdown label="Interacción" icon={GitMerge} color="text-blue-500">
+        <div className="px-2 py-1.5">
+          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25 px-2 mb-1">Narrativa ramificada</p>
+          <DropdownItem icon={GitMerge}          label="Nueva ruta"     desc="Crea cap. y enlaza choice"      color="text-blue-500"   onClick={() => setNodeCreatorOpen(true)} />
+          <DropdownItem icon={ChevronR}          label="Sección / Rama" desc="Rama dentro del mismo capítulo" color="text-violet-500" onClick={() => setSectionModalOpen(true)} />
+        </div>
+        <DropdownDivider />
+        <div className="px-2 py-1.5">
+          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25 px-2 mb-1">Objetos e ítems</p>
+          <DropdownItem icon={Sword}             label="Drop"       desc="Otorga ítem o criatura"         color="text-amber-500" onClick={() => setDropPickerOpen(true)} />
+          <DropdownItem icon={MousePointerClick} label="Usar ítem"  desc="Requiere ítem para avanzar"     color="text-rose-500"  onClick={() => setUseModalOpen(true)} />
+        </div>
+      </ToolbarDropdown>
+
+      <div className="w-px h-5 bg-primary/10 mx-0.5" />
+
+      {/* ── STATS ───────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-primary/25">
+        <span className="flex items-center gap-1"><AlignLeft size={10} /> {words.toLocaleString()}</span>
+        <span className="flex items-center gap-1"><Clock size={10} /> ~{readMin}m</span>
       </div>
-      <div className="flex items-center gap-2 pl-3 border-l border-primary/10">
-        <button onClick={onCancel} className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase text-red-400 hover:bg-red-50 transition-all flex items-center gap-1"><X size={12} /> Cancelar</button>
-        <button onClick={onSave} disabled={saving} className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase bg-primary text-white hover:bg-primary/80 transition-all flex items-center gap-1.5 disabled:opacity-50"><Save size={12} /> {saving ? "..." : "Guardar"}</button>
-        {isFocus && <button onClick={() => setFocusMode(false)} className="p-2 rounded-xl text-primary/50 hover:text-primary hover:bg-primary/8 transition-all"><Minimize2 size={14} /></button>}
+
+      {/* ── ACCIONES ────────────────────────────────────────── */}
+      <div className="ml-auto flex items-center gap-2">
+        {!isFocus && (
+          <button onClick={() => setFocusMode(true)} title="Modo focus" className="p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-all">
+            <Maximize2 size={14} />
+          </button>
+        )}
+        <button onClick={onCancel} className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase text-red-400 hover:bg-red-50 transition-all flex items-center gap-1">
+          <X size={12} /> Cancelar
+        </button>
+        <button onClick={onSave} disabled={saving} className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase bg-primary text-white hover:bg-primary/80 transition-all flex items-center gap-1.5 disabled:opacity-50">
+          <Save size={12} /> {saving ? "…" : "Guardar"}
+        </button>
+        {isFocus && (
+          <button onClick={() => setFocusMode(false)} className="p-2 rounded-xl text-primary/40 hover:text-primary hover:bg-primary/8 transition-all">
+            <Minimize2 size={14} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1000,17 +1006,23 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
       <CitaModal open={citaModalOpen} onClose={() => setCitaModalOpen(false)} onInsert={insertAtCursor} />
       <UseModal open={useModalOpen} onClose={() => setUseModalOpen(false)} onInsert={insertAtCursor} listaCapitulos={listaCapitulos} />
       <SectionModal open={sectionModalOpen} onClose={() => setSectionModalOpen(false)} onInsert={insertAtCursor} />
-      <div className="sticky top-[65px] z-40 bg-white-custom/90 backdrop-blur-md border-b border-primary/8"><BarContent isFocus={false} /></div>
+      <div className="sticky top-[65px] z-40 bg-white-custom/90 backdrop-blur-md border-b border-primary/8">
+        <BarContent isFocus={false} />
+      </div>
       <AnimatePresence>
         {focusMode && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-bg-main z-50 flex flex-col">
             <ImagePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onInsert={insertAtCursor} />
             <EntidadPicker open={dropPickerOpen} onClose={() => setDropPickerOpen(false)} onInsert={insertAtCursor} />
-            <div className="bg-white-custom/80 backdrop-blur-md border-b border-primary/8"><BarContent isFocus={true} /></div>
+            <div className="bg-white-custom/80 backdrop-blur-md border-b border-primary/8">
+              <BarContent isFocus={true} />
+            </div>
             <div className="flex-1 overflow-auto flex justify-center py-12 px-6">
-              <textarea ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} autoFocus
+              <textarea
+                ref={textareaRef} value={value} onChange={e => onChange(e.target.value)} autoFocus
                 className="w-full max-w-2xl bg-transparent font-serif text-xl leading-[2.2] text-primary-dark focus:outline-none resize-none"
-                placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]\n[[drop|palabra|item|uuid|Nombre]]"} />
+                placeholder={"Escribe aquí…\n\n[[cita|Texto. — Fuente]]\n[[img|url|caption]]\n[[float|palabra|url|caption]]\n[[drop|palabra|item|uuid|Nombre]]"}
+              />
             </div>
           </motion.div>
         )}
@@ -1018,7 +1030,6 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
     </>
   );
 }
-
 // ─── SKELETON DE CARGA ───────────────────────────────────────────────────────
 function LectorSkeleton() {
   return (
