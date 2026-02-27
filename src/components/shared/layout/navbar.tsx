@@ -203,7 +203,14 @@ const Navbar = () => {
                 </p>
               </div>
 
-              <Link href="/wiki/paginas/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+              <Link 
+                href="/wiki/paginas/personal" 
+                onClick={() => {
+                  // Pequeño delay opcional o simplemente asegurar el orden
+                  closeAll();
+                }} 
+                className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3"
+              >
                 <Sword size={18} /> Mi Personaje
               </Link>
 
@@ -248,10 +255,10 @@ const Navbar = () => {
       </div>
 
       {userMenuOpen && (
-        <div className="fixed inset-0 z-[101] bg-primary/5" onClick={closeAll} />
+        <div className="fixed inset-0 z-[100] bg-primary/5" onClick={closeAll} />
       )}
     </>
   );
 };
 
-export default Navbar;
+export default Navbar
