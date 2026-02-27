@@ -10,6 +10,15 @@ export default function PersonajesGrid() {
       titulo="Personajes"
       configFiltros={['reino', 'especie', 'conFoto']}
       mostrarMusica={true}
+      plantillaNueva={{
+        nombre: "",
+        reino: "",
+        especie: "",
+        descripcion: "",
+        img_url: "",
+        color_hex: "#ffffff",
+        historia: ""
+      }}
       getCustomTags={(p) => [p?.reino, p?.especie]} 
       renderCard={(p, onClick) => (
         <GalleryItem
