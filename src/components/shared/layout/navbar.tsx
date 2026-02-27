@@ -147,7 +147,10 @@ const Navbar = () => {
             {user ? (
               <div className="relative">
                 <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUserMenuOpen(!userMenuOpen);
+                  }}
                   className="flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-full border border-primary/10 hover:bg-primary/10 transition-all"
                 >
                   <span className="text-[10px] font-black uppercase text-primary/60 tracking-widest">
@@ -159,6 +162,7 @@ const Navbar = () => {
                   {userMenuOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                      onClick={(e) => e.stopPropagation()}
                       className="absolute top-full right-0 mt-3 w-48 bg-white-custom border border-primary/10 rounded-2xl shadow-xl p-2 z-[1001]"
                     >
                       <Link href="/wiki/paginas/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
@@ -195,6 +199,7 @@ const Navbar = () => {
           {userMenuOpen && user && (
             <motion.div
               initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 15 }}
+              onClick={(e) => e.stopPropagation()}
               className="absolute bottom-16 left-4 right-4 bg-white-custom border border-primary/10 rounded-[40px] p-4 shadow-2xl flex flex-col gap-2 z-[1001]"
             >
               <div className="text-center mb-2">
@@ -203,14 +208,7 @@ const Navbar = () => {
                 </p>
               </div>
 
-              <Link 
-                href="/wiki/paginas/personal" 
-                onClick={() => {
-                  // Pequeño delay opcional o simplemente asegurar el orden
-                  closeAll();
-                }} 
-                className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3"
-              >
+              <Link href="/wiki/paginas/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                 <Sword size={18} /> Mi Personaje
               </Link>
 
@@ -255,10 +253,10 @@ const Navbar = () => {
       </div>
 
       {userMenuOpen && (
-        <div className="fixed inset-0 z-[100] bg-primary/5" onClick={closeAll} />
+        <div className="fixed inset-0 z-[90] bg-black/5" onClick={closeAll} />
       )}
     </>
   );
 };
 
-export default Navbar
+export default Navbar;
