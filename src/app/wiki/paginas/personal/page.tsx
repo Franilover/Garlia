@@ -1,8 +1,4 @@
 "use client";
-/**
- * ARCHIVO: app/personal/page.tsx
- * Versión ultra-segura para saltar errores de columnas inexistentes.
- */
 import Personal from "@/components/paginas/personal/personal";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { LoadingState } from "@/components/shared/feedback/StateComponents";
@@ -15,10 +11,15 @@ export default function Page() {
   // 💡 HE QUITADO avatar_url PORQUE LA DB DICE QUE NO EXISTE
   const { data: perfiles, loading, error } = useSupabaseData("perfiles", {
     select: `
-      username, 
-      status, 
+      username,
+      status,
+      descubrimientos!descubrimientos_perfil_id_fkey(
+        tipo,
+        entidad_id,
+        fecha_descubrimiento
+      ),
       inventario_usuario(
-        equipado, 
+        equipado,
         items(id, nombre, categoria)
       )
     `
