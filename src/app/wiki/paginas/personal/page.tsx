@@ -196,6 +196,8 @@ export default function Page() {
   }));
 
   console.log("🔍 descubrimientos raw:", descubrimientos);
+  console.log("🔍 busca UUID:", "51cabb9f-cb8e-44fe-9172-2049c40f2276", "-> encontrado:", entidades["51cabb9f-cb8e-44fe-9172-2049c40f2276"]);
+  console.log("🔍 todas las keys del mapa:", Object.keys(entidades).slice(0, 5));
   console.log("🔍 entidades mapa:", entidades);
   console.log("🔍 descubrimientosConNombre:", descubrimientosConNombre);
 
