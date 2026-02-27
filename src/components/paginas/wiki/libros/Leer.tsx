@@ -51,7 +51,7 @@ function parseSections(segs: Segment[]): SectionMap {
 }
 
 function parseContenido(texto: string): Segment[] {
-  const regex = /\[\[(\w+)\|([^\]]+)\]\]/g;
+  const regex = /\[\[(\w+)\|([\s\S]+?)\]\]/g;
   const segs: Segment[] = [];
   let lastIndex = 0, match: RegExpExecArray | null;
   while ((match = regex.exec(texto)) !== null) {
@@ -282,8 +282,10 @@ function ContenidoInteractivo({ texto, onNavigate }: { texto: string; onNavigate
   useEffect(() => { setHistory([""]); }, [texto]);
 
   const handleNavigate = (target: string) => {
-    // Si el target existe como sección local, navegar dentro
-    if (hasSections && sectionMap[target] !== undefined) {
+    // Es sección local si: hay secciones, el target existe en el mapa, y NO es un UUID de capítulo
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target);
+    const isLocalSection = hasSections && !isUUID && sectionMap[target] !== undefined;
+    if (isLocalSection) {
       setHistory(prev => [...prev, target]);
       setTimeout(() => sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } else {
