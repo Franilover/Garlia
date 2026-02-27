@@ -33,6 +33,46 @@ type Segment =
   | { type: "use"; word: string; itemId: string; targetSuccess: string; targetFail?: string }
   | { type: "section"; id: string; label?: string };
 
+// ─── AUTOSAVE & LOCAL BACKUP ──────────────────────────────────────────────────
+type SaveStatus = "saved" | "saving" | "pending" | "offline" | "error";
+
+function getLocalKey(capId: string) { return `cap_draft_${capId}`; }
+
+function saveLocalDraft(capId: string, content: string) {
+  try {
+    localStorage.setItem(getLocalKey(capId), JSON.stringify({ content, ts: Date.now() }));
+  } catch {}
+}
+
+function loadLocalDraft(capId: string): { content: string; ts: number } | null {
+  try {
+    const raw = localStorage.getItem(getLocalKey(capId));
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function clearLocalDraft(capId: string) {
+  try { localStorage.removeItem(getLocalKey(capId)); } catch {}
+}
+
+function SaveIndicator({ status }: { status: SaveStatus }) {
+  const map: Record<SaveStatus, { label: string; color: string }> = {
+    saved:   { label: "Guardado",     color: "text-emerald-400" },
+    saving:  { label: "Guardando…",   color: "text-primary/40" },
+    pending: { label: "Sin guardar",  color: "text-amber-400"  },
+    offline: { label: "Sin conexión — guardado local", color: "text-orange-400" },
+    error:   { label: "Error al guardar", color: "text-red-400" },
+  };
+  const { label, color } = map[status];
+  return (
+    <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all ${color}`}>
+      {status === "saving" && <Loader2 size={9} className="animate-spin" />}
+      {status === "saved"  && <Check size={9} />}
+      {label}
+    </span>
+  );
+}
+
 // ─── PARSER DE SECCIONES ─────────────────────────────────────────────────────
 type SectionMap = Record<string, Segment[]>;
 
@@ -973,9 +1013,9 @@ function DropdownDivider() {
 }
 
 // ─── EDITOR TOOLBAR ──────────────────────────────────────────────────────────
-function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving, libroId, nextOrder, listaCapitulos }: {
+function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving, saveStatus, libroId, nextOrder, listaCapitulos }: {
   textareaRef: React.RefObject<HTMLTextAreaElement>; value: string; onChange: (v: string) => void;
-  onSave: () => void; onCancel: () => void; saving: boolean; libroId: string; nextOrder: number;
+  onSave: () => void; onCancel: () => void; saving: boolean; saveStatus: SaveStatus; libroId: string; nextOrder: number;
   listaCapitulos: CapituloLista[];
 }) {
   const { words, readMin } = useTextStats(value);
@@ -1061,6 +1101,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
       <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-primary/25">
         <span className="flex items-center gap-1"><AlignLeft size={10} /> {words.toLocaleString()}</span>
         <span className="flex items-center gap-1"><Clock size={10} /> ~{readMin}m</span>
+        <SaveIndicator status={saveStatus} />
       </div>
 
       {/* ── ACCIONES ────────────────────────────────────────── */}
@@ -1167,8 +1208,11 @@ export default function Lector() {
   const [showIndex, setShowIndex] = useState(false);
   const [nuevoContenido, setNuevoContenido] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const isInitialMount = useRef(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedContent = useRef<string>("");
   const { words: wordsPublicado } = useTextStats(capitulo?.contenido ?? "");
   const { words: wordsEdit } = useTextStats(nuevoContenido);
 
@@ -1184,7 +1228,17 @@ export default function Lector() {
       } else {
         setCapitulo(queryRes.data.capitulo);
         setListaCapitulos(queryRes.data.listaCapitulos);
-        setNuevoContenido(queryRes.data.capitulo.contenido || "");
+        const serverContent = queryRes.data.capitulo.contenido || "";
+        lastSavedContent.current = serverContent;
+        // Recover local draft if it's newer/different
+        const draft = loadLocalDraft(capId);
+        if (draft && draft.content !== serverContent) {
+          setNuevoContenido(draft.content);
+          setSaveStatus("pending");
+        } else {
+          setNuevoContenido(serverContent);
+          setSaveStatus("saved");
+        }
       }
     }).catch((err) => {
       console.error("Error crítico en Lector:", err);
@@ -1195,19 +1249,60 @@ export default function Lector() {
     });
   }, [capId, id]);
 
+  // ── AUTOSAVE: debounce 2s tras cada cambio en editMode ────────────────────
+  useEffect(() => {
+    if (!editMode || isInitialMount.current) return;
+    if (nuevoContenido === lastSavedContent.current) return;
+
+    setSaveStatus("pending");
+    saveLocalDraft(capId, nuevoContenido); // siempre guardamos local primero
+
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      doAutoSave(nuevoContenido);
+    }, 2000);
+
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+  }, [nuevoContenido, editMode]);
+
+  const doAutoSave = async (content: string) => {
+    if (!capitulo || !capId) return;
+    if (!navigator.onLine) {
+      setSaveStatus("offline");
+      return;
+    }
+    setSaveStatus("saving");
+    try {
+      const { error: saveError } = await librosQueries.updateContenido(capId, content);
+      if (saveError) throw saveError;
+      lastSavedContent.current = content;
+      setCapitulo(prev => prev ? { ...prev, contenido: content } : prev);
+      clearLocalDraft(capId);
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("offline"); // sin conexión o error: ya está en local
+    }
+  };
+
   const handleSave = async () => {
     if (!capitulo || !capId) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     const contenidoPrevio = capitulo.contenido;
     setCapitulo({ ...capitulo, contenido: nuevoContenido });
     setEditMode(false);
     setSaving(true);
+    setSaveStatus("saving");
     try {
       const { error: saveError } = await librosQueries.updateContenido(capId, nuevoContenido);
       if (saveError) throw saveError;
+      lastSavedContent.current = nuevoContenido;
+      clearLocalDraft(capId);
+      setSaveStatus("saved");
     } catch (err: any) {
       setCapitulo({ ...capitulo, contenido: contenidoPrevio });
       setNuevoContenido(contenidoPrevio);
       setEditMode(true);
+      setSaveStatus("error");
       alert("Error al guardar: " + err.message);
     } finally {
       setSaving(false);
@@ -1267,17 +1362,28 @@ export default function Lector() {
       </nav>
 
       {isAdmin && editMode && (
-        <EditorToolbar
-          textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
-          value={nuevoContenido}
-          onChange={setNuevoContenido}
-          onSave={handleSave}
-          onCancel={handleCancelEdit}
-          saving={saving}
-          libroId={id}
-          nextOrder={listaCapitulos.length + 1}
-          listaCapitulos={listaCapitulos}
-        />
+        <>
+          {saveStatus === "pending" && loadLocalDraft(capId) && (
+            <div className="max-w-2xl mx-auto px-6 pt-4">
+              <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 flex items-center justify-between gap-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">⚠ Borrador local recuperado — guardá para sincronizar</p>
+                <button onClick={() => { setNuevoContenido(capitulo?.contenido ?? ""); clearLocalDraft(capId); setSaveStatus("saved"); }} className="text-[9px] font-black uppercase tracking-widest text-amber-400 hover:text-amber-600 transition-colors shrink-0">Descartar</button>
+              </div>
+            </div>
+          )}
+          <EditorToolbar
+            textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
+            value={nuevoContenido}
+            onChange={setNuevoContenido}
+            onSave={handleSave}
+            onCancel={handleCancelEdit}
+            saving={saving}
+            saveStatus={saveStatus}
+            libroId={id}
+            nextOrder={listaCapitulos.length + 1}
+            listaCapitulos={listaCapitulos}
+          />
+        </>
       )}
 
       <article className="max-w-2xl mx-auto px-6 py-12 md:py-20">
