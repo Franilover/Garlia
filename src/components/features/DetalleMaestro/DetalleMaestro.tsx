@@ -180,7 +180,8 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                 </h2>
                 <div className="w-16 h-1.5 bg-accent mb-8 rounded-full" />
                 
-                {!esPersonaje && variantes.length > 0 && (
+                {/* Se eliminó la dependencia de data?.variantes y se usa el estado 'variantes' del hook */}
+                {!esPersonaje && variantes && variantes.length > 0 && (
                    <div className="mb-8">
                     <SelectorVariantes 
                       variantes={variantes} 
