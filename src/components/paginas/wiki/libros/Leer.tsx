@@ -1251,38 +1251,31 @@ export default function Lector() {
 
   // ── AUTOSAVE: debounce 2s tras cada cambio en editMode ────────────────────
   useEffect(() => {
-    if (!editMode || isInitialMount.current) return;
+    if (!editMode) return;
     if (nuevoContenido === lastSavedContent.current) return;
 
     setSaveStatus("pending");
-    saveLocalDraft(capId, nuevoContenido); // siempre guardamos local primero
+    saveLocalDraft(capId, nuevoContenido);
 
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => {
-      doAutoSave(nuevoContenido);
+    autoSaveTimer.current = setTimeout(async () => {
+      if (!capId) return;
+      if (!navigator.onLine) { setSaveStatus("offline"); return; }
+      setSaveStatus("saving");
+      try {
+        const { error: saveError } = await librosQueries.updateContenido(capId, nuevoContenido);
+        if (saveError) throw saveError;
+        lastSavedContent.current = nuevoContenido;
+        setCapitulo(prev => prev ? { ...prev, contenido: nuevoContenido } : prev);
+        clearLocalDraft(capId);
+        setSaveStatus("saved");
+      } catch {
+        setSaveStatus("offline");
+      }
     }, 2000);
-
-    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+    // Sin return cleanup: no cancelar el timer al re-renderizar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nuevoContenido, editMode]);
-
-  const doAutoSave = async (content: string) => {
-    if (!capitulo || !capId) return;
-    if (!navigator.onLine) {
-      setSaveStatus("offline");
-      return;
-    }
-    setSaveStatus("saving");
-    try {
-      const { error: saveError } = await librosQueries.updateContenido(capId, content);
-      if (saveError) throw saveError;
-      lastSavedContent.current = content;
-      setCapitulo(prev => prev ? { ...prev, contenido: content } : prev);
-      clearLocalDraft(capId);
-      setSaveStatus("saved");
-    } catch {
-      setSaveStatus("offline"); // sin conexión o error: ya está en local
-    }
-  };
 
   const handleSave = async () => {
     if (!capitulo || !capId) return;
