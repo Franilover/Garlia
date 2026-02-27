@@ -133,7 +133,7 @@ export default function Personal({ datos }: PersonalProps) {
                     </div>
                     <div>
                       <p className="text-[11px] font-black text-[#6B5E70] uppercase tracking-tight">
-                        {tab === "criaturas" ? "Criatura Registrada" : "Contacto Guardado"}
+                        {d.nombre ?? (tab === "criaturas" ? "Criatura Registrada" : "Contacto Guardado")}
                       </p>
                       <p className="text-[9px] text-[#6B5E70]/30 font-black uppercase">
                         Visto el {new Date(d.fecha_descubrimiento).toLocaleDateString()}
