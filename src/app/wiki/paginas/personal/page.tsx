@@ -43,7 +43,7 @@ function Personal({ datos }: { datos: DatosPerfil }) {
   const tabs = [
     { id: "items",      label: "Inventario", icon: Package },
     { id: "criaturas",  label: "Bestiario",  icon: Sword   },
-    { id: "personajes", label: "Agenda",     icon: User    },
+    { id: "personajes", label: "Relaciones",     icon: User    },
   ] as const;
 
   return (
