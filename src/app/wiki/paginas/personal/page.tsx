@@ -10,8 +10,8 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { LoadingState } from "@/components/shared/feedback/StateComponents";
 import { getMensaje } from "@/lib/config/constants";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { supabase } from "@/lib/api/client/supabase";
 
-// ── TIPOS ────────────────────────────────────────────────────────────────────
 interface Descubrimiento {
   tipo: "item" | "criatura" | "personaje";
   entidad_id: string;
@@ -41,15 +41,13 @@ function Personal({ datos }: { datos: DatosPerfil }) {
   const misCriaturas  = descubrimientos.filter(d => d.tipo === "criatura");
 
   const tabs = [
-    { id: "items",     label: "Inventario", icon: Package },
-    { id: "criaturas", label: "Bestiario",  icon: Sword   },
-    { id: "personajes",label: "Agenda",     icon: User    },
+    { id: "items",      label: "Inventario", icon: Package },
+    { id: "criaturas",  label: "Bestiario",  icon: Sword   },
+    { id: "personajes", label: "Agenda",     icon: User    },
   ] as const;
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-      {/* HEADER */}
       <section className="flex flex-col items-center gap-4 text-center">
         <div className="relative">
           <div className="w-24 h-24 rounded-full bg-linear-to-b from-[#6B5E70]/20 to-[#6B5E70]/5 border-2 border-[#6B5E70]/10 flex items-center justify-center overflow-hidden">
@@ -67,7 +65,6 @@ function Personal({ datos }: { datos: DatosPerfil }) {
         </div>
       </section>
 
-      {/* TABS */}
       <nav className="flex justify-center gap-2 border-b border-[#6B5E70]/5 pb-4">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -79,7 +76,6 @@ function Personal({ datos }: { datos: DatosPerfil }) {
         ))}
       </nav>
 
-      {/* CONTENIDO */}
       <div className="min-h-75">
         <AnimatePresence mode="wait">
           <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
@@ -113,7 +109,7 @@ function Personal({ datos }: { datos: DatosPerfil }) {
                   </div>
                   <div>
                     <p className="text-[11px] font-black text-[#6B5E70] uppercase tracking-tight">
-                      {d.nombre ?? (tab === "criaturas" ? "Criatura Registrada" : "Contacto Guardado")}
+                      {d.nombre ?? "—"}
                     </p>
                     <p className="text-[9px] text-[#6B5E70]/30 font-black uppercase">
                       Visto el {new Date(d.fecha_descubrimiento).toLocaleDateString()}
@@ -134,22 +130,8 @@ function Personal({ datos }: { datos: DatosPerfil }) {
 export default function Page() {
   const { perfil: authPerfil } = useAuth() as { perfil: any };
 
-  const [entidades, setEntidades] = useState<Record<string, string>>({});
-  const [loadingEntidades, setLoadingEntidades] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/entidades")
-      .then(r => r.json())
-      .then(({ data }) => {
-        const mapa: Record<string, string> = {};
-        [...(data?.items ?? []), ...(data?.criaturas ?? []), ...(data?.personajes ?? [])].forEach(
-          (e: any) => { if (e.id && e.nombre) mapa[e.id] = e.nombre; }
-        );
-        setEntidades(mapa);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingEntidades(false));
-  }, []);
+  const [descubrimientosEnriquecidos, setDescubrimientosEnriquecidos] = useState<Descubrimiento[]>([]);
+  const [loadingDesc, setLoadingDesc] = useState(true);
 
   const { data: perfiles, loading: loadingPerfil, error: errorPerfil } = useSupabaseData("perfiles", {
     select: `
@@ -162,20 +144,70 @@ export default function Page() {
     `
   });
 
-  const { data: descubrimientos, loading: loadingDesc } = useSupabaseData("descubrimientos", {
-    select: `tipo, entidad_id, fecha_descubrimiento`,
-    filters: authPerfil?.id ? { perfil_id: authPerfil.id } : undefined,
-  });
-
   const perfil = perfiles?.find(
     p => p.username?.toLowerCase().trim() === authPerfil?.username?.toLowerCase().trim()
   );
 
-  if (loadingPerfil || loadingDesc || loadingEntidades)
+  // Cargar descubrimientos + enriquecer con nombre según tipo
+  useEffect(() => {
+    if (!authPerfil?.id) return;
+
+    const cargar = async () => {
+      setLoadingDesc(true);
+      try {
+        // 1. Traer descubrimientos del perfil
+        const { data: desc } = await supabase
+          .from("descubrimientos")
+          .select("tipo, entidad_id, fecha_descubrimiento")
+          .eq("perfil_id", authPerfil.id);
+
+        if (!desc || desc.length === 0) {
+          setDescubrimientosEnriquecidos([]);
+          return;
+        }
+
+        // 2. Agrupar IDs por tipo
+        const idsCriaturas  = desc.filter(d => d.tipo === "criatura").map(d => d.entidad_id);
+        const idsItems       = desc.filter(d => d.tipo === "item").map(d => d.entidad_id);
+        const idsPersonajes  = desc.filter(d => d.tipo === "personaje").map(d => d.entidad_id);
+
+        // 3. Consultar nombres en paralelo (solo las tablas necesarias)
+        const [criaturas, items, personajes] = await Promise.all([
+          idsCriaturas.length
+            ? supabase.from("criaturas").select("id, nombre").in("id", idsCriaturas)
+            : Promise.resolve({ data: [] }),
+          idsItems.length
+            ? supabase.from("items").select("id, nombre").in("id", idsItems)
+            : Promise.resolve({ data: [] }),
+          idsPersonajes.length
+            ? supabase.from("personajes").select("id, nombre").in("id", idsPersonajes)
+            : Promise.resolve({ data: [] }),
+        ]);
+
+        // 4. Construir mapa UUID/id -> nombre
+        const mapa: Record<string, string> = {};
+        [...(criaturas.data ?? []), ...(items.data ?? []), ...(personajes.data ?? [])].forEach(
+          (e: any) => { if (e.id && e.nombre) mapa[String(e.id)] = e.nombre; }
+        );
+
+        // 5. Enriquecer
+        setDescubrimientosEnriquecidos(
+          desc.map(d => ({ ...d, nombre: mapa[String(d.entidad_id)] ?? undefined }))
+        );
+      } catch (err) {
+        console.error("Error cargando descubrimientos:", err);
+      } finally {
+        setLoadingDesc(false);
+      }
+    };
+
+    cargar();
+  }, [authPerfil?.id]);
+
+  if (loadingPerfil || loadingDesc)
     return <LoadingState mensaje={getMensaje("LOADING", "perfiles")} />;
 
   if (errorPerfil || !perfil) {
-    console.error("Detalle del error:", errorPerfil);
     return (
       <main className="min-h-screen pt-32 flex flex-col items-center justify-center bg-bg-main px-4 gap-4">
         <div className="text-primary/50 font-black uppercase text-[10px] tracking-widest text-center">
@@ -190,20 +222,9 @@ export default function Page() {
     );
   }
 
-  const descubrimientosConNombre = (descubrimientos ?? []).map((d: any) => ({
-    ...d,
-    nombre: entidades[d.entidad_id] ?? undefined,
-  }));
-
-  console.log("🔍 descubrimientos raw:", descubrimientos);
-  console.log("🔍 busca UUID:", "51cabb9f-cb8e-44fe-9172-2049c40f2276", "-> encontrado:", entidades["51cabb9f-cb8e-44fe-9172-2049c40f2276"]);
-  console.log("🔍 todas las keys del mapa:", Object.keys(entidades).slice(0, 5));
-  console.log("🔍 entidades mapa:", entidades);
-  console.log("🔍 descubrimientosConNombre:", descubrimientosConNombre);
-
   return (
     <main className="min-h-screen pt-32 pb-20 px-4 flex justify-center bg-bg-main">
-      <Personal datos={{ ...perfil, descubrimientos: descubrimientosConNombre }} />
+      <Personal datos={{ ...perfil, descubrimientos: descubrimientosEnriquecidos }} />
     </main>
   );
 }
