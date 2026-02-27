@@ -1,8 +1,7 @@
-// useDetalleMaestro.ts
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
-import { useIsAdmin } from "@/hooks/auth/useIsAdmin"; // 👈
+import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 
 export interface Relacion {
   id?: string;
@@ -21,7 +20,7 @@ export interface Variante {
 }
 
 export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
-  const isAdmin = useIsAdmin(); // 👈 reemplaza el useEffect de abajo
+  const isAdmin = useIsAdmin();
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   
@@ -35,22 +34,25 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
 
   const prevIdRef = useRef<number | string | null>(null);
 
-  // Sincronización de estados (Carga inicial)
+  // Sincronización de estados
   useEffect(() => {
     if (!data) return;
 
+    // Solo reiniciamos si el ID realmente cambió
     if (prevIdRef.current !== data.id) {
       setEditNombre(data.nombre || "");
       setEditDescripcion(data.sobre || data.descripcion || "");
       setEditRelaciones(data.relaciones || []);
+      setVarianteActiva(null); // Resetear variante al cambiar de criatura
       
       const cancionesData = data.canciones || [];
       const idsIniciales = Array.isArray(cancionesData) 
-        ? cancionesData.map(c => (typeof c === "object" ? c.id : c)).filter(Boolean)
+        ? cancionesData.map((c: any) => (typeof c === "object" ? c.id : c)).filter(Boolean)
         : [];
       setEditCanciones(idsIniciales);
 
-      if (data.id && !data.sobre) {
+      // Lógica de variantes mejorada
+      if (data.id && !("sobre" in data)) { // Si es criatura y tiene ID
         fetchVariantes(data.id);
       } else {
         setVariantes(data.variantes || []);
@@ -61,17 +63,23 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
   }, [data]);
 
   const fetchVariantes = async (id: any) => {
-    const { data: vars } = await supabase
-      .from("criatura_variantes")
-      .select("*")
-      .eq("criatura_id", id);
-    if (vars) setVariantes(vars);
+    try {
+      const { data: vars, error } = await supabase
+        .from("criatura_variantes")
+        .select("*")
+        .eq("criatura_id", id);
+      
+      if (error) throw error;
+      setVariantes(vars || []);
+    } catch (err) {
+      console.error("Error fetching variantes:", err);
+    }
   };
 
   const handleSave = async () => {
     if (!editNombre.trim()) {
       alert("El nombre es obligatorio.");
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -81,7 +89,6 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
       const campoTexto = esPersonaje ? "sobre" : "descripcion";
       
       let finalId = data?.id;
-
       const payload = {
         nombre: editNombre,
         [campoTexto]: editDescripcion
@@ -93,7 +100,6 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
           .insert([payload])
           .select()
           .single();
-        
         if (insError) throw insError;
         finalId = newRecord.id;
       } else {
@@ -101,17 +107,10 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
           .from(tabla)
           .update(payload)
           .eq("id", finalId);
-        
         if (updError) throw updError;
       }
 
-      if (esPersonaje) {
-        await supabase.from("canciones").update({ personaje: null }).eq("personaje", data?.nombre || editNombre);
-        if (editCanciones.length > 0) {
-          await supabase.from("canciones").update({ personaje: editNombre }).in("id", editCanciones);
-        }
-      }
-
+      // Guardar variantes si no es personaje
       if (!esPersonaje && variantes.length > 0) {
         const { error: varError } = await supabase
           .from("criatura_variantes")
@@ -125,7 +124,6 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
       setEditMode(false);
       if (onUpdate) await onUpdate();
       return true;
-
     } catch (err: any) {
       console.error("Error al guardar:", err);
       alert("Error: " + err.message);
