@@ -17,25 +17,25 @@ const CATEGORIAS = [
 ];
 
 const CATEGORIA_COLORS: Record<string, string> = {
-  "Proteínas":    "bg-red-50    text-red-600   border-red-100",
-  "Carbohidratos":"bg-amber-50  text-amber-600 border-amber-100",
-  "Grasas":       "bg-yellow-50 text-yellow-600 border-yellow-100",
-  "Verduras":     "bg-green-50  text-green-600 border-green-100",
-  "Frutas":       "bg-pink-50   text-pink-600  border-pink-100",
-  "Lácteos":      "bg-sky-50    text-sky-600   border-sky-100",
-  "Superfoods":   "bg-purple-50 text-purple-600 border-purple-100",
-  "Cereales":     "bg-orange-50 text-orange-600 border-orange-100",
+  "Proteínas":    "bg-rose-100    text-rose-500   border-rose-200",
+  "Carbohidratos":"bg-amber-100   text-amber-500  border-amber-200",
+  "Grasas":       "bg-yellow-100  text-yellow-600 border-yellow-200",
+  "Verduras":     "bg-emerald-100 text-emerald-600 border-emerald-200",
+  "Frutas":       "bg-pink-100    text-pink-500   border-pink-200",
+  "Lácteos":      "bg-sky-100     text-sky-500    border-sky-200",
+  "Superfoods":   "bg-violet-100  text-violet-500 border-violet-200",
+  "Cereales":     "bg-orange-100  text-orange-500 border-orange-200",
 };
 
 const CATEGORIA_DOT: Record<string, string> = {
-  "Proteínas":    "bg-red-400",
-  "Carbohidratos":"bg-amber-400",
-  "Grasas":       "bg-yellow-400",
-  "Verduras":     "bg-green-400",
-  "Frutas":       "bg-pink-400",
-  "Lácteos":      "bg-sky-400",
-  "Superfoods":   "bg-purple-400",
-  "Cereales":     "bg-orange-400",
+  "Proteínas":    "bg-rose-300",
+  "Carbohidratos":"bg-amber-300",
+  "Grasas":       "bg-yellow-300",
+  "Verduras":     "bg-emerald-300",
+  "Frutas":       "bg-pink-300",
+  "Lácteos":      "bg-sky-300",
+  "Superfoods":   "bg-violet-300",
+  "Cereales":     "bg-orange-300",
 };
 
 const INITIAL_FORM = {
@@ -148,10 +148,10 @@ export const IngredientesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f7f4] pb-28 text-primary">
+    <div className="min-h-screen bg-[#f0edf8] pb-28 text-primary">
 
       {/* ── HEADER ── */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-primary/5 sticky top-0 z-10">
+      <header className="bg-[#ece8f5]/90 backdrop-blur-xl border-b border-violet-200/50 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
 
           {/* breadcrumb + title */}
@@ -191,7 +191,7 @@ export const IngredientesPage = () => {
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors shrink-0"
+            className="flex items-center gap-2 bg-violet-500 text-white px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-violet-200 hover:bg-violet-600 transition-colors shrink-0"
           >
             <Plus size={14} />
             Añadir
@@ -260,7 +260,7 @@ export const IngredientesPage = () => {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03 } }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-white border border-primary/[0.06] rounded-3xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-4 group"
+                    className="bg-[#ede8f7] border border-violet-200/60 rounded-3xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col gap-4 group"
                   >
                     {/* top row */}
                     <div className="flex items-start justify-between gap-2">
@@ -275,45 +275,45 @@ export const IngredientesPage = () => {
                       <h3 className="text-[13px] font-black uppercase italic tracking-tight leading-tight mb-0.5">
                         {item.nombre}
                       </h3>
-                      <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest">
+                      <p className="text-[9px] font-bold text-violet-400 uppercase tracking-widest">
                         por {item.porcion_texto}
                       </p>
                     </div>
 
                     {/* macros row */}
-                    <div className="grid grid-cols-3 gap-2 py-3 border-y border-primary/[0.06]">
-                      <MacroBadge label="Prot" value={item.proteinas}    unit="g"  color="text-red-400"    />
+                    <div className="grid grid-cols-3 gap-2 py-3 bg-white/50 rounded-2xl px-2 border border-violet-100">
+                      <MacroBadge label="Prot" value={item.proteinas}    unit="g"  color="text-rose-400"    />
                       <MacroBadge label="Carb" value={item.carbohidratos} unit="g" color="text-amber-400"  />
                       <MacroBadge label="Gras" value={item.grasas}        unit="g" color="text-yellow-500" />
                     </div>
 
                     {/* optional micros */}
                     {(item.fibra > 0 || item.sodio > 0 || item.agua_ml > 0) && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {item.fibra   > 0 && <MacroBadge label="Fibra" value={item.fibra}   unit="g"  color="text-green-400"  />}
-                        {item.sodio   > 0 && <MacroBadge label="Sodio" value={item.sodio}   unit="mg" color="text-blue-400"   />}
+                      <div className="grid grid-cols-3 gap-2 bg-white/30 rounded-2xl px-2 py-2 border border-violet-100">
+                        {item.fibra   > 0 && <MacroBadge label="Fibra" value={item.fibra}   unit="g"  color="text-emerald-400"  />}
+                        {item.sodio   > 0 && <MacroBadge label="Sodio" value={item.sodio}   unit="mg" color="text-sky-400"   />}
                         {item.agua_ml > 0 && <MacroBadge label="Agua"  value={item.agua_ml} unit="ml" color="text-cyan-400"   />}
                       </div>
                     )}
 
                     {/* kcal bar */}
-                    <div className="flex items-center gap-1.5 bg-primary text-white rounded-2xl px-4 py-2.5">
-                      <Flame size={11} className="fill-white/60 shrink-0" />
+                    <div className="flex items-center gap-1.5 bg-violet-500 text-white rounded-2xl px-4 py-2.5 shadow-sm shadow-violet-300">
+                      <Flame size={11} className="fill-white/70 shrink-0" />
                       <span className="text-[10px] font-black tracking-widest uppercase flex-1">
                         {item.kcal} kcal
                       </span>
                     </div>
 
                     {/* stock control */}
-                    <div className={`flex items-center justify-between rounded-2xl px-3 py-2.5 transition-colors ${
-                      hasStock ? "bg-green-50" : "bg-red-50"
+                    <div className={`flex items-center justify-between rounded-2xl px-3 py-2.5 transition-colors border ${
+                      hasStock ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"
                     }`}>
                       <div className="flex items-center gap-2">
                         {hasStock
-                          ? <Package className="text-green-500 shrink-0" size={13} />
-                          : <PackageX className="text-red-400 shrink-0"  size={13} />
+                          ? <Package className="text-emerald-500 shrink-0" size={13} />
+                          : <PackageX className="text-rose-400 shrink-0"  size={13} />
                         }
-                        <span className={`text-[10px] font-black uppercase ${hasStock ? "text-green-700" : "text-red-500"}`}>
+                        <span className={`text-[10px] font-black uppercase ${hasStock ? "text-emerald-700" : "text-rose-500"}`}>
                           {hasStock ? `${item.stock_actual} uds.` : "Agotado"}
                         </span>
                       </div>
@@ -321,13 +321,13 @@ export const IngredientesPage = () => {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleUpdateStock(item.id, item.stock_actual, -1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white rounded-lg border border-primary/5 text-primary/35 hover:text-red-500 hover:border-red-200 transition-all"
+                          className="w-6 h-6 flex items-center justify-center bg-white/80 rounded-lg border border-violet-100 text-violet-300 hover:text-rose-400 hover:border-rose-200 transition-all"
                         >
                           <Minus size={11} />
                         </button>
                         <button
                           onClick={() => handleUpdateStock(item.id, item.stock_actual, 1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white rounded-lg border border-primary/5 text-primary/35 hover:text-green-600 hover:border-green-200 transition-all"
+                          className="w-6 h-6 flex items-center justify-center bg-white/80 rounded-lg border border-violet-100 text-violet-300 hover:text-emerald-500 hover:border-emerald-200 transition-all"
                         >
                           <Plus size={11} />
                         </button>
@@ -346,7 +346,7 @@ export const IngredientesPage = () => {
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.94 }}
         onClick={() => setIsModalOpen(true)}
-        className="sm:hidden fixed bottom-6 right-6 z-20 w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30"
+        className="sm:hidden fixed bottom-6 right-6 z-20 w-14 h-14 bg-violet-500 text-white rounded-2xl flex items-center justify-center shadow-2xl shadow-violet-300"
       >
         <Plus size={22} />
       </motion.button>
@@ -451,7 +451,7 @@ export const IngredientesPage = () => {
                 <button
                   disabled={isSaving || !formData.nombre.trim()}
                   type="submit"
-                  className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.25em] flex items-center justify-center gap-2.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                  className="w-full bg-violet-500 text-white py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.25em] flex items-center justify-center gap-2.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-violet-600 transition-all shadow-lg shadow-violet-200"
                 >
                   {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                   Registrar insumo
