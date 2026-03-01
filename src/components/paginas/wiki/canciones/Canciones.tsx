@@ -237,15 +237,17 @@ const Canciones = () => {
   const [sessionLoaded, setSessionLoaded] = useState(false);
 
   useEffect(() => {
+    // Chequear sesión cacheada primero (getSession usa la sesión guardada, no hace red)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAdmin(!!session);
       setSessionLoaded(true);
     });
   }, []);
 
+  // ✅ Las canciones cargan de inmediato sin esperar la sesión.
+  // isAdmin solo afecta controles de UI, no los datos visibles.
   const { data: canciones = [], loading: loadingCanciones, setData: setCanciones } = useSupabaseData("canciones", {
     order: { campo: "created_at", asc: false },
-    isAdmin: sessionLoaded ? isAdmin : false,
   });
 
   const { data: listaPersonajes = [] } = useSupabaseData("personajes", {
@@ -381,7 +383,9 @@ const Canciones = () => {
     }
   };
 
-  if (!sessionLoaded || loadingCanciones) return (
+  // ✅ Solo bloquear si los datos reales no llegaron aún.
+  // La sesión carga en paralelo: los botones de admin aparecen un instante después, sin bloquear el contenido.
+  if (loadingCanciones) return (
     <div className="h-screen flex items-center justify-center bg-bg-main">
       <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
         <Loader2 className="text-primary/20" size={40} />

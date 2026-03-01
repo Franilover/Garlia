@@ -81,6 +81,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const isMounted = useRef(true);
   const retryCount = useRef(0);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // ✅ Guardamos las opciones en un ref para que fetchData no se recree
+  // cada vez que el padre pase un objeto nuevo con los mismos valores.
+  const optionsRef = useRef(opciones);
+  useEffect(() => { optionsRef.current = opciones; });
   const optionsString = JSON.stringify(opciones);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
@@ -104,7 +108,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     // ── ONLINE: leer de Supabase ──────────────────────────────
     try {
-      const opt = JSON.parse(optionsString);
+      const opt = optionsRef.current;
       let res: any;
 
       if (QUERIES_MAP[tabla]) {
@@ -154,7 +158,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, updateCache, optionsString]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tabla, updateCache]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── CRUD ─────────────────────────────────────────────────
 
