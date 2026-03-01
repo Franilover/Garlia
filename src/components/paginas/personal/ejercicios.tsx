@@ -76,8 +76,7 @@ const PlanDiario = () => (
     <div className="flex items-center gap-3 mb-5">
       <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-base">📅</div>
       <div>
-        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30 italic block">Plan personalizado</span>
-        <h3 className="text-sm font-black text-primary italic tracking-tight leading-none">Tu rutina ideal</h3>
+        <h3 className="text-sm font-black text-primary italic tracking-tight leading-none">Rutina</h3>
       </div>
     </div>
     <div className="space-y-2">
