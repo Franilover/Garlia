@@ -8,7 +8,7 @@ import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import {
   Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
-  Plus, X, ArrowLeft, Trash2, Activity, Loader2, Save, ChevronLeft,
+  Plus, X, ArrowLeft, Trash2, Activity, Loader2, Save, ChevronLeft, Minus,
 } from "lucide-react";
 
 // ─── categorías con emojis ────────────────────────────────────────────────────
@@ -17,7 +17,9 @@ const CATEGORIAS = [
   { label: "General",    emoji: "🍽️" },
   { label: "Desayunos",  emoji: "🥞" },
   { label: "Almuerzos",  emoji: "🥗" },
+  { label: "Cenas",      emoji: "🌙" },
   { label: "Postres",    emoji: "🍮" },
+  { label: "Snacks",     emoji: "🍿" },
 ];
 
 const DIFICULTADES = ["Fácil", "Media", "Difícil"];
@@ -266,11 +268,19 @@ function RecipeCard({ receta, index }: { receta: Receta; index: number }) {
 
 // ─── MODAL AÑADIR ─────────────────────────────────────────────────────────────
 
+// Ingrediente pendiente de confirmar (selector inline antes de añadir)
+interface PendingIng {
+  base: Ingrediente;   // datos originales por porcion
+  qty: number;         // multiplicador elegido
+}
+
 function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [isSaving, setIsSaving]     = useState(false);
   const [searchIng, setSearchIng]   = useState("");
   const [nuevoPaso, setNuevoPaso]   = useState("");
   const [formData, setFormData]     = useState(INITIAL_FORM);
+  // ingrediente esperando confirmacion de cantidad
+  const [pendingIng, setPendingIng] = useState<PendingIng | null>(null);
 
   const { data: dbIngredientes } = useSupabaseData<Ingrediente>("ingredientes");
 
@@ -284,27 +294,29 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
       .slice(0, 6);
   }, [searchIng, dbIngredientes, formData.ingredientes]);
 
-  const addIngrediente = (ing: Ingrediente) => {
-    let sugerencia = "100g";
-    if (ing.porcion_texto?.toLowerCase().includes("unidad")) sugerencia = ing.porcion_texto;
-    else if (ing.categoria === "Lácteos" || ing.agua_ml > 0) sugerencia = "100ml";
-    else if (["Frutas", "Proteínas"].includes(ing.categoria)) sugerencia = "1 unidad";
+  // Abrir selector inline para elegir cantidad
+  const selectIngrediente = (ing: Ingrediente) => {
+    setPendingIng({ base: ing, qty: 1 });
+    setSearchIng("");
+  };
 
-    const cantidad = prompt(`Cantidad para ${ing.nombre}:`, sugerencia);
-    if (!cantidad) return;
-
+  // Confirmar y añadir con macros multiplicados
+  const confirmIngrediente = () => {
+    if (!pendingIng) return;
+    const { base, qty } = pendingIng;
+    const mult = (v: number) => Math.round(parseFloat(String(v || 0)) * qty * 10) / 10;
     setFormData(p => ({
       ...p,
       ingredientes: [...p.ingredientes, {
-        nombre: ing.nombre,
-        cantidad,
-        kcal:           parseFloat(String(ing.kcal          || 0)),
-        proteinas:      parseFloat(String(ing.proteinas      || 0)),
-        carbohidratos:  parseFloat(String(ing.carbohidratos  || 0)),
-        grasas:         parseFloat(String(ing.grasas         || 0)),
+        nombre:        base.nombre,
+        cantidad:      `${qty} × ${base.porcion_texto}`,
+        kcal:          mult(base.kcal),
+        proteinas:     mult(base.proteinas),
+        carbohidratos: mult(base.carbohidratos),
+        grasas:        mult(base.grasas),
       }],
     }));
-    setSearchIng("");
+    setPendingIng(null);
   };
 
   const removeIngrediente = (idx: number) =>
@@ -433,7 +445,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                     {filteredDbIngredientes.map(ing => (
                       <button
                         key={ing.id} type="button"
-                        onClick={() => addIngrediente(ing)}
+                        onClick={() => selectIngrediente(ing)}
                         className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-bg-main transition-colors border-b border-primary/5 last:border-0"
                       >
                         <span className="text-[11px] font-bold uppercase text-primary">{ing.nombre}</span>
@@ -447,19 +459,92 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
               </AnimatePresence>
             </div>
 
+            {/* selector inline de cantidad — aparece al elegir un ingrediente */}
+            <AnimatePresence>
+              {pendingIng && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.18 }}
+                  className="overflow-hidden"
+                >
+                  <div className="bg-accent/10 border border-accent/25 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase text-primary">{pendingIng.base.nombre}</span>
+                      <span className="text-[9px] font-bold text-primary/40">{pendingIng.base.porcion_texto} / unidad</span>
+                    </div>
+
+                    {/* control cantidad */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 shrink-0">Cantidad</span>
+                      <button type="button"
+                        onClick={() => setPendingIng(p => p && p.qty > 0.5 ? { ...p, qty: Math.round((p.qty - 0.5) * 10) / 10 } : p)}
+                        className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <input
+                        type="number" min="0.5" step="0.5"
+                        value={pendingIng.qty}
+                        onChange={e => setPendingIng(p => p ? { ...p, qty: Math.max(0.1, Number(e.target.value)) } : p)}
+                        className="w-16 text-center bg-white-custom border border-primary/10 rounded-lg py-1.5 text-[12px] font-black text-primary outline-none"
+                      />
+                      <button type="button"
+                        onClick={() => setPendingIng(p => p ? { ...p, qty: Math.round((p.qty + 0.5) * 10) / 10 } : p)}
+                        className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+
+                    {/* preview macros en tiempo real */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { label: "Kcal", value: pendingIng.base.kcal * pendingIng.qty,          unit: ""  },
+                        { label: "Prot", value: pendingIng.base.proteinas * pendingIng.qty,      unit: "g" },
+                        { label: "Carb", value: pendingIng.base.carbohidratos * pendingIng.qty,  unit: "g" },
+                        { label: "Gras", value: pendingIng.base.grasas * pendingIng.qty,         unit: "g" },
+                      ].map(m => (
+                        <div key={m.label} className="bg-white-custom border border-primary/8 rounded-xl py-1.5 text-center">
+                          <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
+                          <p className="text-[11px] font-black text-primary">
+                            {m.value.toFixed(0)}<span className="text-[8px] text-primary/25">{m.unit}</span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* acciones */}
+                    <div className="flex gap-2 pt-1">
+                      <button type="button" onClick={() => setPendingIng(null)}
+                        className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide border border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary transition-all"
+                      >
+                        Cancelar
+                      </button>
+                      <button type="button" onClick={confirmIngrediente}
+                        className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide bg-bg-menu text-white hover:opacity-80 transition-all"
+                      >
+                        ✓ Añadir
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* ingredientes añadidos */}
             {formData.ingredientes.length > 0 && (
               <div className="space-y-2">
                 {formData.ingredientes.map((ing, idx) => (
                   <div key={idx} className="flex items-center justify-between bg-bg-main border border-primary/8 rounded-2xl px-4 py-2.5">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="text-[11px] font-black uppercase text-primary">{ing.nombre}</span>
                       <span className="text-[9px] text-primary/35 ml-2">{ing.cantidad}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[9px] font-black text-primary/30">{ing.proteinas.toFixed(1)}g P</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[9px] font-black text-primary/25">{ing.kcal.toFixed(0)} kcal</span>
+                      <span className="text-[9px] font-black text-primary/25">{ing.proteinas.toFixed(1)}g P</span>
                       <button type="button" onClick={() => removeIngrediente(idx)}
-                        className="p-1 text-primary/20 hover:text-red-400 transition-colors"
+                        className="p-1 text-primary/20 hover:text-red-400 transition-colors ml-1"
                       >
                         <X size={13} />
                       </button>
@@ -467,13 +552,13 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   </div>
                 ))}
 
-                {/* preview macros */}
-                <div className="grid grid-cols-4 gap-2 mt-2">
+                {/* totales */}
+                <div className="grid grid-cols-4 gap-2 mt-1">
                   {[
-                    { label: "Kcal",  value: totalesPreview.kcal,      unit: ""  },
-                    { label: "Prot",  value: totalesPreview.proteinas,  unit: "g" },
-                    { label: "Carb",  value: totalesPreview.carbos,     unit: "g" },
-                    { label: "Gras",  value: totalesPreview.grasas,     unit: "g" },
+                    { label: "Kcal", value: totalesPreview.kcal,     unit: ""  },
+                    { label: "Prot", value: totalesPreview.proteinas, unit: "g" },
+                    { label: "Carb", value: totalesPreview.carbos,    unit: "g" },
+                    { label: "Gras", value: totalesPreview.grasas,    unit: "g" },
                   ].map(m => (
                     <div key={m.label} className="bg-accent/10 border border-accent/20 rounded-xl py-2 text-center">
                       <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
