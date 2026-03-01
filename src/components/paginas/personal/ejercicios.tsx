@@ -495,19 +495,6 @@ export const PaginaEjercicios = () => {
       </AnimatePresence>
 
       <div className="max-w-4xl mx-auto space-y-8">
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: "Rutinas",        valor: rutinas.length,  icon: <List size={16} /> },
-            { label: "Ejercicios",     valor: totalEjercicios, icon: <Dumbbell size={16} /> },
-            { label: "Series totales", valor: totalSeries,     icon: <Flame size={16} /> },
-          ].map(({ label, valor, icon }) => (
-            <div key={label} className="bg-white-custom border border-primary/10 rounded-3xl p-5 shadow-lg shadow-primary/5 flex flex-col gap-2">
-              <div className="text-primary/30">{icon}</div>
-              <span className="text-2xl font-black text-primary italic tracking-tighter">{valor}</span>
-              <span className="text-[9px] font-black uppercase tracking-widest text-primary/30">{label}</span>
-            </div>
-          ))}
-        </div>
 
         <PlanDiario />
 
