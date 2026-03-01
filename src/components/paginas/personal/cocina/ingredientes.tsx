@@ -5,7 +5,7 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import {
   Search, Plus, ChevronLeft, X, Loader2, Save,
-  Package, PackageX, Minus, FlaskConical, Flame, Trash2,
+  Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -31,12 +31,14 @@ const INITIAL_FORM = {
 
 // ─── sub-components ──────────────────────────────────────────────────────────
 
-function MacroBadge({ label, value, unit }: { label: string; value: number; unit: string }) {
+function MacroBadge({ label, value, unit, scaled }: { label: string; value: number; unit: string; scaled?: number }) {
+  const showing = scaled !== undefined ? scaled : value;
+  const changed = scaled !== undefined && Math.abs(scaled - value) > 0.01;
   return (
     <div className="flex flex-col items-center gap-0.5 py-2">
       <span className="text-[8px] font-black uppercase tracking-widest text-primary/40">{label}</span>
-      <span className="text-[13px] font-black leading-none text-primary">
-        {value}<span className="text-[9px] font-semibold text-primary/30 ml-0.5">{unit}</span>
+      <span className={`text-[13px] font-black leading-none transition-colors ${changed ? "text-accent" : "text-primary"}`}>
+        {showing}<span className="text-[9px] font-semibold text-primary/30 ml-0.5">{unit}</span>
       </span>
     </div>
   );
@@ -84,17 +86,26 @@ export const IngredientesPage = () => {
   const [isSaving, setIsSaving]       = useState(false);
   const [formData, setFormData]       = useState(INITIAL_FORM);
 
-  // Estado local para evitar re-renders completos en cambios de stock/delete
-  const [localItems, setLocalItems]   = useState<Ingrediente[]>([]);
-  // id de card que está en modo "confirmar eliminar"
+  // Estado local — solo se inicializa UNA vez en la primera carga.
+  // Mutaciones (stock, delete, add) se aplican directamente aqui sin refetch.
+  const [localItems, setLocalItems] = useState<Ingrediente[]>([]);
+  const initialized = React.useRef(false);
+  // id de card en modo "confirmar eliminar"
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // calculadora: id -> cantidad
+  const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
+  // que cards tienen la calculadora abierta
+  const [qtyOpen, setQtyOpen] = useState<Record<string, boolean>>({});
 
   const { data: ingredientes, loading, refetch, addRow, updateRow, deleteRow } =
     useSupabaseData<Ingrediente>("ingredientes");
 
-  // Sincronizar estado local cuando llegan datos remotos (solo en carga inicial o al añadir)
+  // Solo copiar a estado local en la PRIMERA carga, nunca despues
   useEffect(() => {
-    if (ingredientes) setLocalItems(ingredientes);
+    if (ingredientes && !initialized.current) {
+      setLocalItems(ingredientes);
+      initialized.current = true;
+    }
   }, [ingredientes]);
 
   // ── filtrado sobre estado local ──
@@ -160,7 +171,7 @@ export const IngredientesPage = () => {
     }
   };
 
-  // ── añadir: necesita refetch para obtener el id generado ──
+  // ── añadir: append local con id temporal, sin refetch ──
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -171,7 +182,15 @@ export const IngredientesPage = () => {
       } else {
         setIsModalOpen(false);
         setFormData(INITIAL_FORM);
-        await refetch(); // necesario solo aquí para obtener el id real
+        // Añadir al estado local con el dato devuelto por addRow (tiene el id real)
+        // Si addRow devuelve el row insertado lo usamos; si no, hacemos un refetch silencioso
+        if (result.data) {
+          setLocalItems(prev => [...prev, result.data as Ingrediente]);
+        } else {
+          // fallback: refetch y marcar para re-sync una sola vez
+          initialized.current = false;
+          await refetch();
+        }
       }
     } catch (err) {
       alert(`Error inesperado: ${err}`);
@@ -275,7 +294,7 @@ export const IngredientesPage = () => {
 
           <div className="flex items-center gap-2 flex-wrap">
             {([
-              { label: "En stock",  key: "in-stock"     as const, value: stats.inStock,  dot: "bg-green-400" },
+              { label: "En stock",  key: "in-stock"     as const, value: stats.inStock,  dot: "bg-green-300" },
               { label: "Agotado",   key: "out-of-stock" as const, value: stats.outStock, dot: "bg-red-300"   },
             ]).map(f => (
               <button
@@ -394,65 +413,130 @@ export const IngredientesPage = () => {
                       </AnimatePresence>
                     </div>
 
-                    {/* nombre */}
-                    <div>
-                      <h3 className="text-[13px] font-black uppercase italic tracking-tight leading-tight mb-0.5 text-primary">
-                        {item.nombre}
-                      </h3>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-primary/30">
-                        por {item.porcion_texto}
-                      </p>
-                    </div>
-
-                    {/* macros */}
-                    <div className="grid grid-cols-3 gap-1 rounded-2xl bg-bg-main border border-primary/8 px-1">
-                      <MacroBadge label="Prot" value={item.proteinas}     unit="g" />
-                      <MacroBadge label="Carb" value={item.carbohidratos} unit="g" />
-                      <MacroBadge label="Gras" value={item.grasas}        unit="g" />
-                    </div>
-
-                    {/* micros */}
-                    {(item.fibra > 0 || item.sodio > 0 || item.agua_ml > 0) && (
-                      <div className="grid grid-cols-3 gap-1 rounded-2xl bg-bg-main border border-primary/8 px-1">
-                        {item.fibra   > 0 && <MacroBadge label="Fibra" value={item.fibra}   unit="g"  />}
-                        {item.sodio   > 0 && <MacroBadge label="Sodio" value={item.sodio}   unit="mg" />}
-                        {item.agua_ml > 0 && <MacroBadge label="Agua"  value={item.agua_ml} unit="ml" />}
+                    {/* nombre + porción base + botón calculadora */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="text-[13px] font-black uppercase italic tracking-tight leading-tight mb-0.5 text-primary">
+                          {item.nombre}
+                        </h3>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-primary/30">
+                          por {item.porcion_texto}
+                        </p>
                       </div>
-                    )}
-
-                    {/* kcal */}
-                    <div className="flex items-center gap-1.5 rounded-2xl bg-accent/20 border border-accent/25 px-4 py-2.5">
-                      <Flame size={11} className="text-accent shrink-0 fill-accent/60" />
-                      <span className="text-[10px] font-black tracking-widest uppercase flex-1 text-primary/70">
-                        {item.kcal} kcal
-                      </span>
+                      <button
+                        onClick={() => setQtyOpen(p => ({ ...p, [item.id]: !p[item.id] }))}
+                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wide border transition-all ${
+                          qtyOpen[item.id]
+                            ? "bg-accent/25 border-accent/40 text-primary"
+                            : "bg-bg-main border-primary/10 text-primary/35 hover:text-primary hover:border-primary/25"
+                        }`}
+                      >
+                        <Calculator size={11} />
+                        ×{qtyMap[item.id] ?? 1}
+                      </button>
                     </div>
 
-                    {/* stock */}
+                    {/* calculadora inline */}
+                    <AnimatePresence>
+                      {qtyOpen[item.id] && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.18 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-2xl px-3 py-2.5">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 shrink-0">
+                              Cantidad
+                            </span>
+                            <button
+                              onClick={() => setQtyMap(p => ({ ...p, [item.id]: Math.max(0.5, (p[item.id] ?? 1) - 0.5) }))}
+                              className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                            >
+                              <Minus size={10} />
+                            </button>
+                            <input
+                              type="number"
+                              min="0.1"
+                              step="0.5"
+                              value={qtyMap[item.id] ?? 1}
+                              onChange={e => setQtyMap(p => ({ ...p, [item.id]: Math.max(0.1, Number(e.target.value)) }))}
+                              className="w-14 text-center bg-white-custom border border-primary/10 rounded-lg py-1 text-[11px] font-black text-primary outline-none"
+                            />
+                            <button
+                              onClick={() => setQtyMap(p => ({ ...p, [item.id]: (p[item.id] ?? 1) + 0.5 }))}
+                              className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                            >
+                              <Plus size={10} />
+                            </button>
+                            <button
+                              onClick={() => { setQtyMap(p => ({ ...p, [item.id]: 1 })); }}
+                              className="ml-auto text-[8px] font-black uppercase text-primary/25 hover:text-primary transition-colors tracking-wide"
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* macros — se multiplican si hay qty */}
+                    {(() => {
+                      const q = qtyMap[item.id] ?? 1;
+                      const sc = (v: number) => q === 1 ? undefined : Math.round(v * q * 10) / 10;
+                      return (
+                        <>
+                          <div className="grid grid-cols-3 gap-1 rounded-2xl bg-bg-main border border-primary/8 px-1">
+                            <MacroBadge label="Prot" value={item.proteinas}     unit="g"  scaled={sc(item.proteinas)} />
+                            <MacroBadge label="Carb" value={item.carbohidratos} unit="g"  scaled={sc(item.carbohidratos)} />
+                            <MacroBadge label="Gras" value={item.grasas}        unit="g"  scaled={sc(item.grasas)} />
+                          </div>
+
+                          {(item.fibra > 0 || item.sodio > 0 || item.agua_ml > 0) && (
+                            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-bg-main border border-primary/8 px-1">
+                              {item.fibra   > 0 && <MacroBadge label="Fibra" value={item.fibra}   unit="g"  scaled={sc(item.fibra)} />}
+                              {item.sodio   > 0 && <MacroBadge label="Sodio" value={item.sodio}   unit="mg" scaled={sc(item.sodio)} />}
+                              {item.agua_ml > 0 && <MacroBadge label="Agua"  value={item.agua_ml} unit="ml" scaled={sc(item.agua_ml)} />}
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-1.5 rounded-2xl bg-accent/20 border border-accent/25 px-4 py-2.5">
+                            <Flame size={11} className="text-accent shrink-0 fill-accent/60" />
+                            <span className={`text-[10px] font-black tracking-widest uppercase flex-1 transition-colors ${q !== 1 ? "text-accent" : "text-primary/70"}`}>
+                              {q === 1 ? item.kcal : Math.round(item.kcal * q)} kcal
+                              {q !== 1 && <span className="text-primary/30 font-semibold ml-1.5 normal-case tracking-normal text-[9px]">({item.kcal} c/u)</span>}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
+
+                    {/* stock — igual que antes, sin cambios */}
                     <div className={`flex items-center justify-between rounded-2xl px-3 py-2.5 border ${
                       hasStock
-                        ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800/30"
-                        : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800/30"
+                        ? "bg-green-50/50 border-green-100"
+                        : "bg-red-50/50 border-red-100"
                     }`}>
                       <div className="flex items-center gap-2">
                         {hasStock
-                          ? <Package size={13} className="text-green-500 shrink-0" />
-                          : <PackageX size={13} className="text-red-400 shrink-0" />
+                          ? <Package size={13} className="text-green-400/80 shrink-0" />
+                          : <PackageX size={13} className="text-red-300 shrink-0" />
                         }
-                        <span className={`text-[10px] font-black uppercase ${hasStock ? "text-green-700 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
+                        <span className={`text-[10px] font-black uppercase ${hasStock ? "text-green-600/70" : "text-red-400/70"}`}>
                           {hasStock ? `${item.stock_actual} uds.` : "Agotado"}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleUpdateStock(item.id, item.stock_actual, -1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-red-400 hover:border-red-200 transition-all"
+                          className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-red-300 hover:border-red-100 transition-all"
                         >
                           <Minus size={11} />
                         </button>
                         <button
                           onClick={() => handleUpdateStock(item.id, item.stock_actual, 1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-green-500 hover:border-green-200 transition-all"
+                          className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-green-400/80 hover:border-green-100 transition-all"
                         >
                           <Plus size={11} />
                         </button>
