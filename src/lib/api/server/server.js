@@ -18,7 +18,7 @@ export function createClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // Se ignora si se llama desde un Server Component
+            
           }
         },
       },

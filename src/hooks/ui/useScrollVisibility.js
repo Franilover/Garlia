@@ -10,18 +10,18 @@ export const useScrollVisibility = (threshold = 50) => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      // 1. Detectar si hemos pasado el umbral (para cambiar el fondo)
+      
       if (currentScrollY > threshold) {
         setIsScrolled(true);
       } else {
         setIsScrolled(false);
       }
 
-      // 2. Detectar direcciÃ³n para mostrar/ocultar (Smart Navbar)
+      
       if (currentScrollY > lastScrollY && currentScrollY > 200) {
-        setIsVisible(false); // Bajando: ocultar
+        setIsVisible(false); 
       } else {
-        setIsVisible(true);  // Subiendo: mostrar
+        setIsVisible(true);  
       }
 
       setLastScrollY(currentScrollY);

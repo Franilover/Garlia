@@ -1,11 +1,11 @@
-// === CATEGORÃAS ===
+
 export const CATEGORIAS = {
   FOTOS: ['todos', 'yo', 'amigos', 'animales', 'paisajes'],
   DIBUJOS: ['todos', 'fanart', 'original', 'bocetos'],
-  ITEMS: ['TODOS', 'ARMA', 'ACCESORIO', 'CONSUMIBLE'] // desde DB idealmente
+  ITEMS: ['TODOS', 'ARMA', 'ACCESORIO', 'CONSUMIBLE'] 
 };
 
-// === MENSAJES ===
+
 export const MENSAJES = {
   LOADING: {
     personajes: "Indexando...",
@@ -21,7 +21,7 @@ export const MENSAJES = {
   }
 };
 
-// === CONFIGURACIÃN DE TABLAS ===
+
 export const TABLAS_CONFIG = {
   personajes: {
     orden: { campo: 'id', asc: true },

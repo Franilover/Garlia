@@ -1,8 +1,8 @@
 export function initAnimations() {
-    // ð¡ï¸ PROTECCIÃN INICIAL: Evita que el servidor explote
+    
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
-    // 1. ANIMACIÃN DE APARICIÃN (Scroll)
+    
     const elementosAnimados = document.querySelectorAll(".animate-on-scroll");
     const observador = new IntersectionObserver(entradas => {
         entradas.forEach(entrada => {
@@ -14,8 +14,8 @@ export function initAnimations() {
     }, { threshold: 0.1 });
     elementosAnimados.forEach(el => observador.observe(el));
 
-    // 2. REPRODUCTOR GLOBAL
-    // Lo asignamos a window dentro de la funciÃ³n para que solo exista en el navegador
+    
+    
     window.togglePlay = function(id, btn) {
         const audio = document.getElementById(id);
         if (!audio) return;

@@ -59,7 +59,7 @@ export default function UploadPage() {
     try {
       let finalImageUrl = externalUrl;
       
-      // 1. Subida de archivo a Storage (si aplica)
+      
       if (uploadMethod === 'file' && file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
@@ -78,7 +78,7 @@ export default function UploadPage() {
         finalImageUrl = publicUrl;
       }
 
-      // 2. InserciÃ³n en la base de datos segÃºn la secciÃ³n
+      
       const insertData = seccion === 'personal' 
         ? { titulo: nombreObra, url_imagen: finalImageUrl, categoria }
         : { nombre: nombreObra, imagen_url: finalImageUrl, categoria };
@@ -86,7 +86,7 @@ export default function UploadPage() {
       const { error: dbError } = await supabase.from(tabla).insert([insertData]);
       if (dbError) throw dbError;
 
-      // 3. DISPARAR NOTIFICACIÃN PUSH (Llamada a tu nueva API)
+      
       try {
         const baseUrl = window.location.origin;
         await fetch(`${baseUrl}/api/notify`, { 
@@ -100,7 +100,7 @@ export default function UploadPage() {
 
       alert("Â¡Publicado con Ã©xito! â¨");
       
-      // Limpiar formulario
+      
       setNombreObra(''); 
       setFile(null); 
       setExternalUrl('');

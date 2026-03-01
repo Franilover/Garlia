@@ -3,10 +3,10 @@ import { registerRoute, NavigationRoute } from "workbox-routing";
 import { CacheFirst, NetworkOnly } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 
-// 1. INYECCIÓN DE MANIFIESTO
+
 precacheAndRoute(self.__WB_MANIFEST);
 
-// 2. CACHÉ DE IMÁGENES (GitHub y locales)
+
 registerRoute(
   ({ request, url }) => 
     request.destination === "image" || 
@@ -16,13 +16,13 @@ registerRoute(
     plugins: [
       new ExpirationPlugin({
         maxEntries: 100,
-        maxAgeSeconds: 60 * 24 * 60 * 60, // 60 días
+        maxAgeSeconds: 60 * 24 * 60 * 60, 
       }),
     ],
   })
 );
 
-// 3. ESTRATEGIA DE NAVEGACIÓN (Evita error de conexión)
+
 const networkOnly = new NetworkOnly();
 const navigationRoute = new NavigationRoute(async (params) => {
   try {
@@ -33,7 +33,7 @@ const navigationRoute = new NavigationRoute(async (params) => {
 });
 registerRoute(navigationRoute);
 
-// 4. EVENTOS DE CICLO DE VIDA
+
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
@@ -42,16 +42,16 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(clients.claim());
 });
 
-// 5. SINCRONIZACIÓN DE FONDO (Background Sync)
-// Este evento se dispara solo cuando el navegador detecta que volvió el internet
+
+
 self.addEventListener("sync", (event) => {
   if (event.tag === "sync-notas") {
     console.log("SW: Detectada conexión. Iniciando sincronización de notas...");
-    // Aquí podrías añadir lógica extra si decides no usar el Hook del layout
+    
   }
 });
 
-// 6. EVENTO PUSH
+
 self.addEventListener("push", function(event) {
   if (event.data) {
     try {
@@ -71,7 +71,7 @@ self.addEventListener("push", function(event) {
   }
 });
 
-// 7. EVENTO CLICK NOTIFICACIÓN
+
 self.addEventListener("notificationclick", function(event) {
   event.notification.close();
   const targetUrl = event.notification.data.url;

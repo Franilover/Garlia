@@ -1,4 +1,4 @@
-// lib/config/tables.js
+
 export const TABLES_CONFIG = {
   personajes: {
     name: 'personajes',
