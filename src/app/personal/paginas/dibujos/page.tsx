@@ -1,4 +1,4 @@
-import Dibujos from "@/components/paginas/personal/dibujos";
+import Dibujos from "@/features/paginas/personal/dibujos";
 
 export default function Page() {
   return <Dibujos />;

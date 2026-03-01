@@ -1,4 +1,4 @@
-import PureGridItems from "@/components/paginas/wiki/info/items";
+import PureGridItems from "@/features/paginas/wiki/info/items";
 
 export default function Page() {
   return <PureGridItems />;

@@ -1,6 +1,6 @@
 "use client";
 
-import { PaginaEjercicios } from "@/components/paginas/personal/ejercicios";
+import { PaginaEjercicios } from "@/features/paginas/personal/ejercicios";
 import { Dumbbell } from "lucide-react";
 
 export default function EjerciciosPage() {

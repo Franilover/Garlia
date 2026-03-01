@@ -1,4 +1,4 @@
-import EnsayosView from "@/components/paginas/personal/ensayos";
+import EnsayosView from "@/features/paginas/personal/ensayos";
 
 export default function Page() {
   return <EnsayosView />;

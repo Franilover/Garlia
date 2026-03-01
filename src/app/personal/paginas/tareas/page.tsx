@@ -1,6 +1,6 @@
 "use client";
 
-import { GestionPersonal } from "@/components/paginas/personal/tareas";
+import { GestionPersonal } from "@/features/paginas/personal/tareas";
 import { Clock } from "lucide-react";
 
 export default function TareasPage() {

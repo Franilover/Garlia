@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import SobreMi from "@/components/paginas/personal/sobre-mi"; // Ajusta esta ruta a donde tengas tu componente
+import SobreMi from "@/features/paginas/personal/sobre-mi"; // Ajusta esta ruta a donde tengas tu componente
 
 export default function Home() {
   return (
