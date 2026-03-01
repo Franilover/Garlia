@@ -86,10 +86,9 @@ export const IngredientesPage = () => {
   const [isSaving, setIsSaving]       = useState(false);
   const [formData, setFormData]       = useState(INITIAL_FORM);
 
-  // Estado local — solo se inicializa UNA vez en la primera carga.
-  // Mutaciones (stock, delete, add) se aplican directamente aqui sin refetch.
-  const [localItems, setLocalItems] = useState<Ingrediente[]>([]);
-  const initialized = React.useRef(false);
+  // Estado local completamente independiente del hook.
+  // El hook solo se usa para cargar datos la primera vez y para mutaciones.
+  const [localItems, setLocalItems] = useState<Ingrediente[] | null>(null); // null = aun cargando
   // id de card en modo "confirmar eliminar"
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   // calculadora: id -> cantidad
@@ -97,20 +96,22 @@ export const IngredientesPage = () => {
   // que cards tienen la calculadora abierta
   const [qtyOpen, setQtyOpen] = useState<Record<string, boolean>>({});
 
-  const { data: ingredientes, loading, refetch, addRow, updateRow, deleteRow } =
+  const { data: ingredientes, loading: hookLoading, refetch, addRow, updateRow, deleteRow } =
     useSupabaseData<Ingrediente>("ingredientes");
 
-  // Solo copiar a estado local en la PRIMERA carga, nunca despues
+  // Solo inicializar localItems una vez cuando el hook trae datos por primera vez
   useEffect(() => {
-    if (ingredientes && !initialized.current) {
+    if (ingredientes !== undefined && ingredientes !== null && localItems === null) {
       setLocalItems(ingredientes);
-      initialized.current = true;
     }
-  }, [ingredientes]);
+  }, [ingredientes]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isLoading = localItems === null;
+  const items = localItems ?? [];
 
   // ── filtrado sobre estado local ──
   const filteredItems = useMemo(() => {
-    return localItems.filter((item) => {
+    return items.filter((item) => {
       const matchesSearch =
         !filter ||
         item.nombre?.toLowerCase().includes(filter.toLowerCase()) ||
@@ -122,19 +123,19 @@ export const IngredientesPage = () => {
         stockFilter === "in-stock" ? hasStock : !hasStock;
       return matchesSearch && matchesCat && matchesStock;
     });
-  }, [localItems, filter, catFilter, stockFilter]);
+  }, [items, filter, catFilter, stockFilter]);
 
   const catCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    localItems.forEach(i => { counts[i.categoria] = (counts[i.categoria] || 0) + 1; });
+    items.forEach(i => { counts[i.categoria] = (counts[i.categoria] || 0) + 1; });
     return counts;
-  }, [localItems]);
+  }, [items]);
 
   const stats = useMemo(() => ({
-    total:    localItems.length,
-    inStock:  localItems.filter(i => (i.stock_actual || 0) > 0).length,
-    outStock: localItems.filter(i => (i.stock_actual || 0) === 0).length,
-  }), [localItems]);
+    total:    items.length,
+    inStock:  items.filter(i => (i.stock_actual || 0) > 0).length,
+    outStock: items.filter(i => (i.stock_actual || 0) === 0).length,
+  }), [items]);
 
   const patch = (key: keyof typeof INITIAL_FORM) =>
     (v: string) => setFormData(p => ({ ...p, [key]: typeof INITIAL_FORM[key] === "number" ? Number(v) : v }));
@@ -144,7 +145,7 @@ export const IngredientesPage = () => {
     const newStock = Math.max(0, current + delta);
     // actualizar local INMEDIATAMENTE
     setLocalItems(prev =>
-      prev.map(item => item.id === id ? { ...item, stock_actual: newStock } : item)
+      (prev ?? []).map(item => item.id === id ? { ...item, stock_actual: newStock } : item)
     );
     // luego persistir en background
     if (updateRow) {
@@ -152,7 +153,7 @@ export const IngredientesPage = () => {
       // si falla, revertir
       if (result.error) {
         setLocalItems(prev =>
-          prev.map(item => item.id === id ? { ...item, stock_actual: current } : item)
+          (prev ?? []).map(item => item.id === id ? { ...item, stock_actual: current } : item)
         );
       }
     }
@@ -160,18 +161,19 @@ export const IngredientesPage = () => {
 
   // ── eliminar: optimista con confirm inline ──
   const handleDelete = async (id: string) => {
-    // remover local INMEDIATAMENTE
-    setLocalItems(prev => prev.filter(item => item.id !== id));
+    setLocalItems(prev => (prev ?? []).filter(item => item.id !== id));
     setConfirmDelete(null);
-    // persistir en background
     if (deleteRow) {
       const result = await deleteRow(id);
-      // si falla, recargar desde DB
-      if (result?.error) refetch();
+      // si falla: resetear a null para forzar re-sync desde el hook
+      if (result?.error) {
+        setLocalItems(null);
+        refetch();
+      }
     }
   };
 
-  // ── añadir: append local con id temporal, sin refetch ──
+  // ── añadir: append directo al estado local ──
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -182,14 +184,13 @@ export const IngredientesPage = () => {
       } else {
         setIsModalOpen(false);
         setFormData(INITIAL_FORM);
-        // Añadir al estado local con el dato devuelto por addRow (tiene el id real)
-        // Si addRow devuelve el row insertado lo usamos; si no, hacemos un refetch silencioso
         if (result.data) {
-          setLocalItems(prev => [...prev, result.data as Ingrediente]);
+          // addRow devolvió el row insertado — añadirlo directo
+          setLocalItems(prev => [...(prev ?? []), result.data as Ingrediente]);
         } else {
-          // fallback: refetch y marcar para re-sync una sola vez
-          initialized.current = false;
-          await refetch();
+          // no devolvió data — resetear a null y forzar re-sync
+          setLocalItems(null);
+          refetch();
         }
       }
     } catch (err) {
@@ -331,7 +332,7 @@ export const IngredientesPage = () => {
         </div>
 
         {/* ── GRID ── */}
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center py-32">
             <Loader2 className="animate-spin text-primary/30" size={36} />
           </div>
