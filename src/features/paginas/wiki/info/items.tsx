@@ -9,13 +9,18 @@ export default function Inventario() {
     <EntidadPageBase
       tabla="items"
       titulo="Almacén de Objetos"
-      // Añadimos 'conFoto' para activar el botón de la cámara
       configFiltros={['categoria', 'conFoto']}
-      // Etiquetas para el modal: Categoría y Rareza
       getCustomTags={(item) => [
         item?.categoria,
         item?.rareza
       ].filter(Boolean)}
+      plantillaNueva={{
+        nombre: "",
+        descripcion: "",
+        categoria: "",
+        rareza: "",
+        imagen_url: ""
+      }}
       renderCard={(item, onClick) => (
         <GalleryItem 
           key={item.id} 
