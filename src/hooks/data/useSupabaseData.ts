@@ -74,7 +74,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const { cache, updateCache } = useDataCache();
 
   const [data, setData] = useState<T[]>(cache[tabla] || []);
-  const [loading, setLoading] = useState(!cache[tabla]);
+  // ✅ Si la tabla es __skip__, no mostramos loading (esperando sesión)
+  const [loading, setLoading] = useState(tabla !== "__skip__" && !cache[tabla]);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
 
@@ -89,6 +90,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
+    // ✅ Tabla especial: sesión aún no cargada, no hacer nada
+    if (tabla === "__skip__") return;
 
     if (data.length === 0 || forceRefresh) setLoading(true);
     setError(null);

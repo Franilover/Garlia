@@ -237,18 +237,20 @@ const Canciones = () => {
   const [sessionLoaded, setSessionLoaded] = useState(false);
 
   useEffect(() => {
-    // Chequear sesión cacheada primero (getSession usa la sesión guardada, no hace red)
+    // getSession lee de la caché local — es instantáneo, no hace llamada de red
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAdmin(!!session);
       setSessionLoaded(true);
     });
   }, []);
 
-  // ✅ Las canciones cargan de inmediato sin esperar la sesión.
-  // isAdmin solo afecta controles de UI, no los datos visibles.
-  const { data: canciones = [], loading: loadingCanciones, setData: setCanciones } = useSupabaseData("canciones", {
-    order: { campo: "created_at", asc: false },
-  });
+  // ✅ No arrancamos el fetch hasta saber si es admin o no.
+  // Así evitamos el doble fetch: uno sin admin (solo visibles) y otro con admin (todos).
+  // getSession es sincrónico desde caché, así que sessionLoaded se activa casi inmediatamente.
+  const { data: canciones = [], loading: loadingCanciones, setData: setCanciones } = useSupabaseData(
+    sessionLoaded ? "canciones" : "__skip__",
+    { order: { campo: "created_at", asc: false }, isAdmin }
+  );
 
   const { data: listaPersonajes = [] } = useSupabaseData("personajes", {
     order: { campo: "nombre", asc: true }
