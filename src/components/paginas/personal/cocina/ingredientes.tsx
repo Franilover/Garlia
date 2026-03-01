@@ -1,15 +1,15 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import {
   Search, Plus, ChevronLeft, X, Loader2, Save,
-  Package, PackageX, Minus, FlaskConical, Flame, SlidersHorizontal,
+  Package, PackageX, Minus, FlaskConical, Flame, Trash2,
 } from "lucide-react";
 import Link from "next/link";
 
-// ─── categorías con emojis para navegación rápida ───────────────────────────
+// ─── categorías ───────────────────────────────────────────────────────────────
 
 const CATEGORIAS = [
   { label: "Proteínas",     emoji: "🥩" },
@@ -21,8 +21,6 @@ const CATEGORIAS = [
   { label: "Superfoods",    emoji: "✨" },
   { label: "Cereales",      emoji: "🌾" },
 ];
-
-const CAT_LABELS = CATEGORIAS.map(c => c.label);
 
 const INITIAL_FORM = {
   nombre: "", categoria: "Verduras", kcal: 0,
@@ -86,11 +84,22 @@ export const IngredientesPage = () => {
   const [isSaving, setIsSaving]       = useState(false);
   const [formData, setFormData]       = useState(INITIAL_FORM);
 
-  const { data: ingredientes, loading, refetch, addRow, updateRow } =
+  // Estado local para evitar re-renders completos en cambios de stock/delete
+  const [localItems, setLocalItems]   = useState<Ingrediente[]>([]);
+  // id de card que está en modo "confirmar eliminar"
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const { data: ingredientes, loading, refetch, addRow, updateRow, deleteRow } =
     useSupabaseData<Ingrediente>("ingredientes");
 
+  // Sincronizar estado local cuando llegan datos remotos (solo en carga inicial o al añadir)
+  useEffect(() => {
+    if (ingredientes) setLocalItems(ingredientes);
+  }, [ingredientes]);
+
+  // ── filtrado sobre estado local ──
   const filteredItems = useMemo(() => {
-    return (ingredientes || []).filter((item) => {
+    return localItems.filter((item) => {
       const matchesSearch =
         !filter ||
         item.nombre?.toLowerCase().includes(filter.toLowerCase()) ||
@@ -102,34 +111,56 @@ export const IngredientesPage = () => {
         stockFilter === "in-stock" ? hasStock : !hasStock;
       return matchesSearch && matchesCat && matchesStock;
     });
-  }, [ingredientes, filter, catFilter, stockFilter]);
+  }, [localItems, filter, catFilter, stockFilter]);
 
-  // conteo por categoría para los chips
   const catCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    (ingredientes || []).forEach(i => {
-      counts[i.categoria] = (counts[i.categoria] || 0) + 1;
-    });
+    localItems.forEach(i => { counts[i.categoria] = (counts[i.categoria] || 0) + 1; });
     return counts;
-  }, [ingredientes]);
+  }, [localItems]);
 
   const stats = useMemo(() => ({
-    total:    (ingredientes || []).length,
-    inStock:  (ingredientes || []).filter(i => (i.stock_actual || 0) > 0).length,
-    outStock: (ingredientes || []).filter(i => (i.stock_actual || 0) === 0).length,
-  }), [ingredientes]);
+    total:    localItems.length,
+    inStock:  localItems.filter(i => (i.stock_actual || 0) > 0).length,
+    outStock: localItems.filter(i => (i.stock_actual || 0) === 0).length,
+  }), [localItems]);
 
   const patch = (key: keyof typeof INITIAL_FORM) =>
     (v: string) => setFormData(p => ({ ...p, [key]: typeof INITIAL_FORM[key] === "number" ? Number(v) : v }));
 
+  // ── actualizar stock: optimista, sin refetch ──
   const handleUpdateStock = async (id: string, current: number, delta: number) => {
     const newStock = Math.max(0, current + delta);
+    // actualizar local INMEDIATAMENTE
+    setLocalItems(prev =>
+      prev.map(item => item.id === id ? { ...item, stock_actual: newStock } : item)
+    );
+    // luego persistir en background
     if (updateRow) {
       const result = await updateRow(id, { stock_actual: newStock });
-      if (!result.error) refetch();
+      // si falla, revertir
+      if (result.error) {
+        setLocalItems(prev =>
+          prev.map(item => item.id === id ? { ...item, stock_actual: current } : item)
+        );
+      }
     }
   };
 
+  // ── eliminar: optimista con confirm inline ──
+  const handleDelete = async (id: string) => {
+    // remover local INMEDIATAMENTE
+    setLocalItems(prev => prev.filter(item => item.id !== id));
+    setConfirmDelete(null);
+    // persistir en background
+    if (deleteRow) {
+      const result = await deleteRow(id);
+      // si falla, recargar desde DB
+      if (result?.error) refetch();
+    }
+  };
+
+  // ── añadir: necesita refetch para obtener el id generado ──
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -140,7 +171,7 @@ export const IngredientesPage = () => {
       } else {
         setIsModalOpen(false);
         setFormData(INITIAL_FORM);
-        await refetch();
+        await refetch(); // necesario solo aquí para obtener el id real
       }
     } catch (err) {
       alert(`Error inesperado: ${err}`);
@@ -157,7 +188,6 @@ export const IngredientesPage = () => {
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-
           <div className="flex-1 min-w-0">
             <Link
               href="/wiki/cocina"
@@ -170,7 +200,6 @@ export const IngredientesPage = () => {
             </h1>
           </div>
 
-          {/* search */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30" size={14} />
             <input
@@ -203,10 +232,9 @@ export const IngredientesPage = () => {
 
       <main className="max-w-7xl mx-auto px-5 pt-5 space-y-5">
 
-        {/* ── CHIPS DE CATEGORÍA ── navegación rápida */}
+        {/* ── CHIPS DE CATEGORÍA ── */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
-            {/* chip "Todos" */}
             <button
               onClick={() => setCatFilter(null)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${
@@ -216,7 +244,7 @@ export const IngredientesPage = () => {
               }`}
             >
               Todos
-              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${catFilter === null ? "bg-white/20" : "bg-primary/8 text-primary/40"}`}>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${catFilter === null ? "bg-white/20" : "bg-primary/5 text-primary/40"}`}>
                 {stats.total}
               </span>
             </button>
@@ -237,7 +265,7 @@ export const IngredientesPage = () => {
                 >
                   <span>{emoji}</span>
                   {label}
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${active ? "bg-white/20" : "bg-primary/8 text-primary/40"}`}>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${active ? "bg-white/20" : "bg-primary/5 text-primary/40"}`}>
                     {count}
                   </span>
                 </button>
@@ -245,11 +273,10 @@ export const IngredientesPage = () => {
             })}
           </div>
 
-          {/* filtros de stock */}
           <div className="flex items-center gap-2 flex-wrap">
             {([
-              { label: "En stock",  key: "in-stock"      as const, value: stats.inStock  },
-              { label: "Agotado",   key: "out-of-stock"  as const, value: stats.outStock },
+              { label: "En stock",  key: "in-stock"     as const, value: stats.inStock,  dot: "bg-green-400" },
+              { label: "Agotado",   key: "out-of-stock" as const, value: stats.outStock, dot: "bg-red-300"   },
             ]).map(f => (
               <button
                 key={f.key}
@@ -260,13 +287,12 @@ export const IngredientesPage = () => {
                     : "bg-transparent border-primary/10 text-primary/35 hover:border-primary/25 hover:text-primary/60"
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${f.key === "in-stock" ? "bg-green-400" : "bg-red-300"}`} />
+                <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />
                 {f.label}
                 <span className="font-black opacity-60">{f.value}</span>
               </button>
             ))}
 
-            {/* limpiar filtros */}
             {activeFilters > 0 && (
               <button
                 onClick={() => { setFilter(""); setCatFilter(null); setStockFilter("all"); }}
@@ -309,8 +335,9 @@ export const IngredientesPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
             <AnimatePresence mode="popLayout">
               {filteredItems.map((item, i) => {
-                const hasStock = (item.stock_actual || 0) > 0;
-                const catEmoji = CATEGORIAS.find(c => c.label === item.categoria)?.emoji ?? "🫙";
+                const hasStock   = (item.stock_actual || 0) > 0;
+                const catEmoji   = CATEGORIAS.find(c => c.label === item.categoria)?.emoji ?? "🫙";
+                const isConfirm  = confirmDelete === item.id;
 
                 return (
                   <motion.div
@@ -318,16 +345,53 @@ export const IngredientesPage = () => {
                     layout
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0, transition: { delay: i * 0.025 } }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="card-main flex flex-col gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+                    className="card-main flex flex-col gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all relative"
                   >
-                    {/* top */}
+                    {/* top: categoría + botón eliminar */}
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-white flex items-center gap-1">
+                      <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-white flex items-center gap-1 shrink-0">
                         <span>{catEmoji}</span>
                         {item.categoria}
                       </span>
-                      <div className={`w-2 h-2 rounded-full mt-1 shrink-0 ${hasStock ? "bg-green-300" : "bg-red-200"}`} />
+
+                      {/* eliminar con confirm inline */}
+                      <AnimatePresence mode="wait">
+                        {isConfirm ? (
+                          <motion.div
+                            key="confirm"
+                            initial={{ opacity: 0, x: 8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 8 }}
+                            className="flex items-center gap-1"
+                          >
+                            <span className="text-[8px] font-black uppercase text-red-400 tracking-wide">¿Eliminar?</span>
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="px-2 py-1 rounded-lg bg-red-100 text-red-500 text-[8px] font-black uppercase hover:bg-red-200 transition-all"
+                            >
+                              Sí
+                            </button>
+                            <button
+                              onClick={() => setConfirmDelete(null)}
+                              className="px-2 py-1 rounded-lg bg-primary/8 text-primary/40 text-[8px] font-black uppercase hover:bg-primary/15 transition-all"
+                            >
+                              No
+                            </button>
+                          </motion.div>
+                        ) : (
+                          <motion.button
+                            key="trash"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setConfirmDelete(item.id)}
+                            className="p-1.5 rounded-lg text-primary/20 hover:text-red-400 hover:bg-red-50 transition-all mt-0.5"
+                          >
+                            <Trash2 size={13} />
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     {/* nombre */}
@@ -347,7 +411,7 @@ export const IngredientesPage = () => {
                       <MacroBadge label="Gras" value={item.grasas}        unit="g" />
                     </div>
 
-                    {/* micros opcionales */}
+                    {/* micros */}
                     {(item.fibra > 0 || item.sodio > 0 || item.agua_ml > 0) && (
                       <div className="grid grid-cols-3 gap-1 rounded-2xl bg-bg-main border border-primary/8 px-1">
                         {item.fibra   > 0 && <MacroBadge label="Fibra" value={item.fibra}   unit="g"  />}
@@ -412,7 +476,7 @@ export const IngredientesPage = () => {
         <Plus size={22} />
       </motion.button>
 
-      {/* ── MODAL ── */}
+      {/* ── MODAL AÑADIR ── */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
@@ -445,7 +509,6 @@ export const IngredientesPage = () => {
               </div>
 
               <form onSubmit={handleSave} className="space-y-7">
-
                 <section className="space-y-4">
                   <SectionTitle>Información básica</SectionTitle>
                   <FieldInput label="Nombre" required value={formData.nombre} onChange={patch("nombre")} placeholder="Tomate, Pollo, Arroz…" />
