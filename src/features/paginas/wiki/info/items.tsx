@@ -1,6 +1,6 @@
 "use client";
 import EntidadPageBase from "@/shared/templates/EntidadPageBase";
-import { GalleryItem } from "@/shared/display/gallery";
+import { GalleryItem } from "@/shared/layout/gallery";
 import { cn } from "@/lib/utils";
 import { typography } from '@/lib/config/design-system';
 

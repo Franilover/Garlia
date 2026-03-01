@@ -1,5 +1,5 @@
 "use client";
-import { GalleryGrid } from "@/shared/display/gallery";
+import { GalleryGrid } from "@/shared/layout/gallery";
 import DetalleMaestro from "@/shared/modal/detalles";
 import FiltrosMaestros from "@/shared/forms/Filtros";
 import PageHeader from "@/shared/layout/PageHeader";

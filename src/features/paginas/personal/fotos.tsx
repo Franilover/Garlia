@@ -1,7 +1,7 @@
 "use client";
 
 import EntidadPageBase from "@/shared/templates/EntidadPageBase";
-import { GalleryItem } from "@/shared/display/gallery";
+import { GalleryItem } from "@/shared/layout/gallery";
 import { LightboxProvider, LightboxVisual, useLightbox } from "@/shared/modal/lightbox";
 import { CATEGORIAS } from '@/lib/config/constants';
 

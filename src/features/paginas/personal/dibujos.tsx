@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import EntidadPageBase from "@/shared/templates/EntidadPageBase";
-import { GalleryItem } from "@/shared/display/gallery";
+import { GalleryItem } from "@/shared/layout/gallery";
 import { LightboxProvider, LightboxVisual, useLightbox } from "@/shared/modal/lightbox";
 import { supabase } from "@/lib/api/client/supabase";
-import Newsletter from "@/shared/features/newsletter";
+import Newsletter from "@/features/newsletter";
 import { Plus, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ImagePicker, InsertResult } from "@/shared/ui/ImagePicker";
