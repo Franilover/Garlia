@@ -39,7 +39,6 @@ const TAG_COLORES: Record<string, string> = {
 const PLAN_DIARIO = [
   {
     tipo: "Fuerza",
-    actividad: "Marcar músculos",
     subtitulo: "Calistenia",
     icon: "💪",
     frecuencia: "3× semana",
@@ -48,7 +47,6 @@ const PLAN_DIARIO = [
   },
   {
     tipo: "Cardio",
-    actividad: "Limpiar grasa",
     subtitulo: "Caminata o Baile",
     icon: "🕺",
     frecuencia: "2× semana",
@@ -57,7 +55,6 @@ const PLAN_DIARIO = [
   },
   {
     tipo: "Flexibilidad",
-    actividad: "Estilizador",
     subtitulo: "Yoga",
     icon: "🧘",
     frecuencia: "Diario",
@@ -66,7 +63,6 @@ const PLAN_DIARIO = [
   },
   {
     tipo: "Movilidad",
-    actividad: "Postura",
     subtitulo: "Movilidad articular",
     icon: "🎯",
     frecuencia: "Diario",
@@ -85,13 +81,12 @@ const PlanDiario = () => (
       </div>
     </div>
     <div className="space-y-2">
-      {PLAN_DIARIO.map(({ tipo, actividad, subtitulo, icon, frecuencia, duracion, color }) => (
+      {PLAN_DIARIO.map(({ tipo, subtitulo, icon, frecuencia, duracion, color }) => (
         <div key={tipo} className={`rounded-2xl border p-3.5 ${color} flex items-center gap-3`}>
           <span className="text-xl shrink-0">{icon}</span>
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{tipo}</span>
-              <span className="text-[11px] font-black uppercase tracking-tight">{actividad}</span>
+              <span className="text-[11px] font-black uppercase tracking-widest">{tipo}</span>
             </div>
             <span className="text-[8px] font-bold opacity-50">{subtitulo}</span>
           </div>
@@ -108,7 +103,6 @@ const PlanDiario = () => (
     </div>
   </div>
 );
-
 const beep = (freq = 880, dur = 0.15) => {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
