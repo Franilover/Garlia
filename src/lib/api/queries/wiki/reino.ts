@@ -1,22 +1,22 @@
-// queries/wiki/reinos.ts
+
 import { supabase } from '@/lib/api/client/supabase';
 
 export interface Reino {
-  id: string; // uuid - NO nullable
-  nombre: string; // text - NO nullable
-  descripcion?: string; // text - YES nullable
-  orden?: number; // integer - YES nullable
-  mapa_url?: string; // text - YES nullable
-  imagen_reino?: string; // text - YES nullable
-  coord_x?: number; // double precision - YES nullable
-  coord_y?: number; // double precision - YES nullable
+  id: string; 
+  nombre: string; 
+  descripcion?: string; 
+  orden?: number; 
+  mapa_url?: string; 
+  imagen_reino?: string; 
+  coord_x?: number; 
+  coord_y?: number; 
 }
 
 export const reinosQueries = {
 
-  // ─────────────────────────────────────────
-  // 📖 LEER
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Obtener todos los reinos ordenados */
   getAll: async () => {
@@ -53,9 +53,9 @@ export const reinosQueries = {
     return data as Reino[];
   },
 
-  // ─────────────────────────────────────────
-  // ➕ CREAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Crear nuevo reino */
   create: async (reino: Omit<Reino, 'id'>) => {
@@ -69,9 +69,9 @@ export const reinosQueries = {
     return data as Reino;
   },
 
-  // ─────────────────────────────────────────
-  // ✏️ ACTUALIZAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Actualizar un reino existente */
   update: async (id: string, updates: Partial<Omit<Reino, 'id'>>) => {
@@ -86,9 +86,9 @@ export const reinosQueries = {
     return data as Reino;
   },
 
-  // ─────────────────────────────────────────
-  // 🗑️ BORRAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Eliminar un reino */
   delete: async (id: string) => {

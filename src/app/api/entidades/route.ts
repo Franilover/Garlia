@@ -16,7 +16,7 @@ export async function GET(req: Request) {
         ? supabase.from("items").select("id, nombre, categoria, imagen_url").order("nombre")
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "criatura")
-        ? supabase.from("criaturas").select("id, nombre, img_url").order("nombre") // Solo columnas seguras
+        ? supabase.from("criaturas").select("id, nombre, img_url").order("nombre") 
         : Promise.resolve({ data: [], error: null }),
       (!tipo || tipo === "personaje")
         ? supabase.from("personajes").select("id, nombre, img_url").order("nombre")
@@ -30,12 +30,12 @@ export async function GET(req: Request) {
       })),
       criaturas: (criaturasRes.data || []).map((c: any) => ({
         ...c,
-        imagen_url: c.img_url, // Normalizamos para el Picker
+        imagen_url: c.img_url, 
         tipo: "criatura"
       })),
       personajes: (personajesRes.data || []).map((p: any) => ({
         ...p,
-        imagen_url: p.img_url, // Normalizamos para el Picker
+        imagen_url: p.img_url, 
         tipo: "personaje"
       }))
     };

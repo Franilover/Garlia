@@ -16,7 +16,7 @@ export const ropaQueries = {
     const query = supabase
       .from(tabla)
       .select(opt?.select || "*")
-      .eq("user_id", FRANILOVER_ID) // <--- CAMBIO: Ahora usamos user_id
+      .eq("user_id", FRANILOVER_ID) 
       .order(opt?.order?.campo || "created_at", { 
         ascending: opt?.order?.asc ?? false 
       });
@@ -35,7 +35,7 @@ export const ropaQueries = {
       .from(destino)
       .insert([{ 
         ...datos, 
-        user_id: FRANILOVER_ID // <--- CAMBIO: Inyectamos el UUID
+        user_id: FRANILOVER_ID 
       }])
       .select();
 
@@ -53,7 +53,7 @@ export const ropaQueries = {
       .from(destino)
       .update(datos)
       .eq("id", id)
-      .eq("user_id", FRANILOVER_ID) // <--- CAMBIO: Seguridad por UUID
+      .eq("user_id", FRANILOVER_ID) 
       .select();
 
     return { data: data?.[0], error };
@@ -67,7 +67,7 @@ export const ropaQueries = {
       .from(tabla || "ropa")
       .delete()
       .eq("id", id)
-      .eq("user_id", FRANILOVER_ID); // <--- CAMBIO: Seguridad por UUID
+      .eq("user_id", FRANILOVER_ID); 
 
     return { error };
   }

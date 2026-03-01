@@ -1,18 +1,18 @@
-// queries/personal/dibujos.ts
+
 import { supabase } from '@/lib/api/client/supabase';
 
 export interface Dibujo {
-  id: number; // int4
-  titulo: string; // text
-  url_imagen: string; // text
-  categoria: string; // text - "original", "fanart", "bocetos"
+  id: number; 
+  titulo: string; 
+  url_imagen: string; 
+  categoria: string; 
 }
 
 export const dibujosQueries = {
 
-  // ─────────────────────────────────────────
-  // 📖 LEER
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Obtener todos los dibujos */
   getAll: async () => {
@@ -61,9 +61,9 @@ export const dibujosQueries = {
     return data as Dibujo[];
   },
 
-  // ─────────────────────────────────────────
-  // ➕ CREAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Agregar un nuevo dibujo */
   create: async (dibujo: Omit<Dibujo, 'id'>) => {
@@ -77,9 +77,9 @@ export const dibujosQueries = {
     return data as Dibujo;
   },
 
-  // ─────────────────────────────────────────
-  // ✏️ ACTUALIZAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Actualizar un dibujo existente */
   update: async (id: number, updates: Partial<Omit<Dibujo, 'id'>>) => {
@@ -94,9 +94,9 @@ export const dibujosQueries = {
     return data as Dibujo;
   },
 
-  // ─────────────────────────────────────────
-  // 🗑️ BORRAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Eliminar un dibujo por ID */
   delete: async (id: number) => {

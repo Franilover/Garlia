@@ -1,5 +1,5 @@
 
-// ─── EVENTO ───
+
 export interface Evento {
   id: string;
   created_at?: string;

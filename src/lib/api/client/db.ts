@@ -1,10 +1,10 @@
 import Dexie, { type Table } from "dexie";
 
-// ─────────────────────────────────────────────────────────────
-// INTERFACES
-// ─────────────────────────────────────────────────────────────
 
-// WIKI
+
+
+
+
 export interface Personaje {
   id: string;
   nombre: string;
@@ -95,7 +95,7 @@ export interface Relacion {
   [key: string]: any;
 }
 
-// PERSONAL
+
 export interface Tarea {
   id: string;
   titulo: string;
@@ -159,7 +159,7 @@ export interface Dibujo {
   categoria?: string;
 }
 
-// Notas (offline-first)
+
 export interface Nota {
   id: string | number;
   contenido: string;
@@ -167,12 +167,12 @@ export interface Nota {
   status: "pending" | "synced";
 }
 
-// ─────────────────────────────────────────────────────────────
-// BASE DE DATOS
-// ─────────────────────────────────────────────────────────────
+
+
+
 
 class AgendaFraniDB extends Dexie {
-  // WIKI
+  
   personajes!: Table<Personaje, string>;
   criaturas!: Table<Criatura, string>;
   criatura_variantes!: Table<CriaturaVariante, string>;
@@ -184,7 +184,7 @@ class AgendaFraniDB extends Dexie {
   reinos!: Table<Reino, string>;
   relaciones!: Table<Relacion, string>;
 
-  // PERSONAL
+  
   tareas!: Table<Tarea, string>;
   eventos!: Table<Evento, string>;
   recetas!: Table<Receta, string>;
@@ -194,15 +194,15 @@ class AgendaFraniDB extends Dexie {
   diario_fotos!: Table<DiarioFoto, number>;
   dibujos!: Table<Dibujo, number>;
 
-  // OFFLINE-FIRST
+  
   notas!: Table<Nota, string | number>;
 
   constructor() {
     super("AgendaFranilover");
 
     this.version(1).stores({
-      // ── WIKI ──────────────────────────────────────────────
-      // Índices: primary key primero, luego campos de búsqueda frecuente
+      
+      
       personajes:        "id, nombre, visible",
       criaturas:         "id, nombre, habitat, alma, pensamiento",
       criatura_variantes:"id, criatura_id, tipo",
@@ -214,7 +214,7 @@ class AgendaFraniDB extends Dexie {
       reinos:            "id, nombre, orden",
       relaciones:        "id, personaje_id",
 
-      // ── PERSONAL ──────────────────────────────────────────
+      
       tareas:       "id, username, completada, created_at",
       eventos:      "id, username, fecha, tipo",
       recetas:      "id, autor_id, categoria, created_at",
@@ -224,14 +224,14 @@ class AgendaFraniDB extends Dexie {
       diario_fotos: "++id, categoria, created_at",
       dibujos:      "++id, categoria",
 
-      // ── OFFLINE-FIRST ─────────────────────────────────────
+      
       notas: "id, status, updated_at",
     });
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// SINGLETON — SSR-safe (Next.js)
-// ─────────────────────────────────────────────────────────────
+
+
+
 export const db =
   typeof window !== "undefined" ? new AgendaFraniDB() : (null as unknown as AgendaFraniDB);

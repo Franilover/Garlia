@@ -1,6 +1,6 @@
-// app/api/dibujos/route.ts
-// Lista recursivamente la carpeta /public/dibujos y devuelve estructura de carpetas + imágenes.
-// Cada imagen es accesible en el cliente como /dibujos/subcarpeta/archivo.jpg
+
+
+
 
 import { NextResponse } from "next/server";
 import fs from "fs";
@@ -11,7 +11,7 @@ const IMG_EXTS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".av
 
 interface FileEntry {
   name: string;
-  url: string;       // ruta pública: /dibujos/...
+  url: string;       
   type: "image";
 }
 
@@ -28,7 +28,7 @@ function readDir(dir: string, base: string): (FileEntry | FolderEntry)[] {
   const result: (FileEntry | FolderEntry)[] = [];
 
   for (const entry of entries) {
-    if (entry.name.startsWith(".")) continue; // ignorar ocultos
+    if (entry.name.startsWith(".")) continue; 
 
     const fullPath = path.join(dir, entry.name);
     const publicPath = `${base}/${entry.name}`;
@@ -44,7 +44,7 @@ function readDir(dir: string, base: string): (FileEntry | FolderEntry)[] {
     }
   }
 
-  // Carpetas primero, luego imágenes, ambas ordenadas alfabéticamente
+  
   result.sort((a, b) => {
     if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
     return a.name.localeCompare(b.name);

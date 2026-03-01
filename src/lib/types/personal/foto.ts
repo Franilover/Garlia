@@ -1,9 +1,9 @@
 
-// ─── FOTO ───
+
 export interface Foto {
   id: number;
   fecha: string;
   url_imagen: string;
-  categoria: string; // "yo" | "amigos"
+  categoria: string; 
   created_at?: string;
 }

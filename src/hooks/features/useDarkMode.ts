@@ -1,6 +1,6 @@
-// hooks/useDarkMode.ts
-// Guarda la preferencia en localStorage y la aplica al <html> automáticamente.
-// Respeta también la preferencia del sistema operativo del usuario.
+
+
+
 
 import { useEffect, useState } from "react";
 
@@ -9,7 +9,7 @@ type Theme = "light" | "dark";
 export function useDarkMode() {
   const [theme, setTheme] = useState<Theme>("light");
 
-  // Al montar: leer preferencia guardada o usar la del sistema
+  
   useEffect(() => {
     const saved = localStorage.getItem("theme") as Theme | null;
     const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;

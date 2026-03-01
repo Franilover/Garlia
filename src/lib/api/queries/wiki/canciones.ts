@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/api/client/supabase';
 
-// --- INTERFACES ---
+
 interface Seccion {
-  id: string; // ✅ uuid en Supabase
-  cancion_id: string; // ✅ uuid
+  id: string; 
+  cancion_id: string; 
   nombre_seccion: string;
   letra_es: string;
   letra_en?: string;
@@ -14,15 +14,15 @@ interface Seccion {
 }
 
 interface Cancion {
-  id: string; // ✅ uuid
+  id: string; 
   titulo: string;
   personaje: string;
   cantante: string;
   compositor: string;
   idioma: string;
-  estado: string; // "BORRADOR" | "EN PROCESO" | "TERMINADA"
+  estado: string; 
   portada_url: string;
-  links: any; // jsonb
+  links: any; 
   visible: boolean;
   created_at: string;
   updated_at: string;
@@ -40,7 +40,7 @@ export const cancionesQueries = {
       .select('*')
       .order('created_at', { ascending: false });
     
-    // 🛡️ Solo aplicamos el filtro de visibilidad si NO es administrador
+    
     if (!options?.isAdmin) {
       query = query.eq('visible', true);
     }
@@ -70,7 +70,7 @@ export const cancionesQueries = {
 
     if (error) throw error;
 
-    // Ordenar las secciones por el campo 'orden'
+    
     if (data && data.secciones) {
       data.secciones.sort((a: Seccion, b: Seccion) => a.orden - b.orden);
     }
@@ -100,7 +100,7 @@ export const cancionesQueries = {
       .from('canciones')
       .update({
         ...datos,
-        updated_at: new Date().toISOString() // ✅ Actualiza timestamp
+        updated_at: new Date().toISOString() 
       })
       .eq('id', id)
       .select()
@@ -133,7 +133,7 @@ export const cancionesQueries = {
       .eq('personaje', personaje)
       .order('titulo', { ascending: true });
 
-    // 🛡️ Aplicamos el filtro si NO es administrador
+    
     if (!options?.isAdmin) {
       query = query.eq('visible', true);
     }

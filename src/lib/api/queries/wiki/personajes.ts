@@ -1,11 +1,11 @@
 import { supabase } from "@/lib/api/client/supabase";
 
-// --- INTERFACES DE DATOS ---
+
 
 interface Relacion {
   id: string;
   personaje_id: string;
-  // Añade aquí otros campos de tu tabla relaciones (ej. destino_id, tipo, etc.)
+  
   [key: string]: any; 
 }
 
@@ -22,10 +22,10 @@ interface Personaje {
   visible: boolean;
   relaciones?: Relacion[];
   canciones?: Cancion[];
-  [key: string]: any; // Para permitir campos dinámicos de la tabla personajes
+  [key: string]: any; 
 }
 
-// --- INTERFACES DE OPCIONES ---
+
 
 interface QueryOptions {
   order?: {
@@ -52,7 +52,7 @@ export const personajesQueries = {
     const { data: personajes, error: pError } = await query;
     if (pError) throw pError;
 
-    // 1. CARGA DE CANCIONES
+    
     const { data: canciones, error: cError } = await supabase
       .from("canciones")
       .select("id, titulo, personaje, portada_url");
@@ -62,7 +62,7 @@ export const personajesQueries = {
       return { data: (personajes as Personaje[]) || [], error: null };
     }
 
-    // 2. FILTRADO ROBUSTO
+    
     const personajesConCanciones = (personajes || []).map((personaje: any) => ({
       ...personaje,
       canciones: (canciones as Cancion[]).filter(cancion => {
@@ -89,7 +89,7 @@ export const personajesQueries = {
     if (pError) throw pError;
     if (!personaje) return { data: null, error: "No encontrado" };
 
-    // Búsqueda de canciones específica
+    
     const { data: canciones, error: cError } = await supabase
       .from("canciones")
       .select("id, titulo, personaje, portada_url")
@@ -109,10 +109,10 @@ export const personajesQueries = {
   update: async (id: string | number, datos: Partial<Personaje> & { canciones?: any[] }) => {
     if (!id) throw new Error("ID de personaje requerido para actualizar");
 
-    // Extraemos las canciones para manejarlas por separado
+    
     const { canciones, ...datosParaUpdate } = datos;
 
-    // 1. Actualizar datos base
+    
     const { data: personajeActualizado, error: uError } = await supabase
       .from("personajes")
       .update(datosParaUpdate)
@@ -123,7 +123,7 @@ export const personajesQueries = {
     if (uError) throw uError;
     if (!personajeActualizado) throw new Error("No se pudo encontrar el personaje");
 
-    // 2. Sincronizar vinculación de canciones
+    
     if (canciones && Array.isArray(canciones)) {
       await supabase
         .from("canciones")
@@ -146,7 +146,7 @@ export const personajesQueries = {
       }
     }
 
-    // 3. Obtener relaciones actualizadas
+    
     const { data: relacionesRecientes } = await supabase
       .from("relaciones")
       .select("*")

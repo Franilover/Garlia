@@ -58,7 +58,7 @@ export const librosQueries = {
   },
 
   updateContenido: async (capId: string, contenido: string) => {
-    // 1. Hacer el update
+    
     const { error: updateError } = await supabase
       .from("capitulos")
       .update({ contenido })
@@ -66,8 +66,8 @@ export const librosQueries = {
 
     if (updateError) return { data: null, error: updateError };
 
-    // 2. Verificar que realmente se guardó en BD
-    // (detecta fallos silenciosos de RLS donde error viene null pero no guardó nada)
+    
+    
     const { data, error: fetchError } = await supabase
       .from("capitulos")
       .select("id, contenido")

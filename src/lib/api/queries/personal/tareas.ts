@@ -1,7 +1,7 @@
 "use client";
 import { supabase } from "@/lib/api/client/supabase";
 
-const USERNAME = "franilover"; // ← una sola fuente de verdad
+const USERNAME = "franilover"; 
 
 export const tareasQueries = {
   getAll: async () => {

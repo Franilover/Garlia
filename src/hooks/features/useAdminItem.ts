@@ -1,4 +1,4 @@
-// /hooks/features/useAdminItem.ts
+
 import { useState, useCallback } from 'react';
 import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 
@@ -6,7 +6,7 @@ interface UseAdminItemOptions<T> {
   plantilla: T;
 }
 
-export function useAdminItem<T extends Record<string, any>>(  // 👈 cambiar la constraint
+export function useAdminItem<T extends Record<string, any>>(  
   setDatos: (fn: (prev: T[]) => T[]) => void,
   { plantilla }: UseAdminItemOptions<T>
 ) {

@@ -1,4 +1,4 @@
-// Wiki - Re-exportar todos los tipos
+
 export * from './cancion';
 export * from './criatura';
 export * from './personaje';

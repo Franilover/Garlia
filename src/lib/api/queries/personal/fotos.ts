@@ -1,19 +1,19 @@
-// queries/personal/diario_fotos.ts
+
 import { supabase } from '@/lib/api/client/supabase';
 
 export interface DiarioFoto {
-  id: number; // int8
-  fecha: string; // text
-  url_imagen: string; // text
-  categoria: string; // text
-  created_at: string; // timestamp
+  id: number; 
+  fecha: string; 
+  url_imagen: string; 
+  categoria: string; 
+  created_at: string; 
 }
 
 export const fotosQueries = {
 
-  // ─────────────────────────────────────────
-  // 📖 LEER
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Obtener todas las fotos ordenadas por fecha */
   getAll: async () => {
@@ -50,9 +50,9 @@ export const fotosQueries = {
     return data as DiarioFoto;
   },
 
-  // ─────────────────────────────────────────
-  // ➕ CREAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Agregar una nueva foto */
   create: async (foto: Omit<DiarioFoto, 'id' | 'created_at'>) => {
@@ -66,9 +66,9 @@ export const fotosQueries = {
     return data as DiarioFoto;
   },
 
-  // ─────────────────────────────────────────
-  // ✏️ ACTUALIZAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Actualizar una foto existente */
   update: async (id: number, updates: Partial<Omit<DiarioFoto, 'id' | 'created_at'>>) => {
@@ -83,9 +83,9 @@ export const fotosQueries = {
     return data as DiarioFoto;
   },
 
-  // ─────────────────────────────────────────
-  // 🗑️ BORRAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Eliminar una foto por ID */
   delete: async (id: number) => {

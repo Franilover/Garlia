@@ -1,9 +1,9 @@
 import { supabase } from "@/lib/api/client/supabase";
 
-// ─── RUTINAS ──────────────────────────────────────────────────────────────────
+
 export const rutinasQueries = {
 
-  // Obtener todas las rutinas con sus ejercicios anidados
+  
   getAll: async () => {
     const { data, error } = await supabase
       .from("rutinas")
@@ -28,7 +28,7 @@ export const rutinasQueries = {
 
     if (error) throw error;
 
-    // Ordenar ejercicios por campo "orden"
+    
     return (data ?? []).map((r: any) => ({
       ...r,
       ejercicios: [...(r.ejercicios_rutina ?? [])].sort(
@@ -37,7 +37,7 @@ export const rutinasQueries = {
     }));
   },
 
-  // Crear rutina (sin ejercicios, se añaden después)
+  
   add: async (rutina: {
     nombre: string;
     descripcion: string;
@@ -53,7 +53,7 @@ export const rutinasQueries = {
     return data;
   },
 
-  // Eliminar rutina (los ejercicios se borran en cascada)
+  
   delete: async (id: string) => {
     const { error } = await supabase
       .from("rutinas")
@@ -63,7 +63,7 @@ export const rutinasQueries = {
     if (error) throw error;
   },
 
-  // Actualizar nombre/descripción/tag de una rutina
+  
   update: async (
     id: string,
     campos: Partial<{ nombre: string; descripcion: string; tag: string }>
@@ -80,10 +80,10 @@ export const rutinasQueries = {
   },
 };
 
-// ─── EJERCICIOS ───────────────────────────────────────────────────────────────
+
 export const ejerciciosQueries = {
 
-  // Añadir ejercicio a una rutina
+  
   add: async (ejercicio: {
     rutina_id: string;
     nombre: string;
@@ -104,7 +104,7 @@ export const ejerciciosQueries = {
     return data;
   },
 
-  // Eliminar ejercicio
+  
   delete: async (id: string) => {
     const { error } = await supabase
       .from("ejercicios_rutina")
@@ -114,7 +114,7 @@ export const ejerciciosQueries = {
     if (error) throw error;
   },
 
-  // Actualizar ejercicio
+  
   update: async (
     id: string,
     campos: Partial<{
@@ -138,7 +138,7 @@ export const ejerciciosQueries = {
     return data;
   },
 
-  // Reemplazar todos los ejercicios de una rutina (útil al editar)
+  
   reemplazar: async (
     rutinaId: string,
     ejercicios: {
@@ -151,7 +151,7 @@ export const ejerciciosQueries = {
       orden: number;
     }[]
   ) => {
-    // 1. Borrar los existentes
+    
     const { error: delError } = await supabase
       .from("ejercicios_rutina")
       .delete()
@@ -159,7 +159,7 @@ export const ejerciciosQueries = {
 
     if (delError) throw delError;
 
-    // 2. Insertar los nuevos
+    
     if (ejercicios.length === 0) return [];
 
     const { data, error } = await supabase

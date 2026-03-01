@@ -1,5 +1,5 @@
 
-// ─── RECETA ───
+
 export type RecetaCategoria = "Postres" | "Almuerzos" | "Cenas" | "Desayunos" | "Snacks" | "General";
 export type RecetaDificultad = "Fácil" | "Media" | "Difícil";
 

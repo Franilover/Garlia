@@ -1,4 +1,4 @@
-// queries/wiki/criaturas.ts
+
 import { supabase } from '@/lib/api/client/supabase';
 import { Criatura, CriaturaConVariantes, CriaturaVariante } from '@/lib/types/wiki/criatura';
 
@@ -23,13 +23,13 @@ export const criaturasQueries = {
         variantes: criatura_variantes (*)
       `);
     
-    // ✅ Ahora TypeScript reconoce opciones.order
+    
     if (opciones.order) {
       query = query.order(opciones.order.campo, { 
         ascending: opciones.order.asc ?? true 
       });
     } else {
-      // Orden por defecto
+      
       query = query.order('nombre', { ascending: true });
     }
     

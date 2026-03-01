@@ -1,12 +1,12 @@
-// queries/personal/cocina/recetas.ts
+
 import { supabase } from '@/lib/api/client/supabase';
 import { Receta, NuevaReceta, RecetaCategoria } from '@/lib/types/personal/receta';
 
 export const recetasQueries = {
 
-  // ─────────────────────────────────────────
-  // 📖 LEER
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Obtener todas las recetas del usuario actual */
   getAll: async () => {
@@ -71,9 +71,9 @@ export const recetasQueries = {
     return data as Receta[];
   },
 
-  // ─────────────────────────────────────────
-  // ➕ CREAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Crear nueva receta */
   create: async (nuevaReceta: NuevaReceta) => {
@@ -83,7 +83,7 @@ export const recetasQueries = {
     const recetaData = {
       ...nuevaReceta,
       autor_id: user.id,
-      // Convertir arrays a JSON si vienen como objetos
+      
       ingredientes: typeof nuevaReceta.ingredientes === 'string'
         ? nuevaReceta.ingredientes
         : JSON.stringify(nuevaReceta.ingredientes),
@@ -102,9 +102,9 @@ export const recetasQueries = {
     return data as Receta;
   },
 
-  // ─────────────────────────────────────────
-  // ✏️ ACTUALIZAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Actualizar una receta existente */
   update: async (id: string, updates: Partial<NuevaReceta>) => {
@@ -113,7 +113,7 @@ export const recetasQueries = {
 
     const updateData = {
       ...updates,
-      // Convertir arrays a JSON si vienen como objetos
+      
       ...(updates.ingredientes && {
         ingredientes: typeof updates.ingredientes === 'string'
           ? updates.ingredientes
@@ -138,9 +138,9 @@ export const recetasQueries = {
     return data as Receta;
   },
 
-  // ─────────────────────────────────────────
-  // 🗑️ BORRAR
-  // ─────────────────────────────────────────
+  
+  
+  
 
   /** Eliminar una receta */
   delete: async (id: string) => {

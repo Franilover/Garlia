@@ -18,7 +18,7 @@ interface Nota {
 export function useOfflineSync() {
   useEffect(() => {
     const syncData = async () => {
-      // 1. Verificamos conexión
+      
       if (!navigator.onLine) return;
 
       console.log("Iniciando sincronización con Supabase...");
@@ -41,7 +41,7 @@ export function useOfflineSync() {
         
         for (const nota of pending) {
           const { error } = await supabase
-            .from("personal") // Nombre de tu tabla en Supabase
+            .from("personal") 
             .upsert({ 
               id: nota.id, 
               contenido: nota.contenido, 
@@ -49,7 +49,7 @@ export function useOfflineSync() {
             });
 
           if (!error) {
-            // Actualizamos el estado localmente para no re-sincronizar
+            
             await notasTable.update(nota.id, { status: "synced" });
             console.log(`Nota ${nota.id} sincronizada con éxito.`);
           } else {
@@ -61,10 +61,10 @@ export function useOfflineSync() {
       }
     };
 
-    // Escuchamos cuando el navegador recupera la conexión
+    
     window.addEventListener("online", syncData);
     
-    // Ejecutamos una vez al cargar por si ya estamos online
+    
     syncData();
 
     return () => window.removeEventListener("online", syncData);

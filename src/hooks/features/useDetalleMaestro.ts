@@ -34,16 +34,16 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
 
   const prevIdRef = useRef<number | string | null>(null);
 
-  // Sincronización de estados
+  
   useEffect(() => {
     if (!data) return;
 
-    // Solo reiniciamos si el ID realmente cambió
+    
     if (prevIdRef.current !== data.id) {
       setEditNombre(data.nombre || "");
       setEditDescripcion(data.sobre || data.descripcion || "");
       setEditRelaciones(data.relaciones || []);
-      setVarianteActiva(null); // Resetear variante al cambiar de criatura
+      setVarianteActiva(null); 
       
       const cancionesData = data.canciones || [];
       const idsIniciales = Array.isArray(cancionesData) 
@@ -51,8 +51,8 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
         : [];
       setEditCanciones(idsIniciales);
 
-      // Lógica de variantes mejorada
-      if (data.id && !("sobre" in data)) { // Si es criatura y tiene ID
+      
+      if (data.id && !("sobre" in data)) { 
         fetchVariantes(data.id);
       } else {
         setVariantes(data.variantes || []);
@@ -110,7 +110,7 @@ export function useDetalleMaestro(data: any, onUpdate?: () => Promise<void>) {
         if (updError) throw updError;
       }
 
-      // Guardar variantes si no es personaje
+      
       if (!esPersonaje && variantes.length > 0) {
         const { error: varError } = await supabase
           .from("criatura_variantes")

@@ -2,9 +2,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/components/providers/DataProvider";
-import { db } from "@/lib/api/client/db"; // 👈 Dexie
+import { db } from "@/lib/api/client/db"; 
 
-// Importaciones de queries
+
 import { personajesQueries } from "@/lib/api/queries/wiki/personajes";
 import { criaturasQueries } from "@/lib/api/queries/wiki/criaturas";
 import { itemsQueries } from "@/lib/api/queries/wiki/items";
@@ -30,7 +30,7 @@ const QUERIES_MAP: Record<string, any> = {
   canciones:    cancionesQueries,
 };
 
-// Tablas que tienen tabla Dexie equivalente
+
 const DEXIE_TABLES = new Set([
   "personajes", "criaturas", "items", "libros", "canciones",
   "tareas", "eventos", "recetas", "ingredientes",
@@ -44,7 +44,7 @@ interface UseSupabaseOptions {
   [key: string]: any;
 }
 
-// ─── Helper: leer desde Dexie ────────────────────────────────
+
 async function readFromDexie<T>(tabla: string): Promise<T[]> {
   try {
     if (!db || !DEXIE_TABLES.has(tabla)) return [];
@@ -56,7 +56,7 @@ async function readFromDexie<T>(tabla: string): Promise<T[]> {
   }
 }
 
-// ─── Helper: persistir en Dexie ──────────────────────────────
+
 async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
   try {
     if (!db || !DEXIE_TABLES.has(tabla) || rows.length === 0) return;
@@ -68,13 +68,13 @@ async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
+
 
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
 
   const [data, setData] = useState<T[]>(cache[tabla] || []);
-  // ✅ Si la tabla es __skip__, no mostramos loading (esperando sesión)
+  
   const [loading, setLoading] = useState(tabla !== "__skip__" && !cache[tabla]);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
@@ -82,21 +82,21 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const isMounted = useRef(true);
   const retryCount = useRef(0);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  // ✅ Guardamos las opciones en un ref para que fetchData no se recree
-  // cada vez que el padre pase un objeto nuevo con los mismos valores.
+  
+  
   const optionsRef = useRef(opciones);
   useEffect(() => { optionsRef.current = opciones; });
   const optionsString = JSON.stringify(opciones);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
-    // ✅ Tabla especial: sesión aún no cargada, no hacer nada
+    
     if (tabla === "__skip__") return;
 
     if (data.length === 0 || forceRefresh) setLoading(true);
     setError(null);
 
-    // ── OFFLINE: leer de Dexie ────────────────────────────────
+    
     if (!navigator.onLine) {
       const localData = await readFromDexie<T>(tabla);
       if (isMounted.current) {
@@ -109,7 +109,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     setIsOffline(false);
 
-    // ── ONLINE: leer de Supabase ──────────────────────────────
+    
     try {
       const opt = optionsRef.current;
       let res: any;
@@ -134,11 +134,11 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         updateCache(tabla, finalData);
         retryCount.current = 0;
 
-        // ✅ Persistir en Dexie para uso offline futuro
+        
         writeToDexie(tabla, finalData);
       }
     } catch (err: any) {
-      // Si falla la red, intentamos Dexie como fallback
+      
       const isNetworkError =
         err.message?.includes("fetch") || err.message?.includes("NetworkError");
 
@@ -161,9 +161,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, updateCache]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tabla, updateCache]); 
 
-  // ─── CRUD ─────────────────────────────────────────────────
+  
 
   const addRow = useCallback(async (newData: any) => {
     try {
@@ -173,7 +173,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
       const created = res?.data || res;
 
-      // Persistir localmente si la operación fue exitosa
+      
       if (created?.id) writeToDexie(tabla, [created]);
 
       return { data: created, error: res?.error || null };
@@ -203,7 +203,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         ? await QUERIES_MAP[tabla].delete(id)
         : await supabase.from(tabla).delete().eq("id", id);
 
-      // Eliminar también de Dexie
+      
       try {
         if (db && DEXIE_TABLES.has(tabla)) {
           await (db as any)[tabla]?.delete(id);
@@ -216,7 +216,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
 
-  // ─── REALTIME + POLLING ───────────────────────────────────
+  
 
   useEffect(() => {
     isMounted.current = true;
@@ -233,7 +233,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         }
       });
 
-    // Refetch al recuperar conexión
+    
     const handleOnline = () => fetchData(true);
     window.addEventListener("online", handleOnline);
 
@@ -250,7 +250,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     setData,
     loading,
     error,
-    isOffline,         // 👈 nuevo: útil para mostrar un banner "Sin conexión"
+    isOffline,         
     refetch: () => fetchData(true),
     mutate: () => fetchData(true),
     addRow,

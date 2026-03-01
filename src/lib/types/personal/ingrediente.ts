@@ -1,4 +1,4 @@
-// ─── INGREDIENTE ───
+
 export interface Ingrediente {
   id: string;
   created_at?: string;
