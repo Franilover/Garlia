@@ -23,55 +23,31 @@
         "name": "next"
       }
     ],
-    "baseUrl": "",
+    "baseUrl": ".",
     "paths": {
-      // Alias principal
-      "@/*": [
-        "./src/*"
-      ],
-      // Componentes
-      "@/components/*": [
-        "src/shared/*"
-      ],
-      "@/ui/*": [
-        "src/components/ui/*"
-      ],
-      "@/features/*": [
-        "src/features/*"
-      ],
-      "@/shared/*": [
-        "src/components/*"
-      ],
-      "@/providers/*": [
-        "src/app/providers/*"
-      ],
-      // Hooks
-      "@/hooks/*": [
-        "./src/hooks/*"
-      ],
-      // Lib
-      "@/lib/*": [
-        "./src/lib/*"
-      ],
-      "@/utils/*": [
-        "./src/lib/utils/*"
-      ],
-      "@/api/*": [
-        "./src/lib/api/*"
-      ],
-      "@/config/*": [
-        "./src/lib/config/*"
-      ],
-      "@/types/*": [
-        "src/lib/api/types/*"
-      ],
-      // Estilos
-      "@/styles/*": [
-        "./src/styles/*"
-      ]
+      "@/*": ["./src/*"],
+
+      "@/shared/*": ["./src/shared/*"],
+      "@/components/*": ["./src/shared/*"], 
+      "@/ui/*": ["./src/shared/ui/*"],
+      
+      "@/features/*": ["./src/features/*"],
+      
+      "@/providers/*": ["./src/providers/*"],
+
+      "@/hooks/*": ["./src/hooks/*"],
+
+      "@/lib/*": ["./src/lib/*"],
+      "@/utils/*": ["./src/lib/utils/*"],
+      "@/api/*": ["./src/lib/api/*"],
+      "@/config/*": ["./src/lib/config/*"],
+      "@/types/*": ["./src/lib/api/types/*"],
+
+      "@/styles/*": ["./src/style/*"],
+      "@/style/*": ["./src/style/*"]
     }
   },
-"include": [
+  "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
