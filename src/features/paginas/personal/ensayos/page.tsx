@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
-import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuth } from "@/app/providers/AuthProvider";
 
 import Sidebar from "./components/Sidebar";
 import Editor from "./components/Editor";

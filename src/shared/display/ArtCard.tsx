@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { GalleryItem } from "@/components/shared/display/gallery";
+import { GalleryItem } from "@/shared/display/gallery";
 
 export const ArtCard = ({ src, title, subtitle, color, onClick }) => {
   return (

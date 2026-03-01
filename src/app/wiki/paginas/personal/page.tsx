@@ -7,9 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User, Sword, Package, Star, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { LoadingState } from "@/components/shared/feedback/StateComponents";
+import { LoadingState } from "@/shared/feedback/StateComponents";
 import { getMensaje } from "@/lib/config/constants";
-import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuth } from "@/app/providers/AuthProvider";
 import { supabase } from "@/lib/api/client/supabase";
 
 interface Descubrimiento {

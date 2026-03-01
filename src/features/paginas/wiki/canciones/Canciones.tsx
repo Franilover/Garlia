@@ -6,9 +6,9 @@ import { Music, ChevronRight, Plus, Edit3, X, User, Eye, EyeOff, Loader2, Save, 
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { SmartImage } from "@/components/shared/display/SmartImage";
+import { SmartImage } from "@/shared/display/SmartImage";
 import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
-import FiltrosMaestros from "@/components/shared/forms/Filtros";
+import FiltrosMaestros from "@/shared/forms/Filtros";
 
 // ============================================================================
 // CONSTANTES

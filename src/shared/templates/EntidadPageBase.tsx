@@ -1,10 +1,10 @@
 "use client";
-import { GalleryGrid } from "@/components/shared/display/gallery";
-import DetalleMaestro from "@/components/shared/modal/detalles";
-import FiltrosMaestros from "@/components/shared/forms/Filtros";
-import PageHeader from "@/components/shared/layout/PageHeader";
-import { LoadingState, EmptyState } from "@/components/shared/feedback/StateComponents";
-import { AdminAddButton } from "@/components/shared/ui/AdminAddButton";
+import { GalleryGrid } from "@/shared/display/gallery";
+import DetalleMaestro from "@/shared/modal/detalles";
+import FiltrosMaestros from "@/shared/forms/Filtros";
+import PageHeader from "@/shared/layout/PageHeader";
+import { LoadingState, EmptyState } from "@/shared/feedback/StateComponents";
+import { AdminAddButton } from "@/shared/ui/AdminAddButton";
 import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { useFiltrosGenericos } from '@/hooks/features/useFiltros';
 import { useAdminItem } from '@/hooks/features/useAdminItem';
@@ -14,7 +14,7 @@ interface EntidadPageBaseProps {
   tabla: string;
   titulo: string;
   configFiltros: string[];
-  renderCard: (item: any, onClick: () => void) => React.ReactNode;
+  renderCard: (item: any, onClick: () => void, index?: number, allItems?: any[]) => React.ReactNode;
   mostrarMusica?: boolean;
   getCustomTags?: (item: any) => (string | null | undefined)[];
   plantillaNueva?: any; 

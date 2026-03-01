@@ -31,19 +31,19 @@
       ],
       // Componentes
       "@/components/*": [
-        "./src/components/*"
+        "src/shared/*"
       ],
       "@/ui/*": [
-        "src/components/shared/ui/*"
+        "src/components/ui/*"
       ],
       "@/features/*": [
-        "./src/components/features/*"
+        "src/features/*"
       ],
       "@/shared/*": [
-        "./src/components/shared/*"
+        "src/components/*"
       ],
       "@/providers/*": [
-        "./src/components/providers/*"
+        "src/app/providers/*"
       ],
       // Hooks
       "@/hooks/*": [

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
-import { SmartImage } from "@/components/shared/display/SmartImage";
+import { SmartImage } from "@/shared/display/SmartImage";
 
 interface Libro {
   id: string;

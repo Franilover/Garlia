@@ -3,7 +3,7 @@ import React, { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 import { Sparkles } from 'lucide-react'; 
-import { SmartImage } from './SmartImage';
+import { SmartImage } from '../display/SmartImage';
 // --- DEFINICIÓN DE TIPOS ---
 interface GalleryGridProps {
   children: React.ReactNode;

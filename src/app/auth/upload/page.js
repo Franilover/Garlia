@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/api/client/supabase';
-import { useAuth } from '@/components/providers/AuthProvider';
+import { useAuth } from '@/app/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Upload, Image as ImageIcon, Camera, ChevronDown, Sparkles, UserCircle, Link as LinkIcon } from 'lucide-react';

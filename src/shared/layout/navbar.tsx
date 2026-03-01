@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuth } from "@/app/providers/AuthProvider";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDarkMode } from "@/hooks/features/useDarkMode";
 import {

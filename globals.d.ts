@@ -1,5 +1,5 @@
 declare module "*.css";
 
-declare module "@/components/*";
+declare module "@/shared/*";
 declare module "@/hooks/*";
 declare module "@/lib/*";
