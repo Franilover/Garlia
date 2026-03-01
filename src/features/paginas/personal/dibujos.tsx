@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import EntidadPageBase from "@/shared/templates/EntidadPageBase";
+import EntidadPageBase from "@/shared/templates/GaleriaBase";
 import { GalleryItem } from "@/shared/layout/gallery";
 import { LightboxProvider, LightboxVisual, useLightbox } from "@/shared/modal/lightbox";
 import { supabase } from "@/lib/api/client/supabase";
