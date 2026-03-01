@@ -5,7 +5,6 @@ import EntidadPageBase from "@/shared/templates/GaleriaBase";
 import { GalleryItem } from "@/shared/layout/gallery";
 import { LightboxProvider, LightboxVisual, useLightbox } from "@/shared/modal/lightbox";
 import { supabase } from "@/lib/api/client/supabase";
-import Newsletter from "@/features/newsletter";
 import { Plus, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 // 1. Importamos el nuevo selector simplificado
@@ -169,10 +168,6 @@ function DrawingsContent() {
           />
         )}
       />
-
-      <div className="mt-32">
-        <Newsletter />
-      </div>
 
       <LightboxVisual />
 
