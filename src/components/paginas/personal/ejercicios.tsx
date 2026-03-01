@@ -38,28 +38,40 @@ const TAG_COLORES: Record<string, string> = {
 
 const PLAN_DIARIO = [
   {
-    actividad: "Caminata rápida / Bici",
-    icon: "🚴",
-    frecuencia: "5 días / semana",
-    duracionTotal: "150 – 300 min",
-    porDia: "30 – 60 min",
-    color: "bg-accent/20 text-primary border-accent/30",
-  },
-  {
-    actividad: "Rutina de Pesas / Cuerpo",
-    icon: "🏋️",
-    frecuencia: "2 – 3 días / semana",
-    duracionTotal: "90 – 180 min",
-    porDia: "45 – 60 min",
+    tipo: "Fuerza",
+    actividad: "Marcar músculos",
+    subtitulo: "Calistenia",
+    icon: "💪",
+    frecuencia: "3× semana",
+    duracion: "40 – 50 min",
     color: "bg-primary/10 text-primary border-primary/20",
   },
   {
-    actividad: "Estiramientos / Yoga",
+    tipo: "Cardio",
+    actividad: "Limpiar grasa",
+    subtitulo: "Caminata o Baile",
+    icon: "🕺",
+    frecuencia: "2× semana",
+    duracion: "20 – 30 min",
+    color: "bg-accent/20 text-primary border-accent/30",
+  },
+  {
+    tipo: "Flexibilidad",
+    actividad: "Estilizador",
+    subtitulo: "Yoga",
     icon: "🧘",
-    frecuencia: "Diario o post-entreno",
-    duracionTotal: "70 – 105 min",
-    porDia: "10 – 15 min",
+    frecuencia: "Diario",
+    duracion: "10 – 15 min",
     color: "bg-primary/5 text-primary border-primary/10",
+  },
+  {
+    tipo: "Movilidad",
+    actividad: "Postura",
+    subtitulo: "Movilidad articular",
+    icon: "🎯",
+    frecuencia: "Diario",
+    duracion: "5 min",
+    color: "bg-accent/10 text-primary border-accent/20",
   },
 ];
 
@@ -68,29 +80,28 @@ const PlanDiario = () => (
     <div className="flex items-center gap-3 mb-5">
       <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-base">📅</div>
       <div>
-        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30 italic block">Plan semanal</span>
-        <h3 className="text-sm font-black text-primary italic tracking-tight leading-none">¿Cuánto hacer por día?</h3>
+        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30 italic block">Plan personalizado</span>
+        <h3 className="text-sm font-black text-primary italic tracking-tight leading-none">Tu rutina ideal</h3>
       </div>
     </div>
-
-    <div className="space-y-3">
-      {PLAN_DIARIO.map(({ actividad, icon, frecuencia, duracionTotal, porDia, color }) => (
-        <div key={actividad} className={`rounded-2xl border p-4 ${color} bg-opacity-60`}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-base">{icon}</span>
-            <span className="text-[11px] font-black uppercase tracking-tight">{actividad}</span>
+    <div className="space-y-2">
+      {PLAN_DIARIO.map(({ tipo, actividad, subtitulo, icon, frecuencia, duracion, color }) => (
+        <div key={tipo} className={`rounded-2xl border p-3.5 ${color} flex items-center gap-3`}>
+          <span className="text-xl shrink-0">{icon}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{tipo}</span>
+              <span className="text-[11px] font-black uppercase tracking-tight">{actividad}</span>
+            </div>
+            <span className="text-[8px] font-bold opacity-50">{subtitulo}</span>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "Frecuencia", valor: frecuencia },
-              { label: "Total semana", valor: duracionTotal },
-              { label: "Por sesión", valor: porDia },
-            ].map(({ label, valor }) => (
-              <div key={label} className="bg-white-custom/60 rounded-xl p-2.5 flex flex-col gap-0.5 backdrop-blur-sm">
-                <span className="text-[7px] font-black uppercase tracking-widest opacity-50">{label}</span>
-                <span className="text-[11px] font-black leading-tight">{valor}</span>
-              </div>
-            ))}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="bg-white-custom/70 rounded-lg px-2 py-1 text-center">
+              <span className="text-[10px] font-black block leading-none">{frecuencia}</span>
+            </div>
+            <div className="bg-white-custom/70 rounded-lg px-2 py-1 text-center">
+              <span className="text-[10px] font-black block leading-none">{duracion}</span>
+            </div>
           </div>
         </div>
       ))}
