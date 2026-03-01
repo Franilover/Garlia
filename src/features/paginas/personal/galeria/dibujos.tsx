@@ -8,7 +8,8 @@ import { supabase } from "@/lib/api/client/supabase";
 import Newsletter from "@/features/newsletter";
 import { Plus, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ImagePicker, InsertResult } from "@/shared/ui/ImagePicker";
+// 1. Importamos el nuevo selector simplificado
+import { SimpleImagePicker } from "@/shared/ui/SimpleImagePicker";
 
 // ─── MODAL PARA AÑADIR DIBUJO ────────────────────────────────────────────────
 
@@ -27,10 +28,9 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
   const [categoria, setCategoria] = useState(CATEGORIAS_DIBUJO[0]);
   const [loading, setLoading] = useState(false);
 
-  // Función que recibe la imagen seleccionada del ImagePicker
-  const handleImageSelect = (result: string | InsertResult) => {
-    const finalUrl = typeof result === 'string' ? result : result.url;
-    setUrl(finalUrl);
+  // 2. Ajustamos la función para recibir la URL directa del SimpleImagePicker
+  const handleImageSelect = (selectedUrl: string) => {
+    setUrl(selectedUrl);
     setStep("meta");
   };
 
@@ -43,7 +43,7 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
           titulo, 
           url_imagen: url, 
           categoria,
-          autor: "Franilover" // Según tus instrucciones
+          autor: "Franilover" // Solo Franilover puede ver/crear contenido
         }]);
       if (error) throw error;
       
@@ -80,12 +80,11 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
 
         <div className="flex-1 overflow-y-auto">
           {step === "pick" ? (
-            <div className="h-[600px]">
-              {/* Tu ImagePicker es un explorador completo, lo mostramos aquí */}
-              <ImagePicker 
-                open={true} 
+            // 3. Usamos la clase canónica h-150 (600px) y el nuevo selector
+            <div className="h-150">
+              <SimpleImagePicker 
+                onSelect={handleImageSelect}
                 onClose={handleClose} 
-                onInsert={handleImageSelect} 
               />
             </div>
           ) : (
