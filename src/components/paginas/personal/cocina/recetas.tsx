@@ -3,8 +3,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/types/personal/receta";
-import { Ingrediente } from "@/lib/types/personal/ingrediente";
+import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/config/types/personal/receta";
+import { Ingrediente } from "@/lib/config/types/personal/ingrediente";
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import {
   Utensils, Clock, ChevronRight, Search, ChefHat, Flame,

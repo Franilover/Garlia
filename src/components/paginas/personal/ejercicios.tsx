@@ -38,6 +38,73 @@ const TAG_COLORES: Record<string, string> = {
   "Movilidad":    "bg-amber-50 text-amber-700 border-amber-100",
 };
 
+// ─── PLAN DIARIO ──────────────────────────────────────────────────────────────
+const PLAN_DIARIO = [
+  {
+    actividad: "Caminata rápida / Bici",
+    icon: "🚴",
+    frecuencia: "5 días / semana",
+    duracionTotal: "150 – 300 min",
+    porDia: "30 – 60 min",
+    color: "bg-red-50 text-red-600 border-red-100",
+    dot: "bg-red-400",
+  },
+  {
+    actividad: "Rutina de Pesas / Cuerpo",
+    icon: "🏋️",
+    frecuencia: "2 – 3 días / semana",
+    duracionTotal: "90 – 180 min",
+    porDia: "45 – 60 min",
+    color: "bg-primary/10 text-primary border-primary/20",
+    dot: "bg-primary",
+  },
+  {
+    actividad: "Estiramientos / Yoga",
+    icon: "🧘",
+    frecuencia: "Diario o post-entreno",
+    duracionTotal: "70 – 105 min",
+    porDia: "10 – 15 min",
+    color: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    dot: "bg-emerald-400",
+  },
+];
+
+// ─── PLAN DIARIO CARD ─────────────────────────────────────────────────────────
+const PlanDiario = () => (
+  <div className="bg-white border border-primary/10 rounded-[28px] p-6 shadow-lg shadow-primary/5">
+    <div className="flex items-center gap-3 mb-5">
+      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-base">📅</div>
+      <div>
+        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30 italic block">Plan semanal</span>
+        <h3 className="text-sm font-black text-primary italic tracking-tight leading-none">¿Cuánto hacer por día?</h3>
+      </div>
+    </div>
+
+    <div className="space-y-3">
+      {PLAN_DIARIO.map(({ actividad, icon, frecuencia, duracionTotal, porDia, color, dot }) => (
+        <div key={actividad} className={`rounded-2xl border p-4 ${color} bg-opacity-60`}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-base">{icon}</span>
+            <span className="text-[11px] font-black uppercase tracking-tight">{actividad}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "Frecuencia", valor: frecuencia },
+              { label: "Total semana", valor: duracionTotal },
+              { label: "Por sesión", valor: porDia },
+            ].map(({ label, valor }) => (
+              <div key={label} className="bg-white/60 rounded-xl p-2.5 flex flex-col gap-0.5 backdrop-blur-sm">
+                <span className="text-[7px] font-black uppercase tracking-widest opacity-50">{label}</span>
+                <span className="text-[11px] font-black leading-tight">{valor}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 // ─── SONIDO ───────────────────────────────────────────────────────────────────
 const beep = (freq = 880, dur = 0.15) => {
   try {
@@ -451,6 +518,9 @@ export const PaginaEjercicios = () => {
             </div>
           ))}
         </div>
+
+        {/* PLAN DIARIO */}
+        <PlanDiario />
 
         {/* FILTROS + NUEVA RUTINA */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">

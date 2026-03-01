@@ -1,6 +1,6 @@
 
 import { supabase } from '@/lib/api/client/supabase';
-import { Criatura, CriaturaConVariantes, CriaturaVariante } from '@/lib/types/wiki/criatura';
+import { Criatura, CriaturaConVariantes, CriaturaVariante } from '@/lib/config/types/wiki/criatura';
 
 interface OrderConfig {
   campo: string;

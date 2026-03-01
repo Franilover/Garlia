@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { Ingrediente } from "@/lib/types/personal/ingrediente";
+import { Ingrediente } from "@/lib/config/types/personal/ingrediente";
 import {
   Search, Plus, ChevronLeft, X, Loader2, Save,
   Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator,
