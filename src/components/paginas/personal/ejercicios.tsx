@@ -9,7 +9,6 @@ import {
   Flame, Star, List, Loader2,
 } from "lucide-react";
 
-// ─── TIPOS ────────────────────────────────────────────────────────────────────
 interface Ejercicio {
   id: string;
   nombre: string;
@@ -29,16 +28,14 @@ interface Rutina {
   ejercicios: Ejercicio[];
 }
 
-// ─── CONSTANTES ───────────────────────────────────────────────────────────────
 const TAGS = ["Todas", "Fuerza", "Cardio", "Flexibilidad", "Movilidad"];
 const TAG_COLORES: Record<string, string> = {
   "Fuerza":       "bg-primary/10 text-primary border-primary/20",
-  "Cardio":       "bg-red-50 text-red-600 border-red-100",
-  "Flexibilidad": "bg-emerald-50 text-emerald-700 border-emerald-100",
-  "Movilidad":    "bg-amber-50 text-amber-700 border-amber-100",
+  "Cardio":       "bg-accent/20 text-accent border-accent/30",
+  "Flexibilidad": "bg-primary/15 text-primary border-primary/25",
+  "Movilidad":    "bg-accent/10 text-primary border-accent/20",
 };
 
-// ─── PLAN DIARIO ──────────────────────────────────────────────────────────────
 const PLAN_DIARIO = [
   {
     actividad: "Caminata rápida / Bici",
@@ -46,8 +43,7 @@ const PLAN_DIARIO = [
     frecuencia: "5 días / semana",
     duracionTotal: "150 – 300 min",
     porDia: "30 – 60 min",
-    color: "bg-red-50 text-red-600 border-red-100",
-    dot: "bg-red-400",
+    color: "bg-accent/20 text-primary border-accent/30",
   },
   {
     actividad: "Rutina de Pesas / Cuerpo",
@@ -56,7 +52,6 @@ const PLAN_DIARIO = [
     duracionTotal: "90 – 180 min",
     porDia: "45 – 60 min",
     color: "bg-primary/10 text-primary border-primary/20",
-    dot: "bg-primary",
   },
   {
     actividad: "Estiramientos / Yoga",
@@ -64,14 +59,12 @@ const PLAN_DIARIO = [
     frecuencia: "Diario o post-entreno",
     duracionTotal: "70 – 105 min",
     porDia: "10 – 15 min",
-    color: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    dot: "bg-emerald-400",
+    color: "bg-primary/5 text-primary border-primary/10",
   },
 ];
 
-// ─── PLAN DIARIO CARD ─────────────────────────────────────────────────────────
 const PlanDiario = () => (
-  <div className="bg-white border border-primary/10 rounded-[28px] p-6 shadow-lg shadow-primary/5">
+  <div className="bg-white-custom border border-primary/10 rounded-[28px] p-6 shadow-lg shadow-primary/5">
     <div className="flex items-center gap-3 mb-5">
       <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-base">📅</div>
       <div>
@@ -81,7 +74,7 @@ const PlanDiario = () => (
     </div>
 
     <div className="space-y-3">
-      {PLAN_DIARIO.map(({ actividad, icon, frecuencia, duracionTotal, porDia, color, dot }) => (
+      {PLAN_DIARIO.map(({ actividad, icon, frecuencia, duracionTotal, porDia, color }) => (
         <div key={actividad} className={`rounded-2xl border p-4 ${color} bg-opacity-60`}>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-base">{icon}</span>
@@ -93,7 +86,7 @@ const PlanDiario = () => (
               { label: "Total semana", valor: duracionTotal },
               { label: "Por sesión", valor: porDia },
             ].map(({ label, valor }) => (
-              <div key={label} className="bg-white/60 rounded-xl p-2.5 flex flex-col gap-0.5 backdrop-blur-sm">
+              <div key={label} className="bg-white-custom/60 rounded-xl p-2.5 flex flex-col gap-0.5 backdrop-blur-sm">
                 <span className="text-[7px] font-black uppercase tracking-widest opacity-50">{label}</span>
                 <span className="text-[11px] font-black leading-tight">{valor}</span>
               </div>
@@ -105,7 +98,6 @@ const PlanDiario = () => (
   </div>
 );
 
-// ─── SONIDO ───────────────────────────────────────────────────────────────────
 const beep = (freq = 880, dur = 0.15) => {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -119,7 +111,6 @@ const beep = (freq = 880, dur = 0.15) => {
   } catch {}
 };
 
-// ─── EJECUTAR RUTINA ──────────────────────────────────────────────────────────
 const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => void }) => {
   const [ejercicioIdx, setEjercicioIdx] = useState(0);
   const [serieActual, setSerieActual] = useState(1);
@@ -164,8 +155,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
 
   if (fase === "fin") return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-      style={{ backgroundColor: "hsl(var(--primary))" }}>
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-primary">
       <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }}
         className="flex flex-col items-center gap-4">
         <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-2">
@@ -186,7 +176,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: "hsl(var(--primary))" }}>
+      className="fixed inset-0 z-50 flex flex-col bg-primary">
       <div className="flex items-center justify-between px-6 pt-6 pb-4">
         <div>
           <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 italic">Rutina</span>
@@ -280,7 +270,6 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
   );
 };
 
-// ─── CARD RUTINA ──────────────────────────────────────────────────────────────
 const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
   rutina: Rutina; onIniciar: () => void; onEliminar: () => void; expandida: boolean; onToggle: () => void;
 }) => {
@@ -288,7 +277,7 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
   const tagColor = TAG_COLORES[rutina.tag] ?? "bg-primary/10 text-primary border-primary/20";
 
   return (
-    <div className={cn("bg-white border border-primary/10 rounded-[28px] overflow-hidden shadow-lg shadow-primary/5 transition-all", expandida && "shadow-xl shadow-primary/10")}>
+    <div className={cn("bg-white-custom border border-primary/10 rounded-[28px] overflow-hidden shadow-lg shadow-primary/5 transition-all", expandida && "shadow-xl shadow-primary/10")}>
       <div className="p-5 cursor-pointer" onClick={onToggle}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -313,7 +302,7 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
           </div>
           <div className="ml-auto flex items-center gap-2">
             <button onClick={(e) => { e.stopPropagation(); onEliminar(); }}
-              className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
+              className="p-2 text-accent hover:text-primary hover:bg-accent/10 rounded-xl transition-all">
               <X size={14} />
             </button>
             <button onClick={(e) => { e.stopPropagation(); onIniciar(); }}
@@ -356,7 +345,6 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
   );
 };
 
-// ─── FORM NUEVA RUTINA ────────────────────────────────────────────────────────
 const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
   onGuardar: (datos: { nombre: string; descripcion: string; tag: string }, ejercicios: Omit<Ejercicio, "id">[]) => Promise<void>;
   onCancelar: () => void; guardando: boolean;
@@ -379,16 +367,16 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-primary/10 rounded-[28px] p-6 shadow-xl shadow-primary/5">
+      className="bg-white-custom border border-primary/10 rounded-[28px] p-6 shadow-xl shadow-primary/5">
       <div className="flex items-center gap-3 mb-6">
         <Plus size={18} className="text-primary" />
         <h3 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Nueva Rutina</h3>
       </div>
       <div className="space-y-3 mb-6">
         <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la rutina..."
-          className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/15 focus:bg-white rounded-2xl py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
+          className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/15 focus:bg-white-custom rounded-2xl py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
         <input value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Descripción..."
-          className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/15 focus:bg-white rounded-2xl py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
+          className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/15 focus:bg-white-custom rounded-2xl py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
         <div className="flex gap-2 flex-wrap">
           {TAGS.filter(t => t !== "Todas").map(t => (
             <button key={t} onClick={() => setTag(t)}
@@ -407,7 +395,7 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
               <span className="text-[8px] font-black text-primary/30 w-4">{i + 1}</span>
               <span className="text-[11px] font-black text-primary flex-1 truncate">{ej.nombre}</span>
               <span className="text-[9px] text-primary/40 font-bold">{ej.series}×{ej.reps}</span>
-              <button onClick={() => setEjercicios(p => p.filter((_, j) => j !== i))} className="text-red-300 hover:text-red-500 transition-colors"><X size={14} /></button>
+              <button onClick={() => setEjercicios(p => p.filter((_, j) => j !== i))} className="text-accent hover:text-primary transition-colors"><X size={14} /></button>
             </div>
           ))}
         </div>
@@ -418,15 +406,15 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
         <div className="grid grid-cols-2 gap-2 mb-2">
           <input value={nuevoEj.nombre} onChange={e => setNuevoEj(p => ({ ...p, nombre: e.target.value }))}
             placeholder="Nombre..." onKeyDown={e => e.key === "Enter" && addEjercicio()}
-            className="col-span-2 bg-white border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
+            className="col-span-2 bg-white-custom border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
           <input value={nuevoEj.musculo} onChange={e => setNuevoEj(p => ({ ...p, musculo: e.target.value }))} placeholder="Músculo..."
-            className="bg-white border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
+            className="bg-white-custom border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
           <input value={nuevoEj.series} onChange={e => setNuevoEj(p => ({ ...p, series: e.target.value }))} placeholder="Series" type="number"
-            className="bg-white border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
+            className="bg-white-custom border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
           <input value={nuevoEj.reps} onChange={e => setNuevoEj(p => ({ ...p, reps: e.target.value }))} placeholder="Reps (ej: 12 o 30s)"
-            className="bg-white border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
+            className="bg-white-custom border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
           <input value={nuevoEj.descanso} onChange={e => setNuevoEj(p => ({ ...p, descanso: e.target.value }))} placeholder="Descanso (seg)" type="number"
-            className="bg-white border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
+            className="bg-white-custom border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
         </div>
         <button onClick={addEjercicio} disabled={!nuevoEj.nombre.trim()}
           className="w-full bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest py-2 rounded-xl hover:bg-primary hover:text-white transition-all disabled:opacity-30">
@@ -449,7 +437,6 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
   );
 };
 
-// ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 export const PaginaEjercicios = () => {
   const [rutinas, setRutinas] = useState<Rutina[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -504,14 +491,13 @@ export const PaginaEjercicios = () => {
       </AnimatePresence>
 
       <div className="max-w-4xl mx-auto space-y-8">
-        {/* STATS */}
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Rutinas",        valor: rutinas.length,  icon: <List size={16} /> },
             { label: "Ejercicios",     valor: totalEjercicios, icon: <Dumbbell size={16} /> },
             { label: "Series totales", valor: totalSeries,     icon: <Flame size={16} /> },
           ].map(({ label, valor, icon }) => (
-            <div key={label} className="bg-white border border-primary/10 rounded-[24px] p-5 shadow-lg shadow-primary/5 flex flex-col gap-2">
+            <div key={label} className="bg-white-custom border border-primary/10 rounded-3xl p-5 shadow-lg shadow-primary/5 flex flex-col gap-2">
               <div className="text-primary/30">{icon}</div>
               <span className="text-2xl font-black text-primary italic tracking-tighter">{valor}</span>
               <span className="text-[9px] font-black uppercase tracking-widest text-primary/30">{label}</span>
@@ -519,12 +505,10 @@ export const PaginaEjercicios = () => {
           ))}
         </div>
 
-        {/* PLAN DIARIO */}
         <PlanDiario />
 
-        {/* FILTROS + NUEVA RUTINA */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-white border border-primary/10 rounded-2xl p-1.5 flex-wrap shadow-sm">
+          <div className="flex items-center gap-1.5 bg-white-custom border border-primary/10 rounded-2xl p-1.5 flex-wrap shadow-sm">
             {TAGS.map(t => (
               <button key={t} onClick={() => setFiltroTag(t)}
                 className={cn("text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl transition-all",
@@ -539,12 +523,10 @@ export const PaginaEjercicios = () => {
           </button>
         </div>
 
-        {/* FORM */}
         <AnimatePresence>
           {creando && <FormNuevaRutina onGuardar={handleGuardar} onCancelar={() => setCreando(false)} guardando={guardando} />}
         </AnimatePresence>
 
-        {/* LISTA */}
         {cargando ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 size={24} className="animate-spin text-primary/30" />
