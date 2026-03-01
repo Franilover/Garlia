@@ -1,300 +1,287 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData"; 
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/types/personal/receta";
 import { Ingrediente } from "@/lib/types/personal/ingrediente";
-import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas"; 
-import {  
-  Utensils,  
-  Clock,  
-  ChevronRight,  
-  Search,
-  ChefHat,
-  Flame,
-  Plus,
-  X,
-  ArrowLeft,
-  Trash2,
-  Activity
+import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
+import {
+  Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
+  Plus, X, ArrowLeft, Trash2, Activity, Loader2, Save, ChevronLeft,
 } from "lucide-react";
 
-interface RecetasPageProps {
-  selectedRecipeId?: string;
+// ─── categorías con emojis ────────────────────────────────────────────────────
+
+const CATEGORIAS = [
+  { label: "General",    emoji: "🍽️" },
+  { label: "Desayunos",  emoji: "🥞" },
+  { label: "Almuerzos",  emoji: "🥗" },
+  { label: "Postres",    emoji: "🍮" },
+];
+
+const DIFICULTADES = ["Fácil", "Media", "Difícil"];
+
+const INITIAL_FORM = {
+  nombre: "",
+  categoria: "General" as "General" | "Postres" | "Almuerzos" | "Desayunos",
+  tiempo: "20 min",
+  dificultad: "Fácil",
+  ingredientes: [] as IngredienteReceta[],
+  instrucciones: [] as string[],
+  descripcion: "",
+};
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function parseIngredientes(raw: any): IngredienteReceta[] {
+  try {
+    if (Array.isArray(raw)) return raw as IngredienteReceta[];
+    if (typeof raw === "string") return JSON.parse(raw);
+    if (raw && typeof raw === "object") return [raw] as IngredienteReceta[];
+  } catch {}
+  return [];
 }
 
-const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
-  const [filter, setFilter] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  const { data: recipes, loading, error, refetch } = useSupabaseData<Receta>("recetas");
-
-  if (selectedRecipeId) {
-    const receta = recipes.find(r => String(r.id) === selectedRecipeId);
-    
-    if (loading) return (
-      <div className="p-20 text-center font-black uppercase text-primary animate-pulse">
-        Abriendo Grimorio...
-      </div>
-    );
-    
-    if (!receta) return (
-      <div className="p-20 text-center">
-        <p className="font-black text-primary uppercase">Receta no encontrada</p>
-        <Link href="/personal/cocina/recetas" className="text-[10px] text-primary/40 underline uppercase mt-4 block">
-          Volver a la biblioteca
-        </Link>
-      </div>
-    );
-
-    // Parsear ingredientes
-    let ingredientesList: IngredienteReceta[] = [];
-    
-    try {
-      if (Array.isArray(receta.ingredientes)) {
-        ingredientesList = receta.ingredientes as unknown as IngredienteReceta[];
-      } else if (typeof receta.ingredientes === 'string') {
-        ingredientesList = JSON.parse(receta.ingredientes);
-      } else if (receta.ingredientes && typeof receta.ingredientes === 'object') {
-        ingredientesList = [receta.ingredientes] as unknown as IngredienteReceta[];
-      }
-    } catch (e) {
-      console.error('Error parsing ingredientes:', e);
-      ingredientesList = [];
-    }
-
-    // Calcular totales
-    const totales = ingredientesList.reduce((acc, ing) => {
-      const kcal = parseFloat(String(ing.kcal || 0));
-      const proteinas = parseFloat(String(ing.proteinas || 0));
-      const carbohidratos = parseFloat(String(ing.carbohidratos || 0));
-      const grasas = parseFloat(String(ing.grasas || 0));
-      
-      return {
-        kcal: acc.kcal + (isNaN(kcal) ? 0 : kcal),
-        proteinas: acc.proteinas + (isNaN(proteinas) ? 0 : proteinas),
-        carbos: acc.carbos + (isNaN(carbohidratos) ? 0 : carbohidratos),
-        grasas: acc.grasas + (isNaN(grasas) ? 0 : grasas),
-      };
-    }, { kcal: 0, proteinas: 0, carbos: 0, grasas: 0 });
-
-    return (
-      <div className="min-h-screen bg-bg-main p-6">
-        <div className="max-w-4xl mx-auto">
-          <Link 
-            href="/personal/cocina/recetas" 
-            className="inline-flex items-center gap-2 text-[10px] font-black uppercase text-primary/40 hover:text-primary transition-colors mb-8"
-          >
-            <ArrowLeft size={14} /> Volver a Recetas
-          </Link>
-          
-          <div className="bg-white rounded-[40px] border border-primary/10 overflow-hidden shadow-2xl">
-            <div className="h-64 bg-primary/5 relative">
-              {receta.imagen_url ? (
-                <img src={receta.imagen_url} className="w-full h-full object-cover" alt={receta.nombre} />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Flame size={80} className="text-primary/10" />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-            </div>
-            
-            <div className="p-10">
-              <span className="text-[10px] font-black uppercase text-primary/30 tracking-[0.2em]">
-                {receta.categoria}
-              </span>
-              <h1 className="text-4xl font-black uppercase text-primary italic mt-2 mb-6 tracking-tighter">
-                {receta.nombre}
-              </h1>
-              
-              <div className="flex items-center gap-8 mb-10 border-y border-primary/5 py-6">
-                <div className="flex items-center gap-2">
-                  <Clock className="text-primary/30" size={18} />
-                  <span className="text-[11px] font-bold uppercase text-primary">{receta.tiempo}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ChefHat className="text-primary/30" size={18} />
-                  <span className="text-[11px] font-bold uppercase text-primary">{receta.dificultad}</span>
-                </div>
-                <div className="flex items-center gap-2 ml-auto">
-                  <Activity className="text-primary" size={18} />
-                  <span className="text-[11px] font-black uppercase text-primary">
-                    {totales.kcal.toFixed(0)} kcal
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 mb-10">
-                <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/5 text-center">
-                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1">Proteínas</p>
-                  <p className="text-xl font-black text-primary italic">{totales.proteinas.toFixed(1)}g</p>
-                </div>
-                <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/5 text-center">
-                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1">Carbos</p>
-                  <p className="text-xl font-black text-primary italic">{totales.carbos.toFixed(1)}g</p>
-                </div>
-                <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/5 text-center">
-                  <p className="text-[9px] font-black uppercase text-primary/30 mb-1">Grasas</p>
-                  <p className="text-xl font-black text-primary italic">{totales.grasas.toFixed(1)}g</p>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-12 text-primary">
-                <div>
-                  <h3 className="font-black uppercase text-xs mb-4 tracking-widest text-primary/40 italic">
-                    Ingredientes
-                  </h3>
-                  <ul className="space-y-2">
-                    {ingredientesList.map((ing, i) => (
-                      <li 
-                        key={i} 
-                        className="text-[11px] font-bold uppercase border-b border-primary/10 pb-2 flex justify-between items-center text-primary"
-                      >
-                        <span>{ing.nombre}</span>
-                        <div className="flex items-center gap-4">
-                          <span className="text-[8px] font-black text-primary/20">
-                            P {parseFloat(String(ing.proteinas || 0)).toFixed(1)}g
-                          </span>
-                          <span className="opacity-60">{ing.cantidad}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <div>
-                  <h3 className="font-black uppercase text-xs mb-4 tracking-widest text-primary/40 italic">
-                    Preparación
-                  </h3>
-                  <div className="space-y-4">
-                    {receta.instrucciones?.map((paso, i) => (
-                      <div key={i} className="flex gap-4">
-                        <span className="text-[10px] font-black text-primary/30">{i + 1}</span>
-                        <p className="text-[11px] font-bold leading-relaxed text-primary/80 uppercase">
-                          {paso}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const filteredRecipes = recipes.filter((r) => 
-    r.nombre.toLowerCase().includes(filter.toLowerCase()) ||
-    r.categoria.toLowerCase().includes(filter.toLowerCase())
+function calcTotales(list: IngredienteReceta[]) {
+  return list.reduce(
+    (acc, ing) => ({
+      kcal:      acc.kcal      + (parseFloat(String(ing.kcal      || 0)) || 0),
+      proteinas: acc.proteinas + (parseFloat(String(ing.proteinas  || 0)) || 0),
+      carbos:    acc.carbos    + (parseFloat(String(ing.carbohidratos || 0)) || 0),
+      grasas:    acc.grasas    + (parseFloat(String(ing.grasas     || 0)) || 0),
+    }),
+    { kcal: 0, proteinas: 0, carbos: 0, grasas: 0 }
   );
+}
+
+// ─── sub-components ──────────────────────────────────────────────────────────
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">{children}</p>
+  );
+}
+
+function FieldInput({
+  label, type = "text", value, onChange, placeholder, required,
+}: {
+  label: string; type?: string; value: string | number;
+  onChange: (v: string) => void; placeholder?: string; required?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">
+        {label}{required && <span className="text-accent ml-0.5">*</span>}
+      </label>
+      <input
+        required={required}
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="input-brand text-[11px] font-bold"
+      />
+    </div>
+  );
+}
+
+function MacroBadge({ label, value, unit }: { label: string; value: number; unit: string }) {
+  return (
+    <div className="flex flex-col items-center gap-0.5 py-2">
+      <span className="text-[8px] font-black uppercase tracking-widest text-primary/40">{label}</span>
+      <span className="text-[13px] font-black leading-none text-primary">
+        {value.toFixed(1)}<span className="text-[9px] font-semibold text-primary/30 ml-0.5">{unit}</span>
+      </span>
+    </div>
+  );
+}
+
+// ─── VISTA DETALLE ────────────────────────────────────────────────────────────
+
+function RecetaDetalle({ receta }: { receta: Receta }) {
+  const ingredientesList = parseIngredientes(receta.ingredientes);
+  const totales = calcTotales(ingredientesList);
 
   return (
-    <div className="min-h-screen bg-bg-main pb-32">
-      <header className="pt-12 pb-8 px-6 max-w-7xl mx-auto">
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }} 
-          animate={{ opacity: 1, x: 0 }} 
-          className="flex items-center gap-4 mb-4"
-        >
-          <div className="p-3 bg-primary/10 text-primary rounded-2xl">
-            <Utensils size={28} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-black uppercase tracking-tighter text-primary">
-              MIS<span className="text-primary/30"> RECETAS</span>
-            </h1>
-            <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">
-              El grimorio culinario de Franilover
-            </p>
-          </div>
-        </motion.div>
-
-        <div className="relative mt-8">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30" size={18} />
-          <input 
-            type="text"
-            placeholder="BUSCAR RECETA..."
-            className="w-full bg-white border border-primary/20 rounded-2xl py-4 pl-12 pr-4 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all shadow-sm text-primary"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
+    <div className="min-h-screen bg-bg-main pb-28 text-foreground">
+      <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
+        <div className="max-w-4xl mx-auto px-5 py-4">
+          <Link
+            href="/personal/cocina/recetas"
+            className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
+          >
+            <ChevronLeft size={12} /> Recetas
+          </Link>
         </div>
       </header>
 
-      <main className="px-6 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <motion.button 
-            onClick={() => setIsModalOpen(true)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="border-2 border-dashed border-primary/20 rounded-[40px] flex flex-col items-center justify-center p-10 min-h-[250px] bg-white hover:bg-primary/5 transition-colors group"
-          >
-            <div className="p-4 bg-primary text-white rounded-full shadow-lg shadow-primary/20">
-              <Plus size={32} />
-            </div>
-            <span className="text-[10px] font-black uppercase mt-4 text-primary/40 tracking-widest group-hover:text-primary transition-colors">
-              Nueva Receta
+      <main className="max-w-4xl mx-auto px-5 pt-6 space-y-5">
+        {/* imagen */}
+        <div className="card-main overflow-hidden p-0 rounded-3xl">
+          <div className="h-56 bg-primary/5 relative">
+            {receta.imagen_url ? (
+              <img src={receta.imagen_url} className="w-full h-full object-cover" alt={receta.nombre} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Flame size={64} className="text-primary/10" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            <span className="absolute top-4 left-4 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-white">
+              {CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️"} {receta.categoria}
             </span>
-          </motion.button>
+          </div>
+          <div className="p-6">
+            <h1 className="text-2xl font-black uppercase tracking-tighter italic text-primary leading-tight">
+              {receta.nombre}
+            </h1>
+            {receta.descripcion && (
+              <p className="text-[11px] text-primary/50 mt-1">{receta.descripcion}</p>
+            )}
+            <div className="flex items-center gap-5 mt-4 pt-4 border-t border-primary/8">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/50">
+                <Clock size={13} className="text-primary/30" /> {receta.tiempo}
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/50">
+                <ChefHat size={13} className="text-primary/30" /> {receta.dificultad}
+              </div>
+              <div className="ml-auto flex items-center gap-1.5 rounded-2xl bg-accent/20 border border-accent/25 px-3 py-1.5">
+                <Flame size={11} className="text-accent fill-accent/60 shrink-0" />
+                <span className="text-[10px] font-black tracking-widest uppercase text-primary/70">
+                  {totales.kcal.toFixed(0)} kcal
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          {loading ? (
-            <>
-              {[1, 2].map((n) => (
-                <div key={n} className="min-h-[250px] rounded-[40px] bg-primary/5 animate-pulse border border-primary/10" />
+        {/* macros totales */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Proteínas", value: totales.proteinas, unit: "g" },
+            { label: "Carbos",    value: totales.carbos,    unit: "g" },
+            { label: "Grasas",    value: totales.grasas,    unit: "g" },
+          ].map(m => (
+            <div key={m.label} className="card-main text-center py-4">
+              <p className="text-[8px] font-black uppercase tracking-widest text-primary/30 mb-1">{m.label}</p>
+              <p className="text-xl font-black text-primary italic">
+                {m.value.toFixed(1)}<span className="text-sm font-bold text-primary/30">{m.unit}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* ingredientes + pasos */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* ingredientes */}
+          <div className="card-main space-y-3">
+            <SectionTitle>Ingredientes</SectionTitle>
+            <ul className="space-y-2">
+              {ingredientesList.map((ing, i) => (
+                <li key={i} className="flex items-center justify-between py-2 border-b border-primary/8 last:border-0">
+                  <span className="text-[11px] font-bold text-primary uppercase">{ing.nombre}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] font-black text-primary/25 uppercase">
+                      P {parseFloat(String(ing.proteinas || 0)).toFixed(1)}g
+                    </span>
+                    <span className="text-[10px] font-black text-primary/50">{ing.cantidad}</span>
+                  </div>
+                </li>
               ))}
-            </>
-          ) : (
-            <AnimatePresence mode="popLayout">
-              {filteredRecipes.map((receta, index) => (
-                <RecipeCard key={receta.id || index} receta={receta} index={index} />
+            </ul>
+          </div>
+
+          {/* pasos */}
+          <div className="card-main space-y-3">
+            <SectionTitle>Preparación</SectionTitle>
+            <div className="space-y-3">
+              {receta.instrucciones?.map((paso, i) => (
+                <div key={i} className="flex gap-3">
+                  <span className="w-5 h-5 rounded-full bg-bg-menu text-white text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                    {i + 1}
+                  </span>
+                  <p className="text-[11px] font-bold leading-relaxed text-primary/70 uppercase">{paso}</p>
+                </div>
               ))}
-            </AnimatePresence>
-          )}
+            </div>
+          </div>
         </div>
       </main>
-
-      <AnimatePresence>
-        {isModalOpen && (
-          <ModalAddReceta 
-            onClose={() => setIsModalOpen(false)} 
-            onSuccess={() => {
-              setIsModalOpen(false);
-              refetch();
-            }}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
-};
+}
 
-const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) => {
-  const [loading, setLoading] = useState(false);
-  const [searchIng, setSearchIng] = useState("");
+// ─── CARD ─────────────────────────────────────────────────────────────────────
+
+function RecipeCard({ receta, index }: { receta: Receta; index: number }) {
+  const catEmoji = CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0, transition: { delay: index * 0.03 } }}
+      layout
+      className="card-main overflow-hidden p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all group"
+    >
+      {/* imagen */}
+      <div className="h-44 bg-primary/5 relative overflow-hidden">
+        {receta.imagen_url ? (
+          <img
+            src={receta.imagen_url}
+            alt={receta.nombre}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Flame size={40} className="text-primary/15" />
+          </div>
+        )}
+        <span className="absolute top-3 left-3 text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-white">
+          {catEmoji} {receta.categoria}
+        </span>
+      </div>
+
+      {/* info */}
+      <div className="p-5 space-y-3">
+        <h3 className="text-[13px] font-black uppercase italic tracking-tight text-primary leading-tight">
+          {receta.nombre}
+        </h3>
+
+        <div className="flex items-center gap-3 text-[9px] font-bold text-primary/35 uppercase">
+          <span className="flex items-center gap-1"><Clock size={11} />{receta.tiempo}</span>
+          <span className="flex items-center gap-1"><ChefHat size={11} />{receta.dificultad}</span>
+        </div>
+
+        <Link
+          href={`/personal/cocina/recetas/${receta.id}`}
+          className="flex items-center justify-between w-full px-4 py-2.5 bg-bg-menu text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-all"
+        >
+          Ver preparación <ChevronRight size={13} />
+        </Link>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── MODAL AÑADIR ─────────────────────────────────────────────────────────────
+
+function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [isSaving, setIsSaving]     = useState(false);
+  const [searchIng, setSearchIng]   = useState("");
+  const [nuevoPaso, setNuevoPaso]   = useState("");
+  const [formData, setFormData]     = useState(INITIAL_FORM);
+
   const { data: dbIngredientes } = useSupabaseData<Ingrediente>("ingredientes");
-
-  const [formData, setFormData] = useState<Omit<NuevaReceta, 'ingredientes'> & { ingredientes: IngredienteReceta[] }>({
-    nombre: "",
-    categoria: "General",
-    tiempo: "20 min",
-    dificultad: "Fácil",
-    ingredientes: [],
-    instrucciones: [],
-    descripcion: ""
-  });
-
-  const [nuevoPaso, setNuevoPaso] = useState("");
 
   const filteredDbIngredientes = useMemo(() => {
     if (!searchIng.trim()) return [];
-    return dbIngredientes.filter(i => 
-      i.nombre.toLowerCase().includes(searchIng.toLowerCase()) &&
-      !formData.ingredientes.find(selected => selected.nombre === i.nombre)
-    ).slice(0, 5);
+    return dbIngredientes
+      .filter(i =>
+        i.nombre.toLowerCase().includes(searchIng.toLowerCase()) &&
+        !formData.ingredientes.find(s => s.nombre === i.nombre)
+      )
+      .slice(0, 6);
   }, [searchIng, dbIngredientes, formData.ingredientes]);
 
   const addIngrediente = (ing: Ingrediente) => {
@@ -302,297 +289,459 @@ const ModalAddReceta = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
     if (ing.porcion_texto?.toLowerCase().includes("unidad")) sugerencia = ing.porcion_texto;
     else if (ing.categoria === "Lácteos" || ing.agua_ml > 0) sugerencia = "100ml";
     else if (["Frutas", "Proteínas"].includes(ing.categoria)) sugerencia = "1 unidad";
-    
+
     const cantidad = prompt(`Cantidad para ${ing.nombre}:`, sugerencia);
-    
-    if (cantidad) {
-      const nuevoIng: IngredienteReceta = { 
-        nombre: ing.nombre, 
-        cantidad, 
-        kcal: parseFloat(String(ing.kcal || 0)),
-        proteinas: parseFloat(String(ing.proteinas || 0)),
-        carbohidratos: parseFloat(String(ing.carbohidratos || 0)),
-        grasas: parseFloat(String(ing.grasas || 0))
-      };
-      
-      setFormData({
-        ...formData,
-        ingredientes: [...formData.ingredientes, nuevoIng]
-      });
-      setSearchIng("");
-    }
+    if (!cantidad) return;
+
+    setFormData(p => ({
+      ...p,
+      ingredientes: [...p.ingredientes, {
+        nombre: ing.nombre,
+        cantidad,
+        kcal:           parseFloat(String(ing.kcal          || 0)),
+        proteinas:      parseFloat(String(ing.proteinas      || 0)),
+        carbohidratos:  parseFloat(String(ing.carbohidratos  || 0)),
+        grasas:         parseFloat(String(ing.grasas         || 0)),
+      }],
+    }));
+    setSearchIng("");
   };
 
-  const removeIngrediente = (index: number) => {
-    const newIngs = [...formData.ingredientes];
-    newIngs.splice(index, 1);
-    setFormData({ ...formData, ingredientes: newIngs });
-  };
+  const removeIngrediente = (idx: number) =>
+    setFormData(p => ({ ...p, ingredientes: p.ingredientes.filter((_, i) => i !== idx) }));
 
   const addPaso = () => {
-    if (nuevoPaso.trim()) {
-      setFormData({ ...formData, instrucciones: [...formData.instrucciones, nuevoPaso] });
-      setNuevoPaso("");
-    }
+    if (!nuevoPaso.trim()) return;
+    setFormData(p => ({ ...p, instrucciones: [...p.instrucciones, nuevoPaso.trim()] }));
+    setNuevoPaso("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (formData.ingredientes.length === 0) {
-      alert('Añade ingredientes de la despensa');
+      alert("Añade al menos un ingrediente de la despensa");
       return;
     }
-    
-    setLoading(true);
+    setIsSaving(true);
     try {
-      const recetaToSave: NuevaReceta = {
-        nombre: formData.nombre,
-        categoria: formData.categoria,
-        tiempo: formData.tiempo,
-        dificultad: formData.dificultad,
-        ingredientes: formData.ingredientes as any,
+      await recetasQueries.create({
+        nombre:        formData.nombre,
+        categoria:     formData.categoria,
+        tiempo:        formData.tiempo,
+        dificultad:    formData.dificultad,
+        ingredientes:  formData.ingredientes as any,
         instrucciones: formData.instrucciones,
-        descripcion: formData.descripcion || ""
-      };
-      
-      // ✅ create() retorna Receta directamente, no { data, error }
-      const receta = await recetasQueries.create(recetaToSave);
-      console.log('✅ Receta guardada:', receta);
+        descripcion:   formData.descripcion || "",
+      } as NuevaReceta);
       onSuccess();
-
     } catch (err) {
-      console.error('💥 Error inesperado:', err);
-      alert(`Error inesperado: ${err}`);
+      alert(`Error: ${err}`);
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
+  const totalesPreview = calcTotales(formData.ingredientes);
+
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div 
-        initial={{ scale: 0.9, y: 20 }} 
-        animate={{ scale: 1, y: 0 }} 
-        exit={{ scale: 0.9, y: 20 }}
-        className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[40px] shadow-2xl overflow-y-auto relative border border-primary/20 p-10"
-        onClick={(e) => e.stopPropagation()}
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+      />
+      <motion.div
+        initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 60, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 380, damping: 36 }}
+        className="relative w-full sm:max-w-2xl rounded-t-[40px] sm:rounded-[40px] p-7 overflow-y-auto max-h-[92vh] bg-white-custom shadow-2xl"
+        onClick={e => e.stopPropagation()}
       >
-        <button 
-          onClick={onClose} 
-          className="absolute top-6 right-6 text-primary/40 hover:text-primary transition-colors"
-        >
-          <X size={24} />
-        </button>
+        <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mx-auto mb-6" />
 
-        <form onSubmit={handleSubmit}>
-          <h2 className="text-2xl font-black uppercase tracking-tighter mb-8 text-primary italic">
-            Nueva<span className="text-primary/30"> Receta</span>
+        <div className="flex items-center justify-between mb-7">
+          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
+            Nueva <span className="text-primary/20">Receta</span>
           </h2>
-          
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-[9px] font-black uppercase opacity-60 ml-2 text-primary tracking-widest">
-                  Nombre del plato
-                </label>
-                <input 
-                  required 
-                  className="w-full bg-slate-100 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary focus:border-primary/40 transition-colors" 
-                  value={formData.nombre} 
-                  onChange={e => setFormData({...formData, nombre: e.target.value})} 
-                />
-              </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
+          >
+            <X size={16} />
+          </button>
+        </div>
 
-              <div>
-                <label className="text-[9px] font-black uppercase opacity-60 ml-2 text-primary tracking-widest">
-                  Categoría
-                </label>
-                <select 
-                  className="w-full bg-slate-100 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary cursor-pointer" 
-                  value={formData.categoria} 
-                  onChange={e => setFormData({...formData, categoria: e.target.value as any})}
+        <form onSubmit={handleSubmit} className="space-y-7">
+
+          {/* INFO BÁSICA */}
+          <section className="space-y-4">
+            <SectionTitle>Información básica</SectionTitle>
+            <FieldInput label="Nombre del plato" required value={formData.nombre} onChange={v => setFormData(p => ({ ...p, nombre: v }))} placeholder="Tortilla, Ensalada…" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">Categoría</label>
+                <select
+                  value={formData.categoria}
+                  onChange={e => setFormData(p => ({ ...p, categoria: e.target.value as any }))}
+                  className="input-brand text-[11px] font-bold appearance-none"
                 >
-                  <option value="General">General</option>
-                  <option value="Postres">Postres</option>
-                  <option value="Almuerzos">Almuerzos</option>
-                  <option value="Desayunos">Desayunos</option>
+                  {CATEGORIAS.map(c => <option key={c.label} value={c.label}>{c.emoji} {c.label}</option>)}
                 </select>
               </div>
+              <FieldInput label="Tiempo" value={formData.tiempo} onChange={v => setFormData(p => ({ ...p, tiempo: v }))} placeholder="20 min" />
             </div>
-
-            <div className="bg-slate-50 p-6 rounded-[30px] border border-primary/10 relative">
-              <h3 className="text-[10px] font-black uppercase text-primary mb-4 flex items-center gap-2">
-                <Utensils size={14} /> Ingredientes de tu Despensa
-              </h3>
-              
-              <div className="relative mb-4">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={14} />
-                <input 
-                  type="text" 
-                  placeholder="BUSCAR EN MI DESPENSA..." 
-                  className="w-full bg-white border-2 border-primary/20 rounded-xl py-3 pl-10 pr-4 text-[10px] font-black uppercase outline-none text-primary focus:border-primary transition-colors" 
-                  value={searchIng} 
-                  onChange={(e) => setSearchIng(e.target.value)} 
-                />
-                
-                <AnimatePresence>
-                  {filteredDbIngredientes.length > 0 && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full left-0 w-full bg-white shadow-[0_10px_40px_rgba(0,0,0,0.2)] rounded-xl mt-2 border-2 border-primary z-50 overflow-hidden"
-                    >
-                      {filteredDbIngredientes.map(ing => (
-                        <button 
-                          key={ing.id} 
-                          type="button" 
-                          onClick={() => addIngrediente(ing)} 
-                          className="w-full p-4 text-left text-[11px] font-black uppercase text-primary hover:bg-primary hover:text-white flex justify-between items-center transition-all border-b border-primary/5 last:border-none"
-                        >
-                          <span>{ing.nombre}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[8px] opacity-60">{ing.proteinas}g P</span>
-                            <Plus size={14} />
-                          </div>
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {formData.ingredientes.map((ing, idx) => (
-                  <div 
-                    key={idx} 
-                    className="bg-primary text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 shadow-md"
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">Dificultad</label>
+              <div className="flex gap-2">
+                {DIFICULTADES.map(d => (
+                  <button
+                    key={d} type="button"
+                    onClick={() => setFormData(p => ({ ...p, dificultad: d }))}
+                    className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wide border transition-all ${
+                      formData.dificultad === d
+                        ? "bg-bg-menu text-white border-bg-menu"
+                        : "bg-bg-main border-primary/15 text-primary/40 hover:border-primary/30"
+                    }`}
                   >
-                    <span>{ing.nombre} ({ing.cantidad}) - {ing.proteinas.toFixed(1)}g P</span>
-                    <button 
-                      type="button" 
-                      onClick={() => removeIngrediente(idx)} 
-                      className="hover:scale-110 transition-transform"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
+                    {d}
+                  </button>
                 ))}
               </div>
             </div>
+          </section>
 
-            <div>
-              <label className="text-[9px] font-black uppercase opacity-60 ml-2 text-primary tracking-widest">
-                Pasos de Preparación
-              </label>
-              <div className="flex gap-2 mb-3">
-                <input 
-                  className="flex-1 bg-slate-100 border border-primary/10 rounded-2xl p-4 text-[11px] font-bold uppercase outline-none text-primary focus:border-primary/40" 
-                  value={nuevoPaso} 
-                  onChange={e => setNuevoPaso(e.target.value)} 
-                  placeholder="Añadir un paso..." 
-                />
-                <button 
-                  type="button" 
-                  onClick={addPaso} 
-                  className="p-4 bg-primary text-white rounded-2xl hover:brightness-110 shadow-lg shadow-primary/20"
-                >
-                  <Plus size={20} />
-                </button>
+          {/* INGREDIENTES */}
+          <section className="space-y-4">
+            <SectionTitle>Ingredientes de la despensa</SectionTitle>
+
+            {/* buscador */}
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30" size={14} />
+              <input
+                type="text"
+                placeholder="Buscar en mi despensa..."
+                value={searchIng}
+                onChange={e => setSearchIng(e.target.value)}
+                className="input-brand pl-10 text-[11px]"
+              />
+              <AnimatePresence>
+                {filteredDbIngredientes.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                    className="absolute top-full left-0 w-full bg-white-custom border border-primary/10 rounded-2xl mt-1.5 shadow-xl z-50 overflow-hidden"
+                  >
+                    {filteredDbIngredientes.map(ing => (
+                      <button
+                        key={ing.id} type="button"
+                        onClick={() => addIngrediente(ing)}
+                        className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-bg-main transition-colors border-b border-primary/5 last:border-0"
+                      >
+                        <span className="text-[11px] font-bold uppercase text-primary">{ing.nombre}</span>
+                        <span className="text-[9px] font-black text-primary/30 flex items-center gap-1">
+                          {ing.proteinas}g P <Plus size={11} className="text-primary/40" />
+                        </span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* ingredientes añadidos */}
+            {formData.ingredientes.length > 0 && (
+              <div className="space-y-2">
+                {formData.ingredientes.map((ing, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-bg-main border border-primary/8 rounded-2xl px-4 py-2.5">
+                    <div>
+                      <span className="text-[11px] font-black uppercase text-primary">{ing.nombre}</span>
+                      <span className="text-[9px] text-primary/35 ml-2">{ing.cantidad}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[9px] font-black text-primary/30">{ing.proteinas.toFixed(1)}g P</span>
+                      <button type="button" onClick={() => removeIngrediente(idx)}
+                        className="p-1 text-primary/20 hover:text-red-400 transition-colors"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* preview macros */}
+                <div className="grid grid-cols-4 gap-2 mt-2">
+                  {[
+                    { label: "Kcal",  value: totalesPreview.kcal,      unit: ""  },
+                    { label: "Prot",  value: totalesPreview.proteinas,  unit: "g" },
+                    { label: "Carb",  value: totalesPreview.carbos,     unit: "g" },
+                    { label: "Gras",  value: totalesPreview.grasas,     unit: "g" },
+                  ].map(m => (
+                    <div key={m.label} className="bg-accent/10 border border-accent/20 rounded-xl py-2 text-center">
+                      <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
+                      <p className="text-[12px] font-black text-primary">
+                        {m.value.toFixed(0)}<span className="text-[8px] text-primary/30">{m.unit}</span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+          </section>
 
+          {/* PASOS */}
+          <section className="space-y-4">
+            <SectionTitle>Pasos de preparación</SectionTitle>
+            <div className="flex gap-2">
+              <input
+                className="input-brand flex-1 text-[11px]"
+                value={nuevoPaso}
+                onChange={e => setNuevoPaso(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addPaso(); }}}
+                placeholder="Describe un paso…"
+              />
+              <button type="button" onClick={addPaso}
+                className="w-10 h-10 flex items-center justify-center bg-bg-menu text-white rounded-xl hover:opacity-80 transition-all shrink-0"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            {formData.instrucciones.length > 0 && (
               <div className="space-y-2">
                 {formData.instrucciones.map((paso, idx) => (
-                  <div 
-                    key={idx} 
-                    className="flex justify-between items-center bg-white border border-primary/10 p-4 rounded-xl shadow-sm"
-                  >
-                    <span className="text-[10px] font-bold uppercase text-primary leading-tight">
-                      {idx + 1}. {paso}
+                  <div key={idx} className="flex items-start gap-3 bg-bg-main border border-primary/8 rounded-2xl px-4 py-3">
+                    <span className="w-5 h-5 rounded-full bg-bg-menu text-white text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                      {idx + 1}
                     </span>
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        const n = [...formData.instrucciones];
-                        n.splice(idx, 1);
-                        setFormData({...formData, instrucciones: n});
-                      }} 
-                      className="text-red-500 hover:scale-110 transition-transform"
+                    <span className="text-[11px] font-bold text-primary/70 uppercase flex-1 leading-relaxed">{paso}</span>
+                    <button type="button"
+                      onClick={() => setFormData(p => ({ ...p, instrucciones: p.instrucciones.filter((_, i) => i !== idx) }))}
+                      className="text-primary/20 hover:text-red-400 transition-colors shrink-0"
                     >
-                      <Trash2 size={16} />
+                      <X size={13} />
                     </button>
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
+            )}
+          </section>
 
-          <button 
-            disabled={loading} 
-            type="submit" 
-            className="w-full mt-10 p-5 bg-primary text-white rounded-3xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-xl shadow-primary/30 transition-all disabled:opacity-50"
+          <button
+            disabled={isSaving || !formData.nombre.trim()}
+            type="submit"
+            className="btn-brand w-full py-4 text-[11px] tracking-[0.25em]"
           >
-            {loading ? 'Escribiendo en el grimorio...' : 'Guardar Receta'}
+            {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+            Guardar receta
           </button>
         </form>
       </motion.div>
-    </motion.div>
+    </div>
+  );
+}
+
+// ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
+
+interface RecetasPageProps {
+  selectedRecipeId?: string;
+}
+
+const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
+  const [filter, setFilter]       = useState("");
+  const [catFilter, setCatFilter] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { data: recipes, loading } = useSupabaseData<Receta>("recetas");
+
+  // vista detalle
+  if (selectedRecipeId) {
+    const receta = recipes.find(r => String(r.id) === selectedRecipeId);
+    if (loading) return (
+      <div className="min-h-screen bg-bg-main flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary/30" size={36} />
+      </div>
+    );
+    if (!receta) return (
+      <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-3">
+        <Utensils className="text-primary/15" size={48} />
+        <p className="text-[11px] font-black uppercase tracking-widest text-primary/30">Receta no encontrada</p>
+        <Link href="/personal/cocina/recetas" className="text-[10px] font-black text-accent hover:text-primary transition-colors uppercase tracking-wide">
+          Volver a recetas
+        </Link>
+      </div>
+    );
+    return <RecetaDetalle receta={receta} />;
+  }
+
+  const filteredRecipes = recipes.filter(r => {
+    const matchesSearch =
+      !filter ||
+      r.nombre.toLowerCase().includes(filter.toLowerCase()) ||
+      r.categoria.toLowerCase().includes(filter.toLowerCase());
+    const matchesCat = !catFilter || r.categoria === catFilter;
+    return matchesSearch && matchesCat;
+  });
+
+  const catCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    recipes.forEach(r => { counts[r.categoria] = (counts[r.categoria] || 0) + 1; });
+    return counts;
+  }, [recipes]);
+
+  return (
+    <div className="min-h-screen bg-bg-main pb-28 text-foreground">
+
+      {/* HEADER */}
+      <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
+        <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <Link
+              href="/wiki/cocina"
+              className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
+            >
+              <ChevronLeft size={12} /> Cocina
+            </Link>
+            <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none text-primary">
+              Mis <span className="text-primary/20">Recetas</span>
+            </h1>
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30" size={14} />
+            <input
+              placeholder="Buscar..."
+              className="input-brand pl-10 pr-9 text-[11px] py-2.5"
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+            />
+            {filter && (
+              <button onClick={() => setFilter("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors">
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          <motion.button
+            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            onClick={() => setIsModalOpen(true)}
+            className="btn-brand hidden sm:flex text-[11px] py-2.5 px-5 tracking-widest"
+          >
+            <Plus size={14} /> Añadir
+          </motion.button>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-5 pt-5 space-y-5">
+
+        {/* chips categoría */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setCatFilter(null)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${
+              catFilter === null
+                ? "bg-primary text-white border-primary shadow-sm"
+                : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
+            }`}
+          >
+            Todas
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${catFilter === null ? "bg-white/20" : "bg-primary/5 text-primary/40"}`}>
+              {recipes.length}
+            </span>
+          </button>
+
+          {CATEGORIAS.map(({ label, emoji }) => {
+            const count = catCounts[label] || 0;
+            if (count === 0) return null;
+            const active = catFilter === label;
+            return (
+              <button
+                key={label}
+                onClick={() => setCatFilter(active ? null : label)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${
+                  active
+                    ? "bg-bg-menu text-white border-bg-menu shadow-sm"
+                    : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
+                }`}
+              >
+                <span>{emoji}</span> {label}
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${active ? "bg-white/20" : "bg-primary/5 text-primary/40"}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+
+          {catFilter && (
+            <button
+              onClick={() => setCatFilter(null)}
+              className="flex items-center gap-1 px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
+            >
+              <X size={10} /> Limpiar
+            </button>
+          )}
+        </div>
+
+        {/* grid */}
+        {loading ? (
+          <div className="flex justify-center py-32">
+            <Loader2 className="animate-spin text-primary/30" size={36} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+            {/* botón añadir */}
+            <motion.button
+              whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+              onClick={() => setIsModalOpen(true)}
+              className="border-2 border-dashed border-primary/15 rounded-3xl flex flex-col items-center justify-center p-8 bg-white-custom hover:bg-primary/5 transition-all group min-h-[220px]"
+            >
+              <div className="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                <Plus size={18} />
+              </div>
+              <span className="text-[9px] font-black uppercase mt-3 text-primary/35 tracking-widest group-hover:text-primary transition-colors">
+                Nueva receta
+              </span>
+            </motion.button>
+
+            <AnimatePresence mode="popLayout">
+              {filteredRecipes.length === 0 && !loading ? (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="col-span-full flex flex-col items-center justify-center py-24 gap-2"
+                >
+                  <Utensils className="text-primary/15" size={48} />
+                  <p className="text-[11px] font-black uppercase tracking-widest text-primary/25">
+                    {filter || catFilter ? "Sin resultados" : "Sin recetas aún"}
+                  </p>
+                </motion.div>
+              ) : (
+                filteredRecipes.map((receta, i) => (
+                  <RecipeCard key={receta.id ?? i} receta={receta} index={i} />
+                ))
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+      </main>
+
+      {/* FAB móvil */}
+      <motion.button
+        whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+        onClick={() => setIsModalOpen(true)}
+        className="sm:hidden fixed bottom-6 right-6 z-20 w-14 h-14 rounded-2xl btn-brand shadow-2xl"
+      >
+        <Plus size={22} />
+      </motion.button>
+
+      {/* modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <ModalAddReceta
+            onClose={() => setIsModalOpen(false)}
+            onSuccess={() => setIsModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
-
-const RecipeCard = ({ receta, index }: { receta: Receta; index: number }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }} 
-    animate={{ opacity: 1, y: 0 }} 
-    transition={{ delay: index * 0.1 }}
-    layout
-    className="bg-white border border-primary/10 rounded-[40px] overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group"
-  >
-    <div className="h-48 bg-primary/5 relative overflow-hidden">
-      {receta.imagen_url ? (
-        <img 
-          src={receta.imagen_url} 
-          alt={receta.nombre} 
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-primary/20">
-          <Flame size={48} />
-        </div>
-      )}
-      <div className="absolute top-4 left-4 px-3 py-1 bg-white rounded-full text-[9px] font-black uppercase text-primary border border-primary/10 shadow-sm">
-        {receta.categoria}
-      </div>
-    </div>
-
-    <div className="p-6 text-center">
-      <h3 className="text-lg font-black uppercase tracking-tight text-primary mb-2 italic">
-        {receta.nombre}
-      </h3>
-      <div className="flex items-center justify-center gap-4 text-primary/40 mb-6">
-        <div className="flex items-center gap-1 text-[10px] font-bold">
-          <Clock size={12} /> {receta.tiempo}
-        </div>
-        <div className="flex items-center gap-1 text-[10px] font-bold text-primary/60">
-          <ChefHat size={12} /> {receta.dificultad}
-        </div>
-      </div>
-
-      <Link 
-        href={`/personal/cocina/recetas/${receta.id}`} 
-        className="flex items-center justify-between w-full p-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-primary/10"
-      >
-        Ver Preparación <ChevronRight size={14} />
-      </Link>
-    </div>
-  </motion.div>
-);
 
 export default RecetasPage;
