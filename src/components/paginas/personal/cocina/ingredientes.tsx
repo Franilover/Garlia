@@ -86,27 +86,25 @@ export const IngredientesPage = () => {
   const [isSaving, setIsSaving]       = useState(false);
   const [formData, setFormData]       = useState(INITIAL_FORM);
 
-  // Estado local completamente independiente del hook.
-  // El hook solo se usa para cargar datos la primera vez y para mutaciones.
-  const [localItems, setLocalItems] = useState<Ingrediente[] | null>(null); // null = aun cargando
-  // id de card en modo "confirmar eliminar"
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  // calculadora: id -> cantidad
-  const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
-  // que cards tienen la calculadora abierta
-  const [qtyOpen, setQtyOpen] = useState<Record<string, boolean>>({});
-
   const { data: ingredientes, loading: hookLoading, refetch, addRow, updateRow, deleteRow } =
     useSupabaseData<Ingrediente>("ingredientes");
 
-  // Solo inicializar localItems una vez cuando el hook trae datos por primera vez
+  // Inicializar desde el hook directamente — si hay caché ya viene populated
+  const [localItems, setLocalItems] = useState<Ingrediente[] | null>(() =>
+    ingredientes?.length ? ingredientes : null
+  );
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
+  const [qtyOpen, setQtyOpen] = useState<Record<string, boolean>>({});
+
+  // Sincronizar solo mientras localItems sea null (esperando primera carga)
   useEffect(() => {
-    if (ingredientes !== undefined && ingredientes !== null && localItems === null) {
+    if (localItems === null && ingredientes?.length) {
       setLocalItems(ingredientes);
     }
   }, [ingredientes]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isLoading = localItems === null;
+  const isLoading = localItems === null && hookLoading;
   const items = localItems ?? [];
 
   // ── filtrado sobre estado local ──
