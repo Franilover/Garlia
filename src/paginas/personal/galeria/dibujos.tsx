@@ -8,7 +8,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { Plus, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 // 1. Importamos el nuevo selector simplificado
-import { SimpleImagePicker } from "@/shared/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/shared/forms/SimpleImagePicker";
 
 // ─── MODAL PARA AÑADIR DIBUJO ────────────────────────────────────────────────
 
