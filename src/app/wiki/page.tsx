@@ -43,7 +43,7 @@ export default function WikiMenuPage() {
     <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 md:p-10 py-24">
       <div className="max-w-7xl w-full">
 
-        {/* HEADER */}
+        {/* HEADER - Solo el título principal */}
         <motion.div 
           initial={{ opacity: 0, y: -30 }} 
           animate={{ opacity: 1, y: 0 }} 
@@ -52,17 +52,13 @@ export default function WikiMenuPage() {
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter text-primary italic">
             Wiki
           </h1>
-          <p className="text-primary/60 font-medium uppercase tracking-widest text-sm md:text-base mt-2">
-            Explora el universo de Franilover
-          </p>
         </motion.div>
 
-        {/* GRID: 2 columnas en móvil, 3 en escritorio (lg) */}
+        {/* GRID: 2 columnas móvil, 3 en escritorio */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
           <MenuCard 
             href="/wiki/paginas/personajes" 
             title="Personajes" 
-            description="Habitantes del mundo" 
             icon={<Users size={32} className="md:w-[48px] md:h-[48px]" />} 
             delay={0.1} 
             hasNewContent={notifications['personajes']} 
@@ -71,7 +67,6 @@ export default function WikiMenuPage() {
           <MenuCard 
             href="/wiki/paginas/items" 
             title="Items" 
-            description="Objetos y artefactos" 
             icon={<Package size={32} className="md:w-[42px] md:h-[42px]" />} 
             delay={0.2} 
             hasNewContent={notifications['items']} 
@@ -80,7 +75,6 @@ export default function WikiMenuPage() {
           <MenuCard 
             href="/wiki/paginas/libros" 
             title="Libros" 
-            description="Relatos y mártires" 
             icon={<BookOpen size={32} className="md:w-[42px] md:h-[42px]" />} 
             delay={0.3} 
             hasNewContent={notifications['libros']} 
@@ -89,7 +83,6 @@ export default function WikiMenuPage() {
           <MenuCard 
             href="/wiki/paginas/criaturas" 
             title="Criaturas" 
-            description="Bestias y entidades" 
             icon={<Footprints size={32} className="md:w-[42px] md:h-[42px]" />} 
             delay={0.4} 
             hasNewContent={notifications['criaturas']} 
@@ -98,7 +91,6 @@ export default function WikiMenuPage() {
           <MenuCard 
             href="/wiki/paginas/mapa" 
             title="Mapa" 
-            description="Reinos y territorios" 
             icon={<Map size={32} className="md:w-[42px] md:h-[42px]" />} 
             delay={0.5} 
             hasNewContent={notifications['mapa']} 
@@ -107,7 +99,6 @@ export default function WikiMenuPage() {
           <MenuCard 
             href="/wiki/paginas/canciones" 
             title="Canciones" 
-            description="Reflexiones internas" 
             icon={<Music size={32} className="md:w-[42px] md:h-[42px]" />} 
             delay={0.6} 
             hasNewContent={notifications['canciones']} 
@@ -119,7 +110,7 @@ export default function WikiMenuPage() {
   );
 }
 
-const MenuCard = ({ href, title, description, icon, delay, hasNewContent, onClick }: any) => (
+const MenuCard = ({ href, title, icon, delay, hasNewContent, onClick }: any) => (
   <motion.div 
     initial={{ opacity: 0, y: 20 }} 
     animate={{ opacity: 1, y: 0 }} 
@@ -127,7 +118,7 @@ const MenuCard = ({ href, title, description, icon, delay, hasNewContent, onClic
     className="h-full"
   >
     <Link href={href} className="group block relative h-full" onClick={onClick}>
-      <div className="bg-white-custom border-2 border-primary/5 rounded-3xl p-6 md:p-10 h-full flex flex-col justify-between transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3">
+      <div className="bg-white-custom border-2 border-primary/5 rounded-3xl p-6 md:p-12 h-full flex flex-col items-center justify-center text-center transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3">
         
         {hasNewContent && (
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 md:top-8 md:right-8 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full shadow-lg z-20">
@@ -135,23 +126,19 @@ const MenuCard = ({ href, title, description, icon, delay, hasNewContent, onClic
           </motion.div>
         )}
 
-        <div className="flex flex-col h-full">
-          <motion.div
-            className="w-14 h-14 md:w-20 md:h-20 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6 md:mb-10 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
-            whileHover={{ rotate: [0, -10, 10, 0] }}
-          >
-            {icon}
-          </motion.div>
-          
-          <div className="mt-auto space-y-3">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter text-primary flex items-center justify-between">
-              {title}
-              <ArrowRight className="opacity-0 -translate-x-4 transition-all group-hover:opacity-100 group-hover:translate-x-0 hidden lg:block" size={32} />
-            </h2>
-            <p className="text-primary/40 text-xs md:text-sm font-bold uppercase tracking-widest leading-relaxed">
-              {description}
-            </p>
-          </div>
+        <motion.div
+          className="w-16 h-16 md:w-24 md:h-24 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
+          whileHover={{ rotate: [0, -10, 10, 0] }}
+        >
+          {icon}
+        </motion.div>
+        
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter text-primary">
+          {title}
+        </h2>
+
+        <div className="mt-4 opacity-0 transition-all duration-300 group-hover:opacity-100">
+           <ArrowRight className="text-primary" size={28} />
         </div>
       </div>
     </Link>
