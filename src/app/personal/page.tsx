@@ -1,8 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Smile, ImageIcon, Camera } from "lucide-react";
+// Importamos Star junto a los otros iconos
+import { Star, ImageIcon, Camera } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+// Usamos tu componente base centralizado
 import { MenuCard } from "@/shared/display/MenuCard";
 
 export default function PersonalMenuPage() {
@@ -34,16 +36,43 @@ export default function PersonalMenuPage() {
   return (
     <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 md:p-10 py-24">
       <div className="max-w-7xl w-full">
-        <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16 md:mb-24">
+
+        {/* HEADER */}
+        <motion.div 
+          initial={{ opacity: 0, y: -30 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="text-center mb-16 md:mb-24"
+        >
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter text-primary italic">
             Personal
           </h1>
         </motion.div>
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
-          <MenuCard href="/personal/paginas/sobre-mi" title="Sobre Mí" icon={<Smile />} delay={0.1} hasNewContent={notifications["sobre-mi"]} onClick={() => handleVisit("sobre-mi")} />
-          <MenuCard href="/personal/paginas/dibujos" title="Dibujos" icon={<ImageIcon />} delay={0.2} hasNewContent={notifications["dibujos"]} onClick={() => handleVisit("dibujos")} />
-          <MenuCard href="/personal/paginas/fotos" title="Fotos" icon={<Camera />} delay={0.3} hasNewContent={notifications["fotos"]} onClick={() => handleVisit("fotos")} />
+          <MenuCard 
+            href="/personal/paginas/sobre-mi" 
+            title="Sobre Mí" 
+            icon={<Star />} 
+            delay={0.1} 
+            hasNewContent={notifications["sobre-mi"]} 
+            onClick={() => handleVisit("sobre-mi")} 
+          />
+          <MenuCard 
+            href="/personal/paginas/dibujos" 
+            title="Dibujos" 
+            icon={<ImageIcon />} 
+            delay={0.2} 
+            hasNewContent={notifications["dibujos"]} 
+            onClick={() => handleVisit("dibujos")} 
+          />
+          <MenuCard 
+            href="/personal/paginas/fotos" 
+            title="Fotos" 
+            icon={<Camera />} 
+            delay={0.3} 
+            hasNewContent={notifications["fotos"]} 
+            onClick={() => handleVisit("fotos")} 
+          />
         </div>
       </div>
     </div>
