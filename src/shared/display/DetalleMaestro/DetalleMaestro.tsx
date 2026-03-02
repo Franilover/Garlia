@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Edit3, Save, Plus, CheckCircle2, Trash2 
 } from "lucide-react";
-import Relaciones from "./relaciones"; 
 import { useDetalleMaestro, type Variante } from "@/hooks/features/useDetalleMaestro"; 
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 import { SelectorVariantes } from "./SelectorVariantes";
@@ -57,7 +56,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
     variantes, setVariantes,
     varianteActiva, setVarianteActiva,
     editNombre, setEditNombre, editDescripcion, setEditDescripcion,
-    editCanciones, setEditCanciones, setEditRelaciones
+    editCanciones, setEditCanciones
   } = useDetalleMaestro(data, onUpdate);
 
   const [showSuccess, setShowSuccess] = useState(false);
@@ -180,7 +179,6 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                 </h2>
                 <div className="w-16 h-1.5 bg-accent mb-8 rounded-full" />
                 
-                {/* Se eliminó la dependencia de data?.variantes y se usa el estado 'variantes' del hook */}
                 {!esPersonaje && variantes && variantes.length > 0 && (
                    <div className="mb-8">
                     <SelectorVariantes 
@@ -243,24 +241,14 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         </div>
       )}
 
-      {/* SECCIONES INFERIORES: RELACIONES Y MÚSICA */}
-      {(esPersonaje || editMode) && (
+      {/* SECCIONES INFERIORES: MÚSICA */}
+      {(esPersonaje || editMode) && mostrarMusica && (
         <div className="bg-white rounded-[3rem] p-12 lg:p-20 shadow-2xl border border-primary/10">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-16">
-            <Relaciones 
-              nombrePersonaje={editNombre} 
-              datosRelaciones={data?.relaciones || []} 
-              editMode={editMode} 
-              onChange={setEditRelaciones} 
-            />
-            {mostrarMusica && (
-              <div>
-                {editMode ? (
-                  <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} />
-                ) : (
-                  <SeccionMusica listaLinks={data?.canciones || []} />
-                )}
-              </div>
+          <div className="w-full">
+            {editMode ? (
+              <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} />
+            ) : (
+              <SeccionMusica listaLinks={data?.canciones || []} />
             )}
           </div>
         </div>
