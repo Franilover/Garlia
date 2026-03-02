@@ -4,7 +4,7 @@ import DetalleMaestro from "@/shared/display/detalles";
 import FiltrosMaestros from "@/shared/layout/Filtros";
 import PageHeader from "@/shared/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/shared/feedback/StateComponents";
-import { AdminAddButton } from "@/shared/ui/AdminAddButton";
+import { AdminAddButton } from "@/shared/forms/AdminAddButton";
 import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { useFiltrosGenericos } from '@/hooks/features/useFiltros';
 import { useAdminItem } from '@/hooks/forms/useAdminItem';
