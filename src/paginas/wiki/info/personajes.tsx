@@ -21,17 +21,16 @@ export default function PersonajesGrid() {
       }}
       getCustomTags={(p) => [p?.reino, p?.especie]} 
       renderCard={(p, onClick) => {
-        const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
-        
+        // 1. Usamos la URL limpia para no romper el optimizador de Next.js (Error 400)
         const baseUrl = p?.img_url || "";
-        const finalSrc = (baseUrl && isOnline) 
-          ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${new Date().getTime()}` 
-          : baseUrl;
+        
+        // 2. Detectamos si estamos online
+        const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
         return (
           <GalleryItem
-            key={`${p.id}-${baseUrl}`}
-            src={finalSrc}
+            key={`${p.id}-${baseUrl}-${isOnline ? Date.now() : 'static'}`}
+            src={baseUrl}
             color={p.color_hex}
             onClick={onClick}
           >
