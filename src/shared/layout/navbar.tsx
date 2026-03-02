@@ -11,7 +11,7 @@ import {
   LogOut, Plus, Eye, Sparkles,
   CircleUser, Flower2, Sword,
   Utensils, CheckSquare, Dumbbell,
-  PenTool, Moon, Sun, Star
+  PenTool, Moon, Sun, Star, User
 } from "lucide-react";
 
 const Navbar = () => {
@@ -61,7 +61,7 @@ const Navbar = () => {
     </motion.button>
   );
 
-  // --- CONTENIDO MÓVIL (Sin texto, nuevos iconos) ---
+  // --- CONTENIDO MÓVIL (Actualizado: Flor por Ojo, Usuario por Flor) ---
   const navContentMobile = useMemo(() => (
     <div className="flex w-full items-center justify-evenly h-full">
       <Link href="/personal" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
@@ -73,17 +73,17 @@ const Navbar = () => {
       </Link>
 
       <button
-        onClick={() => user ? setUserMenuOpen(!userMenuOpen) : window.location.href = "/auth/login"}
+        onClick={() => user ? setUserMenuOpen(!userMenuOpen) : (window.location.href = "/auth/login")}
         className={cn(
           "p-3 rounded-full transition-all duration-300 shadow-lg",
           userMenuOpen ? "bg-white-custom text-primary-dark scale-110" : "bg-primary text-white shadow-primary/30"
         )}
       >
-        <Flower2 size={24} strokeWidth={2.5} />
+        <User size={24} strokeWidth={2.5} />
       </button>
 
       <Link href="/wiki" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
-        <Eye 
+        <Flower2 
           size={26} 
           className={cn("transition-all duration-300", isWiki ? "text-primary scale-110" : "text-primary/30")} 
         />
