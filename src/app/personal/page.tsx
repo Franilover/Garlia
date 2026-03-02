@@ -38,12 +38,6 @@ export default function PersonalMenuPage() {
 
         {/* HEADER */}
         <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12 md:mb-20">
-          <motion.div
-            initial={{ scale: 0 }} animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="inline-flex p-4 md:p-5 bg-primary/10 text-primary rounded-3xl mb-6 md:mb-8 shadow-lg"
-          >
-          </motion.div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-primary italic mb-4">
             Personal
           </h1>
