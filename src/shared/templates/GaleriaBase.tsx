@@ -1,7 +1,7 @@
 "use client";
 import { GalleryGrid } from "@/shared/layout/gallery";
-import DetalleMaestro from "@/shared/modal/detalles";
-import FiltrosMaestros from "@/shared/forms/Filtros";
+import DetalleMaestro from "@/shared/display/detalles";
+import FiltrosMaestros from "@/shared/layout/Filtros";
 import PageHeader from "@/shared/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/shared/feedback/StateComponents";
 import { AdminAddButton } from "@/shared/ui/AdminAddButton";

@@ -8,7 +8,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { SmartImage } from "@/shared/display/SmartImage";
 import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
-import FiltrosMaestros from "@/shared/forms/Filtros";
+import FiltrosMaestros from "@/shared/layout/Filtros";
 
 // ============================================================================
 // CONSTANTES
