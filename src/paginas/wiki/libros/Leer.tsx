@@ -10,7 +10,7 @@ import {
   Music2, Sword, GitMerge, MousePointerClick, PlusCircle
 } from "lucide-react";
 import { SoundPicker } from "@/shared/ui/SoundPicker";
-import { EntidadPicker } from "@/shared/ui/EntidadPicker";
+import { EntidadPicker } from "@/shared/forms/EntidadPicker";
 import { DropWord } from "@/shared/ui/DropWord";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
