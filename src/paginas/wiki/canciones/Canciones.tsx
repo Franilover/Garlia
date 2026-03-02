@@ -1,95 +1,136 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { Mic2, Calendar, LayoutGrid, AlignJustify, ChevronRight } from "lucide-react";
 import EntidadPageBase from "@/shared/templates/GaleriaBase";
 import { SmartImage } from "@/shared/display/SmartImage";
-import { motion } from "framer-motion";
-import { Mic2, PenTool, Globe, User, ChevronRight } from "lucide-react";
 
-const FILTROS_CANCIONES = ["personaje", "cantante", "compositor", "idioma", "tema", "emocion"];
+interface CancionCardProps {
+  cancion: any;
+  onClick: () => void;
+  vistaFila: boolean;
+}
 
-const getEstadoColor = (estado: string) => {
-  const colores: Record<string, string> = {
-    "TERMINADA": "bg-gradient-to-r from-emerald-500/20 to-emerald-400/10 text-emerald-700 border-emerald-300/30",
-    "EN PROCESO": "bg-gradient-to-r from-amber-500/20 to-amber-400/10 text-amber-700 border-amber-300/30",
-    "BORRADOR": "bg-gradient-to-r from-slate-500/20 to-slate-400/10 text-slate-600 border-slate-300/30"
-  };
-  return colores[estado] || colores["BORRADOR"];
-};
-
-const PLANTILLA_NUEVA_CANCION = {
-  titulo: "", personaje: "", estado: "BORRADOR", visible: false,
-  portada_url: "/placeholder-cover.jpg", cantante: "", compositor: "",
-  idioma: "Español", tema: "", emocion: ""
-};
-
-const RenderCancionCard = (
-  cancion: any, 
-  onClick: () => void, 
-  vistaFila: boolean,
-  index: number,
-  allItems: any[]
-) => {
+function CancionCard({ cancion, onClick, vistaFila }: CancionCardProps) {
   if (vistaFila) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+      <div 
         onClick={onClick}
-        className="group relative flex items-center justify-between gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm border border-primary/10 rounded-2xl px-6 py-4 transition-all cursor-pointer"
+        className="group relative bg-bg-card border border-primary/5 rounded-2xl p-4 hover:border-primary/20 transition-all cursor-pointer flex items-center gap-4"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full overflow-hidden border border-primary/10">
-            <SmartImage src={cancion.portada_url || "/placeholder-cover.jpg"} alt={cancion.titulo} className="w-full h-full object-cover" />
-          </div>
-          <h2 className="text-primary font-black uppercase text-sm italic truncate">{cancion.titulo}</h2>
+        <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-primary/5">
+          <SmartImage
+            src={cancion.url_portada}
+            alt={cancion.titulo}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          />
         </div>
-        <ChevronRight size={14} className="text-primary/30" />
-      </motion.div>
+        
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-black uppercase tracking-tight truncate">{cancion.titulo}</h3>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-[10px] text-primary/40 font-bold uppercase tracking-widest flex items-center gap-1">
+              <Mic2 size={10} /> {cancion.artista || "Fran"}
+            </span>
+            <span className="text-[10px] text-primary/40 font-bold uppercase tracking-widest flex items-center gap-1">
+              <Calendar size={10} /> {cancion.anio || "2024"}
+            </span>
+          </div>
+        </div>
+
+        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ChevronRight size={18} className="text-primary" />
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="relative group h-full">
-      <motion.div
-        whileHover={{ y: -12 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        onClick={onClick} className="cursor-pointer h-full flex flex-col"
-      >
-        <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-primary/10 bg-gradient-to-br from-primary/10 to-primary/5">
-          <SmartImage src={cancion.portada_url || "/placeholder-cover.jpg"} alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className={`absolute top-6 left-6 z-20 backdrop-blur-md px-4 py-2 rounded-full border font-black text-[9px] uppercase tracking-widest shadow-lg ${getEstadoColor(cancion.estado)}`}>
-            {cancion.estado}
-          </div>
-          {cancion.personaje && (
-            <div className="absolute bottom-6 right-6 z-20 bg-white-custom/95 backdrop-blur-md px-4 py-2 rounded-full border border-primary/20 flex items-center gap-2 shadow-lg">
-              <User size={11} className="text-primary" />
-              <span className="text-[9px] font-black text-primary uppercase italic tracking-tighter">{cancion.personaje}</span>
-            </div>
-          )}
+    <div 
+      onClick={onClick}
+      className="group relative bg-bg-card border border-primary/5 rounded-4xl overflow-hidden hover:border-primary/20 transition-all cursor-pointer shadow-sm hover:shadow-xl"
+    >
+      <div className="aspect-square overflow-hidden relative">
+        <SmartImage
+          src={cancion.url_portada}
+          alt={cancion.titulo}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+        />
+        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
+          <span className="text-white text-[10px] font-black uppercase tracking-[0.2em] bg-primary px-4 py-2 rounded-full shadow-lg">
+            Ver Detalles
+          </span>
         </div>
-        <div className="mt-6 flex-1 flex flex-col px-2">
-          <h2 className="text-primary font-black uppercase text-lg group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tighter italic line-clamp-2">{cancion.titulo}</h2>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-primary/40 font-bold text-[8px] uppercase tracking-[0.2em]">
-            <span className="flex items-center gap-2 group-hover:text-primary transition-colors"><Mic2 size={10} />{cancion.cantante || "N/A"}</span>
-            <span className="flex items-center gap-2 group-hover:text-primary transition-colors"><PenTool size={10} />{cancion.compositor || "N/A"}</span>
-            <span className="flex items-center gap-2 group-hover:text-primary transition-colors"><Globe size={10} />{cancion.idioma || "Español"}</span>
-          </div>
+      </div>
+
+      <div className="p-6">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="text-sm font-black uppercase tracking-tighter leading-tight group-hover:text-primary transition-colors">
+            {cancion.titulo}
+          </h3>
         </div>
-      </motion.div>
+        
+        <div className="flex flex-wrap gap-2 mt-4">
+          <span className="px-3 py-1 bg-primary/5 rounded-lg text-[9px] font-black uppercase tracking-widest text-primary/60">
+            {cancion.genero || "Pop"}
+          </span>
+          <span className="px-3 py-1 bg-primary/5 rounded-lg text-[9px] font-black uppercase tracking-widest text-primary/60">
+            {cancion.idioma || "Español"}
+          </span>
+        </div>
+      </div>
     </div>
   );
-};
+}
 
 export default function CancionesPage() {
+  const [vistaGrid, setVistaGrid] = useState(true);
+
   return (
-    <EntidadPageBase
-      tabla="canciones"
-      titulo="Soliloquios"
-      configFiltros={FILTROS_CANCIONES}
-      renderCard={RenderCancionCard}
-      mostrarMusica={true}
-      plantillaNueva={PLANTILLA_NUEVA_CANCION}
-      getCustomTags={(item) => [item.estado, item.idioma, item.tema]}
-    />
+    <div className="min-h-screen bg-bg-main">
+      <div className="fixed top-24 right-8 z-40 flex bg-bg-card/80 backdrop-blur-md border border-primary/10 p-1 rounded-2xl shadow-xl">
+        <button
+          onClick={() => setVistaGrid(true)}
+          className={`p-3 rounded-xl transition-all ${vistaGrid ? "bg-primary text-white shadow-lg" : "text-primary/40 hover:text-primary"}`}
+        >
+          <LayoutGrid size={16} />
+        </button>
+        <button
+          onClick={() => setVistaGrid(false)}
+          className={`p-3 rounded-xl transition-all ${!vistaGrid ? "bg-primary text-white shadow-lg" : "text-primary/40 hover:text-primary"}`}
+        >
+          <AlignJustify size={16} />
+        </button>
+      </div>
+
+      <EntidadPageBase
+        tabla="canciones"
+        titulo="Canciones"
+        configFiltros={["genero", "idioma", "estado"]}
+        mostrarMusica={true}
+        renderCard={(item, onClick) => (
+          <CancionCard 
+            key={item.id} 
+            cancion={item} 
+            onClick={onClick}
+            vistaFila={!vistaGrid}
+          />
+        )}
+        plantillaNueva={{
+          titulo: "",
+          artista: "Fran",
+          url_portada: "",
+          genero: "Pop",
+          idioma: "Español",
+          estado: "BORRADOR",
+          letra: "",
+          anio: new Date().getFullYear().toString()
+        }}
+        getCustomTags={(item) => [
+          item.estado,
+          item.genero
+        ]}
+      />
+    </div>
   );
 }
