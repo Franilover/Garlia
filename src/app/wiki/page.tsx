@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-// Añadimos Dog y Sword a las importaciones
+// Importamos los nuevos iconos elegidos
 import { 
   Users, 
   Sword, 
@@ -54,7 +54,7 @@ export default function WikiMenuPage() {
           </h1>
         </motion.div>
 
-        {/* GRID: 2 columnas en móvil, 3 en escritorio */}
+        {/* GRID usando el componente BASE */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
           <MenuCard 
             href="/wiki/paginas/personajes" 
@@ -67,7 +67,7 @@ export default function WikiMenuPage() {
           <MenuCard 
             href="/wiki/paginas/items" 
             title="Items" 
-            icon={<Sword />}  /* Icono de espada para Items */
+            icon={<Sword />} 
             delay={0.2} 
             hasNewContent={notifications['items']} 
             onClick={() => handleVisit('items')} 
@@ -83,7 +83,7 @@ export default function WikiMenuPage() {
           <MenuCard 
             href="/wiki/paginas/criaturas" 
             title="Criaturas" 
-            icon={<Dog />} /* Icono de perro para Criaturas */
+            icon={<Dog />} 
             delay={0.4} 
             hasNewContent={notifications['criaturas']} 
             onClick={() => handleVisit('criaturas')} 
