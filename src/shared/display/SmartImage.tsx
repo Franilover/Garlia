@@ -8,13 +8,14 @@ const SESSION_TS = Date.now();
 export const SmartImage = ({ src, alt, className, contain = false, priority = false }) => {
   const [loaded, setLoaded] = useState(false);
 
+  // El ?v=SESSION_TS hace que Next.js trate la URL como nueva cada sesión,
+  // evitando la caché sin perder la optimización de tamaño/formato.
   const srcConBust = src
     ? `${src}${src.includes('?') ? '&' : '?'}v=${SESSION_TS}`
     : src;
 
   return (
     <div className={`relative overflow-hidden bg-primary/5 ${className}`}>
-      {/* Skeleton shimmer con Tailwind */}
       <AnimatePresence>
         {!loaded && (
           <motion.div
@@ -37,7 +38,6 @@ export const SmartImage = ({ src, alt, className, contain = false, priority = fa
           alt={alt || "Imagen de Franilover Art"}
           fill
           priority={priority}
-          unoptimized
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           onLoad={() => setLoaded(true)}
           className={`transition-all duration-700 ${
