@@ -78,7 +78,12 @@ const MenuCard = ({ href, title, description, icon, delay, hasNewContent, onClic
         <motion.div
           className="w-10 h-10 md:w-16 md:h-16 bg-primary/10 text-primary rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
           whileHover={{ rotate: [0, -10, 10, 0] }}
-        >
+        >          <motion.div
+            initial={{ scale: 0 }} animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            className="inline-flex p-4 md:p-5 bg-primary/10 text-primary rounded-3xl mb-6 md:mb-8 shadow-lg"
+          >
+          </motion.div>
           {icon}
         </motion.div>
         <div className="space-y-1 md:space-y-2 mb-4">
@@ -86,9 +91,6 @@ const MenuCard = ({ href, title, description, icon, delay, hasNewContent, onClic
             {title}
             <ArrowRight className="opacity-0 -translate-x-4 transition-all group-hover:opacity-100 group-hover:translate-x-0 hidden md:block" size={24} />
           </h2>
-        </div>
-        <div className="absolute bottom-3 right-4 md:bottom-6 md:right-8 text-primary/[0.04] font-black text-4xl md:text-7xl select-none group-hover:text-primary/[0.1] transition-all">
-          {title[0]}
         </div>
       </div>
     </Link>
