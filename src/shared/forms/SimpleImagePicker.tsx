@@ -10,7 +10,7 @@ interface SimpleImagePickerProps {
   onClose: () => void;
 }
 
-export function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps) {
+export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps) {
   const [tree, setTree] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
