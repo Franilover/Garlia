@@ -1,7 +1,15 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Footprints, Package, Map, BookOpen, Music, ArrowRight, Sparkles } from "lucide-react";
+import { 
+  Users, 
+  Package, 
+  BookOpen, 
+  Footprints, 
+  Map, 
+  Music, 
+  ArrowRight 
+} from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -11,8 +19,9 @@ export default function WikiMenuPage() {
   useEffect(() => {
     const fetchNotifs = async () => {
       const { data } = await supabase
-        .from('wiki_notifications')
-        .select('page_name, has_new_content');
+        .from("wiki_notifications")
+        .select("page_name, has_new_content")
+        .in("page_name", ["personajes", "items", "libros", "criaturas", "mapa", "canciones"]);
       if (data) {
         const mapped = data.reduce((acc: any, curr) => {
           acc[curr.page_name] = curr.has_new_content;
@@ -26,34 +35,84 @@ export default function WikiMenuPage() {
 
   const handleVisit = async (pageName: string) => {
     if (!notifications[pageName]) return;
-    await supabase.from('wiki_notifications').update({ has_new_content: false }).eq('page_name', pageName);
+    await supabase.from("wiki_notifications").update({ has_new_content: false }).eq("page_name", pageName);
     setNotifications(prev => ({ ...prev, [pageName]: false }));
   };
 
   return (
-    // ✅ Fondo plano usando variable CSS — sin degradado
-    <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 md:p-6 py-20">
-      <div className="max-w-5xl w-full">
+    <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 md:p-10 py-24">
+      <div className="max-w-7xl w-full">
 
         {/* HEADER */}
-        <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12 md:mb-20">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-primary italic mb-4">
-            Garden of Sins
+        <motion.div 
+          initial={{ opacity: 0, y: -30 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="text-center mb-16 md:mb-24"
+        >
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter text-primary italic">
+            Wiki
           </h1>
+          <p className="text-primary/60 font-medium uppercase tracking-widest text-sm md:text-base mt-2">
+            Explora el universo de Franilover
+          </p>
         </motion.div>
 
-        {/* GRID */}
-        <div className="grid grid-cols-2 gap-4 md:gap-8 mb-12">
-          <div className="space-y-4 md:space-y-6">
-            <MenuCard href="/wiki/paginas/personajes" title="Personajes" description="Conoce a los habitantes de mi mundo" icon={<Users size={28} className="md:w-[42px] md:h-[42px]" />} delay={0.1} hasNewContent={notifications['personajes']} onClick={() => handleVisit('personajes')} />
-            <MenuCard href="/wiki/paginas/items" title="Items" description="Objetos místicos y artefactos raros" icon={<Package size={28} className="md:w-[38px] md:h-[38px]" />} delay={0.2} hasNewContent={notifications['items']} onClick={() => handleVisit('items')} />
-            <MenuCard href="/wiki/paginas/libros" title="Libros" description="Relatos sobre los martires de cada reino" icon={<BookOpen size={28} className="md:w-[38px] md:h-[38px]" />} delay={0.3} hasNewContent={notifications['libros']} onClick={() => handleVisit('libros')} />
-          </div>
-          <div className="space-y-4 md:space-y-6">
-            <MenuCard href="/wiki/paginas/criaturas" title="Criaturas" description="Bestias y entidades" icon={<Footprints size={28} className="md:w-[38px] md:h-[38px]" />} delay={0.15} hasNewContent={notifications['criaturas']} onClick={() => handleVisit('criaturas')} />
-            <MenuCard href="/wiki/paginas/mapa" title="Mapa" description="Reinos y territorios" icon={<Map size={28} className="md:w-[38px] md:h-[38px]" />} delay={0.25} hasNewContent={notifications['mapa']} onClick={() => handleVisit('mapa')} />
-            <MenuCard href="/wiki/paginas/canciones" title="Canciones" description="Reflexiones internas" icon={<Music size={28} className="md:w-[38px] md:h-[38px]" />} delay={0.35} hasNewContent={notifications['canciones']} onClick={() => handleVisit('canciones')} />
-          </div>
+        {/* GRID: 2 columnas en móvil, 3 en escritorio (lg) */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
+          <MenuCard 
+            href="/wiki/paginas/personajes" 
+            title="Personajes" 
+            description="Habitantes del mundo" 
+            icon={<Users size={32} className="md:w-[48px] md:h-[48px]" />} 
+            delay={0.1} 
+            hasNewContent={notifications['personajes']} 
+            onClick={() => handleVisit('personajes')} 
+          />
+          <MenuCard 
+            href="/wiki/paginas/items" 
+            title="Items" 
+            description="Objetos y artefactos" 
+            icon={<Package size={32} className="md:w-[42px] md:h-[42px]" />} 
+            delay={0.2} 
+            hasNewContent={notifications['items']} 
+            onClick={() => handleVisit('items')} 
+          />
+          <MenuCard 
+            href="/wiki/paginas/libros" 
+            title="Libros" 
+            description="Relatos y mártires" 
+            icon={<BookOpen size={32} className="md:w-[42px] md:h-[42px]" />} 
+            delay={0.3} 
+            hasNewContent={notifications['libros']} 
+            onClick={() => handleVisit('libros')} 
+          />
+          <MenuCard 
+            href="/wiki/paginas/criaturas" 
+            title="Criaturas" 
+            description="Bestias y entidades" 
+            icon={<Footprints size={32} className="md:w-[42px] md:h-[42px]" />} 
+            delay={0.4} 
+            hasNewContent={notifications['criaturas']} 
+            onClick={() => handleVisit('criaturas')} 
+          />
+          <MenuCard 
+            href="/wiki/paginas/mapa" 
+            title="Mapa" 
+            description="Reinos y territorios" 
+            icon={<Map size={32} className="md:w-[42px] md:h-[42px]" />} 
+            delay={0.5} 
+            hasNewContent={notifications['mapa']} 
+            onClick={() => handleVisit('mapa')} 
+          />
+          <MenuCard 
+            href="/wiki/paginas/canciones" 
+            title="Canciones" 
+            description="Reflexiones internas" 
+            icon={<Music size={32} className="md:w-[42px] md:h-[42px]" />} 
+            delay={0.6} 
+            hasNewContent={notifications['canciones']} 
+            onClick={() => handleVisit('canciones')} 
+          />
         </div>
       </div>
     </div>
@@ -61,29 +120,38 @@ export default function WikiMenuPage() {
 }
 
 const MenuCard = ({ href, title, description, icon, delay, hasNewContent, onClick }: any) => (
-  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, type: "spring", stiffness: 100 }}>
-    <Link href={href} className="group block relative" onClick={onClick}>
-      {/* ✅ bg-white-custom en vez de bg-white — usa la variable CSS que cambia con el modo oscuro */}
-      <div className="bg-white-custom border-2 border-primary/10 rounded-2xl md:rounded-3xl p-4 md:p-8 h-full transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_25px_60px_rgba(0,0,0,0.12)] group-hover:-translate-y-2 group-hover:scale-[1.02]">
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }} 
+    animate={{ opacity: 1, y: 0 }} 
+    transition={{ delay, type: "spring", stiffness: 100 }}
+    className="h-full"
+  >
+    <Link href={href} className="group block relative h-full" onClick={onClick}>
+      <div className="bg-white-custom border-2 border-primary/5 rounded-3xl p-6 md:p-10 h-full flex flex-col justify-between transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3">
+        
         {hasNewContent && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-3 right-3 md:top-6 md:right-6 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full shadow-lg z-20">
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 md:top-8 md:right-8 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full shadow-lg z-20">
             <span className="absolute inset-0 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full animate-ping opacity-75" />
           </motion.div>
         )}
-        <motion.div
-          className="w-10 h-10 md:w-16 md:h-16 bg-primary/10 text-primary rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
-          whileHover={{ rotate: [0, -10, 10, 0] }}
-        >
-          {icon}
-        </motion.div>
-        <div className="space-y-1 md:space-y-2 mb-4">
-          <h2 className="text-lg md:text-3xl font-black uppercase tracking-tighter text-primary flex items-center gap-1 md:gap-3">
-            {title}
-            <ArrowRight className="opacity-0 -translate-x-4 transition-all group-hover:opacity-100 group-hover:translate-x-0 hidden md:block" size={24} />
-          </h2>
-        </div>
-        <div className="absolute bottom-3 right-4 md:bottom-6 md:right-8 text-primary/[0.04] font-black text-4xl md:text-7xl select-none group-hover:text-primary/[0.1] transition-all">
-          {title[0]}
+
+        <div className="flex flex-col h-full">
+          <motion.div
+            className="w-14 h-14 md:w-20 md:h-20 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6 md:mb-10 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
+            whileHover={{ rotate: [0, -10, 10, 0] }}
+          >
+            {icon}
+          </motion.div>
+          
+          <div className="mt-auto space-y-3">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter text-primary flex items-center justify-between">
+              {title}
+              <ArrowRight className="opacity-0 -translate-x-4 transition-all group-hover:opacity-100 group-hover:translate-x-0 hidden lg:block" size={32} />
+            </h2>
+            <p className="text-primary/40 text-xs md:text-sm font-bold uppercase tracking-widest leading-relaxed">
+              {description}
+            </p>
+          </div>
         </div>
       </div>
     </Link>
