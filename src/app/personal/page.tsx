@@ -92,6 +92,9 @@ const MenuCard = ({ href, title, description, icon, delay, hasNewContent, onClic
             <ArrowRight className="opacity-0 -translate-x-4 transition-all group-hover:opacity-100 group-hover:translate-x-0 hidden md:block" size={24} />
           </h2>
         </div>
+        <div className="absolute bottom-3 right-4 md:bottom-6 md:right-8 text-primary/[0.04] font-black text-4xl md:text-7xl select-none group-hover:text-primary/[0.1] transition-all">
+          {title[0]}
+        </div>
       </div>
     </Link>
   </motion.div>
