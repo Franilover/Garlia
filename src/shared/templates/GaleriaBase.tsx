@@ -7,7 +7,7 @@ import { LoadingState, EmptyState } from "@/shared/feedback/StateComponents";
 import { AdminAddButton } from "@/shared/forms/AdminAddButton";
 import { useSupabaseData } from '@/hooks/data/useSupabaseData';
 import { useFiltrosGenericos } from '@/hooks/features/useFiltros';
-import { useAdminItem } from '@/hooks/forms/useAdminItem';
+import { useAdminItem } from '@/hooks/features/useAdminItem';
 import { TABLAS_CONFIG, getMensaje } from '@/lib/config/constants';
 
 interface EntidadPageBaseProps {
