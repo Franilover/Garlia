@@ -43,7 +43,6 @@ export default function PersonalMenuPage() {
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
             className="inline-flex p-4 md:p-5 bg-primary/10 text-primary rounded-3xl mb-6 md:mb-8 shadow-lg"
           >
-            <UserCircle size={40} className="animate-pulse md:w-12 md:h-12" />
           </motion.div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-primary italic mb-4">
             Personal
