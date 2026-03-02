@@ -21,19 +21,16 @@ export default function PersonajesGrid() {
       }}
       getCustomTags={(p) => [p?.reino, p?.especie]} 
       renderCard={(p, onClick) => {
-        // 1. Creamos una versión única basada en una propiedad que cambie
-        // Si no tienes updated_at, usamos el nombre o la descripción para detectar cambios
-        const hash = p.img_url ? Buffer.from(p.img_url).toString('base64').substring(0, 5) : 'v1';
+        const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
         
-        // 2. Forzamos la URL de GitHub a saltarse la caché de Dexie y del Navegador
-        const finalSrc = p.img_url 
-          ? `${p.img_url}?v=${new Date().getTime()}` 
-          : "";
+        const baseUrl = p?.img_url || "";
+        const finalSrc = (baseUrl && isOnline) 
+          ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${new Date().getTime()}` 
+          : baseUrl;
 
         return (
           <GalleryItem
-            // CLAVE: Al cambiar la key con la URL, React destruye el elemento viejo de la caché
-            key={`${p.id}-${p.img_url}`}
+            key={`${p.id}-${baseUrl}`}
             src={finalSrc}
             color={p.color_hex}
             onClick={onClick}
