@@ -1,7 +1,15 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Package, BookOpen, Footprints, Map, Music } from "lucide-react";
+// Añadimos Dog y Sword a las importaciones
+import { 
+  Users, 
+  Sword, 
+  BookOpen, 
+  Dog, 
+  Map, 
+  Music 
+} from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { MenuCard } from "@/shared/display/MenuCard";
 
@@ -34,19 +42,68 @@ export default function WikiMenuPage() {
   return (
     <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 md:p-10 py-24">
       <div className="max-w-7xl w-full">
-        <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16 md:mb-24">
+
+        {/* HEADER */}
+        <motion.div 
+          initial={{ opacity: 0, y: -30 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="text-center mb-16 md:mb-24"
+        >
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter text-primary italic">
             Wiki
           </h1>
         </motion.div>
 
+        {/* GRID: 2 columnas en móvil, 3 en escritorio */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
-          <MenuCard href="/wiki/paginas/personajes" title="Personajes" icon={<Users />} delay={0.1} hasNewContent={notifications['personajes']} onClick={() => handleVisit('personajes')} />
-          <MenuCard href="/wiki/paginas/items" title="Items" icon={<Package />} delay={0.2} hasNewContent={notifications['items']} onClick={() => handleVisit('items')} />
-          <MenuCard href="/wiki/paginas/libros" title="Libros" icon={<BookOpen />} delay={0.3} hasNewContent={notifications['libros']} onClick={() => handleVisit('libros')} />
-          <MenuCard href="/wiki/paginas/criaturas" title="Criaturas" icon={<Footprints />} delay={0.4} hasNewContent={notifications['criaturas']} onClick={() => handleVisit('criaturas')} />
-          <MenuCard href="/wiki/paginas/mapa" title="Mapa" icon={<Map />} delay={0.5} hasNewContent={notifications['mapa']} onClick={() => handleVisit('mapa')} />
-          <MenuCard href="/wiki/paginas/canciones" title="Canciones" icon={<Music />} delay={0.6} hasNewContent={notifications['canciones']} onClick={() => handleVisit('canciones')} />
+          <MenuCard 
+            href="/wiki/paginas/personajes" 
+            title="Personajes" 
+            icon={<Users />} 
+            delay={0.1} 
+            hasNewContent={notifications['personajes']} 
+            onClick={() => handleVisit('personajes')} 
+          />
+          <MenuCard 
+            href="/wiki/paginas/items" 
+            title="Items" 
+            icon={<Sword />}  /* Icono de espada para Items */
+            delay={0.2} 
+            hasNewContent={notifications['items']} 
+            onClick={() => handleVisit('items')} 
+          />
+          <MenuCard 
+            href="/wiki/paginas/libros" 
+            title="Libros" 
+            icon={<BookOpen />} 
+            delay={0.3} 
+            hasNewContent={notifications['libros']} 
+            onClick={() => handleVisit('libros')} 
+          />
+          <MenuCard 
+            href="/wiki/paginas/criaturas" 
+            title="Criaturas" 
+            icon={<Dog />} /* Icono de perro para Criaturas */
+            delay={0.4} 
+            hasNewContent={notifications['criaturas']} 
+            onClick={() => handleVisit('criaturas')} 
+          />
+          <MenuCard 
+            href="/wiki/paginas/mapa" 
+            title="Mapa" 
+            icon={<Map />} 
+            delay={0.5} 
+            hasNewContent={notifications['mapa']} 
+            onClick={() => handleVisit('mapa')} 
+          />
+          <MenuCard 
+            href="/wiki/paginas/canciones" 
+            title="Canciones" 
+            icon={<Music />} 
+            delay={0.6} 
+            hasNewContent={notifications['canciones']} 
+            onClick={() => handleVisit('canciones')} 
+          />
         </div>
       </div>
     </div>
