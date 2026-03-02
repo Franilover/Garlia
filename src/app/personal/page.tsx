@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Smile, ImageIcon, Camera, ArrowRight, UserCircle } from "lucide-react";
+import { Smile, ImageIcon, Camera, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -32,18 +32,15 @@ export default function PersonalMenuPage() {
   };
 
   return (
-    // ✅ Fondo plano, sin degradado
     <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 md:p-6 py-20">
       <div className="max-w-5xl w-full">
 
-        {/* HEADER */}
         <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12 md:mb-20">
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-primary italic mb-4">
             Personal
           </h1>
         </motion.div>
 
-        {/* GRID */}
         <div className="grid grid-cols-2 gap-4 md:gap-8 mb-12">
           <div className="space-y-4 md:space-y-6">
             <MenuCard href="/personal/paginas/sobre-mi" title="Sobre Mí" description="En caso de dudas :D" icon={<Smile size={28} className="md:w-[42px] md:h-[42px]" />} delay={0.1} hasNewContent={notifications["sobre-mi"]} onClick={() => handleVisit("sobre-mi")} />
@@ -67,23 +64,21 @@ const MenuCard = ({ href, title, description, icon, delay, hasNewContent, onClic
             <span className="absolute inset-0 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full animate-ping opacity-75" />
           </motion.div>
         )}
+
         <motion.div
-          className="w-10 h-10 md:w-16 md:h-16 bg-primary/10 text-primary rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
+          className="w-12 h-12 md:w-20 md:h-20 bg-primary/10 text-primary rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
           whileHover={{ rotate: [0, -10, 10, 0] }}
-        >          <motion.div
-            initial={{ scale: 0 }} animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="inline-flex p-4 md:p-5 bg-primary/10 text-primary rounded-3xl mb-6 md:mb-8 shadow-lg"
-          >
-          </motion.div>
+        >
           {icon}
         </motion.div>
+
         <div className="space-y-1 md:space-y-2 mb-4">
           <h2 className="text-lg md:text-3xl font-black uppercase tracking-tighter text-primary flex items-center gap-1 md:gap-3">
             {title}
             <ArrowRight className="opacity-0 -translate-x-4 transition-all group-hover:opacity-100 group-hover:translate-x-0 hidden md:block" size={24} />
           </h2>
         </div>
+        
         <div className="absolute bottom-3 right-4 md:bottom-6 md:right-8 text-primary/[0.04] font-black text-4xl md:text-7xl select-none group-hover:text-primary/[0.1] transition-all">
           {title[0]}
         </div>
