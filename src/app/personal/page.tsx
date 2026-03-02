@@ -1,10 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-// Importamos Star junto a los otros iconos
-import { Star, ImageIcon, Camera } from "lucide-react";
+import { Star, Palette, Camera } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-// Usamos tu componente base centralizado
 import { MenuCard } from "@/shared/display/MenuCard";
 
 export default function PersonalMenuPage() {
@@ -37,7 +35,6 @@ export default function PersonalMenuPage() {
     <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 md:p-10 py-24">
       <div className="max-w-7xl w-full">
 
-        {/* HEADER */}
         <motion.div 
           initial={{ opacity: 0, y: -30 }} 
           animate={{ opacity: 1, y: 0 }} 
@@ -60,7 +57,7 @@ export default function PersonalMenuPage() {
           <MenuCard 
             href="/personal/paginas/dibujos" 
             title="Dibujos" 
-            icon={<ImageIcon />} 
+            icon={<Palette />} 
             delay={0.2} 
             hasNewContent={notifications["dibujos"]} 
             onClick={() => handleVisit("dibujos")} 
