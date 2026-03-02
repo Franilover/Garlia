@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Smile, ImageIcon, Camera } from "lucide-react";
-import Link from "next/link";
 import { supabase } from "@/lib/api/client/supabase";
+import { MenuCard } from "@/shared/display/MenuCard";
 
 export default function PersonalMenuPage() {
   const [notifications, setNotifications] = useState<Record<string, boolean>>({});
@@ -34,77 +34,18 @@ export default function PersonalMenuPage() {
   return (
     <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 md:p-10 py-24">
       <div className="max-w-7xl w-full">
-
-        {/* HEADER */}
-        <motion.div 
-          initial={{ opacity: 0, y: -30 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          className="text-center mb-16 md:mb-24"
-        >
+        <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16 md:mb-24">
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter text-primary italic">
             Personal
           </h1>
         </motion.div>
 
-        {/* GRID: 2 columnas en móvil, 3 en escritorio */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
-          <MenuCard 
-            href="/personal/paginas/sobre-mi" 
-            title="Sobre Mí" 
-            icon={<Smile size={32} className="md:w-[48px] md:h-[48px]" />} 
-            delay={0.1} 
-            hasNewContent={notifications["sobre-mi"]} 
-            onClick={() => handleVisit("sobre-mi")} 
-          />
-          <MenuCard 
-            href="/personal/paginas/dibujos" 
-            title="Dibujos" 
-            icon={<ImageIcon size={32} className="md:w-[48px] md:h-[48px]" />} 
-            delay={0.2} 
-            hasNewContent={notifications["dibujos"]} 
-            onClick={() => handleVisit("dibujos")} 
-          />
-          <MenuCard 
-            href="/personal/paginas/fotos" 
-            title="Fotos" 
-            icon={<Camera size={32} className="md:w-[48px] md:h-[48px]" />} 
-            delay={0.3} 
-            hasNewContent={notifications["fotos"]} 
-            onClick={() => handleVisit("fotos")} 
-          />
+          <MenuCard href="/personal/paginas/sobre-mi" title="Sobre Mí" icon={<Smile />} delay={0.1} hasNewContent={notifications["sobre-mi"]} onClick={() => handleVisit("sobre-mi")} />
+          <MenuCard href="/personal/paginas/dibujos" title="Dibujos" icon={<ImageIcon />} delay={0.2} hasNewContent={notifications["dibujos"]} onClick={() => handleVisit("dibujos")} />
+          <MenuCard href="/personal/paginas/fotos" title="Fotos" icon={<Camera />} delay={0.3} hasNewContent={notifications["fotos"]} onClick={() => handleVisit("fotos")} />
         </div>
       </div>
     </div>
   );
 }
-
-const MenuCard = ({ href, title, icon, delay, hasNewContent, onClick }: any) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }} 
-    animate={{ opacity: 1, y: 0 }} 
-    transition={{ delay, type: "spring", stiffness: 100 }}
-    className="h-full"
-  >
-    <Link href={href} className="group block relative h-full" onClick={onClick}>
-      <div className="bg-white-custom border-2 border-primary/5 rounded-3xl p-6 md:p-12 h-full flex flex-col items-center justify-center text-center transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3">
-        
-        {hasNewContent && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 md:top-8 md:right-8 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full shadow-lg z-20">
-            <span className="absolute inset-0 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full animate-ping opacity-75" />
-          </motion.div>
-        )}
-
-        <motion.div
-          className="w-16 h-16 md:w-24 md:h-24 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
-          whileHover={{ rotate: [0, -10, 10, 0] }}
-        >
-          {icon}
-        </motion.div>
-        
-        <h2 className="text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter text-primary">
-          {title}
-        </h2>
-      </div>
-    </Link>
-  </motion.div>
-);
