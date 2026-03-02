@@ -145,7 +145,7 @@ export const SeccionMusica = ({ listaLinks = [] }) => {
     return (
       <div className="p-16 border-4 border-dashed border-primary/5 rounded-[4rem] flex flex-col items-center justify-center opacity-20 italic">
         <Music size={40} className="mb-4 text-primary" />
-        <span className="text-[12px] font-black uppercase tracking-[0.5em]">Sin registros sonoros</span>
+        <span className="text-[12px] font-black uppercase tracking-[0.5em]">Sin canciones</span>
       </div>
     );
   }
