@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import EntidadPageBase from "./GaleriaBase";
+import EntidadPageBase from "@/shared/templates/GaleriaBase";
 import { SmartImage } from "@/shared/display/SmartImage";
 import { motion } from "framer-motion";
 import { Mic2, PenTool, Globe, User, ChevronRight } from "lucide-react";
