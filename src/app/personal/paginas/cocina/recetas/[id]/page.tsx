@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import RecetasPage from "@/features/paginas/personal/cocina/recetas";
+import RecetasPage from "@/paginas/personal/cocina/recetas";
 import { use } from "react"; // Importamos 'use' para desenvolver la promesa
 
 // Definimos la interfaz correcta para Next.js 15/16

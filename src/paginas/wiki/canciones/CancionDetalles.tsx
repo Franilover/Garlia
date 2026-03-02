@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/shared/display/SmartImage";
-import { MassEditModal } from "@/features/paginas/wiki/canciones/MassEditor";
+import { MassEditModal } from "@/paginas/wiki/canciones/MassEditor";
 
 // ============================================================================
 // CONSTANTES Y CONFIGURACIÓN

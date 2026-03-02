@@ -1,4 +1,4 @@
-import Fotos from "@/features/paginas/personal/galeria/fotos";
+import Fotos from "@/paginas/personal/galeria/fotos";
 
 export default function Page() {
   return <Fotos />;
