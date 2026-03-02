@@ -48,11 +48,6 @@ export default function PersonalMenuPage() {
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-primary italic mb-4">
             Personal
           </h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-            className="text-primary/50 font-medium tracking-wide text-sm md:text-base"
-          >
-            Mi espacio personal
-          </motion.p>
         </motion.div>
 
         {/* GRID */}
