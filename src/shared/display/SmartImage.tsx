@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SESSION_TS = Date.now();
@@ -8,8 +7,6 @@ const SESSION_TS = Date.now();
 export const SmartImage = ({ src, alt, className, contain = false, priority = false }) => {
   const [loaded, setLoaded] = useState(false);
 
-  // El ?v=SESSION_TS hace que Next.js trate la URL como nueva cada sesión,
-  // evitando la caché sin perder la optimización de tamaño/formato.
   const srcConBust = src
     ? `${src}${src.includes('?') ? '&' : '?'}v=${SESSION_TS}`
     : src;
@@ -33,14 +30,12 @@ export const SmartImage = ({ src, alt, className, contain = false, priority = fa
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full h-full"
       >
-        <Image
+        <img
           src={srcConBust}
           alt={alt || "Imagen de Franilover Art"}
-          fill
-          priority={priority}
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          loading={priority ? "eager" : "lazy"}
           onLoad={() => setLoaded(true)}
-          className={`transition-all duration-700 ${
+          className={`w-full h-full transition-all duration-700 ${
             contain ? 'object-contain' : 'object-cover'
           } ${loaded ? 'blur-0' : 'blur-xl'}`}
         />
