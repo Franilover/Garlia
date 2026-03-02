@@ -7,10 +7,7 @@ import { LightboxProvider, LightboxVisual, useLightbox } from "@/shared/modal/li
 import { supabase } from "@/lib/api/client/supabase";
 import { Plus, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-// 1. Importamos el nuevo selector simplificado
 import SimpleImagePicker from "@/shared/forms/SimpleImagePicker";
-
-// ─── MODAL PARA AÑADIR DIBUJO ────────────────────────────────────────────────
 
 const CATEGORIAS_DIBUJO = ["fanart", "original", "bocetos"];
 
@@ -27,13 +24,13 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
   const [categoria, setCategoria] = useState(CATEGORIAS_DIBUJO[0]);
   const [loading, setLoading] = useState(false);
 
-  // 2. Ajustamos la función para recibir la URL directa del SimpleImagePicker
   const handleImageSelect = (selectedUrl: string) => {
     setUrl(selectedUrl);
     setStep("meta");
   };
 
   const handleSave = async () => {
+    if (!titulo.trim()) return alert("Ponle un título al menos");
     setLoading(true);
     try {
       const { error } = await supabase
@@ -42,91 +39,86 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
           titulo, 
           url_imagen: url, 
           categoria,
-          autor: "Franilover" // Solo Franilover puede ver/crear contenido
+          creado_en: new Date().toISOString() 
         }]);
+
       if (error) throw error;
-      
       onSuccess();
-      handleClose();
+      onClose();
     } catch (err) {
       console.error(err);
+      alert("Error al guardar");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClose = () => {
-    setStep("pick");
-    setTitulo("");
-    onClose();
-  };
-
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }} 
-        animate={{ scale: 1, opacity: 1 }} 
-        className="bg-white rounded-4xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-bg-card border border-primary/10 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl"
       >
-        <div className="p-6 flex justify-between items-center border-b border-primary/5 shrink-0">
-          <h3 className="font-black uppercase text-xs tracking-widest text-primary">"Nuevo Dibujo"</h3>
-          <button onClick={handleClose} className="p-2 hover:bg-primary/5 rounded-full transition-colors">
+        <div className="p-6 border-b border-primary/5 flex justify-between items-center bg-primary/5">
+          <h2 className="text-xs font-black uppercase tracking-widest text-primary">Añadir a la Galería</h2>
+          <button onClick={onClose} className="p-2 hover:bg-primary/10 rounded-full transition-colors">
             <X size={18} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="p-8">
           {step === "pick" ? (
-            // 3. Usamos la clase canónica h-150 (600px) y el nuevo selector
-            <div className="h-150">
+            <div className="space-y-6">
+              <p className="text-[11px] text-primary/40 uppercase font-bold tracking-tighter text-center">Paso 1: Selecciona la obra</p>
+              {/* CORRECCIÓN: Se añade la prop onClose requerida por el componente */}
               <SimpleImagePicker 
-                onSelect={handleImageSelect}
-                onClose={handleClose} 
+                onSelect={handleImageSelect} 
+                onClose={onClose} 
               />
             </div>
           ) : (
-            <div className="p-8 space-y-6 max-w-md mx-auto">
-              <div className="aspect-square rounded-2xl overflow-hidden border-4 border-primary/5 bg-bg-main">
+            <div className="space-y-6">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-primary/10 bg-black/20">
                 <img src={url} alt="Preview" className="w-full h-full object-contain" />
               </div>
               
-              <input 
-                value={titulo} 
-                onChange={e => setTitulo(e.target.value)} 
-                placeholder="Título del dibujo..."
-                className="w-full bg-primary/5 border-none rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:ring-2 ring-primary/20"
-              />
+              <div className="space-y-4">
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Título del dibujo..."
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  className="w-full bg-primary/5 border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                />
 
-              <div className="flex gap-2">
-                {CATEGORIAS_DIBUJO.map(c => (
-                  <button 
-                    key={c} 
-                    onClick={() => setCategoria(c)}
-                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                      categoria === c ? 'bg-primary text-white' : 'bg-primary/5 text-primary/40'
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIAS_DIBUJO.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setCategoria(cat)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                        categoria === cat 
+                        ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                        : "bg-primary/5 text-primary/40 hover:bg-primary/10"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="w-full bg-primary text-white font-black uppercase tracking-[0.2em] text-[11px] py-5 rounded-2xl shadow-xl hover:bg-primary/80 disabled:opacity-50 transition-all flex justify-center items-center gap-3"
+                >
+                  {loading ? <Loader2 className="animate-spin" size={16} /> : "Publicar Obra"}
+                </button>
               </div>
-
-              <button 
-                onClick={handleSave} 
-                disabled={loading || !titulo}
-                className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-primary/20 disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : "Publicar"}
-              </button>
-              
-              <button 
-                onClick={() => setStep("pick")}
-                className="w-full text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors"
-              >
-                Cambiar imagen
-              </button>
             </div>
           )}
         </div>
@@ -134,8 +126,6 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
     </div>
   );
 }
-
-// ─── COMPONENTE PRINCIPAL ──────────────────────────────────────────────────
 
 function DrawingsContent() {
   const { openLightbox } = useLightbox();
@@ -152,18 +142,18 @@ function DrawingsContent() {
         tabla="dibujos"
         titulo="Galería"
         configFiltros={["categoria"]}
-        renderCard={(item, _, index, allItems) => (
+        renderCard={(item, onClick, vistaFila, index, allItems) => (
           <GalleryItem
             key={item.id}
             src={item.url_imagen}
             alt={item.titulo}
             onClick={() => {
-              const lbData = allItems!.map((d: any) => ({
+              const lbData = allItems.map((d: any) => ({
                 src: d.url_imagen,
                 alt: d.titulo,
                 id: d.id,
               }));
-              openLightbox(index!, lbData, "dibujos");
+              openLightbox(index, lbData, "dibujos");
             }}
           />
         )}

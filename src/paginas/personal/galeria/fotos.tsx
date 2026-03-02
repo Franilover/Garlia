@@ -3,7 +3,6 @@
 import EntidadPageBase from "@/shared/templates/GaleriaBase";
 import { GalleryItem } from "@/shared/layout/gallery";
 import { LightboxProvider, LightboxVisual, useLightbox } from "@/shared/modal/lightbox";
-import { CATEGORIAS } from '@/lib/config/constants';
 
 function DiarioContent() {
   const { openLightbox } = useLightbox();
@@ -13,19 +12,18 @@ function DiarioContent() {
       <EntidadPageBase
         tabla="diario_fotos"
         titulo="Diario"
-        configFiltros={['categoria']}
-        renderCard={(item, _, index, allItems) => (
+        configFiltros={["categoria"]}
+        renderCard={(item, onClick, vistaFila, index, allItems) => (
           <GalleryItem 
             key={item.id} 
             src={item.url_imagen} 
             onClick={() => {
-              // Generamos la lista para el lightbox desde los items filtrados actuales
-              const lbData = allItems!.map(e => ({ 
+              const lbData = allItems.map((e: any) => ({ 
                 src: e.url_imagen, 
                 alt: e.fecha || "Foto de diario",
                 id: e.id 
               }));
-              openLightbox(index!, lbData, 'diario_fotos');
+              openLightbox(index, lbData, "diario_fotos");
             }}
           />
         )}

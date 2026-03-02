@@ -1,24 +1,26 @@
 "use client";
-
-import { useState } from "react";
 import { GalleryGrid } from "@/shared/layout/gallery";
 import DetalleMaestro from "@/shared/display/detalles";
 import FiltrosMaestros from "@/shared/layout/Filtros";
 import PageHeader from "@/shared/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/shared/feedback/StateComponents";
 import { AdminAddButton } from "@/shared/forms/AdminAddButton";
-import { useSupabaseData } from '@/hooks/data/useSupabaseData';
-import { useFiltrosGenericos } from '@/hooks/features/useFiltros';
-import { useAdminItem } from '@/hooks/features/useAdminItem';
-import { TABLAS_CONFIG, getMensaje } from '@/lib/config/constants';
-import { Search, X, LayoutGrid, AlignJustify } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
+import { useAdminItem } from "@/hooks/features/useAdminItem";
+import { TABLAS_CONFIG, getMensaje } from "@/lib/config/constants";
 
 interface EntidadPageBaseProps {
   tabla: string;
   titulo: string;
   configFiltros: string[];
-  renderCard: (item: any, onClick: () => void, vistaFila: boolean) => React.ReactNode;
+  renderCard: (
+    item: any, 
+    onClick: () => void, 
+    vistaFila: boolean, 
+    index: number, 
+    allItems: any[]
+  ) => React.ReactNode;
   mostrarMusica?: boolean;
   getCustomTags?: (item: any) => (string | null | undefined)[];
   plantillaNueva?: any; 
@@ -34,22 +36,13 @@ export default function EntidadPageBase({
   plantillaNueva
 }: EntidadPageBaseProps) {
   
-  const [busqueda, setBusqueda] = useState("");
-  const [vistaGrid, setVistaGrid] = useState(true);
-
   const { data, loading, setData } = useSupabaseData(
     tabla, 
-    { order: TABLAS_CONFIG[tabla]?.orden || { campo: 'nombre', asc: true } }
+    { order: TABLAS_CONFIG[tabla]?.orden || { campo: "nombre", asc: true } }
   );
 
-  const { filtros, opciones, itemsFiltrados, actualizarFiltro, resetearFiltros } = useFiltrosGenericos(data, {
+  const { filtros, opciones, itemsFiltrados, actualizarFiltro } = useFiltrosGenericos(data, {
     campos: configFiltros
-  });
-
-  const itemsFinales = itemsFiltrados.filter((item: any) => {
-    const term = busqueda.toLowerCase();
-    const nombre = item.nombre || item.titulo || "";
-    return nombre.toLowerCase().includes(term);
   });
 
   const { 
@@ -62,7 +55,7 @@ export default function EntidadPageBase({
     handleClose 
   } = useAdminItem(setData, { plantilla: plantillaNueva });
 
-  if (loading) return <LoadingState mensaje={getMensaje('LOADING', tabla as any)} />;
+  if (loading) return <LoadingState mensaje={getMensaje("LOADING", tabla as any)} />;
 
   return (
     <main className="min-h-screen bg-bg-main pb-20 overflow-x-hidden">
@@ -84,61 +77,32 @@ export default function EntidadPageBase({
                 <AdminAddButton onClick={handleAddNew} label={`Añadir ${titulo}`} />
               )}
               
-              <div className="bg-white-custom/50 backdrop-blur-sm border border-primary/10 p-6 rounded-[2.5rem] flex flex-col gap-4">
-                <div className="relative">
-                  <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="Buscar..."
-                    value={busqueda}
-                    onChange={(e) => setBusqueda(e.target.value)}
-                    className="w-full bg-bg-main border-2 border-primary/10 py-4 pl-12 pr-12 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all"
-                  />
-                  <AnimatePresence>
-                    {busqueda && (
-                      <motion.button
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        onClick={() => setBusqueda("")}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary p-1"
-                      >
-                        <X size={16} />
-                      </motion.button>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                <FiltrosMaestros
-                  config={Object.fromEntries(configFiltros.map(f => [f === 'conFoto' ? 'conFoto' : f.charAt(0).toUpperCase() + f.slice(1), opciones[f] || []]))}
-                  filtrosActivos={filtros}
-                  onChange={(grupo, valor) => actualizarFiltro(grupo.toLowerCase(), valor)}
-                />
-
-                <div className="flex items-center justify-between">
-                  <button onClick={() => { resetearFiltros(); setBusqueda(""); }} className="text-primary/40 hover:text-red-500 transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-2 px-4">
-                    <X size={14} /> Limpiar filtros
-                  </button>
-
-                  <div className="flex items-center gap-1 bg-white-custom border-2 border-primary/5 rounded-full p-1">
-                    <button onClick={() => setVistaGrid(true)} className={`p-2 rounded-full transition-all ${vistaGrid ? "bg-primary text-white" : "text-primary/40"}`}>
-                      <LayoutGrid size={14} />
-                    </button>
-                    <button onClick={() => setVistaGrid(false)} className={`p-2 rounded-full transition-all ${!vistaGrid ? "bg-primary text-white" : "text-primary/40"}`}>
-                      <AlignJustify size={14} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <FiltrosMaestros
+                config={Object.fromEntries(
+                  configFiltros.map(f => [
+                    f === "conFoto" ? "conFoto" : f.charAt(0).toUpperCase() + f.slice(1), 
+                    opciones[f] || []
+                  ])
+                )}
+                filtrosActivos={filtros}
+                onChange={(grupo, valor) => {
+                  const campo = grupo === "conFoto" 
+                    ? "conFoto" 
+                    : grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                  actualizarFiltro(campo, valor);
+                }}
+              />
             </div>
           </PageHeader>
         }
       >
-        {itemsFinales.length > 0 ? (
-          <div className={vistaGrid ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6" : "flex flex-col gap-4 w-full col-span-full"}>
-            {itemsFinales.map((item) => renderCard(item, () => handleSelect(item), !vistaGrid))}
-          </div>
+        {itemsFiltrados.length > 0 ? (
+          itemsFiltrados.map((item, index) => 
+            renderCard(item, () => handleSelect(item), false, index, itemsFiltrados)
+          )
         ) : (
           <div className="col-span-full py-20">
-            <EmptyState mensaje={getMensaje('EMPTY', tabla as any)} />
+            <EmptyState mensaje={getMensaje("EMPTY", tabla as any)} />
           </div>
         )}
       </GalleryGrid>
