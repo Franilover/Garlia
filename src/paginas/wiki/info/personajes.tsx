@@ -23,7 +23,7 @@ export default function PersonajesGrid() {
       renderCard={(p, onClick) => (
         <GalleryItem
           key={p.id}
-          src={p.img_url}
+          src={`${p.img_url}?t=${new Date(p.updated_at || '').getTime()}`}
           color={p.color_hex}
           onClick={onClick}
         >
