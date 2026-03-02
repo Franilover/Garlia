@@ -58,7 +58,7 @@ export default function EntidadPageBase({
     const isAdminSession = useIsAdmin();
 
     const { data, loading, setData } = useSupabaseData(
-      isAdminSession !== undefined ? tabla : "__skip__", // espera a saber la sesión
+      isAdminSession !== undefined ? tabla : "__skip__", // espera a saberz  la sesión
       { 
         order: TABLAS_CONFIG[tabla]?.orden || { campo: "nombre", asc: true },
         isAdmin: isAdminSession 

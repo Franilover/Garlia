@@ -4,7 +4,6 @@ import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/app/providers/DataProvider";
 import { db } from "@/lib/api/client/db"; 
 
-
 import { personajesQueries } from "@/lib/api/queries/wiki/personajes";
 import { criaturasQueries } from "@/lib/api/queries/wiki/criaturas";
 import { itemsQueries } from "@/lib/api/queries/wiki/items";
@@ -30,7 +29,6 @@ const QUERIES_MAP: Record<string, any> = {
   canciones:    cancionesQueries,
 };
 
-
 const DEXIE_TABLES = new Set([
   "personajes", "criaturas", "items", "libros", "canciones",
   "tareas", "eventos", "recetas", "ingredientes",
@@ -44,7 +42,6 @@ interface UseSupabaseOptions {
   [key: string]: any;
 }
 
-
 async function readFromDexie<T>(tabla: string): Promise<T[]> {
   try {
     if (!db || !DEXIE_TABLES.has(tabla)) return [];
@@ -55,7 +52,6 @@ async function readFromDexie<T>(tabla: string): Promise<T[]> {
     return [];
   }
 }
-
 
 async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
   try {
@@ -68,13 +64,9 @@ async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
   }
 }
 
-
-
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
-
   const [data, setData] = useState<T[]>(cache[tabla] || []);
-  
   const [loading, setLoading] = useState(tabla !== "__skip__" && !cache[tabla]);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
@@ -83,20 +75,17 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const retryCount = useRef(0);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  
-  const optionsRef = useRef(opciones);
-  useEffect(() => { optionsRef.current = opciones; });
-  const optionsString = JSON.stringify(opciones);
+  // Convertimos las opciones a string para que el useCallback detecte cambios reales
+  // en lugar de comparar referencias de objetos que cambian en cada render.
+  const optionsKey = JSON.stringify(opciones);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
-    
     if (tabla === "__skip__") return;
 
     if (data.length === 0 || forceRefresh) setLoading(true);
     setError(null);
 
-    
     if (!navigator.onLine) {
       const localData = await readFromDexie<T>(tabla);
       if (isMounted.current) {
@@ -109,17 +98,17 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     setIsOffline(false);
 
-    
     try {
-      const opt = optionsRef.current;
+      // Usamos las opciones parseadas desde la dependencia para asegurar frescura
+      const currentOptions = JSON.parse(optionsKey);
       let res: any;
 
       if (QUERIES_MAP[tabla]) {
-        res = await QUERIES_MAP[tabla].getAll(opt);
+        res = await QUERIES_MAP[tabla].getAll(currentOptions);
       } else {
-        let query = supabase.from(tabla).select(opt.select || "*");
-        if (opt.order) {
-          query = query.order(opt.order.campo, { ascending: opt.order.asc ?? true });
+        let query = supabase.from(tabla).select(currentOptions.select || "*");
+        if (currentOptions.order) {
+          query = query.order(currentOptions.order.campo, { ascending: currentOptions.order.asc ?? true });
         }
         res = await query;
       }
@@ -133,14 +122,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         setData(finalData as T[]);
         updateCache(tabla, finalData);
         retryCount.current = 0;
-
-        
         writeToDexie(tabla, finalData);
       }
     } catch (err: any) {
-      
-      const isNetworkError =
-        err.message?.includes("fetch") || err.message?.includes("NetworkError");
+      const isNetworkError = err.message?.includes("fetch") || err.message?.includes("NetworkError");
 
       if (isNetworkError) {
         const localData = await readFromDexie<T>(tabla);
@@ -156,30 +141,22 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
           return;
         }
       }
-
       if (isMounted.current) setError(err.message);
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, updateCache]); 
+  }, [tabla, updateCache, optionsKey]); // Agregado optionsKey aquí
 
-  
-
+  // Métodos de mutación (addRow, updateRow, deleteRow) se mantienen igual...
   const addRow = useCallback(async (newData: any) => {
     try {
       const res = QUERIES_MAP[tabla]?.create
         ? await QUERIES_MAP[tabla].create(newData)
         : await supabase.from(tabla).insert([newData]).select().single();
-
       const created = res?.data || res;
-
-      
       if (created?.id) writeToDexie(tabla, [created]);
-
       return { data: created, error: res?.error || null };
-    } catch (err: any) {
-      return { data: null, error: err.message };
-    }
+    } catch (err: any) { return { data: null, error: err.message }; }
   }, [tabla]);
 
   const updateRow = useCallback(async (id: string | number, updates: any) => {
@@ -187,14 +164,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       const res = QUERIES_MAP[tabla]?.update
         ? await QUERIES_MAP[tabla].update(id, updates)
         : await supabase.from(tabla).update(updates).eq("id", id).select().single();
-
       const updated = res?.data || res;
       if (updated?.id) writeToDexie(tabla, [updated]);
-
       return { data: updated, error: res?.error || null };
-    } catch (err: any) {
-      return { data: null, error: err.message };
-    }
+    } catch (err: any) { return { data: null, error: err.message }; }
   }, [tabla]);
 
   const deleteRow = useCallback(async (id: string | number) => {
@@ -202,21 +175,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       const res = QUERIES_MAP[tabla]?.delete
         ? await QUERIES_MAP[tabla].delete(id)
         : await supabase.from(tabla).delete().eq("id", id);
-
-      
-      try {
-        if (db && DEXIE_TABLES.has(tabla)) {
-          await (db as any)[tabla]?.delete(id);
-        }
-      } catch {}
-
+      try { if (db && DEXIE_TABLES.has(tabla)) await (db as any)[tabla]?.delete(id); } catch {}
       return { error: res?.error || null };
-    } catch (err: any) {
-      return { error: err.message };
-    }
+    } catch (err: any) { return { error: err.message }; }
   }, [tabla]);
-
-  
 
   useEffect(() => {
     isMounted.current = true;
@@ -233,7 +195,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         }
       });
 
-    
     const handleOnline = () => fetchData(true);
     window.addEventListener("online", handleOnline);
 
