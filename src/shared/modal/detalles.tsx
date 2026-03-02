@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import DetalleMaestro from "../../features/DetalleMaestro/DetalleMaestro";
+import DetalleMaestro from "../display/DetalleMaestro/DetalleMaestro";
 
 interface DetallesModalProps {
   isOpen: boolean;
