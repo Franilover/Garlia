@@ -4,6 +4,10 @@ import { GalleryItem } from "@/shared/layout/gallery";
 import { typography } from '@/lib/config/design-system';
 
 export default function PersonajesGrid() {
+  // Generamos un identificador único al cargar el componente
+  // Esto asegura que al entrar a la página, siempre intente traer lo último de GitHub
+  const versionId = Date.now();
+
   return (
     <EntidadPageBase
       tabla="personajes"
@@ -21,11 +25,9 @@ export default function PersonajesGrid() {
       }}
       getCustomTags={(p) => [p?.reino, p?.especie]} 
       renderCard={(p, onClick) => {
-        const version = p.updated_at 
-          ? `?t=${new Date(p.updated_at).getTime()}` 
+        const finalSrc = p.img_url 
+          ? `${p.img_url}${p.img_url.includes('?') ? '&' : '?'}v=${versionId}`
           : "";
-        
-        const finalSrc = p.img_url ? `${p.img_url}${version}` : "";
 
         return (
           <GalleryItem
