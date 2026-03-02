@@ -53,14 +53,6 @@ export default function PersonalMenuPage() {
             <MenuCard href="/personal/paginas/fotos" title="Fotos" description="Recuerdos" icon={<Camera size={28} className="md:w-[42px] md:h-[42px]" />} delay={0.3} hasNewContent={notifications["fotos"]} onClick={() => handleVisit("fotos")} />
           </div>
         </div>
-
-        {/* FOOTER */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-12 md:mt-20 flex flex-col items-center gap-8">
-          <Link href="/" className="group inline-flex items-center gap-2 px-6 py-3 text-xs font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all duration-300 border-2 border-primary/10 hover:border-primary rounded-full hover:shadow-lg hover:scale-105">
-            <ArrowRight size={16} className="rotate-180 transition-transform group-hover:-translate-x-1" />
-            Volver al Inicio
-          </Link>
-        </motion.div>
       </div>
     </div>
   );
