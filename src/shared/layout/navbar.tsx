@@ -8,10 +8,10 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDarkMode } from "@/hooks/features/useDarkMode";
 import {
-  LogOut, Plus, Camera, Sparkles,
+  LogOut, Plus, Eye, Sparkles,
   CircleUser, Flower2, Sword,
   Utensils, CheckSquare, Dumbbell,
-  PenTool, Moon, Sun
+  PenTool, Moon, Sun, Star
 } from "lucide-react";
 
 const Navbar = () => {
@@ -61,14 +61,15 @@ const Navbar = () => {
     </motion.button>
   );
 
-  // --- CONTENIDO MÓVIL ---
+  // --- CONTENIDO MÓVIL (Sin texto, nuevos iconos) ---
   const navContentMobile = useMemo(() => (
     <div className="flex w-full items-center justify-evenly h-full">
-      <Link href="/personal" onClick={closeAll} className="flex flex-col items-center gap-1">
-        <Camera size={22} className={isPersonal ? "text-primary" : "text-primary/30"} />
-        <span className={cn("text-[7px] font-black uppercase tracking-widest", isPersonal ? "text-primary" : "text-primary/20")}>
-          Personal
-        </span>
+      <Link href="/personal" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
+        <Star 
+          size={26} 
+          className={cn("transition-all duration-300", isPersonal ? "text-primary scale-110" : "text-primary/30")} 
+          fill={isPersonal ? "currentColor" : "none"}
+        />
       </Link>
 
       <button
@@ -81,18 +82,18 @@ const Navbar = () => {
         <Flower2 size={24} strokeWidth={2.5} />
       </button>
 
-      <Link href="/wiki" onClick={closeAll} className="flex flex-col items-center gap-1">
-        <Sparkles size={22} className={isWiki ? "text-primary" : "text-primary/30"} />
-        <span className={cn("text-[7px] font-black uppercase tracking-widest", isWiki ? "text-primary" : "text-primary/20")}>
-          Wiki
-        </span>
+      <Link href="/wiki" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
+        <Eye 
+          size={26} 
+          className={cn("transition-all duration-300", isWiki ? "text-primary scale-110" : "text-primary/30")} 
+        />
       </Link>
     </div>
   ), [isPersonal, isWiki, user, userMenuOpen]);
 
   return (
     <>
-      {/* ── PC NAVBAR ── */}
+      {/* ── PC NAVBAR (Se mantiene igual) ── */}
       <header className="hidden md:block fixed top-0 left-0 w-full z-[100] bg-bg-main/80 backdrop-blur-md border-b border-primary/10">
         <div className="max-w-7xl mx-auto h-20 flex items-center justify-between px-8">
           <div className="flex items-center gap-6">
@@ -141,7 +142,6 @@ const Navbar = () => {
           </nav>
 
           <div className="flex items-center gap-3">
-            {/* Toggle modo oscuro — PC */}
             <DarkToggleBtn />
 
             {user ? (
@@ -189,7 +189,7 @@ const Navbar = () => {
         </div>
       </header>
 
-      {/* ── MÓVIL ── */}
+      {/* ── MÓVIL (Sin etiquetas de texto) ── */}
       <div className="md:hidden fixed bottom-0 left-0 w-full z-[1000]">
         <nav className="bg-bg-main/95 backdrop-blur-xl border-t border-primary/20 shadow-2xl h-16 flex items-center w-full">
           {navContentMobile}
@@ -235,7 +235,6 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* Toggle modo oscuro — menú móvil */}
               <button
                 onClick={toggle}
                 className="w-full p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3 transition-all hover:bg-primary/5"
