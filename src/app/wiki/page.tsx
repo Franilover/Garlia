@@ -1,13 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-// Importamos los nuevos iconos elegidos
 import { 
   Users, 
   Sword, 
   BookOpen, 
   Dog, 
-  Map, 
+  Compass,
   Music 
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
@@ -91,7 +90,7 @@ export default function WikiMenuPage() {
           <MenuCard 
             href="/wiki/paginas/mapa" 
             title="Mapa" 
-            icon={<Map />} 
+            icon={<Compass />} 
             delay={0.5} 
             hasNewContent={notifications['mapa']} 
             onClick={() => handleVisit('mapa')} 
