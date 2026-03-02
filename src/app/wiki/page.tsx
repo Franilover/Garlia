@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { 
   Users, 
   Sword, 
-  BookOpen, 
+  BookText, 
   Dog, 
-  Compass,
+  Compass, 
   Music 
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
@@ -41,8 +41,6 @@ export default function WikiMenuPage() {
   return (
     <div className="min-h-screen bg-bg-main flex items-center justify-center p-4 md:p-10 py-24">
       <div className="max-w-7xl w-full">
-
-        {/* HEADER */}
         <motion.div 
           initial={{ opacity: 0, y: -30 }} 
           animate={{ opacity: 1, y: 0 }} 
@@ -53,7 +51,6 @@ export default function WikiMenuPage() {
           </h1>
         </motion.div>
 
-        {/* GRID usando el componente BASE */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
           <MenuCard 
             href="/wiki/paginas/personajes" 
@@ -74,7 +71,7 @@ export default function WikiMenuPage() {
           <MenuCard 
             href="/wiki/paginas/libros" 
             title="Libros" 
-            icon={<BookOpen />} 
+            icon={<BookText />} 
             delay={0.3} 
             hasNewContent={notifications['libros']} 
             onClick={() => handleVisit('libros')} 
