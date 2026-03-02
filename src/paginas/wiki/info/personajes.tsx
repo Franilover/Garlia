@@ -20,16 +20,24 @@ export default function PersonajesGrid() {
         historia: ""
       }}
       getCustomTags={(p) => [p?.reino, p?.especie]} 
-      renderCard={(p, onClick) => (
-        <GalleryItem
-          key={p.id}
-          src={`${p.img_url}?t=${new Date(p.updated_at || '').getTime()}`}
-          color={p.color_hex}
-          onClick={onClick}
-        >
-          <h3 className={typography.cardTitle}>{p.nombre}</h3>
-        </GalleryItem>
-      )}
+      renderCard={(p, onClick) => {
+        const version = p.updated_at 
+          ? `?t=${new Date(p.updated_at).getTime()}` 
+          : "";
+        
+        const finalSrc = p.img_url ? `${p.img_url}${version}` : "";
+
+        return (
+          <GalleryItem
+            key={p.id}
+            src={finalSrc}
+            color={p.color_hex}
+            onClick={onClick}
+          >
+            <h3 className={typography.cardTitle}>{p.nombre}</h3>
+          </GalleryItem>
+        );
+      }}
     />
   );
 }
