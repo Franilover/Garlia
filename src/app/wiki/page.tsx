@@ -10,7 +10,7 @@ import {
   Music 
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-import { MenuCard } from "@/shared/display/MenuCard";
+import { MenuCard } from "@/shared/templates/MenuCard";
 
 export default function WikiMenuPage() {
   const [notifications, setNotifications] = useState<Record<string, boolean>>({});

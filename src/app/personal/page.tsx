@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Star, Palette, Camera } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-import { MenuCard } from "@/shared/display/MenuCard";
+import { MenuCard } from "@/shared/templates/MenuCard";
 
 export default function PersonalMenuPage() {
   const [notifications, setNotifications] = useState<Record<string, boolean>>({});
@@ -57,7 +57,7 @@ export default function PersonalMenuPage() {
           <MenuCard 
             href="/personal/paginas/dibujos" 
             title="Dibujos" 
-            icon={<Palette />} 
+            icon={<Palette />} /* Icono de Paleta actualizado */
             delay={0.2} 
             hasNewContent={notifications["dibujos"]} 
             onClick={() => handleVisit("dibujos")} 
