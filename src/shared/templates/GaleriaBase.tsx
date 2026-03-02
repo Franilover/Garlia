@@ -12,6 +12,7 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
 import { useAdminItem } from "@/hooks/features/useAdminItem";
 import { TABLAS_CONFIG, getMensaje } from "@/lib/config/constants";
+import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 
 interface EntidadPageBaseProps {
   tabla: string;
@@ -54,10 +55,15 @@ export default function EntidadPageBase({
   plantillaNueva,
 }: EntidadPageBaseProps) {
 
-  const { data, loading, setData } = useSupabaseData(
-    tabla,
-    { order: TABLAS_CONFIG[tabla]?.orden || { campo: "nombre", asc: true } }
-  );
+    const isAdminSession = useIsAdmin();
+
+    const { data, loading, setData } = useSupabaseData(
+      isAdminSession !== undefined ? tabla : "__skip__", // espera a saber la sesión
+      { 
+        order: TABLAS_CONFIG[tabla]?.orden || { campo: "nombre", asc: true },
+        isAdmin: isAdminSession 
+      }
+    );
 
   const { filtros, opciones, itemsFiltrados, actualizarFiltro, resetearFiltros } =
     useFiltrosGenericos(data, { campos: configFiltros });
@@ -97,7 +103,6 @@ export default function EntidadPageBase({
   return (
     <main className="min-h-screen bg-bg-main pb-20 overflow-x-hidden">
 
-      {/* MODAL: usa el custom si se pasa, si no el genérico DetalleMaestro */}
       {renderModal ? (
         renderModal(selected, isCreating, handleClose, handleUpdate)
       ) : (
