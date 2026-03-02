@@ -732,7 +732,7 @@ const Canciones = () => {
       </section>
 
       <main className="max-w-6xl mx-auto px-6">
-        <div className={`grid gap-4 ${vistaGrid ? "grid-cols-2 gap-12" : "grid-cols-1"}`}>
+        <div className={`grid gap-4 ${vistaGrid ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6" : "grid-cols-1"}`}>
           {cancionesFinales.map((cancion: any) => (
             <CancionCard key={cancion.id} cancion={cancion} isAdmin={isAdmin} onEdit={openEditModal} vistaFila={!vistaGrid} />
           ))}
