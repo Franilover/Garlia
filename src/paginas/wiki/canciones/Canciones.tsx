@@ -12,6 +12,8 @@ interface CancionCardProps {
 }
 
 function CancionCard({ cancion, onClick, vistaFila }: CancionCardProps) {
+  if (!cancion) return null;
+
   if (vistaFila) {
     return (
       <div 
@@ -110,7 +112,7 @@ export default function CancionesPage() {
         mostrarMusica={true}
         renderCard={(item, onClick) => (
           <CancionCard 
-            key={item.id} 
+            key={item?.id || Math.random()} 
             cancion={item} 
             onClick={onClick}
             vistaFila={!vistaGrid}
@@ -127,8 +129,8 @@ export default function CancionesPage() {
           anio: new Date().getFullYear().toString()
         }}
         getCustomTags={(item) => [
-          item.estado,
-          item.genero
+          item?.estado || "S/E",
+          item?.genero || "S/G"
         ]}
       />
     </div>
