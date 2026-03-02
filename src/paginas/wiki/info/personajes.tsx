@@ -4,10 +4,6 @@ import { GalleryItem } from "@/shared/layout/gallery";
 import { typography } from '@/lib/config/design-system';
 
 export default function PersonajesGrid() {
-  // Generamos un sello de tiempo una sola vez al cargar el componente
-  // Esto asegura que cada sesión de 'Franilover' vea lo más reciente de GitHub
-  const sessionHash = typeof window !== 'undefined' ? Date.now() : '2026';
-
   return (
     <EntidadPageBase
       tabla="personajes"
@@ -25,19 +21,27 @@ export default function PersonajesGrid() {
       }}
       getCustomTags={(p) => [p?.reino, p?.especie]} 
       renderCard={(p, onClick) => {
-        // 1. Limpiamos posibles espacios en blanco de la URL de GitHub
-        const cleanUrl = p.img_url?.trim();
+        // 1. Extraemos la URL base (priorizando img_url como en DetalleMaestro)
+        const rawUrl = p?.img_url || p?.imagen_url;
         
-        // 2. Construimos la URL con el parámetro de sesión
-        // Si la URL ya tiene un '?', usamos '&', si no, usamos '?'
-        const finalSrc = cleanUrl 
-          ? `${cleanUrl}${cleanUrl.includes('?') ? '&' : '?'}cache=${sessionHash}`
-          : "";
+        // 2. Si no hay URL, usamos un placeholder o string vacío para no romper el componente
+        if (!rawUrl) {
+          return (
+            <GalleryItem key={p.id} src="" color={p.color_hex} onClick={onClick}>
+              <h3 className={typography.cardTitle}>{p.nombre}</h3>
+            </GalleryItem>
+          );
+        }
+
+        // 3. Limpiamos y añadimos el parámetro de tiempo de forma segura
+        // Usamos un número fijo o Date.now() para forzar la carga de GitHub
+        const cleanUrl = rawUrl.trim();
+        const separator = cleanUrl.includes('?') ? '&' : '?';
+        const finalSrc = `${cleanUrl}${separator}v=${Date.now()}`;
 
         return (
           <GalleryItem
-            // CLAVE: Usamos el ID y la URL como key. 
-            // Si la URL cambia en la base de datos, React destruye el item viejo y crea uno nuevo.
+            // Usamos una key que cambie si cambia la URL para forzar el refresco de React
             key={`${p.id}-${cleanUrl}`}
             src={finalSrc}
             color={p.color_hex}
