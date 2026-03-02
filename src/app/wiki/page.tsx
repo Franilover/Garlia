@@ -53,7 +53,7 @@ export default function WikiMenuPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
           <MenuCard 
-            href="/wiki/paginas/personajes" 
+            href="/wiki/personajes" 
             title="Personajes" 
             icon={<Users />} 
             delay={0.1} 
@@ -61,7 +61,7 @@ export default function WikiMenuPage() {
             onClick={() => handleVisit('personajes')} 
           />
           <MenuCard 
-            href="/wiki/paginas/items" 
+            href="/wiki/items" 
             title="Items" 
             icon={<Sword />} 
             delay={0.2} 
@@ -69,7 +69,7 @@ export default function WikiMenuPage() {
             onClick={() => handleVisit('items')} 
           />
           <MenuCard 
-            href="/wiki/paginas/libros" 
+            href="/wiki/libros" 
             title="Libros" 
             icon={<BookText />} 
             delay={0.3} 
@@ -77,7 +77,7 @@ export default function WikiMenuPage() {
             onClick={() => handleVisit('libros')} 
           />
           <MenuCard 
-            href="/wiki/paginas/criaturas" 
+            href="/wiki/criaturas" 
             title="Criaturas" 
             icon={<Dog />} 
             delay={0.4} 
@@ -85,7 +85,7 @@ export default function WikiMenuPage() {
             onClick={() => handleVisit('criaturas')} 
           />
           <MenuCard 
-            href="/wiki/paginas/mapa" 
+            href="/wiki/mapa" 
             title="Mapa" 
             icon={<Compass />} 
             delay={0.5} 
@@ -93,7 +93,7 @@ export default function WikiMenuPage() {
             onClick={() => handleVisit('mapa')} 
           />
           <MenuCard 
-            href="/wiki/paginas/canciones" 
+            href="/wiki/canciones" 
             title="Canciones" 
             icon={<Music />} 
             delay={0.6} 

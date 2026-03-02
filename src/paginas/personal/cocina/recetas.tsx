@@ -110,7 +110,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-4xl mx-auto px-5 py-4">
           <Link
-            href="/personal/paginas/cocina/recetas"
+            href="/personal/cocina/recetas"
             className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
           >
             <ChevronLeft size={12} /> Recetas
@@ -256,7 +256,7 @@ function RecipeCard({ receta, index }: { receta: Receta; index: number }) {
         </div>
 
         <Link
-          href={`/personal/paginas/cocina/recetas/${receta.id}`}
+          href={`/personal/cocina/recetas/${receta.id}`}
           className="flex items-center justify-between w-full px-4 py-2.5 bg-bg-menu text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-all"
         >
           Ver preparación <ChevronRight size={13} />
@@ -648,7 +648,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-3">
         <Utensils className="text-primary/15" size={48} />
         <p className="text-[11px] font-black uppercase tracking-widest text-primary/30">Receta no encontrada</p>
-        <Link href="/personal/paginas/cocina/recetas" className="text-[10px] font-black text-accent hover:text-primary transition-colors uppercase tracking-wide">
+        <Link href="/personal/cocina/recetas" className="text-[10px] font-black text-accent hover:text-primary transition-colors uppercase tracking-wide">
           Volver a recetas
         </Link>
       </div>
@@ -679,7 +679,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <Link
-              href="/personal/paginas/cocina"
+              href="/personal/cocina"
               className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
             >
               <ChevronLeft size={12} /> Cocina

@@ -1309,7 +1309,7 @@ export default function Lector() {
   };
 
   const handleChapterSelect = useCallback(
-    (newCapId: string) => router.push(`/wiki/paginas/libros/${id}/leer/${newCapId}`),
+    (newCapId: string) => router.push(`/wiki/libros/${id}/leer/${newCapId}`),
     [id, router]
   );
 
@@ -1322,7 +1322,7 @@ export default function Lector() {
   if (error || !capitulo) return (
     <div className="h-screen flex flex-col items-center justify-center bg-bg-main text-primary p-6 text-center">
       <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">{error || "Capítulo no encontrado"}</h2>
-      <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-primary pb-1">Volver al índice</button>
+      <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-primary pb-1">Volver al índice</button>
     </div>
   );
 
@@ -1339,7 +1339,7 @@ export default function Lector() {
       />
       <nav className="sticky top-0 z-50 bg-bg-main/80 backdrop-blur-md border-b border-primary/5 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <button onClick={() => router.push(`/wiki/paginas/libros/${id}`)} className="text-primary/40 hover:text-primary transition-colors shrink-0"><ChevronLeft size={24} /></button>
+          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-primary/40 hover:text-primary transition-colors shrink-0"><ChevronLeft size={24} /></button>
           <div className="flex flex-col items-center gap-1 min-w-0">
             <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40 leading-none truncate">{capitulo.libros?.titulo}</h2>
             {listaCapitulos.length > 1
@@ -1425,14 +1425,14 @@ export default function Lector() {
             <button onClick={() => setShowIndex(true)} className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"><List size={16} /> Índice</button>
             <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
               <button
-                onClick={() => anteriorCap && router.push(`/wiki/paginas/libros/${id}/leer/${anteriorCap.id}`)}
+                onClick={() => anteriorCap && router.push(`/wiki/libros/${id}/leer/${anteriorCap.id}`)}
                 disabled={!anteriorCap}
                 className={cn("p-5 rounded-2xl border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all", !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-primary/10 text-primary/60 hover:bg-primary/5 active:scale-95")}
               >
                 <ChevronLeft size={14} /> Anterior
               </button>
               <button
-                onClick={() => siguienteCap ? router.push(`/wiki/paginas/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/paginas/libros/${id}`)}
+                onClick={() => siguienteCap ? router.push(`/wiki/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/libros/${id}`)}
                 className="p-5 rounded-2xl bg-primary text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg hover:shadow-primary/30 active:scale-95 transition-all"
               >
                 {siguienteCap ? "Siguiente" : "Finalizar"} <ChevronRight size={14} />

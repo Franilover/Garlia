@@ -125,16 +125,16 @@ const Navbar = () => {
 
             {esFranilover && (
               <div className="flex gap-1 ml-2 pl-2 border-l border-primary/10">
-                <Link href="/personal/paginas/cocina" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/cocina") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
+                <Link href="/personal/cocina" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/cocina") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <Utensils size={16} />
                 </Link>
-                <Link href="/personal/paginas/tareas" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/tareas") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
+                <Link href="/personal/tareas" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/tareas") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <CheckSquare size={16} />
                 </Link>
-                <Link href="/personal/paginas/ejercicios" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ejercicios") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
+                <Link href="/personal/ejercicios" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ejercicios") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <Dumbbell size={16} />
                 </Link>
-                <Link href="/personal/paginas/ensayos" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ensayos") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
+                <Link href="/personal/ensayos" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ensayos") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <PenTool size={16} />
                 </Link>
               </div>
@@ -165,7 +165,7 @@ const Navbar = () => {
                       onClick={(e) => e.stopPropagation()}
                       className="absolute top-full right-0 mt-3 w-48 bg-white-custom border border-primary/10 rounded-2xl shadow-xl p-2 z-[1001]"
                     >
-                      <Link href="/wiki/paginas/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
+                      <Link href="/wiki/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
                         <Sword size={14} /> Mi Personaje
                       </Link>
                       {puedeSubir && (
@@ -208,7 +208,7 @@ const Navbar = () => {
                 </p>
               </div>
 
-              <Link href="/wiki/paginas/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
+              <Link href="/wiki/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                 <Sword size={18} /> Mi Personaje
               </Link>
 
@@ -220,16 +220,16 @@ const Navbar = () => {
 
               {esFranilover && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Link href="/personal/paginas/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                  <Link href="/personal/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
                     <Utensils size={18} />
                   </Link>
-                  <Link href="/personal/paginas/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                  <Link href="/personal/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
                     <CheckSquare size={18} />
                   </Link>
-                  <Link href="/personal/paginas/ejercicios" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                  <Link href="/personal/ejercicios" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
                     <Dumbbell size={18} />
                   </Link>
-                  <Link href="/personal/paginas/ensayos" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                  <Link href="/personal/ensayos" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
                     <PenTool size={18} />
                   </Link>
                 </div>

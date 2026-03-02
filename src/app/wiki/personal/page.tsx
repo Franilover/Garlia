@@ -1,6 +1,6 @@
 "use client";
 /**
- * ARCHIVO: app/wiki/paginas/personal/page.tsx
+ * ARCHIVO: app/wiki/personal/page.tsx
  */
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";

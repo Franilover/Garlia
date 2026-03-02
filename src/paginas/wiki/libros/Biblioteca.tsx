@@ -144,7 +144,7 @@ const Biblioteca = () => {
             transition={{ delay: index * 0.05 }}
             className={`relative group ${libro.estado === "BORRADOR" ? "opacity-60" : ""}`}
           >
-            <Link href={`/wiki/paginas/libros/${libro.id}`}>
+            <Link href={`/wiki/libros/${libro.id}`}>
               <div className="cursor-pointer relative">
                 {isAdmin && (
                   <button

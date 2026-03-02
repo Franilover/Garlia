@@ -208,7 +208,7 @@ export const IngredientesPage = () => {
         <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <Link
-              href="/personal/paginas/cocina"
+              href="/personal/cocina"
               className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
             >
               <ChevronLeft size={12} /> Cocina

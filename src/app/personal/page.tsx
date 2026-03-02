@@ -47,7 +47,7 @@ export default function PersonalMenuPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
           <MenuCard 
-            href="/personal/paginas/sobre-mi" 
+            href="/personal/sobre-mi" 
             title="Sobre Mí" 
             icon={<Star />} 
             delay={0.1} 
@@ -55,7 +55,7 @@ export default function PersonalMenuPage() {
             onClick={() => handleVisit("sobre-mi")} 
           />
           <MenuCard 
-            href="/personal/paginas/dibujos" 
+            href="/personal/dibujos" 
             title="Dibujos" 
             icon={<Palette />} /* Icono de Paleta actualizado */
             delay={0.2} 
@@ -63,7 +63,7 @@ export default function PersonalMenuPage() {
             onClick={() => handleVisit("dibujos")} 
           />
           <MenuCard 
-            href="/personal/paginas/fotos" 
+            href="/personal/fotos" 
             title="Fotos" 
             icon={<Camera />} 
             delay={0.3} 

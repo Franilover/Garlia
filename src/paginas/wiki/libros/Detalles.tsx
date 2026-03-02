@@ -220,7 +220,7 @@ export default function LibroDetalle() {
         )}
       </AnimatePresence>
 
-      <button onClick={() => router.push("/wiki/paginas/libros")} className="p-8 text-primary/40 hover:text-primary flex items-center gap-2 font-black text-[10px] uppercase group italic">
+      <button onClick={() => router.push("/wiki/libros")} className="p-8 text-primary/40 hover:text-primary flex items-center gap-2 font-black text-[10px] uppercase group italic">
         <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Volver
       </button>
 
@@ -291,7 +291,7 @@ export default function LibroDetalle() {
                   return (
                   <button
                     key={cap.id}
-                    onClick={() => router.push(`/wiki/paginas/libros/${id}/leer/${cap.id}`)}
+                    onClick={() => router.push(`/wiki/libros/${id}/leer/${cap.id}`)}
                     className={`w-full flex items-center justify-between p-6 border rounded-3xl hover:border-primary/20 transition-all text-left group ${esRuta ? "bg-blue-50/60 border-blue-100" : "bg-white-custom border-primary/5"}`}
                   >
                     <div className="flex flex-col gap-1">

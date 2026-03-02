@@ -113,7 +113,7 @@ const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
         animate={{ opacity: 1, y: 0 }}
         className="group relative flex items-center justify-between gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm border border-primary/10 hover:border-primary/20 rounded-2xl px-6 py-4 transition-all duration-300"
       >
-        <Link href={`/wiki/paginas/canciones/${cancion.id}`} className="flex-1 min-w-0">
+        <Link href={`/wiki/canciones/${cancion.id}`} className="flex-1 min-w-0">
           <h2 className="text-primary font-black uppercase text-sm group-hover:text-[#9A89A0] transition-colors tracking-tighter italic truncate">
             {cancion.titulo}
           </h2>
@@ -165,7 +165,7 @@ const CancionCard = ({ cancion, isAdmin, onEdit, vistaFila }: any) => {
         </div>
       )}
 
-      <Link href={`/wiki/paginas/canciones/${cancion.id}`}>
+      <Link href={`/wiki/canciones/${cancion.id}`}>
         <motion.div
           whileHover={{ y: -12 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
