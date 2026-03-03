@@ -128,10 +128,7 @@ const Navbar = () => {
                 <Link href="/personal/salud" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/salud") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <Utensils size={16} />
                 </Link>
-                <Link href="/personal/tareas" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/tareas") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
-                  <CheckSquare size={16} />
-                </Link>
-                <Link href="/personal/ensayos" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ensayos") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
+                <Link href="/personal/escritorio" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ensayos") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <PenTool size={16} />
                 </Link>
               </div>
@@ -220,10 +217,7 @@ const Navbar = () => {
                   <Link href="/personal/salud" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
                     <Utensils size={18} />
                   </Link>
-                  <Link href="/personal/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
-                    <CheckSquare size={18} />
-                  </Link>
-                  <Link href="/personal/ensayos" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                  <Link href="/personal/escritorio" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
                     <PenTool size={18} />
                   </Link>
                 </div>
