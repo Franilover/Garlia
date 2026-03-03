@@ -33,7 +33,7 @@ const Navbar = () => {
 
   const isWiki = currentPath?.startsWith("/wiki") && currentPath !== "/wiki/personal";
   const isPersonal = currentPath?.startsWith("/personal") &&
-    !currentPath.includes("/paginas/cocina") &&
+    !currentPath.includes("/paginas/salud") &&
     !currentPath.includes("/paginas/tareas") &&
     !currentPath.includes("/paginas/ejercicios") &&
     !currentPath.includes("/paginas/ensayos");
@@ -125,7 +125,7 @@ const Navbar = () => {
 
             {esFranilover && (
               <div className="flex gap-1 ml-2 pl-2 border-l border-primary/10">
-                <Link href="/personal/cocina" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/cocina") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
+                <Link href="/personal/salud" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/salud") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
                   <Utensils size={16} />
                 </Link>
                 <Link href="/personal/tareas" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/tareas") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
@@ -220,7 +220,7 @@ const Navbar = () => {
 
               {esFranilover && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Link href="/personal/cocina" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                  <Link href="/personal/salud" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
                     <Utensils size={18} />
                   </Link>
                   <Link href="/personal/tareas" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
