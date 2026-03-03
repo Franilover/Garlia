@@ -1,45 +1,35 @@
 "use client";
 import React from "react";
 import { ChefHat, Utensils, CookingPot } from "lucide-react";
-import EntidadPageBase from "@/shared/layout/GaleriaBase";
+import { motion } from "framer-motion";
+import Link from "next/link";
 import { MenuCard } from "@/shared/templates/MenuCard"; 
-
-const SECCIONES_COCINA = [
-  {
-    id: "recetas",
-    nombre: "Recetas",
-    href: "/personal/cocina/recetas",
-    icon: <ChefHat />,
-    delay: 0.1,
-  },
-  {
-    id: "ingredientes",
-    nombre: "Ingredientes",
-    href: "/personal/cocina/ingredientes",
-    icon: <Utensils />,
-    delay: 0.2,
-  },
-];
 
 export default function CocinaMenuPage() {
   return (
-    <EntidadPageBase
-      tabla="__static__"
-      titulo="Cocina"
-      tituloIcon={<CookingPot size={40} />}
-      configFiltros={[]}
-      permitirVistaFila={false}
-      mostrarBusqueda={false}
-      dataOverride={SECCIONES_COCINA}
-      renderCard={(item, _onClick, _vistaFila, index) => (
-        <MenuCard
-          key={item.id}
-          href={item.href}
-          title={item.nombre}
-          icon={item.icon}
-          delay={item.delay}
-        />
-      )}
-    />
+    <div className="min-h-screen bg-bg-main flex items-center justify-center p-6">
+      <div className="max-w-4xl w-full">
+
+        {/* Título */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-16"
+        >
+          <div className="inline-flex p-4 bg-primary/5 text-primary rounded-[25px] mb-6">
+            <CookingPot size={40} />
+          </div>
+          <h1 className="text-5xl font-black uppercase tracking-tighter text-primary italic">
+            Cocina
+          </h1>
+        </motion.div>
+
+        {/* Cards */}
+        <div className="grid md:grid-cols-2 gap-8">
+          <MenuCard href="/personal/cocina/recetas"      title="Recetas"      icon={<ChefHat />}  delay={0.1} />
+          <MenuCard href="/personal/cocina/ingredientes" title="Ingredientes" icon={<Utensils />} delay={0.2} />
+        </div>
+      </div>
+    </div>
   );
 }
