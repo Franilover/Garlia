@@ -25,9 +25,9 @@ export default function CocinaMenuPage() {
 
         {/* Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
-          <MenuCard href="/personal/cocina/recetas"      title="Recetas"      icon={<UtensilsCrossed />} delay={0.1} />
-          <MenuCard href="/personal/cocina/ingredientes" title="Ingredientes" icon={<Carrot />}          delay={0.2} />
-          <MenuCard href="/personal/cocina/ejercicios"   title="Ejercicios"   icon={<Dumbbell />}        delay={0.3} />
+          <MenuCard href="/personal/salud/recetas"      title="Recetas"      icon={<UtensilsCrossed />} delay={0.1} />
+          <MenuCard href="/personal/salud/ingredientes" title="Ingredientes" icon={<Carrot />}          delay={0.2} />
+          <MenuCard href="/personal/salud/ejercicios"   title="Ejercicios"   icon={<Dumbbell />}        delay={0.3} />
         </div>
       </div>
     </div>
