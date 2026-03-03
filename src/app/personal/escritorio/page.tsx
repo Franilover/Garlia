@@ -9,8 +9,6 @@ export default function CocinaMenuPage() {
   return (
     <div className="min-h-screen bg-bg-main flex items-center justify-center p-6">
       <div className="max-w-4xl w-full">
-
-        {/* Título */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -20,14 +18,14 @@ export default function CocinaMenuPage() {
             <CookingPot size={40} />
           </div>
           <h1 className="text-5xl font-black uppercase tracking-tighter text-primary italic">
-            Cocina
+            Escritorio
           </h1>
         </motion.div>
 
         {/* Cards */}
         <div className="grid md:grid-cols-2 gap-8">
-          <MenuCard href="/personal/tareas"      title="Recetas"      icon={<ChefHat />}  delay={0.1} />
-          <MenuCard href="/personal/ensayos" title="Ingredientes" icon={<Utensils />} delay={0.2} /> 
+          <MenuCard href="/personal/tareas" title="Tareas"   icon={<ChefHat />}  delay={0.1} />
+          <MenuCard href="/personal/ensayos" title="Ensayos" icon={<Utensils />} delay={0.2} /> 
         </div>
       </div>
     </div>
