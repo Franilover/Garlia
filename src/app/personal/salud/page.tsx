@@ -15,11 +15,8 @@ export default function CocinaMenuPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-16 md:mb-24"
         >
-          <div className="inline-flex p-4 bg-primary/5 text-primary rounded-[25px] mb-6">
-            <CookingPot size={40} />
-          </div>
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter text-primary italic">
-            Cocina
+            Salud
           </h1>
         </motion.div>
 
