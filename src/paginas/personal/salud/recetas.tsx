@@ -13,7 +13,6 @@ import {
 import { IngredientesPage } from "@/paginas/personal/salud/ingredientes"; 
 
 
-
 // ─── categorías con emojis ────────────────────────────────────────────────────
 
 const CATEGORIAS = [
@@ -856,7 +855,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 340, damping: 34 }}
-              className="fixed right-0 top-0 z-50 h-full w-full max-w-2xl bg-bg-main shadow-2xl overflow-y-auto"
+              className="fixed right-0 top-0 z-50 h-full w-full max-w-4xl bg-bg-main shadow-2xl overflow-y-auto"
             >
               <button
                 onClick={() => setShowIngredientes(false)}
