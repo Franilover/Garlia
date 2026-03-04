@@ -8,8 +8,11 @@ import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import {
   Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
-  Plus, X, ArrowLeft, Trash2, Activity, Loader2, Save, ChevronLeft, Minus,
+  Plus, X, ArrowLeft, Trash2, Activity, Loader2, Save, ChevronLeft, Minus, Carrot,
 } from "lucide-react";
+import { IngredientesPage } from "@/paginas/personal/salud/ingredientes"; 
+
+
 
 // ─── categorías con emojis ────────────────────────────────────────────────────
 
@@ -268,10 +271,9 @@ function RecipeCard({ receta, index }: { receta: Receta; index: number }) {
 
 // ─── MODAL AÑADIR ─────────────────────────────────────────────────────────────
 
-// Ingrediente pendiente de confirmar (selector inline antes de añadir)
 interface PendingIng {
-  base: Ingrediente;   // datos originales por porcion
-  qty: number;         // multiplicador elegido
+  base: Ingrediente;
+  qty: number;
 }
 
 function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
@@ -279,7 +281,6 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const [searchIng, setSearchIng]   = useState("");
   const [nuevoPaso, setNuevoPaso]   = useState("");
   const [formData, setFormData]     = useState(INITIAL_FORM);
-  // ingrediente esperando confirmacion de cantidad
   const [pendingIng, setPendingIng] = useState<PendingIng | null>(null);
 
   const { data: dbIngredientes } = useSupabaseData<Ingrediente>("ingredientes");
@@ -294,13 +295,11 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
       .slice(0, 6);
   }, [searchIng, dbIngredientes, formData.ingredientes]);
 
-  // Abrir selector inline para elegir cantidad
   const selectIngrediente = (ing: Ingrediente) => {
     setPendingIng({ base: ing, qty: 1 });
     setSearchIng("");
   };
 
-  // Confirmar y añadir con macros multiplicados
   const confirmIngrediente = () => {
     if (!pendingIng) return;
     const { base, qty } = pendingIng;
@@ -426,7 +425,6 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
           <section className="space-y-4">
             <SectionTitle>Ingredientes de la despensa</SectionTitle>
 
-            {/* buscador */}
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30" size={14} />
               <input
@@ -459,7 +457,6 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
               </AnimatePresence>
             </div>
 
-            {/* selector inline de cantidad — aparece al elegir un ingrediente */}
             <AnimatePresence>
               {pendingIng && (
                 <motion.div
@@ -473,7 +470,6 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                       <span className="text-[9px] font-bold text-primary/40">{pendingIng.base.porcion_texto} / unidad</span>
                     </div>
 
-                    {/* control cantidad */}
                     <div className="flex items-center gap-3">
                       <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 shrink-0">Cantidad</span>
                       <button type="button"
@@ -496,7 +492,6 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                       </button>
                     </div>
 
-                    {/* preview macros en tiempo real */}
                     <div className="grid grid-cols-4 gap-2">
                       {[
                         { label: "Kcal", value: pendingIng.base.kcal * pendingIng.qty,          unit: ""  },
@@ -513,7 +508,6 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                       ))}
                     </div>
 
-                    {/* acciones */}
                     <div className="flex gap-2 pt-1">
                       <button type="button" onClick={() => setPendingIng(null)}
                         className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide border border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary transition-all"
@@ -531,7 +525,6 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
               )}
             </AnimatePresence>
 
-            {/* ingredientes añadidos */}
             {formData.ingredientes.length > 0 && (
               <div className="space-y-2">
                 {formData.ingredientes.map((ing, idx) => (
@@ -552,7 +545,6 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   </div>
                 ))}
 
-                {/* totales */}
                 <div className="grid grid-cols-4 gap-2 mt-1">
                   {[
                     { label: "Kcal", value: totalesPreview.kcal,     unit: ""  },
@@ -630,9 +622,10 @@ interface RecetasPageProps {
 }
 
 const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
-  const [filter, setFilter]       = useState("");
-  const [catFilter, setCatFilter] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filter, setFilter]               = useState("");
+  const [catFilter, setCatFilter]         = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen]     = useState(false);
+  const [showIngredientes, setShowIngredientes] = useState(false);
 
   const { data: recipes, loading } = useSupabaseData<Receta>("recetas");
 
@@ -704,13 +697,25 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
             )}
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            onClick={() => setIsModalOpen(true)}
-            className="btn-brand hidden sm:flex text-[11px] py-2.5 px-5 tracking-widest"
-          >
-            <Plus size={14} /> Añadir
-          </motion.button>
+          <div className="hidden sm:flex items-center gap-2">
+            {/* Botón Ingredientes */}
+            <motion.button
+              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              onClick={() => setShowIngredientes(true)}
+              className="flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-2xl border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
+            >
+              <Carrot size={14} /> Ingredientes
+            </motion.button>
+
+            {/* Botón Añadir */}
+            <motion.button
+              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              onClick={() => setIsModalOpen(true)}
+              className="btn-brand flex text-[11px] py-2.5 px-5 tracking-widest"
+            >
+              <Plus size={14} /> Añadir
+            </motion.button>
+          </div>
         </div>
       </header>
 
@@ -807,16 +812,25 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         )}
       </main>
 
-      {/* FAB móvil */}
-      <motion.button
-        whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-        onClick={() => setIsModalOpen(true)}
-        className="sm:hidden fixed bottom-6 right-6 z-20 w-14 h-14 rounded-2xl btn-brand shadow-2xl"
-      >
-        <Plus size={22} />
-      </motion.button>
+      {/* FAB móvil — dos botones apilados */}
+      <div className="sm:hidden fixed bottom-6 right-6 z-20 flex flex-col items-end gap-3">
+        <motion.button
+          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+          onClick={() => setShowIngredientes(true)}
+          className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
+        >
+          <Carrot size={18} />
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+          onClick={() => setIsModalOpen(true)}
+          className="w-14 h-14 rounded-2xl btn-brand shadow-2xl"
+        >
+          <Plus size={22} />
+        </motion.button>
+      </div>
 
-      {/* modal */}
+      {/* modal nueva receta */}
       <AnimatePresence>
         {isModalOpen && (
           <ModalAddReceta
@@ -825,6 +839,37 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           />
         )}
       </AnimatePresence>
+
+      {/* DRAWER INGREDIENTES */}
+      <AnimatePresence>
+        {showIngredientes && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowIngredientes(false)}
+              className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 340, damping: 34 }}
+              className="fixed right-0 top-0 z-50 h-full w-full max-w-2xl bg-bg-main shadow-2xl overflow-y-auto"
+            >
+              <button
+                onClick={() => setShowIngredientes(false)}
+                className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
+              >
+                <X size={16} />
+              </button>
+              <IngredientesPage />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };
