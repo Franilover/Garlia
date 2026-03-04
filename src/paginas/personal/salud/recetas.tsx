@@ -670,12 +670,6 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
-            <Link
-              href="/personal/cocina"
-              className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
-            >
-              <ChevronLeft size={12} /> Cocina
-            </Link>
             <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none text-primary">
               Mis <span className="text-primary/20">Recetas</span>
             </h1>
