@@ -9,8 +9,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// ─── categorías ───────────────────────────────────────────────────────────────
-
 const CATEGORIAS = [
   { label: "Proteínas",     emoji: "🥩" },
   { label: "Carbohidratos", emoji: "🍞" },
@@ -28,8 +26,6 @@ const INITIAL_FORM = {
   porcion_texto: "100g", stock_actual: 0,
   fibra: 0, sodio: 0, agua_ml: 0,
 };
-
-// ─── sub-components ──────────────────────────────────────────────────────────
 
 function MacroBadge({ label, value, unit, scaled }: { label: string; value: number; unit: string; scaled?: number }) {
   const showing = scaled !== undefined ? scaled : value;
@@ -76,8 +72,6 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── main ─────────────────────────────────────────────────────────────────────
-
 export const IngredientesPage = () => {
   const [filter, setFilter]           = useState("");
   const [catFilter, setCatFilter]     = useState<string | null>(null);
@@ -89,7 +83,6 @@ export const IngredientesPage = () => {
   const { data: ingredientes, loading: hookLoading, refetch, addRow, updateRow, deleteRow } =
     useSupabaseData<Ingrediente>("ingredientes");
 
-  // Inicializar desde el hook directamente — si hay caché ya viene populated
   const [localItems, setLocalItems] = useState<Ingrediente[] | null>(() =>
     ingredientes?.length ? ingredientes : null
   );
@@ -97,7 +90,6 @@ export const IngredientesPage = () => {
   const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
   const [qtyOpen, setQtyOpen] = useState<Record<string, boolean>>({});
 
-  // Sincronizar solo mientras localItems sea null (esperando primera carga)
   useEffect(() => {
     if (localItems === null && ingredientes?.length) {
       setLocalItems(ingredientes);
@@ -107,7 +99,6 @@ export const IngredientesPage = () => {
   const isLoading = localItems === null && hookLoading;
   const items = localItems ?? [];
 
-  // ── filtrado sobre estado local ──
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const matchesSearch =
@@ -138,17 +129,13 @@ export const IngredientesPage = () => {
   const patch = (key: keyof typeof INITIAL_FORM) =>
     (v: string) => setFormData(p => ({ ...p, [key]: typeof INITIAL_FORM[key] === "number" ? Number(v) : v }));
 
-  // ── actualizar stock: optimista, sin refetch ──
   const handleUpdateStock = async (id: string, current: number, delta: number) => {
     const newStock = Math.max(0, current + delta);
-    // actualizar local INMEDIATAMENTE
     setLocalItems(prev =>
       (prev ?? []).map(item => item.id === id ? { ...item, stock_actual: newStock } : item)
     );
-    // luego persistir en background
     if (updateRow) {
       const result = await updateRow(id, { stock_actual: newStock });
-      // si falla, revertir
       if (result.error) {
         setLocalItems(prev =>
           (prev ?? []).map(item => item.id === id ? { ...item, stock_actual: current } : item)
@@ -157,13 +144,11 @@ export const IngredientesPage = () => {
     }
   };
 
-  // ── eliminar: optimista con confirm inline ──
   const handleDelete = async (id: string) => {
     setLocalItems(prev => (prev ?? []).filter(item => item.id !== id));
     setConfirmDelete(null);
     if (deleteRow) {
       const result = await deleteRow(id);
-      // si falla: resetear a null para forzar re-sync desde el hook
       if (result?.error) {
         setLocalItems(null);
         refetch();
@@ -171,7 +156,6 @@ export const IngredientesPage = () => {
     }
   };
 
-  // ── añadir: append directo al estado local ──
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -183,10 +167,8 @@ export const IngredientesPage = () => {
         setIsModalOpen(false);
         setFormData(INITIAL_FORM);
         if (result.data) {
-          // addRow devolvió el row insertado — añadirlo directo
           setLocalItems(prev => [...(prev ?? []), result.data as Ingrediente]);
         } else {
-          // no devolvió data — resetear a null y forzar re-sync
           setLocalItems(null);
           refetch();
         }
@@ -203,15 +185,14 @@ export const IngredientesPage = () => {
   return (
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
 
-      {/* ── HEADER ── */}
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <Link
-              href="/personal/cocina"
+              href="/personal/salud/compras"
               className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
             >
-              <ChevronLeft size={12} /> Cocina
+              <ChevronLeft size={12} /> Compras
             </Link>
             <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none text-primary">
               Mi <span className="text-primary/20">Despensa</span>
@@ -250,7 +231,6 @@ export const IngredientesPage = () => {
 
       <main className="max-w-7xl mx-auto px-5 pt-5 space-y-5">
 
-        {/* ── CHIPS DE CATEGORÍA ── */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <button
@@ -329,7 +309,6 @@ export const IngredientesPage = () => {
           </div>
         </div>
 
-        {/* ── GRID ── */}
         {isLoading ? (
           <div className="flex justify-center py-32">
             <Loader2 className="animate-spin text-primary/30" size={36} />
@@ -366,14 +345,12 @@ export const IngredientesPage = () => {
                     exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
                     className="card-main flex flex-col gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all relative"
                   >
-                    {/* top: categoría + botón eliminar */}
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-white flex items-center gap-1 shrink-0">
                         <span>{catEmoji}</span>
                         {item.categoria}
                       </span>
 
-                      {/* eliminar con confirm inline */}
                       <AnimatePresence mode="wait">
                         {isConfirm ? (
                           <motion.div
@@ -412,7 +389,6 @@ export const IngredientesPage = () => {
                       </AnimatePresence>
                     </div>
 
-                    {/* nombre + porción base + botón calculadora */}
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h3 className="text-[13px] font-black uppercase italic tracking-tight leading-tight mb-0.5 text-primary">
@@ -435,7 +411,6 @@ export const IngredientesPage = () => {
                       </button>
                     </div>
 
-                    {/* calculadora inline */}
                     <AnimatePresence>
                       {qtyOpen[item.id] && (
                         <motion.div
@@ -480,7 +455,6 @@ export const IngredientesPage = () => {
                       )}
                     </AnimatePresence>
 
-                    {/* macros — se multiplican si hay qty */}
                     {(() => {
                       const q = qtyMap[item.id] ?? 1;
                       const sc = (v: number) => q === 1 ? undefined : Math.round(v * q * 10) / 10;
@@ -511,7 +485,6 @@ export const IngredientesPage = () => {
                       );
                     })()}
 
-                    {/* stock — igual que antes, sin cambios */}
                     <div className={`flex items-center justify-between rounded-2xl px-3 py-2.5 border ${
                       hasStock
                         ? "bg-green-50/50 border-green-100"
@@ -549,7 +522,6 @@ export const IngredientesPage = () => {
         )}
       </main>
 
-      {/* ── FAB móvil ── */}
       <motion.button
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.94 }}
@@ -559,7 +531,6 @@ export const IngredientesPage = () => {
         <Plus size={22} />
       </motion.button>
 
-      {/* ── MODAL AÑADIR ── */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
