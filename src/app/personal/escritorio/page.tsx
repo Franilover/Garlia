@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { CheckSquare, ScrollText, Monitor } from "lucide-react";
+import { CheckSquare, ScrollText } from "lucide-react";
 import { motion } from "framer-motion";
 import { MenuCard } from "@/shared/templates/MenuCard";
 
@@ -19,7 +19,7 @@ export default function EscritorioMenuPage() {
           </h1>
         </motion.div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
+        <div className="grid grid-cols-2 gap-4 md:gap-8 lg:gap-10">
           <MenuCard href="/personal/tareas"  title="Tareas"  icon={<CheckSquare />} delay={0.1} />
           <MenuCard href="/personal/ensayos" title="Ensayos" icon={<ScrollText />}  delay={0.2} />
         </div>
