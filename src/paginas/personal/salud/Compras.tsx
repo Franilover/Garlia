@@ -22,7 +22,7 @@ export default function ComprasPage() {
       proteinas:     acc.proteinas     + (i.proteinas     ?? 0),
       carbohidratos: acc.carbohidratos + (i.carbohidratos ?? 0),
       grasas:        acc.grasas        + (i.grasas        ?? 0),
-      precio:        acc.precio        + ((i as any).precio_porcion ?? 0),
+      precio:        acc.precio        + ((i as any).precio ?? 0),
     }),
     { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0, precio: 0 }
   ), [items]);
@@ -104,8 +104,8 @@ export default function ComprasPage() {
                       <span className="text-[8px] text-primary/25 ml-0.5">g</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {(item as any).precio_porcion ? (
-                        <span className="text-[11px] font-black text-primary">${((item as any).precio_porcion).toFixed(2)}</span>
+                      {(item as any).precio ? (
+                        <span className="text-[11px] font-black text-primary">${((item as any).precio).toFixed(2)}</span>
                       ) : (
                         <span className="text-[10px] text-primary/15">—</span>
                       )}
