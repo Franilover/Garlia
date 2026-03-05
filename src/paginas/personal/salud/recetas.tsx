@@ -9,10 +9,10 @@ import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import {
   Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
   Plus, X, ArrowLeft, Trash2, Activity, Loader2, Save, ChevronLeft, Minus, Carrot,
-  ShoppingCart, Tag, Dumbbell, Wheat, Droplets,
+  Dumbbell, Wheat, Droplets,
 } from "lucide-react";
 import { IngredientesPage } from "@/paginas/personal/salud/ingredientes";
-import { useCarrito, CarritoProvider } from "@/hooks/features/useCarritoStore";
+
 
 
 const CATEGORIAS = [
@@ -109,7 +109,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-4xl mx-auto px-5 py-4">
           <Link
-            href="/personal/salud/recetas"
+            href="/personal/cocina/recetas"
             className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
           >
             <ChevronLeft size={12} /> Recetas
@@ -128,7 +128,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
                 <Flame size={64} className="text-primary/10" />
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
             <span className="absolute top-4 left-4 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-white">
               {CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️"} {receta.categoria}
             </span>
@@ -215,13 +215,9 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
 function RecipeCard({
   receta,
   index,
-  inCart,
-  onToggleCart,
 }: {
   receta: Receta;
   index: number;
-  inCart: boolean;
-  onToggleCart: (receta: Receta) => void;
 }) {
   const catEmoji = CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️";
   const ingredientesList = parseIngredientes(receta.ingredientes);
@@ -289,23 +285,11 @@ function RecipeCard({
         {/* acciones */}
         <div className="flex gap-2">
           <Link
-            href={`/personal/salud/recetas/${receta.id}`}
+            href={`/personal/cocina/recetas/${receta.id}`}
             className="flex items-center justify-between flex-1 px-4 py-2.5 bg-bg-menu text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-all"
           >
             Ver receta <ChevronRight size={13} />
           </Link>
-
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => onToggleCart(receta)}
-            className={`w-10 h-10 flex items-center justify-center rounded-2xl border transition-all shrink-0 ${
-              inCart
-                ? "bg-accent/20 border-accent/30 text-accent"
-                : "bg-bg-main border-primary/15 text-primary/35 hover:border-primary/30 hover:text-primary"
-            }`}
-          >
-            <ShoppingCart size={14} />
-          </motion.button>
         </div>
       </div>
     </motion.div>
@@ -659,49 +643,13 @@ interface RecetasPageProps {
   selectedRecipeId?: string;
 }
 
-function RecetasPageInner({ selectedRecipeId }: RecetasPageProps) {
+const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   const [filter, setFilter]               = useState("");
   const [catFilter, setCatFilter]         = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen]     = useState(false);
   const [showIngredientes, setShowIngredientes] = useState(false);
 
   const { data: recipes, loading } = useSupabaseData<Receta>("recetas");
-  const { addItem, removeItem: removeCarritoItem, isInCart, totalItems, items: carritoItems, refetch: refetchCarrito } = useCarrito();
-
-  const { data: todosIngredientes } = useSupabaseData<Ingrediente>("ingredientes");
-
-  const toggleCartReceta = async (receta: Receta) => {
-    const ingredientesList = parseIngredientes(receta.ingredientes);
-
-    const yaEnCarrito = carritoItems.some(i => i.lugar_compra === receta.nombre);
-
-    if (yaEnCarrito) {
-      const idsAEliminar = carritoItems
-        .filter(i => i.lugar_compra === receta.nombre)
-        .map(i => i.id);
-      await Promise.all(idsAEliminar.map(id => removeCarritoItem(id)));
-    } else {
-      await Promise.all(
-        ingredientesList.map(ing => {
-          
-          const ingReal = todosIngredientes.find(
-            i => i.nombre.toLowerCase() === ing.nombre.toLowerCase()
-          );
-          if (!ingReal) return Promise.resolve(); 
-          return addItem(ingReal, {
-            cantidad:      ing.cantidad || "1 porción",
-            origenReceta:  receta.nombre, 
-          });
-        })
-      );
-    }
-  };
-
-  const inCartReceta = (id: string | number) => {
-    const receta = recipes.find(r => r.id === id);
-    if (!receta) return false;
-    return carritoItems.some(i => i.lugar_compra === receta.nombre);
-  };
 
   if (selectedRecipeId) {
     const receta = recipes.find(r => String(r.id) === selectedRecipeId);
@@ -714,7 +662,7 @@ function RecetasPageInner({ selectedRecipeId }: RecetasPageProps) {
       <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-3">
         <Utensils className="text-primary/15" size={48} />
         <p className="text-[11px] font-black uppercase tracking-widest text-primary/30">Receta no encontrada</p>
-        <Link href="/personal/salud/recetas" className="text-[10px] font-black text-accent hover:text-primary transition-colors uppercase tracking-wide">
+        <Link href="/personal/cocina/recetas" className="text-[10px] font-black text-accent hover:text-primary transition-colors uppercase tracking-wide">
           Volver a recetas
         </Link>
       </div>
@@ -765,19 +713,6 @@ function RecetasPageInner({ selectedRecipeId }: RecetasPageProps) {
           </div>
 
           <div className="hidden sm:flex items-center gap-2">
-            {/* Botón compras */}
-            <Link
-              href="/personal/salud/compras"
-              className="relative flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-2xl border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
-            >
-              <ShoppingCart size={14} />
-              Compras
-              {totalItems > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-accent text-white text-[8px] font-black rounded-full px-1">
-                  {totalItems}
-                </span>
-              )}
-            </Link>
 
             {/* Botón Ingredientes */}
             <motion.button
@@ -861,7 +796,7 @@ function RecetasPageInner({ selectedRecipeId }: RecetasPageProps) {
             <motion.button
               whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
               onClick={() => setIsModalOpen(true)}
-              className="border-2 border-dashed border-primary/15 rounded-3xl flex flex-col items-center justify-center p-8 bg-white-custom hover:bg-primary/5 transition-all group min-h-[220px]"
+              className="border-2 border-dashed border-primary/15 rounded-3xl flex flex-col items-center justify-center p-8 bg-white-custom hover:bg-primary/5 transition-all group min-h-55"
             >
               <div className="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
                 <Plus size={18} />
@@ -889,8 +824,6 @@ function RecetasPageInner({ selectedRecipeId }: RecetasPageProps) {
                     key={receta.id ?? i}
                     receta={receta}
                     index={i}
-                    inCart={inCartReceta(receta.id)}
-                    onToggleCart={toggleCartReceta}
                   />
                 ))
               )}
@@ -901,17 +834,6 @@ function RecetasPageInner({ selectedRecipeId }: RecetasPageProps) {
 
       {/* FAB móvil */}
       <div className="sm:hidden fixed bottom-6 right-6 z-20 flex flex-col items-end gap-3">
-        <Link
-          href="/personal/salud/compras"
-          className="relative w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
-        >
-          <ShoppingCart size={18} />
-          {totalItems > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-accent text-white text-[8px] font-black rounded-full">
-              {totalItems}
-            </span>
-          )}
-        </Link>
         <motion.button
           whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
           onClick={() => setShowIngredientes(true)}
@@ -971,14 +893,5 @@ function RecetasPageInner({ selectedRecipeId }: RecetasPageProps) {
     </div>
   );
 }
-
-const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
-  const { data: ingredientes } = useSupabaseData<Ingrediente>("ingredientes");
-  return (
-    <CarritoProvider ingredientes={ingredientes}>
-      <RecetasPageInner selectedRecipeId={selectedRecipeId} />
-    </CarritoProvider>
-  );
-};
 
 export default RecetasPage;

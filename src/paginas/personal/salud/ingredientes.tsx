@@ -6,10 +6,9 @@ import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import {
   Search, Plus, ChevronLeft, X, Loader2, Save,
   Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator,
-  ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
-import { useCarrito, CarritoProvider } from "@/hooks/features/useCarritoStore";
+
 
 const CATEGORIAS = [
   { label: "Proteínas",     emoji: "🥩" },
@@ -75,7 +74,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function IngredientesInner() {
+export const IngredientesPage = () => {
   const [filter, setFilter]           = useState("");
   const [catFilter, setCatFilter]     = useState<string | null>(null);
   const [stockFilter, setStockFilter] = useState<"all" | "in-stock" | "out-of-stock">("all");
@@ -93,20 +92,6 @@ function IngredientesInner() {
   const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
   const [qtyOpen, setQtyOpen] = useState<Record<string, boolean>>({});
 
-  const { addItem, removeItem: removeCarritoItem, isInCart, totalItems } = useCarrito();
-
-  const toggleCart = async (item: Ingrediente & { precio_porcion?: number }) => {
-    if (isInCart(item.id)) {
-      await removeCarritoItem(item.id); 
-    } else {
-      const qty = qtyMap[item.id] ?? 1;
-      await addItem(item, {
-        cantidad: `${qty} × ${item.porcion_texto}`,
-        precio:   ((item as any).precio_porcion ?? 0) * qty,
-      });
-    }
-  };
-  const inCart = (ingredienteId: string) => isInCart(ingredienteId);
 
   useEffect(() => {
     if (localItems === null && ingredientes?.length) {
@@ -207,10 +192,10 @@ function IngredientesInner() {
         <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <Link
-              href="/personal/salud/compras"
+              href="/personal/salud"
               className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
             >
-              <ChevronLeft size={12} /> Compras
+              <ChevronLeft size={12} /> Salud
             </Link>
             <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none text-primary">
               Mi <span className="text-primary/20">Despensa</span>
@@ -234,19 +219,6 @@ function IngredientesInner() {
               </button>
             )}
           </div>
-
-          <Link
-            href="/personal/salud/compras"
-            className="relative flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-2xl border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
-          >
-            <ShoppingCart size={14} />
-            Comprar
-            {totalItems > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-accent text-white text-[8px] font-black rounded-full px-1">
-                {totalItems}
-              </span>
-            )}
-          </Link>
 
           <motion.button
             whileHover={{ scale: 1.03 }}
@@ -545,20 +517,6 @@ function IngredientesInner() {
                         </button>
                       </div>
                     </div>
-
-                    {/* botón comprar */}
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => toggleCart(item)}
-                      className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                        inCart(item.id)
-                          ? "bg-accent/20 border-accent/30 text-accent"
-                          : "bg-bg-main border-primary/10 text-primary/40 hover:border-primary/30 hover:text-primary"
-                      }`}
-                    >
-                      <ShoppingCart size={13} />
-                      {inCart(item.id) ? "Añadido ✓" : "Comprar"}
-                    </motion.button>
                   </motion.div>
                 );
               })}
@@ -568,17 +526,6 @@ function IngredientesInner() {
       </main>
 
       <div className="sm:hidden fixed bottom-6 right-6 z-20 flex flex-col items-end gap-3">
-        <Link
-          href="/personal/salud/compras"
-          className="relative w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
-        >
-          <ShoppingCart size={18} />
-          {totalItems > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-accent text-white text-[8px] font-black rounded-full">
-              {totalItems}
-            </span>
-          )}
-        </Link>
         <motion.button
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.94 }}
@@ -678,12 +625,3 @@ function IngredientesInner() {
     </div>
   );
 }
-
-export const IngredientesPage = () => {
-  const { data: ingredientes } = useSupabaseData<Ingrediente>("ingredientes");
-  return (
-    <CarritoProvider ingredientes={ingredientes}>
-      <IngredientesInner />
-    </CarritoProvider>
-  );
-};
