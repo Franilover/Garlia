@@ -12,8 +12,8 @@ import {
   ShoppingCart, Tag, Dumbbell, Wheat, Droplets,
 } from "lucide-react";
 import { IngredientesPage } from "@/paginas/personal/salud/ingredientes";
+import { useCarrito } from "@/hooks/features/useCarritoStore";
 
-// ─── categorías ────────────────────────────────────────────────────────────────
 
 const CATEGORIAS = [
   { label: "General",    emoji: "🍽️" },
@@ -36,7 +36,6 @@ const INITIAL_FORM = {
   descripcion: "",
 };
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
 
 function parseIngredientes(raw: any): IngredienteReceta[] {
   try {
@@ -59,7 +58,6 @@ function calcTotales(list: IngredienteReceta[]) {
   );
 }
 
-// ─── sub-components ──────────────────────────────────────────────────────────
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -101,177 +99,6 @@ function MacroBadge({ label, value, unit }: { label: string; value: number; unit
   );
 }
 
-// ─── CART PANEL (resumen de receta para comprar ingredientes) ─────────────────
-
-interface RecetaCartItem {
-  receta: Receta;
-  ingredientesList: IngredienteReceta[];
-  totales: ReturnType<typeof calcTotales>;
-}
-
-function RecetaCartPanel({
-  items,
-  onRemove,
-  onClose,
-}: {
-  items: RecetaCartItem[];
-  onRemove: (id: string | number) => void;
-  onClose: () => void;
-}) {
-  const grandTotales = items.reduce(
-    (acc, { totales }) => ({
-      kcal:      acc.kcal      + totales.kcal,
-      proteinas: acc.proteinas + totales.proteinas,
-      carbos:    acc.carbos    + totales.carbos,
-      grasas:    acc.grasas    + totales.grasas,
-    }),
-    { kcal: 0, proteinas: 0, carbos: 0, grasas: 0 }
-  );
-
-  // ingredientes únicos combinados entre todas las recetas en carrito
-  const allIngredientes = items.flatMap(r => r.ingredientesList);
-  const uniqueMap: Record<string, { nombre: string; kcal: number; proteinas: number }> = {};
-  allIngredientes.forEach(ing => {
-    if (!uniqueMap[ing.nombre]) {
-      uniqueMap[ing.nombre] = { nombre: ing.nombre, kcal: ing.kcal || 0, proteinas: ing.proteinas || 0 };
-    } else {
-      uniqueMap[ing.nombre].kcal += ing.kcal || 0;
-    }
-  });
-  const uniqueIngredientes = Object.values(uniqueMap);
-
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm"
-      />
-      <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", stiffness: 340, damping: 34 }}
-        className="fixed right-0 top-0 z-50 h-full w-full max-w-sm bg-bg-main shadow-2xl flex flex-col"
-      >
-        {/* header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-primary/10">
-          <div>
-            <h2 className="text-xl font-black italic uppercase tracking-tighter text-primary">
-              Lista de compra
-            </h2>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-primary/30">
-              {items.length} receta{items.length !== 1 ? "s" : ""} seleccionada{items.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
-              <ShoppingCart size={40} className="text-primary/10" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/25">Sin recetas seleccionadas</p>
-            </div>
-          ) : (
-            <>
-              {/* por receta */}
-              {items.map(({ receta, ingredientesList, totales }) => (
-                <div key={receta.id} className="card-main p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-[11px] font-black uppercase italic text-primary">{receta.nombre}</span>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-primary/30">
-                          {CATEGORIAS.find(c => c.label === receta.categoria)?.emoji} {receta.categoria}
-                        </span>
-                        <span className="text-[8px] text-primary/20">·</span>
-                        <span className="text-[8px] font-bold text-primary/30">{receta.tiempo}</span>
-                      </div>
-                    </div>
-                    <button onClick={() => onRemove(receta.id)} className="p-1 text-primary/20 hover:text-red-400 transition-colors shrink-0">
-                      <X size={13} />
-                    </button>
-                  </div>
-
-                  {/* macros resumen */}
-                  <div className="grid grid-cols-4 gap-1">
-                    {[
-                      { label: "Kcal", value: totales.kcal,      unit: "" },
-                      { label: "Prot", value: totales.proteinas,  unit: "g", icon: Dumbbell },
-                      { label: "Carb", value: totales.carbos,     unit: "g", icon: Wheat },
-                      { label: "Gras", value: totales.grasas,     unit: "g", icon: Droplets },
-                    ].map(m => (
-                      <div key={m.label} className="bg-bg-main rounded-xl py-2 text-center border border-primary/8">
-                        <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
-                        <p className="text-[10px] font-black text-primary">
-                          {m.value.toFixed(0)}<span className="text-[7px] text-primary/25">{m.unit}</span>
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* ingredientes */}
-                  <div className="space-y-1">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Necesitas</p>
-                    {ingredientesList.map((ing, i) => (
-                      <div key={i} className="flex items-center justify-between py-1 border-b border-primary/5 last:border-0">
-                        <span className="text-[10px] font-bold text-primary uppercase">{ing.nombre}</span>
-                        <span className="text-[9px] font-black text-primary/30">{ing.cantidad}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              {/* ingredientes únicos combinados */}
-              {items.length > 1 && (
-                <div className="card-main p-4 space-y-2">
-                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Lista completa de ingredientes</p>
-                  {uniqueIngredientes.map((ing, i) => (
-                    <div key={i} className="flex items-center gap-2 py-1.5 border-b border-primary/5 last:border-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary/20 shrink-0" />
-                      <span className="text-[10px] font-bold text-primary/70 uppercase flex-1">{ing.nombre}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* footer macros totales */}
-        {items.length > 0 && (
-          <div className="border-t border-primary/10 px-5 py-5 space-y-3 bg-white-custom">
-            <p className="text-[8px] font-black uppercase tracking-widest text-primary/30">Totales combinados</p>
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { label: "Kcal", value: grandTotales.kcal,      unit: "" },
-                { label: "Prot", value: grandTotales.proteinas,  unit: "g" },
-                { label: "Carb", value: grandTotales.carbos,     unit: "g" },
-                { label: "Gras", value: grandTotales.grasas,     unit: "g" },
-              ].map(m => (
-                <div key={m.label} className="bg-bg-main rounded-xl py-2 text-center border border-primary/8">
-                  <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
-                  <p className="text-[11px] font-black text-primary">
-                    {m.value.toFixed(0)}<span className="text-[7px] text-primary/25">{m.unit}</span>
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </motion.div>
-    </>
-  );
-}
-
-// ─── VISTA DETALLE ────────────────────────────────────────────────────────────
 
 function RecetaDetalle({ receta }: { receta: Receta }) {
   const ingredientesList = parseIngredientes(receta.ingredientes);
@@ -384,7 +211,6 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
   );
 }
 
-// ─── CARD ─────────────────────────────────────────────────────────────────────
 
 function RecipeCard({
   receta,
@@ -486,7 +312,6 @@ function RecipeCard({
   );
 }
 
-// ─── MODAL AÑADIR ─────────────────────────────────────────────────────────────
 
 interface PendingIng {
   base: Ingrediente;
@@ -829,7 +654,6 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
   );
 }
 
-// ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 
 interface RecetasPageProps {
   selectedRecipeId?: string;
@@ -840,21 +664,45 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   const [catFilter, setCatFilter]         = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen]     = useState(false);
   const [showIngredientes, setShowIngredientes] = useState(false);
-  const [cartRecetas, setCartRecetas]     = useState<Receta[]>([]);
-  const [showCart, setShowCart]           = useState(false);
 
   const { data: recipes, loading } = useSupabaseData<Receta>("recetas");
+  const { addItem, removeItem: removeCarritoItem, isInCart, totalItems, items: carritoItems, refetch: refetchCarrito } = useCarrito();
 
-  const toggleCartReceta = (receta: Receta) => {
-    setCartRecetas(prev => {
-      const exists = prev.find(r => r.id === receta.id);
-      return exists ? prev.filter(r => r.id !== receta.id) : [...prev, receta];
-    });
+  const { data: todosIngredientes } = useSupabaseData<Ingrediente>("ingredientes");
+
+  const toggleCartReceta = async (receta: Receta) => {
+    const ingredientesList = parseIngredientes(receta.ingredientes);
+
+    const yaEnCarrito = carritoItems.some(i => i.lugar_compra === receta.nombre);
+
+    if (yaEnCarrito) {
+      const idsAEliminar = carritoItems
+        .filter(i => i.lugar_compra === receta.nombre)
+        .map(i => i.id);
+      await Promise.all(idsAEliminar.map(id => removeCarritoItem(id)));
+    } else {
+      await Promise.all(
+        ingredientesList.map(ing => {
+          
+          const ingReal = todosIngredientes.find(
+            i => i.nombre.toLowerCase() === ing.nombre.toLowerCase()
+          );
+          if (!ingReal) return Promise.resolve(); 
+          return addItem(ingReal, {
+            cantidad:      ing.cantidad || "1 porción",
+            origenReceta:  receta.nombre, 
+          });
+        })
+      );
+    }
   };
 
-  const inCartReceta = (id: string | number) => cartRecetas.some(r => r.id === id);
+  const inCartReceta = (id: string | number) => {
+    const receta = recipes.find(r => r.id === id);
+    if (!receta) return false;
+    return carritoItems.some(i => i.lugar_compra === receta.nombre);
+  };
 
-  // vista detalle
   if (selectedRecipeId) {
     const receta = recipes.find(r => String(r.id) === selectedRecipeId);
     if (loading) return (
@@ -889,11 +737,6 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     return counts;
   }, [recipes]);
 
-  const cartItems: RecetaCartItem[] = cartRecetas.map(receta => {
-    const ingredientesList = parseIngredientes(receta.ingredientes);
-    return { receta, ingredientesList, totales: calcTotales(ingredientesList) };
-  });
-
   return (
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
 
@@ -922,20 +765,19 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           </div>
 
           <div className="hidden sm:flex items-center gap-2">
-            {/* Botón carrito */}
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => setShowCart(true)}
+            {/* Botón compras */}
+            <Link
+              href="/personal/salud/compras"
               className="relative flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-2xl border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
             >
               <ShoppingCart size={14} />
-              Lista compra
-              {cartRecetas.length > 0 && (
+              Compras
+              {totalItems > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-accent text-white text-[8px] font-black rounded-full px-1">
-                  {cartRecetas.length}
+                  {totalItems}
                 </span>
               )}
-            </motion.button>
+            </Link>
 
             {/* Botón Ingredientes */}
             <motion.button
@@ -1059,18 +901,17 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
 
       {/* FAB móvil */}
       <div className="sm:hidden fixed bottom-6 right-6 z-20 flex flex-col items-end gap-3">
-        <motion.button
-          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-          onClick={() => setShowCart(true)}
+        <Link
+          href="/personal/salud/compras"
           className="relative w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
         >
           <ShoppingCart size={18} />
-          {cartRecetas.length > 0 && (
+          {totalItems > 0 && (
             <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-accent text-white text-[8px] font-black rounded-full">
-              {cartRecetas.length}
+              {totalItems}
             </span>
           )}
-        </motion.button>
+        </Link>
         <motion.button
           whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
           onClick={() => setShowIngredientes(true)}
@@ -1086,17 +927,6 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           <Plus size={22} />
         </motion.button>
       </div>
-
-      {/* CART RECETAS PANEL */}
-      <AnimatePresence>
-        {showCart && (
-          <RecetaCartPanel
-            items={cartItems}
-            onRemove={id => setCartRecetas(prev => prev.filter(r => r.id !== id))}
-            onClose={() => setShowCart(false)}
-          />
-        )}
-      </AnimatePresence>
 
       {/* modal nueva receta */}
       <AnimatePresence>

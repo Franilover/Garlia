@@ -6,9 +6,10 @@ import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import {
   Search, Plus, ChevronLeft, X, Loader2, Save,
   Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator,
-  ShoppingCart, Tag,
+  ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
+import { useCarrito } from "@/hooks/useCarritoStore";
 
 const CATEGORIAS = [
   { label: "Proteínas",     emoji: "🥩" },
@@ -29,105 +30,6 @@ const INITIAL_FORM = {
   precio_porcion: 0,
 };
 
-// ─── PANEL COMPRAR ────────────────────────────────────────────────────────────
-
-interface CartItem { item: Ingrediente & { precio_porcion?: number }; qty: number; }
-
-function ComprarPanel({ cart, onRemove, onClose }: {
-  cart: CartItem[];
-  onRemove: (id: string) => void;
-  onClose: () => void;
-}) {
-  const total = cart.reduce((acc, { item, qty }) => acc + ((item as any).precio_porcion ?? 0) * qty, 0);
-
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm"
-      />
-      <motion.div
-        initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-        transition={{ type: "spring", stiffness: 340, damping: 34 }}
-        className="fixed right-0 top-0 z-50 h-full w-full max-w-xs bg-bg-main shadow-2xl flex flex-col"
-      >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-primary/10">
-          <div>
-            <h2 className="text-xl font-black italic uppercase tracking-tighter text-primary">Comprar</h2>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-primary/30">
-              {cart.length} ingrediente{cart.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2.5">
-          {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
-              <ShoppingCart size={36} className="text-primary/10" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/25">Lista vacía</p>
-            </div>
-          ) : cart.map(({ item, qty }) => {
-            const sc = (v: number) => qty === 1 ? v : Math.round(v * qty * 10) / 10;
-            const precio = ((item as any).precio_porcion ?? 0) * qty;
-            return (
-              <div key={item.id} className="card-main p-4 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-[12px] font-black uppercase italic text-primary leading-tight">{item.nombre}</p>
-                    <p className="text-[9px] font-bold text-primary/30 uppercase">{qty} × {item.porcion_texto}</p>
-                  </div>
-                  <button onClick={() => onRemove(item.id)} className="p-1 text-primary/20 hover:text-red-400 transition-colors shrink-0">
-                    <X size={13} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-4 gap-1">
-                  {[
-                    { label: "Kcal", value: sc(item.kcal),          unit: ""  },
-                    { label: "Prot", value: sc(item.proteinas),      unit: "g" },
-                    { label: "Carb", value: sc(item.carbohidratos),  unit: "g" },
-                    { label: "Gras", value: sc(item.grasas),         unit: "g" },
-                  ].map(m => (
-                    <div key={m.label} className="bg-bg-main rounded-xl py-1.5 text-center border border-primary/8">
-                      <p className="text-[7px] font-black uppercase tracking-widest text-primary/25">{m.label}</p>
-                      <p className="text-[10px] font-black text-primary">
-                        {typeof m.value === "number" ? m.value.toFixed(0) : m.value}
-                        <span className="text-[7px] text-primary/25">{m.unit}</span>
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex items-center justify-between bg-accent/10 rounded-2xl px-3 py-2 border border-accent/20">
-                  <div className="flex items-center gap-1.5">
-                    <Tag size={10} className="text-accent/60" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Precio</span>
-                  </div>
-                  <span className="text-[13px] font-black text-primary">
-                    {precio > 0 ? `$${precio.toFixed(2)}` : <span className="text-[9px] text-primary/25">—</span>}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {cart.length > 0 && (
-          <div className="border-t border-primary/10 px-5 py-4 bg-white-custom">
-            <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-bg-main border border-primary/10">
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary/50">Total estimado</span>
-              <span className="text-xl font-black italic text-primary">${total.toFixed(2)}</span>
-            </div>
-          </div>
-        )}
-      </motion.div>
-    </>
-  );
-}
 
 function MacroBadge({ label, value, unit, scaled }: { label: string; value: number; unit: string; scaled?: number }) {
   const showing = scaled !== undefined ? scaled : value;
@@ -191,18 +93,21 @@ export const IngredientesPage = () => {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
   const [qtyOpen, setQtyOpen] = useState<Record<string, boolean>>({});
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [showCart, setShowCart] = useState(false);
 
-  const toggleCart = (item: Ingrediente) => {
-    const qty = qtyMap[item.id] ?? 1;
-    setCart(prev => {
-      const exists = prev.find(c => c.item.id === item.id);
-      if (exists) return prev.filter(c => c.item.id !== item.id);
-      return [...prev, { item, qty }];
-    });
+  const { addItem, removeItem: removeCarritoItem, isInCart, totalItems } = useCarrito();
+
+  const toggleCart = async (item: Ingrediente & { precio_porcion?: number }) => {
+    if (isInCart(item.id)) {
+      await removeCarritoItem(item.id); // useCarrito buscará por ingrediente_id internamente
+    } else {
+      const qty = qtyMap[item.id] ?? 1;
+      await addItem(item, {
+        cantidad: `${qty} × ${item.porcion_texto}`,
+        precio:   ((item as any).precio_porcion ?? 0) * qty,
+      });
+    }
   };
-  const inCart = (id: string) => cart.some(c => c.item.id === id);
+  const inCart = (ingredienteId: string) => isInCart(ingredienteId);
 
   useEffect(() => {
     if (localItems === null && ingredientes?.length) {
@@ -331,20 +236,18 @@ export const IngredientesPage = () => {
             )}
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setShowCart(true)}
-            className="relative btn-brand hidden sm:flex text-[11px] py-2.5 px-5 tracking-widest"
+          <Link
+            href="/personal/salud/compras"
+            className="relative flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-2xl border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
           >
             <ShoppingCart size={14} />
             Comprar
-            {cart.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-white text-bg-menu text-[8px] font-black rounded-full px-1">
-                {cart.length}
+            {totalItems > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-accent text-white text-[8px] font-black rounded-full px-1">
+                {totalItems}
               </span>
             )}
-          </motion.button>
+          </Link>
 
           <motion.button
             whileHover={{ scale: 1.03 }}
@@ -666,19 +569,17 @@ export const IngredientesPage = () => {
       </main>
 
       <div className="sm:hidden fixed bottom-6 right-6 z-20 flex flex-col items-end gap-3">
-        <motion.button
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.94 }}
-          onClick={() => setShowCart(true)}
+        <Link
+          href="/personal/salud/compras"
           className="relative w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
         >
           <ShoppingCart size={18} />
-          {cart.length > 0 && (
+          {totalItems > 0 && (
             <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-accent text-white text-[8px] font-black rounded-full">
-              {cart.length}
+              {totalItems}
             </span>
           )}
-        </motion.button>
+        </Link>
         <motion.button
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.94 }}
@@ -688,16 +589,6 @@ export const IngredientesPage = () => {
           <Plus size={22} />
         </motion.button>
       </div>
-
-      <AnimatePresence>
-        {showCart && (
-          <ComprarPanel
-            cart={cart}
-            onRemove={id => setCart(prev => prev.filter(c => c.item.id !== id))}
-            onClose={() => setShowCart(false)}
-          />
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {isModalOpen && (

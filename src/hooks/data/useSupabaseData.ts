@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/app/providers/DataProvider";
-import { db } from "@/lib/api/client/db"; 
+import { db } from "@/lib/api/client/db";
 
 import { personajesQueries } from "@/lib/api/queries/wiki/personajes";
 import { criaturasQueries } from "@/lib/api/queries/wiki/criaturas";
@@ -14,6 +14,7 @@ import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 import { ingredientesQueries } from "@/lib/api/queries/personal/cocina/ingredientes";
 import { ropaQueries } from "@/lib/api/queries/personal/ropa";
 import { cancionesQueries } from "@/lib/api/queries/wiki/canciones";
+import { comprasQueries } from "@/lib/api/queries/personal/cocina/carrito";
 
 const QUERIES_MAP: Record<string, any> = {
   personajes:   personajesQueries,
@@ -27,12 +28,14 @@ const QUERIES_MAP: Record<string, any> = {
   ropa:         ropaQueries,
   ropa_outfits: ropaQueries,
   canciones:    cancionesQueries,
+  compras:      comprasQueries,
 };
 
 const DEXIE_TABLES = new Set([
   "personajes", "criaturas", "items", "libros", "canciones",
   "tareas", "eventos", "recetas", "ingredientes",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
+  "compras",
 ]);
 
 interface UseSupabaseOptions {
@@ -74,9 +77,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const isMounted = useRef(true);
   const retryCount = useRef(0);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Convertimos las opciones a string para que el useCallback detecte cambios reales
-  // en lugar de comparar referencias de objetos que cambian en cada render.
   const optionsKey = JSON.stringify(opciones);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
@@ -99,7 +99,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     setIsOffline(false);
 
     try {
-      // Usamos las opciones parseadas desde la dependencia para asegurar frescura
       const currentOptions = JSON.parse(optionsKey);
       let res: any;
 
@@ -145,9 +144,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [tabla, updateCache, optionsKey]); // Agregado optionsKey aquí
+  }, [tabla, updateCache, optionsKey]);
 
-  // Métodos de mutación (addRow, updateRow, deleteRow) se mantienen igual...
   const addRow = useCallback(async (newData: any) => {
     try {
       const res = QUERIES_MAP[tabla]?.create
@@ -211,7 +209,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     setData,
     loading,
     error,
-    isOffline,         
+    isOffline,
     refetch: () => fetchData(true),
     mutate: () => fetchData(true),
     addRow,
