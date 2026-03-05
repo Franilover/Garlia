@@ -60,8 +60,8 @@ function Personal({ datos }: { datos: DatosPerfil }) {
           </div>
         </div>
         <div className="space-y-1">
-          <h1 className="text-4xl font-black text-[#6B5E70] uppercase tracking-tighter">"{datos.username}"</h1>
-          <p className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.3em]">"{datos.status || "Explorador de Franilover"}"</p>
+          <h1 className="text-4xl font-black text-[#6B5E70] uppercase tracking-tighter">{datos.username}</h1>
+          <p className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.3em]">{datos.status || "Explorador"}"</p>
         </div>
       </section>
 
