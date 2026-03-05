@@ -61,22 +61,6 @@ export default function WikiMenuPage() {
             onClick={() => handleVisit('personajes')} 
           />
           <MenuCard 
-            href="/wiki/items" 
-            title="Items" 
-            icon={<Sword />} 
-            delay={0.2} 
-            hasNewContent={notifications['items']} 
-            onClick={() => handleVisit('items')} 
-          />
-          <MenuCard 
-            href="/wiki/libros" 
-            title="Libros" 
-            icon={<BookText />} 
-            delay={0.3} 
-            hasNewContent={notifications['libros']} 
-            onClick={() => handleVisit('libros')} 
-          />
-          <MenuCard 
             href="/wiki/criaturas" 
             title="Criaturas" 
             icon={<Dog />} 
@@ -85,12 +69,28 @@ export default function WikiMenuPage() {
             onClick={() => handleVisit('criaturas')} 
           />
           <MenuCard 
+            href="/wiki/items" 
+            title="Items" 
+            icon={<Sword />} 
+            delay={0.2} 
+            hasNewContent={notifications['items']} 
+            onClick={() => handleVisit('items')} 
+          />
+          <MenuCard 
             href="/wiki/mapa" 
             title="Mapa" 
             icon={<Compass />} 
             delay={0.5} 
             hasNewContent={notifications['mapa']} 
             onClick={() => handleVisit('mapa')} 
+          />
+          <MenuCard 
+            href="/wiki/libros" 
+            title="Libros" 
+            icon={<BookText />} 
+            delay={0.3} 
+            hasNewContent={notifications['libros']} 
+            onClick={() => handleVisit('libros')} 
           />
           <MenuCard 
             href="/wiki/canciones" 
