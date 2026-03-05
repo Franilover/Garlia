@@ -40,7 +40,7 @@ export default function WikiMenuPage() {
           className="text-center mb-16 md:mb-24"
         >
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter text-primary italic">
-            Wiki
+            Jardin
           </h1>
         </motion.div>
 
