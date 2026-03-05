@@ -5,7 +5,7 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import {
   Search, Plus, ChevronLeft, X, Loader2, Save,
-  Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator,
+  Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator, ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -220,15 +220,25 @@ export const IngredientesPage = () => {
             )}
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setIsModalOpen(true)}
-            className="btn-brand hidden sm:flex text-[11px] py-2.5 px-5 tracking-widest"
-          >
-            <Plus size={14} />
-            Añadir
-          </motion.button>
+          <div className="hidden sm:flex items-center gap-2">
+            <Link
+              href="/personal/salud/compras"
+              className="flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-2xl border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
+            >
+              <ShoppingCart size={14} />
+              Compras
+            </Link>
+
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setIsModalOpen(true)}
+              className="btn-brand flex text-[11px] py-2.5 px-5 tracking-widest"
+            >
+              <Plus size={14} />
+              Añadir
+            </motion.button>
+          </div>
         </div>
       </header>
 
@@ -526,6 +536,12 @@ export const IngredientesPage = () => {
       </main>
 
       <div className="sm:hidden fixed bottom-6 right-6 z-20 flex flex-col items-end gap-3">
+        <Link
+          href="/personal/salud/compras"
+          className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
+        >
+          <ShoppingCart size={18} />
+        </Link>
         <motion.button
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.94 }}
