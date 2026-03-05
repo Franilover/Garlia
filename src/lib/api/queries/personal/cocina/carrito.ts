@@ -55,7 +55,7 @@ export const comprasQueries = {
     const { error } = await supabase
       .from("compras")
       .delete()
-      .eq("ingrediente_id", ingredienteId);
+      .eq("id", ingredienteId);
     if (error) throw error;
   },
 
@@ -64,14 +64,6 @@ export const comprasQueries = {
       .from("compras")
       .delete()
       .eq("lugar_compra", lugar);
-    if (error) throw error;
-  },
-
-  deleteAll: async (): Promise<void> => {
-    const { error } = await supabase
-      .from("compras")
-      .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000");
     if (error) throw error;
   },
 };
