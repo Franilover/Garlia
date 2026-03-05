@@ -7,6 +7,7 @@ import { LucideProps } from "lucide-react";
 interface MenuCardProps {
   href: string;
   title: string;
+  // Cambiamos ReactNode por ReactElement para asegurar que sea un componente
   icon: React.ReactElement<LucideProps>; 
   delay?: number;
   hasNewContent?: boolean;
@@ -21,25 +22,26 @@ export const MenuCard = ({ href, title, icon, delay = 0, hasNewContent, onClick 
     className="h-full"
   >
     <Link href={href} className="group block relative h-full" onClick={onClick}>
-      <div className="bg-white-custom border-2 border-primary/5 rounded-2xl md:rounded-3xl p-3 md:p-12 h-full flex flex-col items-center justify-center text-center transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3">
+      <div className="bg-white-custom border-2 border-primary/5 rounded-3xl p-6 md:p-12 h-full flex flex-col items-center justify-center text-center transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3">
         
         {hasNewContent && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-2 right-2 md:top-8 md:right-8 w-2.5 h-2.5 md:w-4 md:h-4 bg-red-500 rounded-full shadow-lg z-20">
-            <span className="absolute inset-0 w-2.5 h-2.5 md:w-4 md:h-4 bg-red-500 rounded-full animate-ping opacity-75" />
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 md:top-8 md:right-8 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full shadow-lg z-20">
+            <span className="absolute inset-0 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full animate-ping opacity-75" />
           </motion.div>
         )}
 
         <motion.div
-          className="w-10 h-10 md:w-24 md:h-24 bg-primary/10 text-primary rounded-xl md:rounded-3xl flex items-center justify-center mb-2 md:mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
+          className="w-16 h-16 md:w-24 md:h-24 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
           whileHover={{ rotate: [0, -10, 10, 0] }}
         >
+          {/* Ahora TypeScript sabe que el icono acepta size y className */}
           {React.cloneElement(icon, { 
-            size: 20,
+            size: 32, 
             className: "md:w-[48px] md:h-[48px]" 
           })}
         </motion.div>
         
-        <h2 className="text-[11px] md:text-3xl lg:text-4xl font-black uppercase tracking-tighter text-primary leading-tight">
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter text-primary">
           {title}
         </h2>
       </div>
