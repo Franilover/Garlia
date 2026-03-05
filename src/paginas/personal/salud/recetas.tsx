@@ -289,7 +289,7 @@ function RecipeCard({
         {/* acciones */}
         <div className="flex gap-2">
           <Link
-            href={`/personal/cocina/recetas/${receta.id}`}
+            href={`/personal/salud/recetas/${receta.id}`}
             className="flex items-center justify-between flex-1 px-4 py-2.5 bg-bg-menu text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-all"
           >
             Ver receta <ChevronRight size={13} />
@@ -714,7 +714,7 @@ function RecetasPageInner({ selectedRecipeId }: RecetasPageProps) {
       <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-3">
         <Utensils className="text-primary/15" size={48} />
         <p className="text-[11px] font-black uppercase tracking-widest text-primary/30">Receta no encontrada</p>
-        <Link href="/personal/cocina/recetas" className="text-[10px] font-black text-accent hover:text-primary transition-colors uppercase tracking-wide">
+        <Link href="/personal/salud/recetas" className="text-[10px] font-black text-accent hover:text-primary transition-colors uppercase tracking-wide">
           Volver a recetas
         </Link>
       </div>
