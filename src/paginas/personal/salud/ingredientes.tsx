@@ -578,7 +578,7 @@ export const IngredientesPage = () => {
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all shrink-0"
+                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all shrink-0"
                 >
                   <X size={16} />
                 </button>

@@ -106,7 +106,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
 
   return (
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
-      <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
+      <header className="sticky top-16 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-4xl mx-auto px-5 py-4">
           <Link
             href="/personal/cocina/recetas"
@@ -689,9 +689,15 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
 
       {/* HEADER */}
-      <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
+      <header className="sticky top-16 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
+            <Link
+              href="/personal/cocina"
+              className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
+            >
+              <ChevronLeft size={12} /> Cocina
+            </Link>
             <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none text-primary">
               Mis <span className="text-primary/20">Recetas</span>
             </h1>
@@ -833,7 +839,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       </main>
 
       {/* FAB móvil */}
-      <div className="sm:hidden fixed bottom-6 right-6 z-20 flex flex-col items-end gap-3">
+      <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
         <motion.button
           whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
           onClick={() => setShowIngredientes(true)}
