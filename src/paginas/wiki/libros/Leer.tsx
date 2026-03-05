@@ -1221,8 +1221,19 @@ export default function Lector() {
     Promise.all([
       supabase.auth.getSession(),
       librosQueries.getCapituloParaLectura(capId, id, true),
-    ]).then(([sessionRes, queryRes]) => {
-      setIsAdmin(!!sessionRes.data.session);
+    ]).then(async ([sessionRes, queryRes]) => {
+      // ✅ Verificamos rol en perfiles, no solo si hay sesión
+      const session = sessionRes.data.session;
+      let admin = false;
+      if (session) {
+        const { data: perfil } = await supabase
+          .from("perfiles")
+          .select("rol")
+          .eq("id", session.user.id)
+          .single();
+        admin = perfil?.rol === "admin";
+      }
+      setIsAdmin(admin);
       if (queryRes.error || !queryRes.data) {
         setError(queryRes.error || "No se pudo cargar el capítulo");
       } else {

@@ -56,7 +56,6 @@ export default function LibroDetalle() {
     }
   };
 
-  // Recarga caps tras mutaciones
   const refetchCaps = useCallback(async (admin: boolean) => {
     if (!id) return;
     const hoy = new Date().toISOString().split('T')[0];
@@ -76,16 +75,24 @@ export default function LibroDetalle() {
 
     const hoy = new Date().toISOString().split('T')[0];
 
-    // ✅ Las 4 queries se lanzan TODAS A LA VEZ sin esperar ninguna
-    // Lanzamos caps para admin Y para público simultáneamente,
-    // luego usamos la correcta según el resultado de auth
     Promise.all([
       supabase.auth.getSession(),
       supabase.from("libros").select("*").eq("id", id).single(),
       supabase.from("capitulos").select("*").eq("libro_id", id).order("orden", { ascending: true }),
       supabase.from("capitulos").select("*").eq("libro_id", id).lte("fecha_publicacion", hoy).not("titulo_capitulo", "like", "[Ruta]%").order("orden", { ascending: true }),
-    ]).then(([authRes, libroRes, capsAll, capsPublic]) => {
-      const admin = !!authRes.data.session;
+    ]).then(async ([authRes, libroRes, capsAll, capsPublic]) => {
+      const session = authRes.data.session;
+
+      // ✅ Verificamos rol en perfiles, no solo si hay sesión
+      let admin = false;
+      if (session) {
+        const { data: perfil } = await supabase
+          .from("perfiles")
+          .select("rol")
+          .eq("id", session.user.id)
+          .single();
+        admin = perfil?.rol === "admin";
+      }
 
       setIsAdmin(admin);
       if (libroRes.data) setLibro(libroRes.data);
@@ -289,40 +296,40 @@ export default function LibroDetalle() {
                 capitulos.map((cap) => {
                   const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
                   return (
-                  <button
-                    key={cap.id}
-                    onClick={() => router.push(`/wiki/libros/${id}/leer/${cap.id}`)}
-                    className={`w-full flex items-center justify-between p-6 border rounded-3xl hover:border-primary/20 transition-all text-left group ${esRuta ? "bg-blue-50/60 border-blue-100" : "bg-white-custom border-primary/5"}`}
-                  >
-                    <div className="flex flex-col gap-1">
-                      {esRuta && (
-                        <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>
-                      )}
-                      <span className="text-primary font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform">
-                        {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
-                      </span>
-                      <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
-                        {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "}
-                        {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
-                      </span>
-                    </div>
-                    {isAdmin ? (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedCap(cap);
-                          setEditCapTitle(cap.titulo_capitulo);
-                          setEditCapFecha(cap.fecha_publicacion || "");
-                          setShowEditCapModal(true);
-                        }}
-                        className="bg-primary/5 p-2 rounded-xl text-primary hover:bg-primary hover:text-white transition-colors"
-                      >
-                        <Edit3 size={16} />
+                    <button
+                      key={cap.id}
+                      onClick={() => router.push(`/wiki/libros/${id}/leer/${cap.id}`)}
+                      className={`w-full flex items-center justify-between p-6 border rounded-3xl hover:border-primary/20 transition-all text-left group ${esRuta ? "bg-blue-50/60 border-blue-100" : "bg-white-custom border-primary/5"}`}
+                    >
+                      <div className="flex flex-col gap-1">
+                        {esRuta && (
+                          <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>
+                        )}
+                        <span className="text-primary font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform">
+                          {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
+                        </span>
+                        <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
+                          {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "}
+                          {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
+                        </span>
                       </div>
-                    ) : (
-                      <Play size={14} fill="currentColor" className="text-primary" />
-                    )}
-                  </button>
+                      {isAdmin ? (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCap(cap);
+                            setEditCapTitle(cap.titulo_capitulo);
+                            setEditCapFecha(cap.fecha_publicacion || "");
+                            setShowEditCapModal(true);
+                          }}
+                          className="bg-primary/5 p-2 rounded-xl text-primary hover:bg-primary hover:text-white transition-colors"
+                        >
+                          <Edit3 size={16} />
+                        </div>
+                      ) : (
+                        <Play size={14} fill="currentColor" className="text-primary" />
+                      )}
+                    </button>
                   );
                 })
               )}
