@@ -188,7 +188,7 @@ export const IngredientesPage = () => {
   return (
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
 
-      <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
+      <header className="sticky top-16 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <Link
