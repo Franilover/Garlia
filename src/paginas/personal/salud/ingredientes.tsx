@@ -9,7 +9,7 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
-import { useCarrito } from "@/hooks/useCarritoStore";
+import { useCarrito } from "@/hooks/features/useCarritoStore";
 
 const CATEGORIAS = [
   { label: "Proteínas",     emoji: "🥩" },
