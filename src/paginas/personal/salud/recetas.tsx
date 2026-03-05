@@ -109,7 +109,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-4xl mx-auto px-5 py-4">
           <Link
-            href="/personal/cocina/recetas"
+            href="/personal/salud/recetas"
             className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
           >
             <ChevronLeft size={12} /> Recetas
@@ -285,7 +285,7 @@ function RecipeCard({
         {/* acciones */}
         <div className="flex gap-2">
           <Link
-            href={`/personal/cocina/recetas/${receta.id}`}
+            href={`/personal/salud/recetas/${receta.id}`}
             className="flex items-center justify-between flex-1 px-4 py-2.5 bg-bg-menu text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-all"
           >
             Ver receta <ChevronRight size={13} />
