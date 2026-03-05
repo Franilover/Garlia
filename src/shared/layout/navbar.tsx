@@ -162,11 +162,6 @@ const Navbar = () => {
                       <Link href="/wiki/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
                         <Sword size={14} /> Mi Personaje
                       </Link>
-                      {puedeSubir && (
-                        <Link href="/upload" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary bg-primary/5 rounded-xl transition-all mb-1">
-                          <Plus size={14} /> Subir Contenido
-                        </Link>
-                      )}
                       <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase text-red-400 hover:bg-red-50 rounded-xl transition-all border-t border-primary/5">
                         <LogOut size={14} /> Salir
                       </button>
@@ -194,23 +189,29 @@ const Navbar = () => {
             <motion.div
               initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-16 left-4 right-4 bg-white-custom border border-primary/10 rounded-[40px] p-4 shadow-2xl flex flex-col gap-2 z-[1001]"
+              className="absolute bottom-16 left-4 right-4 bg-white-custom border border-primary/10 rounded-[40px] p-5 shadow-2xl flex flex-col gap-3 z-[1001]"
             >
-              <div className="text-center mb-2">
-                <p className="text-[9px] font-black text-primary/20 uppercase tracking-widest">
-                  Hola, {perfil?.username}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={toggle}
+                  className="w-11 h-11 rounded-2xl border border-primary/10 text-primary flex items-center justify-center hover:bg-primary/5 transition-all"
+                >
+                  {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <p className="text-[10px] font-black text-primary/40 uppercase tracking-widest">
+                  {perfil?.username}
                 </p>
+                <button
+                  onClick={handleLogout}
+                  className="w-11 h-11 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 transition-all"
+                >
+                  <LogOut size={18} />
+                </button>
               </div>
 
               <Link href="/wiki/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
                 <Sword size={18} /> Mi Personaje
               </Link>
-
-              {puedeSubir && (
-                <Link href="/upload" onClick={closeAll} className="w-full p-4 bg-primary text-white rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                  <Plus size={18} /> Subir Contenido
-                </Link>
-              )}
 
               {esFranilover && (
                 <div className="grid grid-cols-2 gap-2">
@@ -222,18 +223,6 @@ const Navbar = () => {
                   </Link>
                 </div>
               )}
-
-              <button
-                onClick={toggle}
-                className="w-full p-4 border border-primary/10 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3 transition-all hover:bg-primary/5"
-              >
-                {isDark ? <Sun size={18} /> : <Moon size={18} />}
-                {isDark ? "Modo Claro" : "Modo Oscuro"}
-              </button>
-
-              <button onClick={handleLogout} className="w-full p-4 bg-red-50 text-red-400 rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3 mt-2">
-                Cerrar Sesión <LogOut size={16} />
-              </button>
             </motion.div>
           )}
         </AnimatePresence>
