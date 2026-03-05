@@ -5,10 +5,9 @@ import EntidadPageBase from "@/shared/templates/GaleriaBase";
 import { GalleryItem } from "@/shared/layout/gallery";
 import { LightboxProvider, LightboxVisual, useLightbox } from "@/shared/modal/lightbox";
 import { supabase } from "@/lib/api/client/supabase";
-import { Plus, X, Loader2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { X, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import SimpleImagePicker from "@/shared/forms/SimpleImagePicker";
-import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 
 const CATEGORIAS_DIBUJO = ["fanart", "original", "bocetos"];
 
@@ -36,13 +35,12 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
     try {
       const { error } = await supabase
         .from("dibujos")
-        .insert([{ 
-          titulo, 
-          url_imagen: url, 
+        .insert([{
+          titulo,
+          url_imagen: url,
           categoria,
-          creado_en: new Date().toISOString() 
+          creado_en: new Date().toISOString()
         }]);
-
       if (error) throw error;
       onSuccess();
       onClose();
@@ -58,7 +56,7 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         className="bg-bg-card border border-primary/10 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl"
@@ -69,22 +67,17 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
             <X size={18} />
           </button>
         </div>
-
         <div className="p-8">
           {step === "pick" ? (
             <div className="space-y-6">
               <p className="text-[11px] text-primary/40 uppercase font-bold tracking-tighter text-center">Paso 1: Selecciona la obra</p>
-              <SimpleImagePicker 
-                onSelect={handleImageSelect} 
-                onClose={onClose} 
-              />
+              <SimpleImagePicker onSelect={handleImageSelect} onClose={onClose} />
             </div>
           ) : (
             <div className="space-y-6">
               <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-primary/10 bg-black/20">
                 <img src={url} alt="Preview" className="w-full h-full object-contain" />
               </div>
-              
               <div className="space-y-4">
                 <input
                   autoFocus
@@ -94,23 +87,21 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
                   onChange={(e) => setTitulo(e.target.value)}
                   className="w-full bg-primary/5 border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
                 />
-
                 <div className="flex flex-wrap gap-2">
                   {CATEGORIAS_DIBUJO.map(cat => (
                     <button
                       key={cat}
                       onClick={() => setCategoria(cat)}
                       className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                        categoria === cat 
-                        ? "bg-primary text-white shadow-lg shadow-primary/20" 
-                        : "bg-primary/5 text-primary/40 hover:bg-primary/10"
+                        categoria === cat
+                          ? "bg-primary text-white shadow-lg shadow-primary/20"
+                          : "bg-primary/5 text-primary/40 hover:bg-primary/10"
                       }`}
                     >
                       {cat}
                     </button>
                   ))}
                 </div>
-
                 <button
                   onClick={handleSave}
                   disabled={loading}
@@ -129,8 +120,6 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
 
 function DrawingsContent() {
   const { openLightbox } = useLightbox();
-  const isAdmin = useIsAdmin();
-  const [addOpen, setAddOpen] = useState(false);
 
   return (
     <main className="min-h-screen bg-bg-main pb-20">
@@ -138,7 +127,15 @@ function DrawingsContent() {
         tabla="dibujos"
         titulo="Galería"
         configFiltros={["categoria"]}
-        renderCard={(item, onClick, vistaFila, index, allItems) => (
+        plantillaNueva={{}}
+        renderModal={(_selected, isCreating, onClose) => (
+          <AddDrawingModal
+            open={isCreating}
+            onClose={onClose}
+            onSuccess={() => window.location.reload()}
+          />
+        )}
+        renderCard={(item, _onClick, _vistaFila, index, allItems) => (
           <GalleryItem
             key={item.id}
             src={item.url_imagen}
@@ -154,23 +151,8 @@ function DrawingsContent() {
           />
         )}
       />
-
       <LightboxVisual />
-      {isAdmin && (
-        <button
-          onClick={() => setAddOpen(true)}
-          className="fixed bottom-8 right-6 z-50 bg-primary text-white p-4 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all"
-        >
-          <Plus size={24} />
-        </button>
-      )}
-
-      <AddDrawingModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        onSuccess={() => window.location.reload()}
-      />
-    </main> 
+    </main>
   );
 }
 
