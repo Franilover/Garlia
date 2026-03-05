@@ -535,7 +535,7 @@ export const IngredientesPage = () => {
         )}
       </main>
 
-      <div className="sm:hidden fixed bottom-6 right-6 z-20 flex flex-col items-end gap-3">
+      <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
         <Link
           href="/personal/salud/compras"
           className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
@@ -567,22 +567,24 @@ export const IngredientesPage = () => {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               transition={{ type: "spring", stiffness: 380, damping: 36 }}
-              className="relative w-full sm:max-w-lg rounded-t-[40px] sm:rounded-[40px] p-7 overflow-y-auto max-h-[92vh] bg-white-custom shadow-2xl"
+              className="relative w-full sm:max-w-lg rounded-t-[40px] sm:rounded-[40px] overflow-hidden bg-white-custom shadow-2xl max-h-[92vh] flex flex-col"
             >
-              <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mx-auto mb-6" />
-
-              <div className="flex items-center justify-between mb-7">
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
-                  Nuevo <span className="text-primary/20">Insumo</span>
-                </h2>
+              <div className="flex items-center justify-between px-7 pt-7 pb-4 shrink-0">
+                <div>
+                  <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mb-4" />
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
+                    Nuevo <span className="text-primary/20">Insumo</span>
+                  </h2>
+                </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all shrink-0"
                 >
                   <X size={16} />
                 </button>
               </div>
 
+              <div className="overflow-y-auto flex-1 px-7 pb-7">
               <form onSubmit={handleSave} className="space-y-7">
                 <section className="space-y-4">
                   <SectionTitle>Información básica</SectionTitle>
@@ -634,6 +636,7 @@ export const IngredientesPage = () => {
                   Registrar insumo
                 </button>
               </form>
+              </div>
             </motion.div>
           </div>
         )}
