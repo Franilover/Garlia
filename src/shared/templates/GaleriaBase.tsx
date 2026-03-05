@@ -32,7 +32,7 @@ interface EntidadPageBaseProps {
     onUpdate: (data: any) => void
   ) => React.ReactNode;
   mostrarBusqueda?: boolean;
-  campoBusqueda?: string; 
+  campoBusqueda?: string; // qué campo del item usar para buscar, default "nombre"
   permitirVistaFila?: boolean;
   mostrarMusica?: boolean;
   getCustomTags?: (item: any) => (string | null | undefined)[];
@@ -77,13 +77,11 @@ export default function EntidadPageBase({
     handleAddNew,
     handleClose,
   } = useAdminItem(setData, { plantilla: plantillaNueva });
-
   const [busqueda, setBusqueda] = useState("");
   const [vistaGrid, setVistaGrid] = useState(true);
   const [ordenAsc, setOrdenAsc] = useState(false);
 
   if (loading) return <LoadingState mensaje={getMensaje("LOADING", tabla as any)} />;
-
   const itemsFinales = mostrarBusqueda
     ? itemsFiltrados.filter((item: any) =>
         String(item[campoBusqueda] ?? "")
@@ -135,7 +133,6 @@ export default function EntidadPageBase({
               {isAdmin && plantillaNueva && (
                 <AdminAddButton onClick={handleAddNew} label={`Añadir ${titulo}`} />
               )}
-
               {mostrarBusqueda && (
                 <div className="relative">
                   <Search
@@ -165,22 +162,35 @@ export default function EntidadPageBase({
                 </div>
               )}
 
-              <FiltrosMaestros
-                config={Object.fromEntries(
-                  configFiltros.map((f) => [
-                    f === "conFoto" ? "conFoto" : f.charAt(0).toUpperCase() + f.slice(1),
-                    opciones[f] || [],
-                  ])
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <FiltrosMaestros
+                    config={Object.fromEntries(
+                      configFiltros.map((f) => [
+                        f === "conFoto" ? "conFoto" : f.charAt(0).toUpperCase() + f.slice(1),
+                        opciones[f] || [],
+                      ])
+                    )}
+                    filtrosActivos={filtros}
+                    onChange={(grupo, valor) => {
+                      const campo =
+                        grupo === "conFoto"
+                          ? "conFoto"
+                          : grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                      actualizarFiltro(campo, valor);
+                    }}
+                  />
+                </div>
+                {permitirOrden && (
+                  <button
+                    onClick={() => setOrdenAsc(v => !v)}
+                    className="p-2 rounded-xl text-primary/40 hover:text-primary hover:bg-primary/5 transition-all shrink-0"
+                    title={ordenAsc ? "Más nuevas primero" : "Más antiguas primero"}
+                  >
+                    {ordenAsc ? <ArrowUpNarrowWide size={16} /> : <ArrowDownNarrowWide size={16} />}
+                  </button>
                 )}
-                filtrosActivos={filtros}
-                onChange={(grupo, valor) => {
-                  const campo =
-                    grupo === "conFoto"
-                      ? "conFoto"
-                      : grupo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                  actualizarFiltro(campo, valor);
-                }}
-              />
+              </div>
               <div className="flex items-center justify-between">
                 {hayFiltrosActivos ? (
                   <button
@@ -191,16 +201,6 @@ export default function EntidadPageBase({
                   </button>
                 ) : (
                   <span />
-                )}
-
-                {permitirOrden && (
-                  <button
-                    onClick={() => setOrdenAsc(v => !v)}
-                    className="p-2 rounded-xl text-primary/40 hover:text-primary hover:bg-primary/5 transition-all"
-                    title={ordenAsc ? "Más nuevas primero" : "Más antiguas primero"}
-                  >
-                    {ordenAsc ? <ArrowUpNarrowWide size={16} /> : <ArrowDownNarrowWide size={16} />}
-                  </button>
                 )}
 
                 {permitirVistaFila && (
