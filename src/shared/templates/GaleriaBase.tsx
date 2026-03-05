@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { LayoutGrid, AlignJustify, Search, X } from "lucide-react";
+import { LayoutGrid, AlignJustify, Search, X, ArrowUpNarrowWide, ArrowDownNarrowWide } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { GalleryGrid } from "@/shared/layout/gallery";
 import DetalleMaestro from "@/shared/display/detalles";
@@ -25,7 +25,6 @@ interface EntidadPageBaseProps {
     index: number,
     allItems: any[]
   ) => React.ReactNode;
-  // --- Nuevas props opcionales ---
   renderModal?: (
     selected: any,
     isCreating: boolean,
@@ -33,12 +32,12 @@ interface EntidadPageBaseProps {
     onUpdate: (data: any) => void
   ) => React.ReactNode;
   mostrarBusqueda?: boolean;
-  campoBusqueda?: string; // qué campo del item usar para buscar, default "nombre"
+  campoBusqueda?: string; 
   permitirVistaFila?: boolean;
-  // --- Props ya existentes ---
   mostrarMusica?: boolean;
   getCustomTags?: (item: any) => (string | null | undefined)[];
   plantillaNueva?: any;
+  permitirOrden?: boolean;
 }
 
 export default function EntidadPageBase({
@@ -53,6 +52,7 @@ export default function EntidadPageBase({
   mostrarMusica = false,
   getCustomTags,
   plantillaNueva,
+  permitirOrden = false,
 }: EntidadPageBaseProps) {
 
     const isAdminSession = useIsAdmin();
@@ -78,15 +78,12 @@ export default function EntidadPageBase({
     handleClose,
   } = useAdminItem(setData, { plantilla: plantillaNueva });
 
-  // --- Estado de búsqueda ---
   const [busqueda, setBusqueda] = useState("");
-
-  // --- Estado de vista ---
   const [vistaGrid, setVistaGrid] = useState(true);
+  const [ordenAsc, setOrdenAsc] = useState(false);
 
   if (loading) return <LoadingState mensaje={getMensaje("LOADING", tabla as any)} />;
 
-  // Filtro adicional por búsqueda de texto
   const itemsFinales = mostrarBusqueda
     ? itemsFiltrados.filter((item: any) =>
         String(item[campoBusqueda] ?? "")
@@ -94,6 +91,14 @@ export default function EntidadPageBase({
           .includes(busqueda.toLowerCase())
       )
     : itemsFiltrados;
+
+  const itemsOrdenados = permitirOrden
+    ? [...itemsFinales].sort((a, b) => {
+        const fa = a.creado_en || a.fecha || a.created_at || "";
+        const fb = b.creado_en || b.fecha || b.created_at || "";
+        return ordenAsc ? fa.localeCompare(fb) : fb.localeCompare(fa);
+      })
+    : itemsFinales;
 
   const hayFiltrosActivos =
     Object.values(filtros).some((v) => v !== "todos") || busqueda !== "";
@@ -131,7 +136,6 @@ export default function EntidadPageBase({
                 <AdminAddButton onClick={handleAddNew} label={`Añadir ${titulo}`} />
               )}
 
-              {/* BÚSQUEDA */}
               {mostrarBusqueda && (
                 <div className="relative">
                   <Search
@@ -177,8 +181,6 @@ export default function EntidadPageBase({
                   actualizarFiltro(campo, valor);
                 }}
               />
-
-              {/* FILA INFERIOR: limpiar filtros + toggle vista */}
               <div className="flex items-center justify-between">
                 {hayFiltrosActivos ? (
                   <button
@@ -189,6 +191,16 @@ export default function EntidadPageBase({
                   </button>
                 ) : (
                   <span />
+                )}
+
+                {permitirOrden && (
+                  <button
+                    onClick={() => setOrdenAsc(v => !v)}
+                    className="p-2 rounded-xl text-primary/40 hover:text-primary hover:bg-primary/5 transition-all"
+                    title={ordenAsc ? "Más nuevas primero" : "Más antiguas primero"}
+                  >
+                    {ordenAsc ? <ArrowUpNarrowWide size={16} /> : <ArrowDownNarrowWide size={16} />}
+                  </button>
                 )}
 
                 {permitirVistaFila && (
@@ -215,8 +227,8 @@ export default function EntidadPageBase({
         }
       >
         {itemsFinales.length > 0 ? (
-          itemsFinales.map((item: any, index: number) =>
-            renderCard(item, () => handleSelect(item), vistaFila, index, itemsFinales)
+          itemsOrdenados.map((item: any, index: number) =>
+            renderCard(item, () => handleSelect(item), vistaFila, index, itemsOrdenados)
           )
         ) : (
           <div className="col-span-full py-20">

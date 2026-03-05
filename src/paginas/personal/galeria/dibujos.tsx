@@ -128,6 +128,7 @@ function DrawingsContent() {
         titulo="Galería"
         configFiltros={["categoria"]}
         plantillaNueva={{}}
+        permitirOrden={true}
         renderModal={(_selected, isCreating, onClose) => (
           <AddDrawingModal
             open={isCreating}

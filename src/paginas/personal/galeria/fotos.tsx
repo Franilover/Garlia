@@ -105,6 +105,7 @@ function DiarioContent() {
         titulo="Diario"
         configFiltros={["categoria"]}
         plantillaNueva={{}}
+        permitirOrden={true}
         renderModal={(_selected, isCreating, onClose) => (
           <AddFotoModal
             open={isCreating}
