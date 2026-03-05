@@ -7,6 +7,7 @@ import { Ingrediente } from "@/lib/types/personal/ingrediente";
 
 export default function ComprasPage() {
   const { data: ingredientes, loading } = useSupabaseData<Ingrediente>("ingredientes");
+
   const [search, setSearch] = useState("");
 
   const items = useMemo(() =>
