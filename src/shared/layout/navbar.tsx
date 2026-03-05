@@ -191,27 +191,23 @@ const Navbar = () => {
               onClick={(e) => e.stopPropagation()}
               className="absolute bottom-16 left-4 right-4 bg-white-custom border border-primary/10 rounded-[40px] p-5 shadow-2xl flex flex-col gap-3 z-[1001]"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={toggle}
-                  className="w-11 h-11 rounded-2xl border border-primary/10 text-primary flex items-center justify-center hover:bg-primary/5 transition-all"
+                  className="w-11 h-11 rounded-2xl border border-primary/10 text-primary flex items-center justify-center hover:bg-primary/5 transition-all shrink-0"
                 >
                   {isDark ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
-                <p className="text-[10px] font-black text-primary/40 uppercase tracking-widest">
-                  Mi Personaje
-                </p>
+                <Link href="/wiki/personal" onClick={closeAll} className="flex-1 p-3 bg-primary/5 text-primary rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2">
+                  <Sword size={16} /> {perfil?.username}
+                </Link>
                 <button
                   onClick={handleLogout}
-                  className="w-11 h-11 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 transition-all"
+                  className="w-11 h-11 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 transition-all shrink-0"
                 >
                   <LogOut size={18} />
                 </button>
               </div>
-
-              <Link href="/wiki/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                <Sword size={18} /> {perfil?.username || 'Mi Personaje'}
-              </Link>
 
               {esFranilover && (
                 <div className="grid grid-cols-2 gap-2">
