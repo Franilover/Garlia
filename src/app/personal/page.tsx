@@ -46,18 +46,20 @@ export default function PersonalMenuPage() {
         </motion.div>
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 lg:gap-10">
-          <MenuCard 
-            href="/personal/sobre-mi" 
-            title="Sobre Mí" 
-            icon={<Star />} 
-            delay={0.1} 
-            hasNewContent={notifications["sobre-mi"]} 
-            onClick={() => handleVisit("sobre-mi")} 
-          />
+          <div className="col-span-2 lg:col-span-1">
+            <MenuCard 
+              href="/personal/sobre-mi" 
+              title="Sobre Mí" 
+              icon={<Star />} 
+              delay={0.1} 
+              hasNewContent={notifications["sobre-mi"]} 
+              onClick={() => handleVisit("sobre-mi")} 
+            />
+          </div>
           <MenuCard 
             href="/personal/dibujos" 
             title="Dibujos" 
-            icon={<Palette />} /* Icono de Paleta actualizado */
+            icon={<Palette />}
             delay={0.2} 
             hasNewContent={notifications["dibujos"]} 
             onClick={() => handleVisit("dibujos")} 
