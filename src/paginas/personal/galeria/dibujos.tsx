@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import EntidadPageBase from "@/shared/templates/GaleriaBase";
 import { GalleryItem } from "@/shared/layout/gallery";
 import { LightboxProvider, LightboxVisual, useLightbox } from "@/shared/modal/lightbox";
@@ -8,6 +8,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { Plus, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import SimpleImagePicker from "@/shared/forms/SimpleImagePicker";
+import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 
 const CATEGORIAS_DIBUJO = ["fanart", "original", "bocetos"];
 
@@ -73,7 +74,6 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
           {step === "pick" ? (
             <div className="space-y-6">
               <p className="text-[11px] text-primary/40 uppercase font-bold tracking-tighter text-center">Paso 1: Selecciona la obra</p>
-              {/* CORRECCIÓN: Se añade la prop onClose requerida por el componente */}
               <SimpleImagePicker 
                 onSelect={handleImageSelect} 
                 onClose={onClose} 
@@ -129,12 +129,8 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
 
 function DrawingsContent() {
   const { openLightbox } = useLightbox();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const isAdmin = useIsAdmin();
   const [addOpen, setAddOpen] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setIsAdmin(!!data.session));
-  }, []);
 
   return (
     <main className="min-h-screen bg-bg-main pb-20">
@@ -160,28 +156,21 @@ function DrawingsContent() {
       />
 
       <LightboxVisual />
-
-      <AnimatePresence>
-        {isAdmin && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={() => setAddOpen(true)}
-            className="fixed bottom-8 right-6 z-50 flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-primary text-white shadow-2xl hover:bg-primary/80 transition-all"
-          >
-            <Plus size={18} />
-            <span className="text-[11px] font-black uppercase tracking-widest">Añadir dibujo</span>
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {isAdmin && (
+        <button
+          onClick={() => setAddOpen(true)}
+          className="fixed bottom-8 right-6 z-50 bg-primary text-white p-4 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all"
+        >
+          <Plus size={24} />
+        </button>
+      )}
 
       <AddDrawingModal
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onSuccess={() => window.location.reload()}
       />
-    </main>
+    </main> 
   );
 }
 
