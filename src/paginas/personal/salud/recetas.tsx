@@ -12,7 +12,7 @@ import {
   ShoppingCart, Tag, Dumbbell, Wheat, Droplets,
 } from "lucide-react";
 import { IngredientesPage } from "@/paginas/personal/salud/ingredientes";
-import { useCarrito } from "@/hooks/features/useCarritoStore";
+import { useCarrito, CarritoProvider } from "@/hooks/features/useCarritoStore";
 
 
 const CATEGORIAS = [
@@ -659,7 +659,7 @@ interface RecetasPageProps {
   selectedRecipeId?: string;
 }
 
-const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
+function RecetasPageInner({ selectedRecipeId }: RecetasPageProps) {
   const [filter, setFilter]               = useState("");
   const [catFilter, setCatFilter]         = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen]     = useState(false);
@@ -969,6 +969,15 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       </AnimatePresence>
 
     </div>
+  );
+}
+
+const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
+  const { data: ingredientes } = useSupabaseData<Ingrediente>("ingredientes");
+  return (
+    <CarritoProvider ingredientes={ingredientes}>
+      <RecetasPageInner selectedRecipeId={selectedRecipeId} />
+    </CarritoProvider>
   );
 };
 

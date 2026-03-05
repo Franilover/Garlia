@@ -9,7 +9,7 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
-import { useCarrito } from "@/hooks/features/useCarritoStore";
+import { useCarrito, CarritoProvider } from "@/hooks/features/useCarritoStore";
 
 const CATEGORIAS = [
   { label: "Proteínas",     emoji: "🥩" },
@@ -29,7 +29,6 @@ const INITIAL_FORM = {
   fibra: 0, sodio: 0, agua_ml: 0,
   precio_porcion: 0,
 };
-
 
 function MacroBadge({ label, value, unit, scaled }: { label: string; value: number; unit: string; scaled?: number }) {
   const showing = scaled !== undefined ? scaled : value;
@@ -76,7 +75,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const IngredientesPage = () => {
+function IngredientesInner() {
   const [filter, setFilter]           = useState("");
   const [catFilter, setCatFilter]     = useState<string | null>(null);
   const [stockFilter, setStockFilter] = useState<"all" | "in-stock" | "out-of-stock">("all");
@@ -98,7 +97,7 @@ export const IngredientesPage = () => {
 
   const toggleCart = async (item: Ingrediente & { precio_porcion?: number }) => {
     if (isInCart(item.id)) {
-      await removeCarritoItem(item.id); // useCarrito buscará por ingrediente_id internamente
+      await removeCarritoItem(item.id); 
     } else {
       const qty = qtyMap[item.id] ?? 1;
       await addItem(item, {
@@ -113,7 +112,7 @@ export const IngredientesPage = () => {
     if (localItems === null && ingredientes?.length) {
       setLocalItems(ingredientes);
     }
-  }, [ingredientes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ingredientes]); 
 
   const isLoading = localItems === null && hookLoading;
   const items = localItems ?? [];
@@ -677,5 +676,14 @@ export const IngredientesPage = () => {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export const IngredientesPage = () => {
+  const { data: ingredientes } = useSupabaseData<Ingrediente>("ingredientes");
+  return (
+    <CarritoProvider ingredientes={ingredientes}>
+      <IngredientesInner />
+    </CarritoProvider>
   );
 };
