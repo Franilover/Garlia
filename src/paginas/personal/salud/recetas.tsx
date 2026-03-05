@@ -9,11 +9,11 @@ import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import {
   Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
   Plus, X, ArrowLeft, Trash2, Activity, Loader2, Save, ChevronLeft, Minus, Carrot,
+  ShoppingCart, Tag, Dumbbell, Wheat, Droplets,
 } from "lucide-react";
-import { IngredientesPage } from "@/paginas/personal/salud/ingredientes"; 
+import { IngredientesPage } from "@/paginas/personal/salud/ingredientes";
 
-
-// ─── categorías con emojis ────────────────────────────────────────────────────
+// ─── categorías ────────────────────────────────────────────────────────────────
 
 const CATEGORIAS = [
   { label: "General",    emoji: "🍽️" },
@@ -101,6 +101,176 @@ function MacroBadge({ label, value, unit }: { label: string; value: number; unit
   );
 }
 
+// ─── CART PANEL (resumen de receta para comprar ingredientes) ─────────────────
+
+interface RecetaCartItem {
+  receta: Receta;
+  ingredientesList: IngredienteReceta[];
+  totales: ReturnType<typeof calcTotales>;
+}
+
+function RecetaCartPanel({
+  items,
+  onRemove,
+  onClose,
+}: {
+  items: RecetaCartItem[];
+  onRemove: (id: string | number) => void;
+  onClose: () => void;
+}) {
+  const grandTotales = items.reduce(
+    (acc, { totales }) => ({
+      kcal:      acc.kcal      + totales.kcal,
+      proteinas: acc.proteinas + totales.proteinas,
+      carbos:    acc.carbos    + totales.carbos,
+      grasas:    acc.grasas    + totales.grasas,
+    }),
+    { kcal: 0, proteinas: 0, carbos: 0, grasas: 0 }
+  );
+
+  // ingredientes únicos combinados entre todas las recetas en carrito
+  const allIngredientes = items.flatMap(r => r.ingredientesList);
+  const uniqueMap: Record<string, { nombre: string; kcal: number; proteinas: number }> = {};
+  allIngredientes.forEach(ing => {
+    if (!uniqueMap[ing.nombre]) {
+      uniqueMap[ing.nombre] = { nombre: ing.nombre, kcal: ing.kcal || 0, proteinas: ing.proteinas || 0 };
+    } else {
+      uniqueMap[ing.nombre].kcal += ing.kcal || 0;
+    }
+  });
+  const uniqueIngredientes = Object.values(uniqueMap);
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm"
+      />
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", stiffness: 340, damping: 34 }}
+        className="fixed right-0 top-0 z-50 h-full w-full max-w-sm bg-bg-main shadow-2xl flex flex-col"
+      >
+        {/* header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-primary/10">
+          <div>
+            <h2 className="text-xl font-black italic uppercase tracking-tighter text-primary">
+              Lista de compra
+            </h2>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-primary/30">
+              {items.length} receta{items.length !== 1 ? "s" : ""} seleccionada{items.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
+              <ShoppingCart size={40} className="text-primary/10" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary/25">Sin recetas seleccionadas</p>
+            </div>
+          ) : (
+            <>
+              {/* por receta */}
+              {items.map(({ receta, ingredientesList, totales }) => (
+                <div key={receta.id} className="card-main p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-[11px] font-black uppercase italic text-primary">{receta.nombre}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-primary/30">
+                          {CATEGORIAS.find(c => c.label === receta.categoria)?.emoji} {receta.categoria}
+                        </span>
+                        <span className="text-[8px] text-primary/20">·</span>
+                        <span className="text-[8px] font-bold text-primary/30">{receta.tiempo}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => onRemove(receta.id)} className="p-1 text-primary/20 hover:text-red-400 transition-colors shrink-0">
+                      <X size={13} />
+                    </button>
+                  </div>
+
+                  {/* macros resumen */}
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { label: "Kcal", value: totales.kcal,      unit: "" },
+                      { label: "Prot", value: totales.proteinas,  unit: "g", icon: Dumbbell },
+                      { label: "Carb", value: totales.carbos,     unit: "g", icon: Wheat },
+                      { label: "Gras", value: totales.grasas,     unit: "g", icon: Droplets },
+                    ].map(m => (
+                      <div key={m.label} className="bg-bg-main rounded-xl py-2 text-center border border-primary/8">
+                        <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
+                        <p className="text-[10px] font-black text-primary">
+                          {m.value.toFixed(0)}<span className="text-[7px] text-primary/25">{m.unit}</span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ingredientes */}
+                  <div className="space-y-1">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Necesitas</p>
+                    {ingredientesList.map((ing, i) => (
+                      <div key={i} className="flex items-center justify-between py-1 border-b border-primary/5 last:border-0">
+                        <span className="text-[10px] font-bold text-primary uppercase">{ing.nombre}</span>
+                        <span className="text-[9px] font-black text-primary/30">{ing.cantidad}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* ingredientes únicos combinados */}
+              {items.length > 1 && (
+                <div className="card-main p-4 space-y-2">
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Lista completa de ingredientes</p>
+                  {uniqueIngredientes.map((ing, i) => (
+                    <div key={i} className="flex items-center gap-2 py-1.5 border-b border-primary/5 last:border-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/20 shrink-0" />
+                      <span className="text-[10px] font-bold text-primary/70 uppercase flex-1">{ing.nombre}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* footer macros totales */}
+        {items.length > 0 && (
+          <div className="border-t border-primary/10 px-5 py-5 space-y-3 bg-white-custom">
+            <p className="text-[8px] font-black uppercase tracking-widest text-primary/30">Totales combinados</p>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: "Kcal", value: grandTotales.kcal,      unit: "" },
+                { label: "Prot", value: grandTotales.proteinas,  unit: "g" },
+                { label: "Carb", value: grandTotales.carbos,     unit: "g" },
+                { label: "Gras", value: grandTotales.grasas,     unit: "g" },
+              ].map(m => (
+                <div key={m.label} className="bg-bg-main rounded-xl py-2 text-center border border-primary/8">
+                  <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
+                  <p className="text-[11px] font-black text-primary">
+                    {m.value.toFixed(0)}<span className="text-[7px] text-primary/25">{m.unit}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </motion.div>
+    </>
+  );
+}
+
 // ─── VISTA DETALLE ────────────────────────────────────────────────────────────
 
 function RecetaDetalle({ receta }: { receta: Receta }) {
@@ -178,7 +348,6 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
 
         {/* ingredientes + pasos */}
         <div className="grid md:grid-cols-2 gap-4">
-          {/* ingredientes */}
           <div className="card-main space-y-3">
             <SectionTitle>Ingredientes</SectionTitle>
             <ul className="space-y-2">
@@ -196,7 +365,6 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
             </ul>
           </div>
 
-          {/* pasos */}
           <div className="card-main space-y-3">
             <SectionTitle>Preparación</SectionTitle>
             <div className="space-y-3">
@@ -218,15 +386,27 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
 
 // ─── CARD ─────────────────────────────────────────────────────────────────────
 
-function RecipeCard({ receta, index }: { receta: Receta; index: number }) {
+function RecipeCard({
+  receta,
+  index,
+  inCart,
+  onToggleCart,
+}: {
+  receta: Receta;
+  index: number;
+  inCart: boolean;
+  onToggleCart: (receta: Receta) => void;
+}) {
   const catEmoji = CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️";
+  const ingredientesList = parseIngredientes(receta.ingredientes);
+  const totales = calcTotales(ingredientesList);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0, transition: { delay: index * 0.03 } }}
       layout
-      className="card-main overflow-hidden p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all group"
+      className="card-main overflow-hidden p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all group flex flex-col"
     >
       {/* imagen */}
       <div className="h-44 bg-primary/5 relative overflow-hidden">
@@ -244,10 +424,15 @@ function RecipeCard({ receta, index }: { receta: Receta; index: number }) {
         <span className="absolute top-3 left-3 text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-white">
           {catEmoji} {receta.categoria}
         </span>
+        {/* kcal badge */}
+        <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/30 backdrop-blur-sm rounded-xl px-2 py-1">
+          <Flame size={9} className="text-amber-300 fill-amber-300/60" />
+          <span className="text-[8px] font-black text-white tracking-widest">{totales.kcal.toFixed(0)}</span>
+        </div>
       </div>
 
       {/* info */}
-      <div className="p-5 space-y-3">
+      <div className="p-5 space-y-3 flex flex-col flex-1">
         <h3 className="text-[13px] font-black uppercase italic tracking-tight text-primary leading-tight">
           {receta.nombre}
         </h3>
@@ -257,12 +442,45 @@ function RecipeCard({ receta, index }: { receta: Receta; index: number }) {
           <span className="flex items-center gap-1"><ChefHat size={11} />{receta.dificultad}</span>
         </div>
 
-        <Link
-          href={`/personal/cocina/recetas/${receta.id}`}
-          className="flex items-center justify-between w-full px-4 py-2.5 bg-bg-menu text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-all"
-        >
-          Ver preparación <ChevronRight size={13} />
-        </Link>
+        {/* macros rápidos */}
+        <div className="grid grid-cols-3 gap-1">
+          {[
+            { label: "Prot", value: totales.proteinas, unit: "g" },
+            { label: "Carb", value: totales.carbos,    unit: "g" },
+            { label: "Gras", value: totales.grasas,    unit: "g" },
+          ].map(m => (
+            <div key={m.label} className="bg-bg-main rounded-xl py-1.5 text-center border border-primary/8">
+              <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
+              <p className="text-[10px] font-black text-primary">
+                {m.value.toFixed(0)}<span className="text-[7px] text-primary/25">{m.unit}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex-1" />
+
+        {/* acciones */}
+        <div className="flex gap-2">
+          <Link
+            href={`/personal/cocina/recetas/${receta.id}`}
+            className="flex items-center justify-between flex-1 px-4 py-2.5 bg-bg-menu text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-all"
+          >
+            Ver receta <ChevronRight size={13} />
+          </Link>
+
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onToggleCart(receta)}
+            className={`w-10 h-10 flex items-center justify-center rounded-2xl border transition-all shrink-0 ${
+              inCart
+                ? "bg-accent/20 border-accent/30 text-accent"
+                : "bg-bg-main border-primary/15 text-primary/35 hover:border-primary/30 hover:text-primary"
+            }`}
+          >
+            <ShoppingCart size={14} />
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );
@@ -373,10 +591,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
             Nueva <span className="text-primary/20">Receta</span>
           </h2>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
-          >
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all">
             <X size={16} />
           </button>
         </div>
@@ -625,8 +840,19 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   const [catFilter, setCatFilter]         = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen]     = useState(false);
   const [showIngredientes, setShowIngredientes] = useState(false);
+  const [cartRecetas, setCartRecetas]     = useState<Receta[]>([]);
+  const [showCart, setShowCart]           = useState(false);
 
   const { data: recipes, loading } = useSupabaseData<Receta>("recetas");
+
+  const toggleCartReceta = (receta: Receta) => {
+    setCartRecetas(prev => {
+      const exists = prev.find(r => r.id === receta.id);
+      return exists ? prev.filter(r => r.id !== receta.id) : [...prev, receta];
+    });
+  };
+
+  const inCartReceta = (id: string | number) => cartRecetas.some(r => r.id === id);
 
   // vista detalle
   if (selectedRecipeId) {
@@ -663,6 +889,11 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     return counts;
   }, [recipes]);
 
+  const cartItems: RecetaCartItem[] = cartRecetas.map(receta => {
+    const ingredientesList = parseIngredientes(receta.ingredientes);
+    return { receta, ingredientesList, totales: calcTotales(ingredientesList) };
+  });
+
   return (
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
 
@@ -691,6 +922,21 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           </div>
 
           <div className="hidden sm:flex items-center gap-2">
+            {/* Botón carrito */}
+            <motion.button
+              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              onClick={() => setShowCart(true)}
+              className="relative flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-2xl border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
+            >
+              <ShoppingCart size={14} />
+              Lista compra
+              {cartRecetas.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-accent text-white text-[8px] font-black rounded-full px-1">
+                  {cartRecetas.length}
+                </span>
+              )}
+            </motion.button>
+
             {/* Botón Ingredientes */}
             <motion.button
               whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -797,7 +1043,13 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                 </motion.div>
               ) : (
                 filteredRecipes.map((receta, i) => (
-                  <RecipeCard key={receta.id ?? i} receta={receta} index={i} />
+                  <RecipeCard
+                    key={receta.id ?? i}
+                    receta={receta}
+                    index={i}
+                    inCart={inCartReceta(receta.id)}
+                    onToggleCart={toggleCartReceta}
+                  />
                 ))
               )}
             </AnimatePresence>
@@ -805,8 +1057,20 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         )}
       </main>
 
-      {/* FAB móvil — dos botones apilados */}
+      {/* FAB móvil */}
       <div className="sm:hidden fixed bottom-6 right-6 z-20 flex flex-col items-end gap-3">
+        <motion.button
+          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
+          onClick={() => setShowCart(true)}
+          className="relative w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
+        >
+          <ShoppingCart size={18} />
+          {cartRecetas.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-accent text-white text-[8px] font-black rounded-full">
+              {cartRecetas.length}
+            </span>
+          )}
+        </motion.button>
         <motion.button
           whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
           onClick={() => setShowIngredientes(true)}
@@ -822,6 +1086,17 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           <Plus size={22} />
         </motion.button>
       </div>
+
+      {/* CART RECETAS PANEL */}
+      <AnimatePresence>
+        {showCart && (
+          <RecetaCartPanel
+            items={cartItems}
+            onRemove={id => setCartRecetas(prev => prev.filter(r => r.id !== id))}
+            onClose={() => setShowCart(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* modal nueva receta */}
       <AnimatePresence>
