@@ -188,7 +188,7 @@ export const IngredientesPage = () => {
   return (
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
 
-      <header className="sticky top-16 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
+      <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <Link
@@ -578,7 +578,7 @@ export const IngredientesPage = () => {
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all shrink-0"
+                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
                 >
                   <X size={16} />
                 </button>
