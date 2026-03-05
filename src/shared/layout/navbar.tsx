@@ -199,7 +199,7 @@ const Navbar = () => {
                   {isDark ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
                 <p className="text-[10px] font-black text-primary/40 uppercase tracking-widest">
-                  {perfil?.username}
+                  Mi Personaje
                 </p>
                 <button
                   onClick={handleLogout}
@@ -210,7 +210,7 @@ const Navbar = () => {
               </div>
 
               <Link href="/wiki/personal" onClick={closeAll} className="w-full p-4 bg-primary/5 text-primary rounded-[25px] font-black uppercase text-[10px] flex items-center justify-center gap-3">
-                <Sword size={18} /> Mi Personaje
+                <Sword size={18} /> {perfil?.username || 'Mi Personaje'}
               </Link>
 
               {esFranilover && (
