@@ -860,33 +860,25 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         )}
       </AnimatePresence>
 
-      {/* DRAWER INGREDIENTES */}
       <AnimatePresence>
         {showIngredientes && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowIngredientes(false)}
-              className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 340, damping: 34 }}
-              className="fixed right-0 top-0 z-50 h-full w-full max-w-4xl bg-bg-main shadow-2xl overflow-y-auto"
-            >
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", stiffness: 320, damping: 36 }}
+            className="fixed inset-0 z-50 bg-bg-main overflow-y-auto"
+          >
+            <div className="sticky top-4 right-4 z-10 flex justify-end px-4">
               <button
                 onClick={() => setShowIngredientes(false)}
-                className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all shadow-sm"
               >
                 <X size={16} />
               </button>
-              <IngredientesPage />
-            </motion.div>
-          </>
+            </div>
+            <IngredientesPage />
+          </motion.div>
         )}
       </AnimatePresence>
 
