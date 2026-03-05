@@ -109,7 +109,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-4xl mx-auto px-5 py-4">
           <Link
-            href="/personal/cocina/recetas"
+            href="/personal/salud/recetas"
             className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
           >
             <ChevronLeft size={12} /> Recetas
