@@ -51,11 +51,19 @@ export const comprasQueries = {
     if (error) throw error;
   },
 
+  deleteAll: async (): Promise<void> => {
+    const { error } = await supabase
+      .from("compras")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000"); // Borra todo
+    if (error) throw error;
+  },
+
   deleteByIngrediente: async (ingredienteId: string): Promise<void> => {
     const { error } = await supabase
       .from("compras")
       .delete()
-      .eq("id", ingredienteId);
+      .eq("ingrediente_id", ingredienteId);
     if (error) throw error;
   },
 
