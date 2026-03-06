@@ -105,7 +105,7 @@ export default function ComprasPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {(item as any).precio ? (
-                        <span className="text-[11px] font-black text-primary">${((item as any).precio).toFixed(2)}</span>
+                        <span className="text-[11px] font-black text-primary">${((item as any).precio).toFixed(0)}</span>
                       ) : (
                         <span className="text-[10px] text-primary/15">—</span>
                       )}
@@ -136,7 +136,7 @@ export default function ComprasPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {totales.precio > 0 ? (
-                      <span className="text-[11px] font-black text-primary">${totales.precio.toFixed(2)}</span>
+                      <span className="text-[11px] font-black text-primary">${totales.precio.toFixed(0)}</span>
                     ) : (
                       <span className="text-[10px] text-primary/15">—</span>
                     )}
