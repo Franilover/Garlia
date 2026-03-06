@@ -13,10 +13,10 @@ interface ThemeCtx {
 
 const ThemeContext = createContext<ThemeCtx | null>(null);
 
-const THEMES: { id: ThemeName; label: string; emoji: string; desc: string }[] = [
-  { id: "default", label: "Default",  emoji: "🪻", desc: "Minimalista" },
-  { id: "pixel",   label: "Pixel",    emoji: "👾", desc: "Retro" },
-  { id: "scribble",   label: "Indie",    emoji: "✏️", desc: "Manuscrito" },
+const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
+  { id: "default",  label: "Default",  emoji: "🪻" },
+  { id: "pixel",    label: "Pixel",    emoji: "👾" },
+  { id: "scribble", label: "Scribble", emoji: "✏️" },
 ];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -85,10 +85,7 @@ export function ThemeSelector() {
             }`}
           >
             <span className="text-lg leading-none">{t.emoji}</span>
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-wide leading-none">{t.label}</p>
-              <p className={`text-[9px] font-bold mt-0.5 ${theme === t.id ? "text-white/60" : "text-primary/35"}`}>{t.desc}</p>
-            </div>
+            <p className="text-[11px] font-black uppercase tracking-wide leading-none">{t.label}</p>
           </button>
         ))}
       </div>
