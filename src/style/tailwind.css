@@ -110,7 +110,7 @@
   --radius-card: 0px;
   --radius-btn: 0px;
   --radius-input: 0px;
-  --shadow-card: 4px 4px 0px 0px #1a1a1a;
+  --shadow-card: 0 2px 0px 0px rgba(26,26,26,0.15);
   --border-width: 2px;
   --font-display: 'Press Start 2P', monospace;
   --transition-card: none;
