@@ -56,6 +56,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, dark, setTheme, toggleDark }}>
+      {/* Filtro SVG global para el efecto de trazado a mano del tema Indie */}
+      <svg style={{ position: "absolute", width: 0, height: 0 }} aria-hidden="true">
+        <filter id="hand-drawn" x="-10%" y="-10%" width="120%" height="120%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
+        </filter>
+      </svg>
       {children}
     </ThemeContext.Provider>
   );
