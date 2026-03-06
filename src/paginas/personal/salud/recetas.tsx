@@ -839,7 +839,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       </main>
 
       {/* FAB móvil */}
-      <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
+      <div className="sm:hidden fixed bottom-32 right-6 z-20 flex flex-col items-end gap-3">
         <motion.button
           whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
           onClick={() => setShowIngredientes(true)}

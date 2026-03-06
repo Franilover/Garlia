@@ -537,7 +537,7 @@ export const IngredientesPage = () => {
         )}
       </main>
 
-      <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
+      <div className="sm:hidden fixed bottom-32 right-6 z-20 flex flex-col items-end gap-3">
         <Link
           href="/personal/salud/compras"
           className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
