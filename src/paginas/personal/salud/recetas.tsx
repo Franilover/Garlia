@@ -11,8 +11,6 @@ import {
   Plus, X, ArrowLeft, Trash2, Activity, Loader2, Save, ChevronLeft, Minus, Carrot,
   Dumbbell, Wheat, Droplets,
 } from "lucide-react";
-import { IngredientesPage } from "@/paginas/personal/salud/ingredientes";
-
 
 
 const CATEGORIAS = [
@@ -647,7 +645,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   const [filter, setFilter]               = useState("");
   const [catFilter, setCatFilter]         = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen]     = useState(false);
-  const [showIngredientes, setShowIngredientes] = useState(false);
+
 
   const { data: recipes, loading } = useSupabaseData<Receta>("recetas");
 
@@ -721,13 +719,12 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           <div className="hidden sm:flex items-center gap-2">
 
             {/* Botón Ingredientes */}
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => setShowIngredientes(true)}
+            <Link
+              href="/personal/salud/ingredientes"
               className="flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-2xl border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
             >
               <Carrot size={14} /> Ingredientes
-            </motion.button>
+            </Link>
 
             {/* Botón Añadir */}
             <motion.button
@@ -840,13 +837,12 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
 
       {/* FAB móvil */}
       <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
-        <motion.button
-          whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-          onClick={() => setShowIngredientes(true)}
+        <Link
+          href="/personal/salud/ingredientes"
           className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
         >
           <Carrot size={18} />
-        </motion.button>
+        </Link>
         <motion.button
           whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
           onClick={() => setIsModalOpen(true)}
@@ -866,27 +862,8 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showIngredientes && (
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 320, damping: 36 }}
-            className="fixed inset-0 z-50 bg-bg-main overflow-y-auto"
-          >
-            <div className="sticky top-4 right-4 z-10 flex justify-end px-4">
-              <button
-                onClick={() => setShowIngredientes(false)}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all shadow-sm"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <IngredientesPage />
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+
 
     </div>
   );
