@@ -56,11 +56,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, dark, setTheme, toggleDark }}>
-      {/* Filtro SVG global para el efecto de trazado a mano del tema Indie */}
       <svg style={{ position: "absolute", width: 0, height: 0 }} aria-hidden="true">
         <filter id="hand-drawn" x="-10%" y="-10%" width="120%" height="120%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="3" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" />
         </filter>
       </svg>
       {children}
@@ -75,12 +74,11 @@ export function useTheme() {
 }
 
 export function ThemeSelector() {
-  const { theme, dark, setTheme, toggleDark } = useTheme();
+  const { theme, setTheme, toggleDark, dark } = useTheme();
 
   return (
     <div className="flex flex-col gap-3 p-4">
       <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Tema visual</p>
-
       <div className="flex flex-col gap-2">
         {THEMES.map(t => (
           <button
@@ -97,13 +95,9 @@ export function ThemeSelector() {
               <p className="text-[11px] font-black uppercase tracking-wide leading-none">{t.label}</p>
               <p className={`text-[9px] font-bold mt-0.5 ${theme === t.id ? "text-white/60" : "text-primary/35"}`}>{t.desc}</p>
             </div>
-            {theme === t.id && (
-              <span className="ml-auto text-[9px] font-black uppercase tracking-widest opacity-70">Activo</span>
-            )}
           </button>
         ))}
       </div>
-
       <button
         onClick={toggleDark}
         className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-primary/15 bg-bg-main text-primary/60 hover:border-primary/40 hover:text-primary transition-all mt-1"

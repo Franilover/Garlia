@@ -12,6 +12,8 @@
   --animate-terminal-flicker: flicker 0.15s infinite;
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
+  /* Nueva animación para el efecto Indie */
+  --animate-indie-wiggle: indie-wiggle 0.4s steps(3) infinite;
 
   @keyframes flicker {
     0% { opacity: 0.97; }
@@ -44,11 +46,15 @@
     0%, 100% { transform: rotate(-1deg); }
     50%       { transform: rotate(1deg); }
   }
+  /* Keyframes para el garabateo indie */
+  @keyframes indie-wiggle {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(0.5px, -0.5px) rotate(0.5deg); }
+    66% { transform: translate(-0.5px, 0.5px) rotate(-0.5deg); }
+  }
 }
 
-/* ════════════════════════════════════════════
-   TEMA: DEFAULT (minimalista morado)
-   ════════════════════════════════════════════ */
+/* TEMA: DEFAULT */
 :root,
 [data-theme="default"] {
   --primary: #67556d;
@@ -57,7 +63,6 @@
   --bg-menu: #67556d;
   --white-custom: #ffffff;
   --foreground: #3a2e3d;
-
   --radius-card: 2rem;
   --radius-btn: 0.75rem;
   --radius-input: 0.75rem;
@@ -67,13 +72,9 @@
   --transition-card: all 0.2s ease;
   --btn-transform-hover: scale(1.05);
   --btn-transform-active: scale(0.95);
-
   font-size: 14px;
 }
 
-/* ════════════════════════════════════════════
-   TEMA: DEFAULT DARK
-   ════════════════════════════════════════════ */
 [data-theme="default"].dark,
 .dark {
   --primary: #c4a8d4;
@@ -84,9 +85,7 @@
   --foreground: #ede0f5;
 }
 
-/* ════════════════════════════════════════════
-   TEMA: PIXEL ART / RETRO
-   ════════════════════════════════════════════ */
+/* TEMA: PIXEL */
 [data-theme="pixel"] {
   --primary: #2d2d2d;
   --accent: #ff6b35;
@@ -94,7 +93,6 @@
   --bg-menu: #1a1a2e;
   --white-custom: #f0f0f0;
   --foreground: #1a1a1a;
-
   --radius-card: 0px;
   --radius-btn: 0px;
   --radius-input: 0px;
@@ -104,7 +102,6 @@
   --transition-card: none;
   --btn-transform-hover: translate(-2px, -2px);
   --btn-transform-active: translate(2px, 2px);
-
   font-size: 13px;
   image-rendering: pixelated;
 }
@@ -118,9 +115,7 @@
   --foreground: #e0ffe8;
 }
 
-/* ════════════════════════════════════════════
-   TEMA: INDIE / HANDMADE
-   ════════════════════════════════════════════ */
+/* TEMA: INDIE */
 [data-theme="indie"] {
   --primary: #3d2b1f;
   --accent: #e07b39;
@@ -128,7 +123,6 @@
   --bg-menu: #3d2b1f;
   --white-custom: #fffdf7;
   --foreground: #2a1f14;
-
   --radius-card: 0.25rem;
   --radius-btn: 0.125rem;
   --radius-input: 0.125rem;
@@ -138,7 +132,6 @@
   --transition-card: all 0.15s ease;
   --btn-transform-hover: translate(-1px, -2px);
   --btn-transform-active: translate(1px, 1px);
-
   font-size: 15px;
 }
 
@@ -155,32 +148,18 @@
   :root { font-size: 15px; }
 }
 
-/* ════════════════════════════════════════════
-   FUENTES EXTRA (pixel + indie)
-   ════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@400;600;700&display=swap');
 
-/* ════════════════════════════════════════════
-   EFECTOS POR TEMA
-   ════════════════════════════════════════════ */
-
-/* Pixel: scanlines en el body */
+/* EFECTOS POR TEMA */
 [data-theme="pixel"] body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.03) 2px,
-    rgba(0,0,0,0.03) 4px
-  );
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
 }
 
-/* Pixel dark: scanline animada */
 [data-theme="pixel"].dark body::before {
   content: "";
   position: fixed;
@@ -192,7 +171,6 @@
   animation: scanline-move 6s linear infinite;
 }
 
-/* Indie: textura papel */
 [data-theme="indie"] body::after {
   content: "";
   position: fixed;
@@ -212,6 +190,16 @@
 }
 
 @layer components {
+  /* Nueva clase para activar el efecto de movimiento indie */
+  .indie-scribble {
+    transition: var(--transition-card);
+  }
+
+  [data-theme="indie"] .indie-scribble {
+    filter: url(#hand-drawn);
+    animation: indie-wiggle 0.4s steps(3) infinite;
+  }
+
   .card-main {
     background: var(--white-custom);
     border: var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent);
@@ -221,19 +209,14 @@
     transition: var(--transition-card);
   }
 
-  [data-theme="pixel"] .card-main {
-    border-color: var(--primary);
-    animation: pixel-in 0.15s steps(8) both;
-  }
+  [data-theme="pixel"] .card-main { border-color: var(--primary); animation: pixel-in 0.15s steps(8) both; }
 
   [data-theme="indie"] .card-main {
     border-color: var(--primary);
     transform: rotate(-0.3deg);
     animation: ink-spread 0.2s ease both;
   }
-  [data-theme="indie"] .card-main:hover {
-    transform: rotate(0deg) translateY(-2px);
-  }
+  [data-theme="indie"] .card-main:hover { transform: rotate(0deg) translateY(-2px); }
 
   .btn-brand {
     background: var(--primary);
@@ -260,12 +243,8 @@
     letter-spacing: 0.1em;
     font-size: 0.65rem;
   }
-  [data-theme="pixel"] .btn-brand:hover {
-    box-shadow: 2px 2px 0 var(--foreground);
-  }
-  [data-theme="pixel"] .btn-brand:active {
-    box-shadow: 0px 0px 0 var(--foreground);
-  }
+  [data-theme="pixel"] .btn-brand:hover { box-shadow: 2px 2px 0 var(--foreground); }
+  [data-theme="pixel"] .btn-brand:active { box-shadow: 0px 0px 0 var(--foreground); }
 
   [data-theme="indie"] .btn-brand {
     border: 1.5px solid var(--foreground);
@@ -295,9 +274,7 @@
     font-family: 'Press Start 2P', monospace;
     font-size: 0.6rem;
   }
-  [data-theme="pixel"] .input-brand:focus {
-    box-shadow: inset 2px 2px 0 var(--accent), 2px 2px 0 var(--primary);
-  }
+  [data-theme="pixel"] .input-brand:focus { box-shadow: inset 2px 2px 0 var(--accent), 2px 2px 0 var(--primary); }
 
   [data-theme="indie"] .input-brand {
     border: 1.5px solid var(--foreground);
@@ -305,6 +282,7 @@
     font-size: 1rem;
   }
 
+  /* CLASES DE CARTAS QUE NO DEBÍ QUITAR */
   .char-card-base {
     @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
     border-radius: var(--radius-card);

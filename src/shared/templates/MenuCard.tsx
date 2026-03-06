@@ -7,7 +7,6 @@ import { LucideProps } from "lucide-react";
 interface MenuCardProps {
   href: string;
   title: string;
-  // Cambiamos ReactNode por ReactElement para asegurar que sea un componente
   icon: React.ReactElement<LucideProps>; 
   delay?: number;
   hasNewContent?: boolean;
@@ -37,10 +36,7 @@ export const MenuCard = ({ href, title, icon, delay = 0, hasNewContent, onClick 
           style={{ borderRadius: "var(--radius-btn)" }}
           whileHover={{ rotate: [0, -10, 10, 0] }}
         >
-          {React.cloneElement(icon, { 
-            size: 32, 
-            className: "md:w-[48px] md:h-[48px]" 
-          })}
+          {React.cloneElement(icon, { size: 32, className: "md:w-[48px] md:h-[48px]" })}
         </motion.div>
         
         <h2 className="text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter text-primary">

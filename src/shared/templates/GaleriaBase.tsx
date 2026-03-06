@@ -32,7 +32,7 @@ interface EntidadPageBaseProps {
     onUpdate: (data: any) => void
   ) => React.ReactNode;
   mostrarBusqueda?: boolean;
-  campoBusqueda?: string; // qué campo del item usar para buscar, default "nombre"
+  campoBusqueda?: string;
   permitirVistaFila?: boolean;
   mostrarMusica?: boolean;
   getCustomTags?: (item: any) => (string | null | undefined)[];
@@ -58,7 +58,7 @@ export default function EntidadPageBase({
     const isAdminSession = useIsAdmin();
 
     const { data, loading, setData } = useSupabaseData(
-      isAdminSession !== undefined ? tabla : "__skip__", // espera a saberz  la sesión
+      isAdminSession !== undefined ? tabla : "__skip__", 
       { 
         order: TABLAS_CONFIG[tabla]?.orden || { campo: "nombre", asc: true },
         isAdmin: isAdminSession 
@@ -77,11 +77,13 @@ export default function EntidadPageBase({
     handleAddNew,
     handleClose,
   } = useAdminItem(setData, { plantilla: plantillaNueva });
+  
   const [busqueda, setBusqueda] = useState("");
   const [vistaGrid, setVistaGrid] = useState(true);
   const [ordenAsc, setOrdenAsc] = useState(false);
 
   if (loading) return <LoadingState mensaje={getMensaje("LOADING", tabla as any)} />;
+
   const itemsFinales = mostrarBusqueda
     ? itemsFiltrados.filter((item: any) =>
         String(item[campoBusqueda] ?? "")
@@ -144,7 +146,8 @@ export default function EntidadPageBase({
                     placeholder={`Buscar por ${campoBusqueda}...`}
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
-                    className="indie-scribble w-full bg-bg-main border-primary/10 py-4 pl-12 pr-12 text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all placeholder:text-primary/20 placeholder:normal-case placeholder:font-normal" style={{ borderRadius: "var(--radius-card)", borderWidth: "var(--border-width)", borderStyle: "solid" }}
+                    className="indie-scribble w-full bg-bg-main border-primary/10 py-4 pl-12 pr-12 text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all placeholder:text-primary/20 placeholder:normal-case placeholder:font-normal" 
+                    style={{ borderRadius: "var(--radius-card)", borderWidth: "var(--border-width)", borderStyle: "solid" }}
                   />
                   <AnimatePresence>
                     {busqueda && (
