@@ -7,21 +7,20 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDarkMode } from "@/hooks/features/useDarkMode";
+import { ThemeSelector } from "@/app/providers/ThemeProvider";
 import {
-  LogOut, Plus, Eye, Sparkles,
-  CircleUser, Flower2, Sword,
-  Utensils, CheckSquare, Dumbbell,
-  PenTool, Moon, Sun, Star, User
+  LogOut, CircleUser, Flower2, Sword,
+  Utensils, PenTool, Moon, Sun, Star, User, Palette,
 } from "lucide-react";
 
 const Navbar = () => {
   const currentPath = usePathname();
   const { user, perfil } = useAuth() as { user: any; perfil: any };
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen]   = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const { isDark, toggle } = useDarkMode();
 
   const esFranilover = perfil?.username?.toLowerCase() === "franilover";
-  const puedeSubir = perfil?.rol === "admin" || perfil?.rol === "autor";
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -29,16 +28,15 @@ const Navbar = () => {
     window.location.href = "/";
   };
 
-  const closeAll = () => setUserMenuOpen(false);
+  const closeAll = () => { setUserMenuOpen(false); setThemeMenuOpen(false); };
 
-  const isWiki = currentPath?.startsWith("/wiki") && currentPath !== "/wiki/personal";
+  const isWiki     = currentPath?.startsWith("/wiki") && currentPath !== "/wiki/personal";
   const isPersonal = currentPath?.startsWith("/personal") &&
     !currentPath.includes("/paginas/salud") &&
     !currentPath.includes("/paginas/tareas") &&
     !currentPath.includes("/paginas/ejercicios") &&
     !currentPath.includes("/paginas/ensayos");
 
-  // Botón del toggle reutilizable
   const DarkToggleBtn = () => (
     <motion.button
       onClick={toggle}
@@ -61,13 +59,12 @@ const Navbar = () => {
     </motion.button>
   );
 
-  // --- CONTENIDO MÓVIL (Actualizado: Flor por Ojo, Usuario por Flor) ---
   const navContentMobile = useMemo(() => (
     <div className="flex w-full items-center justify-evenly h-full">
       <Link href="/personal" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
-        <Star 
-          size={26} 
-          className={cn("transition-all duration-300", isPersonal ? "text-primary scale-110" : "text-primary/30")} 
+        <Star
+          size={26}
+          className={cn("transition-all duration-300", isPersonal ? "text-primary scale-110" : "text-primary/30")}
           fill={isPersonal ? "currentColor" : "none"}
         />
       </Link>
@@ -83,9 +80,9 @@ const Navbar = () => {
       </button>
 
       <Link href="/wiki" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
-        <Flower2 
-          size={26} 
-          className={cn("transition-all duration-300", isWiki ? "text-primary scale-110" : "text-primary/30")} 
+        <Flower2
+          size={26}
+          className={cn("transition-all duration-300", isWiki ? "text-primary scale-110" : "text-primary/30")}
         />
       </Link>
     </div>
@@ -93,36 +90,21 @@ const Navbar = () => {
 
   return (
     <>
-      {/* ── PC NAVBAR (Se mantiene igual) ── */}
+      {/* ── PC NAVBAR ── */}
       <header className="hidden md:block fixed top-0 left-0 w-full z-[100] bg-bg-main/80 backdrop-blur-md border-b border-primary/10">
         <div className="max-w-7xl mx-auto h-20 flex items-center justify-between px-8">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="text-xl font-black italic tracking-tighter text-primary flex items-center gap-2">
-              <Flower2 size={20} />
-              <span>FRANI<span className="text-primary opacity-40">LOVER</span></span>
-            </Link>
-          </div>
+          <Link href="/" className="text-xl font-black italic tracking-tighter text-primary flex items-center gap-2">
+            <Flower2 size={20} />
+            <span>FRANI<span className="text-primary opacity-40">LOVER</span></span>
+          </Link>
 
           <nav className="flex items-center gap-1 bg-primary/5 p-1 rounded-2xl border border-primary/10">
-            <Link
-              href="/personal"
-              className={cn(
-                "px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl",
-                isPersonal ? "bg-white-custom text-primary dark:text-primary-dark shadow-sm" : "text-primary/40 hover:text-primary"
-              )}
-            >
+            <Link href="/personal" className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl", isPersonal ? "bg-white-custom text-primary shadow-sm" : "text-primary/40 hover:text-primary")}>
               Personal
             </Link>
-            <Link
-              href="/wiki"
-              className={cn(
-                "px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl",
-                isWiki ? "bg-white-custom text-primary dark:text-primary-dark shadow-sm" : "text-primary/40 hover:text-primary"
-              )}
-            >
+            <Link href="/wiki" className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl", isWiki ? "bg-white-custom text-primary shadow-sm" : "text-primary/40 hover:text-primary")}>
               Wiki
             </Link>
-
             {esFranilover && (
               <div className="flex gap-1 ml-2 pl-2 border-l border-primary/10">
                 <Link href="/personal/salud" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/salud") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
@@ -138,25 +120,44 @@ const Navbar = () => {
           <div className="flex items-center gap-3">
             <DarkToggleBtn />
 
+            {/* Botón tema desktop */}
+            <div className="relative">
+              <motion.button
+                onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); }}
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}
+                className={cn("p-2 rounded-xl transition-all", themeMenuOpen ? "bg-primary text-white" : "text-primary/40 hover:text-primary hover:bg-primary/5")}
+              >
+                <Palette size={16} />
+              </motion.button>
+              <AnimatePresence>
+                {themeMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    onClick={e => e.stopPropagation()}
+                    className="absolute top-full right-0 mt-3 w-56 bg-white-custom border border-primary/10 rounded-2xl shadow-xl z-[1001] overflow-hidden"
+                  >
+                    <ThemeSelector />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {user ? (
               <div className="relative">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setUserMenuOpen(!userMenuOpen);
-                  }}
+                  onClick={e => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); setThemeMenuOpen(false); }}
                   className="flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-full border border-primary/10 hover:bg-primary/10 transition-all"
                 >
-                  <span className="text-[10px] font-black uppercase text-primary/60 tracking-widest">
-                    {perfil?.username}
-                  </span>
+                  <span className="text-[10px] font-black uppercase text-primary/60 tracking-widest">{perfil?.username}</span>
                   <CircleUser className={cn("transition-colors", userMenuOpen ? "text-primary" : "text-primary/40")} size={24} />
                 </button>
                 <AnimatePresence>
                   {userMenuOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={e => e.stopPropagation()}
                       className="absolute top-full right-0 mt-3 w-48 bg-white-custom border border-primary/10 rounded-2xl shadow-xl p-2 z-[1001]"
                     >
                       <Link href="/wiki/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
@@ -170,15 +171,13 @@ const Navbar = () => {
                 </AnimatePresence>
               </div>
             ) : (
-              <Link href="/auth/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">
-                Entrar
-              </Link>
+              <Link href="/auth/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">Entrar</Link>
             )}
           </div>
         </div>
       </header>
 
-      {/* ── MÓVIL (Sin etiquetas de texto) ── */}
+      {/* ── MÓVIL ── */}
       <div className="md:hidden fixed bottom-0 left-0 w-full z-[1000]">
         <nav className="bg-bg-main/95 backdrop-blur-xl border-t border-primary/20 shadow-2xl h-16 flex items-center w-full">
           {navContentMobile}
@@ -188,25 +187,25 @@ const Navbar = () => {
           {userMenuOpen && user && (
             <motion.div
               initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 15 }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
               className="absolute bottom-16 left-4 right-4 bg-white-custom border border-primary/10 rounded-[40px] p-5 shadow-2xl flex flex-col gap-3 z-[1001]"
             >
+              {/* dark + user + logout */}
               <div className="flex items-center gap-2">
-                <button
-                  onClick={toggle}
-                  className="w-11 h-11 rounded-2xl border border-primary/10 text-primary flex items-center justify-center hover:bg-primary/5 transition-all shrink-0"
-                >
+                <button onClick={toggle} className="w-11 h-11 rounded-2xl border border-primary/10 text-primary flex items-center justify-center hover:bg-primary/5 transition-all shrink-0">
                   {isDark ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
                 <Link href="/wiki/personal" onClick={closeAll} className="flex-1 p-3 bg-primary/5 text-primary rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2">
                   <Sword size={16} /> {perfil?.username}
                 </Link>
-                <button
-                  onClick={handleLogout}
-                  className="w-11 h-11 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 transition-all shrink-0"
-                >
+                <button onClick={handleLogout} className="w-11 h-11 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 transition-all shrink-0">
                   <LogOut size={18} />
                 </button>
+              </div>
+
+              {/* Selector de tema */}
+              <div className="border border-primary/8 rounded-3xl overflow-hidden">
+                <ThemeSelector />
               </div>
 
               {esFranilover && (
@@ -224,7 +223,7 @@ const Navbar = () => {
         </AnimatePresence>
       </div>
 
-      {userMenuOpen && (
+      {(userMenuOpen || themeMenuOpen) && (
         <div className="fixed inset-0 z-[90] bg-black/5" onClick={closeAll} />
       )}
     </>
