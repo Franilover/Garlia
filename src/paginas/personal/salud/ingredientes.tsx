@@ -165,7 +165,9 @@ export const IngredientesPage = () => {
     try {
       const result = await addRow(formData);
       if (result.error) {
-        alert(`Error al guardar: ${result.error}`);
+        console.error("Error al guardar ingrediente:", result.error);
+        const msg = typeof result.error === "string" ? result.error : (result.error as any)?.message ?? JSON.stringify(result.error);
+        alert(`Error al guardar: ${msg}`);
       } else {
         setIsModalOpen(false);
         setFormData(INITIAL_FORM);
