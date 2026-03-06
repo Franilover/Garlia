@@ -26,7 +26,7 @@ const INITIAL_FORM = {
   proteinas: 0, carbohidratos: 0, grasas: 0,
   porcion_texto: "100g", stock_actual: 0,
   fibra: 0, sodio: 0, agua_ml: 0,
-  precio_porcion: 0,
+  precio: 0,
 };
 
 function MacroBadge({ label, value, unit, scaled }: { label: string; value: number; unit: string; scaled?: number }) {
@@ -607,7 +607,7 @@ export const IngredientesPage = () => {
                     <FieldInput label="Porción" value={formData.porcion_texto} onChange={patch("porcion_texto")} placeholder="100g" />
                   </div>
                   <FieldInput label="Stock inicial" type="number" min="0" value={formData.stock_actual} onChange={patch("stock_actual")} />
-                  <FieldInput label="Precio / porción ($)" type="number" min="0" step="0.01" value={formData.precio_porcion} onChange={patch("precio_porcion")} placeholder="0.00" />
+                  <FieldInput label="Precio / porción ($)" type="number" min="0" step="0.01" value={formData.precio} onChange={patch("precio")} placeholder="0.00" />
                 </section>
 
                 <section className="space-y-4">
