@@ -49,11 +49,12 @@
     100% { stroke-dashoffset: 0; }
   }
   @keyframes scribble-border {
-    0%   { border-radius: 48% 52% 55% 45% / 45% 48% 52% 55%; }
-    25%  { border-radius: 52% 48% 45% 55% / 55% 45% 48% 52%; }
-    50%  { border-radius: 45% 55% 52% 48% / 52% 55% 45% 48%; }
-    75%  { border-radius: 55% 45% 48% 52% / 48% 52% 55% 45%; }
-    100% { border-radius: 48% 52% 55% 45% / 45% 48% 52% 55%; }
+    0%   { box-shadow: 2px 2px 0 0 var(--primary), -1px -1px 0 0 var(--primary); }
+    20%  { box-shadow: 3px 1px 0 0 var(--primary), -2px -1px 0 0 var(--primary); }
+    40%  { box-shadow: 1px 3px 0 0 var(--primary), -1px -2px 0 0 var(--primary); }
+    60%  { box-shadow: 2px 2px 0 0 var(--primary), -2px -2px 0 0 var(--primary); }
+    80%  { box-shadow: 3px 1px 0 0 var(--primary), -1px -1px 0 0 var(--primary); }
+    100% { box-shadow: 2px 2px 0 0 var(--primary), -1px -1px 0 0 var(--primary); }
   }
   @keyframes pixel-border {
     0%   { box-shadow: 4px 4px 0 var(--foreground); }
@@ -222,7 +223,18 @@
   [data-theme="scribble"] .card-main {
     border-color: var(--primary);
     transform: rotate(-0.3deg);
-    animation: ink-spread 0.2s ease both, scribble-border 4s ease-in-out infinite;
+    animation: ink-spread 0.2s ease both;
+    position: relative;
+  }
+  [data-theme="scribble"] .card-main::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border: 1.5px solid var(--primary);
+    border-radius: inherit;
+    animation: scribble-border 2s ease-in-out infinite;
+    pointer-events: none;
+    opacity: 0.7;
   }
   [data-theme="scribble"] .card-main:hover { transform: rotate(0deg) translateY(-2px); }
 
@@ -261,7 +273,16 @@
     font-family: 'Caveat', cursive;
     font-size: 1.1rem;
     font-weight: 700;
-    animation: scribble-border 3s ease-in-out infinite;
+    position: relative;
+  }
+  [data-theme="scribble"] .btn-brand::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border: 1.5px solid var(--accent);
+    border-radius: inherit;
+    animation: scribble-border 1.8s ease-in-out infinite;
+    pointer-events: none;
   }
 
   .input-brand {
