@@ -381,7 +381,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const totalesPreview = calcTotales(formData.ingredientes);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pb-16 sm:pb-6">
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
@@ -839,7 +839,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       </main>
 
       {/* FAB móvil */}
-      <div className="sm:hidden fixed bottom-32 right-6 z-20 flex flex-col items-end gap-3">
+      <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
         <motion.button
           whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
           onClick={() => setShowIngredientes(true)}
