@@ -12,8 +12,8 @@
   --animate-terminal-flicker: flicker 0.15s infinite;
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
-  /* Nueva animación para el efecto Indie */
-  --animate-indie-wiggle: indie-wiggle 0.4s steps(3) infinite;
+  /* Nueva animación para el efecto Scribble */
+  --animate-scribble-wiggle: scribble-wiggle 0.4s steps(3) infinite;
 
   @keyframes flicker {
     0% { opacity: 0.97; }
@@ -46,8 +46,8 @@
     0%, 100% { transform: rotate(-1deg); }
     50%       { transform: rotate(1deg); }
   }
-  /* Keyframes para el garabateo indie */
-  @keyframes indie-wiggle {
+  /* Keyframes para el garabateo scribble */
+  @keyframes scribble-wiggle {
     0%, 100% { transform: translate(0, 0) rotate(0deg); }
     33% { transform: translate(0.5px, -0.5px) rotate(0.5deg); }
     66% { transform: translate(-0.5px, 0.5px) rotate(-0.5deg); }
@@ -116,7 +116,7 @@
 }
 
 /* TEMA: INDIE */
-[data-theme="indie"] {
+[data-theme="scribble"] {
   --primary: #3d2b1f;
   --accent: #e07b39;
   --bg-main: #f5f0e8;
@@ -135,7 +135,7 @@
   font-size: 15px;
 }
 
-[data-theme="indie"].dark {
+[data-theme="scribble"].dark {
   --primary: #e8c9a0;
   --accent: #e07b39;
   --bg-main: #1a1208;
@@ -171,7 +171,7 @@
   animation: scanline-move 6s linear infinite;
 }
 
-[data-theme="indie"] body::after {
+[data-theme="scribble"] body::after {
   content: "";
   position: fixed;
   inset: 0;
@@ -190,14 +190,14 @@
 }
 
 @layer components {
-  /* Nueva clase para activar el efecto de movimiento indie */
-  .indie-scribble {
+  /* Nueva clase para activar el efecto de movimiento scribble */
+  .scribble-el {
     transition: var(--transition-card);
   }
 
-  [data-theme="indie"] .indie-scribble {
+  [data-theme="scribble"] .scribble-el {
     filter: url(#hand-drawn);
-    animation: indie-wiggle 0.4s steps(3) infinite;
+    animation: scribble-wiggle 0.4s steps(3) infinite;
   }
 
   .card-main {
@@ -211,12 +211,12 @@
 
   [data-theme="pixel"] .card-main { border-color: var(--primary); animation: pixel-in 0.15s steps(8) both; }
 
-  [data-theme="indie"] .card-main {
+  [data-theme="scribble"] .card-main {
     border-color: var(--primary);
     transform: rotate(-0.3deg);
     animation: ink-spread 0.2s ease both;
   }
-  [data-theme="indie"] .card-main:hover { transform: rotate(0deg) translateY(-2px); }
+  [data-theme="scribble"] .card-main:hover { transform: rotate(0deg) translateY(-2px); }
 
   .btn-brand {
     background: var(--primary);
@@ -246,7 +246,7 @@
   [data-theme="pixel"] .btn-brand:hover { box-shadow: 2px 2px 0 var(--foreground); }
   [data-theme="pixel"] .btn-brand:active { box-shadow: 0px 0px 0 var(--foreground); }
 
-  [data-theme="indie"] .btn-brand {
+  [data-theme="scribble"] .btn-brand {
     border: 1.5px solid var(--foreground);
     box-shadow: 3px 3px 0 var(--foreground);
     font-family: 'Caveat', cursive;
@@ -276,10 +276,18 @@
   }
   [data-theme="pixel"] .input-brand:focus { box-shadow: inset 2px 2px 0 var(--accent), 2px 2px 0 var(--primary); }
 
-  [data-theme="indie"] .input-brand {
+  [data-theme="scribble"] .input-brand {
     border: 1.5px solid var(--foreground);
     font-family: 'Caveat', cursive;
     font-size: 1rem;
+  }
+
+  [data-theme="scribble"] h1,
+  [data-theme="scribble"] h2,
+  [data-theme="scribble"] h3,
+  [data-theme="scribble"] h4 {
+    font-family: 'Caveat', cursive !important;
+    letter-spacing: 0.01em;
   }
 
   /* CLASES DE CARTAS QUE NO DEBÍ QUITAR */

@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type ThemeName = "default" | "pixel" | "indie";
+export type ThemeName = "default" | "pixel" | "scribble";
 export type DarkMode  = "light" | "dark";
 
 interface ThemeCtx {
@@ -16,7 +16,7 @@ const ThemeContext = createContext<ThemeCtx | null>(null);
 const THEMES: { id: ThemeName; label: string; emoji: string; desc: string }[] = [
   { id: "default", label: "Default",  emoji: "🪻", desc: "Minimalista" },
   { id: "pixel",   label: "Pixel",    emoji: "👾", desc: "Retro" },
-  { id: "indie",   label: "Indie",    emoji: "💜", desc: "Papel" },
+  { id: "scribble",   label: "Indie",    emoji: "✏️", desc: "Manuscrito" },
 ];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

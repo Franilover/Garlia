@@ -146,7 +146,7 @@ export default function EntidadPageBase({
                     placeholder={`Buscar por ${campoBusqueda}...`}
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
-                    className="indie-scribble w-full bg-bg-main border-primary/10 py-4 pl-12 pr-12 text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all placeholder:text-primary/20 placeholder:normal-case placeholder:font-normal" 
+                    className="scribble-el w-full bg-bg-main border-primary/10 py-4 pl-12 pr-12 text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all placeholder:text-primary/20 placeholder:normal-case placeholder:font-normal" 
                     style={{ borderRadius: "var(--radius-card)", borderWidth: "var(--border-width)", borderStyle: "solid" }}
                   />
                   <AnimatePresence>
@@ -207,7 +207,7 @@ export default function EntidadPageBase({
                 )}
 
                 {permitirVistaFila && (
-                  <div className="indie-scribble flex items-center gap-1 bg-white-custom border-primary/5 p-1" style={{ borderRadius: "var(--radius-btn)", borderWidth: "var(--border-width)", borderStyle: "solid" }}>
+                  <div className="scribble-el flex items-center gap-1 bg-white-custom border-primary/5 p-1" style={{ borderRadius: "var(--radius-btn)", borderWidth: "var(--border-width)", borderStyle: "solid" }}>
                     <button
                       onClick={() => setVistaGrid(true)}
                       className={`p-2 rounded-full transition-all ${vistaGrid ? "bg-primary text-white shadow-md" : "text-primary/40 hover:text-primary"}`}

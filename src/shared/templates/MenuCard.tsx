@@ -22,7 +22,7 @@ export const MenuCard = ({ href, title, icon, delay = 0, hasNewContent, onClick 
   >
     <Link href={href} className="group block relative h-full" onClick={onClick}>
       <div
-        className="indie-scribble bg-white-custom border-primary/5 p-6 md:p-12 h-full flex flex-col items-center justify-center text-center transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3"
+        className="scribble-el bg-white-custom border-primary/5 p-6 md:p-12 h-full flex flex-col items-center justify-center text-center transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3"
         style={{ borderRadius: "var(--radius-card)", borderWidth: "var(--border-width)", borderStyle: "solid", boxShadow: "var(--shadow-card)" }}
       >
         {hasNewContent && (
@@ -32,7 +32,7 @@ export const MenuCard = ({ href, title, icon, delay = 0, hasNewContent, onClick 
         )}
 
         <motion.div
-          className="indie-scribble w-16 h-16 md:w-24 md:h-24 bg-primary/10 text-primary flex items-center justify-center mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
+          className="scribble-el w-16 h-16 md:w-24 md:h-24 bg-primary/10 text-primary flex items-center justify-center mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
           style={{ borderRadius: "var(--radius-btn)" }}
           whileHover={{ rotate: [0, -10, 10, 0] }}
         >
