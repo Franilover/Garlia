@@ -197,7 +197,6 @@
 
   [data-theme="scribble"] .scribble-el {
     filter: url(#hand-drawn);
-    animation: scribble-wiggle 0.4s steps(3) infinite;
   }
 
   .card-main {
