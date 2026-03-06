@@ -66,13 +66,13 @@ export default function WikiMenuPage() {
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, type: "spring", stiffness: 100 }}>
             <a href="/wiki/libros" onClick={() => handleVisit('libros')} className="group block relative">
-              <div className="bg-white-custom border-2 border-primary/5 rounded-3xl p-6 flex items-center gap-6 transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3">
+              <div className="bg-white-custom border-primary/5 p-6 flex items-center gap-6 transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3" style={{ borderRadius: "var(--radius-card)", borderWidth: "var(--border-width)", borderStyle: "solid", boxShadow: "var(--shadow-card)" }}>
                 {notifications['libros'] && (
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full shadow-lg z-20">
                     <span className="absolute inset-0 w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75" />
                   </motion.div>
                 )}
-                <motion.div className="w-16 h-16 shrink-0 bg-primary/10 text-primary rounded-3xl flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:text-white" whileHover={{ rotate: [0, -10, 10, 0] }}>
+                <motion.div className="w-16 h-16 shrink-0 bg-primary/10 text-primary flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:text-white" style={{ borderRadius: "var(--radius-btn)" }} whileHover={{ rotate: [0, -10, 10, 0] }}>
                   <BookText size={32} />
                 </motion.div>
                 <h2 className="text-2xl font-black uppercase tracking-tighter text-primary">Libros</h2>
@@ -82,13 +82,13 @@ export default function WikiMenuPage() {
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, type: "spring", stiffness: 100 }}>
             <a href="/wiki/canciones" onClick={() => handleVisit('canciones')} className="group block relative">
-              <div className="bg-white-custom border-2 border-primary/5 rounded-3xl p-6 flex items-center gap-6 transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3">
+              <div className="bg-white-custom border-primary/5 p-6 flex items-center gap-6 transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3" style={{ borderRadius: "var(--radius-card)", borderWidth: "var(--border-width)", borderStyle: "solid", boxShadow: "var(--shadow-card)" }}>
                 {notifications['canciones'] && (
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full shadow-lg z-20">
                     <span className="absolute inset-0 w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75" />
                   </motion.div>
                 )}
-                <motion.div className="w-16 h-16 shrink-0 bg-primary/10 text-primary rounded-3xl flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:text-white" whileHover={{ rotate: [0, -10, 10, 0] }}>
+                <motion.div className="w-16 h-16 shrink-0 bg-primary/10 text-primary flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:text-white" style={{ borderRadius: "var(--radius-btn)" }} whileHover={{ rotate: [0, -10, 10, 0] }}>
                   <Music size={32} />
                 </motion.div>
                 <h2 className="text-2xl font-black uppercase tracking-tighter text-primary">Canciones</h2>
