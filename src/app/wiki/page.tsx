@@ -44,58 +44,24 @@ export default function WikiMenuPage() {
           </h1>
         </motion.div>
 
+        {/* Desktop: grid 3x2 */}
         <div className="hidden md:grid grid-cols-3 gap-8 lg:gap-10">
           <MenuCard href="/wiki/personajes" title="Personajes" icon={<Users />} delay={0.1} hasNewContent={notifications['personajes']} onClick={() => handleVisit('personajes')} />
-          <MenuCard href="/wiki/criaturas" title="Criaturas" icon={<Dog />} delay={0.2} hasNewContent={notifications['criaturas']} onClick={() => handleVisit('criaturas')} />
-          <MenuCard href="/wiki/items" title="Items" icon={<Sword />} delay={0.3} hasNewContent={notifications['items']} onClick={() => handleVisit('items')} />
-          <MenuCard href="/wiki/mapa" title="Mapa" icon={<Compass />} delay={0.4} hasNewContent={notifications['mapa']} onClick={() => handleVisit('mapa')} />
-          <MenuCard href="/wiki/libros" title="Libros" icon={<BookText />} delay={0.5} hasNewContent={notifications['libros']} onClick={() => handleVisit('libros')} />
-          <MenuCard href="/wiki/canciones" title="Canciones" icon={<Music />} delay={0.6} hasNewContent={notifications['canciones']} onClick={() => handleVisit('canciones')} />
+          <MenuCard href="/wiki/criaturas"  title="Criaturas"  icon={<Dog />}   delay={0.2} hasNewContent={notifications['criaturas']}  onClick={() => handleVisit('criaturas')}  />
+          <MenuCard href="/wiki/items"      title="Items"      icon={<Sword />} delay={0.3} hasNewContent={notifications['items']}      onClick={() => handleVisit('items')}      />
+          <MenuCard href="/wiki/mapa"       title="Mapa"       icon={<Compass />} delay={0.4} hasNewContent={notifications['mapa']}    onClick={() => handleVisit('mapa')}       />
+          <MenuCard href="/wiki/libros"     title="Libros"     icon={<BookText />} delay={0.5} hasNewContent={notifications['libros']} onClick={() => handleVisit('libros')}     />
+          <MenuCard href="/wiki/canciones"  title="Canciones"  icon={<Music />} delay={0.6} hasNewContent={notifications['canciones']} onClick={() => handleVisit('canciones')}  />
         </div>
 
-        <div className="flex flex-col gap-4 md:hidden">
-
-          <div className="grid grid-cols-2 gap-4">
-            <MenuCard href="/wiki/personajes" title="Personajes" icon={<Users />} delay={0.1} hasNewContent={notifications['personajes']} onClick={() => handleVisit('personajes')} />
-            <MenuCard href="/wiki/criaturas" title="Criaturas" icon={<Dog />} delay={0.2} hasNewContent={notifications['criaturas']} onClick={() => handleVisit('criaturas')} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <MenuCard href="/wiki/items" title="Items" icon={<Sword />} delay={0.3} hasNewContent={notifications['items']} onClick={() => handleVisit('items')} />
-            <MenuCard href="/wiki/mapa" title="Mapa" icon={<Compass />} delay={0.4} hasNewContent={notifications['mapa']} onClick={() => handleVisit('mapa')} />
-          </div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, type: "spring", stiffness: 100 }}>
-            <a href="/wiki/libros" onClick={() => handleVisit('libros')} className="group block relative">
-              <div className="bg-white-custom border-primary/5 p-6 flex items-center gap-6 transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3" style={{ borderRadius: "var(--radius-card)", borderWidth: "var(--border-width)", borderStyle: "solid", boxShadow: "var(--shadow-card)" }}>
-                {notifications['libros'] && (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full shadow-lg z-20">
-                    <span className="absolute inset-0 w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75" />
-                  </motion.div>
-                )}
-                <motion.div className="w-16 h-16 shrink-0 bg-primary/10 text-primary flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:text-white" style={{ borderRadius: "var(--radius-btn)" }} whileHover={{ rotate: [0, -10, 10, 0] }}>
-                  <BookText size={32} />
-                </motion.div>
-                <h2 className="text-2xl font-black uppercase tracking-tighter text-primary">Libros</h2>
-              </div>
-            </a>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, type: "spring", stiffness: 100 }}>
-            <a href="/wiki/canciones" onClick={() => handleVisit('canciones')} className="group block relative">
-              <div className="bg-white-custom border-primary/5 p-6 flex items-center gap-6 transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3" style={{ borderRadius: "var(--radius-card)", borderWidth: "var(--border-width)", borderStyle: "solid", boxShadow: "var(--shadow-card)" }}>
-                {notifications['canciones'] && (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full shadow-lg z-20">
-                    <span className="absolute inset-0 w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75" />
-                  </motion.div>
-                )}
-                <motion.div className="w-16 h-16 shrink-0 bg-primary/10 text-primary flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:text-white" style={{ borderRadius: "var(--radius-btn)" }} whileHover={{ rotate: [0, -10, 10, 0] }}>
-                  <Music size={32} />
-                </motion.div>
-                <h2 className="text-2xl font-black uppercase tracking-tighter text-primary">Canciones</h2>
-              </div>
-            </a>
-          </motion.div>
-
+        {/* Mobile: todos como MenuCard */}
+        <div className="grid grid-cols-2 gap-4 md:hidden">
+          <MenuCard href="/wiki/personajes" title="Personajes" icon={<Users />}    delay={0.1} hasNewContent={notifications['personajes']} onClick={() => handleVisit('personajes')} />
+          <MenuCard href="/wiki/criaturas"  title="Criaturas"  icon={<Dog />}      delay={0.2} hasNewContent={notifications['criaturas']}  onClick={() => handleVisit('criaturas')}  />
+          <MenuCard href="/wiki/items"      title="Items"      icon={<Sword />}    delay={0.3} hasNewContent={notifications['items']}      onClick={() => handleVisit('items')}      />
+          <MenuCard href="/wiki/mapa"       title="Mapa"       icon={<Compass />}  delay={0.4} hasNewContent={notifications['mapa']}       onClick={() => handleVisit('mapa')}       />
+          <MenuCard href="/wiki/libros"     title="Libros"     icon={<BookText />} delay={0.5} hasNewContent={notifications['libros']}     onClick={() => handleVisit('libros')}     />
+          <MenuCard href="/wiki/canciones"  title="Canciones"  icon={<Music />}    delay={0.6} hasNewContent={notifications['canciones']}  onClick={() => handleVisit('canciones')}  />
         </div>
       </div>
     </div>
