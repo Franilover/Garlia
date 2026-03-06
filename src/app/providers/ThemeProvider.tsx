@@ -14,9 +14,9 @@ interface ThemeCtx {
 const ThemeContext = createContext<ThemeCtx | null>(null);
 
 const THEMES: { id: ThemeName; label: string; emoji: string; desc: string }[] = [
-  { id: "default", label: "Default",  emoji: "🌸", desc: "Minimalista morado" },
-  { id: "pixel",   label: "Pixel",    emoji: "👾", desc: "Retro 8-bit" },
-  { id: "indie",   label: "Indie",    emoji: "✏️", desc: "Handmade paper" },
+  { id: "default", label: "Default",  emoji: "🪻", desc: "Minimalista" },
+  { id: "pixel",   label: "Pixel",    emoji: "👾", desc: "Retro" },
+  { id: "indie",   label: "Indie",    emoji: "💜", desc: "Papel" },
 ];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
