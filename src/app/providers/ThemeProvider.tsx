@@ -56,12 +56,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, dark, setTheme, toggleDark }}>
-      <svg style={{ position: "absolute", width: 0, height: 0 }} aria-hidden="true">
-        <filter id="hand-drawn" x="-10%" y="-10%" width="120%" height="120%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="3" result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" />
-        </filter>
-      </svg>
       {children}
     </ThemeContext.Provider>
   );

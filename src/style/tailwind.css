@@ -12,9 +12,6 @@
   --animate-terminal-flicker: flicker 0.15s infinite;
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
-  /* Nueva animación para el efecto Scribble */
-  --animate-scribble-wiggle: scribble-wiggle 0.4s steps(3) infinite;
-
   @keyframes flicker {
     0% { opacity: 0.97; }
     50% { opacity: 1; }
@@ -47,6 +44,22 @@
     50%       { transform: rotate(1deg); }
   }
   /* Keyframes para el garabateo scribble */
+  @keyframes border-draw {
+    0%   { stroke-dashoffset: 1000; }
+    100% { stroke-dashoffset: 0; }
+  }
+  @keyframes scribble-border {
+    0%   { border-radius: 48% 52% 55% 45% / 45% 48% 52% 55%; }
+    25%  { border-radius: 52% 48% 45% 55% / 55% 45% 48% 52%; }
+    50%  { border-radius: 45% 55% 52% 48% / 52% 55% 45% 48%; }
+    75%  { border-radius: 55% 45% 48% 52% / 48% 52% 55% 45%; }
+    100% { border-radius: 48% 52% 55% 45% / 45% 48% 52% 55%; }
+  }
+  @keyframes pixel-border {
+    0%   { box-shadow: 4px 4px 0 var(--foreground); }
+    50%  { box-shadow: 5px 3px 0 var(--accent); }
+    100% { box-shadow: 4px 4px 0 var(--foreground); }
+  }
   @keyframes scribble-wiggle {
     0%, 100% { transform: translate(0, 0) rotate(0deg); }
     33% { transform: translate(0.5px, -0.5px) rotate(0.5deg); }
@@ -191,13 +204,9 @@
 
 @layer components {
   /* Nueva clase para activar el efecto de movimiento scribble */
-  .scribble-el {
-    transition: var(--transition-card);
-  }
 
-  [data-theme="scribble"] .scribble-el {
-    filter: url(#hand-drawn);
-  }
+
+
 
   .card-main {
     background: var(--white-custom);
@@ -213,7 +222,7 @@
   [data-theme="scribble"] .card-main {
     border-color: var(--primary);
     transform: rotate(-0.3deg);
-    animation: ink-spread 0.2s ease both;
+    animation: ink-spread 0.2s ease both, scribble-border 4s ease-in-out infinite;
   }
   [data-theme="scribble"] .card-main:hover { transform: rotate(0deg) translateY(-2px); }
 
@@ -242,8 +251,9 @@
     letter-spacing: 0.1em;
     font-size: 0.65rem;
   }
-  [data-theme="pixel"] .btn-brand:hover { box-shadow: 2px 2px 0 var(--foreground); }
+  [data-theme="pixel"] .btn-brand:hover { box-shadow: 2px 2px 0 var(--foreground); animation: none; }
   [data-theme="pixel"] .btn-brand:active { box-shadow: 0px 0px 0 var(--foreground); }
+  [data-theme="pixel"] .btn-brand { animation: pixel-border 1.5s steps(2) infinite; }
 
   [data-theme="scribble"] .btn-brand {
     border: 1.5px solid var(--foreground);
@@ -251,6 +261,7 @@
     font-family: 'Caveat', cursive;
     font-size: 1.1rem;
     font-weight: 700;
+    animation: scribble-border 3s ease-in-out infinite;
   }
 
   .input-brand {
