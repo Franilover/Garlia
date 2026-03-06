@@ -72,7 +72,7 @@ export function ThemeSelector() {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Tema visual</p>
+      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Tema</p>
       <div className="flex flex-col gap-2">
         {THEMES.map(t => (
           <button
