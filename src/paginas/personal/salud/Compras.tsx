@@ -30,7 +30,7 @@ export default function ComprasPage() {
   return (
     <div className="min-h-screen bg-bg-main pb-20 text-foreground">
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
-        <div className="max-w-5xl mx-auto px-5 py-4 flex items-center gap-4">
+        <div className="max-w-5xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <Link
               href="/personal/salud"
