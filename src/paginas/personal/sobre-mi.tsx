@@ -1,13 +1,38 @@
 "use client";
 import React, { useState } from "react";
-import { Palette, Heart } from "lucide-react";
+import { Palette, Heart, Monitor, Droplets, Music } from "lucide-react";
 import { motion } from "framer-motion";
 
 const fade = (delay = 0) => ({
-  initial: { opacity: 0, y: 14 },
+  initial: { opacity: 0, y: 18 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.5, delay, ease: [0.25, 0.1, 0.25, 1] as any },
+  transition: { duration: 0.55, delay, ease: [0.25, 0.1, 0.25, 1] as any },
 });
+
+/* ─── Datos de herramientas ─── */
+const TOOLS = [
+  {
+    num: "01",
+    label: "Digital",
+    title: "Linux & Krita",
+    icon: Monitor,
+    desc: "Ilustración vectorial y rasterizada",
+  },
+  {
+    num: "02",
+    label: "Análogo",
+    title: "Acuarelas & Acrílico",
+    icon: Droplets,
+    desc: "Textura orgánica, el error como proceso",
+  },
+  {
+    num: "03",
+    label: "Sonoro",
+    title: "Mucha Música",
+    icon: Music,
+    desc: "Cada pieza nace de un estado de ánimo",
+  },
+];
 
 export default function SobreMi() {
   const FORMSPREE_ID = "xvzpjdgr";
@@ -29,265 +54,263 @@ export default function SobreMi() {
     finally { setLoading(false); }
   };
 
-  const sectionTag = "text-[9px] font-black uppercase tracking-[0.4em] flex items-center gap-2";
-
   return (
-    <div className="w-full bg-bg-main min-h-screen text-foreground selection:bg-primary/10">
-      <main className="max-w-3xl mx-auto px-6 pb-40 pt-24 md:pt-44">
+    <div className="w-full bg-bg-main min-h-screen selection:bg-primary/10">
+      <main className="max-w-4xl mx-auto px-6 pb-40 pt-20 md:pt-36">
 
-        {/* ── CABECERA ── */}
-        <header className="mb-28">
-          <motion.p {...fade(0)} className={sectionTag} style={{ color: "var(--primary)", opacity: 0.3 }}>
-            Jardín digital
+        {/* ══════════════════════════════
+            CABECERA
+        ══════════════════════════════ */}
+        <header className="mb-24 md:mb-32">
+
+          <motion.p
+            {...fade(0)}
+            className="text-[9px] font-black uppercase tracking-[0.45em] mb-8"
+            style={{ color: "var(--primary)", opacity: 0.32 }}
+          >
+            — Jardín digital
           </motion.p>
 
-          <motion.h1
-            {...fade(0.08)}
-            className="text-[clamp(3.5rem,12vw,7rem)] font-black italic tracking-tighter uppercase leading-[0.88] mt-6"
-            style={{ color: "var(--primary)" }}
-          >
-            Sobre<br />Mí
-          </motion.h1>
+          {/* Título en una sola línea, nunca se corta */}
+          <div className="overflow-hidden">
+            <motion.h1
+              initial={{ y: "110%" }}
+              animate={{ y: 0 }}
+              transition={{ duration: 0.7, delay: 0.06, ease: [0.16, 1, 0.3, 1] as any }}
+              className="font-black italic uppercase leading-[0.85] whitespace-nowrap"
+              style={{
+                color: "var(--primary)",
+                fontSize: "clamp(3rem, 10.5vw, 8rem)",
+                letterSpacing: "-0.03em",
+              }}
+            >
+              Sobre Mí
+            </motion.h1>
+          </div>
 
-          {/* Línea animada al cargar */}
+          {/* Línea que crece desde la izquierda */}
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] as any }}
-            className="mt-10 h-px w-24 origin-left"
-            style={{ background: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+            transition={{ duration: 0.9, delay: 0.4, ease: [0.16, 1, 0.3, 1] as any }}
+            className="mt-8 h-[2px] w-32 origin-left rounded-full"
+            style={{ background: "color-mix(in srgb, var(--primary) 22%, transparent)" }}
           />
         </header>
 
-        <div className="space-y-28">
+        <div className="space-y-24 md:space-y-32">
 
-          {/* ── § 1: MI ATELIER ── */}
-          <motion.section {...fade(0.15)}>
-            <p className={sectionTag} style={{ color: "var(--primary)", opacity: 0.3, marginBottom: "2rem" }}>
-              <Heart size={11} /> Mi Atelier
-            </p>
-            <p
-              className="text-2xl md:text-3xl leading-[1.45] font-light italic"
-              style={{ color: "var(--primary)", opacity: 0.8 }}
-            >
-              Bienvenido a mi pequeño jardín digital. Refleja temas que considero importantes
-              a través de personajes basados en quienes han dejado una marca en mí.
-            </p>
-          </motion.section>
+          {/* ══════════════════════════════
+              § 1 · MI ATELIER
+          ══════════════════════════════ */}
+          <motion.section {...fade(0.18)} className="grid md:grid-cols-[1fr_2fr] gap-12 md:gap-16 items-start">
 
-          {/* ── § 2: HERRAMIENTAS ── */}
-          <motion.section {...fade(0.2)}>
-            <p className={sectionTag} style={{ color: "var(--primary)", opacity: 0.3, marginBottom: "2rem" }}>
-              <Palette size={11} /> Herramientas
-            </p>
+            {/* Columna izquierda — etiqueta + ornamento */}
+            <div className="flex md:flex-col items-center md:items-start gap-4 md:gap-6 md:pt-2">
+              <div
+                className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.4em]"
+                style={{ color: "var(--primary)", opacity: 0.3 }}
+              >
+                <Heart size={11} strokeWidth={2.5} /> Mi Atelier
+              </div>
+              {/* Número decorativo solo en desktop */}
+              <span
+                className="hidden md:block text-[5rem] font-black leading-none select-none"
+                style={{ color: "var(--primary)", opacity: 0.05, letterSpacing: "-0.05em" }}
+              >I</span>
+            </div>
 
-            <div
-              className="grid grid-cols-1 md:grid-cols-3 overflow-hidden"
-              style={{
-                borderRadius: "var(--radius-card)",
-                border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}
-            >
-              {/* — Digital — */}
-              <Tool
-                label="Digital"
-                title="Linux & Krita"
-                icon={
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-                  </svg>
-                }
-                borderRight
-              />
-
-              {/* — Análogo (invertida) — */}
-              <ToolInverted
-                label="Análogo"
-                title={"Acuarelas\n& Acrílico"}
-                icon={
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
-                  </svg>
-                }
-                borderRight
-              />
-
-              {/* — Sonoro — */}
-              <Tool
-                label="Sonoro"
-                title="Mucha Música"
-                icon={<EqBars />}
-              />
+            {/* Columna derecha — texto */}
+            <div className="space-y-6">
+              <p
+                className="text-2xl md:text-3xl leading-[1.45] font-light italic"
+                style={{ color: "var(--primary)", opacity: 0.85 }}
+              >
+                Bienvenido a mi pequeño jardín digital. Refleja temas que considero
+                importantes a través de personajes basados en quienes han dejado
+                una marca en mí.
+              </p>
+              {/* Detalle decorativo */}
+              <div
+                className="flex items-center gap-3 pt-2"
+                style={{ color: "var(--primary)", opacity: 0.2 }}
+              >
+                <div className="h-px w-8" style={{ background: "currentColor" }} />
+                <span className="text-[8px] font-black uppercase tracking-[0.4em]">2024</span>
+              </div>
             </div>
           </motion.section>
 
-          {/* ── § 3: GARDEN OF SINS ── */}
-          <motion.section {...fade(0.25)} className="space-y-10">
-            {/* Divisor con número romano */}
-            <div className="flex items-center gap-4">
-              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+          {/* ══════════════════════════════
+              § 2 · HERRAMIENTAS
+          ══════════════════════════════ */}
+          <motion.section {...fade(0.24)}>
+            <div
+              className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.4em] mb-10"
+              style={{ color: "var(--primary)", opacity: 0.3 }}
+            >
+              <Palette size={11} strokeWidth={2.5} /> Herramientas
+            </div>
+
+            {/* Grid de cards — sin color invertido, totalmente adaptable */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {TOOLS.map((tool, i) => {
+                const Icon = tool.icon;
+                return (
+                  <motion.div
+                    key={tool.num}
+                    {...fade(0.28 + i * 0.07)}
+                    whileHover={{ y: -4 }}
+                    transition={{ duration: 0.22 }}
+                    className="group relative flex flex-col gap-5 p-7 overflow-hidden cursor-default"
+                    style={{
+                      background: "var(--white-custom)",
+                      borderRadius: "var(--radius-card)",
+                      border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      boxShadow: "var(--shadow-card)",
+                    }}
+                  >
+                    {/* Número enorme de fondo */}
+                    <span
+                      className="absolute -bottom-4 -right-2 text-[6rem] font-black leading-none select-none pointer-events-none transition-opacity duration-300 group-hover:opacity-100"
+                      style={{ color: "var(--primary)", opacity: 0.04, letterSpacing: "-0.05em" }}
+                    >
+                      {tool.num}
+                    </span>
+
+                    {/* Ícono con fondo sutil */}
+                    <div
+                      className="w-10 h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                      style={{
+                        borderRadius: "var(--radius-btn)",
+                        background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                        color: "var(--primary)",
+                      }}
+                    >
+                      <Icon size={17} strokeWidth={1.5} style={{ opacity: 0.6 }} />
+                    </div>
+
+                    {/* Textos */}
+                    <div className="relative z-10 space-y-1">
+                      <p
+                        className="text-[8px] font-black uppercase tracking-[0.35em]"
+                        style={{ color: "var(--primary)", opacity: 0.28 }}
+                      >{tool.label}</p>
+                      <h4
+                        className="font-black text-base leading-snug"
+                        style={{ color: "var(--primary)", letterSpacing: "-0.02em" }}
+                      >{tool.title}</h4>
+                      <p
+                        className="text-[11px] leading-relaxed pt-1"
+                        style={{ color: "var(--primary)", opacity: 0.4 }}
+                      >{tool.desc}</p>
+                    </div>
+
+                    {/* Acento de color en el borde inferior al hover */}
+                    <div
+                      className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 ease-out rounded-full"
+                      style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                    />
+
+                    {/* Barras de ecualizador solo en la tarjeta de música */}
+                    {tool.num === "03" && (
+                      <div className="absolute top-7 right-7 flex items-end gap-[3px] opacity-20 group-hover:opacity-40 transition-opacity">
+                        {[5, 9, 7, 11, 6].map((h, j) => (
+                          <div
+                            key={j}
+                            className="w-[2.5px] rounded-full"
+                            style={{
+                              height: `${h}px`,
+                              background: "var(--primary)",
+                              animation: `_eq${j} ${1.2 + j * 0.1}s ease-in-out infinite`,
+                              animationDelay: `${j * 0.15}s`,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <style>{`
+              @keyframes _eq0 { 0%,100%{height:5px}  50%{height:11px} }
+              @keyframes _eq1 { 0%,100%{height:9px}  50%{height:4px}  }
+              @keyframes _eq2 { 0%,100%{height:7px}  50%{height:13px} }
+              @keyframes _eq3 { 0%,100%{height:11px} 50%{height:5px}  }
+              @keyframes _eq4 { 0%,100%{height:6px}  50%{height:10px} }
+            `}</style>
+          </motion.section>
+
+          {/* ══════════════════════════════
+              § 3 · GARDEN OF SINS
+          ══════════════════════════════ */}
+          <motion.section {...fade(0.3)} className="space-y-12">
+
+            {/* Divisor */}
+            <div className="flex items-center gap-5">
+              <div
+                className="h-px flex-1"
+                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+              />
               <span
                 className="text-[8px] font-black uppercase tracking-[0.5em]"
-                style={{ color: "var(--primary)", opacity: 0.18 }}
-              >III</span>
-              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                style={{ color: "var(--primary)", opacity: 0.15 }}
+              >✦</span>
+              <div
+                className="h-px flex-1"
+                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+              />
             </div>
 
-            <h2
-              className="text-[clamp(2.5rem,8vw,5rem)] font-black italic uppercase tracking-tighter leading-[0.88]"
-              style={{ color: "var(--primary)" }}
-            >
-              Garden<br />of Sins
-            </h2>
-
-            {/* Cita — borde lateral liviano, sin card pesada */}
-            <motion.blockquote
-              whileHover={{ x: 4 }}
-              transition={{ duration: 0.2 }}
-              className="pl-5 py-1"
-              style={{ borderLeft: "2px solid color-mix(in srgb, var(--primary) 28%, transparent)" }}
-            >
+            {/* Título grande — en dos líneas controladas */}
+            <div className="space-y-0">
               <p
-                className="text-lg md:text-xl font-light italic leading-relaxed"
-                style={{ color: "var(--primary)", opacity: 0.65 }}
+                className="text-[9px] font-black uppercase tracking-[0.4em] mb-5"
+                style={{ color: "var(--primary)", opacity: 0.28 }}
+              >— Proyecto principal</p>
+              <h2
+                className="font-black italic uppercase leading-[0.88]"
+                style={{
+                  color: "var(--primary)",
+                  fontSize: "clamp(2.8rem, 9vw, 6.5rem)",
+                  letterSpacing: "-0.03em",
+                }}
               >
-                "Cada flor de este jardín está basada en una experiencia o emoción
-                que necesito quitarme de encima."
+                Garden<br />of Sins
+              </h2>
+            </div>
+
+            {/* Cita con card suave — más presencia que solo un borde */}
+            <motion.div
+              whileHover={{ x: 6 }}
+              transition={{ duration: 0.22 }}
+              className="relative pl-8 py-6 pr-6"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
+                borderRadius: "var(--radius-card)",
+                borderLeft: "3px solid color-mix(in srgb, var(--primary) 35%, transparent)",
+              }}
+            >
+              {/* Comilla decorativa */}
+              <span
+                className="absolute top-3 left-5 text-5xl font-black leading-none select-none"
+                style={{ color: "var(--primary)", opacity: 0.08, fontFamily: "serif" }}
+              >"</span>
+              <p
+                className="relative text-lg md:text-xl font-light italic leading-relaxed"
+                style={{ color: "var(--primary)", opacity: 0.7 }}
+              >
+                Cada flor de este jardín está basada en una experiencia
+                o emoción que necesito quitarme de encima.
               </p>
-            </motion.blockquote>
+            </motion.div>
+
           </motion.section>
 
         </div>
       </main>
     </div>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   SUB-COMPONENTES
-───────────────────────────────────────────── */
-
-function Tool({
-  label, title, icon, borderRight = false,
-}: {
-  label: string;
-  title: string;
-  icon: React.ReactNode;
-  borderRight?: boolean;
-}) {
-  return (
-    <motion.div
-      whileHover={{ backgroundColor: "color-mix(in srgb, var(--primary) 5%, var(--white-custom))" } as any}
-      className="group flex flex-col gap-6 p-8 transition-colors duration-300"
-      style={{
-        background: "var(--white-custom)",
-        borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
-        ...(borderRight ? { borderRight: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)" } : {}),
-      }}
-    >
-      {/* Ícono */}
-      <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-        style={{
-          background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-          color: "var(--primary)",
-          opacity: 1,
-        }}
-      >
-        <span style={{ opacity: 0.55 }}>{icon}</span>
-      </div>
-
-      {/* Texto */}
-      <div>
-        <p
-          className="text-[8px] font-black uppercase tracking-[0.35em] mb-1.5"
-          style={{ color: "var(--primary)", opacity: 0.28 }}
-        >{label}</p>
-        <h4
-          className="font-black text-sm tracking-tight leading-snug whitespace-pre-line"
-          style={{ color: "var(--primary)" }}
-        >{title}</h4>
-      </div>
-
-      {/* Línea animada */}
-      <div className="h-px w-full overflow-hidden mt-auto" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-        <div
-          className="h-full w-0 group-hover:w-full transition-all duration-600 ease-out"
-          style={{ background: "color-mix(in srgb, var(--primary) 22%, transparent)" }}
-        />
-      </div>
-    </motion.div>
-  );
-}
-
-function ToolInverted({
-  label, title, icon, borderRight = false,
-}: {
-  label: string;
-  title: string;
-  icon: React.ReactNode;
-  borderRight?: boolean;
-}) {
-  return (
-    <motion.div
-      whileHover={{ opacity: 0.9 } as any}
-      className="group flex flex-col gap-6 p-8 transition-opacity duration-300"
-      style={{
-        background: "var(--primary)",
-        ...(borderRight ? { borderRight: "var(--border-width) solid color-mix(in srgb, var(--btn-text) 10%, transparent)" } : {}),
-        borderBottom: "var(--border-width) solid color-mix(in srgb, var(--btn-text) 10%, transparent)",
-      }}
-    >
-      <div
-        className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-        style={{ background: "color-mix(in srgb, var(--btn-text) 10%, transparent)", color: "var(--btn-text)" }}
-      >
-        <span style={{ opacity: 0.65 }}>{icon}</span>
-      </div>
-
-      <div>
-        <p
-          className="text-[8px] font-black uppercase tracking-[0.35em] mb-1.5"
-          style={{ color: "var(--btn-text)", opacity: 0.38 }}
-        >{label}</p>
-        <h4
-          className="font-black text-sm tracking-tight leading-snug whitespace-pre-line"
-          style={{ color: "var(--btn-text)" }}
-        >{title}</h4>
-      </div>
-
-      <div
-        className="h-px w-full mt-auto"
-        style={{ background: "color-mix(in srgb, var(--btn-text) 12%, transparent)" }}
-      />
-    </motion.div>
-  );
-}
-
-function EqBars() {
-  return (
-    <>
-      <div className="flex items-end gap-[2.5px]" style={{ height: "14px" }}>
-        {[5, 9, 7, 11, 6].map((h, i) => (
-          <div
-            key={i}
-            className="w-[2.5px] rounded-full"
-            style={{
-              height: `${h}px`,
-              background: "currentColor",
-              animation: `_eq${i} ${1.2 + i * 0.1}s ease-in-out infinite`,
-              animationDelay: `${i * 0.15}s`,
-            }}
-          />
-        ))}
-      </div>
-      <style>{`
-        @keyframes _eq0 { 0%,100%{height:5px}  50%{height:11px} }
-        @keyframes _eq1 { 0%,100%{height:9px}  50%{height:4px}  }
-        @keyframes _eq2 { 0%,100%{height:7px}  50%{height:13px} }
-        @keyframes _eq3 { 0%,100%{height:11px} 50%{height:5px}  }
-        @keyframes _eq4 { 0%,100%{height:6px}  50%{height:10px} }
-      `}</style>
-    </>
   );
 }
