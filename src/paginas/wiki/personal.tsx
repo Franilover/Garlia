@@ -90,12 +90,6 @@ function ModalDetalle({
     if (d.especie) tags.push(d.especie);
   }
 
-  const accentColor = isCriatura
-    ? { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-100", tag: "bg-emerald-50 text-emerald-600" }
-    : isItem
-    ? { bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-100", tag: "bg-blue-50 text-blue-600" }
-    : { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-100", tag: "bg-amber-50 text-amber-600" };
-
   const IconComp = isItem ? Package : isCriatura ? Sword : User;
 
   return (
@@ -107,7 +101,7 @@ function ModalDetalle({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-40 bg-[#6B5E70]/10 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-primary/10 backdrop-blur-sm"
       />
 
       {/* Panel flotante */}
@@ -120,14 +114,11 @@ function ModalDetalle({
         className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
       >
         <div
-          className={cn(
-            "pointer-events-auto w-full max-w-sm rounded-3xl bg-white border shadow-2xl shadow-[#6B5E70]/10 overflow-hidden",
-            accentColor.border
-          )}
+          className="pointer-events-auto w-full max-w-sm rounded-3xl bg-bg-main border border-primary/15 shadow-2xl shadow-primary/10 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header con imagen o placeholder */}
-          <div className={cn("relative h-40 flex items-center justify-center", accentColor.bg)}>
+          <div className="relative h-40 flex items-center justify-center bg-primary/5">
             {imagen ? (
               <img
                 src={imagen}
@@ -135,22 +126,19 @@ function ModalDetalle({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <IconComp size={48} className={cn("opacity-20", accentColor.text)} />
+              <IconComp size={48} className="text-primary/20" />
             )}
 
             {/* Botón cerrar */}
             <button
               onClick={onClose}
-              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border border-white/50 flex items-center justify-center hover:scale-110 transition-transform shadow-sm"
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/15 flex items-center justify-center hover:scale-110 transition-transform shadow-sm"
             >
-              <X size={14} className="text-[#6B5E70]" />
+              <X size={14} className="text-primary" />
             </button>
 
             {/* Badge tipo */}
-            <div className={cn(
-              "absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border bg-white/80 backdrop-blur-sm",
-              accentColor.text, accentColor.border
-            )}>
+            <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-primary/20 bg-bg-main/80 backdrop-blur-sm text-primary/60">
               {entidad.tipo}
             </div>
           </div>
@@ -159,11 +147,11 @@ function ModalDetalle({
           <div className="p-5 space-y-4">
             {/* Nombre */}
             <div>
-              <h2 className="text-xl font-black text-[#6B5E70] uppercase tracking-tight leading-tight">
+              <h2 className="text-xl font-black text-primary uppercase tracking-tight leading-tight">
                 {nombre}
               </h2>
               {fecha && (
-                <p className="flex items-center gap-1.5 mt-1 text-[9px] font-black uppercase tracking-widest text-[#6B5E70]/30">
+                <p className="flex items-center gap-1.5 mt-1 text-[9px] font-black uppercase tracking-widest text-primary/30">
                   <Calendar size={10} />
                   Registrado el {new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}
                 </p>
@@ -176,10 +164,7 @@ function ModalDetalle({
                 {tags.map((tag, i) => (
                   <span
                     key={i}
-                    className={cn(
-                      "flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider",
-                      accentColor.tag
-                    )}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-primary/8 text-primary/70 border border-primary/10"
                   >
                     <Tag size={8} />
                     {tag}
@@ -190,20 +175,20 @@ function ModalDetalle({
 
             {/* Descripción */}
             {descripcion ? (
-              <p className="text-[11px] text-[#6B5E70]/60 leading-relaxed font-medium border-t border-[#6B5E70]/5 pt-3">
+              <p className="text-[11px] text-primary/60 leading-relaxed font-medium border-t border-primary/5 pt-3">
                 {descripcion}
               </p>
             ) : (
-              <p className="text-[11px] text-[#6B5E70]/20 italic font-black uppercase tracking-wider border-t border-[#6B5E70]/5 pt-3">
+              <p className="text-[11px] text-primary/20 italic font-black uppercase tracking-wider border-t border-primary/5 pt-3">
                 "Sin descripción disponible"
               </p>
             )}
 
             {/* Indicador equipado (solo items) */}
             {isItem && entidad.data.equipado && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-100">
-                <ShieldCheck size={14} className="text-blue-400 shrink-0" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-blue-400">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/10">
+                <ShieldCheck size={14} className="text-primary/50 shrink-0" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary/50">
                   Actualmente equipado
                 </span>
               </div>
@@ -245,30 +230,30 @@ export default function Personal({ datos }: PersonalProps) {
         {/* HEADER */}
         <section className="flex flex-col items-center gap-4 text-center">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-linear-to-b from-[#6B5E70]/20 to-[#6B5E70]/5 border-2 border-[#6B5E70]/10 flex items-center justify-center overflow-hidden">
+            <div className="w-24 h-24 rounded-full bg-linear-to-b from-primary/20 to-primary/5 border-2 border-primary/10 flex items-center justify-center overflow-hidden">
               {datos.avatar_url ? (
                 <img src={datos.avatar_url} alt={datos.username} className="w-full h-full object-cover" />
               ) : (
-                <User size={40} className="text-[#6B5E70]/20" />
+                <User size={40} className="text-primary/20" />
               )}
             </div>
-            <div className="absolute -bottom-1 -right-1 bg-white border border-[#6B5E70]/10 p-1.5 rounded-full shadow-sm">
+            <div className="absolute -bottom-1 -right-1 bg-bg-main border border-primary/10 p-1.5 rounded-full shadow-sm">
               <Star size={12} className="text-amber-400 fill-amber-400" />
             </div>
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-4xl font-black text-[#6B5E70] uppercase tracking-tighter">
+            <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">
               "{datos.username}"
             </h1>
-            <p className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.3em]">
+            <p className="text-[10px] font-black text-primary/40 uppercase tracking-[0.3em]">
               "{datos.status || "Explorador de Franilover"}"
             </p>
           </div>
         </section>
 
         {/* TABS */}
-        <nav className="flex justify-center gap-2 border-b border-[#6B5E70]/5 pb-4">
+        <nav className="flex justify-center gap-2 border-b border-primary/5 pb-4">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -276,8 +261,8 @@ export default function Personal({ datos }: PersonalProps) {
               className={cn(
                 "flex items-center gap-2 px-5 py-2.5 rounded-2xl transition-all duration-300",
                 tab === t.id
-                  ? "bg-[#6B5E70] text-white shadow-lg shadow-[#6B5E70]/20 scale-105"
-                  : "text-[#6B5E70]/40 hover:bg-[#6B5E70]/5"
+                  ? "bg-primary text-white shadow-lg shadow-primary/20 scale-105"
+                  : "text-primary/40 hover:bg-primary/5"
               )}
             >
               <t.icon size={14} />
@@ -301,20 +286,20 @@ export default function Personal({ datos }: PersonalProps) {
                 <button
                   key={i}
                   onClick={() => setModalEntidad({ tipo: "item", data: item })}
-                  className="group p-4 rounded-2xl bg-white border border-[#6B5E70]/5 flex items-center gap-4 hover:border-[#6B5E70]/20 hover:shadow-md hover:shadow-[#6B5E70]/5 transition-all text-left cursor-pointer"
+                  className="group p-4 rounded-2xl bg-bg-main border border-primary/5 flex items-center gap-4 hover:border-primary/20 hover:shadow-md hover:shadow-primary/5 transition-all text-left cursor-pointer"
                 >
-                  <div className="w-12 h-12 bg-[#6B5E70]/5 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform overflow-hidden">
+                  <div className="w-12 h-12 bg-primary/5 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform overflow-hidden">
                     {item.items.imagen_url ? (
                       <img src={item.items.imagen_url} alt={item.items.nombre} className="w-full h-full object-contain" />
                     ) : (
-                      <Package size={20} className="text-[#6B5E70]/30" />
+                      <Package size={20} className="text-primary/30" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <p className="text-[11px] font-black text-[#6B5E70] uppercase tracking-tight">{item.items.nombre}</p>
-                    <p className="text-[9px] text-[#6B5E70]/30 font-black uppercase">{item.items.categoria}</p>
+                    <p className="text-[11px] font-black text-primary uppercase tracking-tight">{item.items.nombre}</p>
+                    <p className="text-[9px] text-primary/30 font-black uppercase">{item.items.categoria}</p>
                   </div>
-                  {item.equipado && <ShieldCheck size={14} className="text-blue-400 shrink-0" />}
+                  {item.equipado && <ShieldCheck size={14} className="text-primary/50 shrink-0" />}
                 </button>
               ))}
 
@@ -325,12 +310,9 @@ export default function Personal({ datos }: PersonalProps) {
                     <button
                       key={i}
                       onClick={() => setModalEntidad({ tipo: d.tipo as "criatura" | "personaje", data: d })}
-                      className="group p-4 rounded-2xl bg-white border border-[#6B5E70]/5 flex items-center gap-4 hover:border-[#6B5E70]/20 hover:shadow-md hover:shadow-[#6B5E70]/5 transition-all text-left cursor-pointer"
+                      className="group p-4 rounded-2xl bg-bg-main border border-primary/5 flex items-center gap-4 hover:border-primary/20 hover:shadow-md hover:shadow-primary/5 transition-all text-left cursor-pointer"
                     >
-                      <div className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform overflow-hidden",
-                        tab === "criaturas" ? "bg-emerald-50 text-emerald-500" : "bg-amber-50 text-amber-500"
-                      )}>
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform overflow-hidden bg-primary/8 text-primary/50">
                         {(d.imagen_url || d.img_url) ? (
                           <img src={d.imagen_url ?? d.img_url} alt={d.nombre} className="w-full h-full object-cover" />
                         ) : (
@@ -338,18 +320,18 @@ export default function Personal({ datos }: PersonalProps) {
                         )}
                       </div>
                       <div>
-                        <p className="text-[11px] font-black text-[#6B5E70] uppercase tracking-tight">
+                        <p className="text-[11px] font-black text-primary uppercase tracking-tight">
                           {d.nombre ?? (tab === "criaturas" ? "Criatura Registrada" : "Contacto Guardado")}
                         </p>
-                        <p className="text-[9px] text-[#6B5E70]/30 font-black uppercase">
+                        <p className="text-[9px] text-primary/30 font-black uppercase">
                           Visto el {new Date(d.fecha_descubrimiento).toLocaleDateString()}
                         </p>
                       </div>
                     </button>
                   ))
                 ) : (
-                  <div className="col-span-full py-20 text-center text-[10px] font-black uppercase tracking-[0.3em] text-[#6B5E70]/20 italic">
-                    Sin registros en esta categoría
+                  <div className="col-span-full py-20 text-center text-[10px] font-black uppercase tracking-[0.3em] text-primary/20 italic">
+                    "Sin registros en esta categoría"
                   </div>
                 )
               )}
