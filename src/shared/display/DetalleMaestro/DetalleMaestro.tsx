@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  X, Edit3, Save, Plus, CheckCircle2, Trash2,
+  X, Edit3, Save, Plus, CheckCircle2, Trash2, Camera,
 } from "lucide-react";
 import { useDetalleMaestro, type Variante } from "@/hooks/features/useDetalleMaestro";
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 import { SelectorVariantes } from "./SelectorVariantes";
+import SimpleImagePicker from "@/shared/forms/SimpleImagePicker";
 
 interface DetalleMaestroProps {
   isOpen: boolean;
@@ -55,12 +56,22 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
     isAdmin, editMode, setEditMode, saving, handleSave, handleDelete,
     variantes, setVariantes,
     varianteActiva, setVarianteActiva,
+    editFields, setEditFields,
     editNombre, setEditNombre,
     editDescripcion, setEditDescripcion,
     editCanciones, setEditCanciones,
   } = useDetalleMaestro(data, tabla, onUpdate);   // ← pasa tabla y callback
 
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+
+  // Campo de imagen según tabla
+  const campoImagen = tabla === "personajes" ? "img_url" : "imagen_url";
+
+  const handlePickImage = (url: string) => {
+    setEditFields((prev: any) => ({ ...prev, [campoImagen]: url }));
+    setShowPicker(false);
+  };
 
   const esPersonaje = useMemo(
     () => tabla === "personajes",
@@ -110,6 +121,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
 
   const imagenVisual =
     varianteActiva?.imagen_url ||
+    (editMode ? editFields?.[campoImagen] : null) ||
     data?.img_url ||
     data?.imagen_url ||
     "/placeholder.png";
@@ -141,20 +153,68 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
           {/* LADO IZQUIERDO: VISUAL */}
           <div className="w-full lg:w-112.5 xl:w-125 shrink-0 bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
             <div className="relative w-full aspect-square max-w-sm">
-              <div className="w-full h-full rounded-full overflow-hidden border-12 border-white-custom shadow-xl bg-white-custom">
+              <div
+                className={`w-full h-full rounded-full overflow-hidden border-12 border-white-custom shadow-xl bg-white-custom ${editMode ? "cursor-pointer group" : ""}`}
+                onClick={() => editMode && setShowPicker(true)}
+              >
                 <img
                   src={imagenVisual}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-all"
                   alt="Visualización"
                   loading="eager"
                   fetchPriority="high"
                 />
+                {editMode && (
+                  <div className="absolute inset-0 bg-black/40 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera size={32} className="text-white mb-2" />
+                    <span className="text-white text-[10px] font-black uppercase tracking-widest">
+                      Cambiar foto
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white-custom px-8 py-3 rounded-[var(--radius-btn)] text-sm font-black uppercase tracking-widest shadow-md whitespace-nowrap min-w-45 text-center">
                 {esPersonaje ? especie : alma}
               </div>
             </div>
           </div>
+
+          {/* PICKER MODAL */}
+          <AnimatePresence>
+            {showPicker && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                onClick={(e) => e.target === e.currentTarget && setShowPicker(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.92, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.92, opacity: 0 }}
+                  className="bg-bg-card border border-primary/10 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl p-6"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xs font-black uppercase tracking-widest text-primary">
+                      Elegir imagen
+                    </h2>
+                    <button
+                      onClick={() => setShowPicker(false)}
+                      className="p-2 hover:bg-primary/10 rounded-full transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <SimpleImagePicker
+                    onSelect={handlePickImage}
+                    onClose={() => setShowPicker(false)}
+                  />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* LADO DERECHO: CONTENIDO */}
           <div className="flex-1 p-8 lg:p-16 bg-white-custom/30 overflow-hidden flex flex-col justify-center">
