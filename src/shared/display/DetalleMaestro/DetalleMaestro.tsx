@@ -1,10 +1,10 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  X, Edit3, Save, Plus, CheckCircle2, Trash2 
+import {
+  X, Edit3, Save, Plus, CheckCircle2, Trash2,
 } from "lucide-react";
-import { useDetalleMaestro, type Variante } from "@/hooks/features/useDetalleMaestro"; 
+import { useDetalleMaestro, type Variante } from "@/hooks/features/useDetalleMaestro";
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 import { SelectorVariantes } from "./SelectorVariantes";
 
@@ -12,37 +12,34 @@ interface DetalleMaestroProps {
   isOpen: boolean;
   onClose: () => void;
   data: any;
+  tabla: string;                         // ← NUEVO: tabla explícita
   tags?: string[];
-  onUpdate?: () => Promise<void>;
-  isNew?: boolean; 
+  onUpdate?: (record: any) => void;      // ← CAMBIO: recibe el registro guardado
+  isNew?: boolean;
   mostrarMusica?: boolean;
 }
 
-export default function DetalleMaestro({ 
-  isOpen, onClose, data, tags = [], onUpdate, isNew = false, mostrarMusica = true 
+export default function DetalleMaestro({
+  isOpen, onClose, data, tabla, tags = [], onUpdate, isNew = false, mostrarMusica = true,
 }: DetalleMaestroProps) {
   const [internalData, setInternalData] = useState(data);
 
   useEffect(() => {
     if (isNew) {
-      const esPosiblePersonaje = tags.some(t => t.toLowerCase().includes("personaje"));
-      setInternalData({ 
-        nombre: "", 
-        [esPosiblePersonaje ? "sobre" : "descripcion"]: "", 
-        id: null 
-      });
+      setInternalData({ nombre: "", descripcion: "", sobre: "", id: null });
     } else {
       setInternalData(data);
     }
-  }, [data, isNew, tags]);
+  }, [data, isNew]);
 
   if (!isOpen) return null;
 
   return (
-    <ProjectDetalleContenido 
-      data={internalData} 
-      onClose={onClose} 
-      tags={tags} 
+    <ProjectDetalleContenido
+      data={internalData}
+      tabla={tabla}
+      onClose={onClose}
+      tags={tags}
       onUpdate={onUpdate}
       isNew={isNew}
       mostrarMusica={mostrarMusica}
@@ -50,21 +47,22 @@ export default function DetalleMaestro({
   );
 }
 
-function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrarMusica }: any) {
+function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, isNew, mostrarMusica }: any) {
   const {
     isAdmin, editMode, setEditMode, saving, handleSave,
     variantes, setVariantes,
     varianteActiva, setVarianteActiva,
-    editNombre, setEditNombre, editDescripcion, setEditDescripcion,
-    editCanciones, setEditCanciones
-  } = useDetalleMaestro(data, onUpdate);
+    editNombre, setEditNombre,
+    editDescripcion, setEditDescripcion,
+    editCanciones, setEditCanciones,
+  } = useDetalleMaestro(data, tabla, onUpdate);   // ← pasa tabla y callback
 
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Optimización: Memoización de flags para evitar re-renders costosos
-  const esPersonaje = useMemo(() => 
-    ("sobre" in data) || tags.some((t: string) => t.toLowerCase().includes("personaje")),
-  [data, tags]);
+  const esPersonaje = useMemo(
+    () => tabla === "personajes",
+    [tabla]
+  );
 
   const especie = data?.especie || "Humano";
   const alma = data?.alma || "Desconocida";
@@ -75,11 +73,11 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
 
   const agregarVariante = () => {
     const nueva: Variante = {
-      id: Date.now(), 
+      id: Date.now(),
       tipo: "Nueva Variante",
       descripcion_variante: "",
       imagen_url: "",
-      criatura_id: data?.id || null
+      criatura_id: data?.id || null,
     };
     setVariantes([...variantes, nueva]);
   };
@@ -107,17 +105,20 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
     }
   };
 
-  // Optimización de carga de imagen (Prioridad alta)
-  const imagenVisual = (varianteActiva?.imagen_url) || (data?.img_url || data?.imagen_url) || "/placeholder.png";
+  const imagenVisual =
+    varianteActiva?.imagen_url ||
+    data?.img_url ||
+    data?.imagen_url ||
+    "/placeholder.png";
 
   return (
     <div className="w-full max-w-[96%] xl:max-w-screen-2xl mx-auto relative pt-10 px-4 pb-32 space-y-8">
       <AnimatePresence>
         {showSuccess && (
-          <motion.div 
-            initial={{ y: -50, opacity: 0 }} 
-            animate={{ y: 0, opacity: 1 }} 
-            exit={{ y: -50, opacity: 0 }} 
+          <motion.div
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -50, opacity: 0 }}
             className="fixed top-10 left-1/2 -translate-x-1/2 z-3000 bg-accent text-primary px-10 py-5 rounded-full shadow-lg flex items-center gap-3 font-bold border border-primary/20"
           >
             <CheckCircle2 size={24} /> Registro Sincronizado
@@ -126,7 +127,10 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
       </AnimatePresence>
 
       <div className="bg-white-custom rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10 relative">
-        <button onClick={onClose} className="absolute top-8 right-8 z-50 p-4 bg-bg-main text-primary rounded-full hover:bg-accent transition-all border border-primary/10">
+        <button
+          onClick={onClose}
+          className="absolute top-8 right-8 z-50 p-4 bg-bg-main text-primary rounded-full hover:bg-accent transition-all border border-primary/10"
+        >
           <X size={28} />
         </button>
 
@@ -135,10 +139,10 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
           <div className="w-full lg:w-112.5 xl:w-125 shrink-0 bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
             <div className="relative w-full aspect-square max-w-sm">
               <div className="w-full h-full rounded-full overflow-hidden border-12 border-white-custom shadow-xl bg-white-custom">
-                <img 
-                  src={imagenVisual} 
-                  className="w-full h-full object-cover" 
-                  alt="Visualización" 
+                <img
+                  src={imagenVisual}
+                  className="w-full h-full object-cover"
+                  alt="Visualización"
                   loading="eager"
                   fetchPriority="high"
                 />
@@ -154,19 +158,23 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
             {editMode ? (
               <div className="space-y-8">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-4">Nombre</label>
-                  <input 
-                    value={editNombre} 
-                    onChange={(e) => setEditNombre(e.target.value)} 
-                    className="input-brand text-3xl! lg:text-4xl! p-5! bg-white/50! w-full" 
+                  <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-4">
+                    Nombre
+                  </label>
+                  <input
+                    value={editNombre}
+                    onChange={(e) => setEditNombre(e.target.value)}
+                    className="input-brand text-3xl! lg:text-4xl! p-5! bg-white/50! w-full"
                     placeholder="Nombre..."
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-4">Descripción</label>
-                  <textarea 
-                    value={editDescripcion} 
-                    onChange={(e) => setEditDescripcion(e.target.value)} 
+                  <label className="text-[10px] font-black text-primary/40 uppercase tracking-widest ml-4">
+                    Descripción
+                  </label>
+                  <textarea
+                    value={editDescripcion}
+                    onChange={(e) => setEditDescripcion(e.target.value)}
                     className="input-brand text-lg! leading-relaxed! p-6! min-h-60 resize-none bg-white/50! w-full"
                     placeholder="Escribe la historia..."
                   />
@@ -178,19 +186,21 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                   {varianteActiva ? varianteActiva.tipo : editNombre}
                 </h2>
                 <div className="w-16 h-1.5 bg-accent mb-8 rounded-full" />
-                
+
                 {!esPersonaje && variantes && variantes.length > 0 && (
-                   <div className="mb-8">
-                    <SelectorVariantes 
-                      variantes={variantes} 
-                      varianteActiva={varianteActiva} 
-                      onSeleccionar={setVarianteActiva} 
+                  <div className="mb-8">
+                    <SelectorVariantes
+                      variantes={variantes}
+                      varianteActiva={varianteActiva}
+                      onSeleccionar={setVarianteActiva}
                     />
-                   </div>
+                  </div>
                 )}
 
                 <p className="text-primary/80 text-lg lg:text-xl leading-relaxed font-medium break-words">
-                  {varianteActiva ? (varianteActiva.descripcion_variante || "Sin registros descriptivos.") : editDescripcion}
+                  {varianteActiva
+                    ? varianteActiva.descripcion_variante || "Sin registros descriptivos."
+                    : editDescripcion}
                 </p>
               </div>
             )}
@@ -199,37 +209,45 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
       </div>
 
       {/* GESTIÓN DE VARIANTES (Solo Admin y Criaturas) */}
-      {editMode && !esPersonaje && (
+      {editMode && tabla === "criaturas" && (
         <div className="bg-white-custom rounded-[var(--radius-card)] p-12 shadow-2xl border border-primary/10">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-black uppercase italic tracking-tighter">Variantes del Registro</h3>
+            <h3 className="text-2xl font-black uppercase italic tracking-tighter">
+              Variantes del Registro
+            </h3>
             <button onClick={agregarVariante} className="btn-brand bg-accent! text-primary!">
               <Plus size={20} /> Nueva Variante
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {variantes.map((v, idx) => (
-              <div key={v.id || idx} className="p-6 bg-bg-main rounded-[var(--radius-btn)] border border-primary/5 space-y-4">
+              <div
+                key={v.id || idx}
+                className="p-6 bg-bg-main rounded-[var(--radius-btn)] border border-primary/5 space-y-4"
+              >
                 <div className="flex gap-4">
                   <div className="flex-1 space-y-2">
-                    <input 
-                      placeholder="Tipo (Ej: Fuego)" 
+                    <input
+                      placeholder="Tipo (Ej: Fuego)"
                       className="input-brand p-3! text-sm!"
                       value={v.tipo}
                       onChange={(e) => actualizarVariante(idx, "tipo", e.target.value)}
                     />
-                    <input 
-                      placeholder="URL Imagen" 
+                    <input
+                      placeholder="URL Imagen"
                       className="input-brand p-3! text-xs!"
                       value={v.imagen_url}
                       onChange={(e) => actualizarVariante(idx, "imagen_url", e.target.value)}
                     />
                   </div>
-                  <button onClick={() => eliminarVariante(idx)} className="p-2 text-red-400 hover:scale-110 transition-transform">
+                  <button
+                    onClick={() => eliminarVariante(idx)}
+                    className="p-2 text-red-400 hover:scale-110 transition-transform"
+                  >
                     <Trash2 size={20} />
                   </button>
                 </div>
-                <textarea 
+                <textarea
                   placeholder="Descripción específica..."
                   className="input-brand p-4! text-sm! min-h-25 resize-none"
                   value={v.descripcion_variante}
@@ -246,7 +264,10 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         <div className="bg-white-custom rounded-[var(--radius-card)] p-12 lg:p-20 shadow-2xl border border-primary/10">
           <div className="w-full">
             {editMode ? (
-              <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} />
+              <SelectorMusicaAdmin
+                idsSeleccionados={editCanciones}
+                onChange={setEditCanciones}
+              />
             ) : (
               <SeccionMusica listaLinks={data?.canciones || []} />
             )}
@@ -256,23 +277,32 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
 
       {/* BARRA FLOTANTE DE ACCIONES ADMIN */}
       {isAdmin && (
-        <motion.div 
-          initial={{ y: 50, opacity: 0 }} 
-          animate={{ y: 0, opacity: 1 }} 
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
           className="fixed bottom-10 left-1/2 -translate-x-1/2 z-1100 flex items-center gap-4 bg-white/90 backdrop-blur-md p-4 rounded-full border border-primary/20 shadow-2xl"
         >
-          <button onClick={() => setEditMode(!editMode)} className={`btn-brand px-6! ${editMode ? "bg-accent! text-primary!" : ""}`}>
+          <button
+            onClick={() => setEditMode(!editMode)}
+            className={`btn-brand px-6! ${editMode ? "bg-accent! text-primary!" : ""}`}
+          >
             {editMode ? <X size={20} /> : <Edit3 size={20} />}
-            <span className="text-[10px] font-black uppercase tracking-widest">{editMode ? "Cerrar" : "Editar"}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              {editMode ? "Cerrar" : "Editar"}
+            </span>
           </button>
-          
+
           {editMode && (
-            <button 
-              onClick={onConfirmSave} 
-              disabled={saving} 
+            <button
+              onClick={onConfirmSave}
+              disabled={saving}
               className="btn-brand bg-primary! text-white-custom! px-10!"
             >
-              {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={20} />}
+              {saving ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Save size={20} />
+              )}
               <span className="text-[10px] font-black uppercase tracking-widest">Sincronizar</span>
             </button>
           )}

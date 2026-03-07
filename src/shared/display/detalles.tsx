@@ -7,25 +7,25 @@ interface DetallesModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: any;
-  onUpdate: (val: any) => void;
+  tabla: string;                        // ← NUEVO: requerido para guardar en la tabla correcta
+  onUpdate: (record: any) => void;      // ← recibe el registro guardado (con id real)
   tags?: any[];
   mostrarMusica?: boolean;
-  isNew?: boolean; 
+  isNew?: boolean;
 }
 
-export default function DetallesModal({ 
-  isOpen, 
-  onClose, 
-  data, 
+export default function DetallesModal({
+  isOpen,
+  onClose,
+  data,
+  tabla,
   onUpdate,
-  tags = [], 
+  tags = [],
   mostrarMusica = true,
-  isNew = false 
-}: DetallesModalProps) {  
-  
+  isNew = false,
+}: DetallesModalProps) {
   return (
     <AnimatePresence>
-      {/* Ajuste en la condición: Permitir abrir si es nuevo aunque 'data' sea null */}
       {isOpen && (data || isNew) && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -41,15 +41,12 @@ export default function DetallesModal({
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <DetalleMaestro 
-                isOpen={isOpen} 
-                onClose={onClose} 
-                data={data} 
-                onUpdate={async () => {
-                  if (onUpdate) {
-                    onUpdate(data);
-                  }
-                }}
+              <DetalleMaestro
+                isOpen={isOpen}
+                onClose={onClose}
+                data={data}
+                tabla={tabla}           // ← propagamos la tabla
+                onUpdate={onUpdate}     // ← propagamos el callback con el record real
                 tags={tags}
                 mostrarMusica={mostrarMusica}
                 isNew={isNew}

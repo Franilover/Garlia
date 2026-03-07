@@ -55,15 +55,15 @@ export default function EntidadPageBase({
   permitirOrden = false,
 }: EntidadPageBaseProps) {
 
-    const isAdminSession = useIsAdmin();
+  const isAdminSession = useIsAdmin();
 
-    const { data, loading, setData } = useSupabaseData(
-      isAdminSession !== undefined ? tabla : "__skip__", 
-      { 
-        order: TABLAS_CONFIG[tabla]?.orden || { campo: "nombre", asc: true },
-        isAdmin: isAdminSession 
-      }
-    );
+  const { data, loading, setData } = useSupabaseData(
+    isAdminSession !== undefined ? tabla : "__skip__",
+    {
+      order: TABLAS_CONFIG[tabla]?.orden || { campo: "nombre", asc: true },
+      isAdmin: isAdminSession,
+    }
+  );
 
   const { filtros, opciones, itemsFiltrados, actualizarFiltro, resetearFiltros } =
     useFiltrosGenericos(data, { campos: configFiltros });
@@ -77,7 +77,7 @@ export default function EntidadPageBase({
     handleAddNew,
     handleClose,
   } = useAdminItem(setData, { plantilla: plantillaNueva });
-  
+
   const [busqueda, setBusqueda] = useState("");
   const [vistaGrid, setVistaGrid] = useState(true);
   const [ordenAsc, setOrdenAsc] = useState(false);
@@ -111,11 +111,13 @@ export default function EntidadPageBase({
       {renderModal ? (
         renderModal(selected, isCreating, handleClose, handleUpdate)
       ) : (
+        // ── DetalleMaestro ahora recibe `tabla` y el callback con el record real ──
         <DetalleMaestro
           isOpen={!!selected || isCreating}
           onClose={handleClose}
           data={selected}
-          onUpdate={handleUpdate}
+          tabla={tabla}                  // ← CLAVE: tabla explícita
+          onUpdate={handleUpdate}        // ← handleUpdate recibe el record guardado
           isNew={isCreating}
           tags={
             isCreating
@@ -146,7 +148,7 @@ export default function EntidadPageBase({
                     placeholder={`Buscar por ${campoBusqueda}...`}
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
-                    className="w-full bg-bg-main border-primary/10 py-4 pl-12 pr-12 text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all placeholder:text-primary/20 placeholder:normal-case placeholder:font-normal" 
+                    className="w-full bg-bg-main border-primary/10 py-4 pl-12 pr-12 text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all placeholder:text-primary/20 placeholder:normal-case placeholder:font-normal"
                     style={{ borderRadius: "var(--radius-card)", borderWidth: "var(--border-width)", borderStyle: "solid" }}
                   />
                   <AnimatePresence>
@@ -186,7 +188,7 @@ export default function EntidadPageBase({
                 </div>
                 {permitirOrden && (
                   <button
-                    onClick={() => setOrdenAsc(v => !v)}
+                    onClick={() => setOrdenAsc((v) => !v)}
                     className="p-2 rounded-xl text-primary/40 hover:text-primary hover:bg-primary/5 transition-all shrink-0"
                     title={ordenAsc ? "Más nuevas primero" : "Más antiguas primero"}
                   >
@@ -194,6 +196,7 @@ export default function EntidadPageBase({
                   </button>
                 )}
               </div>
+
               <div className="flex items-center justify-between">
                 {hayFiltrosActivos ? (
                   <button
@@ -207,7 +210,10 @@ export default function EntidadPageBase({
                 )}
 
                 {permitirVistaFila && (
-                  <div className="flex items-center gap-1 bg-white-custom border-primary/5 p-1" style={{ borderRadius: "var(--radius-btn)", borderWidth: "var(--border-width)", borderStyle: "solid" }}>
+                  <div
+                    className="flex items-center gap-1 bg-white-custom border-primary/5 p-1"
+                    style={{ borderRadius: "var(--radius-btn)", borderWidth: "var(--border-width)", borderStyle: "solid" }}
+                  >
                     <button
                       onClick={() => setVistaGrid(true)}
                       className={`p-2 rounded-full transition-all ${vistaGrid ? "bg-primary text-white shadow-md" : "text-primary/40 hover:text-primary"}`}
