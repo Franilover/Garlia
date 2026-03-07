@@ -128,7 +128,7 @@
   --radius-input: 0px;
   --shadow-card: 0 2px 0px 0px rgba(26,26,26,0.15);
   --border-width: 2px;
-  --font-display: 'Press Start 2P', monospace;
+  --font-display: 'Silkscreen', 'Press Start 2P', monospace;
   --transition-card: none;
   --btn-transform-hover: translate(-2px, -2px);
   --btn-transform-active: translate(2px, 2px);
@@ -190,7 +190,7 @@
   :root { font-size: 15px; }
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@400;600;700&family=VT323&family=Silkscreen:wght@400;700&display=swap');
 
 /* EFECTOS POR TEMA */
 [data-theme="pixel"] body::after {
@@ -348,6 +348,20 @@
   [data-theme="scribble"] h4 {
     font-family: 'Caveat', cursive !important;
     letter-spacing: 0.01em;
+  }
+
+  [data-theme="pixel"] *,
+  [data-theme="pixel"] h1,
+  [data-theme="pixel"] h2,
+  [data-theme="pixel"] h3,
+  [data-theme="pixel"] h4,
+  [data-theme="pixel"] p,
+  [data-theme="pixel"] span,
+  [data-theme="pixel"] button,
+  [data-theme="pixel"] a,
+  [data-theme="pixel"] label {
+    font-family: 'Silkscreen', 'Press Start 2P', monospace !important;
+    letter-spacing: 0.04em;
   }
 
   /* CLASES DE CARTAS QUE NO DEBÍ QUITAR */
