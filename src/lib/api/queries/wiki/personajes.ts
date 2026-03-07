@@ -59,7 +59,7 @@ export const personajesQueries = {
         if (!cancion.personaje || !personaje.nombre) return false;
         return cancion.personaje.trim().toLowerCase() === personaje.nombre.trim().toLowerCase();
       })
-    }));
+    })).sort((a, b) => a.nombre?.localeCompare(b.nombre, "es", { sensitivity: "base" }));
 
     return { data: personajesConCanciones as Personaje[], error: null };
   },
