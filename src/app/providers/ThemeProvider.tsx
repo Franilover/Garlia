@@ -20,17 +20,16 @@ const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
 ];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeName>("default");
-  const [dark,  setDarkState]  = useState<DarkMode>("light");
+  const [theme, setThemeState] = useState<ThemeName>("scribble");
+  const [dark,  setDarkState]  = useState<DarkMode>("dark");
 
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem("app-theme") as ThemeName | null;
       const savedDark  = localStorage.getItem("theme");
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
       if (savedTheme) setThemeState(savedTheme);
-      if (savedDark === "dark" || (!savedDark && prefersDark)) setDarkState("dark");
+      if (savedDark) setDarkState(savedDark as DarkMode);
     } catch {}
   }, []);
 
