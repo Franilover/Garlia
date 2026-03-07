@@ -25,7 +25,7 @@ const getEstadoColor = (estado) => {
   const colores = {
     "TERMINADA": "bg-primary/10 text-primary border-primary/20",
     "EN PROCESO": "bg-bg-main text-primary/80 border-primary/10",
-    "BORRADOR": "bg-[#F4F4F5] text-primary/60 border-[#E4E4E7]"
+    "BORRADOR": "bg-primary/5 text-primary/60 border-primary/10"
   };
   return colores[estado] || colores["BORRADOR"];
 };
@@ -90,7 +90,7 @@ const formReducer = (state, action) => {
 // COMPONENTES AUXILIARES
 // ============================================================================
 const LanguageToggler = ({ idiomasActivos, toggleIdioma }) => (
-  <div className="p-6 bg-primary rounded-[2.5rem] shadow-xl shadow-primary/20">
+  <div className="p-6 bg-primary rounded-[var(--radius-card)] shadow-xl shadow-primary/20">
     <h4 className="text-white/40 font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic">
       Vista Comparativa
     </h4>
@@ -102,7 +102,7 @@ const LanguageToggler = ({ idiomasActivos, toggleIdioma }) => (
           whileTap={{ scale: 0.95 }}
           onClick={() => toggleIdioma(l.id)}
           title={l.nombre}
-          className={`py-2 rounded-xl font-black text-[9px] transition-all uppercase border-2 ${
+          className={`py-2 rounded-[var(--radius-btn)] font-black text-[9px] transition-all uppercase border-2 ${
             idiomasActivos.includes(l.id)
               ? "bg-white-custom text-primary border-white scale-105"
               : "bg-transparent text-white/40 border-white/10 hover:border-white/30"
@@ -122,7 +122,7 @@ const EstadoSelector = ({ estado, isAdmin, onchange }) => (
   <motion.div
     initial={{ opacity: 0, y: -10 }}
     animate={{ opacity: 1, y: 0 }}
-    className={`relative p-4 rounded-[2rem] border text-center ${getEstadoColor(estado)} shadow-sm transition-all`}
+    className={`relative p-4 rounded-[var(--radius-card)] border text-center ${getEstadoColor(estado)} shadow-sm transition-all`}
   >
     {isAdmin ? (
       <div className="flex items-center justify-center gap-2 relative">
@@ -144,7 +144,7 @@ const EstadoSelector = ({ estado, isAdmin, onchange }) => (
 );
 
 const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
-  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10">
+  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10">
     <div className="flex items-center justify-between mb-4">
       <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] flex items-center gap-2 italic">
         <Link2 size={12} />Enlaces
@@ -161,7 +161,7 @@ const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
       <div className="space-y-2">
         {links.map((link, i) => (
           <div key={i} className="flex items-center justify-between group">
-            <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:text-[#5A4D5F] transition-colors text-xs font-bold truncate flex-1">
+            <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:text-[var(--primary)] transition-colors text-xs font-bold truncate flex-1">
               <ExternalLink size={10} className="flex-shrink-0" />
               <span className="truncate">{link.titulo}</span>
             </a>
@@ -204,12 +204,12 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="bg-bg-main w-full max-w-5xl h-full md:h-[90vh] md:rounded-[3rem] shadow-2xl relative z-10 border border-primary/10 flex flex-col"
+            className="bg-bg-main w-full max-w-5xl h-full md:h-[90vh] md:rounded-[var(--radius-card)] shadow-2xl relative z-10 border border-primary/10 flex flex-col"
           >
             <div className="px-10 py-6 bg-white-custom border-b border-primary/10 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="bg-primary p-2 rounded-xl text-white"><FileText size={18} /></div>
+                  <div className="bg-primary p-2 rounded-[var(--radius-btn)] text-white"><FileText size={18} /></div>
                   <div>
                     <h3 className="text-primary font-black uppercase text-[12px] tracking-[0.3em] italic">Modo Lectura</h3>
                     <p className="text-[8px] font-bold text-primary/40 uppercase tracking-widest mt-1">
@@ -217,13 +217,13 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 ml-8">
-                    <button onClick={() => setZoom(Math.max(0.5, zoom - 0.1))} className="w-8 h-8 flex items-center justify-center bg-primary/5 rounded-lg text-primary hover:bg-primary/10 transition-colors text-lg font-bold">-</button>
+                    <button onClick={() => setZoom(Math.max(0.5, zoom - 0.1))} className="w-8 h-8 flex items-center justify-center bg-primary/5 rounded-[var(--radius-input)] text-primary hover:bg-primary/10 transition-colors text-lg font-bold">-</button>
                     <span className="text-[10px] font-black text-primary/60 min-w-[50px] text-center">{Math.round(zoom * 100)}%</span>
-                    <button onClick={() => setZoom(Math.min(2, zoom + 0.1))} className="w-8 h-8 flex items-center justify-center bg-primary/5 rounded-lg text-primary hover:bg-primary/10 transition-colors text-lg font-bold">+</button>
+                    <button onClick={() => setZoom(Math.min(2, zoom + 0.1))} className="w-8 h-8 flex items-center justify-center bg-primary/5 rounded-[var(--radius-input)] text-primary hover:bg-primary/10 transition-colors text-lg font-bold">+</button>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleCopy} className="flex items-center gap-2 text-primary bg-primary/5 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/10">
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleCopy} className="flex items-center gap-2 text-primary bg-primary/5 px-4 py-2 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-widest border border-primary/10">
                     <Copy size={14} /> Copiar
                   </motion.button>
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={onClose} className="text-primary/40 p-2 hover:text-red-500 transition-all"><X size={24} /></motion.button>
@@ -245,7 +245,7 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
                         <span className="text-[14px] font-black uppercase tracking-[0.5em] italic text-primary">{seccion.nombre_seccion}</span>
                         <div className="h-[1px] flex-1 max-w-[100px] bg-primary" />
                       </div>
-                      <p className="text-[#3A323D] text-3xl md:text-5xl lg:text-6xl font-medium italic font-serif leading-[1.5] whitespace-pre-wrap break-words">{texto}</p>
+                      <p className="text-[var(--foreground)] text-3xl md:text-5xl lg:text-6xl font-medium italic font-serif leading-[1.5] whitespace-pre-wrap break-words">{texto}</p>
                     </div>
                   ) : null;
                 })}
@@ -267,22 +267,22 @@ const LinksModal = ({ isOpen, onClose, isProcessing, titulo, onTituloChange, url
     {isOpen && (
       <div className="fixed inset-0 z-[130] flex items-center justify-center p-6">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white-custom w-full max-w-md rounded-[3rem] p-10 shadow-2xl relative z-10 border border-primary/10">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white-custom w-full max-w-md rounded-[var(--radius-card)] p-10 shadow-2xl relative z-10 border border-primary/10">
           <motion.button whileHover={{ rotate: 90 }} onClick={onClose} className="absolute top-8 right-8 text-primary/20 hover:text-primary transition-colors"><X size={20} /></motion.button>
           <h3 className="text-center text-primary font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">{isEditing ? "Editar Enlace" : "Gestionar Enlaces"}</h3>
           <form onSubmit={onSave} className="space-y-4 mb-8">
             <input type="text" placeholder="TÍTULO" value={titulo} onChange={(e) => onTituloChange(e.target.value)} className="w-full bg-bg-main border-b border-primary/10 py-3 text-sm font-bold text-primary outline-none focus:border-primary focus:ring-0 uppercase" />
             <input type="url" placeholder="URL" value={url} onChange={(e) => onUrlChange(e.target.value)} className="w-full bg-bg-main border-b border-primary/10 py-3 text-sm font-medium text-primary outline-none focus:border-primary focus:ring-0" />
             <div className="flex gap-2">
-              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={isProcessing || !titulo.trim() || !url.trim()} className="flex-1 bg-primary text-white py-3 rounded-xl font-black uppercase text-[9px] shadow-md hover:bg-[#5A4D5F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={isProcessing || !titulo.trim() || !url.trim()} className="flex-1 bg-primary text-white py-3 rounded-[var(--radius-btn)] font-black uppercase text-[9px] shadow-md hover:bg-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                 {isProcessing ? <><Loader2 size={12} className="inline animate-spin mr-2" />Guardando...</> : isEditing ? "Guardar" : "Añadir"}
               </motion.button>
-              {isEditing && <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={onClose} className="px-4 bg-gray-100 text-primary rounded-xl font-black uppercase text-[8px] hover:bg-gray-200 transition-colors">Cancelar</motion.button>}
+              {isEditing && <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={onClose} className="px-4 bg-gray-100 text-primary rounded-[var(--radius-btn)] font-black uppercase text-[8px] hover:bg-gray-200 transition-colors">Cancelar</motion.button>}
             </div>
           </form>
           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
             {links?.map((link, i) => (
-              <motion.div key={i} layout className="flex items-center justify-between p-3 rounded-xl border bg-primary/5 border-primary/10 hover:bg-primary/10 transition-colors">
+              <motion.div key={i} layout className="flex items-center justify-between p-3 rounded-[var(--radius-btn)] border bg-primary/5 border-primary/10 hover:bg-primary/10 transition-colors">
                 <span className="text-[10px] font-black text-primary truncate uppercase italic">{link.titulo}</span>
                 <div className="flex gap-1">
                   <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => onEdit(i)} className="text-primary/40 hover:text-primary p-1 transition-colors"><Edit3 size={14} /></motion.button>
@@ -307,28 +307,28 @@ const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNomb
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-          <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-white-custom w-full max-w-3xl rounded-[3rem] p-10 shadow-2xl relative z-10 border border-primary/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
+          <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-white-custom w-full max-w-3xl rounded-[var(--radius-card)] p-10 shadow-2xl relative z-10 border border-primary/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <motion.button whileHover={{ rotate: 90 }} onClick={onClose} className="absolute top-8 right-8 text-primary/20 hover:text-primary transition-colors z-10"><X size={20} /></motion.button>
             <h3 className="text-center text-primary font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">{isEditing ? "Editar Sección" : "Nueva Sección"}</h3>
             <div className="space-y-6">
               <input type="text" placeholder="NOMBRE DE LA SECCIÓN (Ej: ESTROFA, CORO)" value={nombre} onChange={(e) => onNombreChange(e.target.value.toUpperCase())} className="w-full bg-bg-main border-b-2 border-primary/10 py-3 text-sm font-black text-primary outline-none focus:border-primary uppercase tracking-widest" />
-              <div className="flex gap-1 bg-primary/5 p-1 rounded-xl border border-primary/10">
+              <div className="flex gap-1 bg-primary/5 p-1 rounded-[var(--radius-btn)] border border-primary/10">
                 {IDIOMAS.map((lang) => (
-                  <button key={lang.id} type="button" onClick={() => setActiveTab(lang.id)} className={`flex-1 py-2 rounded-lg font-black text-[9px] uppercase transition-all ${activeTab === lang.id ? "bg-primary text-white shadow-md" : "text-primary/40 hover:text-primary"}`}>{lang.label}</button>
+                  <button key={lang.id} type="button" onClick={() => setActiveTab(lang.id)} className={`flex-1 py-2 rounded-[var(--radius-input)] font-black text-[9px] uppercase transition-all ${activeTab === lang.id ? "bg-primary text-white shadow-md" : "text-primary/40 hover:text-primary"}`}>{lang.label}</button>
                 ))}
               </div>
               <div className="min-h-[200px]">
-                {activeTab === "es" && <textarea value={es} onChange={(e) => onEsChange(e.target.value)} rows={8} className="w-full bg-bg-main border border-primary/5 rounded-[2rem] p-6 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/30 transition-all resize-none" placeholder="Escribe la letra en español..." />}
-                {activeTab === "en" && <textarea value={en} onChange={(e) => onEnChange(e.target.value)} rows={8} className="w-full bg-bg-main border border-primary/5 rounded-[2rem] p-6 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/30 transition-all resize-none" placeholder="Escribe la letra en inglés..." />}
-                {activeTab === "jp" && <textarea value={jp} onChange={(e) => onJpChange(e.target.value)} rows={8} className="w-full bg-bg-main border border-primary/5 rounded-[2rem] p-6 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/30 transition-all resize-none" placeholder="日本語で歌詞を書く..." />}
-                {activeTab === "romaji" && <textarea value={romaji} onChange={(e) => onRomajiChange(e.target.value)} rows={8} className="w-full bg-bg-main border border-primary/5 rounded-[2rem] p-6 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/30 transition-all resize-none" placeholder="Kakikomi romaji..." />}
+                {activeTab === "es" && <textarea value={es} onChange={(e) => onEsChange(e.target.value)} rows={8} className="w-full bg-bg-main border border-primary/5 rounded-[var(--radius-card)] p-6 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/30 transition-all resize-none" placeholder="Escribe la letra en español..." />}
+                {activeTab === "en" && <textarea value={en} onChange={(e) => onEnChange(e.target.value)} rows={8} className="w-full bg-bg-main border border-primary/5 rounded-[var(--radius-card)] p-6 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/30 transition-all resize-none" placeholder="Escribe la letra en inglés..." />}
+                {activeTab === "jp" && <textarea value={jp} onChange={(e) => onJpChange(e.target.value)} rows={8} className="w-full bg-bg-main border border-primary/5 rounded-[var(--radius-card)] p-6 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/30 transition-all resize-none" placeholder="日本語で歌詞を書く..." />}
+                {activeTab === "romaji" && <textarea value={romaji} onChange={(e) => onRomajiChange(e.target.value)} rows={8} className="w-full bg-bg-main border border-primary/5 rounded-[var(--radius-card)] p-6 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/30 transition-all resize-none" placeholder="Kakikomi romaji..." />}
               </div>
               <div className="flex gap-4 pt-4">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onSave} disabled={isProcessing || !nombre.trim()} className="flex-1 bg-primary text-white py-3 rounded-xl font-black uppercase text-[10px] shadow-md hover:bg-[#5A4D5F] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onSave} disabled={isProcessing || !nombre.trim()} className="flex-1 bg-primary text-white py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] shadow-md hover:bg-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
                   {isProcessing ? <><Loader2 size={14} className="animate-spin" />Guardando...</> : <><Save size={14} />Guardar Sección</>}
                 </motion.button>
                 {isEditing && onDelete && (
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onDelete} disabled={isProcessing} className="px-6 bg-red-500 text-white py-3 rounded-xl font-black uppercase text-[10px] shadow-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onDelete} disabled={isProcessing} className="px-6 bg-red-500 text-white py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] shadow-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
                     <Trash2 size={14} />Eliminar
                   </motion.button>
                 )}
@@ -607,7 +607,7 @@ export default function CancionDetallesPage() {
       <div className="h-screen flex items-center justify-center bg-bg-main flex-col gap-4">
         <AlertCircle className="text-red-400" size={48} />
         <p className="text-primary uppercase text-[10px] tracking-widest italic font-black">Acceso denegado o canción no encontrada</p>
-        <button onClick={() => router.push("/wiki/canciones")} className="mt-4 bg-primary text-white px-6 py-2 rounded-full font-black text-sm hover:bg-[#5A4D5F]">Volver</button>
+        <button onClick={() => router.push("/wiki/canciones")} className="mt-4 bg-primary text-white px-6 py-2 rounded-full font-black text-sm hover:bg-[var(--primary)]">Volver</button>
       </div>
     );
   }
@@ -684,18 +684,18 @@ export default function CancionDetallesPage() {
 
       <div className={`mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4 transition-all duration-500 ${idiomasActivos.length > 1 ? "max-w-7xl" : "max-w-5xl"}`}>
         <aside className="space-y-6">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-primary/10">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="aspect-square rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10">
             <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo} className="w-full h-full object-cover" />
           </motion.div>
           {isAdmin && !cancion?.visible && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-[#604b68] text-white rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-[#604b68] text-white rounded-[var(--radius-btn)] flex items-center justify-center gap-3 shadow-xl">
               <EyeOff size={16} /><span className="font-black uppercase text-[9px] tracking-widest italic">Oculto</span>
             </motion.div>
           )}
           {cancion?.estado && <EstadoSelector estado={cancion.estado} isAdmin={isAdmin} onchange={handleUpdateEstado} />}
           <LanguageToggler idiomasActivos={idiomasActivos} toggleIdioma={toggleIdioma} />
           {cancion?.personaje && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10">
               <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic"><User size={12} />Personaje</h4>
               <p className="text-primary font-bold text-sm italic">{cancion.personaje}</p>
             </motion.div>
@@ -715,11 +715,11 @@ export default function CancionDetallesPage() {
                 <h3 className="text-primary font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic"><List size={16} />Letra</h3>
                 {secciones.length > 0 && (
                   <>
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => dispatchModal({ type: "OPEN_FULL_LYRICS" })} className="flex items-center gap-1 px-3 py-1 bg-primary/5 rounded-lg text-primary hover:bg-primary hover:text-white transition-colors">
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => dispatchModal({ type: "OPEN_FULL_LYRICS" })} className="flex items-center gap-1 px-3 py-1 bg-primary/5 rounded-[var(--radius-input)] text-primary hover:bg-primary hover:text-white transition-colors">
                       <FileText size={12} /><span className="text-[8px] font-black uppercase tracking-widest">Lectura</span>
                     </motion.button>
                     {isAdmin && (
-                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => dispatchModal({ type: "OPEN_MASS_EDIT" })} className="flex items-center gap-1 px-3 py-1 bg-primary/5 rounded-lg text-primary hover:bg-primary hover:text-white transition-colors border border-primary/10">
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => dispatchModal({ type: "OPEN_MASS_EDIT" })} className="flex items-center gap-1 px-3 py-1 bg-primary/5 rounded-[var(--radius-input)] text-primary hover:bg-primary hover:text-white transition-colors border border-primary/10">
                         <Layers size={12} /><span className="text-[8px] font-black uppercase tracking-widest">Editor Maestro</span>
                       </motion.button>
                     )}
@@ -727,7 +727,7 @@ export default function CancionDetallesPage() {
                 )}
               </div>
               {isAdmin && (
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { dispatchForm({ type: "RESET_NUEVA" }); dispatchModal({ type: "OPEN_ADD" }); }} className="bg-primary text-white p-2 rounded-full shadow-lg hover:bg-[#5A4D5F] transition-colors">
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { dispatchForm({ type: "RESET_NUEVA" }); dispatchModal({ type: "OPEN_ADD" }); }} className="bg-primary text-white p-2 rounded-full shadow-lg hover:bg-[var(--primary)] transition-colors">
                   <Plus size={18} />
                 </motion.button>
               )}
@@ -736,11 +736,11 @@ export default function CancionDetallesPage() {
             <div className="space-y-12">
               {secciones.map((seccion, index) => (
                 <motion.div key={seccion.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="relative group">
-                  <div className={`bg-white-custom border border-primary/5 rounded-[2.5rem] transition-all hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 ${idiomasActivos.length > 1 ? "p-8 md:p-12" : "p-10"}`}>
+                  <div className={`bg-white-custom border border-primary/5 rounded-[var(--radius-card)] transition-all hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 ${idiomasActivos.length > 1 ? "p-8 md:p-12" : "p-10"}`}>
                     <div className="flex items-center justify-between mb-8">
                       <span className="bg-[#F1F5F9] text-primary/60 px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase italic">{seccion.nombre_seccion}</span>
                       {isAdmin && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => openEditSec(seccion)} className="bg-primary/5 p-2 rounded-xl text-primary hover:bg-primary hover:text-white transition-colors opacity-0 group-hover:opacity-100">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => openEditSec(seccion)} className="bg-primary/5 p-2 rounded-[var(--radius-btn)] text-primary hover:bg-primary hover:text-white transition-colors opacity-0 group-hover:opacity-100">
                           <Edit3 size={14} />
                         </motion.button>
                       )}
@@ -764,10 +764,10 @@ export default function CancionDetallesPage() {
             </div>
 
             {secciones.length === 0 && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-24 bg-primary/5 rounded-[3rem] border-2 border-dashed border-primary/10">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-24 bg-primary/5 rounded-[var(--radius-card)] border-[length:var(--border-width)] border-dashed border-primary/10">
                 <Music size={48} className="mx-auto text-primary/20 mb-4" />
                 <p className="text-primary/40 font-bold uppercase text-sm tracking-widest mb-6 italic">El lienzo está en blanco</p>
-                {isAdmin && <button onClick={() => { dispatchForm({ type: "RESET_NUEVA" }); dispatchModal({ type: "OPEN_ADD" }); }} className="bg-primary text-white px-8 py-3 rounded-full font-black uppercase text-[10px] shadow-lg hover:bg-[#5A4D5F] transition-colors">Escribir primer verso</button>}
+                {isAdmin && <button onClick={() => { dispatchForm({ type: "RESET_NUEVA" }); dispatchModal({ type: "OPEN_ADD" }); }} className="bg-primary text-white px-8 py-3 rounded-full font-black uppercase text-[10px] shadow-lg hover:bg-[var(--primary)] transition-colors">Escribir primer verso</button>}
               </motion.div>
             )}
           </div>

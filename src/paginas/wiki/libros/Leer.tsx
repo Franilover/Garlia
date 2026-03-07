@@ -131,11 +131,11 @@ function CitaVisual({ content }: { content: string }) {
   const fuente = dashIdx !== -1 ? content.slice(dashIdx + 3) : null;
   return (
     <div className="my-10 mx-0 relative">
-      <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full" style={{ background: "linear-gradient(to bottom, #C4A882, var(--color-primary, #6B5E70), #C4A882)" }} />
-      <div className="absolute -top-3 left-[-1px] w-[5px] h-[5px] rounded-full bg-[#C4A882]" />
+      <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full" style={{ background: "linear-gradient(to bottom, var(--accent), var(--color-primary, var(--primary)), var(--accent))" }} />
+      <div className="absolute -top-3 left-[-1px] w-[5px] h-[5px] rounded-full bg-[var(--accent)]" />
       <div className="absolute -bottom-3 left-[-1px] w-[5px] h-[5px] rounded-full bg-primary" />
       <div className="pl-7 py-2 bg-gradient-to-r from-primary/5 to-transparent rounded-r-2xl">
-        <span className="block font-serif text-5xl leading-none mb-2 select-none" style={{ color: "#C4A882", opacity: 0.5, fontStyle: "italic" }} aria-hidden>"</span>
+        <span className="block font-serif text-5xl leading-none mb-2 select-none" style={{ color: "var(--accent)", opacity: 0.5, fontStyle: "italic" }} aria-hidden>"</span>
         <p className="font-serif text-lg md:text-xl italic leading-[1.9] text-primary-dark/75">{texto}</p>
         {fuente && <p className="mt-3 text-[11px] font-black uppercase tracking-widest text-primary/40">— {fuente}</p>}
       </div>
@@ -146,9 +146,9 @@ function CitaVisual({ content }: { content: string }) {
 function ImgInline({ url, caption }: { url: string; caption?: string }) {
   return (
     <figure className="my-12 -mx-6 md:-mx-12">
-      <div className="relative overflow-hidden rounded-2xl md:rounded-3xl shadow-xl shadow-[#2C262E]/10">
+      <div className="relative overflow-hidden rounded-[var(--radius-btn)] md:rounded-[var(--radius-card)] shadow-xl shadow-[var(--foreground)]/10">
         <img src={url} alt={caption ?? ""} className="w-full object-cover" style={{ maxHeight: 520 }} />
-        {caption && <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#1A1218]/60 to-transparent" />}
+        {caption && <div className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-[var(--bg-menu)]/60 to-transparent" />}
       </div>
       {caption && <figcaption className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.2em] text-primary/35">{caption}</figcaption>}
     </figure>
@@ -174,8 +174,8 @@ function FloatWord({ word, url, caption }: { word: string; url: string; caption?
   return (
     <>
       <button ref={btnRef} onClick={handleClick} className="relative inline font-serif cursor-pointer group">
-        <span style={{ backgroundImage: "linear-gradient(#9B7BAA, #9B7BAA)", backgroundRepeat: "no-repeat", backgroundSize: "100% 1px", backgroundPosition: "0 100%", paddingBottom: "1px" }}>{word}</span>
-        <span className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-[#9B7BAA]/60 group-hover:bg-[#9B7BAA] transition-colors" />
+        <span style={{ backgroundImage: "linear-gradient(var(--accent), var(--accent))", backgroundRepeat: "no-repeat", backgroundSize: "100% 1px", backgroundPosition: "0 100%", paddingBottom: "1px" }}>{word}</span>
+        <span className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-[var(--accent)]/60 group-hover:bg-[var(--accent)] transition-colors" />
       </button>
       <AnimatePresence>
         {open && pos && (
@@ -185,14 +185,14 @@ function FloatWord({ word, url, caption }: { word: string; url: string; caption?
               initial={{ opacity: 0, scale: 0.85, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.88, y: 8 }}
               transition={{ type: "spring", damping: 24, stiffness: 340 }} className="fixed z-[56] pointer-events-auto"
               style={{ left: Math.min(Math.max(pos.x - 160, 12), (typeof window !== "undefined" ? window.innerWidth : 800) - 332), top: Math.max(pos.y - 280 - window.scrollY, 12), width: 320 }}>
-              <div className="rounded-2xl overflow-hidden shadow-2xl" style={{ boxShadow: "0 24px 64px rgba(44,38,46,0.22), 0 4px 16px rgba(44,38,46,0.12)" }}>
+              <div className="rounded-[var(--radius-btn)] overflow-hidden shadow-2xl" style={{ boxShadow: "0 24px 64px rgba(44,38,46,0.22), 0 4px 16px rgba(44,38,46,0.12)" }}>
                 <div className="relative">
                   <img src={url} alt={caption ?? word} className="w-full object-cover" style={{ maxHeight: 260 }} />
                   <button onClick={() => setOpen(false)} className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-primary-dark/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-primary-dark/70 transition-all"><X size={13} /></button>
                 </div>
                 {caption && <div className="bg-white-custom px-4 py-3"><p className="text-[10px] font-black uppercase tracking-widest text-primary/50 text-center">{caption}</p></div>}
               </div>
-              <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0" style={{ borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: caption ? "8px solid white" : "8px solid #2C262E" }} />
+              <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0" style={{ borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: caption ? "8px solid white" : "8px solid var(--foreground)" }} />
             </motion.div>
           </>
         )}
@@ -223,10 +223,10 @@ function SoundInline({ url, volume }: { url: string; volume: number }) {
 
   return (
     <span
-      className="inline-flex items-center gap-2 mx-1 my-2 px-3 py-1.5 rounded-xl border align-middle transition-all select-none cursor-pointer"
+      className="inline-flex items-center gap-2 mx-1 my-2 px-3 py-1.5 rounded-[var(--radius-btn)] border align-middle transition-all select-none cursor-pointer"
       style={{
-        background: playing ? "var(--color-primary, #6B5E70)" : "rgba(var(--color-primary-rgb, 107,94,112), 0.06)",
-        borderColor: playing ? "var(--color-primary, #6B5E70)" : "rgba(var(--color-primary-rgb, 107,94,112), 0.15)",
+        background: playing ? "var(--color-primary, var(--primary))" : "rgba(var(--color-primary-rgb, 107,94,112), 0.06)",
+        borderColor: playing ? "var(--color-primary, var(--primary))" : "rgba(var(--color-primary-rgb, 107,94,112), 0.15)",
         color: playing ? "white" : "rgba(107,94,112,0.6)",
       }}
       onClick={toggle} role="button"
@@ -235,7 +235,7 @@ function SoundInline({ url, volume }: { url: string; volume: number }) {
       {playing ? (
         <span className="inline-flex items-end gap-px h-3">
           {[0,1,2].map(i => (
-            <motion.span key={i} className="w-px rounded-full bg-white" style={{ display: "inline-block" }}
+            <motion.span key={i} className="w-px rounded-full bg-white-custom" style={{ display: "inline-block" }}
               animate={{ height: ["4px","10px","5px","12px","4px"][i % 5] }}
               transition={{ duration: 0.5 + i * 0.1, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
             />
@@ -254,7 +254,7 @@ function ChoiceButton({ label, onSelect }: { label: string; onSelect: () => void
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
-      className="flex items-center justify-between w-full my-3 p-4 rounded-2xl border border-primary/20 bg-primary/5 hover:bg-primary text-primary hover:text-white transition-all group"
+      className="flex items-center justify-between w-full my-3 p-4 rounded-[var(--radius-btn)] border border-primary/20 bg-primary/5 hover:bg-primary text-primary hover:text-white transition-all group"
     >
       <span className="font-black uppercase text-xs tracking-widest">{label}</span>
       <ChevronR size={16} className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
@@ -391,8 +391,8 @@ function FolderNode({ node, depth, onSelect, selected }: { node: FolderEntry; de
   const [expanded, setExpanded] = useState(depth === 0);
   return (
     <div>
-      <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-2 w-full text-left rounded-lg hover:bg-primary/5 transition-all py-1.5" style={{ paddingLeft: `${12 + depth * 16}px`, paddingRight: 12 }}>
-        {expanded ? <FolderOpen size={14} className="text-[#B08850] shrink-0" /> : <Folder size={14} className="text-[#B08850]/60 shrink-0" />}
+      <button onClick={() => setExpanded(v => !v)} className="flex items-center gap-2 w-full text-left rounded-[var(--radius-input)] hover:bg-primary/5 transition-all py-1.5" style={{ paddingLeft: `${12 + depth * 16}px`, paddingRight: 12 }}>
+        {expanded ? <FolderOpen size={14} className="text-[var(--accent)] shrink-0" /> : <Folder size={14} className="text-[var(--accent)]/60 shrink-0" />}
         <span className="text-[11px] font-bold text-primary-dark/70 truncate">{node.name}</span>
         <ChevronR size={11} className={cn("ml-auto text-primary/30 transition-transform shrink-0", expanded && "rotate-90")} />
       </button>
@@ -415,8 +415,8 @@ function FolderNode({ node, depth, onSelect, selected }: { node: FolderEntry; de
 function ImageThumb({ node, depth, onSelect, selected }: { node: FileEntry; depth: number; onSelect: (url: string) => void; selected: string | null }) {
   const isSelected = selected === node.url;
   return (
-    <button onClick={() => onSelect(node.url)} className={cn("flex items-center gap-3 w-full text-left rounded-lg transition-all py-2", isSelected ? "bg-primary/12" : "hover:bg-primary/5")} style={{ paddingLeft: `${12 + depth * 16}px`, paddingRight: 12 }}>
-      <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 border border-primary/10 bg-primary/5">
+    <button onClick={() => onSelect(node.url)} className={cn("flex items-center gap-3 w-full text-left rounded-[var(--radius-input)] transition-all py-2", isSelected ? "bg-primary/12" : "hover:bg-primary/5")} style={{ paddingLeft: `${12 + depth * 16}px`, paddingRight: 12 }}>
+      <div className="w-9 h-9 rounded-[var(--radius-input)] overflow-hidden shrink-0 border border-primary/10 bg-primary/5">
         <img src={node.url} alt={node.name} className="w-full h-full object-cover" loading="lazy" />
       </div>
       <span className={cn("text-[11px] truncate flex-1", isSelected ? "font-bold text-primary" : "text-primary-dark/60")}>{node.name}</span>
@@ -467,14 +467,14 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
           <motion.div
             initial={{ opacity: 0, y: 32, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ type: "spring", damping: 28, stiffness: 340 }}
-            className="fixed z-[71] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[680px] bg-white-custom rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            className="fixed z-[71] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[680px] bg-white-custom rounded-t-3xl md:rounded-[var(--radius-card)] shadow-2xl overflow-hidden flex flex-col"
             style={{ maxHeight: "88vh" }}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-primary/8 shrink-0">
               <div>
                 <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight">Explorador de imágenes</h3>
                 <p className="text-[10px] text-primary/40 font-bold uppercase tracking-widest mt-0.5">/public/dibujos</p>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/50 transition-all"><X size={15} /></button>
+              <button onClick={onClose} className="w-8 h-8 rounded-[var(--radius-btn)] bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/50 transition-all"><X size={15} /></button>
             </div>
 
             <div className="flex flex-1 overflow-hidden min-h-0">
@@ -497,13 +497,13 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
                     <div className="p-5 flex flex-col gap-4 flex-1">
                       <div>
                         <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Ruta</p>
-                        <code className="text-[10px] text-primary/60 font-mono break-all bg-primary/5 rounded-lg px-2 py-1 block">{selected}</code>
+                        <code className="text-[10px] text-primary/60 font-mono break-all bg-primary/5 rounded-[var(--radius-input)] px-2 py-1 block">{selected}</code>
                       </div>
                       <div>
                         <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">Tipo de inserción</p>
                         <div className="flex gap-2">
                           {([{ key: "img" as InsertMode, label: "Inline", desc: "Full-width en el texto" }, { key: "float" as InsertMode, label: "Flotante", desc: "Click en una palabra" }] as const).map(opt => (
-                            <button key={opt.key} onClick={() => setMode(opt.key)} className={cn("flex-1 py-2 px-3 rounded-xl text-left transition-all border", mode === opt.key ? "bg-primary border-primary text-white" : "border-primary/10 hover:bg-primary/5")}>
+                            <button key={opt.key} onClick={() => setMode(opt.key)} className={cn("flex-1 py-2 px-3 rounded-[var(--radius-btn)] text-left transition-all border", mode === opt.key ? "bg-primary border-primary text-white" : "border-primary/10 hover:bg-primary/5")}>
                               <p className={cn("text-[11px] font-black uppercase tracking-widest", mode === opt.key ? "text-white" : "text-primary")}>{opt.label}</p>
                               <p className={cn("text-[9px] mt-0.5", mode === opt.key ? "text-white/60" : "text-primary/30")}>{opt.desc}</p>
                             </button>
@@ -514,17 +514,17 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
                         {mode === "float" && (
                           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
                             <label className="block text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Palabra en el texto</label>
-                            <input value={word} onChange={e => setWord(e.target.value)} placeholder="ej: Kael, la espada, el castillo…" className="w-full px-3 py-2 rounded-xl border border-primary/12 bg-primary/3 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/30 placeholder:text-primary/20" />
+                            <input value={word} onChange={e => setWord(e.target.value)} placeholder="ej: Kael, la espada, el castillo…" className="w-full px-3 py-2 rounded-[var(--radius-btn)] border border-primary/12 bg-primary/3 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/30 placeholder:text-primary/20" />
                           </motion.div>
                         )}
                       </AnimatePresence>
                       <div>
                         <label className="block text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Caption <span className="font-normal opacity-50">(opcional)</span></label>
-                        <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Descripción breve…" className="w-full px-3 py-2 rounded-xl border border-primary/12 bg-primary/3 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/30 placeholder:text-primary/20" />
+                        <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Descripción breve…" className="w-full px-3 py-2 rounded-[var(--radius-btn)] border border-primary/12 bg-primary/3 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/30 placeholder:text-primary/20" />
                       </div>
                       <div>
                         <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Resultado</p>
-                        <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-lg px-2 py-1.5 block leading-relaxed">
+                        <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-[var(--radius-input)] px-2 py-1.5 block leading-relaxed">
                           {mode === "img" ? `[[img|${selected}${caption ? `|${caption}` : ""}]]` : `[[float|${word || "palabra"}|${selected}${caption ? `|${caption}` : ""}]]`}
                         </code>
                       </div>
@@ -542,8 +542,8 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
             <div className="px-6 py-4 border-t border-primary/8 shrink-0 flex items-center justify-between gap-4">
               <p className="text-[10px] text-primary/30 font-bold uppercase tracking-widest">{selected ? "Lista para insertar" : "Ninguna seleccionada"}</p>
               <div className="flex items-center gap-2">
-                <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-                <button onClick={handleInsert} disabled={!selected || (mode === "float" && !word.trim())} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-primary text-white hover:bg-primary/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5">
+                <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+                <button onClick={handleInsert} disabled={!selected || (mode === "float" && !word.trim())} className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-primary text-white hover:bg-primary/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5">
                   <Image size={12} /> Insertar
                 </button>
               </div>
@@ -602,7 +602,7 @@ function NodeCreatorModal({ open, onClose, onInsert, libroId, nextOrder }: { ope
   return (
     <>
       <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-sm bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-sm bg-white-custom p-6 rounded-[var(--radius-card)] shadow-2xl border border-primary/10">
         <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-2 flex items-center gap-2">
           <GitMerge size={16} className="text-blue-500" /> Crear nueva ruta
         </h3>
@@ -614,13 +614,13 @@ function NodeCreatorModal({ open, onClose, onInsert, libroId, nextOrder }: { ope
           value={label} 
           onChange={e => setLabel(e.target.value)} 
           placeholder="ej: Abrir el cofre" 
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-5"
+          className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-5"
           onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
         />
 
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleCreate} disabled={loading || !label.trim()} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
+          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleCreate} disabled={loading || !label.trim()} className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
             {loading ? <Loader2 size={12} className="animate-spin" /> : <PlusCircle size={12} />} 
             {loading ? "Creando..." : "Crear Ruta"}
           </button>
@@ -659,7 +659,7 @@ function IndexPanel({ open, onClose, lista, capIdActual, isAdmin, libroTitulo, o
                 {libroTitulo && <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 italic mb-0.5">{libroTitulo}</p>}
                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2"><List size={13} /> Índice</h3>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/40 hover:text-primary transition-all"><X size={15} /></button>
+              <button onClick={onClose} className="w-8 h-8 rounded-[var(--radius-btn)] bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/40 hover:text-primary transition-all"><X size={15} /></button>
             </div>
             <div className="flex-1 overflow-y-auto py-3 px-3">
               {lista.filter(cap => isAdmin || cap.fecha_publicacion <= hoy).map((cap) => {
@@ -667,7 +667,7 @@ function IndexPanel({ open, onClose, lista, capIdActual, isAdmin, libroTitulo, o
                 const esFuturo = isAdmin && cap.fecha_publicacion > hoy;
                 return (
                   <button key={cap.id} ref={esActual ? capActualRef : undefined} onClick={() => { onSelect(cap.id); onClose(); }}
-                    className={cn("w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-left transition-all mb-1", esActual ? "bg-primary text-white" : "hover:bg-primary/6 text-primary-dark")}
+                    className={cn("w-full flex items-center gap-4 px-4 py-3.5 rounded-[var(--radius-btn)] text-left transition-all mb-1", esActual ? "bg-primary text-white" : "hover:bg-primary/6 text-primary-dark")}
                   >
                     <span className={cn("text-[10px] font-black w-6 shrink-0 text-center tabular-nums", esActual ? "text-white/60" : "text-primary/40")}>{cap.orden}</span>
                     <div className="flex-1 min-w-0">
@@ -699,12 +699,12 @@ function ChapterSelector({ lista, capIdActual, isAdmin, onSelect }: { lista: Cap
   const capActual = lista.find(c => c.id === capIdActual);
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(v => !v)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-primary/15 bg-primary/5 hover:bg-primary/10 transition-all text-primary text-[10px] font-black uppercase tracking-widest">
+      <button onClick={() => setOpen(v => !v)} className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 hover:bg-primary/10 transition-all text-primary text-[10px] font-black uppercase tracking-widest">
         <BookOpen size={13} /> Cap. {capActual?.orden ?? "—"} <ChevronDown size={12} className={cn("transition-transform", open && "rotate-180")} />
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-64 bg-white-custom border border-primary/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
+          <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-64 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] shadow-2xl z-50 overflow-hidden">
             <div className="max-h-72 overflow-y-auto">
               {lista.map(cap => {
                 const publicado = isAdmin || cap.fecha_publicacion <= hoy;
@@ -739,7 +739,7 @@ function CitaModal({ open, onClose, onInsert }: { open: boolean; onClose: () => 
   return (
     <>
       <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-[var(--radius-card)] shadow-2xl border border-primary/10">
         <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
           <Quote size={16} className="text-amber-500" /> Cita visual
         </h3>
@@ -747,22 +747,22 @@ function CitaModal({ open, onClose, onInsert }: { open: boolean; onClose: () => 
         <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Texto de la cita *</label>
         <textarea autoFocus rows={3} value={texto} onChange={e => setTexto(e.target.value)}
           placeholder="El texto que será citado…"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3 resize-none"
+          className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3 resize-none"
         />
         <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Fuente <span className="font-normal opacity-50">(opcional)</span></label>
         <input value={fuente} onChange={e => setFuente(e.target.value)} placeholder="ej: Crónicas del Norte, vol. II"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
+          className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
           onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
         />
         {texto.trim() && (
           <div className="mb-4">
             <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Vista previa</p>
-            <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-lg px-3 py-2 block">{snippet}</code>
+            <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-[var(--radius-input)] px-3 py-2 block">{snippet}</code>
           </div>
         )}
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleInsert} disabled={!texto.trim()} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-amber-500 text-white hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center gap-1.5">
+          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleInsert} disabled={!texto.trim()} className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-amber-500 text-white hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center gap-1.5">
             <Quote size={12} /> Insertar Cita
           </button>
         </div>
@@ -788,36 +788,36 @@ function UseModal({ open, onClose, onInsert, listaCapitulos }: { open: boolean; 
   return (
     <>
       <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10 overflow-y-auto" style={{ maxHeight: "90vh" }}>
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-[var(--radius-card)] shadow-2xl border border-primary/10 overflow-y-auto" style={{ maxHeight: "90vh" }}>
         <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
           <MousePointerClick size={16} className="text-rose-500" /> Usar Ítem
         </h3>
         <p className="text-[10px] text-primary/40 mb-4">Requiere un ítem del inventario para avanzar.</p>
         <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Palabra en el texto *</label>
         <input value={word} onChange={e => setWord(e.target.value)} placeholder="ej: usar llave, abrir cofre…"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
+          className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
         <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">ID del ítem (UUID) *</label>
         <input value={itemId} onChange={e => setItemId(e.target.value)} placeholder="ej: 550e8400-e29b-41d4-a716-446655440000"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
+          className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
         <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Capítulo si TIENE el ítem *</label>
         <select value={targetSuccess} onChange={e => setTargetSuccess(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-3">
+          className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-3">
           <option value="">— Seleccionar capítulo —</option>
           {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo || `Capítulo ${c.orden}`}</option>)}
         </select>
         <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Capítulo si NO tiene el ítem <span className="font-normal opacity-50">(opcional)</span></label>
         <select value={targetFail} onChange={e => setTargetFail(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-4">
+          className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-4">
           <option value="">— Ninguno —</option>
           {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo || `Capítulo ${c.orden}`}</option>)}
         </select>
         <div className="mb-4">
           <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1">Vista previa</p>
-          <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-lg px-3 py-2 block">{snippet}</code>
+          <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-[var(--radius-input)] px-3 py-2 block">{snippet}</code>
         </div>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleInsert} disabled={!word.trim() || !itemId.trim() || !targetSuccess} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
+          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleInsert} disabled={!word.trim() || !itemId.trim() || !targetSuccess} className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
             <MousePointerClick size={12} /> Insertar
           </button>
         </div>
@@ -842,20 +842,20 @@ function ChoiceModal({ open, onClose, onInsert, listaCapitulos }: {
   return (
     <>
       <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-[var(--radius-card)] shadow-2xl border border-primary/10">
         <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
           <ChevronR size={16} className="text-blue-500" /> Botón de decisión
         </h3>
         <p className="text-[10px] text-primary/40 mb-4">Crea un botón que lleva al lector a otra sección o capítulo.</p>
 
         {/* Tabs: sección del mismo cap vs capítulo existente */}
-        <div className="flex gap-1 p-1 bg-primary/5 rounded-xl mb-4">
+        <div className="flex gap-1 p-1 bg-primary/5 rounded-[var(--radius-btn)] mb-4">
           {([
             { key: "existing", label: "Capítulo existente" },
             { key: "manual",   label: "Sección / ID manual" },
           ] as const).map(tab => (
             <button key={tab.key} onClick={() => { setMode(tab.key); setTarget(""); }}
-              className={cn("flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+              className={cn("flex-1 py-1.5 rounded-[var(--radius-input)] text-[10px] font-black uppercase tracking-widest transition-all",
                 mode === tab.key ? "bg-white-custom shadow text-primary" : "text-primary/40 hover:text-primary")}>
               {tab.label}
             </button>
@@ -865,7 +865,7 @@ function ChoiceModal({ open, onClose, onInsert, listaCapitulos }: {
         <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Texto del botón *</label>
         <input autoFocus value={label} onChange={e => setLabel(e.target.value)}
           placeholder="ej: Abrir el cofre, Huir, Atacar…"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3"
+          className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3"
           onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
         />
 
@@ -873,7 +873,7 @@ function ChoiceModal({ open, onClose, onInsert, listaCapitulos }: {
           <>
             <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Capítulo destino *</label>
             <select value={target} onChange={e => setTarget(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-4">
+              className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm text-primary-dark focus:outline-none focus:border-primary/40 mb-4">
               <option value="">— Seleccionar capítulo —</option>
               {listaCapitulos.map(c => (
                 <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo || `Capítulo ${c.orden}`}</option>
@@ -885,23 +885,23 @@ function ChoiceModal({ open, onClose, onInsert, listaCapitulos }: {
             <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">ID de sección o capítulo *</label>
             <input value={target} onChange={e => setTarget(e.target.value)}
               placeholder="ej: cofre  (debe coincidir con [[section|cofre]])"
-              className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
+              className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
               onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
             />
           </>
         )}
 
         {snippet && (
-          <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+          <div className="mb-4 p-3 bg-blue-50 rounded-[var(--radius-btn)] border border-blue-100">
             <p className="text-[9px] font-black uppercase tracking-widest text-blue-400 mb-1">Snippet</p>
             <code className="text-[11px] text-blue-600 font-mono">{snippet}</code>
           </div>
         )}
 
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
           <button onClick={handleInsert} disabled={!label.trim() || !target.trim()}
-            className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-blue-500 text-white hover:bg-blue-600 transition-all disabled:opacity-50 flex items-center gap-1.5">
+            className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-blue-500 text-white hover:bg-blue-600 transition-all disabled:opacity-50 flex items-center gap-1.5">
             <ChevronR size={12} /> Insertar Choice
           </button>
         </div>
@@ -922,7 +922,7 @@ function SectionModal({ open, onClose, onInsert }: { open: boolean; onClose: () 
   return (
     <>
       <div className="fixed inset-0 z-[80] bg-primary-dark/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-3xl shadow-2xl border border-primary/10">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[81] w-full max-w-md bg-white-custom p-6 rounded-[var(--radius-card)] shadow-2xl border border-primary/10">
         <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight mb-1 flex items-center gap-2">
           <GitMerge size={16} className="text-violet-500" /> Nueva Sección
         </h3>
@@ -931,20 +931,20 @@ function SectionModal({ open, onClose, onInsert }: { open: boolean; onClose: () 
         </p>
         <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">Nombre visible <span className="font-normal opacity-50">(opcional)</span></label>
         <input value={label} onChange={e => setLabel(e.target.value)} placeholder="ej: Abrir el cofre"
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
+          className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm font-serif text-primary-dark focus:outline-none focus:border-primary/40 mb-3" />
         <label className="block text-[9px] font-black uppercase tracking-widest text-primary/40 mb-1.5">ID <span className="font-normal opacity-50">(debe coincidir con el target del choice)</span></label>
         <input value={sectionId} onChange={e => setSectionId(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
           placeholder={autoId || "ej: cofre"}
-          className="w-full px-4 py-3 rounded-xl border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
+          className="w-full px-4 py-3 rounded-[var(--radius-btn)] border border-primary/15 bg-primary/5 text-sm font-mono text-primary-dark focus:outline-none focus:border-primary/40 mb-4"
           onKeyDown={e => { if (e.key === "Enter") handleInsert(); }}
         />
-        <div className="mb-4 p-3 bg-violet-50 rounded-xl border border-violet-100">
+        <div className="mb-4 p-3 bg-violet-50 rounded-[var(--radius-btn)] border border-violet-100">
           <p className="text-[9px] font-black uppercase tracking-widest text-violet-400 mb-1">Snippet</p>
           <code className="text-[11px] text-violet-600 font-mono">{snippet}</code>
         </div>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleInsert} disabled={!autoId} className="px-5 py-2 rounded-xl text-[10px] font-black uppercase bg-violet-600 text-white hover:bg-violet-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
+          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
+          <button onClick={handleInsert} disabled={!autoId} className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-violet-600 text-white hover:bg-violet-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
             <GitMerge size={12} /> Insertar Sección
           </button>
         </div>
@@ -968,7 +968,7 @@ function ToolbarDropdown({ label, icon: Icon, color = "text-primary/50", childre
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(v => !v)}
-        className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-primary/8 border border-transparent hover:border-primary/10", color, open && "bg-primary/8 border-primary/10")}
+        className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-widest transition-all hover:bg-primary/8 border border-transparent hover:border-primary/10", color, open && "bg-primary/8 border-primary/10")}
       >
         <Icon size={13} />
         <span>{label}</span>
@@ -981,7 +981,7 @@ function ToolbarDropdown({ label, icon: Icon, color = "text-primary/50", childre
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.13 }}
-            className="absolute left-0 top-full mt-1.5 bg-white-custom border border-primary/10 rounded-2xl shadow-2xl z-50 overflow-hidden min-w-[180px]"
+            className="absolute left-0 top-full mt-1.5 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] shadow-2xl z-50 overflow-hidden min-w-[180px]"
             onClick={() => setOpen(false)}
           >
             {children}
@@ -997,7 +997,7 @@ function DropdownItem({ icon: Icon, label, desc, color = "text-primary-dark", on
 }) {
   return (
     <button onClick={onClick} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-primary/5 transition-all text-left group">
-      <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-primary/6 group-hover:bg-primary/12 transition-all", color)}>
+      <div className={cn("w-7 h-7 rounded-[var(--radius-input)] flex items-center justify-center shrink-0 bg-primary/6 group-hover:bg-primary/12 transition-all", color)}>
         <Icon size={13} />
       </div>
       <div>
@@ -1060,7 +1060,7 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
             { label: "¶ Párrafo",      title: "Párrafo",          action: () => insertAtCursor("\n\n") },
           ] as const).map((t) => (
             <button key={t.title} onClick={t.action} title={t.title}
-              className="w-full text-left px-3 py-2 rounded-xl text-[11px] font-mono font-bold text-primary/60 hover:text-primary hover:bg-primary/6 transition-all">
+              className="w-full text-left px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-mono font-bold text-primary/60 hover:text-primary hover:bg-primary/6 transition-all">
               {t.label}
             </button>
           ))}
@@ -1107,18 +1107,18 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
       {/* ── ACCIONES ────────────────────────────────────────── */}
       <div className="ml-auto flex items-center gap-2">
         {!isFocus && (
-          <button onClick={() => setFocusMode(true)} title="Modo focus" className="p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-all">
+          <button onClick={() => setFocusMode(true)} title="Modo focus" className="p-1.5 rounded-[var(--radius-input)] text-primary/40 hover:text-primary hover:bg-primary/8 transition-all">
             <Maximize2 size={14} />
           </button>
         )}
-        <button onClick={onCancel} className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase text-red-400 hover:bg-red-50 transition-all flex items-center gap-1">
+        <button onClick={onCancel} className="px-3 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-red-400 hover:bg-red-50 transition-all flex items-center gap-1">
           <X size={12} /> Cancelar
         </button>
-        <button onClick={onSave} disabled={saving} className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase bg-primary text-white hover:bg-primary/80 transition-all flex items-center gap-1.5 disabled:opacity-50">
+        <button onClick={onSave} disabled={saving} className="px-4 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-primary text-white hover:bg-primary/80 transition-all flex items-center gap-1.5 disabled:opacity-50">
           <Save size={12} /> {saving ? "…" : "Guardar"}
         </button>
         {isFocus && (
-          <button onClick={() => setFocusMode(false)} className="p-2 rounded-xl text-primary/40 hover:text-primary hover:bg-primary/8 transition-all">
+          <button onClick={() => setFocusMode(false)} className="p-2 rounded-[var(--radius-btn)] text-primary/40 hover:text-primary hover:bg-primary/8 transition-all">
             <Minimize2 size={14} />
           </button>
         )}
@@ -1166,18 +1166,18 @@ function LectorSkeleton() {
     <div className="min-h-screen bg-bg-main pb-24 animate-pulse">
       <div className="sticky top-0 z-50 bg-bg-main/80 backdrop-blur-md border-b border-primary/5 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <div className="w-6 h-6 rounded-lg bg-primary/10" />
+          <div className="w-6 h-6 rounded-[var(--radius-input)] bg-primary/10" />
           <div className="flex flex-col items-center gap-2">
             <div className="h-2 w-24 rounded-full bg-primary/10" />
-            <div className="h-6 w-32 rounded-xl bg-primary/10" />
+            <div className="h-6 w-32 rounded-[var(--radius-btn)] bg-primary/10" />
           </div>
-          <div className="w-6 h-6 rounded-lg bg-primary/10" />
+          <div className="w-6 h-6 rounded-[var(--radius-input)] bg-primary/10" />
         </div>
       </div>
       <div className="max-w-2xl mx-auto px-6 py-12 md:py-20">
         <div className="text-center mb-12 space-y-3">
-          <div className="h-10 w-16 rounded-xl bg-primary/8 mx-auto" />
-          <div className="h-8 w-2/3 rounded-xl bg-primary/10 mx-auto" />
+          <div className="h-10 w-16 rounded-[var(--radius-btn)] bg-primary/8 mx-auto" />
+          <div className="h-8 w-2/3 rounded-[var(--radius-btn)] bg-primary/10 mx-auto" />
           <div className="h-3 w-40 rounded-full bg-primary/8 mx-auto" />
         </div>
         <div className="space-y-4">
@@ -1369,7 +1369,7 @@ export default function Lector() {
         <>
           {saveStatus === "pending" && loadLocalDraft(capId) && (
             <div className="max-w-2xl mx-auto px-6 pt-4">
-              <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 flex items-center justify-between gap-3">
+              <div className="rounded-[var(--radius-btn)] bg-amber-50 border border-amber-200 px-4 py-3 flex items-center justify-between gap-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">⚠ Borrador local recuperado — guardá para sincronizar</p>
                 <button onClick={() => { setNuevoContenido(capitulo?.contenido ?? ""); clearLocalDraft(capId); setSaveStatus("saved"); }} className="text-[9px] font-black uppercase tracking-widest text-amber-400 hover:text-amber-600 transition-colors shrink-0">Descartar</button>
               </div>
@@ -1407,15 +1407,15 @@ export default function Lector() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 {([{ key: false, icon: Edit3, label: "Editar" }, { key: true, icon: Eye, label: "Preview" }] as const).map(({ key, icon: Icon, label }) => (
-                  <button key={String(key)} onClick={() => setPreviewMode(key as boolean)} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", previewMode === key ? "bg-primary text-white" : "text-primary/50 hover:bg-primary/8")}>
+                  <button key={String(key)} onClick={() => setPreviewMode(key as boolean)} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-widest transition-all", previewMode === key ? "bg-primary text-white" : "text-primary/50 hover:bg-primary/8")}>
                     <Icon size={11} /> {label}
                   </button>
                 ))}
               </div>
               <AnimatePresence mode="wait">
                 {previewMode
-                  ? <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] overflow-hidden"><ContenidoInteractivo texto={nuevoContenido} onNavigate={handleChapterSelect} /></motion.div>
-                  : <motion.textarea key="editor" ref={textareaRef as any} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} value={nuevoContenido} onChange={e => setNuevoContenido(e.target.value)} className="w-full min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[2.5rem] font-serif text-lg leading-relaxed text-primary-dark focus:outline-none focus:border-primary/30 shadow-inner resize-none" autoFocus placeholder={"Escribe aquí…\n\n[[choice|Opción|ID_Capitulo]]"} />
+                  ? <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[var(--radius-card)] overflow-hidden"><ContenidoInteractivo texto={nuevoContenido} onNavigate={handleChapterSelect} /></motion.div>
+                  : <motion.textarea key="editor" ref={textareaRef as any} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} value={nuevoContenido} onChange={e => setNuevoContenido(e.target.value)} className="w-full min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[var(--radius-card)] font-serif text-lg leading-relaxed text-primary-dark focus:outline-none focus:border-primary/30 shadow-inner resize-none" autoFocus placeholder={"Escribe aquí…\n\n[[choice|Opción|ID_Capitulo]]"} />
                 }
               </AnimatePresence>
               <div className="flex justify-end mt-3 px-2">
@@ -1438,13 +1438,13 @@ export default function Lector() {
               <button
                 onClick={() => anteriorCap && router.push(`/wiki/libros/${id}/leer/${anteriorCap.id}`)}
                 disabled={!anteriorCap}
-                className={cn("p-5 rounded-2xl border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all", !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-primary/10 text-primary/60 hover:bg-primary/5 active:scale-95")}
+                className={cn("p-5 rounded-[var(--radius-btn)] border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all", !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-primary/10 text-primary/60 hover:bg-primary/5 active:scale-95")}
               >
                 <ChevronLeft size={14} /> Anterior
               </button>
               <button
                 onClick={() => siguienteCap ? router.push(`/wiki/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/libros/${id}`)}
-                className="p-5 rounded-2xl bg-primary text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg hover:shadow-primary/30 active:scale-95 transition-all"
+                className="p-5 rounded-[var(--radius-btn)] bg-primary text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg hover:shadow-primary/30 active:scale-95 transition-all"
               >
                 {siguienteCap ? "Siguiente" : "Finalizar"} <ChevronRight size={14} />
               </button>

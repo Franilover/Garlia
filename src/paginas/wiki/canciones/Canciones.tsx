@@ -69,9 +69,9 @@ const CancionCard = ({
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         onClick={onClick}
-        className="group relative flex items-center justify-between gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm border border-primary/10 hover:border-primary/20 rounded-2xl px-6 py-4 transition-all duration-300 cursor-pointer"
+        className="group relative flex items-center justify-between gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm border border-primary/10 hover:border-primary/20 rounded-[var(--radius-btn)] px-6 py-4 transition-all duration-300 cursor-pointer"
       >
-        <h2 className="text-primary font-black uppercase text-sm group-hover:text-[#9A89A0] transition-colors tracking-tighter italic truncate">
+        <h2 className="text-primary font-black uppercase text-sm group-hover:text-[var(--accent)] transition-colors tracking-tighter italic truncate">
           {cancion.titulo}
         </h2>
       </motion.div>
@@ -86,13 +86,13 @@ const CancionCard = ({
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="cursor-pointer h-full flex flex-col"
         >
-          <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl border border-primary/10 bg-gradient-to-br from-primary/10 to-primary/5 group-hover:shadow-[0_20px_40px_rgba(107,94,112,0.15)] transition-all duration-500">
+          <div className="relative aspect-square rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10 bg-linear-to-br from-primary/10 to-primary/5 group-hover:shadow-[0_20px_40px_rgba(107,94,112,0.15)] transition-all duration-500">
             <SmartImage
               src={cancion.portada_url || "/placeholder-cover.jpg"}
               alt={cancion.titulo}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-linear-to-t from-primary/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
             <motion.div
               className={`absolute top-6 left-6 z-20 backdrop-blur-md px-4 py-2 rounded-full border font-black text-[9px] uppercase tracking-widest shadow-lg ${getEstadoColor(cancion.estado)}`}
@@ -110,14 +110,14 @@ const CancionCard = ({
             )}
 
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
-              <div className="bg-white-custom/90 p-5 rounded-full shadow-2xl backdrop-blur-sm border-2 border-primary/10">
+              <div className="bg-white-custom/90 p-5 rounded-full shadow-2xl backdrop-blur-sm border-[length:var(--border-width)] border-primary/10">
                 <ChevronRight size={32} className="text-primary ml-1" />
               </div>
             </div>
           </div>
 
           <div className="mt-6 flex-1 flex flex-col px-2">
-            <h2 className="text-primary font-black uppercase text-lg group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tighter italic line-clamp-2">
+            <h2 className="text-primary font-black uppercase text-lg group-hover:text-[var(--accent)] transition-colors leading-tight tracking-tighter italic line-clamp-2">
               {cancion.titulo}
             </h2>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-primary/40 font-bold text-[8px] uppercase tracking-[0.2em]">
@@ -138,7 +138,7 @@ const CancionCard = ({
       {/* Botón editar — aparece en hover, abre el modal sin navegar */}
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick(); }}
-        className="absolute top-4 right-4 z-50 bg-white-custom/95 text-primary p-3 rounded-full shadow-2xl border-2 border-primary/20 hover:shadow-[0_0_20px_rgba(107,94,112,0.3)] transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm"
+        className="absolute top-4 right-4 z-50 bg-white-custom/95 text-primary p-3 rounded-full shadow-2xl border-[length:var(--border-width)] border-primary/20 hover:shadow-[0_0_20px_rgba(107,94,112,0.3)] transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm"
       >
         <Edit3 size={16} />
       </button>
@@ -252,13 +252,13 @@ const CancionModal = ({
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative bg-white-custom w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            className="relative bg-white-custom w-full max-w-3xl rounded-[var(--radius-card)] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             <div className="p-8 sm:p-12 overflow-y-auto">
               {/* HEADER */}
               <div className="flex justify-between items-center mb-10">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary rounded-2xl text-white shadow-lg shadow-primary/20">
+                  <div className="p-3 bg-primary rounded-[var(--radius-btn)] text-white shadow-lg shadow-primary/20">
                     <Edit3 size={20} />
                   </div>
                   <h3 className="text-primary font-black uppercase text-[12px] tracking-[0.4em] italic">
@@ -279,7 +279,7 @@ const CancionModal = ({
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Título</label>
                     <input
-                      className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all"
+                      className="w-full bg-bg-main border-[length:var(--border-width)] border-primary/10 py-4 px-6 rounded-[var(--radius-btn)] text-sm font-black text-primary uppercase outline-none focus:border-primary/30 transition-all"
                       value={form.titulo}
                       onChange={(e) => set("titulo", e.target.value)}
                     />
@@ -287,7 +287,7 @@ const CancionModal = ({
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Personaje</label>
                     <select
-                      className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none appearance-none"
+                      className="w-full bg-bg-main border-[length:var(--border-width)] border-primary/10 py-4 px-6 rounded-[var(--radius-btn)] text-sm font-black text-primary uppercase outline-none appearance-none"
                       value={form.personaje}
                       onChange={(e) => set("personaje", e.target.value)}
                     >
@@ -305,7 +305,7 @@ const CancionModal = ({
                     <div key={field} className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">{field}</label>
                       <input
-                        className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none"
+                        className="w-full bg-bg-main border-[length:var(--border-width)] border-primary/10 py-4 px-6 rounded-[var(--radius-btn)] text-sm font-black text-primary uppercase outline-none"
                         value={form[field]}
                         onChange={(e) => set(field, e.target.value)}
                       />
@@ -314,7 +314,7 @@ const CancionModal = ({
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Idioma</label>
                     <select
-                      className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none appearance-none"
+                      className="w-full bg-bg-main border-[length:var(--border-width)] border-primary/10 py-4 px-6 rounded-[var(--radius-btn)] text-sm font-black text-primary uppercase outline-none appearance-none"
                       value={form.idioma}
                       onChange={(e) => set("idioma", e.target.value)}
                     >
@@ -328,7 +328,7 @@ const CancionModal = ({
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Tema / Motivo</label>
                     <select
-                      className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none appearance-none"
+                      className="w-full bg-bg-main border-[length:var(--border-width)] border-primary/10 py-4 px-6 rounded-[var(--radius-btn)] text-sm font-black text-primary uppercase outline-none appearance-none"
                       value={form.tema}
                       onChange={(e) => set("tema", e.target.value)}
                     >
@@ -339,7 +339,7 @@ const CancionModal = ({
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Emoción / Temple</label>
                     <select
-                      className="w-full bg-bg-main border-2 border-primary/10 py-4 px-6 rounded-[1.5rem] text-sm font-black text-primary uppercase outline-none appearance-none"
+                      className="w-full bg-bg-main border-[length:var(--border-width)] border-primary/10 py-4 px-6 rounded-[var(--radius-btn)] text-sm font-black text-primary uppercase outline-none appearance-none"
                       value={form.emocion}
                       onChange={(e) => set("emocion", e.target.value)}
                     >
@@ -353,12 +353,12 @@ const CancionModal = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Estado</label>
-                    <div className="flex gap-2 p-1 bg-bg-main border-2 border-primary/10 rounded-[1.5rem]">
+                    <div className="flex gap-2 p-1 bg-bg-main border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)]">
                       {ESTADOS.map((est) => (
                         <button
                           key={est} type="button"
                           onClick={() => set("estado", est)}
-                          className={`flex-1 py-3 rounded-xl text-[9px] font-black transition-all ${
+                          className={`flex-1 py-3 rounded-[var(--radius-btn)] text-[9px] font-black transition-all ${
                             form.estado === est
                               ? "bg-primary text-white shadow-lg"
                               : "text-primary/40 hover:bg-primary/5"
@@ -375,7 +375,7 @@ const CancionModal = ({
                       <button
                         type="button"
                         onClick={() => set("visible", !form.visible)}
-                        className={`w-full flex items-center justify-between py-4 px-6 rounded-[1.5rem] border-2 transition-all ${
+                        className={`w-full flex items-center justify-between py-4 px-6 rounded-[var(--radius-btn)] border-2 transition-all ${
                           form.visible
                             ? "border-emerald-500/30 bg-emerald-50/50 text-emerald-700"
                             : "border-slate-500/30 bg-slate-50/50 text-slate-700"
@@ -394,7 +394,7 @@ const CancionModal = ({
                 <div className="flex flex-col sm:flex-row gap-4 pt-6">
                   <button
                     type="submit" disabled={isProcessing}
-                    className="flex-[2] bg-primary text-white py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                    className="flex-[2] bg-primary text-white py-5 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                   >
                     {isProcessing
                       ? <><Loader2 className="animate-spin" size={18} />Guardando...</>
@@ -404,7 +404,7 @@ const CancionModal = ({
                   {!isCreating && (
                     <button
                       type="button" onClick={handleDelete} disabled={isProcessing}
-                      className="flex-1 bg-red-50 text-red-500 py-5 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                      className="flex-1 bg-red-50 text-red-500 py-5 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                     >
                       <Trash2 size={18} /> Borrar
                     </button>

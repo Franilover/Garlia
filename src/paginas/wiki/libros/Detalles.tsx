@@ -176,7 +176,7 @@ export default function LibroDetalle() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white-custom w-full max-w-sm rounded-[3rem] p-10 shadow-2xl relative z-10 border border-primary/10"
+              className="bg-white-custom w-full max-w-sm rounded-[var(--radius-card)] p-10 shadow-2xl relative z-10 border border-primary/10"
             >
               <button onClick={closeModals} className="absolute top-8 right-8 text-primary/20 hover:text-primary">
                 <X size={20} />
@@ -208,15 +208,15 @@ export default function LibroDetalle() {
                 </div>
 
                 {showAddModal ? (
-                  <button type="submit" disabled={procesando} className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
+                  <button type="submit" disabled={procesando} className="w-full bg-primary text-white py-4 rounded-[var(--radius-btn)] font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
                     {procesando ? "Sellando..." : "Revelar"}
                   </button>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
-                    <button type="submit" disabled={procesando} className="bg-primary text-white py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50">
+                    <button type="submit" disabled={procesando} className="bg-primary text-white py-4 rounded-[var(--radius-btn)] font-black uppercase text-[9px] flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-50">
                       <Save size={14} /> Guardar
                     </button>
-                    <button type="button" onClick={deleteCapitulo} disabled={procesando} className="bg-red-50 text-red-400 py-4 rounded-2xl font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 active:scale-95 transition-transform disabled:opacity-50">
+                    <button type="button" onClick={deleteCapitulo} disabled={procesando} className="bg-red-50 text-red-400 py-4 rounded-[var(--radius-btn)] font-black uppercase text-[9px] flex items-center justify-center gap-2 border border-red-100 active:scale-95 transition-transform disabled:opacity-50">
                       <Trash2 size={14} /> Borrar
                     </button>
                   </div>
@@ -233,7 +233,7 @@ export default function LibroDetalle() {
 
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[320px_1fr] gap-16 mt-4">
         <aside>
-          <div className="aspect-3/4 rounded-[2.5rem] overflow-hidden shadow-2xl border border-primary/10 bg-white-custom relative">
+          <div className="aspect-3/4 rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10 bg-white-custom relative">
             {loadingLibro ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                 <Loader2 className="animate-spin text-primary/20" />
@@ -243,7 +243,7 @@ export default function LibroDetalle() {
             )}
           </div>
           {!loadingLibro && libro?.fecha_proximo_capitulo && (
-            <div className="mt-8 p-6 bg-primary/5 rounded-[2rem] border border-primary/10">
+            <div className="mt-8 p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10">
               <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
                 <Calendar size={12} /> Próximo Capítulo
               </h4>
@@ -258,8 +258,8 @@ export default function LibroDetalle() {
           <div className="mb-12">
             {loadingLibro ? (
               <div className="space-y-4">
-                <div className="h-12 w-3/4 bg-primary/5 animate-pulse rounded-xl" />
-                <div className="h-20 w-full bg-primary/5 animate-pulse rounded-xl" />
+                <div className="h-12 w-3/4 bg-primary/5 animate-pulse rounded-[var(--radius-btn)]" />
+                <div className="h-20 w-full bg-primary/5 animate-pulse rounded-[var(--radius-btn)]" />
               </div>
             ) : (
               <>
@@ -286,7 +286,7 @@ export default function LibroDetalle() {
             <div className="grid gap-3">
               {loadingCaps ? (
                 [1, 2, 3].map(i => (
-                  <div key={i} className="w-full h-24 bg-primary/5 animate-pulse rounded-3xl" />
+                  <div key={i} className="w-full h-24 bg-primary/5 animate-pulse rounded-[var(--radius-card)]" />
                 ))
               ) : capitulos.length === 0 ? (
                 <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
@@ -299,7 +299,7 @@ export default function LibroDetalle() {
                     <button
                       key={cap.id}
                       onClick={() => router.push(`/wiki/libros/${id}/leer/${cap.id}`)}
-                      className={`w-full flex items-center justify-between p-6 border rounded-3xl hover:border-primary/20 transition-all text-left group ${esRuta ? "bg-blue-50/60 border-blue-100" : "bg-white-custom border-primary/5"}`}
+                      className={`w-full flex items-center justify-between p-6 border rounded-[var(--radius-card)] hover:border-primary/20 transition-all text-left group ${esRuta ? "bg-blue-50/60 border-blue-100" : "bg-white-custom border-primary/5"}`}
                     >
                       <div className="flex flex-col gap-1">
                         {esRuta && (
@@ -322,7 +322,7 @@ export default function LibroDetalle() {
                             setEditCapFecha(cap.fecha_publicacion || "");
                             setShowEditCapModal(true);
                           }}
-                          className="bg-primary/5 p-2 rounded-xl text-primary hover:bg-primary hover:text-white transition-colors"
+                          className="bg-primary/5 p-2 rounded-[var(--radius-btn)] text-primary hover:bg-primary hover:text-white transition-colors"
                         >
                           <Edit3 size={16} />
                         </div>

@@ -155,7 +155,7 @@ const Biblioteca = () => {
                   </button>
                 )}
                 
-                <motion.div whileHover={{ y: -10 }} className="relative aspect-[3/4] rounded-[3rem] overflow-hidden shadow-xl border border-primary/10 bg-white-custom">
+                <motion.div whileHover={{ y: -10 }} className="relative aspect-[3/4] rounded-[var(--radius-card)] overflow-hidden shadow-xl border border-primary/10 bg-white-custom">
                   <SmartImage
                     src={libro.portada_url || "/placeholder-cover.jpg"}
                     alt={libro.titulo}
@@ -170,7 +170,7 @@ const Biblioteca = () => {
                 </motion.div>
 
                 <div className="mt-6 px-2">
-                  <h2 className="text-primary font-black uppercase text-base group-hover:text-[#9A89A0] transition-colors leading-tight tracking-tight">
+                  <h2 className="text-primary font-black uppercase text-base group-hover:text-[var(--accent)] transition-colors leading-tight tracking-tight">
                     {libro.titulo}
                   </h2>
                   <p className="text-primary/50 text-xs mt-2 line-clamp-3 italic leading-relaxed font-medium">
@@ -188,11 +188,11 @@ const Biblioteca = () => {
         {showAddModal && isAdmin && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white-custom rounded-[3rem] p-10 w-full max-w-sm shadow-2xl border border-primary/10">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white-custom rounded-[var(--radius-card)] p-10 w-full max-w-sm shadow-2xl border border-primary/10">
               <h3 className="text-center text-primary font-black uppercase text-[10px] tracking-[0.3em] mb-8 italic">Nuevo Tomo</h3>
               <form onSubmit={handleAddLibro} className="space-y-6">
                 <input autoFocus type="text" placeholder="TÍTULO..." value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} className="w-full bg-bg-main border-b-2 border-primary/10 py-4 text-center text-sm font-black text-primary outline-none focus:border-primary uppercase" />
-                <button type="submit" disabled={isUpdating} className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
+                <button type="submit" disabled={isUpdating} className="w-full bg-primary text-white py-4 rounded-[var(--radius-btn)] font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
                   {isUpdating ? "Creando Borrador..." : "Crear"}
                 </button>
               </form>
@@ -203,7 +203,7 @@ const Biblioteca = () => {
         {showEditModal && isAdmin && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white-custom rounded-[3rem] p-10 w-full max-w-md shadow-2xl border border-primary/10">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white-custom rounded-[var(--radius-card)] p-10 w-full max-w-md shadow-2xl border border-primary/10">
               <div className="flex justify-between items-center mb-6">
                 <span className="text-primary font-black uppercase text-[10px] tracking-[0.3em] italic">Editar Registro</span>
                 <button onClick={() => setShowEditModal(false)} className="text-primary/40 hover:text-primary"><X size={20} /></button>
@@ -236,10 +236,10 @@ const Biblioteca = () => {
                 
                 <div>
                   <label className="text-[9px] font-black text-primary/40 uppercase mb-2 block tracking-widest">Sinopsis / Crónica</label>
-                  <textarea rows={4} value={editForm.sinopsis} onChange={(e) => setEditForm(prev => ({ ...prev, sinopsis: e.target.value }))} className="w-full bg-bg-main border-2 border-primary/10 p-4 rounded-2xl text-sm font-medium text-primary outline-none focus:border-primary italic" />
+                  <textarea rows={4} value={editForm.sinopsis} onChange={(e) => setEditForm(prev => ({ ...prev, sinopsis: e.target.value }))} className="w-full bg-bg-main border-[length:var(--border-width)] border-primary/10 p-4 rounded-[var(--radius-btn)] text-sm font-medium text-primary outline-none focus:border-primary italic" />
                 </div>
 
-                <button type="submit" disabled={isUpdating} className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
+                <button type="submit" disabled={isUpdating} className="w-full bg-primary text-white py-4 rounded-[var(--radius-btn)] font-black uppercase text-[10px] active:scale-95 transition-transform disabled:opacity-50">
                   {isUpdating ? "Actualizando..." : "Guardar Cambios"}
                 </button>
               </form>

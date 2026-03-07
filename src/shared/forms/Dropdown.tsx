@@ -33,12 +33,12 @@ export default function Dropdown({
       onChange={(e) => onChange(e.target.value)}
       className={`
         text-xs font-bold uppercase 
-        px-4 py-2.5 rounded-xl
-        border-2 border-[#6B5E70]/30 
-        bg-white/90 text-[#6B5E70] 
-        focus:outline-none focus:ring-2 focus:ring-[#6B5E70]/50 focus:border-[#6B5E70]/50
+        px-4 py-2.5 rounded-[var(--radius-btn)]
+        border-2 border-[var(--primary)]/30 
+        bg-white/90 text-[var(--primary)] 
+        focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 focus:border-[var(--primary)]/50
         transition-all duration-300
-        hover:border-[#6B5E70]/50 hover:bg-white
+        hover:border-[var(--primary)]/50 hover:bg-white-custom
         cursor-pointer
         shadow-md hover:shadow-lg
         backdrop-blur-sm

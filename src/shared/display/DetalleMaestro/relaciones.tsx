@@ -95,7 +95,7 @@ export default function Relaciones({
           <button 
             type="button"
             onClick={() => setLista([...lista, { sus: "NUEVO VÍNCULO", son: [], personaje: nombrePersonaje }])}
-            className="flex items-center gap-2 px-6 py-2 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+            className="flex items-center gap-2 px-6 py-2 bg-primary/10 text-primary rounded-[var(--radius-input)] text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
           >
             <Plus size={14} /> "Añadir Vínculo"
           </button>
@@ -140,7 +140,7 @@ export default function Relaciones({
 
                 <select 
                   onChange={(e) => agregarNombreARelacion(index, e.target.value)}
-                  className="w-full text-[10px] font-black uppercase bg-transparent p-2 border border-primary/10 rounded-lg outline-none text-primary/40"
+                  className="w-full text-[10px] font-black uppercase bg-transparent p-2 border border-primary/10 rounded-[var(--radius-input)] outline-none text-primary/40"
                   value=""
                 >
                   <option value="" disabled>+ Seleccionar</option>
@@ -172,5 +172,4 @@ export default function Relaciones({
         ))}
       </div>
     </div>
-  );
-}
+  );}

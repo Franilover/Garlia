@@ -58,14 +58,14 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
     onChange(nuevos);
   };
 
-  if (loading) return <div className="h-14 bg-primary/5 animate-pulse rounded-[2rem] w-full" />;
+  if (loading) return <div className="h-14 bg-primary/5 animate-pulse rounded-[var(--radius-card)] w-full" />;
 
   return (
     <div className="relative w-full">
       <div 
         ref={buttonRef}
         onClick={handleOpen} 
-        className={`w-full p-5 bg-white border ${isOpen ? "border-primary" : "border-primary/10"} rounded-[2rem] flex items-center justify-between cursor-pointer shadow-inner transition-all hover:border-primary/30`}
+        className={`w-full p-5 bg-white-custom border ${isOpen ? "border-primary" : "border-primary/10"} rounded-[var(--radius-card)] flex items-center justify-between cursor-pointer shadow-inner transition-all hover:border-primary/30`}
       >
         <div className="flex flex-wrap gap-2">
           {safeIds.length > 0 ? (
@@ -104,7 +104,7 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
               width: coords.width, 
               zIndex: 9999 
             }}
-            className="bg-white border border-primary/10 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.2)] max-h-72 overflow-y-auto p-4 custom-scrollbar"
+            className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] shadow-[0_25px_60px_rgba(0,0,0,0.2)] max-h-72 overflow-y-auto p-4 custom-scrollbar"
           >
             {todas.map(c => {
               if (!c?.id) return null; // Seguridad extra
@@ -113,7 +113,7 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
                 <div 
                   key={c.id} 
                   onClick={() => toggle(c.id)} 
-                  className={`p-4 rounded-2xl cursor-pointer mb-1.5 flex justify-between items-center transition-all ${isSelected ? "bg-primary text-white shadow-lg translate-x-1" : "hover:bg-primary/5 text-primary/60 hover:translate-x-1"}`}
+                  className={`p-4 rounded-[var(--radius-btn)] cursor-pointer mb-1.5 flex justify-between items-center transition-all ${isSelected ? "bg-primary text-white shadow-lg translate-x-1" : "hover:bg-primary/5 text-primary/60 hover:translate-x-1"}`}
                 >
                   <span className="text-[11px] font-black uppercase italic tracking-tight">{c.titulo}</span>
                   {isSelected && <Check size={16} />}
@@ -143,7 +143,7 @@ export const SeccionMusica = ({ listaLinks = [] }) => {
 
   if (cancionesValidas.length === 0) {
     return (
-      <div className="p-16 border-4 border-dashed border-primary/5 rounded-[4rem] flex flex-col items-center justify-center opacity-20 italic">
+      <div className="p-16 border-[length:var(--border-width)] border-dashed border-primary/5 rounded-[var(--radius-card)] flex flex-col items-center justify-center opacity-20 italic">
         <Music size={40} className="mb-4 text-primary" />
         <span className="text-[12px] font-black uppercase tracking-[0.5em]">Sin canciones</span>
       </div>
@@ -160,7 +160,7 @@ export const SeccionMusica = ({ listaLinks = [] }) => {
           <Link key={key} href={`/wiki/canciones/${cancion.id}`} className="group no-underline">
             <motion.div 
               whileHover={{ scale: 1.05, y: -8 }} 
-              className="relative flex flex-col items-center justify-center p-10 bg-white border border-primary/5 rounded-[3rem] aspect-square overflow-hidden shadow-sm hover:shadow-xl transition-all"
+              className="relative flex flex-col items-center justify-center p-10 bg-white-custom border border-primary/5 rounded-[var(--radius-card)] aspect-square overflow-hidden shadow-sm hover:shadow-xl transition-all"
             >
               <span className="absolute inset-0 flex items-center justify-center text-[10rem] font-black text-primary/5 italic select-none translate-y-4 group-hover:scale-110 transition-transform">
                 {String(index + 1).padStart(2, "0")}

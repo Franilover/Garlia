@@ -169,7 +169,7 @@ function SeccionCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8, scale: 0.97 }}
-      className={`rounded-[1.5rem] border transition-all ${
+      className={`rounded-[var(--radius-btn)] border transition-all ${
         isNew
           ? "border-amber-200 bg-amber-50/50"
           : "border-primary/10 bg-white-custom"
@@ -196,14 +196,14 @@ function SeccionCard({
           <button
             disabled={idx === 0}
             onClick={() => onMover(idx, -1)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/5 disabled:opacity-20 active:scale-90 transition-all touch-manipulation"
+            className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-input)] text-primary/40 hover:text-primary hover:bg-primary/5 disabled:opacity-20 active:scale-90 transition-all touch-manipulation"
           >
             <ChevronUp size={14} />
           </button>
           <button
             disabled={idx === total - 1}
             onClick={() => onMover(idx, 1)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/5 disabled:opacity-20 active:scale-90 transition-all touch-manipulation"
+            className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-input)] text-primary/40 hover:text-primary hover:bg-primary/5 disabled:opacity-20 active:scale-90 transition-all touch-manipulation"
           >
             <ChevronDown size={14} />
           </button>
@@ -212,7 +212,7 @@ function SeccionCard({
         {/* Expand/Collapse */}
         <button
           onClick={onToggleExpand}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/5 text-primary active:scale-90 transition-all touch-manipulation flex-shrink-0"
+          className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-input)] bg-primary/5 text-primary active:scale-90 transition-all touch-manipulation flex-shrink-0"
         >
           <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
             <ChevronDown size={14} />
@@ -222,7 +222,7 @@ function SeccionCard({
         {/* Eliminar */}
         <button
           onClick={() => onEliminar(idx)}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 active:scale-90 transition-all touch-manipulation flex-shrink-0"
+          className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-input)] text-red-400 hover:bg-red-50 active:scale-90 transition-all touch-manipulation flex-shrink-0"
         >
           <Trash2 size={13} />
         </button>
@@ -250,7 +250,7 @@ function SeccionCard({
                   value={letraVal}
                   onChange={(e) => onChange(sec.id, letraKey, e.target.value)}
                   rows={maxRows}
-                  className="w-full bg-bg-main border border-primary/10 rounded-[1rem] p-4 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/40 transition-all resize-none"
+                  className="w-full bg-bg-main border border-primary/10 rounded-[var(--radius-input)] p-4 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/40 transition-all resize-none"
                   placeholder={`Contenido en ${IDIOMAS.find((i) => i.id === activeTab)?.nombre.toLowerCase()}...`}
                   style={{ fontSize: "16px" }}
                 />
@@ -266,7 +266,7 @@ function SeccionCard({
                     value={splitLetraVal}
                     onChange={(e) => onChange(sec.id, splitLetraKey, e.target.value)}
                     rows={maxRows}
-                    className="w-full bg-[#F5F0F7] border border-primary/15 rounded-[1rem] p-4 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/40 transition-all resize-none"
+                    className="w-full bg-[#F5F0F7] border border-primary/15 rounded-[var(--radius-input)] p-4 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/40 transition-all resize-none"
                     placeholder={`Contenido en ${IDIOMAS.find((i) => i.id === splitTab)?.nombre.toLowerCase()}...`}
                     style={{ fontSize: "16px" }}
                   />
@@ -513,7 +513,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
           className="
             relative z-10 w-full bg-bg-main flex flex-col
             h-[96dvh] rounded-t-[2rem]
-            md:h-[92vh] md:max-w-4xl md:rounded-[2.5rem] md:mx-4
+            md:h-[92vh] md:max-w-4xl md:rounded-[var(--radius-card)] md:mx-4
             shadow-2xl border border-primary/10 overflow-hidden
           "
         >
@@ -527,7 +527,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
             <div className="px-4 py-3 md:px-8 md:py-5 flex items-center gap-3">
               {/* Icono + título */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="bg-primary p-2 rounded-xl text-white flex-shrink-0">
+                <div className="bg-primary p-2 rounded-[var(--radius-btn)] text-white flex-shrink-0">
                   <Layers size={16} />
                 </div>
                 <div className="min-w-0">
@@ -555,7 +555,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
               {/* Cerrar */}
               <button
                 onClick={onClose}
-                className="w-10 h-10 flex items-center justify-center rounded-xl text-primary/30 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90 touch-manipulation flex-shrink-0"
+                className="w-10 h-10 flex items-center justify-center rounded-[var(--radius-btn)] text-primary/30 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90 touch-manipulation flex-shrink-0"
               >
                 <X size={20} />
               </button>
@@ -563,12 +563,12 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
 
             {/* Selector de idioma — scrollable en móvil */}
             <div className="px-4 pb-3 md:px-8 md:pb-4 flex flex-col gap-2">
-              <div className="flex gap-1 bg-primary/5 p-1 rounded-xl border border-primary/10 overflow-x-auto scrollbar-none">
+              <div className="flex gap-1 bg-primary/5 p-1 rounded-[var(--radius-btn)] border border-primary/10 overflow-x-auto scrollbar-none">
                 {IDIOMAS.map((lang) => (
                   <button
                     key={lang.id}
                     onClick={() => setActiveTab(lang.id)}
-                    className={`flex-1 min-w-[3.5rem] py-2.5 rounded-lg font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap ${
+                    className={`flex-1 min-w-[3.5rem] py-2.5 rounded-[var(--radius-input)] font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap ${
                       activeTab === lang.id
                         ? "bg-primary text-white shadow-md"
                         : "text-primary/50 hover:text-primary"
@@ -594,9 +594,9 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                     }
                   }}
                   title="Modo doble idioma"
-                  className={`flex items-center gap-1 px-3 py-2.5 rounded-lg font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap flex-shrink-0 ${
+                  className={`flex items-center gap-1 px-3 py-2.5 rounded-[var(--radius-input)] font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap flex-shrink-0 ${
                     splitMode
-                      ? "bg-violet-600 text-white shadow-md"
+                      ? "bg-accent text-white shadow-md"
                       : "text-primary/50 hover:text-primary"
                   }`}
                 >
@@ -618,14 +618,14 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                       <span className="text-[9px] font-black uppercase tracking-widest text-violet-500 whitespace-nowrap flex-shrink-0">
                         2do idioma:
                       </span>
-                      <div className="flex gap-1 bg-violet-50 p-1 rounded-xl border border-violet-200 overflow-x-auto scrollbar-none flex-1">
+                      <div className="flex gap-1 bg-violet-50 p-1 rounded-[var(--radius-btn)] border border-violet-200 overflow-x-auto scrollbar-none flex-1">
                         {IDIOMAS.filter((i) => i.id !== activeTab).map((lang) => (
                           <button
                             key={lang.id}
                             onClick={() => setSplitTab(lang.id)}
-                            className={`flex-1 min-w-[3.5rem] py-2 rounded-lg font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap ${
+                            className={`flex-1 min-w-[3.5rem] py-2 rounded-[var(--radius-input)] font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap ${
                               splitTab === lang.id
-                                ? "bg-violet-600 text-white shadow-md"
+                                ? "bg-accent text-white shadow-md"
                                 : "text-violet-400 hover:text-violet-700"
                             }`}
                           >
@@ -670,7 +670,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                   </button>
                   <button
                     onClick={() => setShowRecoveryBanner(false)}
-                    className="text-[10px] font-black text-white bg-amber-600 hover:bg-amber-700 px-3 py-1.5 rounded-lg touch-manipulation whitespace-nowrap"
+                    className="text-[10px] font-black text-white bg-amber-600 hover:bg-amber-700 px-3 py-1.5 rounded-[var(--radius-input)] touch-manipulation whitespace-nowrap"
                   >
                     Continuar
                   </button>
@@ -725,7 +725,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
             <motion.button
               layout
               onClick={añadirSeccion}
-              className="w-full py-6 md:py-8 border-2 border-dashed border-primary/15 rounded-[1.5rem] text-primary/40 hover:border-primary/40 hover:text-primary hover:bg-primary/3 active:scale-[0.98] transition-all flex flex-col items-center gap-2 touch-manipulation"
+              className="w-full py-6 md:py-8 border-[length:var(--border-width)] border-dashed border-primary/15 rounded-[var(--radius-btn)] text-primary/40 hover:border-primary/40 hover:text-primary hover:bg-primary/3 active:scale-[0.98] transition-all flex flex-col items-center gap-2 touch-manipulation"
             >
               <Plus size={20} />
               <span className="font-black uppercase text-[10px] tracking-widest">
@@ -750,7 +750,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
               {/* Cerrar sin guardar */}
               <button
                 onClick={onClose}
-                className="px-5 py-3 md:px-6 bg-primary/8 text-primary rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-primary/15 transition-colors touch-manipulation"
+                className="px-5 py-3 md:px-6 bg-primary/8 text-primary rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest hover:bg-primary/15 transition-colors touch-manipulation"
               >
                 Cerrar
               </button>
@@ -764,8 +764,8 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                 disabled={!cambiosPendientes || saveStatus === "saving" || !isOnline}
                 className="
                   flex items-center gap-2 px-5 py-3 md:px-7
-                  bg-primary text-white rounded-xl font-black uppercase text-[10px] tracking-widest
-                  hover:bg-[#5A4D5F] active:scale-95
+                  bg-primary text-white rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest
+                  hover:bg-[var(--primary)] active:scale-95
                   disabled:opacity-40 disabled:cursor-not-allowed
                   transition-all touch-manipulation
                 "

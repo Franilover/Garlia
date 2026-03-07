@@ -125,7 +125,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
         )}
       </AnimatePresence>
 
-      <div className="bg-white rounded-[3rem] overflow-hidden shadow-2xl border border-primary/10 relative">
+      <div className="bg-white-custom rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10 relative">
         <button onClick={onClose} className="absolute top-8 right-8 z-50 p-4 bg-bg-main text-primary rounded-full hover:bg-accent transition-all border border-primary/10">
           <X size={28} />
         </button>
@@ -143,7 +143,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
                   fetchPriority="high"
                 />
               </div>
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white-custom px-8 py-3 rounded-xl text-sm font-black uppercase tracking-widest shadow-md whitespace-nowrap min-w-45 text-center">
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white-custom px-8 py-3 rounded-[var(--radius-btn)] text-sm font-black uppercase tracking-widest shadow-md whitespace-nowrap min-w-45 text-center">
                 {esPersonaje ? especie : alma}
               </div>
             </div>
@@ -200,7 +200,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
 
       {/* GESTIÓN DE VARIANTES (Solo Admin y Criaturas) */}
       {editMode && !esPersonaje && (
-        <div className="bg-white rounded-[3rem] p-12 shadow-2xl border border-primary/10">
+        <div className="bg-white-custom rounded-[var(--radius-card)] p-12 shadow-2xl border border-primary/10">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-black uppercase italic tracking-tighter">Variantes del Registro</h3>
             <button onClick={agregarVariante} className="btn-brand bg-accent! text-primary!">
@@ -209,7 +209,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {variantes.map((v, idx) => (
-              <div key={v.id || idx} className="p-6 bg-bg-main rounded-2xl border border-primary/5 space-y-4">
+              <div key={v.id || idx} className="p-6 bg-bg-main rounded-[var(--radius-btn)] border border-primary/5 space-y-4">
                 <div className="flex gap-4">
                   <div className="flex-1 space-y-2">
                     <input 
@@ -243,7 +243,7 @@ function ProjectDetalleContenido({ data, onClose, tags, onUpdate, isNew, mostrar
 
       {/* SECCIONES INFERIORES: MÚSICA */}
       {(esPersonaje || editMode) && mostrarMusica && (
-        <div className="bg-white rounded-[3rem] p-12 lg:p-20 shadow-2xl border border-primary/10">
+        <div className="bg-white-custom rounded-[var(--radius-card)] p-12 lg:p-20 shadow-2xl border border-primary/10">
           <div className="w-full">
             {editMode ? (
               <SelectorMusicaAdmin idsSeleccionados={editCanciones} onChange={setEditCanciones} />
