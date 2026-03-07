@@ -14,7 +14,6 @@ interface Descubrimiento {
   entidad_id: string;
   fecha_descubrimiento: string;
   nombre?: string;
-  // Campos opcionales extendidos que puede traer el join
   descripcion?: string;
   imagen_url?: string;
   img_url?: string;
