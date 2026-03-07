@@ -53,7 +53,6 @@ export default function SobreMi() {
             — Jardín digital
           </motion.p>
 
-          {/* Título en una sola línea, nunca se corta */}
           <div className="overflow-hidden">
             <motion.h1
               initial={{ y: "110%" }}
@@ -70,7 +69,6 @@ export default function SobreMi() {
             </motion.h1>
           </div>
 
-          {/* Línea que crece desde la izquierda */}
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
@@ -83,44 +81,87 @@ export default function SobreMi() {
         <div className="space-y-24 md:space-y-32">
 
           {/* ══════════════════════════════
-              § 1 · MI ATELIER
+              § 1 · MI ATELIER — rediseñado
           ══════════════════════════════ */}
-          <motion.section {...fade(0.18)} className="grid md:grid-cols-[1fr_2fr] gap-12 md:gap-16 items-start">
+          <motion.section
+            {...fade(0.18)}
+            className="relative flex flex-col items-center text-center py-16 md:py-20 px-8 md:px-16 overflow-hidden"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 5%, var(--white-custom))",
+              borderRadius: "var(--radius-card)",
+              border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              boxShadow: "var(--shadow-card)",
+            }}
+          >
+            {/* Número decorativo de fondo — grande y centrado */}
+            <span
+              className="absolute inset-0 flex items-center justify-center text-[22rem] font-black leading-none select-none pointer-events-none"
+              style={{
+                color: "var(--primary)",
+                opacity: 0.03,
+                letterSpacing: "-0.06em",
+                overflow: "hidden",
+              }}
+              aria-hidden
+            >I</span>
 
-            {/* Columna izquierda — etiqueta + ornamento */}
-            <div className="flex md:flex-col items-center md:items-start gap-4 md:gap-6 md:pt-2">
-              <div
-                className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.4em]"
-                style={{ color: "var(--primary)", opacity: 0.3 }}
-              >
-                <Heart size={11} strokeWidth={2.5} /> Mi Atelier
-              </div>
-              {/* Número decorativo solo en desktop */}
-              <span
-                className="hidden md:block text-[5rem] font-black leading-none select-none"
-                style={{ color: "var(--primary)", opacity: 0.05, letterSpacing: "-0.05em" }}
-              >I</span>
+            {/* Línea decorativa superior */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] as any }}
+              className="mb-8 h-[1px] w-16 origin-center rounded-full"
+              style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+            />
+
+            {/* Etiqueta */}
+            <div
+              className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.5em] mb-6"
+              style={{ color: "var(--primary)", opacity: 0.35 }}
+            >
+              <Heart size={10} strokeWidth={2.5} />
+              Mi Atelier
+              <Heart size={10} strokeWidth={2.5} />
             </div>
 
-            {/* Columna derecha — texto */}
-            <div className="space-y-6">
-              <p
-                className="text-2xl md:text-3xl leading-[1.45] font-light italic"
-                style={{ color: "var(--primary)", opacity: 0.85 }}
-              >
-                Bienvenido a mi pequeño jardín digital. Refleja temas que considero
-                importantes a través de personajes basados en quienes han dejado
-                una marca en mí.
-              </p>
-              {/* Detalle decorativo */}
-              <div
-                className="flex items-center gap-3 pt-2"
-                style={{ color: "var(--primary)", opacity: 0.2 }}
-              >
-                <div className="h-px w-8" style={{ background: "currentColor" }} />
-                <span className="text-[8px] font-black uppercase tracking-[0.4em]">2024</span>
-              </div>
+            {/* Texto principal — grande y protagonista */}
+            <p
+              className="text-2xl md:text-4xl leading-[1.4] font-light italic max-w-2xl"
+              style={{ color: "var(--primary)", opacity: 0.88 }}
+            >
+              Bienvenido a mi pequeño jardín digital. Refleja temas que considero
+              importantes a través de personajes basados en quienes han dejado
+              una marca en mí.
+            </p>
+
+            {/* Detalle decorativo inferior */}
+            <div
+              className="flex items-center gap-3 mt-10"
+              style={{ color: "var(--primary)", opacity: 0.2 }}
+            >
+              <div className="h-px w-10" style={{ background: "currentColor" }} />
+              <span className="text-[8px] font-black uppercase tracking-[0.5em]">2024</span>
+              <div className="h-px w-10" style={{ background: "currentColor" }} />
             </div>
+
+            {/* Línea decorativa inferior */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.8, delay: 0.65, ease: [0.16, 1, 0.3, 1] as any }}
+              className="mt-8 h-[1px] w-16 origin-center rounded-full"
+              style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+            />
+
+            {/* Acento de color en bordes laterales */}
+            <div
+              className="absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-full"
+              style={{ background: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+            />
+            <div
+              className="absolute right-0 top-1/4 bottom-1/4 w-[3px] rounded-full"
+              style={{ background: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+            />
           </motion.section>
 
           {/* ══════════════════════════════
@@ -134,7 +175,6 @@ export default function SobreMi() {
               <Palette size={11} strokeWidth={2.5} /> Herramientas
             </div>
 
-            {/* Grid de cards — sin color invertido, totalmente adaptable */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {TOOLS.map((tool, i) => {
                 const Icon = tool.icon;
@@ -152,7 +192,6 @@ export default function SobreMi() {
                       boxShadow: "var(--shadow-card)",
                     }}
                   >
-                    {/* Ícono con fondo sutil */}
                     <div
                       className="w-10 h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
                       style={{
@@ -164,7 +203,6 @@ export default function SobreMi() {
                       <Icon size={17} strokeWidth={1.5} style={{ opacity: 0.6 }} />
                     </div>
 
-                    {/* Textos */}
                     <div className="relative z-10 space-y-1">
                       <p
                         className="text-[8px] font-black uppercase tracking-[0.35em]"
@@ -176,13 +214,11 @@ export default function SobreMi() {
                       >{tool.title}</h4>
                     </div>
 
-                    {/* Acento de color en el borde inferior al hover */}
                     <div
                       className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 ease-out rounded-full"
                       style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
                     />
 
-                    {/* Barras de ecualizador solo en la tarjeta de música */}
                     {tool.num === "03" && (
                       <div className="absolute top-7 right-7 flex items-end gap-[3px] opacity-20 group-hover:opacity-40 transition-opacity">
                         {[5, 9, 7, 11, 6].map((h, j) => (
@@ -218,7 +254,6 @@ export default function SobreMi() {
           ══════════════════════════════ */}
           <motion.section {...fade(0.3)} className="space-y-12">
 
-            {/* Divisor */}
             <div className="flex items-center gap-5">
               <div
                 className="h-px flex-1"
@@ -234,7 +269,6 @@ export default function SobreMi() {
               />
             </div>
 
-            {/* Título grande — en dos líneas controladas */}
             <div className="space-y-0">
               <p
                 className="text-[9px] font-black uppercase tracking-[0.4em] mb-5"
@@ -252,7 +286,6 @@ export default function SobreMi() {
               </h2>
             </div>
 
-            {/* Cita con card suave — más presencia que solo un borde */}
             <motion.div
               whileHover={{ x: 6 }}
               transition={{ duration: 0.22 }}
@@ -263,7 +296,6 @@ export default function SobreMi() {
                 borderLeft: "3px solid color-mix(in srgb, var(--primary) 35%, transparent)",
               }}
             >
-              {/* Comilla decorativa */}
               <span
                 className="absolute top-3 left-5 text-5xl font-black leading-none select-none"
                 style={{ color: "var(--primary)", opacity: 0.08, fontFamily: "serif" }}
