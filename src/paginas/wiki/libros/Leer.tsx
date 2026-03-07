@@ -28,7 +28,7 @@ type Segment =
   | { type: "img"; url: string; caption?: string }
   | { type: "float"; word: string; url: string; caption?: string }
   | { type: "sound"; url: string; volume: number }
-  | { type: "drop"; word: string; entidadTipo: "item" | "criatura"; entidadId: string; entidadNombre: string }
+  | { type: "drop"; word: string; entidadTipo: "item" | "criatura" | "personaje"; entidadId: string; entidadNombre: string }
   | { type: "choice"; label: string; target: string }
   | { type: "use"; word: string; itemId: string; targetSuccess: string; targetFail?: string }
   | { type: "section"; id: string; label?: string };
@@ -105,7 +105,7 @@ function parseContenido(texto: string): Segment[] {
     else if (kind === "drop") segs.push({
       type: "drop",
       word: parts[0],
-      entidadTipo: (parts[1] as "item" | "criatura"),
+      entidadTipo: (parts[1] as "item" | "criatura" | "personaje"),
       entidadId: parts[2],
       entidadNombre: parts[3] ?? parts[0],
     });
