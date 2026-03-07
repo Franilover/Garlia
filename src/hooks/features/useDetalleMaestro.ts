@@ -116,6 +116,13 @@ export function useDetalleMaestro(
       delete payload.relaciones;  // relación separada
       delete payload.variantes;   // relación separada
 
+      // Eliminamos el campo de texto que NO corresponde a esta tabla
+      if (tabla === "personajes") {
+        delete payload.descripcion;
+      } else {
+        delete payload.sobre;
+      }
+
       let finalId = data?.id;
 
       if (!finalId) {

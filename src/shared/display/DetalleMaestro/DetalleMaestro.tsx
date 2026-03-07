@@ -26,11 +26,12 @@ export default function DetalleMaestro({
 
   useEffect(() => {
     if (isNew) {
-      setInternalData({ nombre: "", descripcion: "", sobre: "", id: null });
+      const campoTexto = tabla === "personajes" ? "sobre" : "descripcion";
+      setInternalData({ nombre: "", [campoTexto]: "", id: null });
     } else {
       setInternalData(data);
     }
-  }, [data, isNew]);
+  }, [data, isNew, tabla]);
 
   if (!isOpen) return null;
 
