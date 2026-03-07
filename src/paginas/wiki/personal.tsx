@@ -311,7 +311,7 @@ export default function Personal({ datos }: PersonalProps) {
               "{datos.username}"
             </h1>
             <p className="text-[10px] font-black text-primary/40 uppercase tracking-[0.3em]">
-              "{datos.status || "Explorador de Franilover"}"
+              "{datos.status || "Enciclopedia"}"
             </p>
           </div>
         </section>
