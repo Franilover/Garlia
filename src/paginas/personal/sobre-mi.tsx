@@ -117,9 +117,8 @@ export default function SobreMi() {
               className="text-2xl md:text-4xl leading-[1.4] font-light italic max-w-2xl"
               style={{ color: "var(--primary)", opacity: 0.88 }}
             >
-              Bienvenido a mi pequeño jardín digital. Refleja temas que considero
-              importantes a través de personajes basados en quienes han dejado
-              una marca en mí.
+              Bienvenido a mi pequeño jardín digital. Uso este espacio para compartir mis hobbys y
+              proyectos: Mi mayor proyecto es "Garden of Sins" el cual puedes ver en el icono de la flor.
             </p>
 
             {/* Detalle decorativo inferior */}
@@ -269,8 +268,12 @@ export default function SobreMi() {
                 className="relative text-lg md:text-xl font-light italic leading-relaxed"
                 style={{ color: "var(--primary)", opacity: 0.7 }}
               >
-                Cada flor de este jardín está basada en una experiencia
-                o emoción que necesito quitarme de encima.
+                Este proyecto comenzo como una forma de compartir experiencias que no era capas de expresar verbalmente
+                y a la vez explorar nuevas formas de arte. 
+                Luego se convirtio en algo mas grande. Ya no era solo mi historia, era un mundo entero que necesitaba 
+                sacar de mi mente. Los personajes de este mundo surgieron en base a personas que han dejado una marca
+                en mi. Y pese a que los temas de esta historia son recurrentes en la actualidad, y muchos aconteciemtos
+                estan basados en ciertos periodos historicos todo lo contado en estas historias es ficticio.  
               </p>
             </motion.div>
 
