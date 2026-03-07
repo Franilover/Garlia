@@ -116,7 +116,7 @@ export default function SobreMi() {
               style={{ color: "var(--primary)", opacity: 0.2 }}
             >
               <div className="h-px w-10" style={{ background: "currentColor" }} />
-              <span className="text-[8px] font-black uppercase tracking-[0.5em]">2024</span>
+              <span className="text-[8px] font-black uppercase tracking-[0.5em]">2025</span>
               <div className="h-px w-10" style={{ background: "currentColor" }} />
             </div>
 
