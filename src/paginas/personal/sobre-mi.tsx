@@ -172,7 +172,7 @@ export default function SobreMi() {
                     {...fade(0.28 + i * 0.07)}
                     whileHover={{ y: -4 }}
                     transition={{ duration: 0.22 }}
-                    className="group relative flex flex-col gap-5 p-7 overflow-hidden cursor-default"
+                    className="group relative flex items-center gap-4 p-6 overflow-hidden cursor-default"
                     style={{
                       background: "var(--white-custom)",
                       borderRadius: "var(--radius-card)",
@@ -181,7 +181,7 @@ export default function SobreMi() {
                     }}
                   >
                     <div
-                      className="w-10 h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                      className="shrink-0 w-10 h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
                       style={{
                         borderRadius: "var(--radius-btn)",
                         background: "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -191,7 +191,7 @@ export default function SobreMi() {
                       <Icon size={17} strokeWidth={1.5} style={{ opacity: 0.6 }} />
                     </div>
 
-                    <div className="relative z-10 space-y-1">
+                    <div className="relative z-10 space-y-0.5 text-left">
                       <p
                         className="text-[8px] font-black uppercase tracking-[0.35em]"
                         style={{ color: "var(--primary)", opacity: 0.28 }}
@@ -206,35 +206,12 @@ export default function SobreMi() {
                       className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 ease-out rounded-full"
                       style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
                     />
-
-                    {tool.num === "03" && (
-                      <div className="absolute top-7 right-7 flex items-end gap-[3px] opacity-20 group-hover:opacity-40 transition-opacity">
-                        {[5, 9, 7, 11, 6].map((h, j) => (
-                          <div
-                            key={j}
-                            className="w-[2.5px] rounded-full"
-                            style={{
-                              height: `${h}px`,
-                              background: "var(--primary)",
-                              animation: `_eq${j} ${1.2 + j * 0.1}s ease-in-out infinite`,
-                              animationDelay: `${j * 0.15}s`,
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
                   </motion.div>
                 );
               })}
             </div>
 
-            <style>{`
-              @keyframes _eq0 { 0%,100%{height:5px}  50%{height:11px} }
-              @keyframes _eq1 { 0%,100%{height:9px}  50%{height:4px}  }
-              @keyframes _eq2 { 0%,100%{height:7px}  50%{height:13px} }
-              @keyframes _eq3 { 0%,100%{height:11px} 50%{height:5px}  }
-              @keyframes _eq4 { 0%,100%{height:6px}  50%{height:10px} }
-            `}</style>
+
           </motion.section>
 
           {/* ══════════════════════════════
