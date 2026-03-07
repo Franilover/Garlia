@@ -9,7 +9,6 @@ const fade = (delay = 0) => ({
   transition: { duration: 0.55, delay, ease: [0.25, 0.1, 0.25, 1] as any },
 });
 
-/* ─── Datos de herramientas ─── */
 const TOOLS = [
   { num: "01", label: "Digitales",  title: "Linux & Krita",       icon: Monitor },
   { num: "02", label: "Analogas",  title: "Acuarelas & Acrílico", icon: Droplets },
@@ -40,9 +39,6 @@ export default function SobreMi() {
     <div className="w-full bg-bg-main min-h-screen selection:bg-primary/10">
       <main className="max-w-4xl mx-auto px-6 pb-40 pt-20 md:pt-36">
 
-        {/* ══════════════════════════════
-            CABECERA
-        ══════════════════════════════ */}
         <header className="mb-24 md:mb-32">
 
           <motion.p
@@ -80,9 +76,6 @@ export default function SobreMi() {
 
         <div className="space-y-24 md:space-y-32">
 
-          {/* ══════════════════════════════
-              § 1 · MI ATELIER — rediseñado
-          ══════════════════════════════ */}
           <motion.section
             {...fade(0.18)}
             className="relative flex flex-col items-center text-center py-16 md:py-20 px-8 md:px-16 overflow-hidden"
@@ -93,7 +86,6 @@ export default function SobreMi() {
               boxShadow: "var(--shadow-card)",
             }}
           >
-            {/* Línea decorativa superior */}
             <motion.div
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
@@ -102,7 +94,6 @@ export default function SobreMi() {
               style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
             />
 
-            {/* Etiqueta */}
             <div
               className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.5em] mb-6"
               style={{ color: "var(--primary)", opacity: 0.35 }}
@@ -112,7 +103,6 @@ export default function SobreMi() {
               <Heart size={10} strokeWidth={2.5} />
             </div>
 
-            {/* Texto principal — grande y protagonista */}
             <p
               className="text-2xl md:text-4xl leading-[1.4] font-light italic max-w-2xl"
               style={{ color: "var(--primary)", opacity: 0.88 }}
@@ -121,7 +111,6 @@ export default function SobreMi() {
               proyectos: Mi mayor proyecto es "Garden of Sins" el cual puedes ver en el icono de la flor.
             </p>
 
-            {/* Detalle decorativo inferior */}
             <div
               className="flex items-center gap-3 mt-10"
               style={{ color: "var(--primary)", opacity: 0.2 }}
@@ -131,7 +120,6 @@ export default function SobreMi() {
               <div className="h-px w-10" style={{ background: "currentColor" }} />
             </div>
 
-            {/* Línea decorativa inferior */}
             <motion.div
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
@@ -140,7 +128,6 @@ export default function SobreMi() {
               style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
             />
 
-            {/* Acento de color en bordes laterales */}
             <div
               className="absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-full"
               style={{ background: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
@@ -151,9 +138,6 @@ export default function SobreMi() {
             />
           </motion.section>
 
-          {/* ══════════════════════════════
-              § 2 · HERRAMIENTAS
-          ══════════════════════════════ */}
           <motion.section {...fade(0.24)} className="flex flex-col items-center text-center">
             <div
               className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.4em] mb-10"
@@ -213,9 +197,6 @@ export default function SobreMi() {
 
           </motion.section>
 
-          {/* ══════════════════════════════
-              § 3 · GARDEN OF SINS
-          ══════════════════════════════ */}
           <motion.section {...fade(0.3)} className="space-y-12 flex flex-col items-center text-center">
 
             <div className="flex items-center gap-5 w-full">
