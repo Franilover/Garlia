@@ -1,12 +1,18 @@
 "use client";
 import React, { useState } from "react";
-import { Palette, Heart, Sparkles, ArrowRight } from "lucide-react";
+import { Palette, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 
+const fade = (delay = 0) => ({
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.5, delay, ease: [0.25, 0.1, 0.25, 1] as any },
+});
+
 export default function SobreMi() {
+  const FORMSPREE_ID = "xvzpjdgr";
   const [enviado, setEnviado] = useState(false);
   const [loading, setLoading] = useState(false);
-  const FORMSPREE_ID = "xvzpjdgr";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -14,202 +20,274 @@ export default function SobreMi() {
     const form = e.currentTarget;
     const data = new FormData(form);
     try {
-      const response = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
-        method: "POST", body: data, headers: { "Accept": "application/json" }
+      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+        method: "POST", body: data, headers: { Accept: "application/json" },
       });
-      if (response.ok) { setEnviado(true); form.reset(); }
+      if (res.ok) { setEnviado(true); form.reset(); }
       else alert("Hubo un error al enviar el mensaje.");
     } catch { alert("Error de conexión."); }
     finally { setLoading(false); }
   };
 
-  const sectionTag = "text-[10px] font-bold uppercase tracking-[0.4em] flex items-center gap-3 mb-8 opacity-40 text-primary";
+  const sectionTag = "text-[9px] font-black uppercase tracking-[0.4em] flex items-center gap-2";
 
   return (
-    <div className="w-full bg-bg-main min-h-screen text-primary selection:bg-primary/10">
-      <main className="max-w-4xl mx-auto px-6 pb-32 pt-24 md:pt-40 font-sans">
+    <div className="w-full bg-bg-main min-h-screen text-foreground selection:bg-primary/10">
+      <main className="max-w-3xl mx-auto px-6 pb-40 pt-24 md:pt-44">
 
-        {/* CABECERA */}
-        <header className="mb-24">
+        {/* ── CABECERA ── */}
+        <header className="mb-28">
+          <motion.p {...fade(0)} className={sectionTag} style={{ color: "var(--primary)", opacity: 0.3 }}>
+            Jardín digital
+          </motion.p>
+
           <motion.h1
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none"
+            {...fade(0.08)}
+            className="text-[clamp(3.5rem,12vw,7rem)] font-black italic tracking-tighter uppercase leading-[0.88] mt-6"
+            style={{ color: "var(--primary)" }}
           >
-            Sobre Mi
+            Sobre<br />Mí
           </motion.h1>
-          <div className="h-1.5 w-20 bg-primary mt-8 opacity-20 rounded-full" />
+
+          {/* Línea animada al cargar */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] as any }}
+            className="mt-10 h-px w-24 origin-left"
+            style={{ background: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+          />
         </header>
 
-        <div className="space-y-24">
+        <div className="space-y-28">
 
-          {/* SECCIÓN 1: MI ATELIER */}
-          <section>
-            <div className="card-main !bg-white-custom p-8 md:p-16">
-              <h3 className={sectionTag}>
-                <Heart size={14} /> Mi Atelier
-              </h3>
-              <p className="text-2xl md:text-3xl leading-snug font-light italic">
-                Bienvenido a mi pequeño jardín digital. Este refleja temas que considero importantes a través de personajes basados en quienes han dejado una marca en mí.
+          {/* ── § 1: MI ATELIER ── */}
+          <motion.section {...fade(0.15)}>
+            <p className={sectionTag} style={{ color: "var(--primary)", opacity: 0.3, marginBottom: "2rem" }}>
+              <Heart size={11} /> Mi Atelier
+            </p>
+            <p
+              className="text-2xl md:text-3xl leading-[1.45] font-light italic"
+              style={{ color: "var(--primary)", opacity: 0.8 }}
+            >
+              Bienvenido a mi pequeño jardín digital. Refleja temas que considero importantes
+              a través de personajes basados en quienes han dejado una marca en mí.
+            </p>
+          </motion.section>
+
+          {/* ── § 2: HERRAMIENTAS ── */}
+          <motion.section {...fade(0.2)}>
+            <p className={sectionTag} style={{ color: "var(--primary)", opacity: 0.3, marginBottom: "2rem" }}>
+              <Palette size={11} /> Herramientas
+            </p>
+
+            <div
+              className="grid grid-cols-1 md:grid-cols-3 overflow-hidden"
+              style={{
+                borderRadius: "var(--radius-card)",
+                border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              {/* — Digital — */}
+              <Tool
+                label="Digital"
+                title="Linux & Krita"
+                icon={
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+                  </svg>
+                }
+                borderRight
+              />
+
+              {/* — Análogo (invertida) — */}
+              <ToolInverted
+                label="Análogo"
+                title={"Acuarelas\n& Acrílico"}
+                icon={
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                }
+                borderRight
+              />
+
+              {/* — Sonoro — */}
+              <Tool
+                label="Sonoro"
+                title="Mucha Música"
+                icon={<EqBars />}
+              />
+            </div>
+          </motion.section>
+
+          {/* ── § 3: GARDEN OF SINS ── */}
+          <motion.section {...fade(0.25)} className="space-y-10">
+            {/* Divisor con número romano */}
+            <div className="flex items-center gap-4">
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+              <span
+                className="text-[8px] font-black uppercase tracking-[0.5em]"
+                style={{ color: "var(--primary)", opacity: 0.18 }}
+              >III</span>
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+            </div>
+
+            <h2
+              className="text-[clamp(2.5rem,8vw,5rem)] font-black italic uppercase tracking-tighter leading-[0.88]"
+              style={{ color: "var(--primary)" }}
+            >
+              Garden<br />of Sins
+            </h2>
+
+            {/* Cita — borde lateral liviano, sin card pesada */}
+            <motion.blockquote
+              whileHover={{ x: 4 }}
+              transition={{ duration: 0.2 }}
+              className="pl-5 py-1"
+              style={{ borderLeft: "2px solid color-mix(in srgb, var(--primary) 28%, transparent)" }}
+            >
+              <p
+                className="text-lg md:text-xl font-light italic leading-relaxed"
+                style={{ color: "var(--primary)", opacity: 0.65 }}
+              >
+                "Cada flor de este jardín está basada en una experiencia o emoción
+                que necesito quitarme de encima."
               </p>
-            </div>
-          </section>
-
-          {/* SECCIÓN 2: HERRAMIENTAS */}
-          <section className="space-y-10">
-            <h3 className={sectionTag}>
-              <Palette size={14} /> Herramientas
-            </h3>
-
-            {/* Grid unificado — sin gap, bordes internos */}
-            <div className="grid grid-cols-1 md:grid-cols-3 border border-primary/10 rounded-[2rem] overflow-hidden bg-white-custom shadow-sm">
-
-              {/* ── Tarjeta 1: Digital ── */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-                className="relative group flex flex-col justify-between p-10 border-b md:border-b-0 md:border-r border-primary/10 overflow-hidden cursor-default"
-              >
-                {/* Número decorativo de fondo */}
-                <span className="absolute -top-3 -right-1 text-[7rem] font-black text-primary/[0.04] select-none leading-none pointer-events-none">
-                  01
-                </span>
-                {/* Glow hover */}
-                <div className="absolute inset-0 bg-primary/[0.03] opacity-0 group-hover:opacity-100 transition-all duration-500" />
-
-                <div className="relative z-10 flex flex-col gap-8">
-                  {/* Ícono */}
-                  <div className="w-12 h-12 rounded-xl border border-primary/15 bg-bg-main flex items-center justify-center group-hover:border-primary/30 group-hover:scale-110 transition-all duration-300">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary/60">
-                      <rect x="2" y="3" width="20" height="14" rx="2"/>
-                      <path d="M8 21h8M12 17v4"/>
-                    </svg>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <p className="font-black text-[9px] uppercase tracking-[0.35em] text-primary/30">Digital</p>
-                    <h4 className="font-black text-xl leading-tight tracking-tight text-primary">Linux<br/>& Krita</h4>
-                  </div>
-
-                  <p className="text-[11px] leading-relaxed text-primary/40 font-medium">
-                    Ilustración vectorial y rasterizada. Control total del entorno creativo.
-                  </p>
-                </div>
-
-                {/* Línea inferior animada en hover */}
-                <div className="relative z-10 mt-8 h-px bg-primary/10 overflow-hidden">
-                  <div className="absolute inset-y-0 left-0 w-0 group-hover:w-full bg-primary/30 transition-all duration-700 ease-out" />
-                </div>
-              </motion.div>
-
-              {/* ── Tarjeta 2: Análogo (destacada con fondo primary) ── */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.12 }}
-                className="relative group flex flex-col justify-between p-10 border-b md:border-b-0 md:border-r border-primary/20 overflow-hidden cursor-default bg-primary"
-              >
-                <span className="absolute -top-3 -right-1 text-[7rem] font-black text-white/[0.06] select-none leading-none pointer-events-none">
-                  02
-                </span>
-                <div className="absolute inset-0 bg-white/[0.05] opacity-0 group-hover:opacity-100 transition-all duration-500" />
-
-                <div className="relative z-10 flex flex-col gap-8">
-                  <div className="w-12 h-12 rounded-xl border border-white/20 bg-white/10 flex items-center justify-center group-hover:border-white/40 group-hover:scale-110 transition-all duration-300">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/70">
-                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <p className="font-black text-[9px] uppercase tracking-[0.35em]" style={{ color: "var(--btn-text)", opacity: 0.5 }}>
-                      Análogo
-                    </p>
-                    <h4 className="font-black text-xl leading-tight tracking-tight" style={{ color: "var(--btn-text)" }}>
-                      Acuarelas<br/>& Acrílico
-                    </h4>
-                  </div>
-
-                  <p className="text-[11px] leading-relaxed font-medium" style={{ color: "var(--btn-text)", opacity: 0.5 }}>
-                    Texturas orgánicas. El error como parte del proceso.
-                  </p>
-                </div>
-
-                <div className="relative z-10 mt-8 h-px bg-white/10 overflow-hidden">
-                  <div className="absolute inset-y-0 left-0 w-0 group-hover:w-full bg-white/30 transition-all duration-700 ease-out" />
-                </div>
-              </motion.div>
-
-              {/* ── Tarjeta 3: Sonoro ── */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="relative group flex flex-col justify-between p-10 overflow-hidden cursor-default"
-              >
-                <span className="absolute -top-3 -right-1 text-[7rem] font-black text-primary/[0.04] select-none leading-none pointer-events-none">
-                  03
-                </span>
-                <div className="absolute inset-0 bg-primary/[0.03] opacity-0 group-hover:opacity-100 transition-all duration-500" />
-
-                <div className="relative z-10 flex flex-col gap-8">
-                  {/* Barras de ecualizador animadas */}
-                  <div className="w-12 h-12 rounded-xl border border-primary/15 bg-bg-main flex items-center justify-center group-hover:border-primary/30 group-hover:scale-110 transition-all duration-300">
-                    <div className="flex items-end gap-[3px]">
-                      {[9, 15, 12, 18, 9].map((h, i) => (
-                        <div
-                          key={i}
-                          className="w-[3px] bg-primary/40 rounded-full group-hover:bg-primary/70 transition-colors"
-                          style={{
-                            height: `${h}px`,
-                            animation: `eq${i} 1.4s ease-in-out infinite`,
-                            animationDelay: `${i * 0.18}s`,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <p className="font-black text-[9px] uppercase tracking-[0.35em] text-primary/30">Sonoro</p>
-                    <h4 className="font-black text-xl leading-tight tracking-tight text-primary">Mucha<br/>Música</h4>
-                  </div>
-
-                  <p className="text-[11px] leading-relaxed text-primary/40 font-medium">
-                    Cada proyecto nace de un estado de ánimo sonoro.
-                  </p>
-                </div>
-
-                <div className="relative z-10 mt-8 h-px bg-primary/10 overflow-hidden">
-                  <div className="absolute inset-y-0 left-0 w-0 group-hover:w-full bg-primary/30 transition-all duration-700 ease-out" />
-                </div>
-              </motion.div>
-
-            </div>
-
-            {/* Keyframes para barras de ecualizador */}
-            <style>{`
-              @keyframes eq0 { 0%,100%{height:9px}  50%{height:16px} }
-              @keyframes eq1 { 0%,100%{height:15px} 50%{height:6px}  }
-              @keyframes eq2 { 0%,100%{height:12px} 50%{height:18px} }
-              @keyframes eq3 { 0%,100%{height:18px} 50%{height:8px}  }
-              @keyframes eq4 { 0%,100%{height:9px}  50%{height:13px} }
-            `}</style>
-          </section>
-
-          {/* SECCIÓN 3: GARDEN OF SINS */}
-          <section className="space-y-8 border-t border-primary/10 pt-16">
-            <h2 className="text-4xl md:text-6xl font-black italic text-primary uppercase tracking-tighter">Garden of Sins</h2>
-            <div className="max-w-2xl space-y-6 text-lg md:text-xl leading-relaxed font-light opacity-90">
-              <div className="p-8 bg-white-custom rounded-[2.5rem] border-l-8 border-primary shadow-sm italic font-medium">
-                &quot;Cada flor de este jardín está basada en una experiencia o emoción que necesito quitarme de encima.&quot;
-              </div>
-            </div>
-          </section>
+            </motion.blockquote>
+          </motion.section>
 
         </div>
       </main>
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   SUB-COMPONENTES
+───────────────────────────────────────────── */
+
+function Tool({
+  label, title, icon, borderRight = false,
+}: {
+  label: string;
+  title: string;
+  icon: React.ReactNode;
+  borderRight?: boolean;
+}) {
+  return (
+    <motion.div
+      whileHover={{ backgroundColor: "color-mix(in srgb, var(--primary) 5%, var(--white-custom))" } as any}
+      className="group flex flex-col gap-6 p-8 transition-colors duration-300"
+      style={{
+        background: "var(--white-custom)",
+        borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
+        ...(borderRight ? { borderRight: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)" } : {}),
+      }}
+    >
+      {/* Ícono */}
+      <div
+        className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+          color: "var(--primary)",
+          opacity: 1,
+        }}
+      >
+        <span style={{ opacity: 0.55 }}>{icon}</span>
+      </div>
+
+      {/* Texto */}
+      <div>
+        <p
+          className="text-[8px] font-black uppercase tracking-[0.35em] mb-1.5"
+          style={{ color: "var(--primary)", opacity: 0.28 }}
+        >{label}</p>
+        <h4
+          className="font-black text-sm tracking-tight leading-snug whitespace-pre-line"
+          style={{ color: "var(--primary)" }}
+        >{title}</h4>
+      </div>
+
+      {/* Línea animada */}
+      <div className="h-px w-full overflow-hidden mt-auto" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+        <div
+          className="h-full w-0 group-hover:w-full transition-all duration-600 ease-out"
+          style={{ background: "color-mix(in srgb, var(--primary) 22%, transparent)" }}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+function ToolInverted({
+  label, title, icon, borderRight = false,
+}: {
+  label: string;
+  title: string;
+  icon: React.ReactNode;
+  borderRight?: boolean;
+}) {
+  return (
+    <motion.div
+      whileHover={{ opacity: 0.9 } as any}
+      className="group flex flex-col gap-6 p-8 transition-opacity duration-300"
+      style={{
+        background: "var(--primary)",
+        ...(borderRight ? { borderRight: "var(--border-width) solid color-mix(in srgb, var(--btn-text) 10%, transparent)" } : {}),
+        borderBottom: "var(--border-width) solid color-mix(in srgb, var(--btn-text) 10%, transparent)",
+      }}
+    >
+      <div
+        className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+        style={{ background: "color-mix(in srgb, var(--btn-text) 10%, transparent)", color: "var(--btn-text)" }}
+      >
+        <span style={{ opacity: 0.65 }}>{icon}</span>
+      </div>
+
+      <div>
+        <p
+          className="text-[8px] font-black uppercase tracking-[0.35em] mb-1.5"
+          style={{ color: "var(--btn-text)", opacity: 0.38 }}
+        >{label}</p>
+        <h4
+          className="font-black text-sm tracking-tight leading-snug whitespace-pre-line"
+          style={{ color: "var(--btn-text)" }}
+        >{title}</h4>
+      </div>
+
+      <div
+        className="h-px w-full mt-auto"
+        style={{ background: "color-mix(in srgb, var(--btn-text) 12%, transparent)" }}
+      />
+    </motion.div>
+  );
+}
+
+function EqBars() {
+  return (
+    <>
+      <div className="flex items-end gap-[2.5px]" style={{ height: "14px" }}>
+        {[5, 9, 7, 11, 6].map((h, i) => (
+          <div
+            key={i}
+            className="w-[2.5px] rounded-full"
+            style={{
+              height: `${h}px`,
+              background: "currentColor",
+              animation: `_eq${i} ${1.2 + i * 0.1}s ease-in-out infinite`,
+              animationDelay: `${i * 0.15}s`,
+            }}
+          />
+        ))}
+      </div>
+      <style>{`
+        @keyframes _eq0 { 0%,100%{height:5px}  50%{height:11px} }
+        @keyframes _eq1 { 0%,100%{height:9px}  50%{height:4px}  }
+        @keyframes _eq2 { 0%,100%{height:7px}  50%{height:13px} }
+        @keyframes _eq3 { 0%,100%{height:11px} 50%{height:5px}  }
+        @keyframes _eq4 { 0%,100%{height:6px}  50%{height:10px} }
+      `}</style>
+    </>
   );
 }
