@@ -39,31 +39,30 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
 
     const userId = user.id;
 
+    // Tabla y columna según tipo
+    const tablaMap = {
+      item:      { tabla: "descubrimientos_items",     col: "item_id" },
+      criatura:  { tabla: "descubrimientos_criaturas", col: "criatura_id" },
+      personaje: { tabla: "descubrimientos_personajes", col: "personaje_id" },
+    };
+    const { tabla, col } = tablaMap[tipo];
+
     try {
-      // 2. Verificar si ya existe el descubrimiento en la tabla correspondiente
+      // 2. Verificar si ya existe
       const { data: existing, error: checkError } = await supabase
-        .from("descubrimientos")
+        .from(tabla)
         .select("id")
         .eq("perfil_id", userId)
-        .eq("entidad_id", entidadId)
-        .eq("tipo", tipo)
+        .eq(col, entidadId)
         .maybeSingle();
 
       if (checkError) throw checkError;
+      if (existing) { setState("already"); return; }
 
-      if (existing) {
-        setState("already");
-        return;
-      }
-
-      // 3. Insertar el nuevo descubrimiento vinculado al ID de Auth
+      // 3. Insertar
       const { error: insertError } = await supabase
-        .from("descubrimientos")
-        .insert({
-          perfil_id: userId,
-          entidad_id: entidadId,
-          tipo: tipo
-        });
+        .from(tabla)
+        .insert({ perfil_id: userId, [col]: entidadId });
 
       if (insertError) throw insertError;
 
