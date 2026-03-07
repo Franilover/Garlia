@@ -28,7 +28,7 @@ interface QueryOptions {
 }
 
 export const personajesQueries = {
-  getAll: async (opciones: QueryOptions = {}) => {
+  getAll: async (opciones: QueryOptions = { order: { campo: "nombre", asc: true } }) => {
     let query = supabase
       .from("personajes")
       .select("*");
