@@ -15,7 +15,7 @@ const montserrat = Montserrat({
 
 export const metadata = {
   title: 'Franilover',
-  description: 'Mi Nexus personal',
+  description: 'Mi pequeño jardin digital',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
