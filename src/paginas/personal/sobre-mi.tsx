@@ -11,27 +11,9 @@ const fade = (delay = 0) => ({
 
 /* ─── Datos de herramientas ─── */
 const TOOLS = [
-  {
-    num: "01",
-    label: "Digital",
-    title: "Linux & Krita",
-    icon: Monitor,
-    desc: "Ilustración vectorial y rasterizada",
-  },
-  {
-    num: "02",
-    label: "Análogo",
-    title: "Acuarelas & Acrílico",
-    icon: Droplets,
-    desc: "Textura orgánica, el error como proceso",
-  },
-  {
-    num: "03",
-    label: "Sonoro",
-    title: "Mucha Música",
-    icon: Music,
-    desc: "Cada pieza nace de un estado de ánimo",
-  },
+  { num: "01", label: "Digital",  title: "Linux & Krita",       icon: Monitor },
+  { num: "02", label: "Análogo",  title: "Acuarelas & Acrílico", icon: Droplets },
+  { num: "03", label: "Sonoro",   title: "Mucha Música",         icon: Music },
 ];
 
 export default function SobreMi() {
@@ -170,14 +152,6 @@ export default function SobreMi() {
                       boxShadow: "var(--shadow-card)",
                     }}
                   >
-                    {/* Número enorme de fondo */}
-                    <span
-                      className="absolute -bottom-4 -right-2 text-[6rem] font-black leading-none select-none pointer-events-none transition-opacity duration-300 group-hover:opacity-100"
-                      style={{ color: "var(--primary)", opacity: 0.04, letterSpacing: "-0.05em" }}
-                    >
-                      {tool.num}
-                    </span>
-
                     {/* Ícono con fondo sutil */}
                     <div
                       className="w-10 h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
@@ -200,10 +174,6 @@ export default function SobreMi() {
                         className="font-black text-base leading-snug"
                         style={{ color: "var(--primary)", letterSpacing: "-0.02em" }}
                       >{tool.title}</h4>
-                      <p
-                        className="text-[11px] leading-relaxed pt-1"
-                        style={{ color: "var(--primary)", opacity: 0.4 }}
-                      >{tool.desc}</p>
                     </div>
 
                     {/* Acento de color en el borde inferior al hover */}
