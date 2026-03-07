@@ -2,13 +2,6 @@ import { supabase } from "@/lib/api/client/supabase";
 
 
 
-interface Relacion {
-  id: string;
-  personaje_id: string;
-  
-  [key: string]: any; 
-}
-
 interface Cancion {
   id: string;
   titulo: string;
@@ -20,7 +13,7 @@ interface Personaje {
   id: string;
   nombre: string;
   visible: boolean;
-  relaciones?: Relacion[];
+  relaciones?: never;
   canciones?: Cancion[];
   [key: string]: any; 
 }
@@ -38,10 +31,7 @@ export const personajesQueries = {
   getAll: async (opciones: QueryOptions = {}) => {
     let query = supabase
       .from("personajes")
-      .select(`
-        *,
-        relaciones:relaciones!personaje_id (*)
-      `); 
+      .select("*");
     
     if (opciones.order) {
       query = query.order(opciones.order.campo, { 
@@ -79,10 +69,7 @@ export const personajesQueries = {
 
     const { data: personaje, error: pError } = await supabase
       .from("personajes")
-      .select(`
-        *,
-        relaciones:relaciones!personaje_id (*)
-      `)
+      .select("*")
       .eq("id", id)
       .maybeSingle();
 
@@ -146,17 +133,10 @@ export const personajesQueries = {
       }
     }
 
-    
-    const { data: relacionesRecientes } = await supabase
-      .from("relaciones")
-      .select("*")
-      .eq("personaje_id", id);
-
     return {
       data: {
         ...personajeActualizado,
-        relaciones: relacionesRecientes || [],
-        canciones: canciones || [] 
+        canciones: canciones || []
       } as Personaje,
       error: null
     }; 
