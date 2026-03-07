@@ -217,36 +217,59 @@ export default function Personal({ datos }: PersonalProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      // Traer todos los descubrimientos del usuario
+      const { data: descRows, error } = await supabase
         .from("descubrimientos")
-        .select(`
-          tipo,
-          entidad_id,
-          fecha_descubrimiento,
-          item:items!left(nombre, categoria, imagen_url, descripcion, rareza),
-          criatura:criaturas!left(nombre, habitat, alma, imagen_url, descripcion),
-          personaje:personajes!left(nombre, reino, especie, img_url, descripcion)
-        `)
+        .select("tipo, entidad_id, fecha_descubrimiento")
         .eq("perfil_id", user.id);
 
-      if (error) { console.error("[Personal] Error descubrimientos:", error); return; }
+      if (error || !descRows?.length) return;
 
-      // Aplanar: mezclar los datos de la entidad en el objeto descubrimiento
-      const planos: Descubrimiento[] = (data ?? []).map((d: any) => {
-        const entidad = d.item ?? d.criatura ?? d.personaje ?? {};
+      // Agrupar IDs por tipo
+      const ids = {
+        item:      descRows.filter(d => d.tipo === "item").map(d => d.entidad_id),
+        criatura:  descRows.filter(d => d.tipo === "criatura").map(d => d.entidad_id),
+        personaje: descRows.filter(d => d.tipo === "personaje").map(d => d.entidad_id),
+      };
+
+      // 3 queries en paralelo, solo si hay IDs de ese tipo
+      const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
+        ids.item.length
+          ? supabase.from("items").select("id, nombre, categoria, imagen_url, descripcion, rareza").in("id", ids.item)
+          : { data: [] },
+        ids.criatura.length
+          ? supabase.from("criaturas").select("id, nombre, habitat, alma, imagen_url, descripcion").in("id", ids.criatura)
+          : { data: [] },
+        ids.personaje.length
+          ? supabase.from("personajes").select("id, nombre, reino, especie, img_url, descripcion").in("id", ids.personaje)
+          : { data: [] },
+      ]);
+
+      // Mapas id → datos para lookup O(1)
+      const itemMap      = Object.fromEntries((itemsRes.data ?? []).map((x: any) => [x.id, x]));
+      const criaturaMap  = Object.fromEntries((criaturasRes.data ?? []).map((x: any) => [x.id, x]));
+      const personajeMap = Object.fromEntries((personajesRes.data ?? []).map((x: any) => [x.id, x]));
+
+      // Combinar descubrimiento + datos de la entidad
+      const planos: Descubrimiento[] = descRows.map((d) => {
+        const entidad =
+          d.tipo === "item"      ? itemMap[d.entidad_id] :
+          d.tipo === "criatura"  ? criaturaMap[d.entidad_id] :
+          personajeMap[d.entidad_id] ?? {};
+
         return {
           tipo: d.tipo,
           entidad_id: d.entidad_id,
           fecha_descubrimiento: d.fecha_descubrimiento,
-          nombre: entidad.nombre,
-          descripcion: entidad.descripcion,
-          imagen_url: entidad.imagen_url ?? entidad.img_url,
-          categoria: entidad.categoria,
-          rareza: entidad.rareza,
-          habitat: entidad.habitat,
-          alma: entidad.alma,
-          reino: entidad.reino,
-          especie: entidad.especie,
+          nombre:      entidad?.nombre,
+          descripcion: entidad?.descripcion,
+          imagen_url:  entidad?.imagen_url ?? entidad?.img_url,
+          categoria:   entidad?.categoria,
+          rareza:      entidad?.rareza,
+          habitat:     entidad?.habitat,
+          alma:        entidad?.alma,
+          reino:       entidad?.reino,
+          especie:     entidad?.especie,
         };
       });
 
