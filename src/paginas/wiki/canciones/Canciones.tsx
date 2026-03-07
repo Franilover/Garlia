@@ -43,9 +43,9 @@ const PLANTILLA_NUEVA_CANCION = {
 
 const getEstadoColor = (estado: string) => {
   const colores: Record<string, string> = {
-    TERMINADA: "bg-gradient-to-r from-emerald-500/20 to-emerald-400/10 text-emerald-700 border-emerald-300/30",
-    "EN PROCESO": "bg-gradient-to-r from-amber-500/20 to-amber-400/10 text-amber-700 border-amber-300/30",
-    BORRADOR: "bg-gradient-to-r from-slate-500/20 to-slate-400/10 text-slate-600 border-slate-300/30",
+    TERMINADA: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30",
+    "EN PROCESO": "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30",
+    BORRADOR: "bg-primary/10 text-primary/60 border-primary/20",
   };
   return colores[estado] || colores["BORRADOR"];
 };
@@ -258,7 +258,7 @@ const CancionModal = ({
               {/* HEADER */}
               <div className="flex justify-between items-center mb-10">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary rounded-[var(--radius-btn)] text-white shadow-lg shadow-primary/20">
+                  <div className="p-3 bg-primary rounded-[var(--radius-btn)] shadow-lg shadow-primary/20" style={{ color: "var(--btn-text)" }}>
                     <Edit3 size={20} />
                   </div>
                   <h3 className="text-primary font-black uppercase text-[12px] tracking-[0.4em] italic">
@@ -360,9 +360,10 @@ const CancionModal = ({
                           onClick={() => set("estado", est)}
                           className={`flex-1 py-3 rounded-[var(--radius-btn)] text-[9px] font-black transition-all ${
                             form.estado === est
-                              ? "bg-primary text-white shadow-lg"
+                              ? "bg-primary shadow-lg"
                               : "text-primary/40 hover:bg-primary/5"
                           }`}
+                          style={form.estado === est ? { color: "var(--btn-text)" } : {}}
                         >
                           {est}
                         </button>
@@ -377,8 +378,8 @@ const CancionModal = ({
                         onClick={() => set("visible", !form.visible)}
                         className={`w-full flex items-center justify-between py-4 px-6 rounded-[var(--radius-btn)] border-2 transition-all ${
                           form.visible
-                            ? "border-emerald-500/30 bg-emerald-50/50 text-emerald-700"
-                            : "border-slate-500/30 bg-slate-50/50 text-slate-700"
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                            : "border-primary/20 bg-primary/5 text-primary/60"
                         }`}
                       >
                         <span className="text-[10px] font-black uppercase tracking-widest">
@@ -394,7 +395,8 @@ const CancionModal = ({
                 <div className="flex flex-col sm:flex-row gap-4 pt-6">
                   <button
                     type="submit" disabled={isProcessing}
-                    className="flex-[2] bg-primary text-white py-5 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                    className="flex-[2] bg-primary py-5 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                    style={{ color: "var(--btn-text)" }}
                   >
                     {isProcessing
                       ? <><Loader2 className="animate-spin" size={18} />Guardando...</>
@@ -404,7 +406,7 @@ const CancionModal = ({
                   {!isCreating && (
                     <button
                       type="button" onClick={handleDelete} disabled={isProcessing}
-                      className="flex-1 bg-red-50 text-red-500 py-5 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                      className="flex-1 bg-red-500/10 text-red-500 py-5 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 disabled:opacity-50 border border-red-500/20"
                     >
                       <Trash2 size={18} /> Borrar
                     </button>

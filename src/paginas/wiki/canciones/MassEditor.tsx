@@ -100,12 +100,12 @@ type SaveStatus = "idle" | "draft" | "saving" | "saved" | "error" | "offline";
 
 function SaveStatusPill({ status, isSlow }: { status: SaveStatus; isSlow: boolean }) {
   const config: Record<SaveStatus, { label: string; color: string; icon: React.ReactNode }> = {
-    idle:    { label: "",                  color: "",                                          icon: null },
-    draft:   { label: "Borrador local",   color: "bg-amber-100 text-amber-700 border-amber-200", icon: <AlertTriangle size={12} /> },
-    saving:  { label: isSlow ? "Guardando (red lenta)..." : "Guardando...", color: "bg-blue-100 text-blue-700 border-blue-200", icon: <Loader2 size={12} className="animate-spin" /> },
-    saved:   { label: "Guardado ✓",       color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: <CheckCircle size={12} /> },
-    error:   { label: "Error al guardar", color: "bg-red-100 text-red-700 border-red-200",         icon: <AlertTriangle size={12} /> },
-    offline: { label: "Sin conexión · Borrador guardado", color: "bg-slate-100 text-slate-600 border-slate-200", icon: <WifiOff size={12} /> },
+    idle:    { label: "",                  color: "",                                                    icon: null },
+    draft:   { label: "Borrador local",   color: "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30", icon: <AlertTriangle size={12} /> },
+    saving:  { label: isSlow ? "Guardando (red lenta)..." : "Guardando...", color: "bg-primary/10 text-primary border-primary/20", icon: <Loader2 size={12} className="animate-spin" /> },
+    saved:   { label: "Guardado ✓",       color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30", icon: <CheckCircle size={12} /> },
+    error:   { label: "Error al guardar", color: "bg-red-500/15 text-red-500 border-red-500/30",         icon: <AlertTriangle size={12} /> },
+    offline: { label: "Sin conexión · Borrador guardado", color: "bg-primary/10 text-primary/60 border-primary/20", icon: <WifiOff size={12} /> },
   };
 
   const cfg = config[status];
@@ -171,7 +171,7 @@ function SeccionCard({
       exit={{ opacity: 0, y: -8, scale: 0.97 }}
       className={`rounded-[var(--radius-btn)] border transition-all ${
         isNew
-          ? "border-amber-200 bg-amber-50/50"
+          ? "border-amber-500/30 bg-amber-500/10"
           : "border-primary/10 bg-white-custom"
       } ${expanded ? "shadow-xl shadow-primary/8" : "shadow-sm"}`}
     >
@@ -222,7 +222,7 @@ function SeccionCard({
         {/* Eliminar */}
         <button
           onClick={() => onEliminar(idx)}
-          className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-input)] text-red-400 hover:bg-red-50 active:scale-90 transition-all touch-manipulation flex-shrink-0"
+          className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-input)] text-red-400 hover:bg-red-500/15 active:scale-90 transition-all touch-manipulation flex-shrink-0"
         >
           <Trash2 size={13} />
         </button>
@@ -266,7 +266,7 @@ function SeccionCard({
                     value={splitLetraVal}
                     onChange={(e) => onChange(sec.id, splitLetraKey, e.target.value)}
                     rows={maxRows}
-                    className="w-full bg-[#F5F0F7] border border-primary/15 rounded-[var(--radius-input)] p-4 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/40 transition-all resize-none"
+                    className="w-full bg-primary/5 border border-primary/15 rounded-[var(--radius-input)] p-4 text-primary text-sm italic font-serif leading-relaxed outline-none focus:bg-white-custom focus:border-primary/40 transition-all resize-none"
                     placeholder={`Contenido en ${IDIOMAS.find((i) => i.id === splitTab)?.nombre.toLowerCase()}...`}
                     style={{ fontSize: "16px" }}
                   />
@@ -527,7 +527,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
             <div className="px-4 py-3 md:px-8 md:py-5 flex items-center gap-3">
               {/* Icono + título */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="bg-primary p-2 rounded-[var(--radius-btn)] text-white flex-shrink-0">
+                <div className="bg-primary p-2 rounded-[var(--radius-btn)] flex-shrink-0" style={{ color: "var(--btn-text)" }}>
                   <Layers size={16} />
                 </div>
                 <div className="min-w-0">
@@ -555,7 +555,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
               {/* Cerrar */}
               <button
                 onClick={onClose}
-                className="w-10 h-10 flex items-center justify-center rounded-[var(--radius-btn)] text-primary/30 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90 touch-manipulation flex-shrink-0"
+                className="w-10 h-10 flex items-center justify-center rounded-[var(--radius-btn)] text-primary/30 hover:text-red-500 hover:bg-red-500/15 transition-all active:scale-90 touch-manipulation flex-shrink-0"
               >
                 <X size={20} />
               </button>
@@ -570,9 +570,10 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                     onClick={() => setActiveTab(lang.id)}
                     className={`flex-1 min-w-[3.5rem] py-2.5 rounded-[var(--radius-input)] font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap ${
                       activeTab === lang.id
-                        ? "bg-primary text-white shadow-md"
+                        ? "bg-primary shadow-md"
                         : "text-primary/50 hover:text-primary"
                     }`}
+                    style={activeTab === lang.id ? { color: "var(--btn-text)" } : {}}
                   >
                     {lang.label}
                     <span className="hidden md:inline ml-1 font-normal normal-case opacity-60">
@@ -596,9 +597,10 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                   title="Modo doble idioma"
                   className={`flex items-center gap-1 px-3 py-2.5 rounded-[var(--radius-input)] font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap flex-shrink-0 ${
                     splitMode
-                      ? "bg-accent text-white shadow-md"
+                      ? "bg-accent shadow-md"
                       : "text-primary/50 hover:text-primary"
                   }`}
+                  style={splitMode ? { color: "var(--btn-text)" } : {}}
                 >
                   <Columns size={12} />
                   <span className="hidden md:inline">Split</span>
@@ -618,16 +620,17 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                       <span className="text-[9px] font-black uppercase tracking-widest text-violet-500 whitespace-nowrap flex-shrink-0">
                         2do idioma:
                       </span>
-                      <div className="flex gap-1 bg-violet-50 p-1 rounded-[var(--radius-btn)] border border-violet-200 overflow-x-auto scrollbar-none flex-1">
+                      <div className="flex gap-1 bg-accent/10 p-1 rounded-[var(--radius-btn)] border border-accent/20 overflow-x-auto scrollbar-none flex-1">
                         {IDIOMAS.filter((i) => i.id !== activeTab).map((lang) => (
                           <button
                             key={lang.id}
                             onClick={() => setSplitTab(lang.id)}
                             className={`flex-1 min-w-[3.5rem] py-2 rounded-[var(--radius-input)] font-black text-[10px] uppercase transition-all touch-manipulation whitespace-nowrap ${
                               splitTab === lang.id
-                                ? "bg-accent text-white shadow-md"
-                                : "text-violet-400 hover:text-violet-700"
+                                ? "bg-accent shadow-md"
+                                : "text-accent/70 hover:text-accent"
                             }`}
+                            style={splitTab === lang.id ? { color: "var(--btn-text)" } : {}}
                           >
                             {lang.label}
                             <span className="hidden md:inline ml-1 font-normal normal-case opacity-60">
@@ -650,27 +653,28 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="flex-shrink-0 bg-amber-50 border-b border-amber-200 px-4 py-3 md:px-8"
+                className="flex-shrink-0 bg-amber-500/10 border-b border-amber-500/30 px-4 py-3 md:px-8"
               >
                 <div className="flex items-center gap-3">
-                  <RotateCcw size={16} className="text-amber-600 flex-shrink-0" />
+                  <RotateCcw size={16} className="text-amber-500 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold text-amber-800">
+                    <p className="text-[11px] font-bold text-amber-600 dark:text-amber-300">
                       Borrador recuperado
                     </p>
-                    <p className="text-[10px] text-amber-600">
+                    <p className="text-[10px] text-amber-500/80">
                       Tenías cambios sin guardar. ¿Continuar desde aquí?
                     </p>
                   </div>
                   <button
                     onClick={descartarBorrador}
-                    className="text-[10px] font-bold text-amber-700 hover:text-amber-900 underline whitespace-nowrap touch-manipulation px-2 py-1"
+                    className="text-[10px] font-bold text-amber-600 dark:text-amber-300 hover:opacity-80 underline whitespace-nowrap touch-manipulation px-2 py-1"
                   >
                     Descartar
                   </button>
                   <button
                     onClick={() => setShowRecoveryBanner(false)}
-                    className="text-[10px] font-black text-white bg-amber-600 hover:bg-amber-700 px-3 py-1.5 rounded-[var(--radius-input)] touch-manipulation whitespace-nowrap"
+                    className="text-[10px] font-black px-3 py-1.5 rounded-[var(--radius-input)] touch-manipulation whitespace-nowrap bg-amber-500 hover:bg-amber-600"
+                    style={{ color: "var(--btn-text)" }}
                   >
                     Continuar
                   </button>
@@ -764,11 +768,12 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                 disabled={!cambiosPendientes || saveStatus === "saving" || !isOnline}
                 className="
                   flex items-center gap-2 px-5 py-3 md:px-7
-                  bg-primary text-white rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest
+                  bg-primary rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest
                   hover:bg-[var(--primary)] active:scale-95
                   disabled:opacity-40 disabled:cursor-not-allowed
                   transition-all touch-manipulation
                 "
+                style={{ color: "var(--btn-text)" }}
               >
                 {saveStatus === "saving" ? (
                   <Loader2 size={14} className="animate-spin" />

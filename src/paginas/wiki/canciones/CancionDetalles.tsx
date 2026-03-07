@@ -104,9 +104,10 @@ const LanguageToggler = ({ idiomasActivos, toggleIdioma }) => (
           title={l.nombre}
           className={`py-2 rounded-[var(--radius-btn)] font-black text-[9px] transition-all uppercase border-2 ${
             idiomasActivos.includes(l.id)
-              ? "bg-white-custom text-primary border-white scale-105"
+              ? "bg-white-custom border-white-custom scale-105"
               : "bg-transparent text-white/40 border-white/10 hover:border-white/30"
           }`}
+          style={idiomasActivos.includes(l.id) ? { color: "var(--primary)" } : {}}
         >
           {l.label}
         </motion.button>
@@ -209,7 +210,7 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
             <div className="px-10 py-6 bg-white-custom border-b border-primary/10 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="bg-primary p-2 rounded-[var(--radius-btn)] text-white"><FileText size={18} /></div>
+                  <div className="bg-primary p-2 rounded-[var(--radius-btn)]" style={{ color: "var(--btn-text)" }}><FileText size={18} /></div>
                   <div>
                     <h3 className="text-primary font-black uppercase text-[12px] tracking-[0.3em] italic">Modo Lectura</h3>
                     <p className="text-[8px] font-bold text-primary/40 uppercase tracking-widest mt-1">
@@ -277,7 +278,7 @@ const LinksModal = ({ isOpen, onClose, isProcessing, titulo, onTituloChange, url
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={isProcessing || !titulo.trim() || !url.trim()} className="flex-1 bg-primary text-white py-3 rounded-[var(--radius-btn)] font-black uppercase text-[9px] shadow-md hover:bg-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                 {isProcessing ? <><Loader2 size={12} className="inline animate-spin mr-2" />Guardando...</> : isEditing ? "Guardar" : "Añadir"}
               </motion.button>
-              {isEditing && <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={onClose} className="px-4 bg-gray-100 text-primary rounded-[var(--radius-btn)] font-black uppercase text-[8px] hover:bg-gray-200 transition-colors">Cancelar</motion.button>}
+              {isEditing && <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={onClose} className="px-4 bg-primary/10 text-primary rounded-[var(--radius-btn)] font-black uppercase text-[8px] hover:bg-primary/20 transition-colors">Cancelar</motion.button>}
             </div>
           </form>
           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
@@ -314,7 +315,7 @@ const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNomb
               <input type="text" placeholder="NOMBRE DE LA SECCIÓN (Ej: ESTROFA, CORO)" value={nombre} onChange={(e) => onNombreChange(e.target.value.toUpperCase())} className="w-full bg-bg-main border-b-2 border-primary/10 py-3 text-sm font-black text-primary outline-none focus:border-primary uppercase tracking-widest" />
               <div className="flex gap-1 bg-primary/5 p-1 rounded-[var(--radius-btn)] border border-primary/10">
                 {IDIOMAS.map((lang) => (
-                  <button key={lang.id} type="button" onClick={() => setActiveTab(lang.id)} className={`flex-1 py-2 rounded-[var(--radius-input)] font-black text-[9px] uppercase transition-all ${activeTab === lang.id ? "bg-primary text-white shadow-md" : "text-primary/40 hover:text-primary"}`}>{lang.label}</button>
+                  <button key={lang.id} type="button" onClick={() => setActiveTab(lang.id)} className={`flex-1 py-2 rounded-[var(--radius-input)] font-black text-[9px] uppercase transition-all ${activeTab === lang.id ? "bg-primary shadow-md" : "text-primary/40 hover:text-primary"}`} style={activeTab === lang.id ? { color: "var(--btn-text)" } : {}}>{lang.label}</button>
                 ))}
               </div>
               <div className="min-h-[200px]">
@@ -328,7 +329,7 @@ const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNomb
                   {isProcessing ? <><Loader2 size={14} className="animate-spin" />Guardando...</> : <><Save size={14} />Guardar Sección</>}
                 </motion.button>
                 {isEditing && onDelete && (
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onDelete} disabled={isProcessing} className="px-6 bg-red-500 text-white py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] shadow-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onDelete} disabled={isProcessing} className="px-6 bg-red-500 py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] shadow-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2" style={{ color: "#fff" }}>
                     <Trash2 size={14} />Eliminar
                   </motion.button>
                 )}
@@ -688,7 +689,7 @@ export default function CancionDetallesPage() {
             <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo} className="w-full h-full object-cover" />
           </motion.div>
           {isAdmin && !cancion?.visible && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-[#604b68] text-white rounded-[var(--radius-btn)] flex items-center justify-center gap-3 shadow-xl">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-primary text-white rounded-[var(--radius-btn)] flex items-center justify-center gap-3 shadow-xl" style={{ color: "var(--btn-text)" }}>
               <EyeOff size={16} /><span className="font-black uppercase text-[9px] tracking-widest italic">Oculto</span>
             </motion.div>
           )}
@@ -738,7 +739,7 @@ export default function CancionDetallesPage() {
                 <motion.div key={seccion.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="relative group">
                   <div className={`bg-white-custom border border-primary/5 rounded-[var(--radius-card)] transition-all hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 ${idiomasActivos.length > 1 ? "p-8 md:p-12" : "p-10"}`}>
                     <div className="flex items-center justify-between mb-8">
-                      <span className="bg-[#F1F5F9] text-primary/60 px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase italic">{seccion.nombre_seccion}</span>
+                      <span className="bg-primary/10 text-primary/60 px-4 py-1.5 rounded-full font-black text-[9px] tracking-widest uppercase italic">{seccion.nombre_seccion}</span>
                       {isAdmin && (
                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => openEditSec(seccion)} className="bg-primary/5 p-2 rounded-[var(--radius-btn)] text-primary hover:bg-primary hover:text-white transition-colors opacity-0 group-hover:opacity-100">
                           <Edit3 size={14} />
