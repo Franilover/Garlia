@@ -93,18 +93,6 @@ export default function SobreMi() {
               boxShadow: "var(--shadow-card)",
             }}
           >
-            {/* Número decorativo de fondo — grande y centrado */}
-            <span
-              className="absolute inset-0 flex items-center justify-center text-[22rem] font-black leading-none select-none pointer-events-none"
-              style={{
-                color: "var(--primary)",
-                opacity: 0.03,
-                letterSpacing: "-0.06em",
-                overflow: "hidden",
-              }}
-              aria-hidden
-            >I</span>
-
             {/* Línea decorativa superior */}
             <motion.div
               initial={{ scaleX: 0 }}
@@ -167,7 +155,7 @@ export default function SobreMi() {
           {/* ══════════════════════════════
               § 2 · HERRAMIENTAS
           ══════════════════════════════ */}
-          <motion.section {...fade(0.24)}>
+          <motion.section {...fade(0.24)} className="flex flex-col items-center text-center">
             <div
               className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.4em] mb-10"
               style={{ color: "var(--primary)", opacity: 0.3 }}
@@ -175,7 +163,7 @@ export default function SobreMi() {
               <Palette size={11} strokeWidth={2.5} /> Herramientas
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4">
               {TOOLS.map((tool, i) => {
                 const Icon = tool.icon;
                 return (
@@ -252,9 +240,9 @@ export default function SobreMi() {
           {/* ══════════════════════════════
               § 3 · GARDEN OF SINS
           ══════════════════════════════ */}
-          <motion.section {...fade(0.3)} className="space-y-12">
+          <motion.section {...fade(0.3)} className="space-y-12 flex flex-col items-center text-center">
 
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-5 w-full">
               <div
                 className="h-px flex-1"
                 style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
@@ -289,7 +277,7 @@ export default function SobreMi() {
             <motion.div
               whileHover={{ x: 6 }}
               transition={{ duration: 0.22 }}
-              className="relative pl-8 py-6 pr-6"
+              className="relative pl-8 py-6 pr-6 w-full max-w-2xl"
               style={{
                 background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
                 borderRadius: "var(--radius-card)",
