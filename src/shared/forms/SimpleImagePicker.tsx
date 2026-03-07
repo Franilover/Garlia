@@ -61,16 +61,16 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
       <div className="flex items-center gap-1 px-1 pb-3 flex-wrap">
         <button
           onClick={() => setStack([])}
-          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
+          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors"
         >
           <Home size={12} /> Inicio
         </button>
         {stack.map((s, i) => (
           <React.Fragment key={i}>
-            <ChevronRight size={10} className="text-primary/20" />
+            <ChevronRight size={10} className="text-slate-300" />
             <button
               onClick={() => goBack(i + 1)}
-              className="text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
+              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors"
             >
               {s.name}
             </button>
@@ -82,7 +82,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
       <div className="flex-1 overflow-y-auto space-y-4 pr-1">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 size={20} className="animate-spin text-primary/30" />
+            <Loader2 size={20} className="animate-spin text-slate-300" />
           </div>
         ) : (
           <>
@@ -93,18 +93,18 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
                   <button
                     key={i}
                     onClick={() => openFolder(folder)}
-                    className="flex items-center gap-3 px-4 py-3 bg-primary/5 hover:bg-primary/10 rounded-2xl transition-all text-left group"
+                    className="flex items-center gap-3 px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all text-left group"
                   >
-                    <FolderOpen size={16} className="text-primary/40 group-hover:text-primary transition-colors shrink-0" />
+                    <FolderOpen size={16} className="text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 truncate">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 truncate">
                         {folder.name}
                       </p>
-                      <p className="text-[9px] text-primary/30">
+                      <p className="text-[9px] text-slate-400">
                         {flattenImages(folder.children).length} imágenes
                       </p>
                     </div>
-                    <ChevronRight size={12} className="text-primary/20 ml-auto shrink-0" />
+                    <ChevronRight size={12} className="text-slate-300 ml-auto shrink-0" />
                   </button>
                 ))}
               </div>
@@ -120,8 +120,8 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
                     className={cn(
                       "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
                       selected === img.url
-                        ? "border-primary shadow-lg scale-[0.97]"
-                        : "border-transparent hover:border-primary/30"
+                        ? "border-violet-500 shadow-lg scale-[0.97]"
+                        : "border-transparent hover:border-slate-300"
                     )}
                   >
                     <img
@@ -131,7 +131,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
                       loading="lazy"
                     />
                     {selected === img.url && (
-                      <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-violet-500/30 flex items-center justify-center">
                         <Check className="text-white drop-shadow" size={22} />
                       </div>
                     )}
@@ -141,7 +141,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
             )}
 
             {folders.length === 0 && images.length === 0 && (
-              <p className="text-center text-[11px] text-primary/30 py-10 uppercase tracking-widest">
+              <p className="text-center text-[11px] text-slate-400 py-10 uppercase tracking-widest">
                 Carpeta vacía
               </p>
             )}
@@ -153,14 +153,14 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
       <div className="pt-4 flex gap-3">
         <button
           onClick={onClose}
-          className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
+          className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
         >
           Cancelar
         </button>
         <button
           onClick={() => selected && onSelect(selected)}
           disabled={!selected}
-          className="flex-[2] bg-primary text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest disabled:opacity-30 transition-all hover:bg-primary/90"
+          className="flex-[2] bg-violet-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest disabled:opacity-30 transition-all hover:bg-violet-700"
         >
           Seleccionar
         </button>

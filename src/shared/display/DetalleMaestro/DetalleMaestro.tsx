@@ -193,7 +193,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
                   initial={{ scale: 0.92, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.92, opacity: 0 }}
-                  className="bg-bg-card border border-primary/10 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl p-6"
+                  className="bg-white border border-primary/10 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl p-6"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex justify-between items-center mb-4">
