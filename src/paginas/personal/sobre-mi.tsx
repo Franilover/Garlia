@@ -11,9 +11,9 @@ const fade = (delay = 0) => ({
 
 /* ─── Datos de herramientas ─── */
 const TOOLS = [
-  { num: "01", label: "Digital",  title: "Linux & Krita",       icon: Monitor },
-  { num: "02", label: "Análogo",  title: "Acuarelas & Acrílico", icon: Droplets },
-  { num: "03", label: "Sonoro",   title: "Mucha Música",         icon: Music },
+  { num: "01", label: "Digitales",  title: "Linux & Krita",       icon: Monitor },
+  { num: "02", label: "Analogas",  title: "Acuarelas & Acrílico", icon: Droplets },
+  { num: "03", label: "Extras",   title: "Mucha Música",         icon: Music },
 ];
 
 export default function SobreMi() {
