@@ -252,7 +252,7 @@ export default function SobreMi() {
                 Este proyecto comenzo como una forma de compartir experiencias que no era capas de expresar verbalmente
                 y a la vez explorar nuevas formas de arte. 
                 Luego se convirtio en algo mas grande. Ya no era solo mi historia, era un mundo entero que necesitaba 
-                sacar de mi mente. Los personajes de este mundo surgieron en base a personas que han dejado una marca
+                sacar de mi mente. <br /> Los personajes de este mundo surgieron en base a personas que han dejado una marca
                 en mi. Y pese a que los temas de esta historia son recurrentes en la actualidad, y muchos aconteciemtos
                 estan basados en ciertos periodos historicos todo lo contado en estas historias es ficticio.  
               </p>
