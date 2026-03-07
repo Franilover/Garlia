@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 
@@ -6,7 +5,7 @@ interface UseAdminItemOptions<T> {
   plantilla: T;
 }
 
-export function useAdminItem<T extends Record<string, any>>(  
+export function useAdminItem<T extends Record<string, any>>(
   setDatos: (fn: (prev: T[]) => T[]) => void,
   { plantilla }: UseAdminItemOptions<T>
 ) {
@@ -39,5 +38,12 @@ export function useAdminItem<T extends Record<string, any>>(
     setIsCreating(false);
   }, []);
 
-  return { selected, isCreating, isAdmin, handleUpdate, handleSelect, handleAddNew, handleClose };
+  // Elimina el item del estado local tras borrarlo en Supabase
+  const handleDeleted = useCallback((id: any) => {
+    setDatos(prev => prev.filter(c => c.id !== id));
+    setSelected(null);
+    setIsCreating(false);
+  }, [setDatos]);
+
+  return { selected, isCreating, isAdmin, handleUpdate, handleSelect, handleAddNew, handleClose, handleDeleted };
 }

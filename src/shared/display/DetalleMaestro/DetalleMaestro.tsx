@@ -12,15 +12,16 @@ interface DetalleMaestroProps {
   isOpen: boolean;
   onClose: () => void;
   data: any;
-  tabla: string;                         // ← NUEVO: tabla explícita
+  tabla: string;
   tags?: string[];
-  onUpdate?: (record: any) => void;      // ← CAMBIO: recibe el registro guardado
+  onUpdate?: (record: any) => void;
+  onDelete?: () => void;               // ← NUEVO
   isNew?: boolean;
   mostrarMusica?: boolean;
 }
 
 export default function DetalleMaestro({
-  isOpen, onClose, data, tabla, tags = [], onUpdate, isNew = false, mostrarMusica = true,
+  isOpen, onClose, data, tabla, tags = [], onUpdate, onDelete, isNew = false, mostrarMusica = true,
 }: DetalleMaestroProps) {
   const [internalData, setInternalData] = useState(data);
 
@@ -42,15 +43,16 @@ export default function DetalleMaestro({
       onClose={onClose}
       tags={tags}
       onUpdate={onUpdate}
+      onDelete={onDelete}
       isNew={isNew}
       mostrarMusica={mostrarMusica}
     />
   );
 }
 
-function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, isNew, mostrarMusica }: any) {
+function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelete, isNew, mostrarMusica }: any) {
   const {
-    isAdmin, editMode, setEditMode, saving, handleSave,
+    isAdmin, editMode, setEditMode, saving, handleSave, handleDelete,
     variantes, setVariantes,
     varianteActiva, setVarianteActiva,
     editNombre, setEditNombre,
@@ -277,12 +279,25 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, isNew, 
       )}
 
       {/* BARRA FLOTANTE DE ACCIONES ADMIN */}
-      {isAdmin && (
+      {isAdmin && !isNew && (
         <motion.div
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="fixed bottom-10 left-1/2 -translate-x-1/2 z-1100 flex items-center gap-4 bg-white/90 backdrop-blur-md p-4 rounded-full border border-primary/20 shadow-2xl"
         >
+          {/* Borrar — solo visible en modo edición */}
+          {editMode && (
+            <button
+              onClick={() => handleDelete(() => { if (onDelete) onDelete(); onClose(); })}
+              disabled={saving}
+              className="btn-brand bg-red-50! text-red-400! hover:bg-red-100! px-6!"
+              title="Borrar permanentemente"
+            >
+              <Trash2 size={18} />
+              <span className="text-[10px] font-black uppercase tracking-widest">Borrar</span>
+            </button>
+          )}
+
           <button
             onClick={() => setEditMode(!editMode)}
             className={`btn-brand px-6! ${editMode ? "bg-accent! text-primary!" : ""}`}

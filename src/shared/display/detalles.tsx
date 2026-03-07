@@ -7,8 +7,9 @@ interface DetallesModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: any;
-  tabla: string;                        // ← NUEVO: requerido para guardar en la tabla correcta
-  onUpdate: (record: any) => void;      // ← recibe el registro guardado (con id real)
+  tabla: string;
+  onUpdate: (record: any) => void;
+  onDelete?: () => void;               // ← NUEVO
   tags?: any[];
   mostrarMusica?: boolean;
   isNew?: boolean;
@@ -20,6 +21,7 @@ export default function DetallesModal({
   data,
   tabla,
   onUpdate,
+  onDelete,
   tags = [],
   mostrarMusica = true,
   isNew = false,
@@ -45,8 +47,9 @@ export default function DetallesModal({
                 isOpen={isOpen}
                 onClose={onClose}
                 data={data}
-                tabla={tabla}           // ← propagamos la tabla
-                onUpdate={onUpdate}     // ← propagamos el callback con el record real
+                tabla={tabla}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
                 tags={tags}
                 mostrarMusica={mostrarMusica}
                 isNew={isNew}

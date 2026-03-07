@@ -76,6 +76,7 @@ export default function EntidadPageBase({
     handleSelect,
     handleAddNew,
     handleClose,
+    handleDeleted,
   } = useAdminItem(setData, { plantilla: plantillaNueva });
 
   const [busqueda, setBusqueda] = useState("");
@@ -116,8 +117,9 @@ export default function EntidadPageBase({
           isOpen={!!selected || isCreating}
           onClose={handleClose}
           data={selected}
-          tabla={tabla}                  // ← CLAVE: tabla explícita
-          onUpdate={handleUpdate}        // ← handleUpdate recibe el record guardado
+          tabla={tabla}
+          onUpdate={handleUpdate}
+          onDelete={() => selected && handleDeleted(selected.id)}
           isNew={isCreating}
           tags={
             isCreating

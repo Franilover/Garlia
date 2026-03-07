@@ -180,15 +180,41 @@ export function useDetalleMaestro(
     }
   };
 
+  // ─── Borrar ───────────────────────────────────────────────────────────────
+  const handleDelete = async (onDeleted?: () => void) => {
+    if (!data?.id) return;
+    const confirmar = window.confirm(`¿Borrar "${editNombre}" de forma permanente? Esta acción no se puede deshacer.`);
+    if (!confirmar) return;
+
+    setSaving(true);
+    try {
+      // Si es criatura, borramos sus variantes primero (FK)
+      if (tabla === "criaturas") {
+        await supabase.from("criatura_variantes").delete().eq("criatura_id", data.id);
+      }
+
+      const { error } = await supabase.from(tabla).delete().eq("id", data.id);
+      if (error) throw error;
+
+      if (onDeleted) onDeleted();
+    } catch (err: any) {
+      console.error("Error al borrar:", err);
+      alert("Error al borrar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return {
     isAdmin,
     editMode, setEditMode,
     saving,
     handleSave,
+    handleDelete,
     variantes, setVariantes,
     varianteActiva, setVarianteActiva,
-    editFields, setEditFields,        // acceso genérico a todos los campos
-    editNombre, setEditNombre,        // alias de comodidad
+    editFields, setEditFields,
+    editNombre, setEditNombre,
     editDescripcion, setEditDescripcion,
     editCanciones, setEditCanciones,
     editRelaciones, setEditRelaciones,
