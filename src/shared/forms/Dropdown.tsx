@@ -21,7 +21,6 @@ export default function Dropdown({
   placeholder = "Seleccionar...",
   className = ""
 }: DropdownProps) {
-  // Función para capitalizar correctamente
   const capitalize = (str: string) => {
     if (!str) return str;
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
@@ -35,10 +34,10 @@ export default function Dropdown({
         text-xs font-bold uppercase 
         px-4 py-2.5 rounded-[var(--radius-btn)]
         border-2 border-[var(--primary)]/30 
-        bg-white/90 text-[var(--primary)] 
+        bg-[var(--input-bg)] text-[var(--input-text)]
         focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 focus:border-[var(--primary)]/50
         transition-all duration-300
-        hover:border-[var(--primary)]/50 hover:bg-white-custom
+        hover:border-[var(--primary)]/50
         cursor-pointer
         shadow-md hover:shadow-lg
         backdrop-blur-sm
@@ -47,7 +46,14 @@ export default function Dropdown({
       `}
     >
       {options.map((option) => (
-        <option key={option.value} value={option.value}>
+        <option
+          key={option.value}
+          value={option.value}
+          style={{
+            backgroundColor: "var(--input-bg)",
+            color: "var(--input-text)",
+          }}
+        >
           {capitalize(option.label)}
         </option>
       ))}

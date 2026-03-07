@@ -401,11 +401,23 @@
   [data-theme="scribble"].dark input:not(.input-brand) {
     background-color: var(--input-bg, var(--bg-main));
     color: var(--input-text, var(--foreground));
+    caret-color: var(--primary);
   }
   .dark input::placeholder,
   [data-theme="pixel"].dark input::placeholder,
   [data-theme="scribble"].dark input::placeholder {
     color: color-mix(in srgb, var(--foreground) 35%, transparent);
+  }
+
+  /* Fix global para cualquier input/search bar con bg-white hardcodeado */
+  .dark input[class*="bg-white"],
+  [data-theme="pixel"].dark input[class*="bg-white"],
+  [data-theme="scribble"].dark input[class*="bg-white"],
+  .dark input[class*="bg-bg-main"],
+  [data-theme="pixel"].dark input[class*="bg-bg-main"],
+  [data-theme="scribble"].dark input[class*="bg-bg-main"] {
+    background-color: var(--input-bg) !important;
+    color: var(--input-text) !important;
   }
 
   /* Bordes sutiles en modo oscuro para paneles blancos */
@@ -415,13 +427,27 @@
     border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
   }
 
-  /* Select/Dropdown en modo oscuro */
+  /* Select/Dropdown — todos los temas, incluye opciones del desplegable nativo */
+  select {
+    background-color: var(--input-bg, var(--white-custom));
+    color: var(--input-text, var(--foreground));
+  }
+  select option {
+    background-color: var(--input-bg, var(--white-custom));
+    color: var(--input-text, var(--foreground));
+  }
   .dark select,
   [data-theme="pixel"].dark select,
   [data-theme="scribble"].dark select {
-    background-color: var(--input-bg, var(--bg-main));
-    color: var(--input-text, var(--foreground));
+    background-color: var(--input-bg);
+    color: var(--input-text);
     border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+  .dark select option,
+  [data-theme="pixel"].dark select option,
+  [data-theme="scribble"].dark select option {
+    background-color: var(--input-bg);
+    color: var(--input-text);
   }
   .char-card-base {
     @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
