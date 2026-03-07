@@ -3,10 +3,11 @@
  * COMPONENTE: components/paginas/personal/personal.tsx
  * Con modal flotante al hacer click en items, criaturas o personajes
  */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Sword, Package, Star, ShieldCheck, X, Calendar, Tag, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/api/client/supabase";
 
 interface Descubrimiento {
   tipo: "item" | "criatura" | "personaje";
@@ -50,8 +51,8 @@ interface PersonalProps {
 // ─── MODAL FLOTANTE ────────────────────────────────────────────────────────────
 
 type EntidadModal =
-  | { tipo: "item"; data: ItemInventario }
-  | { tipo: "criatura" | "personaje"; data: Descubrimiento };
+  | { tipo: "item_inv"; data: ItemInventario }
+  | { tipo: "item" | "criatura" | "personaje"; data: Descubrimiento };
 
 function ModalDetalle({
   entidad,
@@ -60,27 +61,28 @@ function ModalDetalle({
   entidad: EntidadModal;
   onClose: () => void;
 }) {
-  const isItem = entidad.tipo === "item";
+  const isItemInv = entidad.tipo === "item_inv";
+  const isItem = isItemInv || entidad.tipo === "item";
   const isCriatura = entidad.tipo === "criatura";
 
   // Normalizar datos según tipo
-  const nombre = isItem
-    ? entidad.data.items.nombre
-    : (entidad.data as Descubrimiento).nombre ?? (isCriatura ? "Criatura Desconocida" : "Contacto");
-  const descripcion = isItem
-    ? entidad.data.items.descripcion
+  const nombre = isItemInv
+    ? (entidad.data as ItemInventario).items.nombre
+    : (entidad.data as Descubrimiento).nombre ?? (isCriatura ? "Criatura Desconocida" : entidad.tipo === "item" ? "Objeto" : "Contacto");
+  const descripcion = isItemInv
+    ? (entidad.data as ItemInventario).items.descripcion
     : (entidad.data as Descubrimiento).descripcion;
-  const imagen = isItem
-    ? entidad.data.items.imagen_url
+  const imagen = isItemInv
+    ? (entidad.data as ItemInventario).items.imagen_url
     : ((entidad.data as Descubrimiento).imagen_url ?? (entidad.data as Descubrimiento).img_url);
-  const fecha = isItem ? null : (entidad.data as Descubrimiento).fecha_descubrimiento;
+  const fecha = isItemInv ? null : (entidad.data as Descubrimiento).fecha_descubrimiento;
 
   // Tags según tipo
   const tags: string[] = [];
-  if (isItem) {
-    if (entidad.data.items.categoria) tags.push(entidad.data.items.categoria);
-    if (entidad.data.items.rareza) tags.push(entidad.data.items.rareza);
-    if (entidad.data.equipado) tags.push("Equipado");
+  if (isItemInv) {
+    if ((entidad.data as ItemInventario).items.categoria) tags.push((entidad.data as ItemInventario).items.categoria);
+    if ((entidad.data as ItemInventario).items.rareza) tags.push((entidad.data as ItemInventario).items.rareza!);
+    if ((entidad.data as ItemInventario).equipado) tags.push("Equipado");
   } else {
     const d = entidad.data as Descubrimiento;
     if (d.categoria) tags.push(d.categoria);
@@ -184,8 +186,8 @@ function ModalDetalle({
               </p>
             )}
 
-            {/* Indicador equipado (solo items) */}
-            {isItem && entidad.data.equipado && (
+            {/* Indicador equipado (solo items de inventario) */}
+            {isItemInv && (entidad.data as ItemInventario).equipado && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/10">
                 <ShieldCheck size={14} className="text-primary/50 shrink-0" />
                 <span className="text-[9px] font-black uppercase tracking-widest text-primary/50">
@@ -205,11 +207,58 @@ function ModalDetalle({
 export default function Personal({ datos }: PersonalProps) {
   const [tab, setTab] = useState<"items" | "criaturas" | "personajes">("items");
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
+  const [descubrimientosRicos, setDescubrimientosRicos] = useState<Descubrimiento[]>([]);
 
-  const { descubrimientos = [], inventario_usuario = [] } = datos;
+  const { inventario_usuario = [] } = datos;
 
-  const misPersonajes = descubrimientos.filter((d) => d.tipo === "personaje");
-  const misCriaturas = descubrimientos.filter((d) => d.tipo === "criatura");
+  // ── Fetch descubrimientos con join a cada tabla ──────────────────────────────
+  useEffect(() => {
+    async function cargarDescubrimientos() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("descubrimientos")
+        .select(`
+          tipo,
+          entidad_id,
+          fecha_descubrimiento,
+          item:items!left(nombre, categoria, imagen_url, descripcion, rareza),
+          criatura:criaturas!left(nombre, habitat, alma, imagen_url, descripcion),
+          personaje:personajes!left(nombre, reino, especie, img_url, descripcion)
+        `)
+        .eq("perfil_id", user.id);
+
+      if (error) { console.error("[Personal] Error descubrimientos:", error); return; }
+
+      // Aplanar: mezclar los datos de la entidad en el objeto descubrimiento
+      const planos: Descubrimiento[] = (data ?? []).map((d: any) => {
+        const entidad = d.item ?? d.criatura ?? d.personaje ?? {};
+        return {
+          tipo: d.tipo,
+          entidad_id: d.entidad_id,
+          fecha_descubrimiento: d.fecha_descubrimiento,
+          nombre: entidad.nombre,
+          descripcion: entidad.descripcion,
+          imagen_url: entidad.imagen_url ?? entidad.img_url,
+          categoria: entidad.categoria,
+          rareza: entidad.rareza,
+          habitat: entidad.habitat,
+          alma: entidad.alma,
+          reino: entidad.reino,
+          especie: entidad.especie,
+        };
+      });
+
+      setDescubrimientosRicos(planos);
+    }
+
+    cargarDescubrimientos();
+  }, []);
+
+  const misPersonajes = descubrimientosRicos.filter((d) => d.tipo === "personaje");
+  const misCriaturas = descubrimientosRicos.filter((d) => d.tipo === "criatura");
+  const misItemsDesc = descubrimientosRicos.filter((d) => d.tipo === "item");
   const misItems = inventario_usuario;
 
   const tabs = [
@@ -281,11 +330,11 @@ export default function Personal({ datos }: PersonalProps) {
               exit={{ opacity: 0, y: -10 }}
               className="grid grid-cols-1 sm:grid-cols-2 gap-4"
             >
-              {/* ── ITEMS ── */}
+              {/* ── ITEMS (inventario_usuario) ── */}
               {tab === "items" && misItems.map((item, i) => (
                 <button
-                  key={i}
-                  onClick={() => setModalEntidad({ tipo: "item", data: item })}
+                  key={`inv-${i}`}
+                  onClick={() => setModalEntidad({ tipo: "item_inv", data: item })}
                   className="group p-4 rounded-2xl bg-bg-main border border-primary/5 flex items-center gap-4 hover:border-primary/20 hover:shadow-md hover:shadow-primary/5 transition-all text-left cursor-pointer"
                 >
                   <div className="w-12 h-12 bg-primary/5 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform overflow-hidden">
@@ -300,6 +349,27 @@ export default function Personal({ datos }: PersonalProps) {
                     <p className="text-[9px] text-primary/30 font-black uppercase">{item.items.categoria}</p>
                   </div>
                   {item.equipado && <ShieldCheck size={14} className="text-primary/50 shrink-0" />}
+                </button>
+              ))}
+
+              {/* ── ITEMS (desde descubrimientos via [[drop]]) ── */}
+              {tab === "items" && misItemsDesc.map((d, i) => (
+                <button
+                  key={`desc-${i}`}
+                  onClick={() => setModalEntidad({ tipo: "item", data: d })}
+                  className="group p-4 rounded-2xl bg-bg-main border border-primary/5 flex items-center gap-4 hover:border-primary/20 hover:shadow-md hover:shadow-primary/5 transition-all text-left cursor-pointer"
+                >
+                  <div className="w-12 h-12 bg-primary/5 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform overflow-hidden">
+                    {(d.imagen_url) ? (
+                      <img src={d.imagen_url} alt={d.nombre} className="w-full h-full object-contain" />
+                    ) : (
+                      <Package size={20} className="text-primary/30" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[11px] font-black text-primary uppercase tracking-tight">{d.nombre ?? "Objeto"}</p>
+                    <p className="text-[9px] text-primary/30 font-black uppercase">{d.categoria ?? "Item"}</p>
+                  </div>
                 </button>
               ))}
 
