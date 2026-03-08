@@ -25,6 +25,21 @@ interface SidebarProps {
   onZoteroUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
+/*
+  El sidebar SIEMPRE usa bg-menu (oscuro en todos los temas).
+  Para contraste garantizado independientemente del tema:
+  - Activo:   fondo blanco real + texto oscuro (bg-menu)
+  - Inactivo: fondo negro semitransparente + texto blanco al 60%
+*/
+const A_BG     = "rgba(255,255,255,0.95)";
+const A_TEXT   = "var(--bg-menu)";
+const I_BG     = "rgba(255,255,255,0.07)";
+const I_TEXT   = "rgba(255,255,255,0.60)";
+const I_BORDER = "rgba(255,255,255,0.10)";
+const S_BG     = "rgba(0,0,0,0.15)";
+const S_BORDER = "rgba(255,255,255,0.06)";
+const LBL      = "rgba(255,255,255,0.38)";
+
 export default function Sidebar({
   ensayosFiltrados,
   todosLosTags,
@@ -40,14 +55,18 @@ export default function Sidebar({
   onZoteroUpload,
 }: SidebarProps) {
   return (
-    <aside className="h-full flex flex-col gap-4 overflow-y-auto p-4 border-r bg-bg-menu text-white-custom"
-      style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+    <aside
+      className="h-full flex flex-col gap-4 overflow-y-auto p-4 border-r"
+      style={{
+        background: "var(--bg-menu)",
+        color: "rgba(255,255,255,0.85)",
+        borderColor: "rgba(255,255,255,0.08)",
+      }}
     >
-      
       {/* Buscador */}
       <div className="relative">
         <Search size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ color: "color-mix(in srgb, var(--white-custom) 30%, transparent)" }}
+          style={{ color: "rgba(255,255,255,0.30)" }}
         />
         <input
           type="text"
@@ -56,24 +75,20 @@ export default function Sidebar({
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full py-2.5 pl-9 pr-3 text-[11px] outline-none transition-all uppercase tracking-widest"
           style={{
-            background: "color-mix(in srgb, var(--foreground) 10%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--white-custom) 10%, transparent)",
+            background: "rgba(0,0,0,0.20)",
+            border: `1px solid ${I_BORDER}`,
             borderRadius: "var(--radius-btn)",
-            color: "var(--white-custom)",
+            color: "rgba(255,255,255,0.80)",
           }}
         />
       </div>
 
       {/* Etiquetas */}
       <div className="p-3 flex flex-col gap-2.5"
-        style={{
-          background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--white-custom) 5%, transparent)",
-          borderRadius: "var(--radius-card)",
-        }}
+        style={{ background: S_BG, border: `1px solid ${S_BORDER}`, borderRadius: "var(--radius-card)" }}
       >
         <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]"
-          style={{ color: "color-mix(in srgb, var(--white-custom) 40%, transparent)" }}
+          style={{ color: LBL }}
         >
           <Hash size={10} /> Etiquetas
         </p>
@@ -82,16 +97,16 @@ export default function Sidebar({
             onClick={() => onTagClick(null)}
             className="px-3 py-1.5 font-mono text-[10px] uppercase tracking-wide transition-all"
             style={{
-              background: !tagActivo ? "var(--white-custom)" : "color-mix(in srgb, var(--foreground) 20%, transparent)",
-              color: !tagActivo ? "var(--primary)" : "color-mix(in srgb, var(--white-custom) 50%, transparent)",
-              border: `1px solid ${!tagActivo ? "var(--white-custom)" : "color-mix(in srgb, var(--white-custom) 10%, transparent)"}`,
+              background: !tagActivo ? A_BG : I_BG,
+              color: !tagActivo ? A_TEXT : I_TEXT,
+              border: `1px solid ${!tagActivo ? "transparent" : I_BORDER}`,
               borderRadius: "var(--radius-btn)",
               fontWeight: !tagActivo ? 700 : 400,
             }}
           >
             Todos
           </button>
-          
+
           {todosLosTags.map((tag) => {
             const isActive = tagActivo === tag;
             return (
@@ -100,9 +115,9 @@ export default function Sidebar({
                 onClick={() => onTagClick(isActive ? null : tag)}
                 className="px-3 py-1.5 font-mono text-[10px] uppercase tracking-wide transition-all"
                 style={{
-                  background: isActive ? "var(--white-custom)" : "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                  color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--white-custom) 50%, transparent)",
-                  border: `1px solid ${isActive ? "var(--white-custom)" : "color-mix(in srgb, var(--white-custom) 10%, transparent)"}`,
+                  background: isActive ? A_BG : I_BG,
+                  color: isActive ? A_TEXT : I_TEXT,
+                  border: `1px solid ${isActive ? "transparent" : I_BORDER}`,
                   borderRadius: "var(--radius-btn)",
                   fontWeight: isActive ? 700 : 400,
                 }}
@@ -116,25 +131,21 @@ export default function Sidebar({
 
       {/* Notas */}
       <div className="p-3 flex flex-col gap-2.5 flex-1 min-h-0"
-        style={{
-          background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--white-custom) 5%, transparent)",
-          borderRadius: "var(--radius-card)",
-        }}
+        style={{ background: S_BG, border: `1px solid ${S_BORDER}`, borderRadius: "var(--radius-card)" }}
       >
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]"
-            style={{ color: "color-mix(in srgb, var(--white-custom) 40%, transparent)" }}
+            style={{ color: LBL }}
           >
             <FileText size={10} /> Notas
           </p>
           <button
             onClick={onCrearEnsayo}
-            className="w-7 h-7 flex items-center justify-center transition-all"
+            className="w-7 h-7 flex items-center justify-center transition-all hover:bg-white/10"
             style={{
-              border: "1px solid color-mix(in srgb, var(--white-custom) 20%, transparent)",
+              border: `1px solid ${I_BORDER}`,
               borderRadius: "50%",
-              color: "var(--white-custom)",
+              color: "rgba(255,255,255,0.70)",
             }}
           >
             <Plus size={14} />
@@ -153,9 +164,9 @@ export default function Sidebar({
                   onClick={() => onEnsayoClick(ens.id)}
                   className="group px-4 py-3 cursor-pointer transition-all"
                   style={{
-                    background: isActive ? "var(--white-custom)" : "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                    color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--white-custom) 50%, transparent)",
-                    border: `1px solid ${isActive ? "var(--white-custom)" : "color-mix(in srgb, var(--white-custom) 10%, transparent)"}`,
+                    background: isActive ? A_BG : I_BG,
+                    color: isActive ? A_TEXT : I_TEXT,
+                    border: `1px solid ${isActive ? "transparent" : I_BORDER}`,
                     borderRadius: "var(--radius-btn)",
                     fontWeight: isActive ? 700 : 400,
                   }}
@@ -166,8 +177,8 @@ export default function Sidebar({
                     </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); onEliminarEnsayo(ens.id); }}
-                      className="transition-all opacity-0 group-hover:opacity-100"
-                      style={{ color: isActive ? "color-mix(in srgb, var(--primary) 40%, transparent)" : "rgb(248 113 113)" }}
+                      className="transition-all opacity-0 group-hover:opacity-100 shrink-0"
+                      style={{ color: isActive ? "rgba(0,0,0,0.35)" : "rgb(248 113 113)" }}
                     >
                       <Trash2 size={12} />
                     </button>
@@ -181,22 +192,18 @@ export default function Sidebar({
 
       {/* Bibliografía */}
       <div className="p-3 flex flex-col gap-2.5"
-        style={{
-          background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--white-custom) 5%, transparent)",
-          borderRadius: "var(--radius-card)",
-        }}
+        style={{ background: S_BG, border: `1px solid ${S_BORDER}`, borderRadius: "var(--radius-card)" }}
       >
         <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]"
-          style={{ color: "color-mix(in srgb, var(--white-custom) 40%, transparent)" }}
+          style={{ color: LBL }}
         >
           <BookOpen size={10} /> Bibliografía
         </p>
-        <label className="flex items-center justify-center gap-2 px-3 py-3 cursor-pointer 
-                          text-[9px] font-mono uppercase transition-colors"
+        <label
+          className="flex items-center justify-center gap-2 px-3 py-3 cursor-pointer text-[9px] font-mono uppercase transition-colors hover:bg-white/5"
           style={{
-            color: "color-mix(in srgb, var(--white-custom) 30%, transparent)",
-            border: "1px dashed color-mix(in srgb, var(--white-custom) 10%, transparent)",
+            color: "rgba(255,255,255,0.35)",
+            border: `1px dashed ${I_BORDER}`,
             borderRadius: "var(--radius-btn)",
           }}
         >
