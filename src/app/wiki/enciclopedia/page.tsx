@@ -9,7 +9,7 @@ import Criaturas from "@/paginas/wiki/info/criaturas";
 export default function WikiPage() {
   return (
     <Secciones
-      title="Wiki"
+      title="Enciclopedia"
       panels={[
         {
           id: "personajes",
