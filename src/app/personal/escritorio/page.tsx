@@ -3,7 +3,7 @@
 import { Calendar, FileText } from "lucide-react";
 import { Secciones } from "@/shared/layout/Secciones";
 import { GestionPersonal } from "@/paginas/personal/tareas";
-import EnsayosView from "@/paginas/personal/ensayos";
+import EnsayosView from "@/paginas/personal/ensayos/page";
 
 export default function DashboardPage() {
   return (
