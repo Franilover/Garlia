@@ -101,14 +101,9 @@ export const MenuCard = ({ href, title, icon, delay = 0, hasNewContent, onClick,
           )}
 
           <motion.div
-            className={`text-primary flex items-center justify-center transition-all duration-300 shrink-0 ${
-              isScribble
-                ? // Scribble: sin fondo, el ícono solo con color primary, hover solo cambia opacidad
-                  horizontal ? "w-16 h-16 opacity-80 group-hover:opacity-100" : "w-16 h-16 md:w-24 md:h-24 mb-6 opacity-80 group-hover:opacity-100"
-                : // Otros temas: fondo pill que se rellena en hover
-                  horizontal ? "w-16 h-16 bg-primary/10 group-hover:bg-primary group-hover:text-white" : "w-16 h-16 md:w-24 md:h-24 mb-6 bg-primary/10 group-hover:bg-primary group-hover:text-white"
+            className={`text-primary flex items-center justify-center transition-all duration-300 shrink-0 opacity-80 group-hover:opacity-100 ${
+              horizontal ? "w-16 h-16" : "w-16 h-16 md:w-24 md:h-24 mb-6"
             }`}
-            style={{ borderRadius: isScribble ? "0" : "var(--radius-btn)" }}
             whileHover={{ rotate: [0, -10, 10, 0] }}
           >
             {React.cloneElement(icon, {

@@ -18,9 +18,10 @@ interface ZoteroSource {
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
+const LS_ACTIVE = "ensayos-active-id";
+
 export default function Ensayos() {
   const { user } = useAuth() as { user: any };
-  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -30,12 +31,17 @@ export default function Ensayos() {
   const [sources, setSources] = useState<ZoteroSource[]>([]);
   const [tagActivo, setTagActivo] = useState<string | null>(null);
   const handleTagClick = useCallback((tag: string | null) => setTagActivo(tag), []);
-  const [ensayoActivoId, setEnsayoActivoId] = useState<string | null>(null);
+
+  // Inicializa desde localStorage para que sobreviva la navegación
+  const [ensayoActivoId, setEnsayoActivoId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(LS_ACTIVE);
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-
-  // Autosave: debounce timer ref
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -48,13 +54,18 @@ export default function Ensayos() {
   }, [user]);
 
   useEffect(() => {
-    setMounted(true);
     fetchData();
     const saved = localStorage.getItem("fran-zotero-cache");
     if (saved) setSources(JSON.parse(saved));
   }, [fetchData]);
 
-  // Close sidebar on desktop resize
+  // Persiste el ensayo activo en localStorage
+  const setEnsayoActivo = useCallback((id: string | null) => {
+    setEnsayoActivoId(id);
+    if (id) localStorage.setItem(LS_ACTIVE, id);
+    else localStorage.removeItem(LS_ACTIVE);
+  }, []);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) setSidebarOpen(false);
@@ -63,14 +74,12 @@ export default function Ensayos() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Keyboard shortcut: Ctrl+E toggle edit mode
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "e") {
         e.preventDefault();
         setEditMode((p) => !p);
       }
-      // Escape closes sidebar on mobile
       if (e.key === "Escape") setSidebarOpen(false);
     };
     window.addEventListener("keydown", handleKey);
@@ -93,11 +102,9 @@ export default function Ensayos() {
     });
   }, [ensayos, tagActivo, searchTerm]);
 
-  // Autosave to Supabase with debounce
   const scheduleSave = useCallback((id: string, updates: Record<string, any>) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     setSaveStatus("saving");
-
     saveTimerRef.current = setTimeout(async () => {
       try {
         await supabase
@@ -128,21 +135,19 @@ export default function Ensayos() {
     if (!titulo.trim() || !user) return;
     const { data } = await supabase
       .from("ensayos")
-      .insert([
-        {
-          titulo: titulo.trim(),
-          user_id: user.id,
-          contenido: "",
-          tags: tagActivo ? [tagActivo] : [],
-        },
-      ])
+      .insert([{
+        titulo: titulo.trim(),
+        user_id: user.id,
+        contenido: "",
+        tags: tagActivo ? [tagActivo] : [],
+      }])
       .select();
     if (data) {
       setEnsayos((prev) => [data[0], ...prev]);
-      setEnsayoActivoId(data[0].id);
+      setEnsayoActivo(data[0].id);
       setEditMode(true);
       setShowNewNoteModal(false);
-      setSidebarOpen(false); // close sidebar on mobile after selecting
+      setSidebarOpen(false);
     }
   };
 
@@ -150,12 +155,12 @@ export default function Ensayos() {
     if (!confirm("¿Eliminar esta nota?")) return;
     await supabase.from("ensayos").delete().eq("id", id);
     setEnsayos((prev) => prev.filter((e) => e.id !== id));
-    if (ensayoActivoId === id) setEnsayoActivoId(null);
+    if (ensayoActivoId === id) setEnsayoActivo(null);
   };
 
   const handleEnsayoClick = (id: string) => {
-    setEnsayoActivoId(id);
-    setSidebarOpen(false); // auto-close sidebar on mobile when selecting a note
+    setEnsayoActivo(id);
+    setSidebarOpen(false);
   };
 
   const handleZoteroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,15 +184,24 @@ export default function Ensayos() {
     reader.readAsText(file);
   };
 
-  if (!mounted || loading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-bg-main">
-        <Loader2 className="animate-spin text-primary/20" size={36} />
-      </div>
-    );
-  }
+  // Muestra skeleton mientras carga — sin bloquear el render completo
+  const ensayoActivo = ensayos.find((e) => e.id === ensayoActivoId) ?? null;
 
-  const ensayoActivo = ensayos.find((e) => e.id === ensayoActivoId);
+  const sidebarProps = {
+    ensayos,
+    ensayosFiltrados,
+    todosLosTags,
+    tagActivo,
+    ensayoActivoId,
+    searchTerm,
+    sources,
+    onTagClick: handleTagClick,
+    onEnsayoClick: handleEnsayoClick,
+    onCrearEnsayo: () => setShowNewNoteModal(true),
+    onEliminarEnsayo: eliminarEnsayo,
+    onSearchChange: setSearchTerm,
+    onZoteroUpload: handleZoteroUpload,
+  };
 
   return (
     <div className="min-h-screen bg-bg-main text-primary selection:bg-accent/20">
@@ -205,7 +219,6 @@ export default function Ensayos() {
         </span>
 
         <div className="flex items-center gap-3">
-          {/* Save status indicator */}
           <AnimatePresence mode="wait">
             {saveStatus !== "idle" && (
               <motion.span
@@ -228,7 +241,6 @@ export default function Ensayos() {
             )}
           </AnimatePresence>
 
-          {/* Mobile sidebar toggle */}
           <button
             onClick={() => setSidebarOpen((p) => !p)}
             className="lg:hidden w-8 h-8 flex items-center justify-center rounded-md transition-colors"
@@ -269,21 +281,7 @@ export default function Ensayos() {
               style={{ background: "var(--bg-menu, var(--bg-main))" }}
             >
               <div className="h-full pt-14">
-                <Sidebar
-                  ensayos={ensayos}
-                  ensayosFiltrados={ensayosFiltrados}
-                  todosLosTags={todosLosTags}
-                  tagActivo={tagActivo}
-                  ensayoActivoId={ensayoActivoId}
-                  searchTerm={searchTerm}
-                  sources={sources}
-                  onTagClick={handleTagClick}
-                  onEnsayoClick={handleEnsayoClick}
-                  onCrearEnsayo={() => setShowNewNoteModal(true)}
-                  onEliminarEnsayo={eliminarEnsayo}
-                  onSearchChange={setSearchTerm}
-                  onZoteroUpload={handleZoteroUpload}
-                />
+                <Sidebar {...sidebarProps} />
               </div>
             </motion.div>
           </>
@@ -292,43 +290,44 @@ export default function Ensayos() {
 
       {/* Main layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] max-w-screen-2xl mx-auto min-h-[calc(100vh-57px)]">
-        {/* Desktop sidebar */}
+        {/* Desktop sidebar — siempre visible, muestra skeleton mientras carga */}
         <div className="hidden lg:block">
-          <Sidebar
-            ensayos={ensayos}
-            ensayosFiltrados={ensayosFiltrados}
-            todosLosTags={todosLosTags}
-            tagActivo={tagActivo}
-            ensayoActivoId={ensayoActivoId}
-            searchTerm={searchTerm}
-            sources={sources}
-            onTagClick={handleTagClick}
-            onEnsayoClick={handleEnsayoClick}
-            onCrearEnsayo={() => setShowNewNoteModal(true)}
-            onEliminarEnsayo={eliminarEnsayo}
-            onSearchChange={setSearchTerm}
-            onZoteroUpload={handleZoteroUpload}
-          />
+          <Sidebar {...sidebarProps} />
         </div>
 
         <main className="p-4 md:p-8 lg:p-12">
-          <AnimatePresence mode="wait">
-            {ensayoActivo ? (
-              <Editor
-                key={ensayoActivo.id}
-                ensayo={ensayoActivo}
-                editMode={editMode}
-                onToggleEditMode={() => setEditMode((p) => !p)}
-                onUpdateField={actualizarLocal}
-              />
-            ) : (
-              <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
-            )}
-          </AnimatePresence>
+          {loading ? (
+            /* Skeleton fino — no bloquea, aparece instantáneo */
+            <div className="flex flex-col gap-4 animate-pulse">
+              <div className="h-10 rounded-xl w-1/3"
+                style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
+              <div className="h-px w-full"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              <div className="h-4 rounded w-2/3"
+                style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }} />
+              <div className="h-4 rounded w-1/2"
+                style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }} />
+              <div className="h-4 rounded w-3/4"
+                style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }} />
+            </div>
+          ) : (
+            <AnimatePresence mode="wait">
+              {ensayoActivo ? (
+                <Editor
+                  key={ensayoActivo.id}
+                  ensayo={ensayoActivo}
+                  editMode={editMode}
+                  onToggleEditMode={() => setEditMode((p) => !p)}
+                  onUpdateField={actualizarLocal}
+                />
+              ) : (
+                <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
+              )}
+            </AnimatePresence>
+          )}
         </main>
       </div>
 
-      {/* New Note Modal */}
       <AnimatePresence>
         {showNewNoteModal && (
           <NewNoteModal
