@@ -43,7 +43,19 @@ const Navbar = () => {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.9 }}
       aria-label={isDark ? "Modo claro" : "Modo oscuro"}
-      className="p-2 rounded-xl text-primary/40 hover:text-primary hover:bg-primary/5 transition-all"
+      className="p-2 transition-all"
+      style={{
+        borderRadius: "var(--radius-btn)",
+        color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
+        (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.background = "transparent";
+        (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)";
+      }}
     >
       <AnimatePresence mode="wait" initial={false}>
         {isDark ? (
@@ -64,17 +76,26 @@ const Navbar = () => {
       <Link href="/personal" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
         <Star
           size={26}
-          className={cn("transition-all duration-300", isPersonal ? "text-primary scale-110" : "text-primary/30")}
+          className="transition-all duration-300"
+          style={{
+            color: isPersonal
+              ? "var(--primary)"
+              : "color-mix(in srgb, var(--primary) 30%, transparent)",
+            transform: isPersonal ? "scale(1.1)" : "scale(1)",
+          }}
           fill={isPersonal ? "currentColor" : "none"}
         />
       </Link>
 
       <button
         onClick={() => user ? setUserMenuOpen(!userMenuOpen) : (window.location.href = "/auth/login")}
-        className={cn(
-          "p-3 rounded-full transition-all duration-300 shadow-lg",
-          userMenuOpen ? "bg-white-custom text-primary-dark scale-110" : "bg-primary text-white shadow-primary/30"
-        )}
+        className="p-3 transition-all duration-300 shadow-lg"
+        style={{
+          borderRadius: "9999px",
+          background: userMenuOpen ? "var(--white-custom)" : "var(--primary)",
+          color: userMenuOpen ? "var(--primary)" : "var(--btn-text)",
+          transform: userMenuOpen ? "scale(1.1)" : "scale(1)",
+        }}
       >
         <User size={24} strokeWidth={2.5} />
       </button>
@@ -82,7 +103,13 @@ const Navbar = () => {
       <Link href="/wiki" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
         <Flower2
           size={26}
-          className={cn("transition-all duration-300", isWiki ? "text-primary scale-110" : "text-primary/30")}
+          className="transition-all duration-300"
+          style={{
+            color: isWiki
+              ? "var(--primary)"
+              : "color-mix(in srgb, var(--primary) 30%, transparent)",
+            transform: isWiki ? "scale(1.1)" : "scale(1)",
+          }}
         />
       </Link>
     </div>
@@ -91,32 +118,100 @@ const Navbar = () => {
   return (
     <>
       {/* ── PC NAVBAR ── */}
-      <header className="hidden md:block fixed top-0 left-0 w-full z-[100] bg-bg-main/80 backdrop-blur-md border-b border-primary/10">
+      <header
+        className="hidden md:block fixed top-0 left-0 w-full z-[100] backdrop-blur-md"
+        style={{
+          background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+          borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+        }}
+      >
         <div className="max-w-7xl mx-auto h-20 flex items-center justify-between px-8">
-          <Link href="/" className="text-xl font-black italic tracking-tighter text-primary flex items-center gap-2">
+          {/* Logo */}
+          <Link
+            href="/"
+            className="text-xl font-black italic tracking-tighter flex items-center gap-2"
+            style={{ color: "var(--primary)" }}
+          >
             <Flower2 size={20} />
-            <span>FRANI<span className="text-primary opacity-40">LOVER</span></span>
+            <span>
+              FRANI
+              <span style={{ color: "var(--primary)", opacity: 0.4 }}>LOVER</span>
+            </span>
           </Link>
 
-          <nav className="flex items-center gap-1 bg-primary/5 p-1 rounded-2xl border border-primary/10">
-            <Link href="/personal" className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl", isPersonal ? "bg-white-custom text-primary shadow-sm" : "text-primary/40 hover:text-primary")}>
+          {/* Nav pills */}
+          <nav
+            className="flex items-center gap-1 p-1"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "var(--radius-card)",
+            }}
+          >
+            <Link
+              href="/personal"
+              className="px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+              style={{
+                borderRadius: "var(--radius-btn)",
+                background: isPersonal ? "var(--white-custom)" : "transparent",
+                color: isPersonal
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                boxShadow: isPersonal ? "var(--shadow-card)" : "none",
+              }}
+            >
               Personal
             </Link>
-            <Link href="/wiki" className={cn("px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-xl", isWiki ? "bg-white-custom text-primary shadow-sm" : "text-primary/40 hover:text-primary")}>
+            <Link
+              href="/wiki"
+              className="px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+              style={{
+                borderRadius: "var(--radius-btn)",
+                background: isWiki ? "var(--white-custom)" : "transparent",
+                color: isWiki
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                boxShadow: isWiki ? "var(--shadow-card)" : "none",
+              }}
+            >
               Wiki
             </Link>
             {esFranilover && (
-              <div className="flex gap-1 ml-2 pl-2 border-l border-primary/10">
-                <Link href="/personal/salud" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/salud") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
+              <div
+                className="flex gap-1 ml-2 pl-2"
+                style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
+              >
+                <Link
+                  href="/personal/salud"
+                  className="p-2 transition-all"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    background: currentPath?.includes("/salud") ? "var(--primary)" : "transparent",
+                    color: currentPath?.includes("/salud")
+                      ? "var(--btn-text)"
+                      : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  }}
+                >
                   <Utensils size={16} />
                 </Link>
-                <Link href="/personal/escritorio" className={cn("p-2 rounded-xl transition-all", currentPath?.includes("/ensayos") ? "bg-primary text-white" : "text-primary/30 hover:text-primary")}>
+                <Link
+                  href="/personal/escritorio"
+                  className="p-2 transition-all"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    background: currentPath?.includes("/ensayos") ? "var(--primary)" : "transparent",
+                    color: currentPath?.includes("/ensayos")
+                      ? "var(--btn-text)"
+                      : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  }}
+                >
                   <PenTool size={16} />
                 </Link>
               </div>
             )}
           </nav>
 
+          {/* Right controls */}
           <div className="flex items-center gap-3">
             <DarkToggleBtn />
 
@@ -124,8 +219,18 @@ const Navbar = () => {
             <div className="relative">
               <motion.button
                 onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); }}
-                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}
-                className={cn("p-2 rounded-xl transition-all", themeMenuOpen ? "bg-primary text-white" : "text-primary/40 hover:text-primary hover:bg-primary/5")}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 transition-all"
+                style={{
+                  borderRadius: "var(--radius-btn)",
+                  background: themeMenuOpen
+                    ? "var(--primary)"
+                    : "transparent",
+                  color: themeMenuOpen
+                    ? "var(--btn-text)"
+                    : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                }}
               >
                 <Palette size={16} />
               </motion.button>
@@ -136,7 +241,13 @@ const Navbar = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     onClick={e => e.stopPropagation()}
-                    className="absolute top-full right-0 mt-3 w-56 bg-white-custom border border-primary/10 rounded-2xl shadow-xl z-[1001] overflow-hidden"
+                    className="absolute top-full right-0 mt-3 w-56 z-[1001] overflow-hidden"
+                    style={{
+                      background: "var(--white-custom)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      borderRadius: "var(--radius-card)",
+                      boxShadow: "var(--shadow-card)",
+                    }}
                   >
                     <ThemeSelector />
                   </motion.div>
@@ -144,26 +255,91 @@ const Navbar = () => {
               </AnimatePresence>
             </div>
 
+            {/* User button */}
             {user ? (
               <div className="relative">
                 <button
                   onClick={e => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); setThemeMenuOpen(false); }}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-full border border-primary/10 hover:bg-primary/10 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 transition-all"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                    borderRadius: "9999px",
+                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 10%, transparent)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
+                  }}
                 >
-                  <span className="text-[10px] font-black uppercase text-primary/60 tracking-widest">{perfil?.username}</span>
-                  <CircleUser className={cn("transition-colors", userMenuOpen ? "text-primary" : "text-primary/40")} size={24} />
+                  <span
+                    className="text-[10px] font-black uppercase tracking-widest"
+                    style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
+                  >
+                    {perfil?.username}
+                  </span>
+                  <CircleUser
+                    size={24}
+                    style={{
+                      color: userMenuOpen
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                      transition: "color 0.2s",
+                    }}
+                  />
                 </button>
                 <AnimatePresence>
                   {userMenuOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
                       onClick={e => e.stopPropagation()}
-                      className="absolute top-full right-0 mt-3 w-48 bg-white-custom border border-primary/10 rounded-2xl shadow-xl p-2 z-[1001]"
+                      className="absolute top-full right-0 mt-3 w-48 p-2 z-[1001]"
+                      style={{
+                        background: "var(--white-custom)",
+                        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                        borderRadius: "var(--radius-card)",
+                        boxShadow: "var(--shadow-card)",
+                      }}
                     >
-                      <Link href="/wiki/personal" onClick={closeAll} className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase text-primary/60 hover:bg-primary/5 rounded-xl transition-all">
+                      <Link
+                        href="/wiki/personal"
+                        onClick={closeAll}
+                        className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase transition-all"
+                        style={{
+                          color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                          borderRadius: "var(--radius-btn)",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLElement).style.background = "transparent";
+                        }}
+                      >
                         <Sword size={14} /> Mi Personaje
                       </Link>
-                      <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase text-red-400 hover:bg-red-50 rounded-xl transition-all border-t border-primary/5">
+                      <div
+                        className="my-1"
+                        style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)" }}
+                      />
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase transition-all"
+                        style={{
+                          color: "oklch(0.6 0.2 25)",
+                          borderRadius: "var(--radius-btn)",
+                          background: "transparent",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLElement).style.background = "oklch(0.97 0.01 25)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLElement).style.background = "transparent";
+                        }}
+                      >
                         <LogOut size={14} /> Salir
                       </button>
                     </motion.div>
@@ -171,7 +347,19 @@ const Navbar = () => {
                 </AnimatePresence>
               </div>
             ) : (
-              <Link href="/auth/login" className="text-[10px] font-black uppercase text-primary/60 hover:text-primary">Entrar</Link>
+              <Link
+                href="/auth/login"
+                className="text-[10px] font-black uppercase transition-colors"
+                style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 60%, transparent)";
+                }}
+              >
+                Entrar
+              </Link>
             )}
           </div>
         </div>
@@ -179,41 +367,106 @@ const Navbar = () => {
 
       {/* ── MÓVIL ── */}
       <div className="md:hidden fixed bottom-0 left-0 w-full z-[1000]">
-        <nav className="bg-bg-main/95 backdrop-blur-xl border-t border-primary/20 shadow-2xl h-16 flex items-center w-full">
+        <nav
+          className="backdrop-blur-xl h-16 flex items-center w-full"
+          style={{
+            background: "color-mix(in srgb, var(--bg-main) 95%, transparent)",
+            borderTop: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+            boxShadow: "0 -8px 32px color-mix(in srgb, var(--primary) 8%, transparent)",
+          }}
+        >
           {navContentMobile}
         </nav>
 
         <AnimatePresence>
           {userMenuOpen && user && (
             <motion.div
-              initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
               onClick={e => e.stopPropagation()}
-              className="absolute bottom-16 left-4 right-4 bg-white-custom border border-primary/10 rounded-[40px] p-5 shadow-2xl flex flex-col gap-3 z-[1001]"
+              className="absolute bottom-16 left-4 right-4 p-5 flex flex-col gap-3 z-[1001]"
+              style={{
+                background: "var(--white-custom)",
+                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderRadius: "var(--radius-card)",
+                boxShadow: "var(--shadow-card)",
+              }}
             >
               {/* dark + user + logout */}
               <div className="flex items-center gap-2">
-                <button onClick={toggle} className="w-11 h-11 rounded-2xl border border-primary/10 text-primary flex items-center justify-center hover:bg-primary/5 transition-all shrink-0">
+                <button
+                  onClick={toggle}
+                  className="w-11 h-11 flex items-center justify-center transition-all shrink-0"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    color: "var(--primary)",
+                    background: "transparent",
+                  }}
+                >
                   {isDark ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
-                <Link href="/wiki/personal" onClick={closeAll} className="flex-1 p-3 bg-primary/5 text-primary rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2">
+                <Link
+                  href="/wiki/personal"
+                  onClick={closeAll}
+                  className="flex-1 p-3 font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                    color: "var(--primary)",
+                    borderRadius: "var(--radius-btn)",
+                  }}
+                >
                   <Sword size={16} /> {perfil?.username}
                 </Link>
-                <button onClick={handleLogout} className="w-11 h-11 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 transition-all shrink-0">
+                <button
+                  onClick={handleLogout}
+                  className="w-11 h-11 flex items-center justify-center transition-all shrink-0"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    background: "oklch(0.97 0.01 25)",
+                    color: "oklch(0.6 0.2 25)",
+                  }}
+                >
                   <LogOut size={18} />
                 </button>
               </div>
 
               {/* Selector de tema */}
-              <div className="border border-primary/8 rounded-3xl overflow-hidden">
+              <div
+                className="overflow-hidden"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                  borderRadius: "var(--radius-card)",
+                }}
+              >
                 <ThemeSelector />
               </div>
 
               {esFranilover && (
                 <div className="grid grid-cols-2 gap-2">
-                  <Link href="/personal/salud" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                  <Link
+                    href="/personal/salud"
+                    onClick={closeAll}
+                    className="p-4 flex items-center justify-center transition-all"
+                    style={{
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      color: "var(--primary)",
+                      borderRadius: "var(--radius-card)",
+                    }}
+                  >
                     <Utensils size={18} />
                   </Link>
-                  <Link href="/personal/escritorio" onClick={closeAll} className="p-4 border border-primary/10 text-primary rounded-[25px] flex items-center justify-center">
+                  <Link
+                    href="/personal/escritorio"
+                    onClick={closeAll}
+                    className="p-4 flex items-center justify-center transition-all"
+                    style={{
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      color: "var(--primary)",
+                      borderRadius: "var(--radius-card)",
+                    }}
+                  >
                     <PenTool size={18} />
                   </Link>
                 </div>
@@ -224,7 +477,11 @@ const Navbar = () => {
       </div>
 
       {(userMenuOpen || themeMenuOpen) && (
-        <div className="fixed inset-0 z-[90] bg-black/5" onClick={closeAll} />
+        <div
+          className="fixed inset-0 z-[90]"
+          style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
+          onClick={closeAll}
+        />
       )}
     </>
   );
