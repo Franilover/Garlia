@@ -44,27 +44,44 @@ export default function DashboardPage() {
     <div className="h-screen w-screen overflow-hidden flex flex-col">
 
       {/* ── NAV ── */}
-      <nav className="shrink-0 flex items-center justify-between px-8 py-4 border-b border-primary/8 bg-white/90 backdrop-blur-md z-50">
+      <nav
+        className="shrink-0 flex items-center justify-between px-8 py-4 border-b z-50 backdrop-blur-md"
+        style={{
+          background: "color-mix(in srgb, var(--white-custom) 85%, transparent)",
+          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+        }}
+      >
 
         {/* Título */}
-        <span className="font-black italic text-primary/50 text-sm uppercase tracking-tight select-none">
+        <span
+          className="font-black italic text-sm uppercase tracking-tight select-none"
+          style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+        >
           Dashboard
         </span>
 
         {/* Pills */}
-        <div className="flex items-center gap-1 bg-primary/5 rounded-2xl p-1">
+        <div
+          className="flex items-center gap-1 rounded-2xl p-1"
+          style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
+        >
           {PANELS_SIMPLE.map((p, i) => {
             const Icon = p.icon;
+            const isActive = panelActivo === i;
             return (
               <button
                 key={p.id}
                 onClick={() => irA(i)}
-                className={cn(
-                  "flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all",
-                  panelActivo === i
-                    ? "bg-primary text-white shadow-md shadow-primary/20"
-                    : "text-primary/40 hover:text-primary hover:bg-white"
-                )}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                style={isActive ? {
+                  background: "var(--primary)",
+                  color: "var(--btn-text)",
+                  boxShadow: "0 4px 12px color-mix(in srgb, var(--primary) 20%, transparent)",
+                } : {
+                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
+                onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.color = "var(--primary)"; (e.currentTarget as HTMLElement).style.background = "var(--white-custom)"; } }}
+                onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 45%, transparent)"; (e.currentTarget as HTMLElement).style.background = "transparent"; } }}
               >
                 <Icon size={12} />
                 {p.label}
@@ -78,7 +95,10 @@ export default function DashboardPage() {
           <button
             onClick={() => irA(panelActivo - 1)}
             disabled={panelActivo === 0}
-            className="p-1.5 rounded-xl hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            className="p-1.5 rounded-xl transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--primary)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
           >
             <ChevronLeft size={16} />
           </button>
@@ -88,12 +108,14 @@ export default function DashboardPage() {
               <button
                 key={i}
                 onClick={() => irA(i)}
-                className={cn(
-                  "rounded-full transition-all",
-                  panelActivo === i
-                    ? "w-5 h-1.5 bg-primary"
-                    : "w-1.5 h-1.5 bg-primary/20 hover:bg-primary/40"
-                )}
+                className="rounded-full transition-all"
+                style={{
+                  width: panelActivo === i ? "20px" : "6px",
+                  height: "6px",
+                  background: panelActivo === i
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 25%, transparent)",
+                }}
               />
             ))}
           </div>
@@ -101,7 +123,10 @@ export default function DashboardPage() {
           <button
             onClick={() => irA(panelActivo + 1)}
             disabled={panelActivo === PANELS_SIMPLE.length - 1}
-            className="p-1.5 rounded-xl hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            className="p-1.5 rounded-xl transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--primary)"; (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
           >
             <ChevronRight size={16} />
           </button>
