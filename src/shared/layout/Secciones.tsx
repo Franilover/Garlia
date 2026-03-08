@@ -1,6 +1,5 @@
 "use client";
 
-
 import React, { useState, useCallback, useRef, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
@@ -22,7 +21,7 @@ export interface PanelSliderProps {
   contentClassName?: string;
 }
 
-// ─── HELPERS DE ESTILO (100% CSS vars, tema-aware) ───────────────────────────
+// ─── HELPERS DE ESTILO ────────────────────────────────────────────────────────
 const navStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--white-custom) 85%, transparent)",
   borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -107,7 +106,19 @@ export function PanelSlider({
     setActive(idx);
   }, [active, panels.length]);
 
-  // ── SWIPE TOUCH ──────────────────────────────────────────────────────────
+  // ── TRACKPAD ─────────────────────────────────────────────────────────────
+  const wheelCooldown = useRef(false);
+  const handleWheel = (e: React.WheelEvent) => {
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+    if (Math.abs(e.deltaX) < 30) return;
+    if (wheelCooldown.current) return;
+    wheelCooldown.current = true;
+    setTimeout(() => { wheelCooldown.current = false; }, 600);
+    if (e.deltaX > 0) goTo(active + 1);
+    else              goTo(active - 1);
+  };
+
+  // ── SWIPE TOUCH ───────────────────────────────────────────────────────────
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
@@ -120,10 +131,9 @@ export function PanelSlider({
     if (touchStartX.current === null || touchStartY.current === null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
-    // Solo actuar si el swipe es más horizontal que vertical (evita conflicto con scroll)
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-      if (dx < 0) goTo(active + 1); // swipe izquierda → siguiente
-      else        goTo(active - 1); // swipe derecha  → anterior
+      if (dx < 0) goTo(active + 1);
+      else        goTo(active - 1);
     }
     touchStartX.current = null;
     touchStartY.current = null;
@@ -136,12 +146,11 @@ export function PanelSlider({
   };
 
   return (
-    <div className="flex flex-col md:flex-col-reverse" style={{ height: "100%", width: "100%", overflow: "hidden" }}>
+    <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100dvh-80px)] md:h-[calc(100dvh-57px)]">
 
       {/* ── NAV ── */}
       <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 32px", zIndex: 50 }}>
 
-        {/* Título opcional */}
         <span style={{
           fontWeight: 900,
           fontStyle: "italic",
@@ -167,10 +176,7 @@ export function PanelSlider({
                 onClick={() => goTo(i)}
                 style={isActive ? activePillStyle : {
                   ...inactivePillStyle,
-                  ...(isHovered ? {
-                    color: "var(--primary)",
-                    background: "var(--white-custom)",
-                  } : {}),
+                  ...(isHovered ? { color: "var(--primary)", background: "var(--white-custom)" } : {}),
                 }}
                 onMouseEnter={() => setHoveredPill(i)}
                 onMouseLeave={() => setHoveredPill(null)}
@@ -184,7 +190,6 @@ export function PanelSlider({
 
         {/* Flechas + dots */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "80px", justifyContent: "flex-end" }}>
-
           {showArrows && (
             <button
               onClick={() => goTo(active - 1)}
@@ -193,10 +198,7 @@ export function PanelSlider({
                 ...arrowStyle,
                 opacity: active === 0 ? 0.2 : 1,
                 cursor: active === 0 ? "not-allowed" : "pointer",
-                ...(hoveredArrow === "left" && active > 0 ? {
-                  color: "var(--primary)",
-                  background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                } : {}),
+                ...(hoveredArrow === "left" && active > 0 ? { color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" } : {}),
               }}
               onMouseEnter={() => setHoveredArrow("left")}
               onMouseLeave={() => setHoveredArrow(null)}
@@ -215,9 +217,7 @@ export function PanelSlider({
                     borderRadius: "9999px",
                     height: "6px",
                     width: active === i ? "20px" : "6px",
-                    background: active === i
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 25%, transparent)",
+                    background: active === i ? "var(--primary)" : "color-mix(in srgb, var(--primary) 25%, transparent)",
                     border: "none",
                     cursor: "pointer",
                     transition: "all 0.25s ease",
@@ -236,10 +236,7 @@ export function PanelSlider({
                 ...arrowStyle,
                 opacity: active === panels.length - 1 ? 0.2 : 1,
                 cursor: active === panels.length - 1 ? "not-allowed" : "pointer",
-                ...(hoveredArrow === "right" && active < panels.length - 1 ? {
-                  color: "var(--primary)",
-                  background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                } : {}),
+                ...(hoveredArrow === "right" && active < panels.length - 1 ? { color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" } : {}),
               }}
               onMouseEnter={() => setHoveredArrow("right")}
               onMouseLeave={() => setHoveredArrow(null)}
@@ -255,6 +252,7 @@ export function PanelSlider({
         style={{ flex: 1, position: "relative", overflow: "hidden" }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        onWheel={handleWheel}
       >
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
