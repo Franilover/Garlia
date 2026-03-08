@@ -23,7 +23,7 @@ export interface PanelSliderProps {
 
 // ─── HELPERS DE ESTILO ────────────────────────────────────────────────────────
 const navStyle: React.CSSProperties = {
-  background: "color-mix(in srgb, var(--white-custom) 85%, transparent)",
+  background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
   borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
   backdropFilter: "blur(12px)",
   WebkitBackdropFilter: "blur(12px)",
@@ -146,7 +146,7 @@ export function PanelSlider({
   };
 
   return (
-    <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100dvh-80px)] md:h-[calc(100dvh-57px)]">
+    <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)]">
 
       {/* ── NAV ── */}
       <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 32px", zIndex: 50 }}>
