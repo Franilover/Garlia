@@ -107,6 +107,22 @@ export function PanelSlider({
     setActive(idx);
   }, [active, panels.length]);
 
+  // ── TRACKPAD (wheel horizontal) ─────────────────────────────────────────
+  const wheelCooldown = useRef(false);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    // deltaX = scroll horizontal del trackpad
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return; // ignorar scroll vertical
+    if (Math.abs(e.deltaX) < 30) return;                 // umbral mínimo
+    if (wheelCooldown.current) return;                   // evitar disparos múltiples
+
+    wheelCooldown.current = true;
+    setTimeout(() => { wheelCooldown.current = false; }, 600); // cooldown 600ms
+
+    if (e.deltaX > 0) goTo(active + 1); // deslizar derecha → siguiente
+    else              goTo(active - 1); // deslizar izquierda → anterior
+  };
+
   // ── SWIPE TOUCH ──────────────────────────────────────────────────────────
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -255,6 +271,7 @@ export function PanelSlider({
         style={{ flex: 1, position: "relative", overflow: "hidden" }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        onWheel={handleWheel}
       >
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
