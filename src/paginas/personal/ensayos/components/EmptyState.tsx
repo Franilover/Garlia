@@ -8,17 +8,32 @@ export function EmptyState() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col items-center justify-center min-h-[70vh]
-                 border-2 border-dashed border-[#4a3d50]/15 rounded-4xl text-center gap-4
-                 bg-white/40"
+      className="flex flex-col items-center justify-center min-h-[70vh] text-center gap-4"
+      style={{
+        border: "2px dashed color-mix(in srgb, var(--primary) 15%, transparent)",
+        borderRadius: "var(--radius-card)",
+        background: "color-mix(in srgb, var(--white-custom) 40%, transparent)",
+      }}
     >
-      <div className="w-16 h-16 rounded-2xl bg-[#4a3d50]/5 border border-[#4a3d50]/10
-                      flex items-center justify-center text-[#4a3d50]/30">
+      <div className="w-16 h-16 flex items-center justify-center"
+        style={{
+          borderRadius: "var(--radius-btn)",
+          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+        }}
+      >
         <PenTool size={26} />
       </div>
       <div>
-        <p className="font-serif italic text-[#4a3d50]/50 text-xl">Selecciona una nota</p>
-        <p className="font-mono text-[10px] text-[#4a3d50]/30 uppercase tracking-widest mt-1.5">
+        <p className="font-serif italic text-xl"
+          style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+        >
+          Selecciona una nota
+        </p>
+        <p className="font-mono text-[10px] uppercase tracking-widest mt-1.5"
+          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+        >
           o crea una nueva con el botón +
         </p>
       </div>

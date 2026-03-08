@@ -40,34 +40,54 @@ export default function Sidebar({
   onZoteroUpload,
 }: SidebarProps) {
   return (
-    <aside className="h-full flex flex-col gap-4 overflow-y-auto p-4 border-r border-black/10 bg-bg-menu text-white-custom">
+    <aside className="h-full flex flex-col gap-4 overflow-y-auto p-4 border-r bg-bg-menu text-white-custom"
+      style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+    >
       
       {/* Buscador */}
       <div className="relative">
-        <Search size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+        <Search size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+          style={{ color: "color-mix(in srgb, var(--white-custom) 30%, transparent)" }}
+        />
         <input
           type="text"
           placeholder="BUSCAR NOTA..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full rounded-xl py-2.5 pl-9 pr-3 text-[11px] outline-none transition-all
-                     bg-black/20 border border-white/10 placeholder:text-white/20 uppercase tracking-widest
-                     focus:border-accent/40 focus:bg-black/30"
+          className="w-full py-2.5 pl-9 pr-3 text-[11px] outline-none transition-all uppercase tracking-widest"
+          style={{
+            background: "color-mix(in srgb, var(--foreground) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--white-custom) 10%, transparent)",
+            borderRadius: "var(--radius-btn)",
+            color: "var(--white-custom)",
+          }}
         />
       </div>
 
       {/* Etiquetas */}
-      <div className="rounded-2xl p-3 flex flex-col gap-2.5 bg-black/10 border border-white/5">
-        <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">
+      <div className="p-3 flex flex-col gap-2.5"
+        style={{
+          background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--white-custom) 5%, transparent)",
+          borderRadius: "var(--radius-card)",
+        }}
+      >
+        <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]"
+          style={{ color: "color-mix(in srgb, var(--white-custom) 40%, transparent)" }}
+        >
           <Hash size={10} /> Etiquetas
         </p>
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => onTagClick(null)}
-            className={`px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wide transition-all border
-              ${!tagActivo 
-                ? "bg-white-custom text-primary border-white-custom font-bold" 
-                : "bg-black/20 text-white/50 border-white/10"}`}
+            className="px-3 py-1.5 font-mono text-[10px] uppercase tracking-wide transition-all"
+            style={{
+              background: !tagActivo ? "var(--white-custom)" : "color-mix(in srgb, var(--foreground) 20%, transparent)",
+              color: !tagActivo ? "var(--primary)" : "color-mix(in srgb, var(--white-custom) 50%, transparent)",
+              border: `1px solid ${!tagActivo ? "var(--white-custom)" : "color-mix(in srgb, var(--white-custom) 10%, transparent)"}`,
+              borderRadius: "var(--radius-btn)",
+              fontWeight: !tagActivo ? 700 : 400,
+            }}
           >
             Todos
           </button>
@@ -78,10 +98,14 @@ export default function Sidebar({
               <button
                 key={tag}
                 onClick={() => onTagClick(isActive ? null : tag)}
-                className={`px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wide transition-all border
-                  ${isActive 
-                    ? "bg-white-custom text-primary border-white-custom font-bold" 
-                    : "bg-black/20 text-white/50 border-white/10"}`}
+                className="px-3 py-1.5 font-mono text-[10px] uppercase tracking-wide transition-all"
+                style={{
+                  background: isActive ? "var(--white-custom)" : "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                  color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--white-custom) 50%, transparent)",
+                  border: `1px solid ${isActive ? "var(--white-custom)" : "color-mix(in srgb, var(--white-custom) 10%, transparent)"}`,
+                  borderRadius: "var(--radius-btn)",
+                  fontWeight: isActive ? 700 : 400,
+                }}
               >
                 #{tag}
               </button>
@@ -91,14 +115,27 @@ export default function Sidebar({
       </div>
 
       {/* Notas */}
-      <div className="rounded-2xl p-3 flex flex-col gap-2.5 flex-1 min-h-0 bg-black/10 border border-white/5">
+      <div className="p-3 flex flex-col gap-2.5 flex-1 min-h-0"
+        style={{
+          background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--white-custom) 5%, transparent)",
+          borderRadius: "var(--radius-card)",
+        }}
+      >
         <div className="flex items-center justify-between">
-          <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">
+          <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]"
+            style={{ color: "color-mix(in srgb, var(--white-custom) 40%, transparent)" }}
+          >
             <FileText size={10} /> Notas
           </p>
           <button
             onClick={onCrearEnsayo}
-            className="w-7 h-7 rounded-full flex items-center justify-center transition-all border border-white/20 hover:bg-white/10 text-white"
+            className="w-7 h-7 flex items-center justify-center transition-all"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--white-custom) 20%, transparent)",
+              borderRadius: "50%",
+              color: "var(--white-custom)",
+            }}
           >
             <Plus size={14} />
           </button>
@@ -114,10 +151,14 @@ export default function Sidebar({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   onClick={() => onEnsayoClick(ens.id)}
-                  className={`group px-4 py-3 rounded-xl cursor-pointer transition-all border shadow-sm
-                    ${isActive 
-                      ? "bg-white-custom text-primary border-white-custom font-bold" 
-                      : "bg-black/20 text-white/50 border-white/10 hover:bg-black/30"}`}
+                  className="group px-4 py-3 cursor-pointer transition-all"
+                  style={{
+                    background: isActive ? "var(--white-custom)" : "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                    color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--white-custom) 50%, transparent)",
+                    border: `1px solid ${isActive ? "var(--white-custom)" : "color-mix(in srgb, var(--white-custom) 10%, transparent)"}`,
+                    borderRadius: "var(--radius-btn)",
+                    fontWeight: isActive ? 700 : 400,
+                  }}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] uppercase tracking-wider truncate flex-1">
@@ -125,7 +166,8 @@ export default function Sidebar({
                     </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); onEliminarEnsayo(ens.id); }}
-                      className={`transition-all ${isActive ? "text-primary/40" : "opacity-0 group-hover:opacity-100 text-red-400"}`}
+                      className="transition-all opacity-0 group-hover:opacity-100"
+                      style={{ color: isActive ? "color-mix(in srgb, var(--primary) 40%, transparent)" : "rgb(248 113 113)" }}
                     >
                       <Trash2 size={12} />
                     </button>
@@ -138,12 +180,26 @@ export default function Sidebar({
       </div>
 
       {/* Bibliografía */}
-      <div className="rounded-2xl p-3 flex flex-col gap-2.5 bg-black/10 border border-white/5">
-        <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/40">
+      <div className="p-3 flex flex-col gap-2.5"
+        style={{
+          background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--white-custom) 5%, transparent)",
+          borderRadius: "var(--radius-card)",
+        }}
+      >
+        <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]"
+          style={{ color: "color-mix(in srgb, var(--white-custom) 40%, transparent)" }}
+        >
           <BookOpen size={10} /> Bibliografía
         </p>
-        <label className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl cursor-pointer 
-                          text-white/30 hover:text-white/60 text-[9px] font-mono uppercase border border-dashed border-white/10 transition-colors">
+        <label className="flex items-center justify-center gap-2 px-3 py-3 cursor-pointer 
+                          text-[9px] font-mono uppercase transition-colors"
+          style={{
+            color: "color-mix(in srgb, var(--white-custom) 30%, transparent)",
+            border: "1px dashed color-mix(in srgb, var(--white-custom) 10%, transparent)",
+            borderRadius: "var(--radius-btn)",
+          }}
+        >
           <UploadCloud size={14} />
           Sync Zotero
           <input type="file" className="hidden" onChange={onZoteroUpload} accept=".json" />
