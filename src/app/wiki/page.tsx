@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Sword, BookText, Dog, Compass, Music } from "lucide-react";
+import { BookOpen, Compass, BookText, Music } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { MenuCard } from "@/shared/templates/MenuCard";
 
@@ -13,7 +13,7 @@ export default function WikiMenuPage() {
       const { data } = await supabase
         .from("wiki_notifications")
         .select("page_name, has_new_content")
-        .in("page_name", ["personajes", "items", "libros", "criaturas", "mapa", "canciones"]);
+        .in("page_name", ["enciclopedia", "mapa", "libros", "canciones"]);
       if (data) {
         const mapped = data.reduce((acc: any, curr) => {
           acc[curr.page_name] = curr.has_new_content;
@@ -44,29 +44,20 @@ export default function WikiMenuPage() {
           </h1>
         </motion.div>
 
-        {/* Desktop: grid 3x2 — sin cambios */}
-        <div className="hidden md:grid grid-cols-3 gap-8 lg:gap-10">
-          <MenuCard href="/wiki/personajes" title="Personajes" icon={<Users />}    delay={0.1} hasNewContent={notifications['personajes']} onClick={() => handleVisit('personajes')} />
-          <MenuCard href="/wiki/criaturas"  title="Criaturas"  icon={<Dog />}      delay={0.2} hasNewContent={notifications['criaturas']}  onClick={() => handleVisit('criaturas')}  />
-          <MenuCard href="/wiki/items"      title="Items"      icon={<Sword />}    delay={0.3} hasNewContent={notifications['items']}      onClick={() => handleVisit('items')}      />
-          <MenuCard href="/wiki/mapa"       title="Mapa"       icon={<Compass />}  delay={0.4} hasNewContent={notifications['mapa']}       onClick={() => handleVisit('mapa')}       />
-          <MenuCard href="/wiki/libros"     title="Libros"     icon={<BookText />} delay={0.5} hasNewContent={notifications['libros']}     onClick={() => handleVisit('libros')}     />
-          <MenuCard href="/wiki/canciones"  title="Canciones"  icon={<Music />}    delay={0.6} hasNewContent={notifications['canciones']}  onClick={() => handleVisit('canciones')}  />
+        {/* Desktop: 2x2 + fila enciclopedia abajo */}
+        <div className="hidden md:grid grid-cols-2 gap-8 lg:gap-10">
+          <MenuCard href="/wiki/mapa"          title="Mapa"          icon={<Compass />}  delay={0.1} hasNewContent={notifications['mapa']}          onClick={() => handleVisit('mapa')}          />
+          <MenuCard href="/wiki/libros"         title="Libros"        icon={<BookText />} delay={0.2} hasNewContent={notifications['libros']}        onClick={() => handleVisit('libros')}         />
+          <MenuCard href="/wiki/canciones"      title="Canciones"     icon={<Music />}    delay={0.3} hasNewContent={notifications['canciones']}     onClick={() => handleVisit('canciones')}      />
+          <MenuCard href="/wiki/enciclopedia"   title="Enciclopedia"  icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']}  onClick={() => handleVisit('enciclopedia')}   />
         </div>
 
-        {/* Mobile: 2 columnas para las primeras 4, fila completa + horizontal para Libros y Canciones */}
-        <div className="grid grid-cols-2 gap-4 md:hidden">
-          <MenuCard href="/wiki/personajes" title="Personajes" icon={<Users />}   delay={0.1} hasNewContent={notifications['personajes']} onClick={() => handleVisit('personajes')} />
-          <MenuCard href="/wiki/criaturas"  title="Criaturas"  icon={<Dog />}     delay={0.2} hasNewContent={notifications['criaturas']}  onClick={() => handleVisit('criaturas')}  />
-          <MenuCard href="/wiki/items"      title="Items"      icon={<Sword />}   delay={0.3} hasNewContent={notifications['items']}      onClick={() => handleVisit('items')}      />
-          <MenuCard href="/wiki/mapa"       title="Mapa"       icon={<Compass />} delay={0.4} hasNewContent={notifications['mapa']}       onClick={() => handleVisit('mapa')}       />
-
-          <div className="col-span-2">
-            <MenuCard href="/wiki/libros" title="Libros" icon={<BookText />} delay={0.5} hasNewContent={notifications['libros']} onClick={() => handleVisit('libros')} horizontal />
-          </div>
-          <div className="col-span-2">
-            <MenuCard href="/wiki/canciones" title="Canciones" icon={<Music />} delay={0.6} hasNewContent={notifications['canciones']} onClick={() => handleVisit('canciones')} horizontal />
-          </div>
+        {/* Mobile: todo horizontal */}
+        <div className="flex flex-col gap-4 md:hidden">
+          <MenuCard href="/wiki/mapa"         title="Mapa"         icon={<Compass />}  delay={0.1} hasNewContent={notifications['mapa']}         onClick={() => handleVisit('mapa')}         horizontal />
+          <MenuCard href="/wiki/libros"        title="Libros"       icon={<BookText />} delay={0.2} hasNewContent={notifications['libros']}       onClick={() => handleVisit('libros')}        horizontal />
+          <MenuCard href="/wiki/canciones"     title="Canciones"    icon={<Music />}    delay={0.3} hasNewContent={notifications['canciones']}    onClick={() => handleVisit('canciones')}     horizontal />
+          <MenuCard href="/wiki/enciclopedia"  title="Enciclopedia" icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']} onClick={() => handleVisit('enciclopedia')}  horizontal />
         </div>
       </div>
     </div>
