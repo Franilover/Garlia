@@ -1,7 +1,7 @@
 "use client";
 
 
-import React, { useState, useCallback, type ReactNode } from "react";
+import React, { useState, useCallback, useRef, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
@@ -106,6 +106,28 @@ export function PanelSlider({
     setDirection(idx > active ? 1 : -1);
     setActive(idx);
   }, [active, panels.length]);
+
+  // ── SWIPE TOUCH ──────────────────────────────────────────────────────────
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    // Solo actuar si el swipe es más horizontal que vertical (evita conflicto con scroll)
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+      if (dx < 0) goTo(active + 1); // swipe izquierda → siguiente
+      else        goTo(active - 1); // swipe derecha  → anterior
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   const variants = {
     enter:  (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
@@ -229,7 +251,11 @@ export function PanelSlider({
       </nav>
 
       {/* ── CONTENIDO ── */}
-      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+      <div
+        style={{ flex: 1, position: "relative", overflow: "hidden" }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={active}
@@ -252,4 +278,4 @@ export function PanelSlider({
 }
 
 export default PanelSlider;
-export { default as Secciones } from "@/shared/layout/Secciones"; 
+export { default as Secciones } from "@/shared/layout/Secciones";
