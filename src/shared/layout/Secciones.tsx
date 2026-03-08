@@ -149,7 +149,7 @@ export function PanelSlider({
     <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)]">
 
       {/* ── NAV ── */}
-      <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", padding: "10px 32px", zIndex: 50 }}>
+      <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 32px", position: "relative", zIndex: 50 }}>
 
         {/* Pills */}
         <div style={pillsWrapperStyle}>
@@ -176,7 +176,7 @@ export function PanelSlider({
         </div>
 
         {/* Flechas + dots */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "absolute", right: "32px", top: "50%", transform: "translateY(-50%)" }}>
           {showArrows && (
             <button
               onClick={() => goTo(active - 1)}
