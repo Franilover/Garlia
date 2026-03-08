@@ -136,10 +136,10 @@ export function PanelSlider({
   };
 
   return (
-    <div style={{ height: "100%", width: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+    <div className="flex flex-col md:flex-col-reverse" style={{ height: "100%", width: "100%", overflow: "hidden" }}>
 
       {/* ── NAV ── */}
-      <nav className="md:fixed md:bottom-0 md:left-0 md:right-0" style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 32px", zIndex: 50 }}>
+      <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 32px", zIndex: 50 }}>
 
         {/* Título opcional */}
         <span style={{
@@ -250,9 +250,8 @@ export function PanelSlider({
         </div>
       </nav>
 
-      {/* ── CONTENIDO ── pb en desktop para no quedar bajo el nav fijo */}
+      {/* ── CONTENIDO ── */}
       <div
-        className="md:pb-[57px]"
         style={{ flex: 1, position: "relative", overflow: "hidden" }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
