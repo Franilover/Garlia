@@ -47,35 +47,23 @@
     0%, 100% { transform: rotate(-1deg); }
     50%       { transform: rotate(1deg); }
   }
+  /* Keyframes para el garabateo scribble */
+  @keyframes border-draw {
+    0%   { stroke-dashoffset: 1000; }
+    100% { stroke-dashoffset: 0; }
+  }
+  @keyframes scribble-border {
+    0%   { box-shadow: 2px 2px 0 0 var(--primary), -1px -1px 0 0 var(--primary); }
+    20%  { box-shadow: 3px 1px 0 0 var(--primary), -2px -1px 0 0 var(--primary); }
+    40%  { box-shadow: 1px 3px 0 0 var(--primary), -1px -2px 0 0 var(--primary); }
+    60%  { box-shadow: 2px 2px 0 0 var(--primary), -2px -2px 0 0 var(--primary); }
+    80%  { box-shadow: 3px 1px 0 0 var(--primary), -1px -1px 0 0 var(--primary); }
+    100% { box-shadow: 2px 2px 0 0 var(--primary), -1px -1px 0 0 var(--primary); }
+  }
   @keyframes pixel-border {
     0%   { box-shadow: 4px 4px 0 var(--foreground); }
     50%  { box-shadow: 5px 3px 0 var(--accent); }
     100% { box-shadow: 4px 4px 0 var(--foreground); }
-  }
-
-  /* ── Temblor orgánico: desplaza el ::after como si una mano lo sostuviera ── */
-  @keyframes scribble-border {
-    0%   { transform: translate(0px,    0px)    rotate(0deg);    }
-    12%  { transform: translate(0.7px, -0.5px)  rotate(0.12deg); }
-    25%  { transform: translate(-0.5px, 0.8px)  rotate(-0.1deg); }
-    37%  { transform: translate(0.8px,  0.3px)  rotate(0.15deg); }
-    50%  { transform: translate(-0.3px,-0.7px)  rotate(-0.08deg);}
-    62%  { transform: translate(0.6px,  0.6px)  rotate(0.1deg);  }
-    75%  { transform: translate(-0.8px, 0.2px)  rotate(-0.14deg);}
-    87%  { transform: translate(0.4px, -0.6px)  rotate(0.09deg); }
-    100% { transform: translate(0px,    0px)    rotate(0deg);    }
-  }
-  /* Sombra accent en contrafase */
-  @keyframes scribble-border-shadow {
-    0%   { transform: translate(1px,   0.5px)   rotate(0.1deg);  }
-    12%  { transform: translate(0.3px, 1.2px)   rotate(-0.12deg);}
-    25%  { transform: translate(1.3px, 0.2px)   rotate(0.15deg); }
-    37%  { transform: translate(0.5px, 0.9px)   rotate(-0.08deg);}
-    50%  { transform: translate(1.1px, 0.4px)   rotate(0.12deg); }
-    62%  { transform: translate(0.4px, 1.1px)   rotate(-0.1deg); }
-    75%  { transform: translate(1.2px, 0.6px)   rotate(0.08deg); }
-    87%  { transform: translate(0.6px, 0.3px)   rotate(-0.15deg);}
-    100% { transform: translate(1px,   0.5px)   rotate(0.1deg);  }
   }
   @keyframes scribble-wiggle {
     0%, 100% { transform: translate(0, 0) rotate(0deg); }
@@ -161,7 +149,7 @@
   --input-text: #e0ffe8;
 }
 
-/* TEMA: SCRIBBLE */
+/* TEMA: INDIE */
 [data-theme="scribble"] {
   --primary: #3d2b1f;
   --accent: #e07b39;
@@ -244,6 +232,10 @@
 }
 
 @layer components {
+  /* Nueva clase para activar el efecto de movimiento scribble */
+
+
+
 
   .card-main {
     background: var(--white-custom);
@@ -255,10 +247,7 @@
     transition: var(--transition-card);
   }
 
-  [data-theme="pixel"] .card-main {
-    border-color: var(--primary);
-    animation: pixel-in 0.15s steps(8) both;
-  }
+  [data-theme="pixel"] .card-main { border-color: var(--primary); animation: pixel-in 0.15s steps(8) both; }
 
   [data-theme="scribble"] .card-main {
     border-color: var(--primary);
@@ -266,33 +255,17 @@
     animation: ink-spread 0.2s ease both;
     position: relative;
   }
-  /* Trazo principal — tiembla con feTurbulence si el SVG filter está en el DOM */
-  [data-theme="scribble"] .card-main::before {
-    content: "";
-    position: absolute;
-    inset: -3px;
-    border: 1.8px solid var(--primary);
-    border-radius: inherit;
-    pointer-events: none;
-    opacity: 0.85;
-    filter: url(#scribble-turb);
-    animation: scribble-border 0.85s steps(8) infinite;
-  }
-  /* Trazo sombra accent en contrafase */
   [data-theme="scribble"] .card-main::after {
     content: "";
     position: absolute;
-    inset: -5px;
-    border: 1.2px solid var(--accent);
+    inset: -3px;
+    border: 1.5px solid var(--primary);
     border-radius: inherit;
+    animation: scribble-border 2s ease-in-out infinite;
     pointer-events: none;
-    opacity: 0.32;
-    filter: url(#scribble-turb-accent);
-    animation: scribble-border-shadow 1.1s steps(8) infinite;
+    opacity: 0.7;
   }
-  [data-theme="scribble"] .card-main:hover {
-    transform: rotate(0deg) translateY(-2px);
-  }
+  [data-theme="scribble"] .card-main:hover { transform: rotate(0deg) translateY(-2px); }
 
   .btn-brand {
     background: var(--primary);
@@ -318,10 +291,10 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-size: 0.65rem;
-    animation: pixel-border 1.5s steps(2) infinite;
   }
-  [data-theme="pixel"] .btn-brand:hover  { box-shadow: 2px 2px 0 var(--foreground); animation: none; }
+  [data-theme="pixel"] .btn-brand:hover { box-shadow: 2px 2px 0 var(--foreground); animation: none; }
   [data-theme="pixel"] .btn-brand:active { box-shadow: 0px 0px 0 var(--foreground); }
+  [data-theme="pixel"] .btn-brand { animation: pixel-border 1.5s steps(2) infinite; }
 
   [data-theme="scribble"] .btn-brand {
     border: 1.5px solid var(--foreground);
@@ -331,27 +304,14 @@
     font-weight: 700;
     position: relative;
   }
-  [data-theme="scribble"] .btn-brand::before {
-    content: "";
-    position: absolute;
-    inset: -3px;
-    border: 1.8px solid var(--primary);
-    border-radius: inherit;
-    pointer-events: none;
-    opacity: 0.7;
-    filter: url(#scribble-turb);
-    animation: scribble-border 0.85s steps(8) infinite;
-  }
   [data-theme="scribble"] .btn-brand::after {
     content: "";
     position: absolute;
-    inset: -5px;
-    border: 1.2px solid var(--accent);
+    inset: -3px;
+    border: 1.5px solid var(--accent);
     border-radius: inherit;
+    animation: scribble-border 1.8s ease-in-out infinite;
     pointer-events: none;
-    opacity: 0.3;
-    filter: url(#scribble-turb-accent);
-    animation: scribble-border-shadow 1.1s steps(8) infinite;
   }
 
   .input-brand {
@@ -374,9 +334,7 @@
     font-family: 'Press Start 2P', monospace;
     font-size: 0.6rem;
   }
-  [data-theme="pixel"] .input-brand:focus {
-    box-shadow: inset 2px 2px 0 var(--accent), 2px 2px 0 var(--primary);
-  }
+  [data-theme="pixel"] .input-brand:focus { box-shadow: inset 2px 2px 0 var(--accent), 2px 2px 0 var(--primary); }
 
   [data-theme="scribble"] .input-brand {
     border: 1.5px solid var(--foreground);
@@ -406,6 +364,10 @@
     letter-spacing: 0.04em;
   }
 
+  /* CLASES DE CARTAS QUE NO DEBÍ QUITAR */
+  
+  /* ─── UTILIDADES PARA MODALES Y PANELES ──────────────────────────────
+     Reemplaza bg-white hardcodeado en modales para que respete el tema  */
   .modal-surface {
     background: var(--white-custom);
     color: var(--text-on-card, var(--foreground));
@@ -421,6 +383,9 @@
     color: color-mix(in srgb, var(--foreground) 50%, transparent);
   }
 
+  /* ─── DARK MODE: neutraliza bg-white hardcodeados en componentes ─────
+     Los modales (SoundPicker, ImagePicker, EntidadPicker, DropWord)
+     tienen bg-white / text hardcodeados — estas reglas los corrigen     */
   .dark .bg-white,
   [data-theme="pixel"].dark .bg-white,
   [data-theme="scribble"].dark .bg-white {
@@ -432,6 +397,7 @@
     background-color: color-mix(in srgb, var(--white-custom) 80%, var(--bg-main)) !important;
   }
 
+  /* Texto oscuro hardcodeado sobre fondos que ahora son oscuros */
   .dark .text-\[\#2C262E\],
   [data-theme="pixel"].dark .text-\[\#2C262E\],
   [data-theme="scribble"].dark .text-\[\#2C262E\] {
@@ -443,6 +409,7 @@
     color: var(--foreground) !important;
   }
 
+  /* Inputs dentro de modales en modo oscuro */
   .dark input:not(.input-brand),
   [data-theme="pixel"].dark input:not(.input-brand),
   [data-theme="scribble"].dark input:not(.input-brand) {
@@ -456,6 +423,7 @@
     color: color-mix(in srgb, var(--foreground) 35%, transparent);
   }
 
+  /* Fix global para cualquier input/search bar con bg-white hardcodeado */
   .dark input[class*="bg-white"],
   [data-theme="pixel"].dark input[class*="bg-white"],
   [data-theme="scribble"].dark input[class*="bg-white"],
@@ -466,12 +434,14 @@
     color: var(--input-text) !important;
   }
 
+  /* Bordes sutiles en modo oscuro para paneles blancos */
   .dark .border-\[\#6B5E70\]\/8,
   .dark .border-\[\#6B5E70\]\/10,
   .dark .border-\[\#6B5E70\]\/12 {
     border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
   }
 
+  /* Select/Dropdown — todos los temas, incluye opciones del desplegable nativo */
   select {
     background-color: var(--input-bg, var(--white-custom));
     color: var(--input-text, var(--foreground));
@@ -493,7 +463,6 @@
     background-color: var(--input-bg);
     color: var(--input-text);
   }
-
   .char-card-base {
     @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
     border-radius: var(--radius-card);
@@ -510,4 +479,4 @@
     background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
     background-size: 100% 4px;
   }
-}
+} 
