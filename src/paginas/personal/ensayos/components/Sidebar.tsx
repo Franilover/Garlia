@@ -170,6 +170,18 @@ export default function Sidebar({
                     borderRadius: "var(--radius-btn)",
                     fontWeight: isActive ? 700 : 400,
                   }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.13)";
+                      e.currentTarget.style.color = "rgba(255,255,255,0.85)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = I_BG;
+                      e.currentTarget.style.color = I_TEXT;
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] uppercase tracking-wider truncate flex-1">
