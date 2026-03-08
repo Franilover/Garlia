@@ -12,6 +12,7 @@ interface MenuCardProps {
   delay?: number;
   hasNewContent?: boolean;
   onClick?: () => void;
+  horizontal?: boolean;
 }
 
 function ScribbleBorder() {
@@ -57,7 +58,7 @@ function ScribbleBorder() {
   );
 }
 
-export const MenuCard = ({ href, title, icon, delay = 0, hasNewContent, onClick }: MenuCardProps) => {
+export const MenuCard = ({ href, title, icon, delay = 0, hasNewContent, onClick, horizontal = false }: MenuCardProps) => {
   const { theme } = useTheme();
   const isScribble = theme === "scribble";
 
@@ -70,32 +71,51 @@ export const MenuCard = ({ href, title, icon, delay = 0, hasNewContent, onClick 
     >
       <Link href={href} className="group block relative h-full" onClick={onClick}>
         <div
-          className="bg-white-custom border-primary/5 p-6 md:p-12 h-full flex flex-col items-center justify-center text-center transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] group-hover:-translate-y-3"
+          className={`bg-white-custom border-primary/5 h-full transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] ${
+            horizontal
+              ? "flex flex-row items-center gap-4 px-6 py-4 group-hover:-translate-y-1"
+              : "p-6 md:p-12 flex flex-col items-center justify-center text-center group-hover:-translate-y-3"
+          }`}
           style={{
             borderRadius: "var(--radius-card)",
             borderWidth: "var(--border-width)",
             borderStyle: "solid",
-            boxShadow: isScribble ? "var(--shadow-card)" : "var(--shadow-card)",
+            boxShadow: "var(--shadow-card)",
             position: "relative",
           }}
         >
           {isScribble && <ScribbleBorder />}
 
           {hasNewContent && (
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-4 right-4 md:top-8 md:right-8 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full shadow-lg z-20">
-              <span className="absolute inset-0 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full animate-ping opacity-75" />
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className={`absolute z-20 bg-red-500 rounded-full shadow-lg ${
+                horizontal ? "top-3 right-3 w-3 h-3" : "top-4 right-4 md:top-8 md:right-8 w-3 h-3 md:w-4 md:h-4"
+              }`}
+            >
+              <span className={`absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75 ${
+                horizontal ? "w-3 h-3" : "w-3 h-3 md:w-4 md:h-4"
+              }`} />
             </motion.div>
           )}
 
           <motion.div
-            className="w-16 h-16 md:w-24 md:h-24 bg-primary/10 text-primary flex items-center justify-center mb-6 transition-all duration-300 group-hover:bg-primary group-hover:text-white"
+            className={`bg-primary/10 text-primary flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:text-white shrink-0 ${
+              horizontal ? "w-10 h-10" : "w-16 h-16 md:w-24 md:h-24 mb-6"
+            }`}
             style={{ borderRadius: "var(--radius-btn)" }}
             whileHover={{ rotate: [0, -10, 10, 0] }}
           >
-            {React.cloneElement(icon, { size: 32, className: "md:w-[48px] md:h-[48px]" })}
+            {React.cloneElement(icon, {
+              size: horizontal ? 20 : 32,
+              className: horizontal ? undefined : "md:w-[48px] md:h-[48px]",
+            })}
           </motion.div>
 
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter text-primary">
+          <h2 className={`font-black uppercase tracking-tighter text-primary ${
+            horizontal ? "text-lg" : "text-2xl md:text-3xl lg:text-4xl"
+          }`}>
             {title}
           </h2>
         </div>

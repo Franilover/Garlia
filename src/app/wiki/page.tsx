@@ -44,24 +44,29 @@ export default function WikiMenuPage() {
           </h1>
         </motion.div>
 
-        {/* Desktop: grid 3x2 */}
+        {/* Desktop: grid 3x2 — sin cambios */}
         <div className="hidden md:grid grid-cols-3 gap-8 lg:gap-10">
-          <MenuCard href="/wiki/personajes" title="Personajes" icon={<Users />} delay={0.1} hasNewContent={notifications['personajes']} onClick={() => handleVisit('personajes')} />
-          <MenuCard href="/wiki/criaturas"  title="Criaturas"  icon={<Dog />}   delay={0.2} hasNewContent={notifications['criaturas']}  onClick={() => handleVisit('criaturas')}  />
-          <MenuCard href="/wiki/items"      title="Items"      icon={<Sword />} delay={0.3} hasNewContent={notifications['items']}      onClick={() => handleVisit('items')}      />
-          <MenuCard href="/wiki/mapa"       title="Mapa"       icon={<Compass />} delay={0.4} hasNewContent={notifications['mapa']}    onClick={() => handleVisit('mapa')}       />
-          <MenuCard href="/wiki/libros"     title="Libros"     icon={<BookText />} delay={0.5} hasNewContent={notifications['libros']} onClick={() => handleVisit('libros')}     />
-          <MenuCard href="/wiki/canciones"  title="Canciones"  icon={<Music />} delay={0.6} hasNewContent={notifications['canciones']} onClick={() => handleVisit('canciones')}  />
-        </div>
-
-        {/* Mobile: todos como MenuCard */}
-        <div className="grid grid-cols-2 gap-4 md:hidden">
           <MenuCard href="/wiki/personajes" title="Personajes" icon={<Users />}    delay={0.1} hasNewContent={notifications['personajes']} onClick={() => handleVisit('personajes')} />
           <MenuCard href="/wiki/criaturas"  title="Criaturas"  icon={<Dog />}      delay={0.2} hasNewContent={notifications['criaturas']}  onClick={() => handleVisit('criaturas')}  />
           <MenuCard href="/wiki/items"      title="Items"      icon={<Sword />}    delay={0.3} hasNewContent={notifications['items']}      onClick={() => handleVisit('items')}      />
           <MenuCard href="/wiki/mapa"       title="Mapa"       icon={<Compass />}  delay={0.4} hasNewContent={notifications['mapa']}       onClick={() => handleVisit('mapa')}       />
           <MenuCard href="/wiki/libros"     title="Libros"     icon={<BookText />} delay={0.5} hasNewContent={notifications['libros']}     onClick={() => handleVisit('libros')}     />
           <MenuCard href="/wiki/canciones"  title="Canciones"  icon={<Music />}    delay={0.6} hasNewContent={notifications['canciones']}  onClick={() => handleVisit('canciones')}  />
+        </div>
+
+        {/* Mobile: 2 columnas para las primeras 4, fila completa + horizontal para Libros y Canciones */}
+        <div className="grid grid-cols-2 gap-4 md:hidden">
+          <MenuCard href="/wiki/personajes" title="Personajes" icon={<Users />}   delay={0.1} hasNewContent={notifications['personajes']} onClick={() => handleVisit('personajes')} />
+          <MenuCard href="/wiki/criaturas"  title="Criaturas"  icon={<Dog />}     delay={0.2} hasNewContent={notifications['criaturas']}  onClick={() => handleVisit('criaturas')}  />
+          <MenuCard href="/wiki/items"      title="Items"      icon={<Sword />}   delay={0.3} hasNewContent={notifications['items']}      onClick={() => handleVisit('items')}      />
+          <MenuCard href="/wiki/mapa"       title="Mapa"       icon={<Compass />} delay={0.4} hasNewContent={notifications['mapa']}       onClick={() => handleVisit('mapa')}       />
+
+          <div className="col-span-2">
+            <MenuCard href="/wiki/libros" title="Libros" icon={<BookText />} delay={0.5} hasNewContent={notifications['libros']} onClick={() => handleVisit('libros')} horizontal />
+          </div>
+          <div className="col-span-2">
+            <MenuCard href="/wiki/canciones" title="Canciones" icon={<Music />} delay={0.6} hasNewContent={notifications['canciones']} onClick={() => handleVisit('canciones')} horizontal />
+          </div>
         </div>
       </div>
     </div>
