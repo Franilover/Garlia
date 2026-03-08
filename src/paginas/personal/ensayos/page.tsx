@@ -22,7 +22,8 @@ const LS_ACTIVE = "ensayos-active-id";
 
 export default function Ensayos() {
   const { user } = useAuth() as { user: any };
-  const [loading, setLoading] = useState(true);
+  // Solo mostrar loading si user ya existe pero los datos aún no llegaron
+  const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNewNoteModal, setShowNewNoteModal] = useState(false);
@@ -44,7 +45,8 @@ export default function Ensayos() {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
+    // Solo spinner la primera vez; si ya hay datos actualiza silenciosamente
+    setEnsayos((prev) => { if (prev.length === 0) setLoading(true); return prev; });
     const { data: ens } = await supabase
       .from("ensayos")
       .select("*")
