@@ -57,20 +57,20 @@ export default function Sidebar({
   } as React.CSSProperties;
 
   const inactiveStyle = {
-    background: "color-mix(in srgb, var(--btn-text) 7%, transparent)",
-    color: "color-mix(in srgb, var(--btn-text) 55%, transparent)",
-    border: "1px solid color-mix(in srgb, var(--btn-text) 10%, transparent)",
+    background: "color-mix(in srgb, var(--menu-text) 8%, transparent)",
+    color: "color-mix(in srgb, var(--menu-text) 55%, transparent)",
+    border: "1px solid color-mix(in srgb, var(--menu-text) 12%, transparent)",
     fontWeight: 400,
   } as React.CSSProperties;
 
   const sectionStyle = {
-    background: "color-mix(in srgb, var(--bg-menu) 60%, black)",
-    border: "1px solid color-mix(in srgb, var(--btn-text) 8%, transparent)",
+    background: "color-mix(in srgb, var(--menu-text) 5%, var(--bg-menu))",
+    border: "1px solid color-mix(in srgb, var(--menu-text) 12%, transparent)",
     borderRadius: "var(--radius-card)",
   } as React.CSSProperties;
 
   const labelStyle = {
-    color: "color-mix(in srgb, var(--btn-text) 35%, transparent)",
+    color: "color-mix(in srgb, var(--menu-text) 35%, transparent)",
   } as React.CSSProperties;
 
   return (
@@ -78,8 +78,8 @@ export default function Sidebar({
       className="h-full flex flex-col gap-4 overflow-y-auto p-4 border-r"
       style={{
         background: "var(--bg-menu)",
-        color: "color-mix(in srgb, var(--btn-text) 85%, transparent)",
-        borderColor: "color-mix(in srgb, var(--btn-text) 8%, transparent)",
+        color: "color-mix(in srgb, var(--menu-text) 85%, transparent)",
+        borderColor: "color-mix(in srgb, var(--menu-text) 8%, transparent)",
       }}
     >
       {/* Buscador */}
@@ -87,7 +87,7 @@ export default function Sidebar({
         <Search
           size={12}
           className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ color: "color-mix(in srgb, var(--btn-text) 28%, transparent)" }}
+          style={{ color: "color-mix(in srgb, var(--menu-text) 28%, transparent)" }}
         />
         <input
           type="text"
@@ -97,9 +97,9 @@ export default function Sidebar({
           className="w-full py-2.5 pl-9 pr-3 text-[11px] outline-none transition-all uppercase tracking-widest"
           style={{
             background: "color-mix(in srgb, var(--bg-menu) 60%, black)",
-            border: "1px solid color-mix(in srgb, var(--btn-text) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--menu-text) 10%, transparent)",
             borderRadius: "var(--radius-btn)",
-            color: "color-mix(in srgb, var(--btn-text) 80%, transparent)",
+            color: "color-mix(in srgb, var(--menu-text) 80%, transparent)",
           }}
         />
       </div>
@@ -160,14 +160,14 @@ export default function Sidebar({
             onClick={onCrearEnsayo}
             className="w-7 h-7 flex items-center justify-center transition-all"
             style={{
-              border: "1px solid color-mix(in srgb, var(--btn-text) 10%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--menu-text) 10%, transparent)",
               borderRadius: "50%",
-              color: "color-mix(in srgb, var(--btn-text) 65%, transparent)",
+              color: "color-mix(in srgb, var(--menu-text) 65%, transparent)",
               background: "transparent",
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.background =
-                "color-mix(in srgb, var(--btn-text) 10%, transparent)";
+                "color-mix(in srgb, var(--menu-text) 10%, transparent)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -195,17 +195,17 @@ export default function Sidebar({
                   onMouseEnter={(e) => {
                     if (!isActive) {
                       (e.currentTarget as HTMLElement).style.background =
-                        "color-mix(in srgb, var(--btn-text) 13%, transparent)";
+                        "color-mix(in srgb, var(--menu-text) 13%, transparent)";
                       (e.currentTarget as HTMLElement).style.color =
-                        "color-mix(in srgb, var(--btn-text) 85%, transparent)";
+                        "color-mix(in srgb, var(--menu-text) 85%, transparent)";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
                       (e.currentTarget as HTMLElement).style.background =
-                        "color-mix(in srgb, var(--btn-text) 7%, transparent)";
+                        "color-mix(in srgb, var(--menu-text) 7%, transparent)";
                       (e.currentTarget as HTMLElement).style.color =
-                        "color-mix(in srgb, var(--btn-text) 55%, transparent)";
+                        "color-mix(in srgb, var(--menu-text) 55%, transparent)";
                     }
                   }}
                 >
@@ -262,25 +262,25 @@ export default function Sidebar({
         <label
           className="flex items-center justify-center gap-2 px-3 py-3 cursor-pointer text-[9px] font-mono uppercase transition-all"
           style={{
-            color: "color-mix(in srgb, var(--btn-text) 40%, transparent)",
-            border: "1px dashed color-mix(in srgb, var(--btn-text) 12%, transparent)",
+            color: "color-mix(in srgb, var(--menu-text) 40%, transparent)",
+            border: "1px dashed color-mix(in srgb, var(--menu-text) 12%, transparent)",
             borderRadius: "var(--radius-btn)",
             background: "transparent",
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.background =
-              "color-mix(in srgb, var(--btn-text) 5%, transparent)";
+              "color-mix(in srgb, var(--menu-text) 5%, transparent)";
             (e.currentTarget as HTMLElement).style.color =
-              "color-mix(in srgb, var(--btn-text) 65%, transparent)";
+              "color-mix(in srgb, var(--menu-text) 65%, transparent)";
             (e.currentTarget as HTMLElement).style.borderColor =
-              "color-mix(in srgb, var(--btn-text) 20%, transparent)";
+              "color-mix(in srgb, var(--menu-text) 20%, transparent)";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.background = "transparent";
             (e.currentTarget as HTMLElement).style.color =
-              "color-mix(in srgb, var(--btn-text) 40%, transparent)";
+              "color-mix(in srgb, var(--menu-text) 40%, transparent)";
             (e.currentTarget as HTMLElement).style.borderColor =
-              "color-mix(in srgb, var(--btn-text) 12%, transparent)";
+              "color-mix(in srgb, var(--menu-text) 12%, transparent)";
           }}
         >
           <UploadCloud size={14} />
@@ -296,12 +296,12 @@ export default function Sidebar({
                 key={i}
                 className="px-2 py-1.5 text-[9px] font-mono leading-tight"
                 style={{
-                  background: "color-mix(in srgb, var(--btn-text) 4%, transparent)",
+                  background: "color-mix(in srgb, var(--menu-text) 4%, transparent)",
                   borderRadius: "var(--radius-btn)",
-                  color: "color-mix(in srgb, var(--btn-text) 45%, transparent)",
+                  color: "color-mix(in srgb, var(--menu-text) 45%, transparent)",
                 }}
               >
-                <span className="block truncate" style={{ color: "color-mix(in srgb, var(--btn-text) 65%, transparent)" }}>
+                <span className="block truncate" style={{ color: "color-mix(in srgb, var(--menu-text) 65%, transparent)" }}>
                   {src.title}
                 </span>
                 <span className="opacity-60">
@@ -312,7 +312,7 @@ export default function Sidebar({
             {sources.length > 5 && (
               <p
                 className="text-center font-mono text-[8px] uppercase tracking-widest py-1"
-                style={{ color: "color-mix(in srgb, var(--btn-text) 25%, transparent)" }}
+                style={{ color: "color-mix(in srgb, var(--menu-text) 25%, transparent)" }}
               >
                 +{sources.length - 5} más
               </p>

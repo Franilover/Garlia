@@ -82,6 +82,7 @@
   --white-custom: #ffffff;
   --foreground: #3a2e3d;
   --btn-text: #ffffff;
+  --menu-text: #ffffff;
   --text-on-card: #3a2e3d;
   --input-bg: #ffffff;
   --input-text: #3a2e3d;
@@ -106,6 +107,7 @@
   --white-custom: #2a1f32;
   --foreground: #ede0f5;
   --btn-text: #1e1722;
+  --menu-text: #e8d8f5;
   --text-on-card: #ede0f5;
   --input-bg: #2a1f32;
   --input-text: #ede0f5;
@@ -120,6 +122,7 @@
   --white-custom: #f0f0f0;
   --foreground: #1a1a1a;
   --btn-text: #f0f0f0;
+  --menu-text: #f0f0f0;
   --text-on-card: #1a1a1a;
   --input-bg: #f0f0f0;
   --input-text: #1a1a1a;
@@ -144,6 +147,7 @@
   --white-custom: #111122;
   --foreground: #e0ffe8;
   --btn-text: #0a0a12;
+  --menu-text: #c8ffd8;
   --text-on-card: #e0ffe8;
   --input-bg: #111122;
   --input-text: #e0ffe8;
@@ -158,6 +162,7 @@
   --white-custom: #fffdf7;
   --foreground: #2a1f14;
   --btn-text: #fffdf7;
+  --menu-text: #fffdf7;
   --text-on-card: #2a1f14;
   --input-bg: #fffdf7;
   --input-text: #2a1f14;
@@ -181,6 +186,7 @@
   --white-custom: #221a0e;
   --foreground: #f0e6d0;
   --btn-text: #1a1208;
+  --menu-text: #f0e6d0;
   --text-on-card: #f0e6d0;
   --input-bg: #221a0e;
   --input-text: #f0e6d0;
@@ -479,4 +485,4 @@
     background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
     background-size: 100% 4px;
   }
-} 
+}
