@@ -8,7 +8,6 @@ import EnsayosView from "@/paginas/personal/ensayos";
 export default function DashboardPage() {
   return (
     <Secciones
-      title="Personal"
       panels={[
         {
           id: "agenda",
