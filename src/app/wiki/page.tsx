@@ -46,7 +46,7 @@ export default function WikiMenuPage() {
 
         {/* Desktop: 2x2 + fila enciclopedia abajo */}
         <div className="hidden md:grid grid-cols-2 gap-8 lg:gap-10">
-          <MenuCard href="/wiki/enciclopedia"   title="Enciclopedia"  icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']}  onClick={() => handleVisit('enciclopedia')}   />
+          <MenuCard href="/wiki/enciclopedia"   title="Información"  icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']}  onClick={() => handleVisit('enciclopedia')}   />
           <MenuCard href="/wiki/mapa"          title="Mapa"          icon={<Compass />}  delay={0.1} hasNewContent={notifications['mapa']}          onClick={() => handleVisit('mapa')}          />
           <MenuCard href="/wiki/libros"         title="Libros"        icon={<BookText />} delay={0.2} hasNewContent={notifications['libros']}        onClick={() => handleVisit('libros')}         />
           <MenuCard href="/wiki/canciones"      title="Canciones"     icon={<Music />}    delay={0.3} hasNewContent={notifications['canciones']}     onClick={() => handleVisit('canciones')}      />
@@ -54,7 +54,7 @@ export default function WikiMenuPage() {
 
         {/* Mobile: todo horizontal */}
         <div className="flex flex-col gap-4 md:hidden">
-          <MenuCard href="/wiki/enciclopedia"  title="Enciclopedia" icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']} onClick={() => handleVisit('enciclopedia')}  horizontal />
+          <MenuCard href="/wiki/enciclopedia"  title="Información" icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']} onClick={() => handleVisit('enciclopedia')}  horizontal />
           <MenuCard href="/wiki/mapa"         title="Mapa"         icon={<Compass />}  delay={0.1} hasNewContent={notifications['mapa']}         onClick={() => handleVisit('mapa')}         horizontal />
           <MenuCard href="/wiki/libros"        title="Libros"       icon={<BookText />} delay={0.2} hasNewContent={notifications['libros']}       onClick={() => handleVisit('libros')}        horizontal />
           <MenuCard href="/wiki/canciones"     title="Canciones"    icon={<Music />}    delay={0.3} hasNewContent={notifications['canciones']}    onClick={() => handleVisit('canciones')}     horizontal />
