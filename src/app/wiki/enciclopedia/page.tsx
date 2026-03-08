@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Package, Sword } from "lucide-react";
+import { User, Sword, Panda } from "lucide-react";
 import Secciones from "@/shared/layout/Secciones";
 import Personajes from "@/paginas/wiki/info/personajes";
 import PureGridItems from "@/paginas/wiki/info/items";
@@ -18,16 +18,16 @@ export default function WikiPage() {
           content: <Personajes />,
         },
         {
-          id: "items",
-          label: "Items",
-          icon: Package,
-          content: <PureGridItems />,
-        },
-        {
           id: "criaturas",
           label: "Criaturas",
-          icon: Sword,
+          icon: Panda,
           content: <Criaturas />,
+        },
+        {
+          id: "items",
+          label: "Items",
+          icon: Sword,
+          content: <PureGridItems />,
         },
       ]}
     />
