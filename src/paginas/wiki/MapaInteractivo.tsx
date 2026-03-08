@@ -1,12 +1,32 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Loader2, ChevronRight, ArrowLeft, House, Save, Edit3 } from "lucide-react";
+import { X, MapPin, Loader2, ChevronRight, ArrowLeft, House, Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle } from "lucide-react";
 import QuickPinchZoom, { make3dTransformValue } from "react-quick-pinch-zoom";
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 
-const Marker = ({ x, y, info, onClick, tipo }) => (
+type ToastType = "success" | "error";
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function Toast({ message, type, onClose }: { message: string; type: ToastType; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-white text-[11px] font-black uppercase tracking-wide ${type === "success" ? "bg-green-600" : "bg-red-500"}`}
+    >
+      {type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+      {message}
+    </motion.div>
+  );
+}
+
+// ── Marker ─────────────────────────────────────────────────────────────────
+const Marker = ({ x, y, info, onClick, tipo, editMode }: any) => (
   <div
     className="absolute z-20 flex flex-col items-center"
     style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -50%)" }}
@@ -18,6 +38,9 @@ const Marker = ({ x, y, info, onClick, tipo }) => (
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       className="relative flex items-center justify-center cursor-pointer outline-none group"
     >
+      {editMode && (
+        <div className="absolute -top-1 -right-1 z-10 w-3 h-3 bg-yellow-400 rounded-full border border-white" />
+      )}
       <div className="absolute w-5 h-5 bg-primary/20 rounded-full animate-ping" />
       <div className="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-md group-hover:bg-white transition-all flex items-center justify-center">
         {tipo === "reino" ? (
@@ -30,6 +53,7 @@ const Marker = ({ x, y, info, onClick, tipo }) => (
   </div>
 );
 
+// ── Componente principal ───────────────────────────────────────────────────
 export default function MapaInteractivo() {
   const isAdmin = useIsAdmin();
   const [reinos, setReinos] = useState([]);
@@ -41,7 +65,12 @@ export default function MapaInteractivo() {
   const [cargandoImagen, setCargandoImagen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImg, setIsUploadingImg] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const mapRef = useRef(null);
+  const imgInputRef = useRef<HTMLInputElement>(null);
+
+  const showToast = (message: string, type: ToastType) => setToast({ message, type });
 
   const onUpdate = useCallback(({ x, y, scale }) => {
     if (mapRef.current) {
@@ -73,13 +102,39 @@ export default function MapaInteractivo() {
   const handleMapClick = (e) => {
     if (!editMode) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const x = parseFloat(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
+    const y = parseFloat(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
     if (puntoSeleccionado) {
-      setPuntoSeleccionado({ ...puntoSeleccionado, coord_x: parseFloat(x.toFixed(2)), coord_y: parseFloat(y.toFixed(2)) });
+      setPuntoSeleccionado({ ...puntoSeleccionado, coord_x: x, coord_y: y });
+      setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, coord_x: x, coord_y: y } : p));
     } else if (reinoSeleccionado && vistaActual === "global") {
-      setReinoSeleccionado({ ...reinoSeleccionado, coord_x: parseFloat(x.toFixed(2)), coord_y: parseFloat(y.toFixed(2)) });
-      setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, coord_x: x.toFixed(2), coord_y: y.toFixed(2) } : r));
+      setReinoSeleccionado({ ...reinoSeleccionado, coord_x: x, coord_y: y });
+      setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, coord_x: x, coord_y: y } : r));
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !reinoSeleccionado) return;
+    setIsUploadingImg(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `mapas/reino_${reinoSeleccionado.id}_${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("wiki").upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("wiki").getPublicUrl(path);
+      const mapa_url = urlData.publicUrl;
+      const { error: updateError } = await supabase.from("reinos").update({ mapa_url }).eq("id", reinoSeleccionado.id);
+      if (updateError) throw updateError;
+      setReinoSeleccionado({ ...reinoSeleccionado, mapa_url });
+      setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, mapa_url } : r));
+      showToast("Imagen actualizada", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Error al subir la imagen", "error");
+    } finally {
+      setIsUploadingImg(false);
+      if (imgInputRef.current) imgInputRef.current.value = "";
     }
   };
 
@@ -91,7 +146,7 @@ export default function MapaInteractivo() {
           nombre: puntoSeleccionado.nombre,
           descripcion: puntoSeleccionado.descripcion,
           coord_x: puntoSeleccionado.coord_x,
-          coord_y: puntoSeleccionado.coord_y
+          coord_y: puntoSeleccionado.coord_y,
         }).eq("id", puntoSeleccionado.id);
         if (error) throw error;
         setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? puntoSeleccionado : p));
@@ -100,15 +155,16 @@ export default function MapaInteractivo() {
           nombre: reinoSeleccionado.nombre,
           descripcion: reinoSeleccionado.descripcion,
           coord_x: reinoSeleccionado.coord_x,
-          coord_y: reinoSeleccionado.coord_y
+          coord_y: reinoSeleccionado.coord_y,
         }).eq("id", reinoSeleccionado.id);
         if (error) throw error;
         setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? reinoSeleccionado : r));
       }
+      showToast("Cambios guardados", "success");
       setEditMode(false);
     } catch (error) {
       console.error("Error al guardar:", error);
-      alert("No se pudieron guardar los cambios.");
+      showToast("No se pudieron guardar los cambios", "error");
     } finally {
       setIsSaving(false);
     }
@@ -133,6 +189,11 @@ export default function MapaInteractivo() {
   return (
     <div className="flex flex-col md:flex-row w-full bg-bg-main overflow-hidden">
 
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      </AnimatePresence>
+
       {/* ── SECCIÓN MAPA ── */}
       <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
 
@@ -142,9 +203,7 @@ export default function MapaInteractivo() {
             <button
               onClick={() => setEditMode(!editMode)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-xl border ${
-                editMode
-                  ? "bg-red-500 text-white border-red-600"
-                  : "bg-white-custom text-primary border-primary/20"
+                editMode ? "bg-red-500 text-white border-red-600" : "bg-white-custom text-primary border-primary/20"
               }`}
             >
               {editMode ? <X size={14} /> : <Edit3 size={14} />}
@@ -162,6 +221,18 @@ export default function MapaInteractivo() {
             )}
           </div>
         )}
+
+        {/* Hint coordenadas */}
+        <AnimatePresence>
+          {editMode && (reinoSeleccionado || puntoSeleccionado) && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase px-4 py-2 rounded-full shadow-lg flex items-center gap-2"
+            >
+              <Move size={12} /> Clickeá el mapa para mover el marcador
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Loader imagen */}
         <AnimatePresence>
@@ -189,7 +260,7 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
-        {/* Mapa con pinch/zoom */}
+        {/* Mapa */}
         <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5} enabled={!editMode}>
           <div ref={mapRef} className="w-full h-full origin-top-left">
             <div
@@ -206,11 +277,11 @@ export default function MapaInteractivo() {
               {!cargandoImagen && (
                 vistaActual === "global" ? (
                   reinos.map(reino => (
-                    <Marker key={reino.id} x={reino.coord_x} y={reino.coord_y} info={reino.nombre} tipo="reino" onClick={() => handleReinoClick(reino)} />
+                    <Marker key={reino.id} x={reino.coord_x} y={reino.coord_y} info={reino.nombre} tipo="reino" editMode={editMode} onClick={() => handleReinoClick(reino)} />
                   ))
                 ) : (
                   detallesReino.map(punto => (
-                    <Marker key={punto.id} x={punto.coord_x} y={punto.coord_y} info={punto.nombre} tipo="detalle" onClick={() => setPuntoSeleccionado(punto)} />
+                    <Marker key={punto.id} x={punto.coord_x} y={punto.coord_y} info={punto.nombre} tipo="detalle" editMode={editMode} onClick={() => setPuntoSeleccionado(punto)} />
                   ))
                 )
               )}
@@ -229,22 +300,25 @@ export default function MapaInteractivo() {
               absolute inset-0 z-40
               md:relative md:inset-auto md:z-40 md:w-1/3
               bg-white-custom border-l border-primary/10 p-10
-              flex flex-col
+              flex flex-col gap-0
               shadow-[-20px_0_50px_rgba(0,0,0,0.05)]
               overflow-y-auto
             "
           >
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-5 flex items-center gap-2">
               <div className="h-px w-8 bg-primary/30" />
               <span className="text-[10px] font-black text-primary/40 uppercase tracking-[0.2em]">
-                {editMode ? "Editando Información" : (puntoSeleccionado ? "Lugar Hallado" : "Explorando Territorio")}
+                {editMode ? "Editando Información" : puntoSeleccionado ? "Lugar Hallado" : "Explorando Territorio"}
               </span>
             </div>
 
+            {/* ── MODO EDICIÓN ── */}
             {editMode ? (
               <div className="flex flex-col gap-4 flex-grow">
+
+                {/* Nombre */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold uppercase text-primary/50 ml-2">Nombre del Lugar</label>
+                  <label className="text-[9px] font-bold uppercase text-primary/50 ml-1">Nombre</label>
                   <input
                     type="text"
                     value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
@@ -252,22 +326,80 @@ export default function MapaInteractivo() {
                       if (puntoSeleccionado) setPuntoSeleccionado({ ...puntoSeleccionado, nombre: e.target.value });
                       else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
                     }}
-                    className="w-full bg-primary/5 border border-primary/10 rounded-xl p-4 text-primary font-black uppercase text-xl outline-none focus:bg-white-custom transition-all"
+                    className="w-full bg-primary/5 border border-primary/10 rounded-xl p-4 text-primary font-black uppercase text-xl outline-none focus:border-primary focus:bg-white-custom transition-all"
                   />
                 </div>
+
+                {/* Descripción */}
                 <div className="flex flex-col gap-1 flex-grow">
-                  <label className="text-[9px] font-bold uppercase text-primary/50 ml-2">Descripción / Lore</label>
+                  <label className="text-[9px] font-bold uppercase text-primary/50 ml-1">Descripción / Lore</label>
                   <textarea
                     value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
                     onChange={(e) => {
                       if (puntoSeleccionado) setPuntoSeleccionado({ ...puntoSeleccionado, descripcion: e.target.value });
                       else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
                     }}
-                    className="w-full bg-primary/5 border border-primary/10 rounded-xl p-4 text-foreground text-sm italic leading-relaxed outline-none focus:bg-white-custom transition-all h-40 resize-none"
+                    className="w-full bg-primary/5 border border-primary/10 rounded-xl p-4 text-foreground text-sm italic leading-relaxed outline-none focus:border-primary focus:bg-white-custom transition-all h-36 resize-none"
                   />
                 </div>
+
+                {/* Coordenadas (read-only, se mueven desde el mapa) */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold uppercase text-primary/50 ml-1 flex items-center gap-1">
+                    <Move size={9} /> Coordenadas
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[["X", puntoSeleccionado ? puntoSeleccionado.coord_x : reinoSeleccionado.coord_x],
+                      ["Y", puntoSeleccionado ? puntoSeleccionado.coord_y : reinoSeleccionado.coord_y]].map(([label, val]) => (
+                      <div key={label} className="bg-primary/5 border border-primary/10 rounded-xl p-3 text-center">
+                        <span className="block text-[8px] text-primary/40 font-bold uppercase">{label}</span>
+                        <span className="text-sm font-black text-primary">{val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Imagen del mapa (solo para reinos) */}
+                {!puntoSeleccionado && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold uppercase text-primary/50 ml-1 flex items-center gap-1">
+                      <ImagePlus size={9} /> Imagen del Mapa
+                    </label>
+                    {reinoSeleccionado.mapa_url && (
+                      <div className="relative w-full h-20 rounded-xl overflow-hidden border border-primary/10 mb-1">
+                        <img src={reinoSeleccionado.mapa_url} alt="Mapa actual" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                          <span className="text-[8px] font-black text-white uppercase tracking-widest">Imagen actual</span>
+                        </div>
+                      </div>
+                    )}
+                    <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                    <button
+                      onClick={() => imgInputRef.current?.click()}
+                      disabled={isUploadingImg}
+                      className="w-full flex items-center justify-center gap-2 bg-primary/5 border border-dashed border-primary/30 text-primary text-[10px] font-black uppercase py-3 rounded-xl hover:bg-primary/10 transition-all disabled:opacity-50"
+                    >
+                      {isUploadingImg
+                        ? <><Loader2 size={12} className="animate-spin" /> Subiendo...</>
+                        : <><ImagePlus size={12} /> {reinoSeleccionado.mapa_url ? "Cambiar imagen" : "Subir imagen"}</>
+                      }
+                    </button>
+                  </div>
+                )}
+
+                {/* Guardar */}
+                <button
+                  onClick={handleSaveChanges}
+                  disabled={isSaving}
+                  className="w-full flex items-center justify-center gap-2 bg-green-600 text-white text-[11px] font-black uppercase py-4 rounded-2xl hover:bg-green-700 transition-all disabled:opacity-50 shadow-lg shadow-green-600/20 mt-auto"
+                >
+                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Guardar cambios
+                </button>
               </div>
+
             ) : (
+              /* ── MODO LECTURA ── */
               <>
                 <h2 className="text-primary font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
                   {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
@@ -291,24 +423,22 @@ export default function MapaInteractivo() {
                     </div>
                   )}
                 </div>
+
+                <div className="mt-8 flex flex-col gap-3">
+                  {puntoSeleccionado && (
+                    <button
+                      onClick={() => setPuntoSeleccionado(null)}
+                      className="w-full bg-bg-main text-primary text-[10px] font-black uppercase py-3 rounded-xl border border-primary/10 hover:bg-white-custom transition-all"
+                    >
+                      Volver al Reino
+                    </button>
+                  )}
+                  <button className="w-full bg-primary text-white text-[11px] font-black uppercase py-5 px-8 rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/80 transition-all shadow-lg shadow-primary/20">
+                    {puntoSeleccionado ? "Ver Lore del Punto" : "Ver personajes de este Reino"} <ChevronRight size={16} />
+                  </button>
+                </div>
               </>
             )}
-
-            <div className="mt-8 flex flex-col gap-3">
-              {puntoSeleccionado && !editMode && (
-                <button
-                  onClick={() => setPuntoSeleccionado(null)}
-                  className="w-full bg-bg-main text-primary text-[10px] font-black uppercase py-3 rounded-xl border border-primary/10 hover:bg-white-custom transition-all"
-                >
-                  Volver al Reino
-                </button>
-              )}
-              {!editMode && (
-                <button className="w-full bg-primary text-white text-[11px] font-black uppercase py-5 px-8 rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/80 transition-all shadow-lg shadow-primary/20">
-                  {puntoSeleccionado ? "Ver Lore del Punto" : "Ver personajes de este Reino"} <ChevronRight size={16} />
-                </button>
-              )}
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
