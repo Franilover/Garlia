@@ -11,19 +11,19 @@ const Marker = ({ x, y, info, onClick, tipo }) => (
     className="absolute z-20 flex flex-col items-center"
     style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -50%)" }}
   >
-    <div className="mb-1 bg-[#6B5E70] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-sm shadow-lg whitespace-nowrap pointer-events-none border border-white/20">
+    <div className="mb-1 bg-primary text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-sm shadow-lg whitespace-nowrap pointer-events-none border border-white/20">
       {info}
     </div>
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       className="relative flex items-center justify-center cursor-pointer outline-none group"
     >
-      <div className="absolute w-5 h-5 bg-[#6B5E70]/20 rounded-full animate-ping" />
-      <div className="w-4 h-4 bg-[#6B5E70] rounded-full border-2 border-white shadow-md group-hover:bg-white transition-all flex items-center justify-center">
+      <div className="absolute w-5 h-5 bg-primary/20 rounded-full animate-ping" />
+      <div className="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-md group-hover:bg-white transition-all flex items-center justify-center">
         {tipo === "reino" ? (
-          <MapPin size={8} className="text-white group-hover:text-[#6B5E70]" />
+          <MapPin size={8} className="text-white group-hover:text-primary" />
         ) : (
-          <House size={8} className="text-white group-hover:text-[#6B5E70]" />
+          <House size={8} className="text-white group-hover:text-primary" />
         )}
       </div>
     </button>
@@ -124,16 +124,14 @@ export default function MapaInteractivo() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center p-20 text-[#6B5E70]">
+    <div className="flex flex-col items-center justify-center p-20 text-primary">
       <Loader2 className="animate-spin mb-2" />
       <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Desplegando Mapa...</span>
     </div>
   );
 
   return (
-    // Contenedor principal: en móvil es columna, en desktop fila
-    // overflow-hidden para que el panel lateral no genere espacio fantasma
-    <div className="flex flex-col md:flex-row w-full bg-[#F8F5F2] overflow-hidden">
+    <div className="flex flex-col md:flex-row w-full bg-bg-main overflow-hidden">
 
       {/* ── SECCIÓN MAPA ── */}
       <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
@@ -143,7 +141,11 @@ export default function MapaInteractivo() {
           <div className="absolute top-6 right-6 z-[70] flex gap-2">
             <button
               onClick={() => setEditMode(!editMode)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-xl border ${editMode ? "bg-red-500 text-white border-red-600" : "bg-white text-[#6B5E70] border-[#6B5E70]/20"}`}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-xl border ${
+                editMode
+                  ? "bg-red-500 text-white border-red-600"
+                  : "bg-white-custom text-primary border-primary/20"
+              }`}
             >
               {editMode ? <X size={14} /> : <Edit3 size={14} />}
               {editMode ? "Cancelar" : "Editar Mapa"}
@@ -166,10 +168,10 @@ export default function MapaInteractivo() {
           {cargandoImagen && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 z-[60] bg-[#F8F5F2] flex flex-col items-center justify-center"
+              className="absolute inset-0 z-[60] bg-bg-main flex flex-col items-center justify-center"
             >
-              <Loader2 className="animate-spin text-[#6B5E70] mb-2" />
-              <span className="text-[8px] font-black uppercase tracking-widest text-[#6B5E70]/40">Cargando Cartografía...</span>
+              <Loader2 className="animate-spin text-primary mb-2" />
+              <span className="text-[8px] font-black uppercase tracking-widest text-primary/40">Cargando Cartografía...</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -180,14 +182,14 @@ export default function MapaInteractivo() {
             <motion.button
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               onClick={volverAlGlobal}
-              className="absolute top-6 left-6 z-50 bg-white/90 backdrop-blur-md p-3 rounded-full shadow-xl border border-[#6B5E70]/20 text-[#6B5E70] hover:scale-110 transition-transform"
+              className="absolute top-6 left-6 z-50 bg-white-custom/90 backdrop-blur-md p-3 rounded-full shadow-xl border border-primary/20 text-primary hover:scale-110 transition-transform"
             >
               <ArrowLeft size={20} />
             </motion.button>
           )}
         </AnimatePresence>
 
-        {/* Mapa responsive — se adapta al ancho, pinch/zoom disponible */}
+        {/* Mapa con pinch/zoom */}
         <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5} enabled={!editMode}>
           <div ref={mapRef} className="w-full h-full origin-top-left">
             <div
@@ -217,9 +219,7 @@ export default function MapaInteractivo() {
         </QuickPinchZoom>
       </div>
 
-      {/* ── PANEL LATERAL ──
-          En móvil: cubre toda la pantalla encima del mapa (position absolute)
-          En desktop: ocupa 1/3 al lado del mapa (position relative normal) */}
+      {/* ── PANEL LATERAL ── */}
       <AnimatePresence>
         {vistaActual === "reino" && reinoSeleccionado && (
           <motion.div
@@ -228,15 +228,15 @@ export default function MapaInteractivo() {
             className="
               absolute inset-0 z-40
               md:relative md:inset-auto md:z-40 md:w-1/3
-              bg-white border-l border-[#6B5E70]/10 p-10
+              bg-white-custom border-l border-primary/10 p-10
               flex flex-col
               shadow-[-20px_0_50px_rgba(0,0,0,0.05)]
               overflow-y-auto
             "
           >
             <div className="mb-4 flex items-center gap-2">
-              <div className="h-px w-8 bg-[#6B5E70]/30" />
-              <span className="text-[10px] font-black text-[#6B5E70]/40 uppercase tracking-[0.2em]">
+              <div className="h-px w-8 bg-primary/30" />
+              <span className="text-[10px] font-black text-primary/40 uppercase tracking-[0.2em]">
                 {editMode ? "Editando Información" : (puntoSeleccionado ? "Lugar Hallado" : "Explorando Territorio")}
               </span>
             </div>
@@ -244,7 +244,7 @@ export default function MapaInteractivo() {
             {editMode ? (
               <div className="flex flex-col gap-4 flex-grow">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold uppercase text-[#6B5E70]/50 ml-2">Nombre del Lugar</label>
+                  <label className="text-[9px] font-bold uppercase text-primary/50 ml-2">Nombre del Lugar</label>
                   <input
                     type="text"
                     value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
@@ -252,41 +252,41 @@ export default function MapaInteractivo() {
                       if (puntoSeleccionado) setPuntoSeleccionado({ ...puntoSeleccionado, nombre: e.target.value });
                       else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
                     }}
-                    className="w-full bg-[#6B5E70]/5 border border-[#6B5E70]/10 rounded-xl p-4 text-[#6B5E70] font-black uppercase text-xl outline-none focus:bg-white transition-all"
+                    className="w-full bg-primary/5 border border-primary/10 rounded-xl p-4 text-primary font-black uppercase text-xl outline-none focus:bg-white-custom transition-all"
                   />
                 </div>
                 <div className="flex flex-col gap-1 flex-grow">
-                  <label className="text-[9px] font-bold uppercase text-[#6B5E70]/50 ml-2">Descripción / Lore</label>
+                  <label className="text-[9px] font-bold uppercase text-primary/50 ml-2">Descripción / Lore</label>
                   <textarea
                     value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
                     onChange={(e) => {
                       if (puntoSeleccionado) setPuntoSeleccionado({ ...puntoSeleccionado, descripcion: e.target.value });
                       else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
                     }}
-                    className="w-full bg-[#6B5E70]/5 border border-[#6B5E70]/10 rounded-xl p-4 text-[#6B5E70] text-sm italic leading-relaxed outline-none focus:bg-white transition-all h-40 resize-none"
+                    className="w-full bg-primary/5 border border-primary/10 rounded-xl p-4 text-foreground text-sm italic leading-relaxed outline-none focus:bg-white-custom transition-all h-40 resize-none"
                   />
                 </div>
               </div>
             ) : (
               <>
-                <h2 className="text-[#6B5E70] font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
+                <h2 className="text-primary font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
                   {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
                 </h2>
                 <div className="space-y-6 flex-grow overflow-y-auto pr-2">
-                  <div className="p-6 bg-[#6B5E70]/5 rounded-[2rem] border border-[#6B5E70]/5">
-                    <p className="text-[#6B5E70] text-sm italic leading-relaxed">
+                  <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/5">
+                    <p className="text-foreground text-sm italic leading-relaxed">
                       "{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}"
                     </p>
                   </div>
                   {!puntoSeleccionado && (
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
+                      <div className="text-center p-4 border border-primary/10 rounded-2xl">
                         <span className="block text-[8px] font-bold uppercase opacity-40">Ubicación</span>
-                        <span className="text-[10px] font-black text-[#6B5E70]">{reinoSeleccionado.coord_x} / {reinoSeleccionado.coord_y}</span>
+                        <span className="text-[10px] font-black text-primary">{reinoSeleccionado.coord_x} / {reinoSeleccionado.coord_y}</span>
                       </div>
-                      <div className="text-center p-4 border border-[#6B5E70]/10 rounded-2xl">
+                      <div className="text-center p-4 border border-primary/10 rounded-2xl">
                         <span className="block text-[8px] font-bold uppercase opacity-40">Orden</span>
-                        <span className="text-[10px] font-black text-[#6B5E70]">Nivel {reinoSeleccionado.orden}</span>
+                        <span className="text-[10px] font-black text-primary">Nivel {reinoSeleccionado.orden}</span>
                       </div>
                     </div>
                   )}
@@ -298,13 +298,13 @@ export default function MapaInteractivo() {
               {puntoSeleccionado && !editMode && (
                 <button
                   onClick={() => setPuntoSeleccionado(null)}
-                  className="w-full bg-[#F8F5F2] text-[#6B5E70] text-[10px] font-black uppercase py-3 rounded-xl border border-[#6B5E70]/10 hover:bg-white transition-all"
+                  className="w-full bg-bg-main text-primary text-[10px] font-black uppercase py-3 rounded-xl border border-primary/10 hover:bg-white-custom transition-all"
                 >
                   Volver al Reino
                 </button>
               )}
               {!editMode && (
-                <button className="w-full bg-[#6B5E70] text-white text-[11px] font-black uppercase py-5 px-8 rounded-2xl flex items-center justify-center gap-3 hover:bg-[#5a4e5f] transition-all shadow-lg shadow-[#6B5E70]/20">
+                <button className="w-full bg-primary text-white text-[11px] font-black uppercase py-5 px-8 rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/80 transition-all shadow-lg shadow-primary/20">
                   {puntoSeleccionado ? "Ver Lore del Punto" : "Ver personajes de este Reino"} <ChevronRight size={16} />
                 </button>
               )}
