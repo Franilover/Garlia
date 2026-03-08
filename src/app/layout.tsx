@@ -55,6 +55,68 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${montserrat.className} antialiased bg-bg-main min-h-screen flex flex-col`}>
+
+        {/* Filtros SVG para el efecto de borde tembloroso del tema scribble.
+            Son invisibles — solo definen los filtros feTurbulence que usa el CSS. */}
+        <svg
+          width="0"
+          height="0"
+          style={{ position: 'absolute', overflow: 'hidden' }}
+          aria-hidden="true"
+          focusable="false"
+        >
+          <defs>
+            {/* Trazo principal — distorsión orgánica suave */}
+            <filter id="scribble-turb" x="-8%" y="-8%" width="116%" height="116%">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.025 0.06"
+                numOctaves="2"
+                seed="1"
+                result="noise"
+              >
+                <animate
+                  attributeName="seed"
+                  values="1;4;7;2;9;3;6;1"
+                  dur="0.85s"
+                  repeatCount="indefinite"
+                />
+              </feTurbulence>
+              <feDisplacementMap
+                in="SourceGraphic"
+                in2="noise"
+                scale="2.4"
+                xChannelSelector="R"
+                yChannelSelector="G"
+              />
+            </filter>
+            {/* Trazo sombra accent — frecuencia y velocidad distintas para contrafase */}
+            <filter id="scribble-turb-accent" x="-8%" y="-8%" width="116%" height="116%">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.03 0.07"
+                numOctaves="2"
+                seed="5"
+                result="noise"
+              >
+                <animate
+                  attributeName="seed"
+                  values="5;2;8;3;6;1;4;5"
+                  dur="1.1s"
+                  repeatCount="indefinite"
+                />
+              </feTurbulence>
+              <feDisplacementMap
+                in="SourceGraphic"
+                in2="noise"
+                scale="2.9"
+                xChannelSelector="R"
+                yChannelSelector="G"
+              />
+            </filter>
+          </defs>
+        </svg>
+
         <OfflineSyncActivator />
         <AuthProvider>
           <DataProvider>
