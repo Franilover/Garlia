@@ -57,7 +57,6 @@ export default function EntidadPageBase({
 
   const isAdminSession = useIsAdmin();
 
-  // ── useOfflineData = useSupabaseData con soporte offline ─────────────────
   const { data, setData, loading, isOffline } = useOfflineData(
     isAdminSession !== undefined ? tabla : "__skip__",
     {
@@ -108,9 +107,11 @@ export default function EntidadPageBase({
   const vistaFila = permitirVistaFila && !vistaGrid;
 
   return (
-    <main className="min-h-screen bg-bg-main pb-20 overflow-x-hidden">
+    // FIX: min-h-svh en vez de min-h-screen (100vh)
+    // svh = altura estable, no cambia cuando la barra del browser móvil se oculta
+    <main className="min-h-svh bg-bg-main pb-20 overflow-x-hidden">
 
-      {/* Banner offline — solo aparece si no hay red */}
+      {/* Banner offline */}
       <AnimatePresence>
         {isOffline && (
           <motion.div
