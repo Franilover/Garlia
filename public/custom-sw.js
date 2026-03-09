@@ -6,7 +6,7 @@ import { ExpirationPlugin } from "workbox-expiration";
 // ── Precaché de assets estáticos generados por Next.js ───────────────────────
 precacheAndRoute(self.__WB_MANIFEST);
 
-// ── Imágenes: CacheFirst (sirve del caché, actualiza en background) ──────────
+// ── Imágenes: CacheFirst ──────────────────────────────────────────────────────
 registerRoute(
   ({ request, url }) =>
     request.destination === "image" ||
@@ -17,7 +17,7 @@ registerRoute(
     plugins: [
       new ExpirationPlugin({
         maxEntries: 200,
-        maxAgeSeconds: 60 * 24 * 60 * 60, // 60 días
+        maxAgeSeconds: 60 * 24 * 60 * 60,
       }),
     ],
   })
@@ -33,27 +33,56 @@ registerRoute(
   })
 );
 
-// ── Navegación (páginas): NetworkFirst con fallback al caché ─────────────────
-// Este es el fix clave: antes era NetworkOnly, que no tiene fallback offline.
-// Ahora intenta la red primero; si falla, sirve la versión cacheada de la ruta.
-const navigationHandler = new NetworkFirst({
-  cacheName: "franilover-pages-cache",
-  networkTimeoutSeconds: 5, // si la red tarda más de 5s, usa caché
-  plugins: [
-    new ExpirationPlugin({
-      maxEntries: 50,
-      maxAgeSeconds: 24 * 60 * 60, // 1 día
-    }),
-  ],
-});
-
+// ── Navegación: NetworkFirst con fallback al caché ───────────────────────────
 registerRoute(
-  new NavigationRoute(navigationHandler)
+  new NavigationRoute(
+    new NetworkFirst({
+      cacheName: "franilover-pages-cache",
+      networkTimeoutSeconds: 5,
+      plugins: [
+        new ExpirationPlugin({
+          maxEntries: 60,
+          maxAgeSeconds: 7 * 24 * 60 * 60, // 7 días
+        }),
+      ],
+    })
+  )
 );
 
-// ── Instalación y activación ──────────────────────────────────────────────────
-self.addEventListener("install", () => {
+// ── Precaché de TODAS las rutas al instalar ───────────────────────────────────
+// Garantiza que todas las páginas estén offline desde el primer deploy,
+// sin necesidad de visitarlas una por una.
+const APP_ROUTES = [
+  "/",
+  "/personal",
+  "/personal/escritorio",
+  "/personal/salud",
+  "/personal/dibujos",
+  "/personal/fotos",
+  "/personal/ropa",
+  "/personal/reproductor",
+  "/personal/sobre-mi",
+  "/wiki",
+  "/wiki/enciclopedia",
+  "/wiki/canciones",
+  "/wiki/libros",
+  "/wiki/mapa",
+  "/wiki/personal",
+  "/auth/login",
+];
+
+self.addEventListener("install", (event) => {
   self.skipWaiting();
+  event.waitUntil(
+    caches.open("franilover-pages-cache").then((cache) =>
+      Promise.allSettled(
+        APP_ROUTES.map((route) =>
+          cache.add(new Request(route, { credentials: "same-origin" }))
+            .catch((err) => console.warn(`[SW] No se pudo cachear ${route}:`, err))
+        )
+      )
+    )
+  );
 });
 
 self.addEventListener("activate", (event) => {
