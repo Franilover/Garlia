@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { LayoutGrid, AlignJustify, Search, X, ArrowUpNarrowWide, ArrowDownNarrowWide } from "lucide-react";
+import { LayoutGrid, AlignJustify, Search, X, ArrowUpNarrowWide, ArrowDownNarrowWide, WifiOff } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { GalleryGrid } from "@/shared/layout/gallery";
 import DetalleMaestro from "@/shared/display/detalles";
@@ -8,7 +8,7 @@ import FiltrosMaestros from "@/shared/layout/Filtros";
 import PageHeader from "@/shared/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/shared/feedback/StateComponents";
 import { AdminAddButton } from "@/shared/forms/AdminAddButton";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { useOfflineData } from "@/hooks/data/useOfflineData";
 import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
 import { useAdminItem } from "@/hooks/features/useAdminItem";
 import { TABLAS_CONFIG, getMensaje } from "@/lib/config/constants";
@@ -57,13 +57,17 @@ export default function EntidadPageBase({
 
   const isAdminSession = useIsAdmin();
 
-  const { data, loading, setData } = useSupabaseData(
-    isAdminSession !== undefined ? tabla : "__skip__",
-    {
-      order: TABLAS_CONFIG[tabla]?.orden || { campo: "nombre", asc: true },
-      isAdmin: isAdminSession,
-    }
-  );
+  // ── useOfflineData reemplaza useSupabaseData ──────────────────────────────
+  // Si isAdminSession aún no resolvió, skip para no hacer fetch prematuro
+  const { data, loading, isOffline, updateCache } = useOfflineData({
+    table: isAdminSession !== undefined ? tabla : "__skip__",
+  });
+
+  // useAdminItem necesita setData — usamos updateCache como puente
+  const setData = (updater: any) => {
+    const next = typeof updater === "function" ? updater(data) : updater;
+    updateCache(next);
+  };
 
   const { filtros, opciones, itemsFiltrados, actualizarFiltro, resetearFiltros } =
     useFiltrosGenericos(data, { campos: configFiltros });
@@ -109,10 +113,29 @@ export default function EntidadPageBase({
   return (
     <main className="min-h-screen bg-bg-main pb-20 overflow-x-hidden">
 
+      {/* Banner offline — solo aparece si no hay red */}
+      <AnimatePresence>
+        {isOffline && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex items-center justify-center gap-2 py-2 text-[10px] font-mono uppercase tracking-widest"
+            style={{
+              background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+              color: "color-mix(in srgb, var(--accent) 70%, var(--primary))",
+              borderBottom: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+            }}
+          >
+            <WifiOff size={11} />
+            Sin conexión — mostrando datos guardados
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {renderModal ? (
         renderModal(selected, isCreating, handleClose, handleUpdate)
       ) : (
-        // ── DetalleMaestro ahora recibe `tabla` y el callback con el record real ──
         <DetalleMaestro
           isOpen={!!selected || isCreating}
           onClose={handleClose}

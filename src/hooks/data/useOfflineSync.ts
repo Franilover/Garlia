@@ -1,178 +1,227 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { db, type OfflineOperation } from "@/lib/api/client/db";
+import { useState, useEffect, useCallback } from "react";
+import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
 // ─── CONFIGURACIÓN DE TABLAS ──────────────────────────────────────────────────
-// Para agregar una tabla nueva en el futuro: solo añade una entrada aquí.
+// Mapea cada tabla Dexie → su tabla en Supabase + opciones de query
 
-const SYNC_TABLES: Record<string, {
+interface TableConfig {
   supabaseTable: string;
-  excludeFields?: string[];  // campos solo locales que no van a Supabase
-}> = {
-  notas: {
-    supabaseTable: "ensayos",
-    excludeFields: ["status"],
-  },
+  select?: string;           // columnas a seleccionar (default: "*")
+  orderBy?: string;          // campo para ordenar
+  orderAsc?: boolean;
+  filters?: Record<string, any>; // filtros fijos ej: { username: "Franilover" }
+}
+
+const TABLE_CONFIG: Record<string, TableConfig> = {
   tareas: {
     supabaseTable: "tareas",
-    excludeFields: ["status"],
+    orderBy: "created_at",
+    orderAsc: false,
+    filters: { username: "franilover" },
   },
   eventos: {
     supabaseTable: "eventos",
-    excludeFields: ["status", "deleted"],
+    orderBy: "fecha",
+    orderAsc: true,
+    filters: { username: "Franilover" },
+  },
+  notas: {
+    supabaseTable: "ensayos",
+    orderBy: "updated_at",
+    orderAsc: false,
   },
   rutinas: {
     supabaseTable: "rutinas",
-    excludeFields: ["status", "deleted"],
+    orderBy: "created_at",
+    orderAsc: false,
   },
   ejercicios_rutina: {
     supabaseTable: "ejercicios_rutina",
-    excludeFields: ["status", "deleted"],
+  },
+  // Wiki (solo lectura)
+  personajes: {
+    supabaseTable: "personajes",
+    orderBy: "nombre",
+    orderAsc: true,
+  },
+  criaturas: {
+    supabaseTable: "criaturas",
+    orderBy: "nombre",
+    orderAsc: true,
+  },
+  items: {
+    supabaseTable: "items",
+    orderBy: "nombre",
+    orderAsc: true,
+  },
+  canciones: {
+    supabaseTable: "canciones",
+    orderBy: "created_at",
+    orderAsc: false,
+    filters: { visible: true },
+  },
+  reinos: {
+    supabaseTable: "reinos",
+    orderBy: "orden",
+    orderAsc: true,
   },
 };
 
-const MAX_RETRIES = 3;
+// ─── HOOK ─────────────────────────────────────────────────────────────────────
 
-function cleanPayload(payload: any, exclude: string[] = []): any {
-  const clean = { ...payload };
-  for (const field of exclude) delete clean[field];
-  return clean;
+interface UseOfflineDataOptions<T> {
+  /** Nombre de la tabla (debe existir en TABLE_CONFIG y en db) */
+  table: string;
+  /** Filtros dinámicos adicionales (se combinan con los fijos del config) */
+  extraFilters?: Record<string, any>;
+  /** Transformación opcional sobre los datos crudos */
+  transform?: (data: any[]) => T[];
+  /** No cargar automáticamente al montar */
+  manual?: boolean;
 }
 
-// ─── HOOK PRINCIPAL ───────────────────────────────────────────────────────────
-export function useOfflineSync() {
-  const isSyncing = useRef(false);
+interface UseOfflineDataResult<T> {
+  data: T[];
+  loading: boolean;
+  error: string | null;
+  isOffline: boolean;
+  /** Fuerza una recarga desde Supabase (si hay internet) o Dexie */
+  refresh: () => Promise<void>;
+  /** Actualiza el caché local sin ir a Supabase */
+  updateCache: (items: T[]) => Promise<void>;
+}
 
-  const syncAll = async () => {
-    if (!navigator.onLine || isSyncing.current) return;
-    isSyncing.current = true;
+export function useOfflineData<T = any>({
+  table,
+  extraFilters,
+  transform,
+  manual = false,
+}: UseOfflineDataOptions<T>): UseOfflineDataResult<T> {
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(!manual);
+  const [error, setError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
+
+  const config = TABLE_CONFIG[table];
+
+  const load = useCallback(async () => {
+    if (!config) {
+      setError(`Tabla "${table}" no configurada en useOfflineData`);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const online = navigator.onLine;
+    setIsOffline(!online);
 
     try {
-      const queue: OfflineOperation[] = await db.offline_queue
-        .orderBy("timestamp")
-        .toArray();
+      let result: any[] = [];
 
-      if (queue.length === 0) return;
+      if (online) {
+        // ── ONLINE: leer de Supabase y cachear en Dexie ──────────────────
+        let query = supabase
+          .from(config.supabaseTable)
+          .select(config.select ?? "*");
 
-      console.log(`[Sync] ${queue.length} operaciones pendientes...`);
-
-      for (const op of queue) {
-        const config = SYNC_TABLES[op.table];
-        if (!config) {
-          // Tabla desconocida — descartar para no bloquear la cola
-          await db.offline_queue.delete(op.id!);
-          continue;
+        // Aplicar filtros fijos
+        const allFilters = { ...config.filters, ...extraFilters };
+        for (const [key, value] of Object.entries(allFilters ?? {})) {
+          query = query.eq(key, value);
         }
 
-        try {
-          let error: any = null;
-
-          if (op.operation === "delete") {
-            ({ error } = await supabase
-              .from(config.supabaseTable)
-              .delete()
-              .eq("id", op.recordId));
-
-          } else if (op.operation === "upsert") {
-            const data = cleanPayload(op.payload, config.excludeFields);
-            ({ error } = await supabase
-              .from(config.supabaseTable)
-              .upsert(data));
-
-          } else if (op.operation === "update") {
-            const data = cleanPayload(op.payload, config.excludeFields);
-            ({ error } = await supabase
-              .from(config.supabaseTable)
-              .update(data)
-              .eq("id", op.recordId));
-          }
-
-          if (error) throw error;
-
-          await db.offline_queue.delete(op.id!);
-          await markSynced(op.table, op.recordId);
-
-          console.log(`[Sync] ✓ ${op.table}/${op.recordId} (${op.operation})`);
-
-        } catch (err: any) {
-          console.error(`[Sync] ✗ ${op.table}/${op.recordId}:`, err?.message ?? err);
-
-          const retries = (op.retries ?? 0) + 1;
-          if (retries >= MAX_RETRIES) {
-            console.warn(`[Sync] Descartando ${op.table}/${op.recordId} tras ${MAX_RETRIES} intentos`);
-            await db.offline_queue.delete(op.id!);
-          } else {
-            await db.offline_queue.update(op.id!, { retries });
-          }
+        // Ordenar
+        if (config.orderBy) {
+          query = query.order(config.orderBy, {
+            ascending: config.orderAsc ?? true,
+          });
         }
+
+        const { data: supabaseData, error: supabaseError } = await query;
+
+        if (supabaseError) throw supabaseError;
+
+        result = supabaseData ?? [];
+
+        // Guardar en Dexie para uso offline
+        const dexieTable = (db as any)[table];
+        if (dexieTable && result.length > 0) {
+          await dexieTable.bulkPut(result);
+        }
+
+      } else {
+        // ── OFFLINE: leer de Dexie ────────────────────────────────────────
+        const dexieTable = (db as any)[table];
+        if (!dexieTable) throw new Error(`Tabla "${table}" no existe en Dexie`);
+
+        result = await dexieTable.toArray();
+
+        // Filtrar registros marcados como eliminados localmente
+        result = result.filter((r: any) => !r.deleted);
       }
 
-      console.log("[Sync] Completado.");
-    } catch (err) {
-      console.error("[Sync] Error crítico:", err);
+      // Transformar si se proporcionó función
+      const final = transform ? transform(result) : (result as T[]);
+      setData(final);
+
+    } catch (err: any) {
+      console.error(`[useOfflineData:${table}]`, err);
+
+      // Si falla online, intentar Dexie como fallback
+      try {
+        const dexieTable = (db as any)[table];
+        if (dexieTable) {
+          const fallback = await dexieTable.toArray();
+          const filtered = fallback.filter((r: any) => !r.deleted);
+          const final = transform ? transform(filtered) : (filtered as T[]);
+          setData(final);
+          setIsOffline(true);
+          setError("Sin conexión — mostrando datos guardados");
+          return;
+        }
+      } catch {
+        // fallback también falló
+      }
+
+      setError(err?.message ?? "Error al cargar datos");
     } finally {
-      isSyncing.current = false;
+      setLoading(false);
     }
-  };
+  }, [table, JSON.stringify(extraFilters)]);
+
+  // Actualizar caché local sin ir a Supabase
+  const updateCache = useCallback(async (items: T[]) => {
+    const dexieTable = (db as any)[table];
+    if (dexieTable) {
+      await dexieTable.bulkPut(items);
+      setData(items);
+    }
+  }, [table]);
+
+  // Escuchar cambios de conectividad
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      load(); // re-sincronizar al volver
+    };
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [load]);
 
   useEffect(() => {
-    syncAll();
-    window.addEventListener("online", syncAll);
-    return () => window.removeEventListener("online", syncAll);
-  }, []);
-}
+    if (!manual) load();
+  }, [load, manual]);
 
-// ─── MARCA SYNCED EN CACHÉ LOCAL ─────────────────────────────────────────────
-async function markSynced(table: string, id: string) {
-  try {
-    switch (table) {
-      case "notas":             await db.notas.update(id, { status: "synced" }); break;
-      case "tareas":            await db.tareas.update(id, { status: "synced" }); break;
-      case "eventos":           await db.eventos.update(id, { status: "synced" }); break;
-      case "rutinas":           await db.rutinas.update(id, { status: "synced" }); break;
-      case "ejercicios_rutina": await db.ejercicios_rutina.update(id, { status: "synced" }); break;
-    }
-  } catch {
-    // El registro puede haber sido eliminado localmente — no es crítico
-  }
-}
-
-// ─── HELPERS PÚBLICOS ─────────────────────────────────────────────────────────
-
-/**
- * Encola una operación offline. Úsalo desde cualquier hook o componente.
- *
- * @example — agregar tarea offline:
- *   await enqueueOperation("tareas", "upsert", tarea.id, tarea);
- *
- * @example — eliminar evento offline:
- *   await enqueueOperation("eventos", "delete", evento.id);
- *
- * @example — actualizar campo de rutina:
- *   await enqueueOperation("rutinas", "update", rutina.id, { nombre: "Nueva" });
- */
-export async function enqueueOperation(
-  table: string,
-  operation: OfflineOperation["operation"],
-  recordId: string,
-  payload?: any
-) {
-  await db.offline_queue.add({
-    table,
-    operation,
-    recordId,
-    payload: payload ?? {},
-    timestamp: Date.now(),
-    retries: 0,
-  });
-}
-
-/**
- * Cuántas operaciones hay pendientes de sincronizar.
- * Útil para mostrar un badge en la UI ("3 cambios sin guardar").
- */
-export async function getPendingCount(): Promise<number> {
-  return await db.offline_queue.count();
+  return { data, loading, error, isOffline, refresh: load, updateCache };
 }
