@@ -54,7 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={`${montserrat.className} antialiased bg-bg-main min-h-screen flex flex-col`}>
+      <body className={`${montserrat.className} antialiased bg-bg-main min-h-svh flex flex-col`}>
         <OfflineSyncActivator />
         <AuthProvider>
           <DataProvider>

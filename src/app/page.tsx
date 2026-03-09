@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import SobreMi from "@/paginas/personal/sobre-mi"; // Ajusta esta ruta a donde tengas tu componente
+import SobreMi from "@/paginas/personal/sobre-mi";
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen bg-bg-main"
+      className="min-h-svh bg-bg-main"
     >
       <SobreMi />
     </motion.main>
