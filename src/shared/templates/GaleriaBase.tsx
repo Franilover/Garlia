@@ -57,17 +57,14 @@ export default function EntidadPageBase({
 
   const isAdminSession = useIsAdmin();
 
-  // ── useOfflineData reemplaza useSupabaseData ──────────────────────────────
-  // Si isAdminSession aún no resolvió, skip para no hacer fetch prematuro
-  const { data, loading, isOffline, updateCache } = useOfflineData({
-    table: isAdminSession !== undefined ? tabla : "__skip__",
-  });
-
-  // useAdminItem necesita setData — usamos updateCache como puente
-  const setData = (updater: any) => {
-    const next = typeof updater === "function" ? updater(data) : updater;
-    updateCache(next);
-  };
+  // ── useOfflineData = useSupabaseData con soporte offline ─────────────────
+  const { data, setData, loading, isOffline } = useOfflineData(
+    isAdminSession !== undefined ? tabla : "__skip__",
+    {
+      order: TABLAS_CONFIG[tabla]?.orden || { campo: "nombre", asc: true },
+      isAdmin: isAdminSession,
+    }
+  );
 
   const { filtros, opciones, itemsFiltrados, actualizarFiltro, resetearFiltros } =
     useFiltrosGenericos(data, { campos: configFiltros });
