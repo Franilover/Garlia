@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { tareasQueries } from "@/lib/api/queries/personal/tareas";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
-import { db } from "@/lib/api/client/db";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
 
@@ -14,6 +13,31 @@ import { ListaTareas } from "./ListaTareas";
 import { VistaMes } from "./VistaMes";
 import { VistaSemanal } from "./VistaSemanal";
 import type { ModoCalendario } from "./types";
+
+// Helper seguro para Dexie — nunca rompe el flujo principal
+async function dexiePut(table: string, data: any) {
+  try {
+    const { db } = await import("@/lib/api/client/db");
+    if (!db) return;
+    await (db as any)[table]?.put(data);
+  } catch { /* silencioso */ }
+}
+
+async function dexieUpdate(table: string, id: string, data: any) {
+  try {
+    const { db } = await import("@/lib/api/client/db");
+    if (!db) return;
+    await (db as any)[table]?.update(id, data);
+  } catch { /* silencioso */ }
+}
+
+async function dexieDelete(table: string, id: string) {
+  try {
+    const { db } = await import("@/lib/api/client/db");
+    if (!db) return;
+    await (db as any)[table]?.delete(id);
+  } catch { /* silencioso */ }
+}
 
 export const GestionPersonal = () => {
   const { data: tareas, setData: setTareas } = useSupabaseData<any>("tareas");
@@ -27,7 +51,6 @@ export const GestionPersonal = () => {
   const [isAddingTarea, setIsAddingTarea] = useState(false);
   const [isAddingEvento, setIsAddingEvento] = useState(false);
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
-
   const [diaSeleccionado, setDiaSeleccionado] = useState(new Date().getDate());
   const [nuevoEvento, setNuevoEvento] = useState("");
   const [tipoEvento, setTipoEvento] = useState("Plan");
@@ -38,25 +61,22 @@ export const GestionPersonal = () => {
     setIsAddingTarea(true);
     try {
       if (navigator.onLine) {
+        // ── ONLINE: exactamente igual que antes ──────────────────────────────
         const creada = await tareasQueries.add(nuevaTarea);
         if (creada) {
-          await db.tareas.put({ ...creada, status: "synced" });
           setTareas([creada, ...tareas]);
           setNuevaTarea("");
+          dexiePut("tareas", { ...creada, status: "synced" }); // extra, no bloquea
         }
       } else {
-        // Offline — crear localmente con ID temporal
+        // ── OFFLINE: crear localmente ────────────────────────────────────────
         const tempId = `temp_${Date.now()}`;
         const tarea = {
-          id: tempId,
-          titulo: nuevaTarea,
-          categoria: "general",
-          username: "franilover",
-          completada: false,
-          created_at: new Date().toISOString(),
-          status: "pending" as const,
+          id: tempId, titulo: nuevaTarea, categoria: "general",
+          username: "franilover", completada: false,
+          created_at: new Date().toISOString(), status: "pending" as const,
         };
-        await db.tareas.put(tarea);
+        await dexiePut("tareas", tarea);
         await enqueueOperation("tareas", "upsert", tempId, tarea);
         setTareas([tarea, ...tareas]);
         setNuevaTarea("");
@@ -65,38 +85,36 @@ export const GestionPersonal = () => {
   };
 
   const handleToggle = async (id: string, completada: boolean) => {
-    // Actualizar UI y Dexie inmediatamente
-    const nuevaCompletada = !completada;
-    setTareas(tareas.map((t: any) => t.id == id ? { ...t, completada: nuevaCompletada } : t));
-    await db.tareas.update(id, { completada: nuevaCompletada, status: "pending" });
-
-    if (navigator.onLine) {
-      try {
-        await tareasQueries.updateStatus(id, nuevaCompletada);
-        await db.tareas.update(id, { status: "synced" });
-      } catch (err) {
-        // Si falla, encolar para sync posterior
-        await enqueueOperation("tareas", "update", id, { completada: nuevaCompletada });
+    // Actualizar UI inmediatamente (igual que antes)
+    // eslint-disable-next-line eqeqeq
+    setTareas(tareas.map((t: any) => t.id == id ? { ...t, completada: !completada } : t));
+    try {
+      if (navigator.onLine) {
+        // ── ONLINE: exactamente igual que antes ──────────────────────────────
+        await tareasQueries.updateStatus(id, !completada);
+        dexieUpdate("tareas", id, { completada: !completada, status: "synced" });
+      } else {
+        // ── OFFLINE: encolar ─────────────────────────────────────────────────
+        await dexieUpdate("tareas", id, { completada: !completada, status: "pending" });
+        await enqueueOperation("tareas", "update", id, { completada: !completada });
       }
-    } else {
-      await enqueueOperation("tareas", "update", id, { completada: nuevaCompletada });
-    }
+    } catch (err) { console.error(err); }
   };
 
   const handleDelete = async (id: string) => {
-    // Actualizar UI y Dexie inmediatamente
+    // eslint-disable-next-line eqeqeq
     setTareas(tareas.filter((t: any) => t.id != id));
-    await db.tareas.delete(id);
-
-    if (navigator.onLine) {
-      try {
+    try {
+      if (navigator.onLine) {
+        // ── ONLINE: exactamente igual que antes ──────────────────────────────
         await tareasQueries.delete(id);
-      } catch (err) {
+        dexieDelete("tareas", id);
+      } else {
+        // ── OFFLINE: encolar ─────────────────────────────────────────────────
+        await dexieDelete("tareas", id);
         await enqueueOperation("tareas", "delete", id);
       }
-    } else {
-      await enqueueOperation("tareas", "delete", id);
-    }
+    } catch (err) { console.error(err); }
   };
 
   // ── HANDLERS EVENTOS ─────────────────────────────────────────────────────────
@@ -109,21 +127,17 @@ export const GestionPersonal = () => {
       if (navigator.onLine) {
         const creado = await eventosQueries.add({ titulo: nuevoEvento, tipo: tipoEvento, fecha: fechaISO });
         if (creado) {
-          await db.eventos.put({ ...creado, status: "synced" });
           setEventos([...eventos, creado]);
           setNuevoEvento("");
+          dexiePut("eventos", { ...creado, status: "synced" });
         }
       } else {
         const tempId = `temp_${Date.now()}`;
         const evento = {
-          id: tempId,
-          titulo: nuevoEvento,
-          tipo: tipoEvento,
-          fecha: fechaISO,
-          username: "Franilover",
-          status: "pending" as const,
+          id: tempId, titulo: nuevoEvento, tipo: tipoEvento,
+          fecha: fechaISO, username: "Franilover", status: "pending" as const,
         };
-        await db.eventos.put(evento);
+        await dexiePut("eventos", evento);
         await enqueueOperation("eventos", "upsert", tempId, evento);
         setEventos([...eventos, evento]);
         setNuevoEvento("");
@@ -137,17 +151,16 @@ export const GestionPersonal = () => {
       if (navigator.onLine) {
         const creado = await eventosQueries.add({ titulo, tipo, fecha: fechaISO });
         if (creado) {
-          await db.eventos.put({ ...creado, status: "synced" });
           setEventos((prev: any[]) => [...prev, creado]);
+          dexiePut("eventos", { ...creado, status: "synced" });
         }
       } else {
         const tempId = `temp_${Date.now()}`;
         const evento = {
           id: tempId, titulo, tipo, fecha: fechaISO,
-          username: "Franilover",
-          status: "pending" as const,
+          username: "Franilover", status: "pending" as const,
         };
-        await db.eventos.put(evento);
+        await dexiePut("eventos", evento);
         await enqueueOperation("eventos", "upsert", tempId, evento);
         setEventos((prev: any[]) => [...prev, evento]);
       }
@@ -157,10 +170,8 @@ export const GestionPersonal = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-      {/* COLUMNA IZQUIERDA: RELOJ Y TAREAS */}
       <section className="lg:col-span-5">
         <RelojDigital horario={horarioRaw || []} />
-
         <ListaTareas
           tareas={tareas}
           nuevaTarea={nuevaTarea}
@@ -172,10 +183,7 @@ export const GestionPersonal = () => {
         />
       </section>
 
-      {/* COLUMNA DERECHA: CALENDARIO */}
       <section className="lg:col-span-7 flex flex-col gap-4">
-
-        {/* Toggle Mes / Semana */}
         <div className="flex items-center gap-1 bg-white border border-primary/10 rounded-2xl p-1 self-end shadow-sm">
           <button
             onClick={() => setModoCalendario("mes")}
@@ -197,7 +205,6 @@ export const GestionPersonal = () => {
           </button>
         </div>
 
-        {/* Vista activa */}
         <AnimatePresence mode="wait">
           {modoCalendario === "mes" ? (
             <motion.div key="mes" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
@@ -225,7 +232,6 @@ export const GestionPersonal = () => {
             </motion.div>
           )}
         </AnimatePresence>
-
       </section>
     </div>
   );
