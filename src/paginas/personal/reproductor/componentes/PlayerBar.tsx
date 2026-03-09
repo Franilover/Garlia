@@ -30,7 +30,7 @@ export function PlayerBar({
 }: Props) {
   return (
     <div
-      className="flex flex-col justify-center gap-3 px-10"
+      className="flex flex-col justify-center gap-3 px-4 md:px-10"
       style={{
         height: 96,
         background: "var(--white-custom)",
@@ -70,7 +70,7 @@ export function PlayerBar({
       </div>
 
       {/* Controls */}
-      <div className="flex items-center">
+      <div className="flex items-center overflow-hidden">
         {/* Shuffle */}
         <div style={{ width: 80 }}>
           <button
@@ -120,7 +120,7 @@ export function PlayerBar({
         </div>
 
         {/* Volume */}
-        <div className="flex items-center gap-2" style={{ width: 120 }}>
+        <div className="flex items-center gap-2 min-w-0" style={{ width: 120, flexShrink: 0 }}>
           <Volume2 size={13} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
           <input
             type="range" min={0} max={1} step={0.01}

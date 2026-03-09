@@ -164,7 +164,7 @@ export default function ReproductorPage() {
 
   return (
     <div
-      className="flex h-screen overflow-hidden bg-bg-main text-primary"
+      className="flex overflow-hidden bg-bg-main text-primary h-[calc(100svh-64px)] md:h-[calc(100svh-80px)]"
       onDragOver={e => e.preventDefault()}
       onDrop={onDrop}
     >
