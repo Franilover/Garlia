@@ -7,7 +7,7 @@ import { LightboxProvider, LightboxVisual, useLightbox } from "@/shared/modal/li
 import { supabase } from "@/lib/api/client/supabase";
 import { X, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import SimpleImagePicker from "@/shared/layout/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/shared/forms/SimpleImagePicker";
 
 interface AddFotoModalProps {
   open: boolean;

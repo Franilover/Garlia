@@ -6,7 +6,7 @@ import { PaginaEjercicios } from "@/paginas/personal/salud/EjerciciosComponent";
 import ComprasPage from "@/paginas/personal/salud/Compras";
 import { IngredientesPage } from "@/paginas/personal/salud/ingredientes";
 import RecetasPage from "@/paginas/personal/salud/recetas";
-import { AdminOnly } from "@/shared/layout/forms/AdminOnly";
+import { AdminOnly } from "@/shared/forms/AdminOnly";
 
 export default function SaludPage() {
   return (

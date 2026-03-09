@@ -7,7 +7,7 @@ import DetalleMaestro from "@/shared/display/detalles";
 import FiltrosMaestros from "@/shared/layout/Filtros";
 import PageHeader from "@/shared/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/shared/feedback/StateComponents";
-import { AdminAddButton } from "@/shared/layout/forms/AdminAddButton";
+import { AdminAddButton } from "@/shared/forms/AdminAddButton";
 import { useOfflineData } from "@/hooks/data/useOfflineData";
 import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
 import { useAdminItem } from "@/hooks/features/useAdminItem";

@@ -4,7 +4,7 @@ import { Calendar, FileText } from "lucide-react";
 import { Secciones } from "@/shared/layout/Secciones";
 import { GestionPersonal } from "@/paginas/personal/tareas";
 import EnsayosView from "@/paginas/personal/ensayos/page";
-import { AdminOnly } from "@/shared/layout/forms/AdminOnly";
+import { AdminOnly } from "@/shared/forms/AdminOnly";
 
 export default function DashboardPage() {
   return (

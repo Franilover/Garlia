@@ -7,7 +7,7 @@ import {
 import { useDetalleMaestro, type Variante } from "@/hooks/features/useDetalleMaestro";
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 import { SelectorVariantes } from "./SelectorVariantes";
-import SimpleImagePicker from "@/shared/layout/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/shared/forms/SimpleImagePicker";
 
 interface DetalleMaestroProps {
   isOpen: boolean;

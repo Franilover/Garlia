@@ -1,5 +1,5 @@
 "use client";
-import Dropdown from "@/shared/layout/forms/Dropdown";
+import Dropdown from "@/shared/forms/Dropdown";
 import { cn } from "@/lib/utils";
 import { Camera } from "lucide-react";
 
