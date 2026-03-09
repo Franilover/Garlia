@@ -54,24 +54,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={`${montserrat.className} antialiased bg-bg-main min-h-screen flex flex-col`}>
+      <body className={`${montserrat.className} antialiased bg-bg-main min-h-screen`}>
         <OfflineSyncActivator />
         <AuthProvider>
           <DataProvider>
             <ThemeProvider>
-            <LightboxProvider>
-              <div className="flex-grow">
+              <LightboxProvider>
                 <AppLogic>
                   {children}
                 </AppLogic>
-              </div>
 
-              <footer className="w-full pt-6 pb-20 md:pb-6 mt-auto text-center border-t border-primary/10 bg-white-custom/50 backdrop-blur-sm">
-                <p className="text-primary/40 text-[10px] sm:text-xs px-4">
-                  © 2026 Franilover. Todos los derechos reservados. Queda estrictamente prohibido el uso o reproducción de las ilustraciones para fines comerciales o entrenamiento de modelos de IA sin autorización.
-                </p>
-              </footer>
-            </LightboxProvider>
+                {/* Footer fijo en desktop, oculto en móvil para no interferir con páginas full-height */}
+                <footer className="hidden md:block w-full pt-6 pb-6 text-center border-t border-primary/10 bg-white-custom/50 backdrop-blur-sm">
+                  <p className="text-primary/40 text-xs px-4">
+                    © 2026 Franilover. Todos los derechos reservados. Queda estrictamente prohibido el uso o reproducción de las ilustraciones para fines comerciales o entrenamiento de modelos de IA sin autorización.
+                  </p>
+                </footer>
+              </LightboxProvider>
             </ThemeProvider>
           </DataProvider>
         </AuthProvider>
