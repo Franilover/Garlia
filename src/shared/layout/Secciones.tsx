@@ -19,7 +19,6 @@ export interface PanelSliderProps {
   showArrows?: boolean;
   showDots?: boolean;
   contentClassName?: string;
-  /** Clave única para persistir el panel activo en localStorage */
   storageKey?: string;
 }
 
@@ -96,7 +95,6 @@ function readStoredIndex(key: string | undefined, fallback: number, max: number)
     const raw = localStorage.getItem(key);
     if (raw === null) return fallback;
     const n = parseInt(raw, 10);
-    // Valida que el índice esté dentro del rango actual de paneles
     return Number.isFinite(n) && n >= 0 && n < max ? n : fallback;
   } catch {
     return fallback;
@@ -124,17 +122,12 @@ export function PanelSlider({
     if (idx === active || idx < 0 || idx >= panels.length) return;
     setDirection(idx > active ? 1 : -1);
     setActive(idx);
-    // Persistir en localStorage si se proporcionó una clave
     if (storageKey) {
-      try {
-        localStorage.setItem(storageKey, String(idx));
-      } catch {
-        // localStorage puede fallar en modo privado o sin espacio — ignorar silenciosamente
-      }
+      try { localStorage.setItem(storageKey, String(idx)); } catch {}
     }
   }, [active, panels.length, storageKey]);
 
-  // ── TRACKPAD ─────────────────────────────────────────────────────────────
+  // ── TRACKPAD ──────────────────────────────────────────────────────────────
   const wheelCooldown = useRef(false);
   const handleWheel = (e: React.WheelEvent) => {
     if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
@@ -174,7 +167,9 @@ export function PanelSlider({
   };
 
   return (
-    <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)]">
+    // FIX: usar svh en vez de dvh — svh es la altura mínima estable (con browser chrome visible)
+    // dvh cambia cuando la barra del browser se oculta/muestra al hacer scroll, empujando el footer
+    <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100svh-64px)] md:h-[calc(100svh-80px)]">
 
       {/* ── NAV ── */}
       <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 32px", position: "relative", zIndex: 50 }}>
