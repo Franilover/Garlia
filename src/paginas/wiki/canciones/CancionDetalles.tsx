@@ -207,27 +207,25 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
             className="bg-bg-main w-full max-w-5xl h-full md:h-[90vh] md:rounded-[var(--radius-card)] shadow-2xl relative z-10 border border-primary/10 flex flex-col"
           >
-            <div className="px-10 py-6 bg-white-custom border-b border-primary/10 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary p-2 rounded-[var(--radius-btn)]" style={{ color: "var(--btn-text)" }}><FileText size={18} /></div>
-                  <div>
-                    <h3 className="text-primary font-black uppercase text-[12px] tracking-[0.3em] italic">Modo Lectura</h3>
-                    <p className="text-[8px] font-bold text-primary/40 uppercase tracking-widest mt-1">
-                      {IDIOMAS.find((i) => i.id === (Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es"))?.nombre}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 ml-8">
-                    <button onClick={() => setZoom(Math.max(0.5, zoom - 0.1))} className="w-8 h-8 flex items-center justify-center bg-primary/5 rounded-[var(--radius-input)] text-primary hover:bg-primary/10 transition-colors text-lg font-bold">-</button>
-                    <span className="text-[10px] font-black text-primary/60 min-w-[50px] text-center">{Math.round(zoom * 100)}%</span>
-                    <button onClick={() => setZoom(Math.min(2, zoom + 0.1))} className="w-8 h-8 flex items-center justify-center bg-primary/5 rounded-[var(--radius-input)] text-primary hover:bg-primary/10 transition-colors text-lg font-bold">+</button>
-                  </div>
+            <div className="px-6 py-2.5 bg-white-custom border-b border-primary/10 flex-shrink-0">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <FileText size={13} className="text-primary/50 flex-shrink-0" />
+                  <span className="text-primary font-black uppercase text-[10px] tracking-[0.2em] italic">Lectura</span>
+                  <span className="text-primary/30 text-[9px] font-bold uppercase tracking-widest">
+                    · {IDIOMAS.find((i) => i.id === (Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es"))?.nombre}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleCopy} className="flex items-center gap-2 text-primary bg-primary/5 px-4 py-2 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-widest border border-primary/10">
-                    <Copy size={14} /> Copiar
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setZoom(Math.max(0.5, zoom - 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded-[var(--radius-input)] text-primary hover:bg-primary/10 transition-colors text-sm font-bold">-</button>
+                    <span className="text-[9px] font-black text-primary/50 min-w-[38px] text-center">{Math.round(zoom * 100)}%</span>
+                    <button onClick={() => setZoom(Math.min(2, zoom + 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded-[var(--radius-input)] text-primary hover:bg-primary/10 transition-colors text-sm font-bold">+</button>
+                  </div>
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleCopy} className="flex items-center gap-1.5 text-primary bg-primary/5 px-3 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-widest border border-primary/10">
+                    <Copy size={12} /> Copiar
                   </motion.button>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={onClose} className="text-primary/40 p-2 hover:text-red-500 transition-all"><X size={24} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={onClose} className="text-primary/40 p-1.5 hover:text-red-500 transition-all"><X size={18} /></motion.button>
                 </div>
               </div>
             </div>
