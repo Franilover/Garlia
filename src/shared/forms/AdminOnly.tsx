@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@/app/providers/AuthProvider";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
