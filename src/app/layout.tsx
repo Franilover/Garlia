@@ -6,7 +6,6 @@ import AppLogic from "@/app/providers/AppLogic";
 import "@/style/tailwind.css";
 import { OfflineSyncActivator } from "@/app/providers/OfflineSyncActivator";
 import { ThemeProvider } from "@/app/providers/ThemeProvider";
-import FooterCondicional from "@/shared/layout/FooterCondicional";
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -60,14 +59,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <DataProvider>
             <ThemeProvider>
-              <LightboxProvider>
-                <div className="flex-grow">
-                  <AppLogic>
-                    {children}
-                  </AppLogic>
-                </div>
-                <FooterCondicional />
-              </LightboxProvider>
+            <LightboxProvider>
+              <div className="flex-grow">
+                <AppLogic>
+                  {children}
+                </AppLogic>
+              </div>
+
+              <footer className="hidden md:block w-full pt-6 pb-6 mt-auto text-center border-t border-primary/10 bg-white-custom/50 backdrop-blur-sm">
+                <p className="text-primary/40 text-xs px-4">
+                  © 2026 Franilover. Todos los derechos reservados. Queda estrictamente prohibido el uso o reproducción de las ilustraciones para fines comerciales o entrenamiento de modelos de IA sin autorización.
+                </p>
+              </footer>
+            </LightboxProvider>
             </ThemeProvider>
           </DataProvider>
         </AuthProvider>
