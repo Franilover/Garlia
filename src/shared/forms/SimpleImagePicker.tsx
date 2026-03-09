@@ -61,16 +61,16 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
       <div className="flex items-center gap-1 px-1 pb-3 flex-wrap">
         <button
           onClick={() => setStack([])}
-          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors"
+          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
         >
           <Home size={12} /> Inicio
         </button>
         {stack.map((s, i) => (
           <React.Fragment key={i}>
-            <ChevronRight size={10} className="text-slate-300" />
+            <ChevronRight size={10} className="text-muted-on-surface opacity-40" />
             <button
               onClick={() => goBack(i + 1)}
-              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors"
+              className="text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
             >
               {s.name}
             </button>
@@ -82,7 +82,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
       <div className="flex-1 overflow-y-auto space-y-4 pr-1">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 size={20} className="animate-spin text-slate-300" />
+            <Loader2 size={20} className="animate-spin text-primary/30" />
           </div>
         ) : (
           <>
@@ -93,18 +93,19 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
                   <button
                     key={i}
                     onClick={() => openFolder(folder)}
-                    className="flex items-center gap-3 px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all text-left group"
+                    className="flex items-center gap-3 px-4 py-3 bg-primary/5 hover:bg-primary/10 transition-all text-left group border border-primary/10 hover:border-primary/20"
+                    style={{ borderRadius: "var(--radius-btn)" }}
                   >
-                    <FolderOpen size={16} className="text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" />
+                    <FolderOpen size={16} className="text-primary/40 group-hover:text-primary/70 transition-colors shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 truncate">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface truncate">
                         {folder.name}
                       </p>
-                      <p className="text-[9px] text-slate-400">
+                      <p className="text-[9px] text-muted-on-surface">
                         {flattenImages(folder.children).length} imágenes
                       </p>
                     </div>
-                    <ChevronRight size={12} className="text-slate-300 ml-auto shrink-0" />
+                    <ChevronRight size={12} className="text-muted-on-surface opacity-40 ml-auto shrink-0" />
                   </button>
                 ))}
               </div>
@@ -118,11 +119,12 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
                     key={i}
                     onClick={() => setSelected(img.url)}
                     className={cn(
-                      "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+                      "relative aspect-square overflow-hidden border-2 transition-all",
                       selected === img.url
-                        ? "border-violet-500 shadow-lg scale-[0.97]"
-                        : "border-transparent hover:border-slate-300"
+                        ? "border-primary shadow-lg scale-[0.97]"
+                        : "border-transparent hover:border-primary/30"
                     )}
+                    style={{ borderRadius: "var(--radius-btn)" }}
                   >
                     <img
                       src={img.url}
@@ -131,8 +133,10 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
                       loading="lazy"
                     />
                     {selected === img.url && (
-                      <div className="absolute inset-0 bg-violet-500/30 flex items-center justify-center">
-                        <Check className="text-white drop-shadow" size={22} />
+                      <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
+                        <div className="bg-primary rounded-full p-1 shadow">
+                          <Check className="text-btn-text drop-shadow" size={16} />
+                        </div>
                       </div>
                     )}
                   </button>
@@ -141,7 +145,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
             )}
 
             {folders.length === 0 && images.length === 0 && (
-              <p className="text-center text-[11px] text-slate-400 py-10 uppercase tracking-widest">
+              <p className="text-center text-[11px] text-muted-on-surface py-10 uppercase tracking-widest">
                 Carpeta vacía
               </p>
             )}
@@ -153,14 +157,14 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
       <div className="pt-4 flex gap-3">
         <button
           onClick={onClose}
-          className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+          className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
         >
           Cancelar
         </button>
         <button
           onClick={() => selected && onSelect(selected)}
           disabled={!selected}
-          className="flex-[2] bg-violet-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest disabled:opacity-30 transition-all hover:bg-violet-700"
+          className="btn-brand flex-[2] py-4 text-xs uppercase tracking-widest disabled:opacity-30"
         >
           Seleccionar
         </button>
