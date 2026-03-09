@@ -10,6 +10,7 @@ import RecetasPage from "@/paginas/personal/salud/recetas";
 export default function SaludPage() {
   return (
     <Secciones
+      storageKey="salud-panel-activo"
       panels={[
         {
           id: "ejercicios",
