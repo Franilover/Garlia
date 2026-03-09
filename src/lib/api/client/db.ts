@@ -1,9 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
-
-
-
-
+// ─── WIKI ─────────────────────────────────────────────────────────────────────
 
 export interface Personaje {
   id: string;
@@ -95,6 +92,7 @@ export interface Relacion {
   [key: string]: any;
 }
 
+// ─── PERSONAL ─────────────────────────────────────────────────────────────────
 
 export interface Tarea {
   id: string;
@@ -103,6 +101,8 @@ export interface Tarea {
   username?: string;
   completada?: boolean;
   created_at?: string;
+  status?: "pending" | "synced";
+  deleted?: boolean;
 }
 
 export interface Evento {
@@ -112,6 +112,8 @@ export interface Evento {
   tipo?: string;
   hora_inicio?: string;
   username?: string;
+  status?: "pending" | "synced";
+  deleted?: boolean;
 }
 
 export interface Receta {
@@ -159,20 +161,60 @@ export interface Dibujo {
   categoria?: string;
 }
 
+// ─── ENSAYOS / NOTAS ──────────────────────────────────────────────────────────
 
 export interface Nota {
-  id: string | number;
+  id: string;
+  titulo?: string;
   contenido: string;
+  tags?: string[];
   updated_at: string;
   status: "pending" | "synced";
+  deleted?: boolean;
 }
 
+// ─── SALUD ────────────────────────────────────────────────────────────────────
 
+export interface RutinaLocal {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  tag?: string;
+  created_at?: string;
+  status?: "pending" | "synced";
+  deleted?: boolean;
+}
 
+export interface EjercicioLocal {
+  id: string;
+  rutina_id: string;
+  nombre: string;
+  series?: number;
+  reps?: string;
+  descanso?: number;
+  musculo?: string;
+  notas?: string;
+  orden?: number;
+  status?: "pending" | "synced";
+  deleted?: boolean;
+}
 
+// ─── COLA OFFLINE ─────────────────────────────────────────────────────────────
+
+export interface OfflineOperation {
+  id?: number;
+  table: string;
+  operation: "upsert" | "update" | "delete";
+  recordId: string;
+  payload: any;
+  timestamp: number;
+  retries: number;
+}
+
+// ─── BASE DE DATOS ────────────────────────────────────────────────────────────
 
 class AgendaFraniDB extends Dexie {
-  
+  // Wiki
   personajes!: Table<Personaje, string>;
   criaturas!: Table<Criatura, string>;
   criatura_variantes!: Table<CriaturaVariante, string>;
@@ -184,7 +226,7 @@ class AgendaFraniDB extends Dexie {
   reinos!: Table<Reino, string>;
   relaciones!: Table<Relacion, string>;
 
-  
+  // Personal
   tareas!: Table<Tarea, string>;
   eventos!: Table<Evento, string>;
   recetas!: Table<Receta, string>;
@@ -194,44 +236,74 @@ class AgendaFraniDB extends Dexie {
   diario_fotos!: Table<DiarioFoto, number>;
   dibujos!: Table<Dibujo, number>;
 
-  
-  notas!: Table<Nota, string | number>;
+  // Ensayos
+  notas!: Table<Nota, string>;
+
+  // Salud
+  rutinas!: Table<RutinaLocal, string>;
+  ejercicios_rutina!: Table<EjercicioLocal, string>;
+
+  // Cola universal de operaciones offline
+  offline_queue!: Table<OfflineOperation, number>;
 
   constructor() {
     super("AgendaFranilover");
 
+    // ── v1: esquema original — NO modificar ──────────────────────────────────
     this.version(1).stores({
-      
-      
-      personajes:        "id, nombre, visible",
-      criaturas:         "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes:"id, criatura_id, tipo",
-      items:             "id, nombre, categoria",
-      libros:            "id, created_at",
-      capitulos:         "id, libro_id, orden, fecha_publicacion",
-      canciones:         "id, titulo, personaje, visible, created_at",
-      secciones_cancion: "id, cancion_id, orden",
-      reinos:            "id, nombre, orden",
-      relaciones:        "id, personaje_id",
+      personajes:         "id, nombre, visible",
+      criaturas:          "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes: "id, criatura_id, tipo",
+      items:              "id, nombre, categoria",
+      libros:             "id, created_at",
+      capitulos:          "id, libro_id, orden, fecha_publicacion",
+      canciones:          "id, titulo, personaje, visible, created_at",
+      secciones_cancion:  "id, cancion_id, orden",
+      reinos:             "id, nombre, orden",
+      relaciones:         "id, personaje_id",
+      tareas:             "id, username, completada, created_at",
+      eventos:            "id, username, fecha, tipo",
+      recetas:            "id, autor_id, categoria, created_at",
+      ingredientes:       "id, user_id",
+      ropa:               "id, user_id, created_at",
+      ropa_outfits:       "id, user_id, created_at",
+      diario_fotos:       "++id, categoria, created_at",
+      dibujos:            "++id, categoria",
+      notas:              "id, status, updated_at",
+    });
 
-      
-      tareas:       "id, username, completada, created_at",
-      eventos:      "id, username, fecha, tipo",
-      recetas:      "id, autor_id, categoria, created_at",
-      ingredientes: "id, user_id",
-      ropa:         "id, user_id, created_at",
-      ropa_outfits: "id, user_id, created_at",
-      diario_fotos: "++id, categoria, created_at",
-      dibujos:      "++id, categoria",
-
-      
-      notas: "id, status, updated_at",
+    // ── v2: agrega sync offline ───────────────────────────────────────────────
+    // Dexie solo necesita los índices nuevos; los datos existentes se conservan.
+    this.version(2).stores({
+      personajes:         "id, nombre, visible",
+      criaturas:          "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes: "id, criatura_id, tipo",
+      items:              "id, nombre, categoria",
+      libros:             "id, created_at",
+      capitulos:          "id, libro_id, orden, fecha_publicacion",
+      canciones:          "id, titulo, personaje, visible, created_at",
+      secciones_cancion:  "id, cancion_id, orden",
+      reinos:             "id, nombre, orden",
+      relaciones:         "id, personaje_id",
+      // índice status agregado a tareas y eventos
+      tareas:             "id, username, completada, created_at, status",
+      eventos:            "id, username, fecha, tipo, status",
+      recetas:            "id, autor_id, categoria, created_at",
+      ingredientes:       "id, user_id",
+      ropa:               "id, user_id, created_at",
+      ropa_outfits:       "id, user_id, created_at",
+      diario_fotos:       "++id, categoria, created_at",
+      dibujos:            "++id, categoria",
+      notas:              "id, status, updated_at",
+      // tablas nuevas
+      rutinas:            "id, status",
+      ejercicios_rutina:  "id, rutina_id, status",
+      offline_queue:      "++id, table, operation, recordId, timestamp",
     });
   }
 }
 
-
-
-
 export const db =
-  typeof window !== "undefined" ? new AgendaFraniDB() : (null as unknown as AgendaFraniDB);
+  typeof window !== "undefined"
+    ? new AgendaFraniDB()
+    : (null as unknown as AgendaFraniDB);
