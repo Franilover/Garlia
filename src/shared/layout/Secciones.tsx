@@ -33,8 +33,9 @@ const navStyle: React.CSSProperties = {
 
 const pillsWrapperStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-  borderRadius: "1rem",
+  borderRadius: "var(--radius-card)",
   padding: "4px",
+  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
   display: "flex",
   alignItems: "center",
   gap: "2px",
@@ -44,7 +45,7 @@ const activePillStyle: React.CSSProperties = {
   background: "var(--primary)",
   color: "var(--btn-text)",
   boxShadow: "0 4px 14px color-mix(in srgb, var(--primary) 25%, transparent)",
-  borderRadius: "0.75rem",
+  borderRadius: "var(--radius-btn)",
   padding: "6px 20px",
   fontSize: "10px",
   fontWeight: 900,
@@ -61,7 +62,7 @@ const activePillStyle: React.CSSProperties = {
 const inactivePillStyle: React.CSSProperties = {
   background: "transparent",
   color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-  borderRadius: "0.75rem",
+  borderRadius: "var(--radius-btn)",
   padding: "6px 20px",
   fontSize: "10px",
   fontWeight: 900,
@@ -77,7 +78,7 @@ const inactivePillStyle: React.CSSProperties = {
 
 const arrowStyle: React.CSSProperties = {
   padding: "6px",
-  borderRadius: "0.75rem",
+  borderRadius: "var(--radius-btn)",
   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
   background: "transparent",
   border: "none",
