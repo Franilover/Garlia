@@ -1,39 +1,57 @@
 import { precacheAndRoute } from "workbox-precaching";
 import { registerRoute, NavigationRoute } from "workbox-routing";
-import { CacheFirst, NetworkOnly } from "workbox-strategies";
+import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 
-
+// ── Precaché de assets estáticos generados por Next.js ───────────────────────
 precacheAndRoute(self.__WB_MANIFEST);
 
-
+// ── Imágenes: CacheFirst (sirve del caché, actualiza en background) ──────────
 registerRoute(
-  ({ request, url }) => 
-    request.destination === "image" || 
-    url.origin.includes("githubusercontent.com"),
+  ({ request, url }) =>
+    request.destination === "image" ||
+    url.origin.includes("githubusercontent.com") ||
+    url.hostname.includes("supabase.co"),
   new CacheFirst({
     cacheName: "franilover-images-cache",
     plugins: [
       new ExpirationPlugin({
-        maxEntries: 100,
-        maxAgeSeconds: 60 * 24 * 60 * 60, 
+        maxEntries: 200,
+        maxAgeSeconds: 60 * 24 * 60 * 60, // 60 días
       }),
     ],
   })
 );
 
+// ── Assets JS/CSS: StaleWhileRevalidate ──────────────────────────────────────
+registerRoute(
+  ({ request }) =>
+    request.destination === "script" ||
+    request.destination === "style",
+  new StaleWhileRevalidate({
+    cacheName: "franilover-static-cache",
+  })
+);
 
-const networkOnly = new NetworkOnly();
-const navigationRoute = new NavigationRoute(async (params) => {
-  try {
-    return await networkOnly.handle(params);
-  } catch (error) {
-    return caches.match("/index.html") || caches.match("/");
-  }
+// ── Navegación (páginas): NetworkFirst con fallback al caché ─────────────────
+// Este es el fix clave: antes era NetworkOnly, que no tiene fallback offline.
+// Ahora intenta la red primero; si falla, sirve la versión cacheada de la ruta.
+const navigationHandler = new NetworkFirst({
+  cacheName: "franilover-pages-cache",
+  networkTimeoutSeconds: 5, // si la red tarda más de 5s, usa caché
+  plugins: [
+    new ExpirationPlugin({
+      maxEntries: 50,
+      maxAgeSeconds: 24 * 60 * 60, // 1 día
+    }),
+  ],
 });
-registerRoute(navigationRoute);
 
+registerRoute(
+  new NavigationRoute(navigationHandler)
+);
 
+// ── Instalación y activación ──────────────────────────────────────────────────
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
@@ -42,16 +60,14 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(clients.claim());
 });
 
-
-
+// ── Background Sync ───────────────────────────────────────────────────────────
 self.addEventListener("sync", (event) => {
   if (event.tag === "sync-notas") {
-    console.log("SW: Detectada conexión. Iniciando sincronización de notas...");
-    
+    console.log("SW: Detectada conexión. Iniciando sincronización...");
   }
 });
 
-
+// ── Push Notifications ────────────────────────────────────────────────────────
 self.addEventListener("push", function(event) {
   if (event.data) {
     try {
@@ -70,7 +86,6 @@ self.addEventListener("push", function(event) {
     }
   }
 });
-
 
 self.addEventListener("notificationclick", function(event) {
   event.notification.close();
