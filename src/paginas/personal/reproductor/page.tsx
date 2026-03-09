@@ -24,6 +24,7 @@ export default function ReproductorPage() {
   const [spinning, setSpinning]       = useState(false);
   const [vista, setVista]             = useState<VistaLibreria>("canciones");
   const [loading, setLoading]         = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const applyTracks = useCallback((loaded: Track[]) => {
     setTracks(loaded);
@@ -177,6 +178,8 @@ export default function ReproductorPage() {
         search={search}
         vista={vista}
         loading={loading}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(o => !o)}
         onSearch={setSearch}
         onVista={setVista}
         onOpenFolder={openFolder}
