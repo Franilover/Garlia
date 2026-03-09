@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { tareasQueries } from "@/lib/api/queries/personal/tareas";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
+import { db } from "@/lib/api/client/db";
+import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
 
 import { RelojDigital } from "./RelojDigital";
@@ -35,25 +37,66 @@ export const GestionPersonal = () => {
     if (!nuevaTarea.trim() || isAddingTarea) return;
     setIsAddingTarea(true);
     try {
-      const creada = await tareasQueries.add(nuevaTarea);
-      if (creada) { setTareas([creada, ...tareas]); setNuevaTarea(""); }
+      if (navigator.onLine) {
+        const creada = await tareasQueries.add(nuevaTarea);
+        if (creada) {
+          await db.tareas.put({ ...creada, status: "synced" });
+          setTareas([creada, ...tareas]);
+          setNuevaTarea("");
+        }
+      } else {
+        // Offline — crear localmente con ID temporal
+        const tempId = `temp_${Date.now()}`;
+        const tarea = {
+          id: tempId,
+          titulo: nuevaTarea,
+          categoria: "general",
+          username: "franilover",
+          completada: false,
+          created_at: new Date().toISOString(),
+          status: "pending" as const,
+        };
+        await db.tareas.put(tarea);
+        await enqueueOperation("tareas", "upsert", tempId, tarea);
+        setTareas([tarea, ...tareas]);
+        setNuevaTarea("");
+      }
     } catch (err) { console.error(err); } finally { setIsAddingTarea(false); }
   };
 
   const handleToggle = async (id: string, completada: boolean) => {
-    try {
-      await tareasQueries.updateStatus(id, !completada);
-      // eslint-disable-next-line eqeqeq
-      setTareas(tareas.map((t: any) => t.id == id ? { ...t, completada: !completada } : t));
-    } catch (err) { console.error(err); }
+    // Actualizar UI y Dexie inmediatamente
+    const nuevaCompletada = !completada;
+    setTareas(tareas.map((t: any) => t.id == id ? { ...t, completada: nuevaCompletada } : t));
+    await db.tareas.update(id, { completada: nuevaCompletada, status: "pending" });
+
+    if (navigator.onLine) {
+      try {
+        await tareasQueries.updateStatus(id, nuevaCompletada);
+        await db.tareas.update(id, { status: "synced" });
+      } catch (err) {
+        // Si falla, encolar para sync posterior
+        await enqueueOperation("tareas", "update", id, { completada: nuevaCompletada });
+      }
+    } else {
+      await enqueueOperation("tareas", "update", id, { completada: nuevaCompletada });
+    }
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await tareasQueries.delete(id);
-      // eslint-disable-next-line eqeqeq
-      setTareas(tareas.filter((t: any) => t.id != id));
-    } catch (err) { console.error(err); }
+    // Actualizar UI y Dexie inmediatamente
+    setTareas(tareas.filter((t: any) => t.id != id));
+    await db.tareas.delete(id);
+
+    if (navigator.onLine) {
+      try {
+        await tareasQueries.delete(id);
+      } catch (err) {
+        await enqueueOperation("tareas", "delete", id);
+      }
+    } else {
+      await enqueueOperation("tareas", "delete", id);
+    }
   };
 
   // ── HANDLERS EVENTOS ─────────────────────────────────────────────────────────
@@ -63,16 +106,51 @@ export const GestionPersonal = () => {
     const now = new Date();
     const fechaISO = new Date(now.getFullYear(), now.getMonth(), diaSeleccionado).toISOString();
     try {
-      const creado = await eventosQueries.add({ titulo: nuevoEvento, tipo: tipoEvento, fecha: fechaISO });
-      if (creado) { setEventos([...eventos, creado]); setNuevoEvento(""); }
+      if (navigator.onLine) {
+        const creado = await eventosQueries.add({ titulo: nuevoEvento, tipo: tipoEvento, fecha: fechaISO });
+        if (creado) {
+          await db.eventos.put({ ...creado, status: "synced" });
+          setEventos([...eventos, creado]);
+          setNuevoEvento("");
+        }
+      } else {
+        const tempId = `temp_${Date.now()}`;
+        const evento = {
+          id: tempId,
+          titulo: nuevoEvento,
+          tipo: tipoEvento,
+          fecha: fechaISO,
+          username: "Franilover",
+          status: "pending" as const,
+        };
+        await db.eventos.put(evento);
+        await enqueueOperation("eventos", "upsert", tempId, evento);
+        setEventos([...eventos, evento]);
+        setNuevoEvento("");
+      }
     } catch (err) { console.error(err); } finally { setIsAddingEvento(false); }
   };
 
   const handleAddEventoSemanal = async (fechaISO: string, titulo: string, tipo: string) => {
     setIsAddingEvento(true);
     try {
-      const creado = await eventosQueries.add({ titulo, tipo, fecha: fechaISO });
-      if (creado) setEventos((prev: any[]) => [...prev, creado]);
+      if (navigator.onLine) {
+        const creado = await eventosQueries.add({ titulo, tipo, fecha: fechaISO });
+        if (creado) {
+          await db.eventos.put({ ...creado, status: "synced" });
+          setEventos((prev: any[]) => [...prev, creado]);
+        }
+      } else {
+        const tempId = `temp_${Date.now()}`;
+        const evento = {
+          id: tempId, titulo, tipo, fecha: fechaISO,
+          username: "Franilover",
+          status: "pending" as const,
+        };
+        await db.eventos.put(evento);
+        await enqueueOperation("eventos", "upsert", tempId, evento);
+        setEventos((prev: any[]) => [...prev, evento]);
+      }
     } catch (err) { console.error(err); } finally { setIsAddingEvento(false); }
   };
 
