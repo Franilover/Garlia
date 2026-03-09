@@ -135,7 +135,7 @@ export const GestionPersonal = () => {
         const tempId = `temp_${Date.now()}`;
         const evento = {
           id: tempId, titulo: nuevoEvento, tipo: tipoEvento,
-          fecha: fechaISO, username: "Franilover", status: "pending" as const,
+          fecha: fechaISO, username: "franilover", status: "pending" as const,
         };
         await dexiePut("eventos", evento);
         await enqueueOperation("eventos", "upsert", tempId, evento);
@@ -158,7 +158,7 @@ export const GestionPersonal = () => {
         const tempId = `temp_${Date.now()}`;
         const evento = {
           id: tempId, titulo, tipo, fecha: fechaISO,
-          username: "Franilover", status: "pending" as const,
+          username: "franilover", status: "pending" as const,
         };
         await dexiePut("eventos", evento);
         await enqueueOperation("eventos", "upsert", tempId, evento);
