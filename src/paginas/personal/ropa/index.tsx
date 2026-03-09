@@ -4,10 +4,11 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Trash2, Save, Layers, X,
-  CheckCircle2, Loader2, Shirt, ZoomIn
+  CheckCircle2, Loader2, Shirt, ZoomIn, Plus, Image as ImageIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import SimpleImagePicker from "@/shared/forms/SimpleImagePicker";
 
 // --- TIPOS ---
 type Categoria = "Superior" | "Inferior" | "Calzado" | "Accesorios";
@@ -19,10 +20,14 @@ interface Prenda {
   imagen_url: string; 
 }
 
+const CATEGORIAS: Categoria[] = ["Superior", "Inferior", "Calzado", "Accesorios"];
+
 export default function ArmarioCanvasPage() {
   const { 
     data: prendas = [], 
-    loading: loadingRopa 
+    loading: loadingRopa,
+    addRow: addPrenda,
+    refetch: refetchPrendas,
   } = useSupabaseData<Prenda>("ropa", {
     order: { campo: "created_at", asc: false }
   });
@@ -37,36 +42,53 @@ export default function ArmarioCanvasPage() {
     order: { campo: "created_at", asc: false }
   });
 
+  // --- outfit builder ---
   const [selectedPrendas, setSelectedPrendas] = useState<Prenda[]>([]);
-  const [nombreOutfit, setNombreOutfit] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+  const [nombreOutfit, setNombreOutfit]       = useState("");
+  const [isSaving, setIsSaving]               = useState(false);
+
+  // --- lightbox ---
   const [lightboxPrenda, setLightboxPrenda] = useState<Prenda | null>(null);
 
+  // --- nueva prenda ---
+  const [showNuevaPrenda, setShowNuevaPrenda] = useState(false);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [nuevaPrenda, setNuevaPrenda] = useState<{
+    nombre: string; categoria: Categoria; imagen_url: string;
+  }>({ nombre: "", categoria: "Superior", imagen_url: "" });
+  const [isSavingPrenda, setIsSavingPrenda] = useState(false);
+
+  // --- handlers ---
   const togglePrendaEnCanvas = (prenda: Prenda) => {
-    if (selectedPrendas.find(p => p.id === prenda.id)) {
-      setSelectedPrendas(selectedPrendas.filter(p => p.id !== prenda.id));
-    } else {
-      setSelectedPrendas([...selectedPrendas, prenda]);
-    }
+    setSelectedPrendas(prev =>
+      prev.find(p => p.id === prenda.id)
+        ? prev.filter(p => p.id !== prenda.id)
+        : [...prev, prenda]
+    );
   };
 
   const guardarOutfit = async () => {
     if (selectedPrendas.length === 0 || !nombreOutfit) return;
     setIsSaving(true);
-    const { error } = await addRow({
-      nombre: nombreOutfit,
-      prendas: selectedPrendas,
-    });
-    if (!error) {
-      setSelectedPrendas([]);
-      setNombreOutfit("");
-      await refetchOutfits(); 
-    }
+    const { error } = await addRow({ nombre: nombreOutfit, prendas: selectedPrendas });
+    if (!error) { setSelectedPrendas([]); setNombreOutfit(""); await refetchOutfits(); }
     setIsSaving(false);
   };
 
-  const borrarOutfit = async (id: string) => {
-    await deleteRow(id);
+  const guardarNuevaPrenda = async () => {
+    if (!nuevaPrenda.nombre || !nuevaPrenda.imagen_url) return;
+    setIsSavingPrenda(true);
+    const { error } = await addPrenda({
+      nombre: nuevaPrenda.nombre,
+      categoria: nuevaPrenda.categoria,
+      imagen_url: nuevaPrenda.imagen_url,
+    });
+    if (!error) {
+      setNuevaPrenda({ nombre: "", categoria: "Superior", imagen_url: "" });
+      setShowNuevaPrenda(false);
+      await refetchPrendas();
+    }
+    setIsSavingPrenda(false);
   };
 
   if (loadingRopa || loadingOutfits) return (
@@ -78,7 +100,159 @@ export default function ArmarioCanvasPage() {
   return (
     <div className="flex flex-row min-h-screen bg-bg-main">
 
-      {/* --- LIGHTBOX --- */}
+      {/* ═══════════════════════════════════════
+          MODAL: NUEVA PRENDA
+      ═══════════════════════════════════════ */}
+      <AnimatePresence>
+        {showNuevaPrenda && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => { setShowNuevaPrenda(false); setShowImagePicker(false); }}
+            className="fixed inset-0 z-50 bg-foreground/50 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 16 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              className="modal-surface relative shadow-2xl w-full max-w-md overflow-hidden"
+              style={{ borderRadius: "var(--radius-card)" }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-primary/10">
+                <div className="flex items-center gap-2">
+                  <Plus size={16} className="text-primary" />
+                  <h3 className="text-xs font-black uppercase tracking-widest text-on-surface">Nueva Prenda</h3>
+                </div>
+                <button
+                  onClick={() => { setShowNuevaPrenda(false); setShowImagePicker(false); }}
+                  className="p-1.5 text-muted-on-surface hover:text-on-surface transition-colors"
+                  style={{ borderRadius: "9999px" }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-6 flex flex-col gap-4">
+
+                {/* --- IMAGE PICKER o preview --- */}
+                {!showImagePicker ? (
+                  <button
+                    onClick={() => setShowImagePicker(true)}
+                    className={cn(
+                      "relative w-full aspect-video border-2 border-dashed transition-all overflow-hidden group",
+                      nuevaPrenda.imagen_url ? "border-primary/20" : "border-primary/10 hover:border-primary/30"
+                    )}
+                    style={{ borderRadius: "var(--radius-card)" }}
+                  >
+                    {nuevaPrenda.imagen_url ? (
+                      <>
+                        <img
+                          src={nuevaPrenda.imagen_url}
+                          className="w-full h-full object-cover"
+                          alt="preview"
+                        />
+                        {/* overlay para cambiar */}
+                        <div className="absolute inset-0 bg-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <ImageIcon size={16} className="text-white" />
+                          <span className="text-[10px] font-black uppercase text-white tracking-widest">Cambiar foto</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-primary/5">
+                        <ImageIcon size={28} className="text-primary/20" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-on-surface">
+                          Elegir foto
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                ) : (
+                  /* SimpleImagePicker embebido */
+                  <div
+                    className="border border-primary/10 overflow-hidden"
+                    style={{ borderRadius: "var(--radius-card)" }}
+                  >
+                    <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-on-surface">
+                        Selecciona una foto
+                      </p>
+                      <button
+                        onClick={() => setShowImagePicker(false)}
+                        className="text-muted-on-surface hover:text-on-surface transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="px-4 pb-4">
+                      <SimpleImagePicker
+                        onSelect={(url) => {
+                          setNuevaPrenda(prev => ({ ...prev, imagen_url: url }));
+                          setShowImagePicker(false);
+                        }}
+                        onClose={() => setShowImagePicker(false)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Solo muestra los campos si el picker no está abierto */}
+                {!showImagePicker && (
+                  <>
+                    {/* Nombre */}
+                    <input
+                      type="text"
+                      placeholder="NOMBRE DE LA PRENDA..."
+                      value={nuevaPrenda.nombre}
+                      onChange={(e) => setNuevaPrenda(prev => ({ ...prev, nombre: e.target.value.toUpperCase() }))}
+                      className="input-brand text-[10px] font-black"
+                    />
+
+                    {/* Categoría */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {CATEGORIAS.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setNuevaPrenda(prev => ({ ...prev, categoria: cat }))}
+                          className={cn(
+                            "py-2 px-1 text-[8px] font-black uppercase tracking-widest transition-all border",
+                            nuevaPrenda.categoria === cat
+                              ? "bg-primary text-btn-text border-primary"
+                              : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
+                          )}
+                          style={{ borderRadius: "var(--radius-btn)" }}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Guardar */}
+                    <button
+                      onClick={guardarNuevaPrenda}
+                      disabled={!nuevaPrenda.nombre || !nuevaPrenda.imagen_url || isSavingPrenda}
+                      className="btn-brand w-full text-[10px] uppercase tracking-widest"
+                    >
+                      {isSavingPrenda
+                        ? <Loader2 className="animate-spin" size={16} />
+                        : <Save size={16} />
+                      }
+                      Guardar Prenda
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════════════════════════════════
+          LIGHTBOX VER PRENDA
+      ═══════════════════════════════════════ */}
       <AnimatePresence>
         {lightboxPrenda && (
           <motion.div
@@ -97,7 +271,6 @@ export default function ArmarioCanvasPage() {
               className="modal-surface relative overflow-hidden shadow-2xl max-w-sm w-full"
               style={{ borderRadius: "var(--radius-card)" }}
             >
-              {/* Botón cerrar */}
               <button
                 onClick={() => setLightboxPrenda(null)}
                 className="absolute top-4 right-4 z-10 modal-surface p-2 shadow-md text-muted-on-surface hover:text-on-surface transition-colors"
@@ -106,20 +279,14 @@ export default function ArmarioCanvasPage() {
                 <X size={16} />
               </button>
 
-              {/* Imagen grande */}
               <div className="aspect-3/4 w-full bg-primary/5 flex items-center justify-center overflow-hidden">
                 {lightboxPrenda.imagen_url ? (
-                  <img
-                    src={lightboxPrenda.imagen_url}
-                    alt={lightboxPrenda.nombre}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={lightboxPrenda.imagen_url} alt={lightboxPrenda.nombre} className="w-full h-full object-cover" />
                 ) : (
                   <Shirt className="text-primary/20" size={64} />
                 )}
               </div>
 
-              {/* Info + acción */}
               <div className="p-5 border-t border-primary/10">
                 <p className="text-xs font-black uppercase text-on-surface tracking-tight">{lightboxPrenda.nombre}</p>
                 <p className="text-[9px] font-bold text-muted-on-surface uppercase tracking-widest mt-1">{lightboxPrenda.categoria}</p>
@@ -138,17 +305,32 @@ export default function ArmarioCanvasPage() {
         )}
       </AnimatePresence>
 
-      {/* --- PANEL IZQUIERDO: LISTA MINIATURAS --- */}
+      {/* ═══════════════════════════════════════
+          PANEL IZQUIERDO: MINIATURAS
+      ═══════════════════════════════════════ */}
       <nav
         className="w-20 md:w-56 shrink-0 border-r border-primary/20 flex flex-col overflow-y-auto"
         style={{ background: "var(--bg-menu)" }}
       >
+        {/* Header con botón añadir */}
         <div
-          className="p-4 border-b border-primary/20 sticky top-0 z-10"
+          className="p-3 border-b border-white/10 sticky top-0 z-10 flex items-center justify-between gap-2"
           style={{ background: "var(--bg-menu)" }}
         >
-          <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/40 hidden md:block">Prendas</p>
-          <Shirt size={14} className="text-white/30 md:hidden mx-auto" />
+          <div className="flex items-center gap-2 min-w-0">
+            <Shirt size={12} className="text-white/30 shrink-0" />
+            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40 hidden md:block truncate">
+              Prendas
+            </p>
+          </div>
+          <button
+            onClick={() => setShowNuevaPrenda(true)}
+            className="shrink-0 bg-primary/20 hover:bg-primary/30 text-white p-1.5 transition-all"
+            style={{ borderRadius: "var(--radius-btn)" }}
+            title="Añadir prenda"
+          >
+            <Plus size={12} />
+          </button>
         </div>
 
         <div className="flex flex-col gap-1 p-2">
@@ -165,7 +347,6 @@ export default function ArmarioCanvasPage() {
                 )}
                 style={{ borderRadius: "var(--radius-btn)" }}
               >
-                {/* Miniatura */}
                 <div
                   className={cn(
                     "relative w-10 h-10 overflow-hidden shrink-0 border-2 transition-all",
@@ -180,7 +361,6 @@ export default function ArmarioCanvasPage() {
                       <Shirt size={16} className="text-white/20" />
                     </div>
                   )}
-                  {/* Hover zoom */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <ZoomIn size={12} className="text-white" />
                   </div>
@@ -190,8 +370,6 @@ export default function ArmarioCanvasPage() {
                     </div>
                   )}
                 </div>
-
-                {/* Nombre — solo md+ */}
                 <div className="hidden md:block min-w-0">
                   <p className="text-[9px] font-black uppercase text-white/80 truncate leading-tight">{prenda.nombre}</p>
                   <p className="text-[7px] font-bold text-white/30 uppercase tracking-widest">{prenda.categoria}</p>
@@ -199,28 +377,52 @@ export default function ArmarioCanvasPage() {
               </motion.button>
             );
           })}
+
+          {/* Botón añadir al final de la lista (visible solo en md+) */}
+          <button
+            onClick={() => setShowNuevaPrenda(true)}
+            className="hidden md:flex items-center gap-3 p-2 mt-1 border border-dashed border-white/10 hover:border-white/20 text-white/20 hover:text-white/40 transition-all"
+            style={{ borderRadius: "var(--radius-btn)" }}
+          >
+            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+              <Plus size={16} />
+            </div>
+            <p className="text-[9px] font-black uppercase tracking-widest">Añadir prenda</p>
+          </button>
         </div>
       </nav>
 
-      {/* --- GALERÍA CENTRAL --- */}
+      {/* ═══════════════════════════════════════
+          GALERÍA CENTRAL
+      ═══════════════════════════════════════ */}
       <main className="flex-1 p-6 md:p-10 overflow-y-auto">
-        <header className="mb-8">
-          <h1 className="text-4xl font-black uppercase tracking-tighter text-primary italic">
-            Armario <span className="text-primary/10 italic">Real</span>
-          </h1>
-          <p className="text-muted-on-surface text-[10px] font-black uppercase tracking-widest mt-2">
-            Prendas disponibles: {prendas.length}
-          </p>
+        <header className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-black uppercase tracking-tighter text-primary italic">
+              Armario <span className="text-primary/10 italic">Real</span>
+            </h1>
+            <p className="text-muted-on-surface text-[10px] font-black uppercase tracking-widest mt-2">
+              Prendas disponibles: {prendas.length}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowNuevaPrenda(true)}
+            className="btn-brand flex items-center gap-2 text-[10px] uppercase tracking-widest"
+          >
+            <Plus size={14} />
+            <span className="hidden sm:inline">Nueva Prenda</span>
+          </button>
         </header>
 
         {prendas.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center p-20 border-2 border-dashed border-primary/10"
+          <button
+            onClick={() => setShowNuevaPrenda(true)}
+            className="w-full flex flex-col items-center justify-center p-20 border-2 border-dashed border-primary/10 hover:border-primary/20 transition-all"
             style={{ borderRadius: "var(--radius-card)" }}
           >
-            <Shirt className="text-primary/10 mb-4" size={48} />
-            <p className="text-[10px] font-black uppercase text-muted-on-surface">La tabla "ropa" no devuelve datos</p>
-          </div>
+            <Plus className="text-primary/20 mb-4" size={48} />
+            <p className="text-[10px] font-black uppercase text-muted-on-surface">Añade tu primera prenda</p>
+          </button>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {prendas.map((prenda: Prenda) => {
@@ -248,20 +450,15 @@ export default function ArmarioCanvasPage() {
                       <Shirt className="text-primary/10" size={32} />
                     )}
                   </div>
-
-                  {/* Hover overlay */}
                   <div className="absolute inset-0 bg-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="modal-surface p-3 rounded-full shadow-lg">
                       <ZoomIn size={18} className="text-primary" />
                     </div>
                   </div>
-
-                  {/* Nombre */}
                   <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-foreground/80 to-transparent">
                     <p className="text-[9px] font-black text-white uppercase truncate">{prenda.nombre}</p>
                     <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{prenda.categoria}</p>
                   </div>
-
                   {estaSeleccionada && (
                     <div className="absolute top-3 right-3 bg-primary text-btn-text p-1.5 rounded-full shadow-lg">
                       <CheckCircle2 size={12} />
@@ -270,11 +467,24 @@ export default function ArmarioCanvasPage() {
                 </motion.button>
               );
             })}
+
+            {/* Tarjeta "añadir" al final de la grid */}
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowNuevaPrenda(true)}
+              className="relative aspect-3/4 border-2 border-dashed border-primary/10 hover:border-primary/30 transition-all flex flex-col items-center justify-center gap-3 text-muted-on-surface hover:text-primary"
+              style={{ borderRadius: "var(--radius-card)" }}
+            >
+              <Plus size={24} className="opacity-30" />
+              <p className="text-[9px] font-black uppercase tracking-widest opacity-30">Añadir</p>
+            </motion.button>
           </div>
         )}
       </main>
 
-      {/* --- PANEL DERECHO: CONSTRUCTOR --- */}
+      {/* ═══════════════════════════════════════
+          PANEL DERECHO: CONSTRUCTOR
+      ═══════════════════════════════════════ */}
       <aside
         className="w-full md:w-72 shrink-0 border-l border-primary/10 p-6 md:p-8 flex flex-col gap-6 sticky top-0 h-screen overflow-y-auto shadow-2xl"
         style={{ background: "var(--white-custom)" }}
@@ -284,7 +494,6 @@ export default function ArmarioCanvasPage() {
           <h2 className="text-xs font-black uppercase tracking-widest text-on-surface">Constructor</h2>
         </div>
 
-        {/* Canvas selección */}
         <div
           className="grow flex flex-col gap-3 min-h-40 p-4 bg-primary/5 border-2 border-dashed border-primary/10"
           style={{ borderRadius: "var(--radius-card)" }}
@@ -307,17 +516,11 @@ export default function ArmarioCanvasPage() {
                   className="flex items-center gap-3 panel-surface p-2 shadow-sm border border-primary/10"
                   style={{ borderRadius: "var(--radius-btn)" }}
                 >
-                  <div
-                    className="w-12 h-12 overflow-hidden shrink-0 bg-primary/5"
-                    style={{ borderRadius: "var(--radius-btn)" }}
-                  >
+                  <div className="w-12 h-12 overflow-hidden shrink-0 bg-primary/5" style={{ borderRadius: "var(--radius-btn)" }}>
                     <img src={p.imagen_url} className="w-full h-full object-cover" />
                   </div>
                   <span className="grow text-[9px] font-black uppercase text-on-surface truncate">{p.nombre}</span>
-                  <button
-                    onClick={() => togglePrendaEnCanvas(p)}
-                    className="p-2 text-muted-on-surface hover:text-red-500 transition-colors"
-                  >
+                  <button onClick={() => togglePrendaEnCanvas(p)} className="p-2 text-muted-on-surface hover:text-red-500 transition-colors">
                     <X size={14} />
                   </button>
                 </motion.div>
@@ -326,7 +529,6 @@ export default function ArmarioCanvasPage() {
           </AnimatePresence>
         </div>
 
-        {/* Guardar */}
         {selectedPrendas.length > 0 && (
           <div className="flex flex-col gap-3">
             <input
@@ -347,7 +549,6 @@ export default function ArmarioCanvasPage() {
           </div>
         )}
 
-        {/* Colección guardada */}
         <div className="mt-4 border-t border-primary/10 pt-6">
           <h3 className="text-[8px] font-black text-muted-on-surface uppercase tracking-[0.3em] mb-4">
             Colección Guardada
@@ -357,19 +558,13 @@ export default function ArmarioCanvasPage() {
               <div key={o.id} className="card-main group p-4 border border-primary/10 hover:border-primary/30 transition-all">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[9px] font-black uppercase text-on-surface">{o.nombre}</p>
-                  <button
-                    onClick={() => borrarOutfit(o.id)}
-                    className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-500 transition-all"
-                  >
+                  <button onClick={() => deleteRow(o.id)} className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-500 transition-all">
                     <Trash2 size={12} />
                   </button>
                 </div>
                 <div className="flex -space-x-2">
                   {Array.isArray(o.prendas) && o.prendas.map((pr: any, i: number) => (
-                    <div
-                      key={i}
-                      className="w-8 h-8 border-2 border-bg-main overflow-hidden bg-primary/10 shadow-sm rounded-full"
-                    >
+                    <div key={i} className="w-8 h-8 border-2 border-bg-main overflow-hidden bg-primary/10 shadow-sm rounded-full">
                       <img src={pr.imagen_url} className="w-full h-full object-cover" />
                     </div>
                   ))}
