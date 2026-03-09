@@ -69,8 +69,11 @@ async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
 
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
+
+  // FIX: siempre arranca con loading=true si hay internet para forzar fetch
+  // El caché solo se usa como valor inicial mientras carga, no para saltarse el fetch
   const [data, setData] = useState<T[]>(cache[tabla] || []);
-  const [loading, setLoading] = useState(tabla !== "__skip__" && !cache[tabla]);
+  const [loading, setLoading] = useState(tabla !== "__skip__");
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
 
@@ -83,9 +86,11 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     if (!isMounted.current) return;
     if (tabla === "__skip__") return;
 
-    if (data.length === 0 || forceRefresh) setLoading(true);
+    // FIX: siempre muestra loading al fetchear, no depende del length del closure
+    setLoading(true);
     setError(null);
 
+    // ── OFFLINE: leer de Dexie ───────────────────────────────────────────────
     if (!navigator.onLine) {
       const localData = await readFromDexie<T>(tabla);
       if (isMounted.current) {
@@ -96,6 +101,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       return;
     }
 
+    // ── ONLINE: siempre buscar en Supabase ───────────────────────────────────
     setIsOffline(false);
 
     try {
@@ -121,12 +127,14 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         setData(finalData as T[]);
         updateCache(tabla, finalData);
         retryCount.current = 0;
-        writeToDexie(tabla, finalData);
+        writeToDexie(tabla, finalData); // guardar para uso offline posterior
       }
     } catch (err: any) {
-      const isNetworkError = err.message?.includes("fetch") || err.message?.includes("NetworkError");
+      const isNetworkError =
+        err.message?.includes("fetch") || err.message?.includes("NetworkError");
 
       if (isNetworkError) {
+        // Red caída aunque navigator.onLine diga true — usar Dexie como fallback
         const localData = await readFromDexie<T>(tabla);
         if (localData.length > 0 && isMounted.current) {
           setData(localData);
