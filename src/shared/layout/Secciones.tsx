@@ -19,6 +19,8 @@ export interface PanelSliderProps {
   showArrows?: boolean;
   showDots?: boolean;
   contentClassName?: string;
+  /** Clave única para persistir el panel activo en localStorage */
+  storageKey?: string;
 }
 
 // ─── HELPERS DE ESTILO ────────────────────────────────────────────────────────
@@ -86,6 +88,20 @@ const arrowStyle: React.CSSProperties = {
   justifyContent: "center",
 };
 
+// ─── HELPER: leer índice guardado ─────────────────────────────────────────────
+function readStoredIndex(key: string | undefined, fallback: number, max: number): number {
+  if (!key || typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    const n = parseInt(raw, 10);
+    // Valida que el índice esté dentro del rango actual de paneles
+    return Number.isFinite(n) && n >= 0 && n < max ? n : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // ─── COMPONENTE ───────────────────────────────────────────────────────────────
 export function PanelSlider({
   panels,
@@ -94,8 +110,11 @@ export function PanelSlider({
   showArrows = true,
   showDots = true,
   contentClassName = "",
+  storageKey,
 }: PanelSliderProps) {
-  const [active, setActive] = useState(defaultPanel);
+  const [active, setActive] = useState(() =>
+    readStoredIndex(storageKey, defaultPanel, panels.length)
+  );
   const [direction, setDirection] = useState(0);
   const [hoveredPill, setHoveredPill] = useState<number | null>(null);
   const [hoveredArrow, setHoveredArrow] = useState<"left" | "right" | null>(null);
@@ -104,7 +123,15 @@ export function PanelSlider({
     if (idx === active || idx < 0 || idx >= panels.length) return;
     setDirection(idx > active ? 1 : -1);
     setActive(idx);
-  }, [active, panels.length]);
+    // Persistir en localStorage si se proporcionó una clave
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, String(idx));
+      } catch {
+        // localStorage puede fallar en modo privado o sin espacio — ignorar silenciosamente
+      }
+    }
+  }, [active, panels.length, storageKey]);
 
   // ── TRACKPAD ─────────────────────────────────────────────────────────────
   const wheelCooldown = useRef(false);

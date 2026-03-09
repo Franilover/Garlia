@@ -8,6 +8,7 @@ import EnsayosView from "@/paginas/personal/ensayos/page";
 export default function DashboardPage() {
   return (
     <Secciones
+      storageKey="dashboard-panel-activo"
       panels={[
         {
           id: "agenda",
