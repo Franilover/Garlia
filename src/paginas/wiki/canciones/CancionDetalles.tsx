@@ -183,7 +183,7 @@ const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
 // MODAL DE LETRA COMPLETA
 // ============================================================================
 const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.5);
   const handleCopy = () => {
     const lang = Array.isArray(idiomaActivo) ? idiomaActivo[0] : "es";
     const texto = secciones
