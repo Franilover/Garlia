@@ -9,7 +9,7 @@ export const eventosQueries = {
     return await supabase
       .from("eventos")
       .select("*")
-      .eq("username", "Franilover")
+      .eq("username", "franilover")
       .order("fecha", { ascending: true });
   },
 
@@ -21,7 +21,7 @@ export const eventosQueries = {
       .from("eventos")
       .insert([{ 
         ...evento, 
-        username: "Franilover" 
+        username: "franilover" 
       }])
       .select();
 
@@ -37,7 +37,7 @@ export const eventosQueries = {
       .from("eventos")
       .delete()
       .eq("id", id)
-      .eq("username", "Franilover");
+      .eq("username", "franilover");
 
     if (error) throw error;
   }
