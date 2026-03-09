@@ -54,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
+      {/* min-h-svh en vez de min-h-screen — svh no cambia cuando la barra del browser móvil se mueve */}
       <body className={`${montserrat.className} antialiased bg-bg-main min-h-svh flex flex-col`}>
         <OfflineSyncActivator />
         <AuthProvider>
