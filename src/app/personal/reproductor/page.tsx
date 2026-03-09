@@ -18,9 +18,19 @@ function fmt(s: number | null) {
   return `${m}:${ss}`;
 }
 
+function loadTracksFromFiles(files: File[]): Track[] {
+  const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name));
+  return sorted.map(f => ({
+    name: f.name.replace(/\.[^.]+$/, "").replace(/^\d+[\.\s\-]+/, ""),
+    url: URL.createObjectURL(f),
+    duration: null,
+  }));
+}
+
 export default function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [tracks, setTracks] = useState<Track[]>([]);
   const [filtered, setFiltered] = useState<Track[]>([]);
@@ -35,62 +45,68 @@ export default function MusicPlayer() {
   const [isDragging, setIsDragging] = useState(false);
   const [spinning, setSpinning] = useState(false);
 
-  /* ── Open folder ── */
-  const openFolder = useCallback(async () => {
-    try {
-      const dir = await (window as any).showDirectoryPicker({ mode: "read" });
-      const files: File[] = [];
-      for await (const entry of dir.values()) {
-        if (entry.kind === "file" && /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(entry.name)) {
-          files.push(await entry.getFile());
-        }
-      }
-      files.sort((a, b) => a.name.localeCompare(b.name));
-      const loaded: Track[] = files.map(f => ({
-        name: f.name.replace(/\.[^.]+$/, "").replace(/^\d+[\.\s\-]+/, ""),
-        url: URL.createObjectURL(f),
-        duration: null,
-      }));
-      // load durations async
-      loaded.forEach((t, i) => {
-        const a = new Audio(t.url);
-        a.addEventListener("loadedmetadata", () => {
-          setTracks(prev => prev.map((p, pi) => pi === i ? { ...p, duration: a.duration } : p));
-          setFiltered(prev => prev.map((p, pi) => pi === i ? { ...p, duration: a.duration } : p));
-        });
+  // ── Cargar duraciones async ───────────────────────────────────────────────
+  const loadDurations = useCallback((loaded: Track[]) => {
+    loaded.forEach((t, i) => {
+      const a = new Audio(t.url);
+      a.addEventListener("loadedmetadata", () => {
+        setTracks(prev => prev.map((p, pi) => pi === i ? { ...p, duration: a.duration } : p));
+        setFiltered(prev => prev.map((p, pi) => pi === i ? { ...p, duration: a.duration } : p));
       });
-      setTracks(loaded);
-      setFiltered(loaded);
-      setCurrentIdx(-1);
-      setIsPlaying(false);
-    } catch (e: any) {
-      if (e.name !== "AbortError") console.error(e);
-    }
+    });
   }, []);
 
-  /* ── Drag & drop ── */
+  const applyTracks = useCallback((loaded: Track[]) => {
+    setTracks(loaded);
+    setFiltered(loaded);
+    setCurrentIdx(-1);
+    setIsPlaying(false);
+    loadDurations(loaded);
+  }, [loadDurations]);
+
+  // ── Open folder (Chrome/Edge) con fallback a input file (Firefox) ─────────
+  const openFolder = useCallback(async () => {
+    // Chrome/Edge: File System Access API
+    if ("showDirectoryPicker" in window) {
+      try {
+        const dir = await (window as any).showDirectoryPicker({ mode: "read" });
+        const files: File[] = [];
+        for await (const entry of dir.values()) {
+          if (entry.kind === "file" && /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(entry.name)) {
+            files.push(await entry.getFile());
+          }
+        }
+        applyTracks(loadTracksFromFiles(files));
+      } catch (e: any) {
+        if (e.name !== "AbortError") console.error(e);
+      }
+    } else {
+      // Firefox: fallback a input file con webkitdirectory
+      fileInputRef.current?.click();
+    }
+  }, [applyTracks]);
+
+  // ── Handler del input file (Firefox fallback) ─────────────────────────────
+  const onFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = [...(e.target.files || [])].filter(f =>
+      /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(f.name)
+    );
+    if (!files.length) return;
+    applyTracks(loadTracksFromFiles(files));
+    e.target.value = ""; // reset para permitir reabrir la misma carpeta
+  }, [applyTracks]);
+
+  // ── Drag & drop ───────────────────────────────────────────────────────────
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const files = [...e.dataTransfer.files].filter(f =>
       /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(f.name)
     );
     if (!files.length) return;
-    const loaded: Track[] = files.map(f => ({
-      name: f.name.replace(/\.[^.]+$/, "").replace(/^\d+[\.\s\-]+/, ""),
-      url: URL.createObjectURL(f),
-      duration: null,
-    }));
-    loaded.forEach((t, i) => {
-      const a = new Audio(t.url);
-      a.addEventListener("loadedmetadata", () => {
-        setTracks(prev => prev.map((p, pi) => pi === i ? { ...p, duration: a.duration } : p));
-      });
-    });
-    setTracks(loaded);
-    setFiltered(loaded);
-  }, []);
+    applyTracks(loadTracksFromFiles(files));
+  }, [applyTracks]);
 
-  /* ── Play track ── */
+  // ── Play track ────────────────────────────────────────────────────────────
   const playTrack = useCallback((idx: number) => {
     const audio = audioRef.current;
     if (!audio || !tracks[idx]) return;
@@ -102,7 +118,7 @@ export default function MusicPlayer() {
     setSpinning(true);
   }, [tracks, volume]);
 
-  /* ── Toggle play/pause ── */
+  // ── Toggle play/pause ─────────────────────────────────────────────────────
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -118,7 +134,7 @@ export default function MusicPlayer() {
     }
   }, [currentIdx, tracks, playTrack]);
 
-  /* ── Next / Prev ── */
+  // ── Next / Prev ───────────────────────────────────────────────────────────
   const playNext = useCallback(() => {
     if (!tracks.length) return;
     const idx = shuffled
@@ -134,7 +150,7 @@ export default function MusicPlayer() {
     playTrack(idx);
   }, [tracks, currentIdx, playTrack]);
 
-  /* ── Audio events ── */
+  // ── Audio events ──────────────────────────────────────────────────────────
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -152,7 +168,7 @@ export default function MusicPlayer() {
     };
   }, [isDragging, playNext]);
 
-  /* ── Seek ── */
+  // ── Seek ──────────────────────────────────────────────────────────────────
   const seek = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = progressRef.current!.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -162,18 +178,18 @@ export default function MusicPlayer() {
     setProgress(pct * 100);
   };
 
-  /* ── Volume ── */
+  // ── Volume ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
 
-  /* ── Search ── */
+  // ── Search ────────────────────────────────────────────────────────────────
   useEffect(() => {
     const q = search.toLowerCase();
     setFiltered(tracks.filter(t => t.name.toLowerCase().includes(q)));
   }, [search, tracks]);
 
-  /* ── Keyboard ── */
+  // ── Keyboard ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === "INPUT") return;
@@ -199,6 +215,18 @@ export default function MusicPlayer() {
       onDrop={onDrop}
     >
       <audio ref={audioRef} />
+
+      {/* Input oculto para Firefox (webkitdirectory permite seleccionar carpeta) */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".mp3,.flac,.wav,.ogg,.m4a,.aac,.opus"
+        multiple
+        // @ts-ignore — webkitdirectory no está en los tipos de TS pero funciona en todos los browsers
+        webkitdirectory=""
+        style={{ display: "none" }}
+        onChange={onFileInputChange}
+      />
 
       {/* ── Sidebar ── */}
       <aside
@@ -342,7 +370,6 @@ export default function MusicPlayer() {
                   animation: spinning ? (isPlaying ? "spin 4s linear infinite" : "spin 4s linear infinite paused") : "none",
                 }}
               >
-                {/* Center dot */}
                 <div style={{
                   width: 36, height: 36, borderRadius: "50%",
                   background: "var(--accent)",
@@ -445,7 +472,6 @@ export default function MusicPlayer() {
 
           {/* Controls */}
           <div className="flex items-center">
-            {/* Shuffle */}
             <div style={{ width: 80 }}>
               <button
                 onClick={() => setShuffled(s => !s)}
@@ -459,7 +485,6 @@ export default function MusicPlayer() {
               </button>
             </div>
 
-            {/* Main controls */}
             <div className="flex items-center justify-center gap-5 flex-1">
               <button
                 onClick={playPrev}
@@ -499,7 +524,6 @@ export default function MusicPlayer() {
               </button>
             </div>
 
-            {/* Volume */}
             <div className="flex items-center gap-2" style={{ width: 120 }}>
               <Volume2 size={13} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
               <input
@@ -518,7 +542,6 @@ export default function MusicPlayer() {
         </div>
       </div>
 
-      {/* Vinyl spin keyframe */}
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         input[type=range]::-webkit-slider-thumb {

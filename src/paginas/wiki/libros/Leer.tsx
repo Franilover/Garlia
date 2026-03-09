@@ -9,8 +9,8 @@ import {
   Folder, FolderOpen, ChevronRight as ChevronR, Loader2,
   Music2, Sword, GitMerge, MousePointerClick, PlusCircle
 } from "lucide-react";
-import { SoundPicker } from "@/shared/forms/SoundPicker";
-import { EntidadPicker } from "@/shared/forms/EntidadPicker";
+import { SoundPicker } from "@/shared/layout/forms/SoundPicker";
+import { EntidadPicker } from "@/shared/layout/forms/EntidadPicker";
 import { DropWord } from "@/shared/ui/DropWord";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
