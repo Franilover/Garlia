@@ -6,42 +6,32 @@ import { NowPlaying } from "./componentes/NowPlaying";
 import { PlayerBar } from "./componentes/PlayerBar";
 
 export default function ReproductorPage() {
-  const audioRef    = useRef<HTMLAudioElement>(null);
-  const progressRef = useRef<HTMLDivElement>(null);
+  const audioRef     = useRef<HTMLAudioElement>(null);
+  const progressRef  = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [tracks, setTracks]         = useState<Track[]>([]);
-  const [filtered, setFiltered]     = useState<Track[]>([]);
-  const [currentIdx, setCurrentIdx] = useState(-1);
-  const [isPlaying, setIsPlaying]   = useState(false);
-  const [shuffled, setShuffled]     = useState(false);
-  const [progress, setProgress]     = useState(0);
+  const [tracks, setTracks]           = useState<Track[]>([]);
+  const [filtered, setFiltered]       = useState<Track[]>([]);
+  const [currentIdx, setCurrentIdx]   = useState(-1);
+  const [isPlaying, setIsPlaying]     = useState(false);
+  const [shuffled, setShuffled]       = useState(false);
+  const [progress, setProgress]       = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration]     = useState(0);
-  const [volume, setVolume]         = useState(0.8);
-  const [search, setSearch]         = useState("");
-  const [isDragging, setIsDragging] = useState(false);
-  const [spinning, setSpinning]     = useState(false);
-  const [vista, setVista]           = useState<VistaLibreria>("canciones");
-
-  // ── Cargar duraciones async ───────────────────────────────────────────────
-  const loadDurations = useCallback((loaded: Track[]) => {
-    loaded.forEach((t, i) => {
-      const a = new Audio(t.url);
-      a.addEventListener("loadedmetadata", () => {
-        setTracks(prev => prev.map((p, pi) => pi === i ? { ...p, duration: a.duration } : p));
-        setFiltered(prev => prev.map((p, pi) => pi === i ? { ...p, duration: a.duration } : p));
-      });
-    });
-  }, []);
+  const [duration, setDuration]       = useState(0);
+  const [volume, setVolume]           = useState(0.8);
+  const [search, setSearch]           = useState("");
+  const [isDragging, setIsDragging]   = useState(false);
+  const [spinning, setSpinning]       = useState(false);
+  const [vista, setVista]             = useState<VistaLibreria>("canciones");
+  const [loading, setLoading]         = useState(false);
 
   const applyTracks = useCallback((loaded: Track[]) => {
     setTracks(loaded);
     setFiltered(loaded);
     setCurrentIdx(-1);
     setIsPlaying(false);
-    loadDurations(loaded);
-  }, [loadDurations]);
+    setSpinning(false);
+  }, []);
 
   // ── Abrir carpeta ─────────────────────────────────────────────────────────
   const openFolder = useCallback(async () => {
@@ -54,26 +44,36 @@ export default function ReproductorPage() {
             files.push(await entry.getFile());
           }
         }
-        applyTracks(loadTracksFromFiles(files));
+        setLoading(true);
+        const loaded = await loadTracksFromFiles(files);
+        applyTracks(loaded);
       } catch (e: any) {
         if (e.name !== "AbortError") console.error(e);
+      } finally {
+        setLoading(false);
       }
     } else {
       fileInputRef.current?.click();
     }
   }, [applyTracks]);
 
-  const onFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileInputChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = [...(e.target.files || [])];
     if (!files.length) return;
-    applyTracks(loadTracksFromFiles(files));
+    setLoading(true);
+    const loaded = await loadTracksFromFiles(files);
+    applyTracks(loaded);
+    setLoading(false);
     e.target.value = "";
   }, [applyTracks]);
 
   // ── Drag & drop ───────────────────────────────────────────────────────────
-  const onDrop = useCallback((e: React.DragEvent) => {
+  const onDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
-    applyTracks(loadTracksFromFiles([...e.dataTransfer.files]));
+    setLoading(true);
+    const loaded = await loadTracksFromFiles([...e.dataTransfer.files]);
+    applyTracks(loaded);
+    setLoading(false);
   }, [applyTracks]);
 
   // ── Playback ──────────────────────────────────────────────────────────────
@@ -128,7 +128,6 @@ export default function ReproductorPage() {
     };
   }, [isDragging, playNext]);
 
-  // ── Seek ──────────────────────────────────────────────────────────────────
   const seek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = progressRef.current!.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -136,10 +135,8 @@ export default function ReproductorPage() {
     setProgress(pct * 100);
   }, []);
 
-  // ── Volume ────────────────────────────────────────────────────────────────
   useEffect(() => { if (audioRef.current) audioRef.current.volume = volume; }, [volume]);
 
-  // ── Search ────────────────────────────────────────────────────────────────
   useEffect(() => {
     const q = search.toLowerCase();
     setFiltered(tracks.filter(t =>
@@ -149,7 +146,6 @@ export default function ReproductorPage() {
     ));
   }, [search, tracks]);
 
-  // ── Keyboard ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === "INPUT") return;
@@ -180,6 +176,7 @@ export default function ReproductorPage() {
         currentIdx={currentIdx}
         search={search}
         vista={vista}
+        loading={loading}
         onSearch={setSearch}
         onVista={setVista}
         onOpenFolder={openFolder}
@@ -227,4 +224,4 @@ export default function ReproductorPage() {
       `}</style>
     </div>
   );
-} 
+}

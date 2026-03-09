@@ -1,5 +1,5 @@
 "use client";
-import { FolderOpen, Music, Search, List, User, Disc } from "lucide-react";
+import { FolderOpen, Music, Search, List, User, Disc, Loader2 } from "lucide-react";
 import { Track, VistaLibreria, fmt } from "./types";
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
   currentIdx: number;
   search: string;
   vista: VistaLibreria;
+  loading: boolean;
   onSearch: (v: string) => void;
   onVista: (v: VistaLibreria) => void;
   onOpenFolder: () => void;
@@ -23,7 +24,7 @@ const VISTAS: { id: VistaLibreria; label: string; icon: any }[] = [
 ];
 
 export function Sidebar({
-  tracks, filtered, currentIdx, search, vista,
+  tracks, filtered, currentIdx, search, vista, loading,
   onSearch, onVista, onOpenFolder, onPlayTrack,
   fileInputRef, onFileInputChange,
 }: Props) {
@@ -144,7 +145,14 @@ export function Sidebar({
       <div className="flex-1 overflow-y-auto py-2"
         style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}
       >
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="p-8 text-center">
+            <Loader2 size={22} className="animate-spin mx-auto mb-3" style={{ color: "rgba(255,255,255,0.3)" }} />
+            <p className="text-[9px] uppercase tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.2)" }}>
+              Leyendo metadatos...
+            </p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="p-8 text-center">
             <Music size={22} style={{ color: "rgba(255,255,255,0.12)", margin: "0 auto 10px" }} />
             <p className="text-[9px] uppercase tracking-[0.2em]"
