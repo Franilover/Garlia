@@ -10,7 +10,7 @@ import { useDarkMode } from "@/hooks/features/useDarkMode";
 import { ThemeSelector } from "@/app/providers/ThemeProvider";
 import {
   LogOut, CircleUser, Flower2, Sword,
-  Utensils, PenTool, Moon, Sun, Star, User, Palette,
+  Utensils, PenTool, Moon, Sun, Star, User, Palette, Shirt,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -206,6 +206,19 @@ const Navbar = () => {
                   }}
                 >
                   <PenTool size={16} />
+                </Link>
+                <Link
+                  href="/personal/ropa"
+                  className="p-2 transition-all"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    background: currentPath?.includes("/ropa") ? "var(--primary)" : "transparent",
+                    color: currentPath?.includes("/ropa")
+                      ? "var(--btn-text)"
+                      : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  }}
+                >
+                  <Shirt size={16} />
                 </Link>
               </div>
             )}
@@ -444,14 +457,15 @@ const Navbar = () => {
               </div>
 
               {esFranilover && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Link
                     href="/personal/salud"
                     onClick={closeAll}
                     className="p-4 flex items-center justify-center transition-all"
                     style={{
                       border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color: "var(--primary)",
+                      color: currentPath?.includes("/salud") ? "var(--btn-text)" : "var(--primary)",
+                      background: currentPath?.includes("/salud") ? "var(--primary)" : "transparent",
                       borderRadius: "var(--radius-card)",
                     }}
                   >
@@ -463,11 +477,25 @@ const Navbar = () => {
                     className="p-4 flex items-center justify-center transition-all"
                     style={{
                       border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color: "var(--primary)",
+                      color: currentPath?.includes("/ensayos") ? "var(--btn-text)" : "var(--primary)",
+                      background: currentPath?.includes("/ensayos") ? "var(--primary)" : "transparent",
                       borderRadius: "var(--radius-card)",
                     }}
                   >
                     <PenTool size={18} />
+                  </Link>
+                  <Link
+                    href="/personal/ropa"
+                    onClick={closeAll}
+                    className="p-4 flex items-center justify-center transition-all"
+                    style={{
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      color: currentPath?.includes("/ropa") ? "var(--btn-text)" : "var(--primary)",
+                      background: currentPath?.includes("/ropa") ? "var(--primary)" : "transparent",
+                      borderRadius: "var(--radius-card)",
+                    }}
+                  >
+                    <Shirt size={18} />
                   </Link>
                 </div>
               )}
