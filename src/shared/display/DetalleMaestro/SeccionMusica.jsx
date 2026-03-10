@@ -75,7 +75,7 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
               return (
                 <span 
                   key={id} 
-                  className="bg-primary text-white text-[9px] font-black px-4 py-2 rounded-full flex items-center gap-2 uppercase italic tracking-wider shadow-sm border border-white/10"
+                  className="bg-primary text-btn-text text-[9px] font-black px-4 py-2 flex items-center gap-2 uppercase italic tracking-wider shadow-sm border border-primary/20" style={{borderRadius:"var(--radius-btn)"}}
                 >
                   {item.titulo}
                   <X size={12} onClick={(e) => { e.stopPropagation(); toggle(id); }} className="hover:text-red-300 transition-colors cursor-pointer" />
@@ -113,7 +113,7 @@ export const SelectorMusicaAdmin = ({ idsSeleccionados = [], onChange }) => {
                 <div 
                   key={c.id} 
                   onClick={() => toggle(c.id)} 
-                  className={`p-4 rounded-[var(--radius-btn)] cursor-pointer mb-1.5 flex justify-between items-center transition-all ${isSelected ? "bg-primary text-white shadow-lg translate-x-1" : "hover:bg-primary/5 text-primary/60 hover:translate-x-1"}`}
+                  className={`p-4 rounded-[var(--radius-btn)] cursor-pointer mb-1.5 flex justify-between items-center transition-all ${isSelected ? "bg-primary text-btn-text shadow-lg translate-x-1" : "hover:bg-primary/5 text-primary/60 hover:translate-x-1"}`}
                 >
                   <span className="text-[11px] font-black uppercase italic tracking-tight">{c.titulo}</span>
                   {isSelected && <Check size={16} />}

@@ -134,7 +134,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -50, opacity: 0 }}
-            className="fixed top-10 left-1/2 -translate-x-1/2 z-3000 bg-accent text-primary px-10 py-5 rounded-full shadow-lg flex items-center gap-3 font-bold border border-primary/20"
+            className="fixed top-10 left-1/2 -translate-x-1/2 z-3000 bg-accent text-primary px-10 py-5 shadow-lg flex items-center gap-3 font-bold border border-primary/20" style={{borderRadius:"var(--radius-card)"}}
           >
             <CheckCircle2 size={24} /> Registro Sincronizado
           </motion.div>
@@ -144,7 +144,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
       <div className="bg-white-custom rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10 relative">
         <button
           onClick={onClose}
-          className="absolute top-8 right-8 z-50 p-4 bg-bg-main text-primary rounded-full hover:bg-accent transition-all border border-primary/10"
+          className="absolute top-8 right-8 z-50 p-4 bg-bg-main text-primary hover:bg-accent transition-all border border-primary/10" style={{borderRadius:"var(--radius-btn)"}}
         >
           <X size={28} />
         </button>
@@ -193,7 +193,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
                   initial={{ scale: 0.92, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.92, opacity: 0 }}
-                  className="bg-white border border-primary/10 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl p-6"
+                  className="bg-white-custom border border-primary/10 w-full max-w-lg overflow-hidden shadow-2xl p-6" style={{borderRadius:"var(--radius-card)"}}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex justify-between items-center mb-4">
@@ -202,7 +202,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
                     </h2>
                     <button
                       onClick={() => setShowPicker(false)}
-                      className="p-2 hover:bg-primary/10 rounded-full transition-colors"
+                      className="p-2 hover:bg-primary/10 transition-colors" style={{borderRadius:"var(--radius-btn)"}}
                     >
                       <X size={16} />
                     </button>
@@ -227,7 +227,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
                   <input
                     value={editNombre}
                     onChange={(e) => setEditNombre(e.target.value)}
-                    className="input-brand text-3xl! lg:text-4xl! p-5! bg-white/50! w-full"
+                    className="input-brand text-3xl! lg:text-4xl! p-5! bg-white-custom/50! w-full"
                     placeholder="Nombre..."
                   />
                 </div>
@@ -238,7 +238,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
                   <textarea
                     value={editDescripcion}
                     onChange={(e) => setEditDescripcion(e.target.value)}
-                    className="input-brand text-lg! leading-relaxed! p-6! min-h-60 resize-none bg-white/50! w-full"
+                    className="input-brand text-lg! leading-relaxed! p-6! min-h-60 resize-none bg-white-custom/50! w-full"
                     placeholder="Escribe la historia..."
                   />
                 </div>
@@ -343,7 +343,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
         <motion.div
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="fixed bottom-10 left-1/2 -translate-x-1/2 z-1100 flex items-center gap-4 bg-white/90 backdrop-blur-md p-4 rounded-full border border-primary/20 shadow-2xl"
+          className="fixed bottom-10 left-1/2 -translate-x-1/2 z-1100 flex items-center gap-4 backdrop-blur-md p-4 border border-primary/20 shadow-2xl" style={{background:"var(--white-custom)",borderRadius:"var(--radius-card)"}}
         >
           {/* Borrar — solo visible en modo edición */}
           {editMode && (

@@ -31,10 +31,10 @@ export const SelectorVariantes = ({ variantes = [], varianteActiva, onSelecciona
     <div className="flex flex-wrap gap-3 mt-10">
       <button
         onClick={() => onSeleccionar(null)}
-        className={`relative px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all overflow-hidden ${
+        className={`relative px-8 py-3 text-[10px] font-black uppercase tracking-widest transition-all overflow-hidden border border-primary/10 ${
           !varianteActiva 
-            ? "bg-primary text-white shadow-[0_10px_20px_-5px_rgba(var(--primary-rgb),0.4)]" 
-            : "bg-slate-100 text-primary/40 hover:bg-slate-200"
+            ? "bg-primary text-btn-text shadow-[0_4px_14px_color-mix(in_srgb,var(--primary)_25%,transparent)]"
+            : "text-primary/40"
         }`}
       >
         <span className="relative z-10">Original</span>
@@ -55,10 +55,10 @@ export const SelectorVariantes = ({ variantes = [], varianteActiva, onSelecciona
           <button
             key={v.id}
             onClick={() => onSeleccionar(v)}
-            className={`group relative flex items-center gap-2 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+            className={`group relative flex items-center gap-2 px-8 py-3 text-[10px] font-black uppercase tracking-widest transition-all border border-primary/10 ${
               isActive 
-                ? "bg-primary text-white shadow-[0_10px_20px_-5px_rgba(var(--primary-rgb),0.4)]" 
-                : "bg-slate-100 text-primary/40 hover:bg-slate-200"
+                ? "bg-primary text-btn-text shadow-[0_4px_14px_color-mix(in_srgb,var(--primary)_25%,transparent)]"
+                : "text-primary/40"
             }`}
           >
             <span className="relative z-10 flex items-center gap-2">
@@ -68,7 +68,7 @@ export const SelectorVariantes = ({ variantes = [], varianteActiva, onSelecciona
             {isActive && mounted && (
               <motion.div 
                 layoutId="activeTab" 
-                className="absolute inset-0 bg-primary rounded-full"
+                className="absolute inset-0 bg-primary" style={{borderRadius:"var(--radius-btn)"}}
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
             )}
