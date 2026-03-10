@@ -10,7 +10,7 @@ import { useDarkMode } from "@/hooks/features/useDarkMode";
 import { ThemeSelector } from "@/app/providers/ThemeProvider";
 import {
   LogOut, CircleUser, Flower2, Sword,
-  Utensils, PenTool, Moon, Sun, Star, User, Palette, Shirt,
+  Utensils, PenTool, Moon, Sun, Star, User, Palette, Shirt, Music2,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -219,6 +219,19 @@ const Navbar = () => {
                   }}
                 >
                   <Shirt size={16} />
+                </Link>
+                <Link
+                  href="/personal/reproductor"
+                  className="p-2 transition-all"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    background: currentPath?.includes("/reproductor") ? "var(--primary)" : "transparent",
+                    color: currentPath?.includes("/reproductor")
+                      ? "var(--btn-text)"
+                      : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  }}
+                >
+                  <Music2 size={16} />
                 </Link>
               </div>
             )}
@@ -457,7 +470,7 @@ const Navbar = () => {
               </div>
 
               {esFranilover && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   <Link
                     href="/personal/salud"
                     onClick={closeAll}
@@ -496,6 +509,19 @@ const Navbar = () => {
                     }}
                   >
                     <Shirt size={18} />
+                  </Link>
+                  <Link
+                    href="/personal/reproductor"
+                    onClick={closeAll}
+                    className="p-4 flex items-center justify-center transition-all"
+                    style={{
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      color: currentPath?.includes("/reproductor") ? "var(--btn-text)" : "var(--primary)",
+                      background: currentPath?.includes("/reproductor") ? "var(--primary)" : "transparent",
+                      borderRadius: "var(--radius-card)",
+                    }}
+                  >
+                    <Music2 size={18} />
                   </Link>
                 </div>
               )}
