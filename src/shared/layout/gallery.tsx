@@ -64,7 +64,7 @@ export const GalleryItem = React.memo(({ src, alt, children, onClick, onExpand, 
           contain={contain}
           className={cn(
             "w-full h-full transition-all duration-700 group-hover:scale-105",
-            contain ? "p-8 mix-blend-multiply" : "grayscale-[0.1] group-hover:grayscale-0"
+            contain ? "p-8" : "grayscale-[0.1] group-hover:grayscale-0"
           )}
         />
       ) : (
