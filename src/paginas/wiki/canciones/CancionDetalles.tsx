@@ -91,7 +91,8 @@ const formReducer = (state, action) => {
 // ============================================================================
 const LanguageToggler = ({ idiomasActivos, toggleIdioma }) => (
   <div className="p-6 bg-primary rounded-[var(--radius-card)] shadow-xl shadow-primary/20">
-    <h4 className="text-white/40 font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic">
+    <h4 className="font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic"
+        style={{ color: "color-mix(in srgb, var(--btn-text) 40%, transparent)" }}>
       Vista Comparativa
     </h4>
     <div className="grid grid-cols-2 gap-2">
@@ -105,15 +106,22 @@ const LanguageToggler = ({ idiomasActivos, toggleIdioma }) => (
           className={`py-2 rounded-[var(--radius-btn)] font-black text-[9px] transition-all uppercase border-2 ${
             idiomasActivos.includes(l.id)
               ? "bg-white-custom border-white-custom scale-105"
-              : "bg-transparent text-white/40 border-white/10 hover:border-white/30"
+              : "bg-transparent border-2"
           }`}
-          style={idiomasActivos.includes(l.id) ? { color: "var(--primary)" } : {}}
+          style={idiomasActivos.includes(l.id)
+            ? { color: "var(--primary)" }
+            : {
+                color: "color-mix(in srgb, var(--btn-text) 50%, transparent)",
+                borderColor: "color-mix(in srgb, var(--btn-text) 15%, transparent)",
+              }
+          }
         >
           {l.label}
         </motion.button>
       ))}
     </div>
-    <p className="text-white/20 text-[7px] text-center mt-3 font-bold uppercase tracking-widest">
+    <p className="text-[7px] text-center mt-3 font-bold uppercase tracking-widest"
+       style={{ color: "color-mix(in srgb, var(--btn-text) 25%, transparent)" }}>
       Máx. 2 idiomas
     </p>
   </div>
