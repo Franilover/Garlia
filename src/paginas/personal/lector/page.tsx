@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, ChevronLeft, ChevronRight, ZoomIn, ZoomOut,
   Maximize2, Minimize2, Moon, Sun, BookMarked, X,
-  Upload, Keyboard, RotateCcw, List,
+  Upload, Keyboard, RotateCcw, List, EyeOff, Eye,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -20,6 +20,7 @@ interface RS {
   visiblePage: number;
   fullscreen: boolean;
   nightMode: boolean;
+  immersive: boolean;
   showBookmarks: boolean;
   showShortcuts: boolean;
   showTOC: boolean;
@@ -36,6 +37,7 @@ type A =
   | { type: "TOGGLE_BOOKMARKS" }
   | { type: "TOGGLE_SHORTCUTS" }
   | { type: "TOGGLE_TOC" }
+  | { type: "TOGGLE_IMMERSIVE" }
   | { type: "ADD_BOOKMARK"; page: number }
   | { type: "REMOVE_BOOKMARK"; page: number }
   | { type: "SET_TOC"; toc: RS["toc"] }
@@ -43,7 +45,7 @@ type A =
 
 const init: RS = {
   totalPages: 0, zoom: 1.4, visiblePage: 1,
-  fullscreen: false, nightMode: false,
+  fullscreen: false, nightMode: false, immersive: false,
   showBookmarks: false, showShortcuts: false, showTOC: false,
   bookmarks: [], toc: [],
 };
@@ -53,6 +55,7 @@ function reducer(s: RS, a: A): RS {
     case "SET_TOTAL":         return { ...s, totalPages: a.total };
     case "SET_ZOOM":          return { ...s, zoom: Math.max(0.5, Math.min(4, a.zoom)) };
     case "SET_VISIBLE_PAGE":  return { ...s, visiblePage: a.page };
+    case "TOGGLE_IMMERSIVE":  return { ...s, immersive: !s.immersive, showBookmarks: false, showTOC: false };
     case "TOGGLE_FULLSCREEN": return { ...s, fullscreen: !s.fullscreen, showBookmarks: false, showTOC: false };
     case "TOGGLE_NIGHT":      return { ...s, nightMode: !s.nightMode };
     case "TOGGLE_BOOKMARKS":  return { ...s, showBookmarks: !s.showBookmarks, showTOC: false };
@@ -69,6 +72,7 @@ function reducer(s: RS, a: A): RS {
 }
 
 const SHORTCUTS = [
+  { key: "I",                 desc: "Modo inmersivo (ocultar UI)" },
   { key: "↓ / → / D",        desc: "Bajar 85% de pantalla" },
   { key: "↑ / ← / A",        desc: "Subir 85% de pantalla" },
   { key: "Espacio",           desc: "Bajar pantalla completa" },
@@ -260,11 +264,13 @@ export default function LectorPDF() {
         case "+": case "=": dispatch({ type: "SET_ZOOM", zoom: s.zoom + 0.2 }); break;
         case "-":           dispatch({ type: "SET_ZOOM", zoom: s.zoom - 0.2 }); break;
         case "0":           dispatch({ type: "SET_ZOOM", zoom: 1.4 }); break;
+        case "i": case "I": dispatch({ type: "TOGGLE_IMMERSIVE" }); break;
         case "f": case "F": dispatch({ type: "TOGGLE_FULLSCREEN" }); break;
         case "n": case "N": dispatch({ type: "TOGGLE_NIGHT" }); break;
         case "b": case "B": dispatch({ type: "ADD_BOOKMARK", page: s.visiblePage }); break;
         case "Escape":
-          if (s.fullscreen)      dispatch({ type: "TOGGLE_FULLSCREEN" });
+          if (s.immersive)       dispatch({ type: "TOGGLE_IMMERSIVE" });
+          else if (s.fullscreen)      dispatch({ type: "TOGGLE_FULLSCREEN" });
           else if (s.showShortcuts) dispatch({ type: "TOGGLE_SHORTCUTS" });
           else if (s.showBookmarks) dispatch({ type: "TOGGLE_BOOKMARKS" });
           else if (s.showTOC)       dispatch({ type: "TOGGLE_TOC" });
@@ -308,84 +314,139 @@ export default function LectorPDF() {
     >
 
       {/* ── HEADER ── */}
-      <header className="shrink-0 flex items-center gap-2 px-4 py-2.5 border-b z-10"
-        style={{
-          background: s.nightMode ? "#080604" : "var(--bg-menu)",
-          borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-        }}>
-        <BookOpen size={14} style={{ color: "var(--menu-text)", opacity: 0.5 }} className="shrink-0" />
-        <span className="text-[9px] font-black uppercase tracking-widest truncate flex-1 min-w-0"
-          style={{ color: "var(--menu-text)", opacity: 0.6 }}>
-          {pdfFile ? pdfFile.name : "Lector PDF"}
-        </span>
-
-        {pdfDoc && (
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[9px] font-black tabular-nums px-2"
-              style={{ color: "var(--menu-text)", opacity: 0.4 }}>
-              {s.visiblePage} / {s.totalPages}
-            </span>
-
-            {/* Zoom — desktop */}
-            <div className="hidden sm:flex items-center gap-0.5">
-              <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: s.zoom - 0.2 })}
-                className="p-1.5 transition-opacity hover:opacity-100"
-                style={{ color: "var(--menu-text)", opacity: 0.5 }}>
-                <ZoomOut size={12} />
-              </button>
-              <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: 1.4 })}
-                className="text-[9px] font-black w-9 text-center transition-opacity hover:opacity-100"
-                style={{ color: "var(--menu-text)", opacity: 0.5 }}>
-                {Math.round(s.zoom * 100)}%
-              </button>
-              <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: s.zoom + 0.2 })}
-                className="p-1.5 transition-opacity hover:opacity-100"
-                style={{ color: "var(--menu-text)", opacity: 0.5 }}>
-                <ZoomIn size={12} />
-              </button>
-            </div>
-
-            {/* Icon buttons */}
-            {[
-              { icon: <List size={12}/>,     fn: () => dispatch({ type: "TOGGLE_TOC" }),       active: s.showTOC,       show: s.toc.length > 0, title: "Índice" },
-              { icon: <BookMarked size={12}/>, fn: () => dispatch({ type: "ADD_BOOKMARK", page: s.visiblePage }), active: isBookmarked, show: true, title: "Marcar" },
-              { icon: s.nightMode ? <Sun size={12}/> : <Moon size={12}/>, fn: () => dispatch({ type: "TOGGLE_NIGHT" }), active: s.nightMode, show: true, title: "Noche" },
-              { icon: s.fullscreen ? <Minimize2 size={12}/> : <Maximize2 size={12}/>, fn: () => dispatch({ type: "TOGGLE_FULLSCREEN" }), active: s.fullscreen, show: true, title: "Fullscreen" },
-              { icon: <Keyboard size={12}/>, fn: () => dispatch({ type: "TOGGLE_SHORTCUTS" }), active: false, show: true, title: "Atajos" },
-            ].filter(b => b.show).map((btn, i) => (
-              <button key={i} onClick={btn.fn} title={btn.title}
-                className="p-1.5 transition-all"
-                style={{
-                  color:      btn.active ? "var(--accent)" : "var(--menu-text)",
-                  opacity:    btn.active ? 1 : 0.5,
-                  borderRadius: "var(--radius-btn)",
-                  background: btn.active ? "color-mix(in srgb, var(--accent) 15%, transparent)" : "transparent",
-                }}>
-                {btn.icon}
-              </button>
-            ))}
-
-            <button onClick={() => fileRef.current?.click()}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ml-1"
+      <AnimatePresence initial={false}>
+        {!s.immersive && (
+          <motion.div
+            initial={{ y: -60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -60, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            className="shrink-0"
+          >
+            <header className="flex items-center gap-2 px-4 py-2.5 border-b z-10"
               style={{
-                background: "color-mix(in srgb, var(--menu-text) 10%, transparent)",
-                color: "var(--menu-text)",
-                borderRadius: "var(--radius-btn)",
+                background: s.nightMode ? "#080604" : "var(--bg-menu)",
+                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
               }}>
-              <Upload size={10} /> Abrir
-            </button>
-          </div>
-        )}
-      </header>
+              <BookOpen size={14} style={{ color: "var(--menu-text)", opacity: 0.5 }} className="shrink-0" />
+              <span className="text-[9px] font-black uppercase tracking-widest truncate flex-1 min-w-0"
+                style={{ color: "var(--menu-text)", opacity: 0.6 }}>
+                {pdfFile ? pdfFile.name : "Lector PDF"}
+              </span>
 
-      {/* ── PROGRESS BAR ── */}
-      {pdfDoc && (
-        <div className="h-[2px] shrink-0" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-          <motion.div className="h-full" style={{ background: "var(--accent)" }}
-            animate={{ width: `${progress}%` }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }} />
-        </div>
-      )}
+              {pdfDoc && (
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-[9px] font-black tabular-nums px-2"
+                    style={{ color: "var(--menu-text)", opacity: 0.4 }}>
+                    {s.visiblePage} / {s.totalPages}
+                  </span>
+
+                  {/* Zoom — desktop */}
+                  <div className="hidden sm:flex items-center gap-0.5">
+                    <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: s.zoom - 0.2 })}
+                      className="p-1.5 transition-opacity hover:opacity-100"
+                      style={{ color: "var(--menu-text)", opacity: 0.5 }}>
+                      <ZoomOut size={12} />
+                    </button>
+                    <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: 1.4 })}
+                      className="text-[9px] font-black w-9 text-center transition-opacity hover:opacity-100"
+                      style={{ color: "var(--menu-text)", opacity: 0.5 }}>
+                      {Math.round(s.zoom * 100)}%
+                    </button>
+                    <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: s.zoom + 0.2 })}
+                      className="p-1.5 transition-opacity hover:opacity-100"
+                      style={{ color: "var(--menu-text)", opacity: 0.5 }}>
+                      <ZoomIn size={12} />
+                    </button>
+                  </div>
+
+                  {/* Icon buttons */}
+                  {[
+                    { icon: <List size={12}/>,     fn: () => dispatch({ type: "TOGGLE_TOC" }),       active: s.showTOC,       show: s.toc.length > 0, title: "Índice" },
+                    { icon: <BookMarked size={12}/>, fn: () => dispatch({ type: "ADD_BOOKMARK", page: s.visiblePage }), active: isBookmarked, show: true, title: "Marcar" },
+                    { icon: s.nightMode ? <Sun size={12}/> : <Moon size={12}/>, fn: () => dispatch({ type: "TOGGLE_NIGHT" }), active: s.nightMode, show: true, title: "Noche" },
+                    { icon: s.fullscreen ? <Minimize2 size={12}/> : <Maximize2 size={12}/>, fn: () => dispatch({ type: "TOGGLE_FULLSCREEN" }), active: s.fullscreen, show: true, title: "Fullscreen" },
+                    { icon: <EyeOff size={12}/>, fn: () => dispatch({ type: "TOGGLE_IMMERSIVE" }), active: false, show: true, title: "Modo inmersivo (I)" },
+                    { icon: <Keyboard size={12}/>, fn: () => dispatch({ type: "TOGGLE_SHORTCUTS" }), active: false, show: true, title: "Atajos" },
+                  ].filter(b => b.show).map((btn, i) => (
+                    <button key={i} onClick={btn.fn} title={btn.title}
+                      className="p-1.5 transition-all"
+                      style={{
+                        color:      btn.active ? "var(--accent)" : "var(--menu-text)",
+                        opacity:    btn.active ? 1 : 0.5,
+                        borderRadius: "var(--radius-btn)",
+                        background: btn.active ? "color-mix(in srgb, var(--accent) 15%, transparent)" : "transparent",
+                      }}>
+                      {btn.icon}
+                    </button>
+                  ))}
+
+                  <button onClick={() => fileRef.current?.click()}
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest ml-1"
+                    style={{
+                      background: "color-mix(in srgb, var(--menu-text) 10%, transparent)",
+                      color: "var(--menu-text)",
+                      borderRadius: "var(--radius-btn)",
+                    }}>
+                    <Upload size={10} /> Abrir
+                  </button>
+                </div>
+              )}
+            </header>
+
+            {/* ── PROGRESS BAR ── */}
+            {pdfDoc && (
+              <div className="h-[2px]" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                <motion.div className="h-full" style={{ background: "var(--accent)" }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }} />
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── IMMERSIVE: floating restore button ── */}
+      <AnimatePresence>
+        {s.immersive && pdfDoc && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ delay: 0.15, type: "spring", stiffness: 400, damping: 30 }}
+            className="fixed top-4 right-4 z-[1500] flex items-center gap-2"
+          >
+            {/* Page indicator pill */}
+            <div className="px-3 py-1.5 text-[9px] font-black tabular-nums"
+              style={{
+                background: "color-mix(in srgb, var(--foreground) 12%, transparent)",
+                color: "var(--foreground)",
+                opacity: 0.5,
+                borderRadius: "var(--radius-btn)",
+                backdropFilter: "blur(8px)",
+              }}>
+              {s.visiblePage} / {s.totalPages}
+            </div>
+            {/* Eye button to exit */}
+            <button
+              onClick={() => dispatch({ type: "TOGGLE_IMMERSIVE" })}
+              title="Salir del modo inmersivo (I / Esc)"
+              className="p-2 transition-all"
+              style={{
+                background: "color-mix(in srgb, var(--foreground) 10%, transparent)",
+                color: "var(--foreground)",
+                opacity: 0.4,
+                borderRadius: "var(--radius-btn)",
+                backdropFilter: "blur(8px)",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = "0.9")}
+              onMouseLeave={e => (e.currentTarget.style.opacity = "0.4")}
+            >
+              <Eye size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── BODY ── */}
       <div className="flex flex-1 overflow-hidden">
@@ -538,90 +599,97 @@ export default function LectorPDF() {
       </div>
 
       {/* ── BOTTOM NAV ── */}
-      {pdfDoc && (
-        <nav className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-t"
-          style={{
-            background: s.nightMode ? "#080604" : "var(--bg-menu)",
-            borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-          }}>
-
-          <button onClick={() => scrollBy(-0.85)}
-            className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+      <AnimatePresence initial={false}>
+        {pdfDoc && !s.immersive && (
+          <motion.nav
+            initial={{ y: 60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 60, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-t"
             style={{
-              color: "var(--menu-text)",
-              background: "color-mix(in srgb, var(--menu-text) 8%, transparent)",
-              borderRadius: "var(--radius-btn)",
+              background: s.nightMode ? "#080604" : "var(--bg-menu)",
+              borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
             }}>
-            <ChevronLeft size={13} />
-            <span className="hidden sm:inline">Subir</span>
-          </button>
 
-          <button onClick={() => dispatch({ type: "TOGGLE_BOOKMARKS" })}
-            className="p-2 transition-all"
-            style={{
-              color:      s.showBookmarks ? "var(--accent)" : "var(--menu-text)",
-              opacity:    s.showBookmarks ? 1 : 0.45,
-              borderRadius: "var(--radius-btn)",
-              background: s.showBookmarks ? "color-mix(in srgb, var(--accent) 15%, transparent)" : "transparent",
-            }}>
-            <BookMarked size={13} />
-          </button>
-
-          {/* Zoom — mobile */}
-          <div className="flex sm:hidden items-center gap-1 flex-1 justify-center">
-            <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: s.zoom - 0.2 })}
-              className="p-1.5" style={{ color: "var(--menu-text)", opacity: 0.5 }}><ZoomOut size={13} /></button>
-            <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: 1.4 })}
-              className="text-[9px] font-black w-10 text-center" style={{ color: "var(--menu-text)", opacity: 0.5 }}>
-              {Math.round(s.zoom * 100)}%
-            </button>
-            <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: s.zoom + 0.2 })}
-              className="p-1.5" style={{ color: "var(--menu-text)", opacity: 0.5 }}><ZoomIn size={13} /></button>
-          </div>
-
-          <span className="hidden sm:block text-[9px] font-black tabular-nums flex-1 text-center"
-            style={{ color: "var(--menu-text)", opacity: 0.4 }}>
-            Pág. {s.visiblePage} / {s.totalPages}
-          </span>
-
-          {/* Jump to page */}
-          <div className="hidden sm:flex items-center gap-1.5">
-            <span className="text-[8px] font-bold uppercase" style={{ color: "var(--menu-text)", opacity: 0.35 }}>Ir a</span>
-            <input
-              type="number" min={1} max={s.totalPages} placeholder={String(s.visiblePage)}
-              className="w-12 text-center text-[10px] font-black bg-transparent border outline-none py-0.5"
+            <button onClick={() => scrollBy(-0.85)}
+              className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
               style={{
                 color: "var(--menu-text)",
-                borderColor: "color-mix(in srgb, var(--menu-text) 20%, transparent)",
+                background: "color-mix(in srgb, var(--menu-text) 8%, transparent)",
                 borderRadius: "var(--radius-btn)",
-              }}
-              onKeyDown={e => {
-                if (e.key === "Enter") {
-                  const n = parseInt((e.target as HTMLInputElement).value);
-                  if (n >= 1 && n <= s.totalPages) scrollToPage(n);
-                  (e.target as HTMLInputElement).value = "";
-                }
-              }}
-            />
-          </div>
+              }}>
+              <ChevronLeft size={13} />
+              <span className="hidden sm:inline">Subir</span>
+            </button>
 
-          <button onClick={() => fileRef.current?.click()}
-            className="sm:hidden p-2" style={{ color: "var(--menu-text)", opacity: 0.5, borderRadius: "var(--radius-btn)" }}>
-            <Upload size={13} />
-          </button>
+            <button onClick={() => dispatch({ type: "TOGGLE_BOOKMARKS" })}
+              className="p-2 transition-all"
+              style={{
+                color:      s.showBookmarks ? "var(--accent)" : "var(--menu-text)",
+                opacity:    s.showBookmarks ? 1 : 0.45,
+                borderRadius: "var(--radius-btn)",
+                background: s.showBookmarks ? "color-mix(in srgb, var(--accent) 15%, transparent)" : "transparent",
+              }}>
+              <BookMarked size={13} />
+            </button>
 
-          <button onClick={() => scrollBy(0.85)}
-            className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
-            style={{
-              color: "var(--menu-text)",
-              background: "color-mix(in srgb, var(--menu-text) 8%, transparent)",
-              borderRadius: "var(--radius-btn)",
-            }}>
-            <span className="hidden sm:inline">Bajar</span>
-            <ChevronRight size={13} />
-          </button>
-        </nav>
-      )}
+            {/* Zoom — mobile */}
+            <div className="flex sm:hidden items-center gap-1 flex-1 justify-center">
+              <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: s.zoom - 0.2 })}
+                className="p-1.5" style={{ color: "var(--menu-text)", opacity: 0.5 }}><ZoomOut size={13} /></button>
+              <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: 1.4 })}
+                className="text-[9px] font-black w-10 text-center" style={{ color: "var(--menu-text)", opacity: 0.5 }}>
+                {Math.round(s.zoom * 100)}%
+              </button>
+              <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: s.zoom + 0.2 })}
+                className="p-1.5" style={{ color: "var(--menu-text)", opacity: 0.5 }}><ZoomIn size={13} /></button>
+            </div>
+
+            <span className="hidden sm:block text-[9px] font-black tabular-nums flex-1 text-center"
+              style={{ color: "var(--menu-text)", opacity: 0.4 }}>
+              Pág. {s.visiblePage} / {s.totalPages}
+            </span>
+
+            {/* Jump to page */}
+            <div className="hidden sm:flex items-center gap-1.5">
+              <span className="text-[8px] font-bold uppercase" style={{ color: "var(--menu-text)", opacity: 0.35 }}>Ir a</span>
+              <input
+                type="number" min={1} max={s.totalPages} placeholder={String(s.visiblePage)}
+                className="w-12 text-center text-[10px] font-black bg-transparent border outline-none py-0.5"
+                style={{
+                  color: "var(--menu-text)",
+                  borderColor: "color-mix(in srgb, var(--menu-text) 20%, transparent)",
+                  borderRadius: "var(--radius-btn)",
+                }}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    const n = parseInt((e.target as HTMLInputElement).value);
+                    if (n >= 1 && n <= s.totalPages) scrollToPage(n);
+                    (e.target as HTMLInputElement).value = "";
+                  }
+                }}
+              />
+            </div>
+
+            <button onClick={() => fileRef.current?.click()}
+              className="sm:hidden p-2" style={{ color: "var(--menu-text)", opacity: 0.5, borderRadius: "var(--radius-btn)" }}>
+              <Upload size={13} />
+            </button>
+
+            <button onClick={() => scrollBy(0.85)}
+              className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+              style={{
+                color: "var(--menu-text)",
+                background: "color-mix(in srgb, var(--menu-text) 8%, transparent)",
+                borderRadius: "var(--radius-btn)",
+              }}>
+              <span className="hidden sm:inline">Bajar</span>
+              <ChevronRight size={13} />
+            </button>
+          </motion.nav>
+        )}
+      </AnimatePresence>
 
       {/* ── SHORTCUTS MODAL ── */}
       <AnimatePresence>
