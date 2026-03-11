@@ -406,7 +406,7 @@ const CancionModal = ({
                   {!isCreating && (
                     <button
                       type="button" onClick={handleDelete} disabled={isProcessing}
-                      className="flex-1 bg-red-500/10 text-red-500 py-5 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 disabled:opacity-50 border border-red-500/20"
+                      className="flex-1 bg-red-500/10 text-red-500 py-5 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-btn-text transition-all flex items-center justify-center gap-3 disabled:opacity-50 border border-red-500/20"
                     >
                       <Trash2 size={18} /> Borrar
                     </button>
