@@ -17,7 +17,7 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-white text-[11px] font-black uppercase tracking-wide ${type === "success" ? "bg-green-600" : "bg-red-500"}`}
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-5 py-3 shadow-xl text-btn-text text-[11px] font-black uppercase tracking-wide ${type === "success" ? "bg-green-600" : "bg-red-500"}`} style={{borderRadius:"var(--radius-btn)"}}
     >
       {type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
       {message}
@@ -31,7 +31,7 @@ const Marker = ({ x, y, info, onClick, tipo, editMode }: any) => (
     className="absolute z-20 flex flex-col items-center"
     style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -50%)" }}
   >
-    <div className="mb-1 bg-primary text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-sm shadow-lg whitespace-nowrap pointer-events-none border border-white/20">
+    <div className="mb-1 bg-primary text-btn-text text-[9px] font-black uppercase px-2 py-0.5 shadow-lg whitespace-nowrap pointer-events-none" style={{borderRadius:"var(--radius-btn)",border:"1px solid color-mix(in srgb, var(--btn-text) 20%, transparent)"}}>
       {info}
     </div>
     <button
@@ -39,14 +39,14 @@ const Marker = ({ x, y, info, onClick, tipo, editMode }: any) => (
       className="relative flex items-center justify-center cursor-pointer outline-none group"
     >
       {editMode && (
-        <div className="absolute -top-1 -right-1 z-10 w-3 h-3 bg-yellow-400 rounded-full border border-white" />
+        <div className="absolute -top-1 -right-1 z-10 w-3 h-3 bg-yellow-400 rounded-full" style={{border:"1px solid color-mix(in srgb, var(--btn-text) 80%, transparent)"}} />
       )}
       <div className="absolute w-5 h-5 bg-primary/20 rounded-full animate-ping" />
-      <div className="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-md group-hover:bg-white transition-all flex items-center justify-center">
+      <div className="w-4 h-4 bg-primary rounded-full border-2 shadow-md transition-all flex items-center justify-center" style={{borderColor:"color-mix(in srgb, var(--btn-text) 80%, transparent)","--hover-bg":"var(--white-custom)"} as any}>
         {tipo === "reino" ? (
-          <MapPin size={8} className="text-white group-hover:text-primary" />
+          <MapPin size={8} className="text-btn-text group-hover:text-primary" />
         ) : (
-          <House size={8} className="text-white group-hover:text-primary" />
+          <House size={8} className="text-btn-text group-hover:text-primary" />
         )}
       </div>
     </button>
@@ -202,9 +202,9 @@ export default function MapaInteractivo() {
           <div className="absolute top-6 right-6 z-[70] flex gap-2">
             <button
               onClick={() => setEditMode(!editMode)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase transition-all shadow-xl border ${
-                editMode ? "bg-red-500 text-white border-red-600" : "bg-white-custom text-primary border-primary/20"
-              }`}
+              className={`flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase transition-all shadow-xl border ${
+                editMode ? "bg-red-500 text-btn-text border-red-600" : "bg-white-custom text-primary border-primary/20"
+              }`} style={{borderRadius:"var(--radius-btn)"}}
             >
               {editMode ? <X size={14} /> : <Edit3 size={14} />}
               {editMode ? "Cancelar" : "Editar Mapa"}
@@ -213,7 +213,7 @@ export default function MapaInteractivo() {
               <button
                 onClick={handleSaveChanges}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-full text-[10px] font-black uppercase shadow-xl hover:bg-green-700 disabled:opacity-50 transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-btn-text text-[10px] font-black uppercase shadow-xl hover:bg-green-700 disabled:opacity-50 transition-all" style={{borderRadius:"var(--radius-btn)"}}
               >
                 {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Guardar
@@ -227,7 +227,7 @@ export default function MapaInteractivo() {
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase px-4 py-2 rounded-full shadow-lg flex items-center gap-2"
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2" style={{borderRadius:"var(--radius-btn)"}}
             >
               <Move size={12} /> Clickeá el mapa para mover el marcador
             </motion.div>
@@ -253,7 +253,7 @@ export default function MapaInteractivo() {
             <motion.button
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               onClick={volverAlGlobal}
-              className="absolute top-6 left-6 z-50 bg-white-custom/90 backdrop-blur-md p-3 rounded-full shadow-xl border border-primary/20 text-primary hover:scale-110 transition-transform"
+              className="absolute top-6 left-6 z-50 bg-white-custom/90 backdrop-blur-md p-3 shadow-xl border border-primary/20 text-primary hover:scale-110 transition-transform" style={{borderRadius:"var(--radius-btn)"}}
             >
               <ArrowLeft size={20} />
             </motion.button>
@@ -326,7 +326,7 @@ export default function MapaInteractivo() {
                       if (puntoSeleccionado) setPuntoSeleccionado({ ...puntoSeleccionado, nombre: e.target.value });
                       else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
                     }}
-                    className="w-full bg-primary/5 border border-primary/10 rounded-xl p-4 text-primary font-black uppercase text-xl outline-none focus:border-primary focus:bg-white-custom transition-all"
+                    className="input-brand p-4! text-primary font-black uppercase text-xl! outline-none"
                   />
                 </div>
 
@@ -339,7 +339,7 @@ export default function MapaInteractivo() {
                       if (puntoSeleccionado) setPuntoSeleccionado({ ...puntoSeleccionado, descripcion: e.target.value });
                       else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
                     }}
-                    className="w-full bg-primary/5 border border-primary/10 rounded-xl p-4 text-foreground text-sm italic leading-relaxed outline-none focus:border-primary focus:bg-white-custom transition-all h-36 resize-none"
+                    className="input-brand p-4! text-sm! italic leading-relaxed! h-36 resize-none outline-none"
                   />
                 </div>
 
@@ -351,7 +351,7 @@ export default function MapaInteractivo() {
                   <div className="grid grid-cols-2 gap-2">
                     {[["X", puntoSeleccionado ? puntoSeleccionado.coord_x : reinoSeleccionado.coord_x],
                       ["Y", puntoSeleccionado ? puntoSeleccionado.coord_y : reinoSeleccionado.coord_y]].map(([label, val]) => (
-                      <div key={label} className="bg-primary/5 border border-primary/10 rounded-xl p-3 text-center">
+                      <div key={label} className="bg-primary/5 border border-primary/10 p-3 text-center" style={{borderRadius:"var(--radius-btn)"}}>
                         <span className="block text-[8px] text-primary/40 font-bold uppercase">{label}</span>
                         <span className="text-sm font-black text-primary">{val}</span>
                       </div>
@@ -366,10 +366,10 @@ export default function MapaInteractivo() {
                       <ImagePlus size={9} /> Imagen del Mapa
                     </label>
                     {reinoSeleccionado.mapa_url && (
-                      <div className="relative w-full h-20 rounded-xl overflow-hidden border border-primary/10 mb-1">
+                      <div className="relative w-full h-20 overflow-hidden border border-primary/10 mb-1" style={{borderRadius:"var(--radius-btn)"}}>
                         <img src={reinoSeleccionado.mapa_url} alt="Mapa actual" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                          <span className="text-[8px] font-black text-white uppercase tracking-widest">Imagen actual</span>
+                          <span className="text-[8px] font-black uppercase tracking-widest" style={{color:"var(--btn-text)"}}>Imagen actual</span>
                         </div>
                       </div>
                     )}
@@ -377,7 +377,7 @@ export default function MapaInteractivo() {
                     <button
                       onClick={() => imgInputRef.current?.click()}
                       disabled={isUploadingImg}
-                      className="w-full flex items-center justify-center gap-2 bg-primary/5 border border-dashed border-primary/30 text-primary text-[10px] font-black uppercase py-3 rounded-xl hover:bg-primary/10 transition-all disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 bg-primary/5 border border-dashed border-primary/30 text-primary text-[10px] font-black uppercase py-3 hover:bg-primary/10 transition-all disabled:opacity-50" style={{borderRadius:"var(--radius-btn)"}}
                     >
                       {isUploadingImg
                         ? <><Loader2 size={12} className="animate-spin" /> Subiendo...</>
@@ -391,7 +391,7 @@ export default function MapaInteractivo() {
                 <button
                   onClick={handleSaveChanges}
                   disabled={isSaving}
-                  className="w-full flex items-center justify-center gap-2 bg-green-600 text-white text-[11px] font-black uppercase py-4 rounded-2xl hover:bg-green-700 transition-all disabled:opacity-50 shadow-lg shadow-green-600/20 mt-auto"
+                  className="w-full flex items-center justify-center gap-2 bg-green-600 text-btn-text text-[11px] font-black uppercase py-4 hover:bg-green-700 transition-all disabled:opacity-50 shadow-lg shadow-green-600/20 mt-auto" style={{borderRadius:"var(--radius-btn)"}}
                 >
                   {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                   Guardar cambios
@@ -405,18 +405,18 @@ export default function MapaInteractivo() {
                   {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
                 </h2>
                 <div className="space-y-6 flex-grow overflow-y-auto pr-2">
-                  <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/5">
+                  <div className="p-6 bg-primary/5 border border-primary/5" style={{borderRadius:"var(--radius-card)"}}>
                     <p className="text-foreground text-sm italic leading-relaxed">
                       "{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}"
                     </p>
                   </div>
                   {!puntoSeleccionado && (
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 border border-primary/10 rounded-2xl">
+                      <div className="text-center p-4 border border-primary/10" style={{borderRadius:"var(--radius-btn)"}}>
                         <span className="block text-[8px] font-bold uppercase opacity-40">Ubicación</span>
                         <span className="text-[10px] font-black text-primary">{reinoSeleccionado.coord_x} / {reinoSeleccionado.coord_y}</span>
                       </div>
-                      <div className="text-center p-4 border border-primary/10 rounded-2xl">
+                      <div className="text-center p-4 border border-primary/10" style={{borderRadius:"var(--radius-btn)"}}>
                         <span className="block text-[8px] font-bold uppercase opacity-40">Orden</span>
                         <span className="text-[10px] font-black text-primary">Nivel {reinoSeleccionado.orden}</span>
                       </div>
@@ -428,12 +428,12 @@ export default function MapaInteractivo() {
                   {puntoSeleccionado && (
                     <button
                       onClick={() => setPuntoSeleccionado(null)}
-                      className="w-full bg-bg-main text-primary text-[10px] font-black uppercase py-3 rounded-xl border border-primary/10 hover:bg-white-custom transition-all"
+                      className="w-full bg-bg-main text-primary text-[10px] font-black uppercase py-3 border border-primary/10 hover:bg-white-custom transition-all" style={{borderRadius:"var(--radius-btn)"}}
                     >
                       Volver al Reino
                     </button>
                   )}
-                  <button className="w-full bg-primary text-white text-[11px] font-black uppercase py-5 px-8 rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/80 transition-all shadow-lg shadow-primary/20">
+                  <button className="w-full bg-primary text-btn-text text-[11px] font-black uppercase py-5 px-8 flex items-center justify-center gap-3 hover:bg-primary/80 transition-all shadow-lg shadow-primary/20" style={{borderRadius:"var(--radius-btn)"}}>
                     {puntoSeleccionado ? "Ver Lore del Punto" : "Ver personajes de este Reino"} <ChevronRight size={16} />
                   </button>
                 </div>
