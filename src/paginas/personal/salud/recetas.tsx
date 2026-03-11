@@ -117,7 +117,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
 
       <main className="max-w-4xl mx-auto px-5 pt-6 space-y-5">
         {/* imagen */}
-        <div className="card-main overflow-hidden p-0 rounded-3xl">
+        <div className="card-main overflow-hidden p-0 rounded-[var(--radius-card)]">
           <div className="h-56 bg-primary/5 relative">
             {receta.imagen_url ? (
               <img src={receta.imagen_url} className="w-full h-full object-cover" alt={receta.nombre} />
@@ -127,7 +127,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
               </div>
             )}
             <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
-            <span className="absolute top-4 left-4 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-white">
+            <span className="absolute top-4 left-4 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-menu-text">
               {CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️"} {receta.categoria}
             </span>
           </div>
@@ -145,7 +145,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
               <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/50">
                 <ChefHat size={13} className="text-primary/30" /> {receta.dificultad}
               </div>
-              <div className="ml-auto flex items-center gap-1.5 rounded-2xl bg-accent/20 border border-accent/25 px-3 py-1.5">
+              <div className="ml-auto flex items-center gap-1.5 rounded-[var(--radius-btn)] bg-accent/20 border border-accent/25 px-3 py-1.5">
                 <Flame size={11} className="text-accent fill-accent/60 shrink-0" />
                 <span className="text-[10px] font-black tracking-widest uppercase text-primary/70">
                   {totales.kcal.toFixed(0)} kcal
@@ -195,7 +195,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
             <div className="space-y-3">
               {receta.instrucciones?.map((paso, i) => (
                 <div key={i} className="flex gap-3">
-                  <span className="w-5 h-5 rounded-full bg-bg-menu text-white text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-bg-menu text-menu-text text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
                     {i + 1}
                   </span>
                   <p className="text-[11px] font-bold leading-relaxed text-primary/70 uppercase">{paso}</p>
@@ -241,13 +241,13 @@ function RecipeCard({
             <Flame size={40} className="text-primary/15" />
           </div>
         )}
-        <span className="absolute top-3 left-3 text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-white">
+        <span className="absolute top-3 left-3 text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-menu-text">
           {catEmoji} {receta.categoria}
         </span>
         {/* kcal badge */}
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/30 backdrop-blur-sm rounded-xl px-2 py-1">
+        <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/30 backdrop-blur-sm rounded-[var(--radius-btn)] px-2 py-1">
           <Flame size={9} className="text-amber-300 fill-amber-300/60" />
-          <span className="text-[8px] font-black text-white tracking-widest">{totales.kcal.toFixed(0)}</span>
+          <span className="text-[8px] font-black text-btn-text tracking-widest">{totales.kcal.toFixed(0)}</span>
         </div>
       </div>
 
@@ -269,7 +269,7 @@ function RecipeCard({
             { label: "Carb", value: totales.carbos,    unit: "g" },
             { label: "Gras", value: totales.grasas,    unit: "g" },
           ].map(m => (
-            <div key={m.label} className="bg-bg-main rounded-xl py-1.5 text-center border border-primary/8">
+            <div key={m.label} className="bg-bg-main rounded-[var(--radius-btn)] py-1.5 text-center border border-primary/8">
               <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
               <p className="text-[10px] font-black text-primary">
                 {m.value.toFixed(0)}<span className="text-[7px] text-primary/25">{m.unit}</span>
@@ -284,7 +284,7 @@ function RecipeCard({
         <div className="flex gap-2">
           <Link
             href={`/personal/salud/recetas/${receta.id}`}
-            className="flex items-center justify-between flex-1 px-4 py-2.5 bg-bg-menu text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-all"
+            className="flex items-center justify-between flex-1 px-4 py-2.5 bg-bg-menu text-menu-text rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-all"
           >
             Ver receta <ChevronRight size={13} />
           </Link>
@@ -398,7 +398,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
             Nueva <span className="text-primary/20">Receta</span>
           </h2>
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all">
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-[var(--radius-btn)] bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all">
             <X size={16} />
           </button>
         </div>
@@ -429,9 +429,9 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   <button
                     key={d} type="button"
                     onClick={() => setFormData(p => ({ ...p, dificultad: d }))}
-                    className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wide border transition-all ${
+                    className={`flex-1 py-2.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide border transition-all ${
                       formData.dificultad === d
-                        ? "bg-bg-menu text-white border-bg-menu"
+                        ? "bg-bg-menu text-menu-text border-bg-menu"
                         : "bg-bg-main border-primary/15 text-primary/40 hover:border-primary/30"
                     }`}
                   >
@@ -459,7 +459,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 {filteredDbIngredientes.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                    className="absolute top-full left-0 w-full bg-white-custom border border-primary/10 rounded-2xl mt-1.5 shadow-xl z-50 overflow-hidden"
+                    className="absolute top-full left-0 w-full bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] mt-1.5 shadow-xl z-50 overflow-hidden"
                   >
                     {filteredDbIngredientes.map(ing => (
                       <button
@@ -485,7 +485,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                   exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.18 }}
                   className="overflow-hidden"
                 >
-                  <div className="bg-accent/10 border border-accent/25 rounded-2xl p-4 space-y-3">
+                  <div className="bg-accent/10 border border-accent/25 rounded-[var(--radius-btn)] p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase text-primary">{pendingIng.base.nombre}</span>
                       <span className="text-[9px] font-bold text-primary/40">{pendingIng.base.porcion_texto} / unidad</span>
@@ -495,7 +495,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                       <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 shrink-0">Cantidad</span>
                       <button type="button"
                         onClick={() => setPendingIng(p => p && p.qty > 0.5 ? { ...p, qty: Math.round((p.qty - 0.5) * 10) / 10 } : p)}
-                        className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                        className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
                       >
                         <Minus size={12} />
                       </button>
@@ -503,11 +503,11 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                         type="number" min="0.5" step="0.5"
                         value={pendingIng.qty}
                         onChange={e => setPendingIng(p => p ? { ...p, qty: Math.max(0.1, Number(e.target.value)) } : p)}
-                        className="w-16 text-center bg-white-custom border border-primary/10 rounded-lg py-1.5 text-[12px] font-black text-primary outline-none"
+                        className="w-16 text-center bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] py-1.5 text-[12px] font-black text-primary outline-none"
                       />
                       <button type="button"
                         onClick={() => setPendingIng(p => p ? { ...p, qty: Math.round((p.qty + 0.5) * 10) / 10 } : p)}
-                        className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                        className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
                       >
                         <Plus size={12} />
                       </button>
@@ -520,7 +520,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                         { label: "Carb", value: pendingIng.base.carbohidratos * pendingIng.qty,  unit: "g" },
                         { label: "Gras", value: pendingIng.base.grasas * pendingIng.qty,         unit: "g" },
                       ].map(m => (
-                        <div key={m.label} className="bg-white-custom border border-primary/8 rounded-xl py-1.5 text-center">
+                        <div key={m.label} className="bg-white-custom border border-primary/8 rounded-[var(--radius-btn)] py-1.5 text-center">
                           <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
                           <p className="text-[11px] font-black text-primary">
                             {m.value.toFixed(0)}<span className="text-[8px] text-primary/25">{m.unit}</span>
@@ -531,12 +531,12 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
                     <div className="flex gap-2 pt-1">
                       <button type="button" onClick={() => setPendingIng(null)}
-                        className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide border border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary transition-all"
+                        className="flex-1 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide border border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary transition-all"
                       >
                         Cancelar
                       </button>
                       <button type="button" onClick={confirmIngrediente}
-                        className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide bg-bg-menu text-white hover:opacity-80 transition-all"
+                        className="flex-1 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide bg-bg-menu text-menu-text hover:opacity-80 transition-all"
                       >
                         ✓ Añadir
                       </button>
@@ -549,7 +549,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
             {formData.ingredientes.length > 0 && (
               <div className="space-y-2">
                 {formData.ingredientes.map((ing, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-bg-main border border-primary/8 rounded-2xl px-4 py-2.5">
+                  <div key={idx} className="flex items-center justify-between bg-bg-main border border-primary/8 rounded-[var(--radius-btn)] px-4 py-2.5">
                     <div className="min-w-0 flex-1">
                       <span className="text-[11px] font-black uppercase text-primary">{ing.nombre}</span>
                       <span className="text-[9px] text-primary/35 ml-2">{ing.cantidad}</span>
@@ -573,7 +573,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                     { label: "Carb", value: totalesPreview.carbos,    unit: "g" },
                     { label: "Gras", value: totalesPreview.grasas,    unit: "g" },
                   ].map(m => (
-                    <div key={m.label} className="bg-accent/10 border border-accent/20 rounded-xl py-2 text-center">
+                    <div key={m.label} className="bg-accent/10 border border-accent/20 rounded-[var(--radius-btn)] py-2 text-center">
                       <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
                       <p className="text-[12px] font-black text-primary">
                         {m.value.toFixed(0)}<span className="text-[8px] text-primary/30">{m.unit}</span>
@@ -597,7 +597,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 placeholder="Describe un paso…"
               />
               <button type="button" onClick={addPaso}
-                className="w-10 h-10 flex items-center justify-center bg-bg-menu text-white rounded-xl hover:opacity-80 transition-all shrink-0"
+                className="w-10 h-10 flex items-center justify-center bg-bg-menu text-menu-text rounded-[var(--radius-btn)] hover:opacity-80 transition-all shrink-0"
               >
                 <Plus size={16} />
               </button>
@@ -605,8 +605,8 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
             {formData.instrucciones.length > 0 && (
               <div className="space-y-2">
                 {formData.instrucciones.map((paso, idx) => (
-                  <div key={idx} className="flex items-start gap-3 bg-bg-main border border-primary/8 rounded-2xl px-4 py-3">
-                    <span className="w-5 h-5 rounded-full bg-bg-menu text-white text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                  <div key={idx} className="flex items-start gap-3 bg-bg-main border border-primary/8 rounded-[var(--radius-btn)] px-4 py-3">
+                    <span className="w-5 h-5 rounded-full bg-bg-menu text-menu-text text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
                       {idx + 1}
                     </span>
                     <span className="text-[11px] font-bold text-primary/70 uppercase flex-1 leading-relaxed">{paso}</span>
@@ -721,7 +721,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
             {/* Botón Ingredientes */}
             <Link
               href="/personal/salud/ingredientes"
-              className="flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-2xl border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
+              className="flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-[var(--radius-btn)] border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
             >
               <Carrot size={14} /> Ingredientes
             </Link>
@@ -744,14 +744,14 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setCatFilter(null)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide transition-all border ${
               catFilter === null
-                ? "bg-primary text-white border-primary shadow-sm"
+                ? "bg-primary text-btn-text border-primary shadow-sm"
                 : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
             }`}
           >
             Todas
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${catFilter === null ? "bg-white/20" : "bg-primary/5 text-primary/40"}`}>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}>
               {recipes.length}
             </span>
           </button>
@@ -764,14 +764,14 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
               <button
                 key={label}
                 onClick={() => setCatFilter(active ? null : label)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide transition-all border ${
                   active
-                    ? "bg-bg-menu text-white border-bg-menu shadow-sm"
+                    ? "bg-bg-menu text-menu-text border-bg-menu shadow-sm"
                     : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
                 }`}
               >
                 <span>{emoji}</span> {label}
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${active ? "bg-white/20" : "bg-primary/5 text-primary/40"}`}>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}>
                   {count}
                 </span>
               </button>
@@ -781,7 +781,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           {catFilter && (
             <button
               onClick={() => setCatFilter(null)}
-              className="flex items-center gap-1 px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
+              className="flex items-center gap-1 px-3 py-1 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
             >
               <X size={10} /> Limpiar
             </button>
@@ -799,9 +799,9 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
             <motion.button
               whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
               onClick={() => setIsModalOpen(true)}
-              className="border-2 border-dashed border-primary/15 rounded-3xl flex flex-col items-center justify-center p-8 bg-white-custom hover:bg-primary/5 transition-all group min-h-55"
+              className="border-2 border-dashed border-primary/15 rounded-[var(--radius-card)] flex flex-col items-center justify-center p-8 bg-white-custom hover:bg-primary/5 transition-all group min-h-55"
             >
-              <div className="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+              <div className="w-10 h-10 flex items-center justify-center bg-primary text-btn-text rounded-[var(--radius-btn)] shadow-lg group-hover:scale-110 transition-transform">
                 <Plus size={18} />
               </div>
               <span className="text-[9px] font-black uppercase mt-3 text-primary/35 tracking-widest group-hover:text-primary transition-colors">
@@ -839,14 +839,14 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
       <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
         <Link
           href="/personal/salud/ingredientes"
-          className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
+          className="w-12 h-12 rounded-[var(--radius-btn)] flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
         >
           <Carrot size={18} />
         </Link>
         <motion.button
           whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
           onClick={() => setIsModalOpen(true)}
-          className="w-14 h-14 rounded-2xl btn-brand shadow-2xl"
+          className="w-14 h-14 rounded-[var(--radius-btn)] btn-brand shadow-2xl"
         >
           <Plus size={22} />
         </motion.button>

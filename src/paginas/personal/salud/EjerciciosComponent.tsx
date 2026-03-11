@@ -74,14 +74,14 @@ const PLAN_DIARIO = [
 const PlanDiario = () => (
   <div className="bg-white-custom border border-primary/10 rounded-[28px] p-6 shadow-lg shadow-primary/5">
     <div className="flex items-center gap-3 mb-5">
-      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-base">📅</div>
+      <div className="w-8 h-8 rounded-[var(--radius-btn)] bg-primary/10 flex items-center justify-center text-base">📅</div>
       <div>
         <h3 className="text-sm font-black text-primary italic tracking-tight leading-none">Rutina</h3>
       </div>
     </div>
     <div className="space-y-2">
       {PLAN_DIARIO.map(({ tipo, subtitulo, icon, frecuencia, duracion, color }) => (
-        <div key={tipo} className={`rounded-2xl border p-3.5 ${color} flex items-center gap-3`}>
+        <div key={tipo} className={`rounded-[var(--radius-btn)] border p-3.5 ${color} flex items-center gap-3`}>
           <span className="text-xl shrink-0">{icon}</span>
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-1.5">
@@ -90,10 +90,10 @@ const PlanDiario = () => (
             <span className="text-[8px] font-bold opacity-50">{subtitulo}</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <div className="bg-white-custom/70 rounded-lg px-2 py-1 text-center">
+            <div className="bg-white-custom/70 rounded-[var(--radius-btn)] px-2 py-1 text-center">
               <span className="text-[10px] font-black block leading-none">{frecuencia}</span>
             </div>
-            <div className="bg-white-custom/70 rounded-lg px-2 py-1 text-center">
+            <div className="bg-white-custom/70 rounded-[var(--radius-btn)] px-2 py-1 text-center">
               <span className="text-[10px] font-black block leading-none">{duracion}</span>
             </div>
           </div>
@@ -162,16 +162,16 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-primary">
       <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }}
         className="flex flex-col items-center gap-4">
-        <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-2">
-          <Star size={40} className="text-white" />
+        <div className="w-20 h-20 rounded-full bg-btn-text/20 flex items-center justify-center mb-2">
+          <Star size={40} className="text-btn-text" />
         </div>
-        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 italic">Completado</span>
-        <h2 className="text-5xl font-black text-white italic tracking-tighter text-center">{rutina.nombre}</h2>
-        <p className="text-white/40 text-sm font-bold uppercase tracking-widest">
+        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] italic">Completado</span>
+        <h2 className="text-5xl font-black text-btn-text italic tracking-tighter text-center">{rutina.nombre}</h2>
+        <p className="text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] text-sm font-bold uppercase tracking-widest">
           {rutina.ejercicios.length} ejercicios · {rutina.ejercicios.reduce((a, e) => a + e.series, 0)} series
         </p>
         <button onClick={onCerrar}
-          className="mt-8 bg-white text-primary font-black uppercase tracking-widest px-10 py-4 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl text-sm">
+          className="mt-8 bg-white-custom text-primary font-black uppercase tracking-widest px-10 py-4 rounded-[var(--radius-btn)] hover:scale-105 active:scale-95 transition-all shadow-2xl text-sm">
           Terminar
         </button>
       </motion.div>
@@ -183,11 +183,11 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
       className="fixed inset-0 z-50 flex flex-col bg-primary">
       <div className="flex items-center justify-between px-6 pt-6 pb-4">
         <div>
-          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 italic">Rutina</span>
-          <h2 className="text-lg font-black text-white italic tracking-tight">{rutina.nombre}</h2>
+          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">Rutina</span>
+          <h2 className="text-lg font-black text-btn-text italic tracking-tight">{rutina.nombre}</h2>
         </div>
-        <button onClick={onCerrar} className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all">
-          <X size={18} className="text-white/60" />
+        <button onClick={onCerrar} className="w-10 h-10 rounded-[var(--radius-btn)] bg-btn-text/10 hover:bg-btn-text/20 flex items-center justify-center transition-all">
+          <X size={18} className="text-[color-mix(in_srgb,var(--btn-text)_60%,transparent)]" />
         </button>
       </div>
 
@@ -195,12 +195,12 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
         <div className="flex gap-1.5">
           {rutina.ejercicios.map((_, i) => (
             <div key={i} className={cn("h-1 flex-1 rounded-full transition-all duration-500",
-              i < ejercicioIdx ? "bg-white" : i === ejercicioIdx ? "bg-white/60" : "bg-white/15")} />
+              i < ejercicioIdx ? "bg-white-custom" : i === ejercicioIdx ? "bg-btn-text/60" : "bg-btn-text/15")} />
           ))}
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Ejercicio {ejercicioIdx + 1} de {rutina.ejercicios.length}</span>
-          <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Serie {serieActual} de {ejercicio.series}</span>
+          <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">Ejercicio {ejercicioIdx + 1} de {rutina.ejercicios.length}</span>
+          <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">Serie {serieActual} de {ejercicio.series}</span>
         </div>
       </div>
 
@@ -208,26 +208,26 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
         <AnimatePresence mode="wait">
           <motion.div key={ejercicioIdx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }} className="flex flex-col items-center gap-3 text-center">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 italic">{ejercicio.musculo}</span>
-            <h1 className="text-4xl sm:text-6xl font-black text-white italic tracking-tighter leading-none">{ejercicio.nombre}</h1>
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">{ejercicio.musculo}</span>
+            <h1 className="text-4xl sm:text-6xl font-black text-btn-text italic tracking-tighter leading-none">{ejercicio.nombre}</h1>
             <div className="flex items-center gap-4 mt-2">
               {([["Series", String(ejercicio.series)], ["Reps", ejercicio.reps], ["Descanso", `${ejercicio.descanso}s`]] as [string, string][]).map(([label, val], i, arr) => (
                 <React.Fragment key={label}>
                   <div className="flex flex-col items-center">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-white/30">{label}</span>
-                    <span className="text-2xl font-black text-white tabular-nums">{val}</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)]">{label}</span>
+                    <span className="text-2xl font-black text-btn-text tabular-nums">{val}</span>
                   </div>
-                  {i < arr.length - 1 && <div className="w-px h-8 bg-white/15" />}
+                  {i < arr.length - 1 && <div className="w-px h-8 bg-btn-text/15" />}
                 </React.Fragment>
               ))}
             </div>
-            {ejercicio.notas && <span className="text-[10px] font-bold text-white/30 italic mt-1">* {ejercicio.notas}</span>}
+            {ejercicio.notas && <span className="text-[10px] font-bold text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic mt-1">* {ejercicio.notas}</span>}
           </motion.div>
         </AnimatePresence>
 
         {fase === "descanso" ? (
           <div className="flex flex-col items-center gap-4">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Descansando</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]">Descansando</span>
             <div className="relative w-36 h-36">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r={r} fill="none" stroke="white" strokeWidth="5" opacity="0.1" />
@@ -236,12 +236,12 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
                   style={{ transition: "stroke-dashoffset 1s linear" }} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-black text-white tabular-nums tracking-tighter">{segundos}</span>
-                <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">seg</span>
+                <span className="text-4xl font-black text-btn-text tabular-nums tracking-tighter">{segundos}</span>
+                <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] uppercase tracking-widest">seg</span>
               </div>
             </div>
             <button onClick={() => { clearInterval(intervalRef.current!); setCorriendo(false); setFase("ejercicio"); }}
-              className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white border border-white/15 hover:border-white/40 px-4 py-2 rounded-xl transition-all">
+              className="text-[9px] font-black uppercase tracking-widest text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] hover:text-btn-text border border-[color-mix(in_srgb,var(--btn-text)_15%,transparent)] hover:border-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] px-4 py-2 rounded-[var(--radius-btn)] transition-all">
               Saltar descanso
             </button>
           </div>
@@ -251,8 +251,8 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
               const done = completados.includes(`${ejercicioIdx}-${i + 1}`) || i < serieActual - 1;
               const actual = i === serieActual - 1;
               return (
-                <div key={i} className={cn("w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs transition-all",
-                  done ? "bg-white text-primary" : actual ? "bg-white/20 text-white border-2 border-white/40" : "bg-white/8 text-white/20 border border-white/10")}>
+                <div key={i} className={cn("w-9 h-9 rounded-[var(--radius-btn)] flex items-center justify-center font-black text-xs transition-all",
+                  done ? "bg-white-custom text-primary" : actual ? "bg-btn-text/20 text-btn-text border-2 border-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]" : "bg-btn-text/8 text-[color-mix(in_srgb,var(--btn-text)_20%,transparent)] border border-[color-mix(in_srgb,var(--btn-text)_10%,transparent)]")}>
                   {done ? <Check size={14} /> : i + 1}
                 </div>
               );
@@ -264,7 +264,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
       {fase === "ejercicio" && (
         <div className="px-6 pb-10">
           <button onClick={completarSerie}
-            className="w-full bg-white text-primary font-black uppercase tracking-widest py-5 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-2xl text-sm flex items-center justify-center gap-3">
+            className="w-full bg-white-custom text-primary font-black uppercase tracking-widest py-5 rounded-[var(--radius-btn)] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-2xl text-sm flex items-center justify-center gap-3">
             <Check size={20} />
             {esUltimaSerie && esUltimoEjercicio ? "Finalizar rutina" : `Serie ${serieActual} completada`}
           </button>
@@ -286,7 +286,7 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <span className={cn("text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border", tagColor)}>{rutina.tag}</span>
+              <span className={cn("text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-[var(--radius-btn)] border", tagColor)}>{rutina.tag}</span>
             </div>
             <h3 className="text-lg font-black text-primary italic tracking-tight leading-none mb-1">{rutina.nombre}</h3>
             <p className="text-[10px] font-bold text-primary/40 uppercase tracking-wide">{rutina.descripcion}</p>
@@ -306,11 +306,11 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
           </div>
           <div className="ml-auto flex items-center gap-2">
             <button onClick={(e) => { e.stopPropagation(); onEliminar(); }}
-              className="p-2 text-accent hover:text-primary hover:bg-accent/10 rounded-xl transition-all">
+              className="p-2 text-accent hover:text-primary hover:bg-accent/10 rounded-[var(--radius-btn)] transition-all">
               <X size={14} />
             </button>
             <button onClick={(e) => { e.stopPropagation(); onIniciar(); }}
-              className="flex items-center gap-2 bg-primary text-white text-[9px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/25">
+              className="flex items-center gap-2 bg-primary text-btn-text text-[9px] font-black uppercase tracking-widest px-4 py-2.5 rounded-[var(--radius-btn)] hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/25">
               <Play size={11} fill="white" /> Iniciar
             </button>
           </div>
@@ -326,8 +326,8 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
                 {rutina.ejercicios.map((ej, i) => (
                   <motion.div key={ej.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.04 }}
-                    className="flex items-center gap-3 p-3 bg-primary/3 rounded-2xl border border-primary/5">
-                    <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    className="flex items-center gap-3 p-3 bg-primary/3 rounded-[var(--radius-btn)] border border-primary/5">
+                    <div className="w-6 h-6 rounded-[var(--radius-btn)] bg-primary/10 flex items-center justify-center shrink-0">
                       <span className="text-[8px] font-black text-primary">{i + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -336,7 +336,7 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-[9px] font-black text-primary/50">{ej.series}×{ej.reps}</span>
-                      <span className="text-[8px] font-bold text-primary/25 border border-primary/10 px-1.5 py-0.5 rounded-md">{ej.descanso}s</span>
+                      <span className="text-[8px] font-bold text-primary/25 border border-primary/10 px-1.5 py-0.5 rounded-[var(--radius-btn)]">{ej.descanso}s</span>
                     </div>
                   </motion.div>
                 ))}
@@ -378,14 +378,14 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
       </div>
       <div className="space-y-3 mb-6">
         <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la rutina..."
-          className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/15 focus:bg-white-custom rounded-2xl py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
+          className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
         <input value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Descripción..."
-          className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/15 focus:bg-white-custom rounded-2xl py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
+          className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
         <div className="flex gap-2 flex-wrap">
           {TAGS.filter(t => t !== "Todas").map(t => (
             <button key={t} onClick={() => setTag(t)}
-              className={cn("text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border transition-all",
-                tag === t ? "bg-primary text-white border-primary" : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30")}>
+              className={cn("text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-[var(--radius-btn)] border transition-all",
+                tag === t ? "bg-primary text-btn-text border-primary" : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30")}>
               {t}
             </button>
           ))}
@@ -395,7 +395,7 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
       {ejercicios.length > 0 && (
         <div className="space-y-2 mb-4">
           {ejercicios.map((ej, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 bg-primary/4 rounded-2xl">
+            <div key={i} className="flex items-center gap-3 p-3 bg-primary/4 rounded-[var(--radius-btn)]">
               <span className="text-[8px] font-black text-primary/30 w-4">{i + 1}</span>
               <span className="text-[11px] font-black text-primary flex-1 truncate">{ej.nombre}</span>
               <span className="text-[9px] text-primary/40 font-bold">{ej.series}×{ej.reps}</span>
@@ -405,35 +405,35 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
         </div>
       )}
 
-      <div className="bg-primary/4 rounded-2xl p-4 mb-6 border border-primary/8">
+      <div className="bg-primary/4 rounded-[var(--radius-btn)] p-4 mb-6 border border-primary/8">
         <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-3">Añadir ejercicio</p>
         <div className="grid grid-cols-2 gap-2 mb-2">
           <input value={nuevoEj.nombre} onChange={e => setNuevoEj(p => ({ ...p, nombre: e.target.value }))}
             placeholder="Nombre..." onKeyDown={e => e.key === "Enter" && addEjercicio()}
-            className="col-span-2 bg-white-custom border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
+            className="col-span-2 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
           <input value={nuevoEj.musculo} onChange={e => setNuevoEj(p => ({ ...p, musculo: e.target.value }))} placeholder="Músculo..."
-            className="bg-white-custom border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
+            className="bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
           <input value={nuevoEj.series} onChange={e => setNuevoEj(p => ({ ...p, series: e.target.value }))} placeholder="Series" type="number"
-            className="bg-white-custom border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
+            className="bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
           <input value={nuevoEj.reps} onChange={e => setNuevoEj(p => ({ ...p, reps: e.target.value }))} placeholder="Reps (ej: 12 o 30s)"
-            className="bg-white-custom border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
+            className="bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
           <input value={nuevoEj.descanso} onChange={e => setNuevoEj(p => ({ ...p, descanso: e.target.value }))} placeholder="Descanso (seg)" type="number"
-            className="bg-white-custom border border-primary/10 rounded-xl px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
+            className="bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20" />
         </div>
         <button onClick={addEjercicio} disabled={!nuevoEj.nombre.trim()}
-          className="w-full bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest py-2 rounded-xl hover:bg-primary hover:text-white transition-all disabled:opacity-30">
+          className="w-full bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest py-2 rounded-[var(--radius-btn)] hover:bg-primary hover:text-btn-text transition-all disabled:opacity-30">
           + Añadir ejercicio
         </button>
       </div>
 
       <div className="flex gap-3">
         <button onClick={onCancelar} disabled={guardando}
-          className="flex-1 border border-primary/15 text-primary/40 text-[9px] font-black uppercase tracking-widest py-3 rounded-xl hover:text-primary hover:border-primary/30 transition-all">
+          className="flex-1 border border-primary/15 text-primary/40 text-[9px] font-black uppercase tracking-widest py-3 rounded-[var(--radius-btn)] hover:text-primary hover:border-primary/30 transition-all">
           Cancelar
         </button>
         <button onClick={() => onGuardar({ nombre, descripcion, tag }, ejercicios)}
           disabled={!nombre.trim() || ejercicios.length === 0 || guardando}
-          className="flex-1 bg-primary text-white text-[9px] font-black uppercase tracking-widest py-3 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/25 disabled:opacity-40 flex items-center justify-center gap-2">
+          className="flex-1 bg-primary text-btn-text text-[9px] font-black uppercase tracking-widest py-3 rounded-[var(--radius-btn)] hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/25 disabled:opacity-40 flex items-center justify-center gap-2">
           {guardando ? <><Loader2 size={14} className="animate-spin" /> Guardando...</> : "Guardar rutina"}
         </button>
       </div>
@@ -499,17 +499,17 @@ export const PaginaEjercicios = () => {
         <PlanDiario />
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-white-custom border border-primary/10 rounded-2xl p-1.5 flex-wrap shadow-sm">
+          <div className="flex items-center gap-1.5 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] p-1.5 flex-wrap shadow-sm">
             {TAGS.map(t => (
               <button key={t} onClick={() => setFiltroTag(t)}
-                className={cn("text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl transition-all",
-                  filtroTag === t ? "bg-primary text-white shadow-md shadow-primary/20" : "text-primary/35 hover:text-primary")}>
+                className={cn("text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-[var(--radius-btn)] transition-all",
+                  filtroTag === t ? "bg-primary text-btn-text shadow-md shadow-primary/20" : "text-primary/35 hover:text-primary")}>
                 {t}
               </button>
             ))}
           </div>
           <button onClick={() => setCreando(true)}
-            className="ml-auto flex items-center gap-2 bg-primary text-white text-[9px] font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/25 shrink-0">
+            className="ml-auto flex items-center gap-2 bg-primary text-btn-text text-[9px] font-black uppercase tracking-widest px-5 py-3 rounded-[var(--radius-btn)] hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/25 shrink-0">
             <Plus size={14} /> Nueva rutina
           </button>
         </div>

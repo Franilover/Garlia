@@ -225,7 +225,7 @@ export const IngredientesPage = () => {
           <div className="hidden sm:flex items-center gap-2">
             <Link
               href="/personal/salud/compras"
-              className="flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-2xl border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
+              className="flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-[var(--radius-btn)] border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
             >
               <ShoppingCart size={14} />
               Compras
@@ -250,14 +250,14 @@ export const IngredientesPage = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setCatFilter(null)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide transition-all border ${
                 catFilter === null
-                  ? "bg-primary text-white border-primary shadow-sm"
+                  ? "bg-primary text-btn-text border-primary shadow-sm"
                   : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
               }`}
             >
               Todos
-              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${catFilter === null ? "bg-white/20" : "bg-primary/5 text-primary/40"}`}>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}>
                 {stats.total}
               </span>
             </button>
@@ -270,15 +270,15 @@ export const IngredientesPage = () => {
                 <button
                   key={label}
                   onClick={() => setCatFilter(active ? null : label)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide transition-all border ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide transition-all border ${
                     active
-                      ? "bg-bg-menu text-white border-bg-menu shadow-sm"
+                      ? "bg-bg-menu text-menu-text border-bg-menu shadow-sm"
                       : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
                   }`}
                 >
                   <span>{emoji}</span>
                   {label}
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${active ? "bg-white/20" : "bg-primary/5 text-primary/40"}`}>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}>
                     {count}
                   </span>
                 </button>
@@ -288,13 +288,13 @@ export const IngredientesPage = () => {
 
           <div className="flex items-center gap-2 flex-wrap">
             {([
-              { label: "En stock",  key: "in-stock"     as const, value: stats.inStock,  dot: "bg-green-300" },
-              { label: "Agotado",   key: "out-of-stock" as const, value: stats.outStock, dot: "bg-red-300"   },
+              { label: "En stock",  key: "in-stock"     as const, value: stats.inStock,  dot: "bg-accent" },
+              { label: "Agotado",   key: "out-of-stock" as const, value: stats.outStock, dot: "bg-primary/40"   },
             ]).map(f => (
               <button
                 key={f.key}
                 onClick={() => setStockFilter(stockFilter === f.key ? "all" : f.key)}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wide transition-all border ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide transition-all border ${
                   stockFilter === f.key
                     ? "bg-accent/30 border-accent/50 text-primary"
                     : "bg-transparent border-primary/10 text-primary/35 hover:border-primary/25 hover:text-primary/60"
@@ -309,7 +309,7 @@ export const IngredientesPage = () => {
             {activeFilters > 0 && (
               <button
                 onClick={() => { setFilter(""); setCatFilter(null); setStockFilter("all"); }}
-                className="flex items-center gap-1 px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
+                className="flex items-center gap-1 px-3 py-1 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
               >
                 <X size={10} />
                 Limpiar ({activeFilters})
@@ -361,7 +361,7 @@ export const IngredientesPage = () => {
                     className="card-main flex flex-col gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all relative"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-white flex items-center gap-1 shrink-0">
+                      <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-menu-text flex items-center gap-1 shrink-0">
                         <span>{catEmoji}</span>
                         {item.categoria}
                       </span>
@@ -378,13 +378,13 @@ export const IngredientesPage = () => {
                             <span className="text-[8px] font-black uppercase text-red-400 tracking-wide">¿Eliminar?</span>
                             <button
                               onClick={() => handleDelete(item.id)}
-                              className="px-2 py-1 rounded-lg bg-red-100 text-red-500 text-[8px] font-black uppercase hover:bg-red-200 transition-all"
+                              className="px-2 py-1 rounded-[var(--radius-btn)] bg-red-100 text-red-500 text-[8px] font-black uppercase hover:bg-red-200 transition-all"
                             >
                               Sí
                             </button>
                             <button
                               onClick={() => setConfirmDelete(null)}
-                              className="px-2 py-1 rounded-lg bg-primary/8 text-primary/40 text-[8px] font-black uppercase hover:bg-primary/15 transition-all"
+                              className="px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 text-primary/40 text-[8px] font-black uppercase hover:bg-primary/15 transition-all"
                             >
                               No
                             </button>
@@ -396,7 +396,7 @@ export const IngredientesPage = () => {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setConfirmDelete(item.id)}
-                            className="p-1.5 rounded-lg text-primary/20 hover:text-red-400 hover:bg-red-50 transition-all mt-0.5"
+                            className="p-1.5 rounded-[var(--radius-btn)] text-primary/20 hover:text-red-400 hover:bg-red-50 transition-all mt-0.5"
                           >
                             <Trash2 size={13} />
                           </motion.button>
@@ -415,7 +415,7 @@ export const IngredientesPage = () => {
                       </div>
                       <button
                         onClick={() => setQtyOpen(p => ({ ...p, [item.id]: !p[item.id] }))}
-                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wide border transition-all ${
+                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border transition-all ${
                           qtyOpen[item.id]
                             ? "bg-accent/25 border-accent/40 text-primary"
                             : "bg-bg-main border-primary/10 text-primary/35 hover:text-primary hover:border-primary/25"
@@ -435,13 +435,13 @@ export const IngredientesPage = () => {
                           transition={{ duration: 0.18 }}
                           className="overflow-hidden"
                         >
-                          <div className="flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-2xl px-3 py-2.5">
+                          <div className="flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-[var(--radius-btn)] px-3 py-2.5">
                             <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 shrink-0">
                               Cantidad
                             </span>
                             <button
                               onClick={() => setQtyMap(p => ({ ...p, [item.id]: Math.max(0.5, (p[item.id] ?? 1) - 0.5) }))}
-                              className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                              className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
                             >
                               <Minus size={10} />
                             </button>
@@ -451,11 +451,11 @@ export const IngredientesPage = () => {
                               step="0.5"
                               value={qtyMap[item.id] ?? 1}
                               onChange={e => setQtyMap(p => ({ ...p, [item.id]: Math.max(0.1, Number(e.target.value)) }))}
-                              className="w-14 text-center bg-white-custom border border-primary/10 rounded-lg py-1 text-[11px] font-black text-primary outline-none"
+                              className="w-14 text-center bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] py-1 text-[11px] font-black text-primary outline-none"
                             />
                             <button
                               onClick={() => setQtyMap(p => ({ ...p, [item.id]: (p[item.id] ?? 1) + 0.5 }))}
-                              className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                              className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
                             >
                               <Plus size={10} />
                             </button>
@@ -475,21 +475,21 @@ export const IngredientesPage = () => {
                       const sc = (v: number) => q === 1 ? undefined : Math.round(v * q * 10) / 10;
                       return (
                         <>
-                          <div className="grid grid-cols-3 gap-1 rounded-2xl bg-bg-main border border-primary/8 px-1">
+                          <div className="grid grid-cols-3 gap-1 rounded-[var(--radius-btn)] bg-bg-main border border-primary/8 px-1">
                             <MacroBadge label="Prot" value={item.proteinas}     unit="g"  scaled={sc(item.proteinas)} />
                             <MacroBadge label="Carb" value={item.carbohidratos} unit="g"  scaled={sc(item.carbohidratos)} />
                             <MacroBadge label="Gras" value={item.grasas}        unit="g"  scaled={sc(item.grasas)} />
                           </div>
 
                           {(item.fibra > 0 || item.sodio > 0 || item.agua_ml > 0) && (
-                            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-bg-main border border-primary/8 px-1">
+                            <div className="grid grid-cols-3 gap-1 rounded-[var(--radius-btn)] bg-bg-main border border-primary/8 px-1">
                               {item.fibra   > 0 && <MacroBadge label="Fibra" value={item.fibra}   unit="g"  scaled={sc(item.fibra)} />}
                               {item.sodio   > 0 && <MacroBadge label="Sodio" value={item.sodio}   unit="mg" scaled={sc(item.sodio)} />}
                               {item.agua_ml > 0 && <MacroBadge label="Agua"  value={item.agua_ml} unit="ml" scaled={sc(item.agua_ml)} />}
                             </div>
                           )}
 
-                          <div className="flex items-center gap-1.5 rounded-2xl bg-accent/20 border border-accent/25 px-4 py-2.5">
+                          <div className="flex items-center gap-1.5 rounded-[var(--radius-btn)] bg-accent/20 border border-accent/25 px-4 py-2.5">
                             <Flame size={11} className="text-accent shrink-0 fill-accent/60" />
                             <span className={`text-[10px] font-black tracking-widest uppercase flex-1 transition-colors ${q !== 1 ? "text-accent" : "text-primary/70"}`}>
                               {q === 1 ? item.kcal : Math.round(item.kcal * q)} kcal
@@ -500,10 +500,10 @@ export const IngredientesPage = () => {
                       );
                     })()}
 
-                    <div className={`flex items-center justify-between rounded-2xl px-3 py-2.5 border ${
+                    <div className={`flex items-center justify-between rounded-[var(--radius-btn)] px-3 py-2.5 border ${
                       hasStock
-                        ? "bg-green-50/50 border-green-100"
-                        : "bg-red-50/50 border-red-100"
+                        ? "bg-accent/5 border-accent/20"
+                        : "bg-primary/5 border-primary/20"
                     }`}>
                       <div className="flex items-center gap-2">
                         {hasStock
@@ -517,13 +517,13 @@ export const IngredientesPage = () => {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleUpdateStock(item.id, item.stock_actual, -1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-red-300 hover:border-red-100 transition-all"
+                          className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/30 hover:text-red-300 hover:border-red-100 transition-all"
                         >
                           <Minus size={11} />
                         </button>
                         <button
                           onClick={() => handleUpdateStock(item.id, item.stock_actual, 1)}
-                          className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-lg border border-primary/10 text-primary/30 hover:text-green-400/80 hover:border-green-100 transition-all"
+                          className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/30 hover:text-green-400/80 hover:border-green-100 transition-all"
                         >
                           <Plus size={11} />
                         </button>
@@ -540,7 +540,7 @@ export const IngredientesPage = () => {
       <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
         <Link
           href="/personal/salud/compras"
-          className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
+          className="w-12 h-12 rounded-[var(--radius-btn)] flex items-center justify-center bg-white-custom border border-primary/20 text-primary/50 shadow-lg"
         >
           <ShoppingCart size={18} />
         </Link>
@@ -548,7 +548,7 @@ export const IngredientesPage = () => {
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.94 }}
           onClick={() => setIsModalOpen(true)}
-          className="w-14 h-14 rounded-2xl btn-brand shadow-2xl"
+          className="w-14 h-14 rounded-[var(--radius-btn)] btn-brand shadow-2xl"
         >
           <Plus size={22} />
         </motion.button>
@@ -580,7 +580,7 @@ export const IngredientesPage = () => {
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
+                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-[var(--radius-btn)] bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
                 >
                   <X size={16} />
                 </button>
