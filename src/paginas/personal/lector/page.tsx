@@ -14,15 +14,58 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 interface Bookmark { page: number; createdAt: number }
 
+// Modos de lectura — filtros CSS que se aplican al canvas
+export type ReadMode = "normal" | "night" | "sepia" | "dim" | "theme";
+
+export const READ_MODES: { id: ReadMode; label: string; emoji: string; filter: string; bg: string }[] = [
+  {
+    id: "normal",
+    label: "Normal",
+    emoji: "☀️",
+    filter: "none",
+    bg: "var(--bg-main)",
+  },
+  {
+    id: "sepia",
+    label: "Sepia",
+    emoji: "📜",
+    filter: "sepia(0.7) brightness(0.97) contrast(0.92)",
+    bg: "#f5f0e4",
+  },
+  {
+    id: "dim",
+    label: "Suave",
+    emoji: "🌤",
+    filter: "brightness(0.82) contrast(0.88) saturate(0.8)",
+    bg: "color-mix(in srgb, var(--bg-main) 85%, var(--primary) 15%)",
+  },
+  {
+    id: "theme",
+    label: "Tema",
+    emoji: "🎨",
+    // Tinte del color primario del tema — sutil
+    filter: "brightness(0.9) contrast(0.95) hue-rotate(var(--reader-hue, 0deg)) saturate(0.7)",
+    bg: "color-mix(in srgb, var(--bg-main) 70%, var(--accent) 30%)",
+  },
+  {
+    id: "night",
+    label: "Noche",
+    emoji: "🌙",
+    filter: "invert(1) hue-rotate(180deg) brightness(0.85)",
+    bg: "#111008",
+  },
+];
+
 interface RS {
   totalPages: number;
   zoom: number;
   visiblePage: number;
   fullscreen: boolean;
-  nightMode: boolean;
+  readMode: ReadMode;
   immersive: boolean;
   showBookmarks: boolean;
   showShortcuts: boolean;
+  showModes: boolean;
   showTOC: boolean;
   bookmarks: Bookmark[];
   toc: { title: string; level: number }[];
@@ -33,10 +76,11 @@ type A =
   | { type: "SET_ZOOM"; zoom: number }
   | { type: "SET_VISIBLE_PAGE"; page: number }
   | { type: "TOGGLE_FULLSCREEN" }
-  | { type: "TOGGLE_NIGHT" }
+  | { type: "SET_READ_MODE"; mode: ReadMode }
   | { type: "TOGGLE_BOOKMARKS" }
   | { type: "TOGGLE_SHORTCUTS" }
   | { type: "TOGGLE_TOC" }
+  | { type: "TOGGLE_MODES" }
   | { type: "TOGGLE_IMMERSIVE" }
   | { type: "ADD_BOOKMARK"; page: number }
   | { type: "REMOVE_BOOKMARK"; page: number }
@@ -45,8 +89,8 @@ type A =
 
 const init: RS = {
   totalPages: 0, zoom: 1.4, visiblePage: 1,
-  fullscreen: false, nightMode: false, immersive: false,
-  showBookmarks: false, showShortcuts: false, showTOC: false,
+  fullscreen: false, readMode: "normal", immersive: false,
+  showBookmarks: false, showShortcuts: false, showModes: false, showTOC: false,
   bookmarks: [], toc: [],
 };
 
@@ -55,12 +99,13 @@ function reducer(s: RS, a: A): RS {
     case "SET_TOTAL":         return { ...s, totalPages: a.total };
     case "SET_ZOOM":          return { ...s, zoom: Math.max(0.5, Math.min(4, a.zoom)) };
     case "SET_VISIBLE_PAGE":  return { ...s, visiblePage: a.page };
-    case "TOGGLE_IMMERSIVE":  return { ...s, immersive: !s.immersive, showBookmarks: false, showTOC: false };
+    case "TOGGLE_IMMERSIVE":  return { ...s, immersive: !s.immersive, showBookmarks: false, showTOC: false, showModes: false };
     case "TOGGLE_FULLSCREEN": return { ...s, fullscreen: !s.fullscreen, showBookmarks: false, showTOC: false };
-    case "TOGGLE_NIGHT":      return { ...s, nightMode: !s.nightMode };
-    case "TOGGLE_BOOKMARKS":  return { ...s, showBookmarks: !s.showBookmarks, showTOC: false };
+    case "SET_READ_MODE":     return { ...s, readMode: a.mode, showModes: false };
+    case "TOGGLE_BOOKMARKS":  return { ...s, showBookmarks: !s.showBookmarks, showTOC: false, showModes: false };
     case "TOGGLE_SHORTCUTS":  return { ...s, showShortcuts: !s.showShortcuts };
-    case "TOGGLE_TOC":        return { ...s, showTOC: !s.showTOC, showBookmarks: false };
+    case "TOGGLE_TOC":        return { ...s, showTOC: !s.showTOC, showBookmarks: false, showModes: false };
+    case "TOGGLE_MODES":      return { ...s, showModes: !s.showModes, showBookmarks: false, showTOC: false };
     case "ADD_BOOKMARK":
       if (s.bookmarks.find(b => b.page === a.page)) return s;
       return { ...s, bookmarks: [...s.bookmarks, { page: a.page, createdAt: Date.now() }] };
@@ -73,6 +118,7 @@ function reducer(s: RS, a: A): RS {
 
 const SHORTCUTS = [
   { key: "I",                 desc: "Modo inmersivo (ocultar UI)" },
+  { key: "M",                 desc: "Ciclar modo de lectura" },
   { key: "↓ / → / D",        desc: "Bajar 85% de pantalla" },
   { key: "↑ / ← / A",        desc: "Subir 85% de pantalla" },
   { key: "Espacio",           desc: "Bajar pantalla completa" },
@@ -81,7 +127,6 @@ const SHORTCUTS = [
   { key: "+ / -",             desc: "Zoom más / menos" },
   { key: "0",                 desc: "Resetear zoom (140%)" },
   { key: "F",                 desc: "Pantalla completa" },
-  { key: "N",                 desc: "Modo noche" },
   { key: "B",                 desc: "Marcar página actual" },
   { key: "Esc",               desc: "Cerrar paneles" },
 ];
@@ -90,9 +135,9 @@ const SHORTCUTS = [
 // PAGE CANVAS (individual, memoized)
 // ─────────────────────────────────────────────────────────────────────────────
 const PageCanvas = React.memo(function PageCanvas({
-  pdfDoc, pageNum, zoom, nightMode, onVisible,
+  pdfDoc, pageNum, zoom, readMode, onVisible,
 }: {
-  pdfDoc: any; pageNum: number; zoom: number; nightMode: boolean;
+  pdfDoc: any; pageNum: number; zoom: number; readMode: ReadMode;
   onVisible: (page: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -161,8 +206,8 @@ const PageCanvas = React.memo(function PageCanvas({
         display: rendered ? "block" : "none",
         borderRadius: "var(--radius-btn)",
         boxShadow: "0 4px 32px rgba(0,0,0,0.18)",
-        filter: nightMode ? "invert(1) hue-rotate(180deg)" : "none",
-        transition: "filter 0.3s ease",
+        filter: READ_MODES.find(m => m.id === readMode)?.filter ?? "none",
+        transition: "filter 0.4s ease",
         maxWidth: "100%",
       }} />
       <div className="absolute bottom-3 right-3 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 pointer-events-none"
@@ -265,8 +310,13 @@ export default function LectorPDF() {
         case "-":           dispatch({ type: "SET_ZOOM", zoom: s.zoom - 0.2 }); break;
         case "0":           dispatch({ type: "SET_ZOOM", zoom: 1.4 }); break;
         case "i": case "I": dispatch({ type: "TOGGLE_IMMERSIVE" }); break;
+        case "m": case "M": {
+          const modes = READ_MODES.map(m => m.id);
+          const next = modes[(modes.indexOf(s.readMode) + 1) % modes.length];
+          dispatch({ type: "SET_READ_MODE", mode: next });
+          break;
+        }
         case "f": case "F": dispatch({ type: "TOGGLE_FULLSCREEN" }); break;
-        case "n": case "N": dispatch({ type: "TOGGLE_NIGHT" }); break;
         case "b": case "B": dispatch({ type: "ADD_BOOKMARK", page: s.visiblePage }); break;
         case "Escape":
           if (s.immersive)       dispatch({ type: "TOGGLE_IMMERSIVE" });
@@ -310,7 +360,7 @@ export default function LectorPDF() {
   return (
     <div className={`flex flex-col w-full transition-colors duration-300 ${
         s.fullscreen ? "fixed inset-0 z-[2000]" : "h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)]"
-      } ${s.nightMode ? "bg-[#111008]" : "bg-bg-main"}`}
+      } ${s.readMode === "night" ? "bg-[#111008]" : "bg-bg-main"}`}
     >
 
       {/* ── HEADER ── */}
@@ -325,7 +375,7 @@ export default function LectorPDF() {
           >
             <header className="flex items-center gap-2 px-4 py-2.5 border-b z-10"
               style={{
-                background: s.nightMode ? "#080604" : "var(--bg-menu)",
+                background: s.readMode === "night" ? "#080604" : "var(--bg-menu)",
                 borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
               }}>
               <BookOpen size={14} style={{ color: "var(--menu-text)", opacity: 0.5 }} className="shrink-0" />
@@ -364,7 +414,7 @@ export default function LectorPDF() {
                   {[
                     { icon: <List size={12}/>,     fn: () => dispatch({ type: "TOGGLE_TOC" }),       active: s.showTOC,       show: s.toc.length > 0, title: "Índice" },
                     { icon: <BookMarked size={12}/>, fn: () => dispatch({ type: "ADD_BOOKMARK", page: s.visiblePage }), active: isBookmarked, show: true, title: "Marcar" },
-                    { icon: s.nightMode ? <Sun size={12}/> : <Moon size={12}/>, fn: () => dispatch({ type: "TOGGLE_NIGHT" }), active: s.nightMode, show: true, title: "Noche" },
+                    { icon: <span style={{ fontSize: 13 }}>{READ_MODES.find(m => m.id === s.readMode)?.emoji}</span>, fn: () => dispatch({ type: "TOGGLE_MODES" }), active: s.showModes || s.readMode !== "normal", show: true, title: "Modo de lectura (M)" },
                     { icon: s.fullscreen ? <Minimize2 size={12}/> : <Maximize2 size={12}/>, fn: () => dispatch({ type: "TOGGLE_FULLSCREEN" }), active: s.fullscreen, show: true, title: "Fullscreen" },
                     { icon: <EyeOff size={12}/>, fn: () => dispatch({ type: "TOGGLE_IMMERSIVE" }), active: false, show: true, title: "Modo inmersivo (I)" },
                     { icon: <Keyboard size={12}/>, fn: () => dispatch({ type: "TOGGLE_SHORTCUTS" }), active: false, show: true, title: "Atajos" },
@@ -449,7 +499,70 @@ export default function LectorPDF() {
       </AnimatePresence>
 
       {/* ── BODY ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+
+        {/* ── MODE PICKER — floating dropdown ── */}
+        <AnimatePresence>
+          {s.showModes && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="absolute top-2 right-2 z-[100] p-3 flex flex-col gap-1.5"
+              style={{
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                boxShadow: "var(--shadow-card)",
+                minWidth: "160px",
+              }}
+            >
+              <p className="text-[8px] font-black uppercase tracking-widest mb-1 px-1"
+                style={{ color: "var(--primary)", opacity: 0.4 }}>Modo de lectura</p>
+              {READ_MODES.map(mode => (
+                <button
+                  key={mode.id}
+                  onClick={() => dispatch({ type: "SET_READ_MODE", mode: mode.id })}
+                  className="flex items-center gap-2.5 px-3 py-2 text-left transition-all"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    background: s.readMode === mode.id
+                      ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                      : "transparent",
+                    border: s.readMode === mode.id
+                      ? "1px solid color-mix(in srgb, var(--primary) 20%, transparent)"
+                      : "1px solid transparent",
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{mode.emoji}</span>
+                  <div>
+                    <p className="text-[10px] font-black" style={{
+                      color: s.readMode === mode.id ? "var(--primary)" : "var(--foreground)",
+                    }}>
+                      {mode.label}
+                    </p>
+                    {/* Mini preview strip */}
+                    <div className="w-16 h-1.5 mt-0.5 rounded-full overflow-hidden"
+                      style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                      <div className="h-full w-full" style={{
+                        background: mode.id === "night" ? "#222"
+                          : mode.id === "sepia" ? "#d4a96a"
+                          : mode.id === "dim" ? "color-mix(in srgb, var(--primary) 30%, transparent)"
+                          : mode.id === "theme" ? "color-mix(in srgb, var(--accent) 50%, transparent)"
+                          : "var(--bg-main)",
+                        filter: mode.filter !== "none" ? mode.filter : undefined,
+                      }} />
+                    </div>
+                  </div>
+                  {s.readMode === mode.id && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: "var(--primary)" }} />
+                  )}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* TOC sidebar */}
         <AnimatePresence>
@@ -459,7 +572,7 @@ export default function LectorPDF() {
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
               className="w-60 shrink-0 overflow-y-auto border-r"
               style={{
-                background: s.nightMode ? "#0d0a04" : "var(--white-custom)",
+                background: s.readMode === "night" ? "#0d0a04" : "var(--white-custom)",
                 borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
               }}>
               <div className="p-4">
@@ -538,6 +651,10 @@ export default function LectorPDF() {
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
+              style={{
+                background: READ_MODES.find(m => m.id === s.readMode)?.bg,
+                transition: "background 0.4s ease",
+              }}
             >
               <div className="flex flex-col items-center" style={{ minWidth: "fit-content" }}>
                 {pages.map(n => (
@@ -546,7 +663,7 @@ export default function LectorPDF() {
                     pdfDoc={pdfDoc}
                     pageNum={n}
                     zoom={s.zoom}
-                    nightMode={s.nightMode}
+                    readMode={s.readMode}
                     onVisible={handleVisible}
                   />
                 ))}
@@ -563,7 +680,7 @@ export default function LectorPDF() {
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
               className="w-52 shrink-0 overflow-y-auto border-l"
               style={{
-                background: s.nightMode ? "#0d0a04" : "var(--white-custom)",
+                background: s.readMode === "night" ? "#0d0a04" : "var(--white-custom)",
                 borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
               }}>
               <div className="p-4">
@@ -608,7 +725,7 @@ export default function LectorPDF() {
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
             className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-t"
             style={{
-              background: s.nightMode ? "#080604" : "var(--bg-menu)",
+              background: s.readMode === "night" ? "#080604" : "var(--bg-menu)",
               borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
             }}>
 
