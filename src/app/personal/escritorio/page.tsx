@@ -1,10 +1,11 @@
 "use client";
 
-import { Calendar, FileText } from "lucide-react";
+import { Calendar, FileText, BookOpen } from "lucide-react";
 import { Secciones } from "@/shared/layout/Secciones";
 import { GestionPersonal } from "@/paginas/personal/tareas";
 import EnsayosView from "@/paginas/personal/ensayos/page";
 import { AdminOnly } from "@/shared/forms/AdminOnly";
+import LectorPDF from "@/paginas/personal/lector/page";
 
 export default function DashboardPage() {
   return (
@@ -27,6 +28,12 @@ export default function DashboardPage() {
             label: "Ensayos",
             icon: FileText,
             content: <EnsayosView />,
+          },
+          {
+            id: "lector",
+            label: "Lector",
+            icon: BookOpen,
+            content: <LectorPDF />,
           },
         ]}
       />
