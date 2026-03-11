@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Save, Eye, Edit3, Tag, Bold, Italic, Quote, List, Heading2, Code } from "lucide-react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -33,6 +33,15 @@ export function Editor({ ensayo, editMode, onToggleEditMode, onUpdateField }: Ed
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wordCount = ensayo.contenido?.split(/\s+/).filter(Boolean).length || 0;
   const charCount = ensayo.contenido?.length || 0;
+
+  // tagInput: string local que refleja exactamente lo que el usuario escribe,
+  // incluyendo comas y espacios al final, para no perder el contexto de escritura.
+  const [tagInput, setTagInput] = useState<string>(ensayo.tags?.join(", ") || "");
+
+  // Sync desde afuera solo si el ensayo cambia (e.g. usuario selecciona otra nota)
+  useEffect(() => {
+    setTagInput(ensayo.tags?.join(", ") || "");
+  }, [ensayo.id]);
 
   const applyFormat = (action: ToolbarAction) => {
     const textarea = textareaRef.current;
@@ -92,13 +101,16 @@ export function Editor({ ensayo, editMode, onToggleEditMode, onUpdateField }: Ed
         <Tag size={11} className="shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }} />
         <input
           type="text"
-          value={ensayo.tags?.join(", ") || ""}
+          value={tagInput}
           onChange={(e) => {
-            const newTags = e.target.value
+            const raw = e.target.value;
+            setTagInput(raw);
+            // Solo persistir tags completos (no guardar el string vacío al final de "tag1, ")
+            const parsed = raw
               .split(",")
               .map((t: string) => t.trim().toLowerCase())
               .filter((t: string) => t !== "");
-            onUpdateField(ensayo.id, "tags", newTags);
+            onUpdateField(ensayo.id, "tags", parsed);
           }}
           className="font-mono text-[10px] tracking-widest bg-transparent outline-none border-none w-full uppercase"
           style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
