@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { ChevronLeft, Loader2, Menu, X } from "lucide-react";
+import { ChevronLeft, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -9,6 +9,7 @@ import Sidebar from "./components/Sidebar";
 import Editor from "./components/Editor";
 import EmptyState from "./components/EmptyState";
 import NewNoteModal from "./components/NewNoteModal";
+import { TagPanel } from "./components/TagPanel";
 
 interface ZoteroSource {
   title: string;
@@ -22,7 +23,6 @@ const LS_ACTIVE = "ensayos-active-id";
 
 export default function Ensayos() {
   const { user } = useAuth() as { user: any };
-  // Solo mostrar loading si user ya existe pero los datos aún no llegaron
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,9 +31,14 @@ export default function Ensayos() {
   const [ensayos, setEnsayos] = useState<any[]>([]);
   const [sources, setSources] = useState<ZoteroSource[]>([]);
   const [tagActivo, setTagActivo] = useState<string | null>(null);
-  const handleTagClick = useCallback((tag: string | null) => setTagActivo(tag), []);
 
-  // Inicializa desde localStorage para que sobreviva la navegación
+  // Panel Obsidian-style — se abre al hacer click en un tag desde el editor
+  const [tagPanel, setTagPanel] = useState<string | null>(null);
+
+  const handleTagClick = useCallback((tag: string | null) => setTagActivo(tag), []);
+  const handleTagPanelOpen = useCallback((tag: string) => setTagPanel(tag), []);
+  const handleTagPanelClose = useCallback(() => setTagPanel(null), []);
+
   const [ensayoActivoId, setEnsayoActivoId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return localStorage.getItem(LS_ACTIVE);
@@ -45,7 +50,6 @@ export default function Ensayos() {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    // Solo spinner la primera vez; si ya hay datos actualiza silenciosamente
     setEnsayos((prev) => { if (prev.length === 0) setLoading(true); return prev; });
     const { data: ens } = await supabase
       .from("ensayos")
@@ -61,7 +65,6 @@ export default function Ensayos() {
     if (saved) setSources(JSON.parse(saved));
   }, [fetchData]);
 
-  // Persiste el ensayo activo en localStorage
   const setEnsayoActivo = useCallback((id: string | null) => {
     setEnsayoActivoId(id);
     if (id) localStorage.setItem(LS_ACTIVE, id);
@@ -82,11 +85,15 @@ export default function Ensayos() {
         e.preventDefault();
         setEditMode((p) => !p);
       }
-      if (e.key === "Escape") setSidebarOpen(false);
+      if (e.key === "Escape") {
+        // Escape cierra el panel primero, luego el sidebar
+        if (tagPanel) { setTagPanel(null); return; }
+        setSidebarOpen(false);
+      }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  }, [tagPanel]);
 
   const todosLosTags = useMemo(() => {
     const tags = new Set<string>();
@@ -186,7 +193,6 @@ export default function Ensayos() {
     reader.readAsText(file);
   };
 
-  // Muestra skeleton mientras carga — sin bloquear el render completo
   const ensayoActivo = ensayos.find((e) => e.id === ensayoActivoId) ?? null;
 
   const sidebarProps = {
@@ -292,14 +298,13 @@ export default function Ensayos() {
 
       {/* Main layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] max-w-screen-2xl mx-auto min-h-[calc(100vh-57px)]">
-        {/* Desktop sidebar — siempre visible, muestra skeleton mientras carga */}
         <div className="hidden lg:block">
           <Sidebar {...sidebarProps} />
         </div>
 
-        <main className="p-4 md:p-8 lg:p-12">
+        {/* Área principal — position relative para anclar el TagPanel */}
+        <main className="relative p-4 md:p-8 lg:p-12 overflow-hidden">
           {loading ? (
-            /* Skeleton fino — no bloquea, aparece instantáneo */
             <div className="flex flex-col gap-4 animate-pulse">
               <div className="h-10 rounded-xl w-1/3"
                 style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
@@ -321,12 +326,22 @@ export default function Ensayos() {
                   editMode={editMode}
                   onToggleEditMode={() => setEditMode((p) => !p)}
                   onUpdateField={actualizarLocal}
+                  onTagClick={handleTagPanelOpen}
                 />
               ) : (
                 <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
               )}
             </AnimatePresence>
           )}
+
+          {/* TagPanel — desliza desde la derecha sobre el editor, sin salir de la página */}
+          <TagPanel
+            tag={tagPanel}
+            ensayos={ensayos}
+            onClose={handleTagPanelClose}
+            onEnsayoClick={handleEnsayoClick}
+            onTagClick={(t) => setTagPanel(t)}
+          />
         </main>
       </div>
 
