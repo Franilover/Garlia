@@ -1,4 +1,5 @@
 import { parseBlob } from "music-metadata-browser";
+import { db } from "@/lib/api/client/db";
 
 export interface Track {
   name: string;
@@ -59,4 +60,25 @@ export async function loadTracksFromFiles(files: File[]): Promise<Track[]> {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return Promise.all(audioFiles.map(f => readTrackMeta(f)));
+}
+
+// ─── Persistencia de carpeta via Dexie ───────────────────────────────────────
+
+export async function saveDirectoryHandle(handle: FileSystemDirectoryHandle): Promise<void> {
+  try {
+    if (!db) return;
+    await db.reproductor_handles.put({ key: "lastFolder", handle });
+  } catch (e) {
+    console.warn("[Reproductor] No se pudo guardar el handle de carpeta:", e);
+  }
+}
+
+export async function loadDirectoryHandle(): Promise<FileSystemDirectoryHandle | null> {
+  try {
+    if (!db) return null;
+    const row = await db.reproductor_handles.get("lastFolder");
+    return row?.handle ?? null;
+  } catch {
+    return null;
+  }
 }

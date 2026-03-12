@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/app/providers/DataProvider";
 import { db } from "@/lib/api/client/db";
+import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 
 import { personajesQueries } from "@/lib/api/queries/wiki/personajes";
 import { criaturasQueries } from "@/lib/api/queries/wiki/criaturas";
@@ -35,7 +36,12 @@ const DEXIE_TABLES = new Set([
   "personajes", "criaturas", "items", "libros", "canciones",
   "tareas", "eventos", "recetas", "ingredientes",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
-  "compras",
+  "compras", "notas", "rutinas", "ejercicios_rutina",
+]);
+
+// Tablas que soportan escritura offline (encolado para sync posterior)
+const OFFLINE_WRITABLE = new Set([
+  "notas", "tareas", "eventos", "rutinas", "ejercicios_rutina",
 ]);
 
 interface UseSupabaseOptions {
@@ -50,7 +56,9 @@ async function readFromDexie<T>(tabla: string): Promise<T[]> {
     if (!db || !DEXIE_TABLES.has(tabla)) return [];
     const table = (db as any)[tabla];
     if (!table) return [];
-    return (await table.toArray()) as T[];
+    // Filtra registros marcados como eliminados
+    const rows = (await table.toArray()) as any[];
+    return rows.filter((r: any) => !r.deleted) as T[];
   } catch {
     return [];
   }
@@ -70,8 +78,6 @@ async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
   const { cache, updateCache } = useDataCache();
 
-  // FIX: siempre arranca con loading=true si hay internet para forzar fetch
-  // El caché solo se usa como valor inicial mientras carga, no para saltarse el fetch
   const [data, setData] = useState<T[]>(cache[tabla] || []);
   const [loading, setLoading] = useState(tabla !== "__skip__");
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +92,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     if (!isMounted.current) return;
     if (tabla === "__skip__") return;
 
-    // FIX: siempre muestra loading al fetchear, no depende del length del closure
     setLoading(true);
     setError(null);
 
@@ -127,25 +132,29 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         setData(finalData as T[]);
         updateCache(tabla, finalData);
         retryCount.current = 0;
-        writeToDexie(tabla, finalData); // guardar para uso offline posterior
+        writeToDexie(tabla, finalData);
       }
     } catch (err: any) {
       const isNetworkError =
-        err.message?.includes("fetch") || err.message?.includes("NetworkError");
+        err.message?.includes("fetch") ||
+        err.message?.includes("NetworkError") ||
+        err.message?.includes("Failed to fetch");
 
       if (isNetworkError) {
         // Red caída aunque navigator.onLine diga true — usar Dexie como fallback
         const localData = await readFromDexie<T>(tabla);
-        if (localData.length > 0 && isMounted.current) {
-          setData(localData);
-          setIsOffline(true);
-          setLoading(false);
-          return;
-        }
-        if (retryCount.current < 3) {
-          retryCount.current++;
-          setTimeout(() => fetchData(true), 1000 * retryCount.current);
-          return;
+        if (isMounted.current) {
+          if (localData.length > 0) {
+            setData(localData);
+            setIsOffline(true);
+            setLoading(false);
+            return;
+          }
+          if (retryCount.current < 3) {
+            retryCount.current++;
+            setTimeout(() => fetchData(true), 1000 * retryCount.current);
+            return;
+          }
         }
       }
       if (isMounted.current) setError(err.message);
@@ -154,36 +163,101 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla, updateCache, optionsKey]);
 
+  // ── addRow: guarda offline si no hay red ────────────────────────────────────
   const addRow = useCallback(async (newData: any) => {
+    if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
+      // Guardar localmente y encolar para sync
+      const row = { ...newData, status: "pending" };
+      await writeToDexie(tabla, [row]);
+      await enqueueOperation(tabla, "upsert", newData.id, row);
+      setData(prev => [...prev, row as any]);
+      return { data: row, error: null };
+    }
+
     try {
       const res = QUERIES_MAP[tabla]?.create
         ? await QUERIES_MAP[tabla].create(newData)
         : await supabase.from(tabla).insert([newData]).select().single();
       const created = res?.data || res;
-      if (created?.id) writeToDexie(tabla, [created]);
+      if (created?.id) {
+        writeToDexie(tabla, [{ ...created, status: "synced" }]);
+      }
       return { data: created, error: res?.error || null };
-    } catch (err: any) { return { data: null, error: err.message }; }
+    } catch (err: any) {
+      // Falló la red aunque onLine=true — guardar offline igual
+      if (OFFLINE_WRITABLE.has(tabla)) {
+        const row = { ...newData, status: "pending" };
+        await writeToDexie(tabla, [row]);
+        await enqueueOperation(tabla, "upsert", newData.id, row);
+        setData(prev => [...prev, row as any]);
+        return { data: row, error: null };
+      }
+      return { data: null, error: err.message };
+    }
   }, [tabla]);
 
+  // ── updateRow: guarda offline si no hay red ──────────────────────────────────
   const updateRow = useCallback(async (id: string | number, updates: any) => {
+    if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
+      const existing = db ? await (db as any)[tabla]?.get(id) : null;
+      const row = { ...existing, ...updates, id, status: "pending" };
+      await writeToDexie(tabla, [row]);
+      await enqueueOperation(tabla, "update", String(id), row);
+      setData(prev => prev.map((r: any) => r.id === id ? row : r));
+      return { data: row, error: null };
+    }
+
     try {
       const res = QUERIES_MAP[tabla]?.update
         ? await QUERIES_MAP[tabla].update(id, updates)
         : await supabase.from(tabla).update(updates).eq("id", id).select().single();
       const updated = res?.data || res;
-      if (updated?.id) writeToDexie(tabla, [updated]);
+      if (updated?.id) {
+        writeToDexie(tabla, [{ ...updated, status: "synced" }]);
+      }
       return { data: updated, error: res?.error || null };
-    } catch (err: any) { return { data: null, error: err.message }; }
+    } catch (err: any) {
+      if (OFFLINE_WRITABLE.has(tabla)) {
+        const existing = db ? await (db as any)[tabla]?.get(id) : null;
+        const row = { ...existing, ...updates, id, status: "pending" };
+        await writeToDexie(tabla, [row]);
+        await enqueueOperation(tabla, "update", String(id), row);
+        setData(prev => prev.map((r: any) => r.id === id ? row : r));
+        return { data: row, error: null };
+      }
+      return { data: null, error: err.message };
+    }
   }, [tabla]);
 
+  // ── deleteRow: marca como eliminado offline ──────────────────────────────────
   const deleteRow = useCallback(async (id: string | number) => {
+    if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
+      // Marcar como eliminado localmente, sincronizar después
+      const existing = db ? await (db as any)[tabla]?.get(id) : null;
+      if (existing) {
+        await writeToDexie(tabla, [{ ...existing, deleted: true, status: "pending" }]);
+      }
+      await enqueueOperation(tabla, "delete", String(id));
+      setData(prev => prev.filter((r: any) => r.id !== id));
+      return { error: null };
+    }
+
     try {
       const res = QUERIES_MAP[tabla]?.delete
         ? await QUERIES_MAP[tabla].delete(id)
         : await supabase.from(tabla).delete().eq("id", id);
-      try { if (db && DEXIE_TABLES.has(tabla)) await (db as any)[tabla]?.delete(id); } catch {}
+      try {
+        if (db && DEXIE_TABLES.has(tabla)) await (db as any)[tabla]?.delete(id);
+      } catch {}
       return { error: res?.error || null };
-    } catch (err: any) { return { error: err.message }; }
+    } catch (err: any) {
+      if (OFFLINE_WRITABLE.has(tabla)) {
+        await enqueueOperation(tabla, "delete", String(id));
+        setData(prev => prev.filter((r: any) => r.id !== id));
+        return { error: null };
+      }
+      return { error: err.message };
+    }
   }, [tabla]);
 
   useEffect(() => {
@@ -201,7 +275,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         }
       });
 
-    const handleOnline = () => fetchData(true);
+    const handleOnline = () => {
+      retryCount.current = 0;
+      fetchData(true);
+    };
     window.addEventListener("online", handleOnline);
 
     return () => {

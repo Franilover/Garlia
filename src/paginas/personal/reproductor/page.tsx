@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Track, VistaLibreria, loadTracksFromFiles } from "./componentes/types";
+import { Track, VistaLibreria, loadTracksFromFiles, saveDirectoryHandle, loadDirectoryHandle } from "./componentes/types";
 import { Sidebar } from "./componentes/Sidebar";
 import { NowPlaying } from "./componentes/NowPlaying";
 import { PlayerBar } from "./componentes/PlayerBar";
@@ -34,14 +34,62 @@ export default function ReproductorPage() {
     setSpinning(false);
   }, []);
 
+  // ── Cargar carpeta guardada al iniciar ────────────────────────────────────
+  useEffect(() => {
+    if (!("showDirectoryPicker" in window)) return;
+
+    (async () => {
+      const handle = await loadDirectoryHandle();
+      if (!handle) return;
+
+      // El navegador requiere confirmar permiso aunque ya se haya dado antes
+      // Cast a any porque TypeScript no incluye queryPermission/requestPermission
+      // en sus tipos de FileSystemDirectoryHandle por defecto
+      try {
+        const h = handle as any;
+        const perm = await h.queryPermission({ mode: "read" });
+        const granted =
+          perm === "granted"
+            ? "granted"
+            : await h.requestPermission({ mode: "read" });
+
+        if (granted !== "granted") return;
+
+        setLoading(true);
+        const files: File[] = [];
+        for await (const entry of (handle as any).values()) {
+          if (
+            entry.kind === "file" &&
+            /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(entry.name)
+          ) {
+            files.push(await entry.getFile());
+          }
+        }
+        const loaded = await loadTracksFromFiles(files);
+        applyTracks(loaded);
+      } catch (e) {
+        console.warn("[Reproductor] No se pudo restaurar la carpeta:", e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [applyTracks]);
+
   // ── Abrir carpeta ─────────────────────────────────────────────────────────
   const openFolder = useCallback(async () => {
     if ("showDirectoryPicker" in window) {
       try {
         const dir = await (window as any).showDirectoryPicker({ mode: "read" });
+
+        // Guardar en Dexie para la próxima sesión
+        await saveDirectoryHandle(dir);
+
         const files: File[] = [];
         for await (const entry of dir.values()) {
-          if (entry.kind === "file" && /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(entry.name)) {
+          if (
+            entry.kind === "file" &&
+            /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(entry.name)
+          ) {
             files.push(await entry.getFile());
           }
         }
@@ -54,6 +102,7 @@ export default function ReproductorPage() {
         setLoading(false);
       }
     } else {
+      // Fallback para Firefox (no soporta showDirectoryPicker)
       fileInputRef.current?.click();
     }
   }, [applyTracks]);

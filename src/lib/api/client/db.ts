@@ -211,6 +211,20 @@ export interface OfflineOperation {
   retries: number;
 }
 
+// ─── REPRODUCTOR ─────────────────────────────────────────────────────────────
+// Guarda el FileSystemDirectoryHandle de la última carpeta abierta
+export interface ReproductorHandle {
+  key: string; // siempre "lastFolder"
+  handle: FileSystemDirectoryHandle;
+}
+
+// ─── COMPRAS ─────────────────────────────────────────────────────────────────
+
+export interface Compra {
+  id: string;
+  [key: string]: any;
+}
+
 // ─── BASE DE DATOS ────────────────────────────────────────────────────────────
 
 class AgendaFraniDB extends Dexie {
@@ -235,6 +249,7 @@ class AgendaFraniDB extends Dexie {
   ropa_outfits!: Table<RopaOutfit, string>;
   diario_fotos!: Table<DiarioFoto, number>;
   dibujos!: Table<Dibujo, number>;
+  compras!: Table<Compra, string>;
 
   // Ensayos
   notas!: Table<Nota, string>;
@@ -245,6 +260,9 @@ class AgendaFraniDB extends Dexie {
 
   // Cola universal de operaciones offline
   offline_queue!: Table<OfflineOperation, number>;
+
+  // Reproductor
+  reproductor_handles!: Table<ReproductorHandle, string>;
 
   constructor() {
     super("AgendaFranilover");
@@ -273,7 +291,6 @@ class AgendaFraniDB extends Dexie {
     });
 
     // ── v2: agrega sync offline ───────────────────────────────────────────────
-    // Dexie solo necesita los índices nuevos; los datos existentes se conservan.
     this.version(2).stores({
       personajes:         "id, nombre, visible",
       criaturas:          "id, nombre, habitat, alma, pensamiento",
@@ -285,7 +302,6 @@ class AgendaFraniDB extends Dexie {
       secciones_cancion:  "id, cancion_id, orden",
       reinos:             "id, nombre, orden",
       relaciones:         "id, personaje_id",
-      // índice status agregado a tareas y eventos
       tareas:             "id, username, completada, created_at, status",
       eventos:            "id, username, fecha, tipo, status",
       recetas:            "id, autor_id, categoria, created_at",
@@ -295,10 +311,37 @@ class AgendaFraniDB extends Dexie {
       diario_fotos:       "++id, categoria, created_at",
       dibujos:            "++id, categoria",
       notas:              "id, status, updated_at",
-      // tablas nuevas
       rutinas:            "id, status",
       ejercicios_rutina:  "id, rutina_id, status",
       offline_queue:      "++id, table, operation, recordId, timestamp",
+    });
+
+    // ── v3: agrega reproductor y compras ─────────────────────────────────────
+    this.version(3).stores({
+      personajes:           "id, nombre, visible",
+      criaturas:            "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes:   "id, criatura_id, tipo",
+      items:                "id, nombre, categoria",
+      libros:               "id, created_at",
+      capitulos:            "id, libro_id, orden, fecha_publicacion",
+      canciones:            "id, titulo, personaje, visible, created_at",
+      secciones_cancion:    "id, cancion_id, orden",
+      reinos:               "id, nombre, orden",
+      relaciones:           "id, personaje_id",
+      tareas:               "id, username, completada, created_at, status",
+      eventos:              "id, username, fecha, tipo, status",
+      recetas:              "id, autor_id, categoria, created_at",
+      ingredientes:         "id, user_id",
+      ropa:                 "id, user_id, created_at",
+      ropa_outfits:         "id, user_id, created_at",
+      diario_fotos:         "++id, categoria, created_at",
+      dibujos:              "++id, categoria",
+      notas:                "id, status, updated_at",
+      rutinas:              "id, status",
+      ejercicios_rutina:    "id, rutina_id, status",
+      offline_queue:        "++id, table, operation, recordId, timestamp",
+      compras:              "id",
+      reproductor_handles:  "key", // clave primaria = "lastFolder"
     });
   }
 }
