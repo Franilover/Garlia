@@ -9,6 +9,7 @@ interface Props {
   search: string;
   vista: VistaLibreria;
   loading: boolean;
+  loadProgress: { done: number; total: number };
   isOpen: boolean;
   onToggle: () => void;
   onSearch: (v: string) => void;
@@ -26,7 +27,7 @@ const VISTAS: { id: VistaLibreria; label: string; icon: any }[] = [
 ];
 
 export function Sidebar({
-  tracks, filtered, currentIdx, search, vista, loading, isOpen, onToggle,
+  tracks, filtered, currentIdx, search, vista, loading, loadProgress, isOpen, onToggle,
   onSearch, onVista, onOpenFolder, onPlayTrack,
   fileInputRef, onFileInputChange,
 }: Props) {
@@ -39,6 +40,10 @@ export function Sidebar({
         return acc;
       }, {} as Record<string, Track[]>)
     : null;
+
+  const pct = loadProgress.total > 0
+    ? Math.round((loadProgress.done / loadProgress.total) * 100)
+    : 0;
 
   return (
     <aside
@@ -53,7 +58,6 @@ export function Sidebar({
         flexShrink: 0,
       }}
     >
-      {/* Input oculto para Firefox */}
       <input
         ref={fileInputRef}
         type="file"
@@ -65,7 +69,7 @@ export function Sidebar({
         onChange={onFileInputChange}
       />
 
-      {/* Toggle button — siempre visible */}
+      {/* Toggle button */}
       <button
         onClick={onToggle}
         className="absolute z-10 flex items-center justify-center transition-all"
@@ -93,7 +97,7 @@ export function Sidebar({
         {isOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
       </button>
 
-      {/* Contenido — se oculta cuando está cerrado */}
+      {/* Contenido */}
       <div
         className="flex flex-col flex-1 overflow-hidden"
         style={{
@@ -148,9 +152,7 @@ export function Sidebar({
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[8px] font-black uppercase tracking-widest transition-all"
                 style={{
                   color: active ? "var(--accent)" : "rgba(255,255,255,0.3)",
-                  borderTop: "none",
-                  borderLeft: "none",
-                  borderRight: "none",
+                  borderTop: "none", borderLeft: "none", borderRight: "none",
                   borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
                   background: "transparent",
                   cursor: "pointer",
@@ -189,11 +191,65 @@ export function Sidebar({
           style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}
         >
           {loading ? (
-            <div className="p-8 text-center">
-              <Loader2 size={22} className="animate-spin mx-auto mb-3" style={{ color: "rgba(255,255,255,0.3)" }} />
-              <p className="text-[9px] uppercase tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.2)" }}>
-                Leyendo metadatos...
-              </p>
+            <div className="p-6 flex flex-col gap-3">
+              {/* Barra de progreso */}
+              {loadProgress.total > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <p className="text-[9px] uppercase tracking-[0.2em]"
+                      style={{ color: "rgba(255,255,255,0.3)" }}
+                    >
+                      Leyendo metadatos...
+                    </p>
+                    <p className="text-[9px] font-mono"
+                      style={{ color: "rgba(255,255,255,0.3)" }}
+                    >
+                      {loadProgress.done}/{loadProgress.total}
+                    </p>
+                  </div>
+                  <div style={{
+                    height: 2,
+                    background: "rgba(255,255,255,0.08)",
+                    borderRadius: 2,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      height: "100%",
+                      width: `${pct}%`,
+                      background: "var(--accent)",
+                      borderRadius: 2,
+                      transition: "width 0.2s ease",
+                    }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Muestra canciones que ya llegaron mientras sigue cargando */}
+              {tracks.length > 0 && (
+                <div className="flex flex-col gap-0 mt-2">
+                  {tracks.map((t, i) => {
+                    const globalIdx = tracks.indexOf(t);
+                    const isActive = globalIdx === currentIdx;
+                    return (
+                      <TrackRow
+                        key={t.url}
+                        track={t}
+                        index={i + 1}
+                        isActive={isActive}
+                        onClick={() => onPlayTrack(globalIdx)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              {tracks.length === 0 && (
+                <div className="text-center mt-4">
+                  <Loader2 size={18} className="animate-spin mx-auto mb-2"
+                    style={{ color: "rgba(255,255,255,0.2)" }}
+                  />
+                </div>
+              )}
             </div>
           ) : filtered.length === 0 ? (
             <div className="p-8 text-center">

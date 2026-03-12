@@ -24,14 +24,63 @@ export default function ReproductorPage() {
   const [spinning, setSpinning]       = useState(false);
   const [vista, setVista]             = useState<VistaLibreria>("canciones");
   const [loading, setLoading]         = useState(false);
+  const [loadProgress, setLoadProgress] = useState({ done: 0, total: 0 });
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // Aplica tracks — resetea el estado del reproductor
   const applyTracks = useCallback((loaded: Track[]) => {
     setTracks(loaded);
     setFiltered(loaded);
     setCurrentIdx(-1);
     setIsPlaying(false);
     setSpinning(false);
+  }, []);
+
+  // Carga archivos mostrando progreso en tiempo real
+  const loadFiles = useCallback(async (files: File[]) => {
+    setLoading(true);
+    setLoadProgress({ done: 0, total: 0 });
+
+    // Cuenta los archivos de audio primero para mostrar el total
+    const audioFiles = [...files].filter(f =>
+      /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(f.name)
+    );
+    setLoadProgress({ done: 0, total: audioFiles.length });
+
+    // Buffer para actualizar el estado en lotes (evita re-renders por cada archivo)
+    let buffer: Track[] = [];
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const flush = (finalTracks?: Track[]) => {
+      if (flushTimer) clearTimeout(flushTimer);
+      const toShow = finalTracks ?? [...buffer];
+      if (toShow.length > 0) {
+        setTracks([...toShow].sort((a, b) => a.name.localeCompare(b.name)));
+        setFiltered([...toShow].sort((a, b) => a.name.localeCompare(b.name)));
+      }
+    };
+
+    const loaded = await loadTracksFromFiles(files, (track, done, total) => {
+      buffer.push(track);
+      setLoadProgress({ done, total });
+
+      // Actualiza la lista cada 10 canciones o cada 300ms — lo que ocurra primero
+      if (buffer.length >= 10) {
+        flush();
+        buffer = [];
+      } else {
+        if (flushTimer) clearTimeout(flushTimer);
+        flushTimer = setTimeout(() => { flush(); buffer = []; }, 300);
+      }
+    });
+
+    // Flush final con la lista completa y ordenada
+    flush(loaded);
+    setCurrentIdx(-1);
+    setIsPlaying(false);
+    setSpinning(false);
+    setLoading(false);
+    setLoadProgress({ done: 0, total: 0 });
   }, []);
 
   // ── Cargar carpeta guardada al iniciar ────────────────────────────────────
@@ -42,89 +91,59 @@ export default function ReproductorPage() {
       const handle = await loadDirectoryHandle();
       if (!handle) return;
 
-      // El navegador requiere confirmar permiso aunque ya se haya dado antes
-      // Cast a any porque TypeScript no incluye queryPermission/requestPermission
-      // en sus tipos de FileSystemDirectoryHandle por defecto
       try {
         const h = handle as any;
         const perm = await h.queryPermission({ mode: "read" });
-        const granted =
-          perm === "granted"
-            ? "granted"
-            : await h.requestPermission({ mode: "read" });
-
+        const granted = perm === "granted" ? "granted" : await h.requestPermission({ mode: "read" });
         if (granted !== "granted") return;
 
-        setLoading(true);
         const files: File[] = [];
-        for await (const entry of (handle as any).values()) {
-          if (
-            entry.kind === "file" &&
-            /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(entry.name)
-          ) {
+        for await (const entry of h.values()) {
+          if (entry.kind === "file" && /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(entry.name)) {
             files.push(await entry.getFile());
           }
         }
-        const loaded = await loadTracksFromFiles(files);
-        applyTracks(loaded);
+        await loadFiles(files);
       } catch (e) {
         console.warn("[Reproductor] No se pudo restaurar la carpeta:", e);
-      } finally {
-        setLoading(false);
       }
     })();
-  }, [applyTracks]);
+  }, [loadFiles]);
 
   // ── Abrir carpeta ─────────────────────────────────────────────────────────
   const openFolder = useCallback(async () => {
     if ("showDirectoryPicker" in window) {
       try {
         const dir = await (window as any).showDirectoryPicker({ mode: "read" });
-
-        // Guardar en Dexie para la próxima sesión
         await saveDirectoryHandle(dir);
 
         const files: File[] = [];
         for await (const entry of dir.values()) {
-          if (
-            entry.kind === "file" &&
-            /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(entry.name)
-          ) {
+          if (entry.kind === "file" && /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(entry.name)) {
             files.push(await entry.getFile());
           }
         }
-        setLoading(true);
-        const loaded = await loadTracksFromFiles(files);
-        applyTracks(loaded);
+        await loadFiles(files);
       } catch (e: any) {
         if (e.name !== "AbortError") console.error(e);
-      } finally {
-        setLoading(false);
       }
     } else {
-      // Fallback para Firefox (no soporta showDirectoryPicker)
       fileInputRef.current?.click();
     }
-  }, [applyTracks]);
+  }, [loadFiles]);
 
   const onFileInputChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = [...(e.target.files || [])];
     if (!files.length) return;
-    setLoading(true);
-    const loaded = await loadTracksFromFiles(files);
-    applyTracks(loaded);
-    setLoading(false);
+    await loadFiles(files);
     e.target.value = "";
-  }, [applyTracks]);
+  }, [loadFiles]);
 
   // ── Drag & drop ───────────────────────────────────────────────────────────
   const onDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const loaded = await loadTracksFromFiles([...e.dataTransfer.files]);
-    applyTracks(loaded);
-    setLoading(false);
-  }, [applyTracks]);
+    await loadFiles([...e.dataTransfer.files]);
+  }, [loadFiles]);
 
   // ── Playback ──────────────────────────────────────────────────────────────
   const playTrack = useCallback((idx: number) => {
@@ -227,6 +246,7 @@ export default function ReproductorPage() {
         search={search}
         vista={vista}
         loading={loading}
+        loadProgress={loadProgress}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(o => !o)}
         onSearch={setSearch}

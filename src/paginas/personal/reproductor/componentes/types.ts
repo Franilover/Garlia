@@ -18,13 +18,13 @@ export function fmt(s: number | null) {
   return `${m}:${ss}`;
 }
 
-// Lee metadatos ID3 reales del archivo (título, artista, álbum, duración)
+// Lee metadatos de un archivo — intenta parseBlob, fallback a Audio nativo
 export async function readTrackMeta(file: File): Promise<Track> {
   const url = URL.createObjectURL(file);
   const baseName = file.name.replace(/\.[^.]+$/, "").replace(/^\d+[\.\s\-]+/, "");
 
-  // Intenta con music-metadata-browser (paquete instalado localmente)
   try {
+    // skipCovers evita leer la carátula completa — mucho más rápido en FLAC
     const meta = await parseBlob(file, { duration: true, skipCovers: true });
     const { title, artist, album } = meta.common;
     const duration = meta.format.duration;
@@ -36,7 +36,6 @@ export async function readTrackMeta(file: File): Promise<Track> {
       url,
     };
   } catch {
-    // Fallback: duración vía Audio nativo del navegador
     const duration = await new Promise<number | null>((resolve) => {
       const audio = new Audio(url);
       audio.addEventListener("loadedmetadata", () => resolve(audio.duration));
@@ -53,13 +52,43 @@ export async function readTrackMeta(file: File): Promise<Track> {
   }
 }
 
-// Carga todos los archivos leyendo sus metadatos reales
-export async function loadTracksFromFiles(files: File[]): Promise<Track[]> {
+// Procesa archivos en lotes con concurrencia limitada
+// onProgress se llama cada vez que llega una canción nueva — permite mostrar progreso
+async function processWithConcurrency(
+  files: File[],
+  concurrency: number,
+  onProgress?: (track: Track, done: number, total: number) => void
+): Promise<Track[]> {
+  const results: Track[] = new Array(files.length);
+  let index = 0;
+  let done = 0;
+
+  async function worker() {
+    while (index < files.length) {
+      const i = index++;
+      results[i] = await readTrackMeta(files[i]);
+      done++;
+      onProgress?.(results[i], done, files.length);
+    }
+  }
+
+  // Lanza N workers en paralelo
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  return results;
+}
+
+// Carga todos los archivos con concurrencia limitada (8 a la vez)
+// onProgress: callback opcional para mostrar canciones apenas llegan
+export async function loadTracksFromFiles(
+  files: File[],
+  onProgress?: (track: Track, done: number, total: number) => void
+): Promise<Track[]> {
   const audioFiles = [...files]
     .filter(f => /\.(mp3|flac|wav|ogg|m4a|aac|opus)$/i.test(f.name))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return Promise.all(audioFiles.map(f => readTrackMeta(f)));
+  // 8 archivos en paralelo — buen balance entre velocidad y no saturar el navegador
+  return processWithConcurrency(audioFiles, 8, onProgress);
 }
 
 // ─── Persistencia de carpeta via Dexie ───────────────────────────────────────
