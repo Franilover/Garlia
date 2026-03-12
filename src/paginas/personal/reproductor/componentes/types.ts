@@ -1,3 +1,5 @@
+import { parseBlob } from "music-metadata-browser";
+
 export interface Track {
   name: string;
   artist: string;
@@ -18,13 +20,13 @@ export function fmt(s: number | null) {
 // Lee metadatos ID3 reales del archivo (título, artista, álbum, duración)
 export async function readTrackMeta(file: File): Promise<Track> {
   const url = URL.createObjectURL(file);
+  const baseName = file.name.replace(/\.[^.]+$/, "").replace(/^\d+[\.\s\-]+/, "");
+
+  // Intenta con music-metadata-browser (paquete instalado localmente)
   try {
-    const { parseBlob } = await import("music-metadata-browser");
     const meta = await parseBlob(file, { duration: true, skipCovers: true });
     const { title, artist, album } = meta.common;
     const duration = meta.format.duration;
-    // Fallback al nombre del archivo si no hay metadatos
-    const baseName = file.name.replace(/\.[^.]+$/, "").replace(/^\d+[\.\s\-]+/, "");
     return {
       name:     title   || baseName,
       artist:   artist  || "Desconocido",
@@ -33,9 +35,20 @@ export async function readTrackMeta(file: File): Promise<Track> {
       url,
     };
   } catch {
-    // Si falla la lectura de metadatos, usar nombre del archivo
-    const baseName = file.name.replace(/\.[^.]+$/, "").replace(/^\d+[\.\s\-]+/, "");
-    return { name: baseName, artist: "Desconocido", album: "Desconocido", duration: null, url };
+    // Fallback: duración vía Audio nativo del navegador
+    const duration = await new Promise<number | null>((resolve) => {
+      const audio = new Audio(url);
+      audio.addEventListener("loadedmetadata", () => resolve(audio.duration));
+      audio.addEventListener("error", () => resolve(null));
+      setTimeout(() => resolve(null), 5000);
+    });
+    return {
+      name:     baseName,
+      artist:   "Desconocido",
+      album:    "Desconocido",
+      duration: duration ? Math.floor(duration) : null,
+      url,
+    };
   }
 }
 
