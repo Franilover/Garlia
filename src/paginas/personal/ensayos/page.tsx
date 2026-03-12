@@ -326,7 +326,8 @@ export default function Ensayos() {
                   editMode={editMode}
                   onToggleEditMode={() => setEditMode((p) => !p)}
                   onUpdateField={actualizarLocal}
-                  onTagClick={handleTagPanelOpen}
+                  ensayos={ensayos}
+                  onSelectEnsayo={handleEnsayoClick}
                 />
               ) : (
                 <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
@@ -339,7 +340,7 @@ export default function Ensayos() {
             tag={tagPanel}
             ensayos={ensayos}
             onClose={handleTagPanelClose}
-            onEnsayoClick={handleEnsayoClick}
+            onSelectEnsayo={handleEnsayoClick}
             onTagClick={(t) => setTagPanel(t)}
           />
         </main>
