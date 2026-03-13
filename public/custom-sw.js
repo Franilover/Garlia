@@ -60,7 +60,6 @@ const APP_ROUTES = [
   "/personal/dibujos",
   "/personal/fotos",
   "/personal/ropa",
-  "/personal/reproductor",
   "/personal/sobre-mi",
   "/wiki",
   "/wiki/enciclopedia",

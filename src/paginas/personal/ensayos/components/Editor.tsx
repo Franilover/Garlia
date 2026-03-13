@@ -1,18 +1,20 @@
 "use client";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Save, Eye, Edit3, Tag, Bold, Italic, Quote, List, Heading2, Code } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { TagPanel } from "./TagPanel";
+import { ZoteroSource } from "../page";
 
 interface EditorProps {
   ensayo: any;
-  ensayos: any[]; // todos los ensayos para el grafo y backlinks
+  ensayos: any[];
+  sources?: ZoteroSource[];
   editMode: boolean;
   onToggleEditMode: () => void;
   onUpdateField: (id: string, field: string, value: any) => void;
-  onSelectEnsayo: (id: string) => void; // para navegar desde el TagPanel
+  onSelectEnsayo: (id: string) => void;
 }
 
 interface ToolbarAction {
@@ -32,8 +34,116 @@ const TOOLBAR_ACTIONS: ToolbarAction[] = [
   { icon: <Code size={12} />, label: "Código", prefix: "`", suffix: "`" },
 ];
 
-export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateField, onSelectEnsayo }: EditorProps) {
+// ── Autocompletado de citas ───────────────────────────────────────────────────
+
+interface CitePopupProps {
+  sources: ZoteroSource[];
+  query: string;
+  position: { top: number; left: number };
+  onSelect: (source: ZoteroSource) => void;
+  onClose: () => void;
+  activeIndex: number;
+}
+
+function CitePopup({ sources, query, position, onSelect, onClose, activeIndex }: CitePopupProps) {
+  const filtered = sources
+    .filter(s =>
+      !query ||
+      s.citekey?.toLowerCase().includes(query.toLowerCase()) ||
+      s.title.toLowerCase().includes(query.toLowerCase()) ||
+      s.author.toLowerCase().includes(query.toLowerCase())
+    )
+    .slice(0, 8);
+
+  if (filtered.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -4, scale: 0.97 }}
+      transition={{ duration: 0.12 }}
+      className="absolute z-50 flex flex-col overflow-hidden"
+      style={{
+        top: position.top,
+        left: position.left,
+        minWidth: 280,
+        maxWidth: 360,
+        background: "var(--white-custom)",
+        border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+      }}
+    >
+      <div className="px-3 py-1.5 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        <p className="font-mono text-[8px] uppercase tracking-[0.25em]"
+          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+        >
+          Citar fuente · {filtered.length} resultado{filtered.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+      {filtered.map((src, i) => {
+        const isActive = i === activeIndex;
+        const key = src.citekey || `${src.author}-${src.year}-${i}`;
+        return (
+          <button
+            key={key}
+            onMouseDown={(e) => { e.preventDefault(); onSelect(src); }}
+            className="flex flex-col px-3 py-2.5 text-left transition-all w-full"
+            style={{
+              background: isActive
+                ? "color-mix(in srgb, var(--accent) 10%, transparent)"
+                : "transparent",
+              borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",
+            }}
+          >
+            <span className="text-[11px] font-medium truncate"
+              style={{ color: "var(--primary)" }}
+            >
+              {src.title}
+            </span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="font-mono text-[9px]"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                {src.author}{src.year ? ` · ${src.year}` : ""}
+              </span>
+              {src.citekey && (
+                <span className="font-mono text-[9px] px-1.5 py-0.5"
+                  style={{
+                    background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                    color: "var(--accent)",
+                    borderRadius: 4,
+                  }}
+                >
+                  @{src.citekey}
+                </span>
+              )}
+            </div>
+          </button>
+        );
+      })}
+      <div className="px-3 py-1.5 border-t"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
+      >
+        <p className="font-mono text-[8px]"
+          style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+        >
+          ↑↓ navegar · Enter seleccionar · Esc cerrar
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Editor principal ──────────────────────────────────────────────────────────
+
+export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMode, onUpdateField, onSelectEnsayo }: EditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const wordCount = ensayo.contenido?.split(/\s+/).filter(Boolean).length || 0;
   const charCount = ensayo.contenido?.length || 0;
 
@@ -41,24 +151,114 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
   const [tagInputFocused, setTagInputFocused] = useState(false);
   const [tagPanelActivo, setTagPanelActivo] = useState<string | null>(null);
 
+  // Estado del popup de citas
+  const [citePopup, setCitePopup] = useState<{
+    query: string;
+    atStart: number; // posición del @ en el texto
+    position: { top: number; left: number };
+  } | null>(null);
+  const [citeActiveIdx, setCiteActiveIdx] = useState(0);
+
   useEffect(() => {
     setTagInput(ensayo.tags?.join(", ") || "");
   }, [ensayo.id]);
 
-  const applyFormat = (action: ToolbarAction) => {
+  // ── Detecta @... en el textarea ───────────────────────────────────────────
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    onUpdateField(ensayo.id, "contenido", value);
+
+    if (!sources.length) return;
+
+    const cursor = e.target.selectionStart;
+    const textToCursor = value.substring(0, cursor);
+    const match = textToCursor.match(/@([\w\-.]*)$/);
+
+    if (match) {
+      // Calcula posición visual del popup
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      // Posición estimada basada en el cursor
+      const linesBefore = textToCursor.split("\n");
+      const lineHeight = 28; // aprox px por línea
+      const linesCount = linesBefore.length;
+      const top = Math.min(linesCount * lineHeight + 8, textarea.offsetHeight - 200);
+      const left = 0;
+
+      setCitePopup({
+        query: match[1],
+        atStart: cursor - match[0].length,
+        position: { top, left },
+      });
+      setCiteActiveIdx(0);
+    } else {
+      setCitePopup(null);
+    }
+  }, [ensayo.id, onUpdateField, sources]);
+
+  // ── Inserta la cita seleccionada ──────────────────────────────────────────
+  const insertCite = useCallback((src: ZoteroSource) => {
+    if (!citePopup) return;
     const textarea = textareaRef.current;
     if (!textarea) return;
 
+    const cite = src.citekey
+      ? `[@${src.citekey}]`
+      : `[@${src.author.split(",")[0].trim().toLowerCase()}${src.year}]`;
+
+    const before = ensayo.contenido.substring(0, citePopup.atStart);
+    const after = ensayo.contenido.substring(textarea.selectionStart);
+    const newContent = before + cite + after;
+
+    onUpdateField(ensayo.id, "contenido", newContent);
+    setCitePopup(null);
+
+    // Mueve el cursor al final de la cita insertada
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const pos = citePopup.atStart + cite.length;
+      textarea.setSelectionRange(pos, pos);
+    });
+  }, [citePopup, ensayo.id, ensayo.contenido, onUpdateField]);
+
+  // ── Teclado en el textarea ────────────────────────────────────────────────
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!citePopup || !sources.length) return;
+
+    const filtered = sources
+      .filter(s =>
+        !citePopup.query ||
+        s.citekey?.toLowerCase().includes(citePopup.query.toLowerCase()) ||
+        s.title.toLowerCase().includes(citePopup.query.toLowerCase()) ||
+        s.author.toLowerCase().includes(citePopup.query.toLowerCase())
+      )
+      .slice(0, 8);
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setCiteActiveIdx(i => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setCiteActiveIdx(i => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" && filtered[citeActiveIdx]) {
+      e.preventDefault();
+      insertCite(filtered[citeActiveIdx]);
+    } else if (e.key === "Escape") {
+      setCitePopup(null);
+    }
+  }, [citePopup, sources, citeActiveIdx, insertCite]);
+
+  // ── Toolbar de Markdown ───────────────────────────────────────────────────
+  const applyFormat = (action: ToolbarAction) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selected = textarea.value.substring(start, end);
     const before = textarea.value.substring(0, start);
     const after = textarea.value.substring(end);
-
-    let newText: string;
-    let newCursorStart: number;
-    let newCursorEnd: number;
-
+    let newText: string, newCursorStart: number, newCursorEnd: number;
     if (action.block) {
       const lineStart = before.lastIndexOf("\n") + 1;
       const beforeLine = textarea.value.substring(0, lineStart);
@@ -72,7 +272,6 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
       newCursorStart = start + action.prefix.length;
       newCursorEnd = start + insertion.length - action.suffix.length;
     }
-
     onUpdateField(ensayo.id, "contenido", newText);
     requestAnimationFrame(() => {
       textarea.focus();
@@ -83,8 +282,7 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
   const parsedTags: string[] = ensayo.tags || [];
 
   return (
-    // relative para que TagPanel se posicione dentro del editor
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <motion.div
         key={ensayo.id}
         initial={{ opacity: 0, y: 12 }}
@@ -102,8 +300,6 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
           }}
         >
           <Tag size={11} className="shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }} />
-
-          {/* Tags como chips clickeables cuando no está editando */}
           {!tagInputFocused && parsedTags.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 flex-1">
               {parsedTags.map(tag => (
@@ -158,10 +354,7 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
               onChange={(e) => {
                 const raw = e.target.value;
                 setTagInput(raw);
-                const parsed = raw
-                  .split(",")
-                  .map((t: string) => t.trim().toLowerCase())
-                  .filter((t: string) => t !== "");
+                const parsed = raw.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "");
                 onUpdateField(ensayo.id, "tags", parsed);
               }}
               onFocus={() => setTagInputFocused(true)}
@@ -171,15 +364,10 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
               placeholder="ETIQUETAS, SEPARADAS, POR, COMA"
             />
           )}
-
           <button
             onClick={onToggleEditMode}
             className="py-1.5 px-3 md:px-4 text-[10px] flex items-center gap-1.5 transition-all shrink-0"
-            style={{
-              background: "var(--primary)",
-              color: "var(--btn-text)",
-              borderRadius: "var(--radius-btn)",
-            }}
+            style={{ background: "var(--primary)", color: "var(--btn-text)", borderRadius: "var(--radius-btn)" }}
             title={editMode ? "Vista previa (Ctrl+E)" : "Editar (Ctrl+E)"}
           >
             {editMode
@@ -189,7 +377,7 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
           </button>
         </div>
 
-        {/* Markdown toolbar */}
+        {/* Toolbar Markdown */}
         {editMode && (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
@@ -229,10 +417,24 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
             >
               Markdown
             </span>
+            {/* Indicador de Zotero conectado */}
+            {sources.length > 0 && (
+              <>
+                <div className="ml-2 h-4 w-px shrink-0"
+                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+                />
+                <span className="ml-2 font-mono text-[9px] uppercase tracking-widest shrink-0"
+                  style={{ color: "var(--accent)", opacity: 0.7 }}
+                  title={`${sources.length} fuentes de Zotero — escribe @ para citar`}
+                >
+                  @ {sources.length} fuentes
+                </span>
+              </>
+            )}
           </motion.div>
         )}
 
-        {/* Main editor card */}
+        {/* Editor card */}
         <div
           className="flex flex-col gap-0 flex-1 p-5 md:p-8"
           style={{
@@ -253,16 +455,37 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
           <div className="h-px mb-5 md:mb-6"
             style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
           />
-          <div className="flex-1">
+
+          {/* Textarea con popup de citas */}
+          <div className="flex-1 relative">
             {editMode ? (
-              <textarea
-                ref={textareaRef}
-                value={ensayo.contenido}
-                onChange={(e) => onUpdateField(ensayo.id, "contenido", e.target.value)}
-                className="w-full min-h-[50vh] md:min-h-125 bg-transparent outline-none border-none resize-none text-[15px] md:text-[16px] leading-[1.9] font-light scrollbar-thin"
-                style={{ color: "color-mix(in srgb, var(--foreground) 75%, transparent)" }}
-                placeholder={"Escribe en Markdown...\n\n## Subtítulos con ##\n**negrita**, *cursiva*\n> citas con >"}
-              />
+              <>
+                <textarea
+                  ref={textareaRef}
+                  value={ensayo.contenido}
+                  onChange={handleContentChange}
+                  onKeyDown={handleKeyDown}
+                  className="w-full min-h-[50vh] md:min-h-125 bg-transparent outline-none border-none resize-none text-[15px] md:text-[16px] leading-[1.9] font-light scrollbar-thin"
+                  style={{ color: "color-mix(in srgb, var(--foreground) 75%, transparent)" }}
+                  placeholder={sources.length
+                    ? "Escribe en Markdown... Usa @ para citar fuentes de Zotero"
+                    : "Escribe en Markdown...\n\n## Subtítulos con ##\n**negrita**, *cursiva*\n> citas con >"
+                  }
+                />
+                {/* Popup de autocompletado */}
+                <AnimatePresence>
+                  {citePopup && (
+                    <CitePopup
+                      sources={sources}
+                      query={citePopup.query}
+                      position={citePopup.position}
+                      onSelect={insertCite}
+                      onClose={() => setCitePopup(null)}
+                      activeIndex={citeActiveIdx}
+                    />
+                  )}
+                </AnimatePresence>
+              </>
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -276,6 +499,7 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
               </motion.div>
             )}
           </div>
+
           <div
             className="flex items-center gap-3 md:gap-4 pt-4 mt-4 flex-wrap"
             style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
@@ -300,7 +524,7 @@ export function Editor({ ensayo, ensayos, editMode, onToggleEditMode, onUpdateFi
         </div>
       </motion.div>
 
-      {/* TagPanel — se monta encima del editor, dentro del mismo contenedor */}
+      {/* TagPanel */}
       <TagPanel
         tag={tagPanelActivo}
         ensayos={ensayos}

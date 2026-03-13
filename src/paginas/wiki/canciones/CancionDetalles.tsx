@@ -547,7 +547,7 @@ export default function CancionDetallesPage() {
         const { data, error } = await supabase
           .from("secciones_cancion")
           .insert([{
-            cancion_id: parseInt(id),
+            cancion_id: id,
             nombre_seccion: sec.nombre_seccion,
             letra_es: sec.letra_es || "",
             letra_en: sec.letra_en || "",
