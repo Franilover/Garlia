@@ -37,11 +37,13 @@ const DEXIE_TABLES = new Set([
   "tareas", "eventos", "recetas", "ingredientes",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
   "compras", "notas", "rutinas", "ejercicios_rutina",
+  "secciones_cancion",   // ← LyricStudio offline
 ]);
 
 // Tablas que soportan escritura offline (encolado para sync posterior)
 const OFFLINE_WRITABLE = new Set([
   "notas", "tareas", "eventos", "rutinas", "ejercicios_rutina",
+  "secciones_cancion",   // ← LyricStudio offline
 ]);
 
 interface UseSupabaseOptions {

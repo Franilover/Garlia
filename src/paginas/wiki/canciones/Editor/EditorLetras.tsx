@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * LyricStudio v2
+ * LyricStudio v3 — con draft local offline
  * ─ Sidebar colapsable con búsqueda + filtros completos
  * ─ Vista simple (1 idioma) o vista dividida (2 idiomas en paralelo)
  * ─ Auto-save por sección, Ctrl+S manual
@@ -13,9 +13,12 @@ import {
   Check, Loader2, Eye, EyeOff, Music, RefreshCw,
   ChevronUp, BookOpen, Layers, SlidersHorizontal,
   CheckCircle2, AlertCircle, PanelLeftClose, PanelLeftOpen,
-  Columns2,
+  Columns2, WifiOff,
 } from "lucide-react";
 import { cancionesQueries } from "@/lib/api/queries/wiki/canciones";
+import { db } from "@/lib/api/client/db";
+import { enqueueOperation } from "@/hooks/data/useOfflineSync";
+import { supabase } from "@/lib/api/client/supabase";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TIPOS
@@ -66,7 +69,7 @@ const IDIOMAS: { id: IdiomaKey; label: string; nombre: string; campo: keyof Secc
   { id: "romaji", label: "RO", nombre: "Romaji",   campo: "letra_romaji" },
 ];
 
-const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"] as const;
+const ESTADOS = ["EN PROCESO", "BORRADOR", "TERMINADA"] as const;
 
 const ESTADO_COLOR: Record<string, string> = {
   TERMINADA:    "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
@@ -91,41 +94,148 @@ function unique(arr: string[]): string[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HOOK: lista de canciones
+// DEXIE HELPERS — secciones_cancion
 // ─────────────────────────────────────────────────────────────────────────────
+// NOTA: asegúrate de tener "secciones_cancion" registrada en tu db Dexie y
+// añadida a DEXIE_TABLES + OFFLINE_WRITABLE en useSupabaseData.ts
+// Ej: db.version(N).stores({ secciones_cancion: "id, cancion_id, orden" })
 
-function useCanciones() {
-  const [canciones, setCanciones] = useState<Cancion[]>([]);
-  const [loading, setLoading]     = useState(true);
+const TABLA_SEC = "secciones_cancion";
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await cancionesQueries.getAll({ isAdmin: true });
-      setCanciones(data as Cancion[]);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  }, []);
+async function dexieSecRead(cancionId: string): Promise<Seccion[]> {
+  try {
+    const table = (db as any)[TABLA_SEC];
+    if (!table) return [];
+    const rows = (await table.toArray()) as Seccion[];
+    return rows
+      .filter((r: any) => r.cancion_id === cancionId && !r.deleted)
+      .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+  } catch { return []; }
+}
 
-  useEffect(() => { load(); }, [load]);
-  return { canciones, loading, refetch: load };
+async function dexieSecWrite(rows: any[]): Promise<void> {
+  try {
+    const table = (db as any)[TABLA_SEC];
+    if (!table || rows.length === 0) return;
+    await table.bulkPut(rows);
+  } catch (e) { console.warn("[Dexie] secciones_cancion:", e); }
+}
+
+async function dexieSecDelete(id: string): Promise<void> {
+  try {
+    const table = (db as any)[TABLA_SEC];
+    if (!table) return;
+    await table.delete(id);
+  } catch {}
+}
+
+async function dexieSecGet(id: string): Promise<any> {
+  try { return await (db as any)[TABLA_SEC]?.get(id); } catch { return null; }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HOOK: canción con secciones
+// HOOK: lista de canciones (con fallback Dexie offline)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function useCanciones() {
+  const [canciones,  setCanciones] = useState<Cancion[]>([]);
+  const [loading,    setLoading]   = useState(true);
+  const [isOffline,  setIsOffline] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+
+    // Sin red → leer de Dexie
+    if (!navigator.onLine) {
+      try {
+        const table = (db as any)["canciones"];
+        if (table) {
+          const rows = (await table.toArray()).filter((r: any) => !r.deleted);
+          setCanciones(rows as Cancion[]);
+          setIsOffline(true);
+        }
+      } catch {}
+      setLoading(false);
+      return;
+    }
+
+    setIsOffline(false);
+    try {
+      const data = await cancionesQueries.getAll({ isAdmin: true });
+      setCanciones(data as Cancion[]);
+      // Persistir en Dexie para uso offline futuro
+      try {
+        const table = (db as any)["canciones"];
+        if (table) await table.bulkPut((data as any[]).map(r => ({ ...r, status: "synced" })));
+      } catch {}
+    } catch (e: any) {
+      // Red caída aunque onLine=true — fallback Dexie
+      try {
+        const table = (db as any)["canciones"];
+        if (table) {
+          const rows = (await table.toArray()).filter((r: any) => !r.deleted);
+          setCanciones(rows as Cancion[]);
+          setIsOffline(true);
+        }
+      } catch {}
+    }
+    setLoading(false);
+  }, []);
+
+  // Recargar al volver online
+  useEffect(() => {
+    load();
+    const handleOnline = () => { setIsOffline(false); load(); };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [load]);
+
+  return { canciones, loading, isOffline, refetch: load };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HOOK: canción con secciones (con fallback Dexie offline)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function useCancionEditor(id: string | null) {
-  const [cancion,  setCancion]  = useState<Cancion | null>(null);
-  const [loading,  setLoading]  = useState(false);
+  const [cancion,   setCancion]  = useState<Cancion | null>(null);
+  const [loading,   setLoading]  = useState(false);
+  const [isOffline, setIsOffline]= useState(false);
 
   const load = useCallback(async (cancionId: string) => {
     setLoading(true);
+
+    if (!navigator.onLine) {
+      // Leer canción de Dexie
+      try {
+        const cTable = (db as any)["canciones"];
+        const base   = cTable ? await cTable.get(cancionId) : null;
+        const secs   = await dexieSecRead(cancionId);
+        if (base) setCancion({ ...base, secciones: secs });
+        setIsOffline(true);
+      } catch {}
+      setLoading(false);
+      return;
+    }
+
+    setIsOffline(false);
     try {
       const data = await cancionesQueries.getById(cancionId);
       setCancion(data as Cancion);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      // Persistir secciones en Dexie
+      if (data?.secciones?.length) {
+        await dexieSecWrite(data.secciones.map((s: Seccion) => ({ ...s, status: "synced" })));
+      }
+    } catch (e: any) {
+      // Fallback Dexie
+      try {
+        const cTable = (db as any)["canciones"];
+        const base   = cTable ? await cTable.get(cancionId) : null;
+        const secs   = await dexieSecRead(cancionId);
+        if (base) { setCancion({ ...base, secciones: secs }); setIsOffline(true); }
+      } catch {}
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -133,7 +243,111 @@ function useCancionEditor(id: string | null) {
     else setCancion(null);
   }, [id, load]);
 
-  return { cancion, setCancion, loading, reload: () => id && load(id) };
+  // Recargar al volver online
+  useEffect(() => {
+    const handleOnline = () => { if (id) { setIsOffline(false); load(id); } };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [id, load]);
+
+  return { cancion, setCancion, loading, isOffline, reload: () => id && load(id) };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OPERACIONES CRUD DE SECCIONES — con soporte offline
+// Estas funciones reemplazan las llamadas directas a cancionesQueries.secciones
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function secUpdate(id: string, updates: Partial<Seccion>): Promise<void> {
+  if (!navigator.onLine) {
+    const existing = await dexieSecGet(id);
+    const row = { ...existing, ...updates, id, status: "pending" };
+    await dexieSecWrite([row]);
+    await enqueueOperation(TABLA_SEC, "update", id, row);
+    return;
+  }
+  try {
+    const updated = await cancionesQueries.secciones.update(id, updates as any);
+    await dexieSecWrite([{ ...updated, status: "synced" }]);
+  } catch {
+    // Red caída aunque onLine=true
+    const existing = await dexieSecGet(id);
+    const row = { ...existing, ...updates, id, status: "pending" };
+    await dexieSecWrite([row]);
+    await enqueueOperation(TABLA_SEC, "update", id, row);
+    throw new Error("Sin conexión — cambio guardado localmente");
+  }
+}
+
+async function secCreate(datos: Omit<Seccion, "id">): Promise<Seccion> {
+  if (!navigator.onLine) {
+    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const row = { ...datos, id: tmpId, status: "pending" };
+    await dexieSecWrite([row]);
+    await enqueueOperation(TABLA_SEC, "upsert", tmpId, row);
+    return row as Seccion;
+  }
+  try {
+    const nueva = await cancionesQueries.secciones.create(datos as any);
+    await dexieSecWrite([{ ...nueva, status: "synced" }]);
+    return nueva as Seccion;
+  } catch {
+    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const row = { ...datos, id: tmpId, status: "pending" };
+    await dexieSecWrite([row]);
+    await enqueueOperation(TABLA_SEC, "upsert", tmpId, row);
+    return row as Seccion;
+  }
+}
+
+async function secDelete(id: string): Promise<void> {
+  if (!navigator.onLine) {
+    const existing = await dexieSecGet(id);
+    if (existing) await dexieSecWrite([{ ...existing, deleted: true, status: "pending" }]);
+    await enqueueOperation(TABLA_SEC, "delete", id);
+    return;
+  }
+  try {
+    await cancionesQueries.secciones.delete(id);
+    await dexieSecDelete(id);
+  } catch {
+    const existing = await dexieSecGet(id);
+    if (existing) await dexieSecWrite([{ ...existing, deleted: true, status: "pending" }]);
+    await enqueueOperation(TABLA_SEC, "delete", id);
+    throw new Error("Sin conexión — eliminación encolada");
+  }
+}
+
+async function secReorder(secciones: { id: string; orden: number }[]): Promise<void> {
+  if (!navigator.onLine) {
+    for (const { id, orden } of secciones) {
+      const existing = await dexieSecGet(id);
+      if (existing) {
+        const row = { ...existing, orden, status: "pending" };
+        await dexieSecWrite([row]);
+        await enqueueOperation(TABLA_SEC, "update", id, { orden });
+      }
+    }
+    return;
+  }
+  try {
+    await cancionesQueries.secciones.reorder(secciones);
+    // Actualizar orden en Dexie
+    for (const { id, orden } of secciones) {
+      const existing = await dexieSecGet(id);
+      if (existing) await dexieSecWrite([{ ...existing, orden, status: "synced" }]);
+    }
+  } catch {
+    // Encolar cada update de orden
+    for (const { id, orden } of secciones) {
+      const existing = await dexieSecGet(id);
+      if (existing) {
+        const row = { ...existing, orden, status: "pending" };
+        await dexieSecWrite([row]);
+        await enqueueOperation(TABLA_SEC, "update", id, { orden });
+      }
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -214,9 +428,20 @@ const SidebarItem = ({
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE: textarea de una sección para un idioma
+// Todo el guardado pasa por secUpdate → Dexie + enqueueOperation (sin localStorage)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ColState = { dirty: boolean; saving: boolean; saved: boolean; error: string | null };
+type ColState = {
+  dirty:  boolean;
+  saving: boolean;
+  saved:  boolean;
+  // "pending" = guardado en Dexie offline, esperando sync
+  // "error"   = fallo inesperado
+  mode:   "idle" | "pending" | "error";
+  msg:    string | null;
+};
+
+const IDLE_STATE: ColState = { dirty: false, saving: false, saved: false, mode: "idle", msg: null };
 
 const SeccionTextarea = ({
   sec, idioma, onSave,
@@ -226,54 +451,112 @@ const SeccionTextarea = ({
   onSave: (id: string, updates: Partial<Seccion>) => Promise<void>;
 }) => {
   const campo = IDIOMAS.find(i => i.id === idioma)!.campo;
-  const [texto, setTexto] = useState((sec[campo] as string) || "");
-  const [st, setSt]       = useState<ColState>({ dirty: false, saving: false, saved: false, error: null });
+
+  // Inicializar desde Dexie si existe un pending local más reciente que sec
+  const [texto, setTexto] = useState(() => (sec[campo] as string) || "");
+  const [st, setSt]       = useState<ColState>(IDLE_STATE);
   const timer             = useRef<any>(null);
 
+  // Sincronizar cuando cambia sección o idioma
   useEffect(() => {
-    setTexto((sec[campo] as string) || "");
-    setSt(s => ({ ...s, dirty: false, saved: false }));
-  }, [idioma, sec.id, campo]);
+    clearTimeout(timer.current);
+
+    // Intentar leer desde Dexie para ver si hay un pending más reciente
+    const loadLocal = async () => {
+      try {
+        const local = await dexieSecGet(sec.id);
+        const localVal = local?.[campo] as string | undefined;
+        const remoteVal = (sec[campo] as string) || "";
+
+        if (local?.status === "pending" && localVal !== undefined && localVal !== remoteVal) {
+          // Hay cambios pendientes de sync — cargar versión local
+          setTexto(localVal);
+          setSt({ ...IDLE_STATE, dirty: true, mode: "pending", msg: "Pendiente de sincronizar" });
+        } else {
+          setTexto(remoteVal);
+          setSt(IDLE_STATE);
+        }
+      } catch {
+        setTexto((sec[campo] as string) || "");
+        setSt(IDLE_STATE);
+      }
+    };
+
+    loadLocal();
+  }, [idioma, sec.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const doSave = useCallback(async (val: string) => {
     clearTimeout(timer.current);
-    setSt(s => ({ ...s, saving: true, error: null }));
+    setSt(s => ({ ...s, saving: true, msg: null }));
     try {
+      // secUpdate escribe en Dexie + encola si offline, o guarda en Supabase si online
       await onSave(sec.id, { [campo]: val });
-      setSt({ dirty: false, saving: false, saved: true, error: null });
-      setTimeout(() => setSt(s => ({ ...s, saved: false })), 2000);
+
+      const isNowOnline = navigator.onLine;
+      if (isNowOnline) {
+        // Guardado exitosamente en Supabase
+        setSt({ dirty: false, saving: false, saved: true, mode: "idle", msg: null });
+        setTimeout(() => setSt(s => ({ ...s, saved: false })), 2000);
+      } else {
+        // Sin red: guardado en Dexie, se sincronizará solo al volver la conexión
+        setSt({ dirty: false, saving: false, saved: false, mode: "pending", msg: "Guardado localmente — sync pendiente" });
+      }
     } catch (e: any) {
-      setSt(s => ({ ...s, saving: false, error: e.message }));
+      // secUpdate ya intentó el fallback Dexie — este catch es para errores inesperados
+      setSt(s => ({ ...s, saving: false, mode: "error", msg: e.message }));
     }
   }, [sec.id, campo, onSave]);
 
   const onChange = (val: string) => {
     setTexto(val);
-    setSt(s => ({ ...s, dirty: true, saved: false }));
+    setSt(s => ({ ...s, dirty: true, saved: false, mode: s.mode === "error" ? "idle" : s.mode, msg: null }));
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => doSave(val), 2000);
+    // Auto-save: 1.5s sin escribir → intenta guardar (Supabase o Dexie según red)
+    timer.current = setTimeout(() => doSave(val), 1500);
   };
 
   const rows = Math.max(3, texto.split("\n").length + 1);
 
+  const borderClass =
+    st.mode === "pending" ? "border-blue-500/40  focus:border-blue-500/60"  :
+    st.mode === "error"   ? "border-red-500/40   focus:border-red-500/60"   :
+    st.dirty              ? "border-amber-500/30 focus:border-amber-500/50" :
+                            "border-primary/10   focus:border-primary/30";
+
   return (
-    <div className="relative flex-1 min-w-0">
-      <textarea
-        value={texto}
-        onChange={e => onChange(e.target.value)}
-        onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(texto); } }}
-        rows={rows}
-        spellCheck={false}
-        className={`w-full bg-bg-main/60 border rounded-xl px-4 py-3 text-sm text-primary font-mono resize-none outline-none transition-colors placeholder:text-primary/20 leading-relaxed ${
-          st.dirty ? "border-amber-500/40 focus:border-amber-500/60" : "border-primary/10 focus:border-primary/30"
-        }`}
-        placeholder={`Letra ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
-      />
-      <span className="absolute top-2 right-2 pointer-events-none">
-        {st.saving && <Loader2 size={11} className="animate-spin text-primary/30" />}
-        {st.saved  && <CheckCircle2 size={11} className="text-emerald-400" />}
-        {st.error  && <AlertCircle  size={11} className="text-red-400" />}
-      </span>
+    <div className="flex-1 min-w-0 space-y-1.5">
+      {/* Indicador de sync pendiente */}
+      {st.mode === "pending" && !st.saving && (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-blue-400">
+          <WifiOff size={10} />
+          Guardado en dispositivo — se sincronizará al volver la conexión
+        </div>
+      )}
+
+      <div className="relative">
+        <textarea
+          value={texto}
+          onChange={e => onChange(e.target.value)}
+          onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(texto); } }}
+          rows={rows}
+          spellCheck={false}
+          className={`w-full bg-bg-main/60 border rounded-xl px-4 py-3 text-sm text-primary font-mono resize-none outline-none transition-colors placeholder:text-primary/20 leading-relaxed ${borderClass}`}
+          placeholder={`Letra ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
+        />
+        <span className="absolute top-2 right-2 pointer-events-none flex flex-col items-end gap-1">
+          {st.saving                          && <Loader2     size={11} className="animate-spin text-primary/30" />}
+          {st.saved                           && <CheckCircle2 size={11} className="text-emerald-400" />}
+          {st.mode === "pending" && !st.saving && <span className="w-2 h-2 rounded-full bg-blue-400" />}
+          {st.mode === "error"                && <AlertCircle  size={11} className="text-red-400" />}
+        </span>
+      </div>
+
+      {/* Error inesperado — inline */}
+      {st.mode === "error" && st.msg && (
+        <p className="text-[9px] font-black uppercase text-red-400/80 tracking-widest px-1">
+          ⚠ {st.msg}
+        </p>
+      )}
     </div>
   );
 };
@@ -398,10 +681,16 @@ const PanelFiltros = ({
       {opciones.cantantes.length > 0 && (
         <div>
           <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Cantante</p>
-          <div className="flex gap-1 flex-wrap">
-            {opciones.cantantes.map(c => (
-              <Chip key={c} active={filtros.cantante === c} onClick={() => toggle("cantante", c)}>{c}</Chip>
-            ))}
+          <div className="relative">
+            <select
+              value={filtros.cantante}
+              onChange={e => onChange({ ...filtros, cantante: e.target.value })}
+              className="w-full appearance-none bg-bg-main border border-primary/15 rounded-xl px-3 py-2 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors cursor-pointer pr-7"
+            >
+              <option value="">Todas</option>
+              {opciones.cantantes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
           </div>
         </div>
       )}
@@ -410,10 +699,16 @@ const PanelFiltros = ({
       {opciones.compositores.length > 0 && (
         <div>
           <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Compositor</p>
-          <div className="flex gap-1 flex-wrap">
-            {opciones.compositores.map(c => (
-              <Chip key={c} active={filtros.compositor === c} onClick={() => toggle("compositor", c)}>{c}</Chip>
-            ))}
+          <div className="relative">
+            <select
+              value={filtros.compositor}
+              onChange={e => onChange({ ...filtros, compositor: e.target.value })}
+              className="w-full appearance-none bg-bg-main border border-primary/15 rounded-xl px-3 py-2 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors cursor-pointer pr-7"
+            >
+              <option value="">Todos</option>
+              {opciones.compositores.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
           </div>
         </div>
       )}
@@ -436,31 +731,31 @@ const PanelFiltros = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PanelEditor = ({ cancionId }: { cancionId: string }) => {
-  const { cancion, setCancion, loading, reload } = useCancionEditor(cancionId);
+  const { cancion, setCancion, loading, isOffline: editorOffline, reload } = useCancionEditor(cancionId);
   const [idiomaA,    setIdiomaA]    = useState<IdiomaKey>("es");
   const [idiomaB,    setIdiomaB]    = useState<IdiomaKey>("en");
   const [splitMode,  setSplitMode]  = useState(false);
   const [addingOpen, setAddingOpen] = useState(false);
   const [addingName, setAddingName] = useState("");
 
-  // ── CRUD ────────────────────────────────────────────────────────────────────
+  // ── CRUD — todas las operaciones pasan por sec* (Dexie + enqueue) ───────────
 
   const handleSaveField = useCallback(async (id: string, updates: Partial<Seccion>) => {
-    await cancionesQueries.secciones.update(id, updates as any);
+    await secUpdate(id, updates);
     setCancion(prev => prev
       ? { ...prev, secciones: prev.secciones?.map(s => s.id === id ? { ...s, ...updates } : s) }
       : prev);
   }, [setCancion]);
 
   const handleSaveNombre = useCallback(async (id: string, nombre: string) => {
-    await cancionesQueries.secciones.update(id, { nombre_seccion: nombre } as any);
+    await secUpdate(id, { nombre_seccion: nombre });
     setCancion(prev => prev
       ? { ...prev, secciones: prev.secciones?.map(s => s.id === id ? { ...s, nombre_seccion: nombre } : s) }
       : prev);
   }, [setCancion]);
 
   const handleDelete = useCallback(async (id: string) => {
-    await cancionesQueries.secciones.delete(id);
+    await secDelete(id);
     setCancion(prev => prev
       ? { ...prev, secciones: prev.secciones?.filter(s => s.id !== id) }
       : prev);
@@ -469,14 +764,14 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const handleAdd = async () => {
     if (!addingName.trim()) return;
     const secciones = cancion?.secciones || [];
-    const nueva = await cancionesQueries.secciones.create({
+    const nueva = await secCreate({
       cancion_id: cancionId,
       nombre_seccion: addingName.trim().toUpperCase(),
       letra_es: "",
       orden: secciones.length,
     });
     setCancion(prev => prev
-      ? { ...prev, secciones: [...(prev.secciones || []), nueva as Seccion] }
+      ? { ...prev, secciones: [...(prev.secciones || []), nueva] }
       : prev);
     setAddingName("");
     setAddingOpen(false);
@@ -489,7 +784,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
     [secs[index], secs[target]] = [secs[target], secs[index]];
     const reordenadas = secs.map((s, i) => ({ ...s, orden: i }));
     setCancion(prev => prev ? { ...prev, secciones: reordenadas } : prev);
-    await cancionesQueries.secciones.reorder(reordenadas.map(s => ({ id: s.id, orden: s.orden })));
+    await secReorder(reordenadas.map(s => ({ id: s.id, orden: s.orden })));
   };
 
   // Cambio de idioma con guard anti-colisión
@@ -519,6 +814,14 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
+      {/* Banner offline */}
+      {editorOffline && (
+        <div className="shrink-0 flex items-center gap-2 px-8 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-400">
+          <WifiOff size={12} />
+          Modo offline — los cambios se sincronizan al volver a conectarse
+        </div>
+      )}
 
       {/* Cabecera */}
       <div className="shrink-0 px-8 pt-7 pb-5 border-b border-primary/10 space-y-4">
@@ -655,7 +958,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LyricStudio() {
-  const { canciones, loading: loadingLista, refetch } = useCanciones();
+  const { canciones, loading: loadingLista, isOffline: listaOffline, refetch } = useCanciones();
   const [selectedId,  setSelectedId]  = useState<string | null>(null);
   const [busqueda,    setBusqueda]    = useState("");
   const [filtros,     setFiltros]     = useState<Filtros>(FILTROS_VACIOS);
@@ -809,9 +1112,12 @@ export default function LyricStudio() {
           </div>
 
           {/* Footer */}
-          <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase text-primary/20 tracking-widest flex justify-between">
-            <span>{canciones.length} canciones</span>
-            <span>{filtradas.length} mostradas</span>
+          <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
+            {listaOffline
+              ? <span className="flex items-center gap-1 text-amber-400"><WifiOff size={10} /> Offline</span>
+              : <span className="text-primary/20">{canciones.length} canciones</span>
+            }
+            <span className="text-primary/20">{filtradas.length} mostradas</span>
           </div>
         </aside>
       )}
