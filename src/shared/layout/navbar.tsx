@@ -10,7 +10,7 @@ import { useDarkMode } from "@/hooks/features/useDarkMode";
 import { ThemeSelector } from "@/app/providers/ThemeProvider";
 import {
   LogOut, CircleUser, Flower2, Sword,
-  Utensils, PenTool, Moon, Sun, Star, User, Palette, Shirt, Music2,
+  Utensils, PenTool, Moon, Sun, Star, User, Palette, Shirt, Music2, BookOpen,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -219,6 +219,20 @@ const Navbar = () => {
                   }}
                 >
                   <Shirt size={16} />
+                </Link>
+                <Link
+                  href="/wiki/editor"
+                  className="p-2 transition-all"
+                  title="Editor"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    background: currentPath?.includes("/wiki/editor") ? "var(--primary)" : "transparent",
+                    color: currentPath?.includes("/wiki/editor")
+                      ? "var(--btn-text)"
+                      : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  }}
+                >
+                  <BookOpen size={16} />
                 </Link>
               </div>
             )}
@@ -496,6 +510,20 @@ const Navbar = () => {
                     }}
                   >
                     <Shirt size={18} />
+                  </Link>
+                  <Link
+                    href="/wiki/editor"
+                    onClick={closeAll}
+                    className="p-4 flex items-center justify-center transition-all"
+                    title="Editor"
+                    style={{
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      color: currentPath?.includes("/wiki/editor") ? "var(--btn-text)" : "var(--primary)",
+                      background: currentPath?.includes("/wiki/editor") ? "var(--primary)" : "transparent",
+                      borderRadius: "var(--radius-card)",
+                    }}
+                  >
+                    <BookOpen size={18} />
                   </Link>
                 </div>
               )}
