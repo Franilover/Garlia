@@ -1,1 +1,0 @@
-export { default } from "@/paginas/wiki/canciones/Editor/EditorLetras"
