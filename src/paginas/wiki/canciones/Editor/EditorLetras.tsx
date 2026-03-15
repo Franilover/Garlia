@@ -1,22 +1,20 @@
 "use client";
 
 /**
- * LyricStudio — Editor privado de letras de canciones
- *
- * Layout: sidebar fija (búsqueda + filtros + lista) | panel principal (editor de secciones)
- * Ruta sugerida: /admin/lyric-studio  o  /estudio/letras
+ * LyricStudio v2
+ * ─ Sidebar colapsable con búsqueda + filtros completos
+ * ─ Vista simple (1 idioma) o vista dividida (2 idiomas en paralelo)
+ * ─ Auto-save por sección, Ctrl+S manual
  */
 
-import React, {
-  useState, useEffect, useCallback, useRef, useReducer,
-} from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Search, X, ChevronDown, Plus, Trash2, Save, GripVertical,
-  Check, Loader2, Eye, EyeOff, Music, RefreshCw, Pencil,
-  ChevronUp, ArrowUpDown, BookOpen, Layers, SlidersHorizontal,
-  CheckCircle2, Circle, AlertCircle,
+  Check, Loader2, Eye, EyeOff, Music, RefreshCw,
+  ChevronUp, BookOpen, Layers, SlidersHorizontal,
+  CheckCircle2, AlertCircle, PanelLeftClose, PanelLeftOpen,
+  Columns2,
 } from "lucide-react";
-import { supabase } from "@/lib/api/client/supabase";
 import { cancionesQueries } from "@/lib/api/queries/wiki/canciones";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,15 +47,23 @@ type Cancion = {
 
 type IdiomaKey = "es" | "en" | "jp" | "romaji";
 
+type Filtros = {
+  estado: string;
+  visible: "" | "true" | "false";
+  idioma: string;
+  cantante: string;
+  compositor: string;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTES
 // ─────────────────────────────────────────────────────────────────────────────
 
-const IDIOMAS: { id: IdiomaKey; label: string; campo: keyof Seccion }[] = [
-  { id: "es",     label: "ES",  campo: "letra_es" },
-  { id: "en",     label: "EN",  campo: "letra_en" },
-  { id: "jp",     label: "JP",  campo: "letra_jp" },
-  { id: "romaji", label: "RO",  campo: "letra_romaji" },
+const IDIOMAS: { id: IdiomaKey; label: string; nombre: string; campo: keyof Seccion }[] = [
+  { id: "es",     label: "ES", nombre: "Español",  campo: "letra_es" },
+  { id: "en",     label: "EN", nombre: "Inglés",   campo: "letra_en" },
+  { id: "jp",     label: "JP", nombre: "Japonés",  campo: "letra_jp" },
+  { id: "romaji", label: "RO", nombre: "Romaji",   campo: "letra_romaji" },
 ];
 
 const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"] as const;
@@ -68,43 +74,45 @@ const ESTADO_COLOR: Record<string, string> = {
   BORRADOR:     "bg-primary/10    text-primary/50  border-primary/20",
 };
 
+const FILTROS_VACIOS: Filtros = {
+  estado: "", visible: "", idioma: "", cantante: "", compositor: "",
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // UTILIDADES
 // ─────────────────────────────────────────────────────────────────────────────
-
-const uid = () => `tmp-${Math.random().toString(36).slice(2, 9)}`;
 
 function normalize(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+function unique(arr: string[]): string[] {
+  return Array.from(new Set(arr.filter(Boolean).map(s => s.trim()))).sort();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// HOOK: lista de canciones (sin secciones, para el sidebar)
+// HOOK: lista de canciones
 // ─────────────────────────────────────────────────────────────────────────────
 
 function useCanciones() {
   const [canciones, setCanciones] = useState<Cancion[]>([]);
   const [loading, setLoading]     = useState(true);
 
-  const fetch = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await cancionesQueries.getAll({ isAdmin: true });
       setCanciones(data as Cancion[]);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetch(); }, [fetch]);
-
-  return { canciones, loading, refetch: fetch };
+  useEffect(() => { load(); }, [load]);
+  return { canciones, loading, refetch: load };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HOOK: canción con secciones (para el panel)
+// HOOK: canción con secciones
 // ─────────────────────────────────────────────────────────────────────────────
 
 function useCancionEditor(id: string | null) {
@@ -116,11 +124,8 @@ function useCancionEditor(id: string | null) {
     try {
       const data = await cancionesQueries.getById(cancionId);
       setCancion(data as Cancion);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -132,7 +137,50 @@ function useCancionEditor(id: string | null) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: SIDEBAR — item de canción
+// COMPONENTE: Chip
+// ─────────────────────────────────────────────────────────────────────────────
+
+const Chip = ({
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+  <button
+    onClick={onClick}
+    className={`text-[9px] font-black uppercase px-2.5 py-1.5 rounded-full border transition-all whitespace-nowrap ${
+      active
+        ? "bg-primary text-bg-main border-primary"
+        : "border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary"
+    }`}
+  >
+    {children}
+  </button>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE: tabs de idioma
+// ─────────────────────────────────────────────────────────────────────────────
+
+const IdiomaTab = ({
+  value, onChange, exclude,
+}: { value: IdiomaKey; onChange: (v: IdiomaKey) => void; exclude?: IdiomaKey }) => (
+  <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
+    {IDIOMAS.filter(i => i.id !== exclude).map(({ id, label }) => (
+      <button
+        key={id}
+        onClick={() => onChange(id)}
+        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+          value === id
+            ? "bg-primary text-bg-main shadow-md shadow-primary/20"
+            : "text-primary/40 hover:text-primary"
+        }`}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE: SIDEBAR item
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SidebarItem = ({
@@ -140,7 +188,7 @@ const SidebarItem = ({
 }: { cancion: Cancion; selected: boolean; onClick: () => void }) => (
   <button
     onClick={onClick}
-    className={`w-full text-left px-4 py-3 rounded-xl transition-all group border ${
+    className={`w-full text-left px-4 py-3 rounded-xl transition-all border ${
       selected
         ? "bg-primary text-bg-main border-primary shadow-lg shadow-primary/20"
         : "border-transparent hover:bg-primary/5 hover:border-primary/10 text-primary"
@@ -165,94 +213,94 @@ const SidebarItem = ({
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: FILTROS SIDEBAR
+// COMPONENTE: textarea de una sección para un idioma
 // ─────────────────────────────────────────────────────────────────────────────
 
-const FiltroEstado = ({
-  value, onChange,
-}: { value: string; onChange: (v: string) => void }) => (
-  <div className="flex gap-1 flex-wrap">
-    {(["", ...ESTADOS] as const).map((e) => (
-      <button
-        key={e}
-        onClick={() => onChange(e)}
-        className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border transition-all ${
-          value === e
-            ? "bg-primary text-bg-main border-primary"
-            : "border-primary/20 text-primary/50 hover:border-primary/40"
-        }`}
-      >
-        {e === "" ? "Todas" : e === "EN PROCESO" ? "WIP" : e}
-      </button>
-    ))}
-  </div>
-);
+type ColState = { dirty: boolean; saving: boolean; saved: boolean; error: string | null };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: EDITOR DE UNA SECCIÓN
-// ─────────────────────────────────────────────────────────────────────────────
-
-type SeccionEditorState = {
-  dirty: boolean;
-  saving: boolean;
-  saved: boolean;
-  error: string | null;
-};
-
-const SeccionEditor = ({
-  sec,
-  idiomaActivo,
-  onSave,
-  onDelete,
-  onMoveUp,
-  onMoveDown,
-  isFirst,
-  isLast,
+const SeccionTextarea = ({
+  sec, idioma, onSave,
 }: {
   sec: Seccion;
-  idiomaActivo: IdiomaKey;
+  idioma: IdiomaKey;
   onSave: (id: string, updates: Partial<Seccion>) => Promise<void>;
+}) => {
+  const campo = IDIOMAS.find(i => i.id === idioma)!.campo;
+  const [texto, setTexto] = useState((sec[campo] as string) || "");
+  const [st, setSt]       = useState<ColState>({ dirty: false, saving: false, saved: false, error: null });
+  const timer             = useRef<any>(null);
+
+  useEffect(() => {
+    setTexto((sec[campo] as string) || "");
+    setSt(s => ({ ...s, dirty: false, saved: false }));
+  }, [idioma, sec.id, campo]);
+
+  const doSave = useCallback(async (val: string) => {
+    clearTimeout(timer.current);
+    setSt(s => ({ ...s, saving: true, error: null }));
+    try {
+      await onSave(sec.id, { [campo]: val });
+      setSt({ dirty: false, saving: false, saved: true, error: null });
+      setTimeout(() => setSt(s => ({ ...s, saved: false })), 2000);
+    } catch (e: any) {
+      setSt(s => ({ ...s, saving: false, error: e.message }));
+    }
+  }, [sec.id, campo, onSave]);
+
+  const onChange = (val: string) => {
+    setTexto(val);
+    setSt(s => ({ ...s, dirty: true, saved: false }));
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => doSave(val), 2000);
+  };
+
+  const rows = Math.max(3, texto.split("\n").length + 1);
+
+  return (
+    <div className="relative flex-1 min-w-0">
+      <textarea
+        value={texto}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(texto); } }}
+        rows={rows}
+        spellCheck={false}
+        className={`w-full bg-bg-main/60 border rounded-xl px-4 py-3 text-sm text-primary font-mono resize-none outline-none transition-colors placeholder:text-primary/20 leading-relaxed ${
+          st.dirty ? "border-amber-500/40 focus:border-amber-500/60" : "border-primary/10 focus:border-primary/30"
+        }`}
+        placeholder={`Letra ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
+      />
+      <span className="absolute top-2 right-2 pointer-events-none">
+        {st.saving && <Loader2 size={11} className="animate-spin text-primary/30" />}
+        {st.saved  && <CheckCircle2 size={11} className="text-emerald-400" />}
+        {st.error  && <AlertCircle  size={11} className="text-red-400" />}
+      </span>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE: editor de una sección
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SeccionEditor = ({
+  sec, idiomaA, idiomaB, splitMode,
+  onSaveField, onSaveNombre, onDelete, onMoveUp, onMoveDown,
+  isFirst, isLast,
+}: {
+  sec: Seccion;
+  idiomaA: IdiomaKey;
+  idiomaB: IdiomaKey;
+  splitMode: boolean;
+  onSaveField: (id: string, updates: Partial<Seccion>) => Promise<void>;
+  onSaveNombre: (id: string, nombre: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onMoveUp: () => void;
   onMoveDown: () => void;
   isFirst: boolean;
   isLast: boolean;
 }) => {
-  const campo = IDIOMAS.find(i => i.id === idiomaActivo)!.campo;
-  const [nombre, setNombre]   = useState(sec.nombre_seccion);
-  const [texto, setTexto]     = useState((sec[campo] as string) || "");
-  const [state, setState]     = useState<SeccionEditorState>({ dirty: false, saving: false, saved: false, error: null });
+  const [nombre, setNombre]     = useState(sec.nombre_seccion);
   const [expanded, setExpanded] = useState(true);
-  const saveTimer = useRef<any>(null);
-
-  // Sincronizar cuando cambia el idioma o la sección
-  useEffect(() => {
-    setTexto((sec[campo] as string) || "");
-    setState(s => ({ ...s, dirty: false, saved: false }));
-  }, [idiomaActivo, sec.id, campo]);
-
-  const markDirty = (val: string) => {
-    setTexto(val);
-    setState(s => ({ ...s, dirty: true, saved: false }));
-    // Auto-save a los 2s sin escribir
-    clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => handleSave(val, nombre), 2000);
-  };
-
-  const handleSave = async (currentTexto = texto, currentNombre = nombre) => {
-    clearTimeout(saveTimer.current);
-    setState(s => ({ ...s, saving: true, error: null }));
-    try {
-      await onSave(sec.id, {
-        nombre_seccion: currentNombre,
-        [campo]: currentTexto,
-      });
-      setState({ dirty: false, saving: false, saved: true, error: null });
-      setTimeout(() => setState(s => ({ ...s, saved: false })), 2000);
-    } catch (e: any) {
-      setState(s => ({ ...s, saving: false, error: e.message }));
-    }
-  };
 
   const handleDelete = async () => {
     if (!confirm(`¿Eliminar sección "${nombre}"?`)) return;
@@ -260,74 +308,36 @@ const SeccionEditor = ({
   };
 
   return (
-    <div className={`border rounded-xl transition-all ${
-      state.dirty ? "border-amber-500/40 bg-amber-500/5" : "border-primary/10 bg-bg-main/50"
-    }`}>
-      {/* HEADER SECCIÓN */}
-      <div className="flex items-center gap-2 px-4 py-3">
-        {/* Drag handle (decorativo) */}
-        <GripVertical size={14} className="text-primary/20 shrink-0" />
-
-        {/* Nombre */}
+    <div className="border border-primary/10 rounded-xl bg-bg-main/50 hover:border-primary/20 transition-all">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-2.5">
+        <GripVertical size={13} className="text-primary/15 shrink-0" />
         <input
           value={nombre}
-          onChange={e => { setNombre(e.target.value); setState(s => ({ ...s, dirty: true })); }}
-          onBlur={() => state.dirty && handleSave()}
-          className="flex-1 bg-transparent text-xs font-black uppercase text-primary outline-none tracking-widest placeholder:text-primary/20"
-          placeholder="NOMBRE DE SECCIÓN..."
+          onChange={e => setNombre(e.target.value)}
+          onBlur={() => nombre !== sec.nombre_seccion && onSaveNombre(sec.id, nombre)}
+          className="flex-1 bg-transparent text-[11px] font-black uppercase text-primary outline-none tracking-widest placeholder:text-primary/20 min-w-0"
+          placeholder="NOMBRE DE SECCIÓN…"
         />
-
-        {/* Indicador estado */}
-        <span className="shrink-0">
-          {state.saving && <Loader2 size={13} className="animate-spin text-primary/40" />}
-          {state.saved  && <CheckCircle2 size={13} className="text-emerald-400" />}
-          {state.error  && <AlertCircle size={13} className="text-red-400" />}
-        </span>
-
-        {/* Acciones */}
-        <div className="flex items-center gap-1 shrink-0">
-          <button onClick={onMoveUp} disabled={isFirst} className="p-1 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary disabled:opacity-20 transition-all">
-            <ChevronUp size={13} />
-          </button>
-          <button onClick={onMoveDown} disabled={isLast} className="p-1 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary disabled:opacity-20 transition-all">
-            <ChevronDown size={13} />
-          </button>
-          <button
-            onClick={() => handleSave()}
-            disabled={!state.dirty || state.saving}
-            className="p-1 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary disabled:opacity-20 transition-all"
-          >
-            <Save size={13} />
-          </button>
-          <button onClick={handleDelete} className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all">
-            <Trash2 size={13} />
-          </button>
-          <button onClick={() => setExpanded(e => !e)} className="p-1 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
-            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button onClick={onMoveUp}   disabled={isFirst} className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary disabled:opacity-20 transition-all"><ChevronUp   size={12} /></button>
+          <button onClick={onMoveDown} disabled={isLast}  className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary disabled:opacity-20 transition-all"><ChevronDown size={12} /></button>
+          <button onClick={handleDelete} className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"><Trash2 size={12} /></button>
+          <button onClick={() => setExpanded(e => !e)} className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary transition-all">
+            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         </div>
       </div>
 
-      {/* TEXTAREA */}
+      {/* Body */}
       {expanded && (
-        <div className="px-4 pb-4">
-          <textarea
-            value={texto}
-            onChange={e => markDirty(e.target.value)}
-            onKeyDown={e => {
-              // Ctrl/Cmd+S para guardar manualmente
-              if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-                e.preventDefault();
-                handleSave();
-              }
-            }}
-            rows={Math.max(3, texto.split("\n").length + 1)}
-            className="w-full bg-bg-main/60 border border-primary/10 rounded-xl px-4 py-3 text-sm text-primary font-mono resize-none outline-none focus:border-primary/30 transition-colors placeholder:text-primary/20 leading-relaxed"
-            placeholder={`Letra en ${IDIOMAS.find(i => i.id === idiomaActivo)?.label}…`}
-            spellCheck={false}
-          />
-          {state.error && (
-            <p className="text-xs text-red-400 mt-1 ml-1">Error: {state.error}</p>
+        <div className={`px-4 pb-4 ${splitMode ? "flex gap-3" : ""}`}>
+          <SeccionTextarea sec={sec} idioma={idiomaA} onSave={onSaveField} />
+          {splitMode && (
+            <>
+              <div className="w-px bg-primary/10 shrink-0 self-stretch" />
+              <SeccionTextarea sec={sec} idioma={idiomaB} onSave={onSaveField} />
+            </>
           )}
         </div>
       )}
@@ -336,71 +346,167 @@ const SeccionEditor = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: PANEL PRINCIPAL — editor de secciones de una canción
+// COMPONENTE: panel de filtros
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PanelEditor = ({
-  cancionId,
-}: { cancionId: string }) => {
+const PanelFiltros = ({
+  filtros, onChange, opciones,
+}: {
+  filtros: Filtros;
+  onChange: (f: Filtros) => void;
+  opciones: { idiomas: string[]; cantantes: string[]; compositores: string[] };
+}) => {
+  const toggle = (k: keyof Filtros, v: string) =>
+    onChange({ ...filtros, [k]: (filtros[k] === v ? "" : v) as any });
+
+  return (
+    <div className="space-y-4 p-3 bg-primary/5 rounded-xl border border-primary/10">
+      {/* Estado */}
+      <div>
+        <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Estado</p>
+        <div className="flex gap-1 flex-wrap">
+          {ESTADOS.map(e => (
+            <Chip key={e} active={filtros.estado === e} onClick={() => toggle("estado", e)}>
+              {e === "EN PROCESO" ? "WIP" : e}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      {/* Visibilidad */}
+      <div>
+        <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Visibilidad</p>
+        <div className="flex gap-1">
+          <Chip active={filtros.visible === "true"}  onClick={() => toggle("visible", "true")}>Visible</Chip>
+          <Chip active={filtros.visible === "false"} onClick={() => toggle("visible", "false")}>Oculta</Chip>
+        </div>
+      </div>
+
+      {/* Idioma */}
+      {opciones.idiomas.length > 0 && (
+        <div>
+          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Idioma</p>
+          <div className="flex gap-1 flex-wrap">
+            {opciones.idiomas.map(id => (
+              <Chip key={id} active={filtros.idioma === id} onClick={() => toggle("idioma", id)}>{id}</Chip>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cantante */}
+      {opciones.cantantes.length > 0 && (
+        <div>
+          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Cantante</p>
+          <div className="flex gap-1 flex-wrap">
+            {opciones.cantantes.map(c => (
+              <Chip key={c} active={filtros.cantante === c} onClick={() => toggle("cantante", c)}>{c}</Chip>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Compositor */}
+      {opciones.compositores.length > 0 && (
+        <div>
+          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Compositor</p>
+          <div className="flex gap-1 flex-wrap">
+            {opciones.compositores.map(c => (
+              <Chip key={c} active={filtros.compositor === c} onClick={() => toggle("compositor", c)}>{c}</Chip>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Limpiar */}
+      {Object.values(filtros).some(Boolean) && (
+        <button
+          onClick={() => onChange(FILTROS_VACIOS)}
+          className="text-[9px] font-black uppercase text-red-400 hover:text-red-300 tracking-widest"
+        >
+          ✕ Limpiar todos los filtros
+        </button>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE: panel principal del editor
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const { cancion, setCancion, loading, reload } = useCancionEditor(cancionId);
-  const [idiomaActivo, setIdiomaActivo] = useState<IdiomaKey>("es");
-  const [addingNombre, setAddingNombre] = useState("");
-  const [addingOpen, setAddingOpen]     = useState(false);
+  const [idiomaA,    setIdiomaA]    = useState<IdiomaKey>("es");
+  const [idiomaB,    setIdiomaB]    = useState<IdiomaKey>("en");
+  const [splitMode,  setSplitMode]  = useState(false);
+  const [addingOpen, setAddingOpen] = useState(false);
+  const [addingName, setAddingName] = useState("");
 
-  // ── CRUD secciones ──────────────────────────────────────────────────────────
+  // ── CRUD ────────────────────────────────────────────────────────────────────
 
-  const handleSaveSeccion = async (id: string, updates: Partial<Seccion>) => {
+  const handleSaveField = useCallback(async (id: string, updates: Partial<Seccion>) => {
     await cancionesQueries.secciones.update(id, updates as any);
-    setCancion(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        secciones: prev.secciones?.map(s => s.id === id ? { ...s, ...updates } : s),
-      };
-    });
-  };
+    setCancion(prev => prev
+      ? { ...prev, secciones: prev.secciones?.map(s => s.id === id ? { ...s, ...updates } : s) }
+      : prev);
+  }, [setCancion]);
 
-  const handleDeleteSeccion = async (id: string) => {
+  const handleSaveNombre = useCallback(async (id: string, nombre: string) => {
+    await cancionesQueries.secciones.update(id, { nombre_seccion: nombre } as any);
+    setCancion(prev => prev
+      ? { ...prev, secciones: prev.secciones?.map(s => s.id === id ? { ...s, nombre_seccion: nombre } : s) }
+      : prev);
+  }, [setCancion]);
+
+  const handleDelete = useCallback(async (id: string) => {
     await cancionesQueries.secciones.delete(id);
-    setCancion(prev => {
-      if (!prev) return prev;
-      return { ...prev, secciones: prev.secciones?.filter(s => s.id !== id) };
-    });
-  };
+    setCancion(prev => prev
+      ? { ...prev, secciones: prev.secciones?.filter(s => s.id !== id) }
+      : prev);
+  }, [setCancion]);
 
-  const handleAddSeccion = async () => {
-    if (!addingNombre.trim()) return;
+  const handleAdd = async () => {
+    if (!addingName.trim()) return;
     const secciones = cancion?.secciones || [];
     const nueva = await cancionesQueries.secciones.create({
       cancion_id: cancionId,
-      nombre_seccion: addingNombre.trim().toUpperCase(),
+      nombre_seccion: addingName.trim().toUpperCase(),
       letra_es: "",
       orden: secciones.length,
     });
-    setCancion(prev => {
-      if (!prev) return prev;
-      return { ...prev, secciones: [...(prev.secciones || []), nueva as Seccion] };
-    });
-    setAddingNombre("");
+    setCancion(prev => prev
+      ? { ...prev, secciones: [...(prev.secciones || []), nueva as Seccion] }
+      : prev);
+    setAddingName("");
     setAddingOpen(false);
   };
 
-  const handleMove = async (index: number, direction: "up" | "down") => {
-    const secciones = [...(cancion?.secciones || [])];
-    const target = direction === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= secciones.length) return;
-    [secciones[index], secciones[target]] = [secciones[target], secciones[index]];
-    const reordenadas = secciones.map((s, i) => ({ ...s, orden: i }));
+  const handleMove = async (index: number, dir: "up" | "down") => {
+    const secs = [...(cancion?.secciones || [])];
+    const target = dir === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= secs.length) return;
+    [secs[index], secs[target]] = [secs[target], secs[index]];
+    const reordenadas = secs.map((s, i) => ({ ...s, orden: i }));
     setCancion(prev => prev ? { ...prev, secciones: reordenadas } : prev);
     await cancionesQueries.secciones.reorder(reordenadas.map(s => ({ id: s.id, orden: s.orden })));
   };
 
-  // ── Conteo de progreso ──────────────────────────────────────────────────────
+  // Cambio de idioma con guard anti-colisión
+  const changeIdiomaA = (v: IdiomaKey) => {
+    setIdiomaA(v);
+    if (splitMode && v === idiomaB) setIdiomaB(IDIOMAS.find(i => i.id !== v)!.id);
+  };
+  const changeIdiomaB = (v: IdiomaKey) => {
+    setIdiomaB(v);
+    if (v === idiomaA) setIdiomaA(IDIOMAS.find(i => i.id !== v)!.id);
+  };
 
-  const campo = IDIOMAS.find(i => i.id === idiomaActivo)!.campo;
+  // Progreso
   const secciones = cancion?.secciones || [];
-  const conLetra = secciones.filter(s => !!(s[campo] as string)?.trim()).length;
-  const pct = secciones.length ? Math.round((conLetra / secciones.length) * 100) : 0;
+  const campoA    = IDIOMAS.find(i => i.id === idiomaA)!.campo;
+  const conLetra  = secciones.filter(s => !!(s[campoA] as string)?.trim()).length;
+  const pct       = secciones.length ? Math.round((conLetra / secciones.length) * 100) : 0;
 
   // ── RENDER ──────────────────────────────────────────────────────────────────
 
@@ -409,22 +515,17 @@ const PanelEditor = ({
       <Loader2 className="animate-spin" size={28} />
     </div>
   );
-
-  if (!cancion) return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 text-primary/30 select-none">
-      <BookOpen size={48} strokeWidth={1} />
-      <p className="text-sm font-black uppercase tracking-widest">Selecciona una canción</p>
-    </div>
-  );
+  if (!cancion) return null;
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      {/* ── CABECERA DEL PANEL ── */}
-      <div className="shrink-0 px-8 pt-8 pb-6 border-b border-primary/10 space-y-5">
-        {/* Título + meta */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black uppercase italic tracking-tight text-primary leading-none">
+
+      {/* Cabecera */}
+      <div className="shrink-0 px-8 pt-7 pb-5 border-b border-primary/10 space-y-4">
+        {/* Título + badges */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-black uppercase italic tracking-tight text-primary leading-none truncate">
               {cancion.titulo}
             </h1>
             <div className="flex flex-wrap gap-3 mt-2 text-[10px] font-black uppercase text-primary/40 tracking-widest">
@@ -434,66 +535,76 @@ const PanelEditor = ({
               {cancion.idioma     && <span>🌐 {cancion.idioma}</span>}
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border ${ESTADO_COLOR[cancion.estado]}`}>
               {cancion.estado}
             </span>
-            <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border ${
+            <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border flex items-center gap-1 ${
               cancion.visible
                 ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
                 : "bg-primary/10 text-primary/40 border-primary/20"
             }`}>
-              {cancion.visible ? <Eye size={11} className="inline mr-1" /> : <EyeOff size={11} className="inline mr-1" />}
+              {cancion.visible ? <Eye size={10} /> : <EyeOff size={10} />}
               {cancion.visible ? "Visible" : "Oculta"}
             </span>
             <button onClick={reload as any} className="p-2 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
-              <RefreshCw size={14} />
+              <RefreshCw size={13} />
             </button>
           </div>
         </div>
 
-        {/* Selector de idioma + progreso */}
-        <div className="flex items-center justify-between gap-4">
-          {/* Pestañas idioma */}
-          <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
-            {IDIOMAS.map(({ id, label }) => (
-              <button
-                key={id}
-                onClick={() => setIdiomaActivo(id)}
-                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                  idiomaActivo === id
-                    ? "bg-primary text-bg-main shadow-md shadow-primary/20"
-                    : "text-primary/40 hover:text-primary"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        {/* Controles idioma + split */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <IdiomaTab value={idiomaA} onChange={changeIdiomaA} exclude={splitMode ? idiomaB : undefined} />
 
-          {/* Barra de progreso */}
-          <div className="flex items-center gap-3 text-[10px] font-black uppercase text-primary/40 tracking-widest">
-            <span>{conLetra}/{secciones.length} secciones</span>
-            <div className="w-24 h-1.5 rounded-full bg-primary/10 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${pct}%` }}
-              />
+          <button
+            onClick={() => setSplitMode(m => !m)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+              splitMode
+                ? "bg-primary text-bg-main border-primary shadow-md shadow-primary/20"
+                : "border-primary/20 text-primary/40 hover:text-primary hover:border-primary/30"
+            }`}
+          >
+            <Columns2 size={13} />
+            Vista dividida
+          </button>
+
+          {splitMode && (
+            <IdiomaTab value={idiomaB} onChange={changeIdiomaB} exclude={idiomaA} />
+          )}
+
+          {/* Progreso */}
+          <div className="ml-auto flex items-center gap-2 text-[10px] font-black uppercase text-primary/35 tracking-widest">
+            <span>{conLetra}/{secciones.length}</span>
+            <div className="w-20 h-1.5 rounded-full bg-primary/10 overflow-hidden">
+              <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
             </div>
             <span>{pct}%</span>
           </div>
         </div>
+
+        {/* Labels columnas split */}
+        {splitMode && (
+          <div className="flex gap-3 text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 px-1">
+            <span className="flex-1 text-center">{IDIOMAS.find(i => i.id === idiomaA)?.nombre}</span>
+            <span className="w-px" />
+            <span className="flex-1 text-center">{IDIOMAS.find(i => i.id === idiomaB)?.nombre}</span>
+          </div>
+        )}
       </div>
 
-      {/* ── LISTA DE SECCIONES ── */}
-      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-3">
+      {/* Secciones */}
+      <div className="flex-1 overflow-y-auto px-8 py-5 space-y-2.5">
         {secciones.map((sec, i) => (
           <SeccionEditor
             key={sec.id}
             sec={sec}
-            idiomaActivo={idiomaActivo}
-            onSave={handleSaveSeccion}
-            onDelete={handleDeleteSeccion}
+            idiomaA={idiomaA}
+            idiomaB={idiomaB}
+            splitMode={splitMode}
+            onSaveField={handleSaveField}
+            onSaveNombre={handleSaveNombre}
+            onDelete={handleDelete}
             onMoveUp={() => handleMove(i, "up")}
             onMoveDown={() => handleMove(i, "down")}
             isFirst={i === 0}
@@ -502,45 +613,36 @@ const PanelEditor = ({
         ))}
 
         {secciones.length === 0 && (
-          <div className="flex flex-col items-center gap-3 py-16 text-primary/30">
+          <div className="flex flex-col items-center gap-3 py-16 text-primary/25">
             <Layers size={40} strokeWidth={1} />
             <p className="text-xs font-black uppercase tracking-widest">No hay secciones aún</p>
           </div>
         )}
 
-        {/* ── AÑADIR SECCIÓN ── */}
+        {/* Añadir sección */}
         {addingOpen ? (
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-1">
             <input
               autoFocus
-              value={addingNombre}
-              onChange={e => setAddingNombre(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") handleAddSeccion();
-                if (e.key === "Escape") setAddingOpen(false);
-              }}
+              value={addingName}
+              onChange={e => setAddingName(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") setAddingOpen(false); }}
               className="flex-1 bg-bg-main border border-primary/20 rounded-xl px-4 py-3 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest placeholder:text-primary/20"
-              placeholder="Ej: CORO, VERSO 1, PUENTE…"
+              placeholder="CORO, VERSO 1, PUENTE…"
             />
-            <button
-              onClick={handleAddSeccion}
-              className="bg-primary text-bg-main px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
-            >
+            <button onClick={handleAdd} className="bg-primary text-bg-main px-5 py-3 rounded-xl font-black hover:scale-105 active:scale-95 transition-all">
               <Check size={15} />
             </button>
-            <button
-              onClick={() => setAddingOpen(false)}
-              className="px-4 py-3 rounded-xl border border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 transition-all"
-            >
+            <button onClick={() => setAddingOpen(false)} className="px-4 py-3 rounded-xl border border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 transition-all">
               <X size={15} />
             </button>
           </div>
         ) : (
           <button
             onClick={() => setAddingOpen(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/15 text-[10px] font-black uppercase text-primary/25 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
           >
-            <Plus size={14} /> Añadir Sección
+            <Plus size={13} /> Añadir Sección
           </button>
         )}
       </div>
@@ -549,199 +651,188 @@ const PanelEditor = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PÁGINA PRINCIPAL — LyricStudio
+// PÁGINA PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LyricStudio() {
   const { canciones, loading: loadingLista, refetch } = useCanciones();
-  const [selectedId,   setSelectedId]   = useState<string | null>(null);
-  const [busqueda,     setBusqueda]     = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("");
-  const [filtroVisible,setFiltroVisible]= useState<"" | "true" | "false">("");
-  const [showFiltros,  setShowFiltros]  = useState(false);
+  const [selectedId,  setSelectedId]  = useState<string | null>(null);
+  const [busqueda,    setBusqueda]    = useState("");
+  const [filtros,     setFiltros]     = useState<Filtros>(FILTROS_VACIOS);
+  const [showFiltros, setShowFiltros] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // ── Filtrado local (instantáneo) ────────────────────────────────────────────
+  // Opciones dinámicas
+  const opciones = useMemo(() => ({
+    idiomas:      unique(canciones.map(c => c.idioma     || "")),
+    cantantes:    unique(canciones.map(c => c.cantante   || "")),
+    compositores: unique(canciones.map(c => c.compositor || "")),
+  }), [canciones]);
 
-  const filtradas = canciones.filter(c => {
-    const matchBusqueda = !busqueda ||
-      normalize(c.titulo).includes(normalize(busqueda)) ||
-      normalize(c.personaje || "").includes(normalize(busqueda)) ||
-      normalize(c.cantante  || "").includes(normalize(busqueda));
-    const matchEstado   = !filtroEstado   || c.estado === filtroEstado;
-    const matchVisible  = !filtroVisible  || String(c.visible) === filtroVisible;
-    return matchBusqueda && matchEstado && matchVisible;
-  });
+  // Filtrado
+  const filtradas = useMemo(() => canciones.filter(c => {
+    if (busqueda) {
+      const q = normalize(busqueda);
+      if (
+        !normalize(c.titulo).includes(q) &&
+        !normalize(c.personaje  || "").includes(q) &&
+        !normalize(c.cantante   || "").includes(q) &&
+        !normalize(c.compositor || "").includes(q)
+      ) return false;
+    }
+    if (filtros.estado     && c.estado      !== filtros.estado)        return false;
+    if (filtros.visible    && String(c.visible) !== filtros.visible)   return false;
+    if (filtros.idioma     && c.idioma      !== filtros.idioma)        return false;
+    if (filtros.cantante   && c.cantante    !== filtros.cantante)      return false;
+    if (filtros.compositor && c.compositor  !== filtros.compositor)    return false;
+    return true;
+  }), [canciones, busqueda, filtros]);
 
-  // Agrupar por estado para la sidebar
-  const grupos = ESTADOS.map(est => ({
-    estado: est,
-    items: filtradas.filter(c => c.estado === est),
-  })).filter(g => g.items.length > 0);
+  const usarGrupos = !busqueda && !filtros.estado;
+  const grupos = useMemo(() =>
+    ESTADOS.map(est => ({ estado: est, items: filtradas.filter(c => c.estado === est) }))
+           .filter(g => g.items.length > 0),
+    [filtradas]
+  );
 
-  // Si la búsqueda es activa, mostrar lista plana
-  const usarGrupos = !busqueda && !filtroEstado;
-
-  // ── RENDER ──────────────────────────────────────────────────────────────────
+  const numFiltros = Object.values(filtros).filter(Boolean).length;
 
   return (
     <div className="flex h-screen bg-bg-main overflow-hidden">
-      {/* ══════════════════════════════ SIDEBAR ══════════════════════════════ */}
-      <aside className="w-72 shrink-0 flex flex-col border-r border-primary/10 bg-bg-main">
-        {/* Header sidebar */}
-        <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-              <Music size={12} /> Lyric Studio
-            </h2>
-            <button
-              onClick={refetch}
-              className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
-            >
-              <RefreshCw size={12} />
-            </button>
-          </div>
 
-          {/* Buscador */}
-          <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" />
-            <input
-              value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
-              placeholder="Buscar canción…"
-              className="w-full bg-primary/5 border border-primary/10 rounded-xl pl-9 pr-9 py-2.5 text-xs font-medium text-primary outline-none focus:border-primary/30 placeholder:text-primary/30 transition-colors"
-            />
-            {busqueda && (
-              <button
-                onClick={() => setBusqueda("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
-
-          {/* Toggle filtros */}
+      {/* ════ SIDEBAR COLAPSADA (tab) ════ */}
+      {!sidebarOpen && (
+        <div className="shrink-0 w-10 flex flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
           <button
-            onClick={() => setShowFiltros(f => !f)}
-            className={`mt-3 w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-              filtroEstado || filtroVisible
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-primary/10 text-primary/30 hover:text-primary hover:border-primary/20"
-            }`}
+            onClick={() => setSidebarOpen(true)}
+            title="Abrir sidebar"
+            className="p-2 rounded-xl hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
           >
-            <span className="flex items-center gap-1.5">
-              <SlidersHorizontal size={11} /> Filtros
-              {(filtroEstado || filtroVisible) && (
-                <span className="ml-1 bg-primary text-bg-main rounded-full w-4 h-4 text-[8px] flex items-center justify-center">
-                  {(filtroEstado ? 1 : 0) + (filtroVisible ? 1 : 0)}
-                </span>
-              )}
-            </span>
-            <ChevronDown size={11} className={`transition-transform ${showFiltros ? "rotate-180" : ""}`} />
+            <PanelLeftOpen size={16} />
           </button>
+          <span
+            className="text-[9px] font-black uppercase text-primary/15 tracking-[0.25em] select-none"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+          >
+            Canciones
+          </span>
+        </div>
+      )}
 
-          {showFiltros && (
-            <div className="mt-3 space-y-3 p-3 bg-primary/5 rounded-xl border border-primary/10">
-              <div>
-                <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Estado</p>
-                <FiltroEstado value={filtroEstado} onChange={setFiltroEstado} />
+      {/* ════ SIDEBAR ABIERTA ════ */}
+      {sidebarOpen && (
+        <aside className="w-72 shrink-0 flex flex-col border-r border-primary/10 bg-bg-main">
+
+          {/* Header */}
+          <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+                <Music size={12} /> Lyric Studio
+              </h2>
+              <div className="flex items-center gap-1">
+                <button onClick={refetch} title="Recargar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
+                  <RefreshCw size={12} />
+                </button>
+                <button onClick={() => setSidebarOpen(false)} title="Cerrar sidebar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
+                  <PanelLeftClose size={14} />
+                </button>
               </div>
-              <div>
-                <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Visibilidad</p>
-                <div className="flex gap-1">
-                  {([["", "Todas"], ["true", "Visible"], ["false", "Oculta"]] as const).map(([v, l]) => (
-                    <button
-                      key={v}
-                      onClick={() => setFiltroVisible(v)}
-                      className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border transition-all ${
-                        filtroVisible === v
-                          ? "bg-primary text-bg-main border-primary"
-                          : "border-primary/20 text-primary/40 hover:border-primary/40"
-                      }`}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {(filtroEstado || filtroVisible) && (
-                <button
-                  onClick={() => { setFiltroEstado(""); setFiltroVisible(""); }}
-                  className="text-[9px] font-black uppercase text-red-400 hover:text-red-500 tracking-widest"
-                >
-                  Limpiar filtros
+            </div>
+
+            {/* Buscador */}
+            <div className="relative">
+              <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" />
+              <input
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Título, cantante, compositor…"
+                className="w-full bg-primary/5 border border-primary/10 rounded-xl pl-9 pr-9 py-2.5 text-xs font-medium text-primary outline-none focus:border-primary/30 placeholder:text-primary/25 transition-colors"
+              />
+              {busqueda && (
+                <button onClick={() => setBusqueda("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
+                  <X size={12} />
                 </button>
               )}
             </div>
-          )}
-        </div>
 
-        {/* Lista de canciones */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
-          {loadingLista ? (
-            <div className="flex items-center justify-center py-12 text-primary/30">
-              <Loader2 className="animate-spin" size={20} />
-            </div>
-          ) : filtradas.length === 0 ? (
-            <div className="text-center py-10 text-primary/30">
-              <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
-            </div>
-          ) : usarGrupos ? (
-            // Vista agrupada por estado
-            grupos.map(({ estado, items }) => (
-              <div key={estado} className="mb-4">
-                <p className={`text-[9px] font-black uppercase tracking-[0.3em] px-4 py-2 ${
-                  ESTADO_COLOR[estado].split(" ")[1]
-                }`}>
-                  {estado} ({items.length})
-                </p>
-                {items.map(c => (
-                  <SidebarItem
-                    key={c.id}
-                    cancion={c}
-                    selected={selectedId === c.id}
-                    onClick={() => setSelectedId(c.id)}
-                  />
-                ))}
+            {/* Toggle filtros */}
+            <button
+              onClick={() => setShowFiltros(f => !f)}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                numFiltros > 0
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-primary/10 text-primary/30 hover:text-primary hover:border-primary/20"
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <SlidersHorizontal size={11} /> Filtros
+                {numFiltros > 0 && (
+                  <span className="bg-primary text-bg-main rounded-full w-4 h-4 text-[8px] flex items-center justify-center">
+                    {numFiltros}
+                  </span>
+                )}
+              </span>
+              <ChevronDown size={11} className={`transition-transform duration-200 ${showFiltros ? "rotate-180" : ""}`} />
+            </button>
+
+            {showFiltros && (
+              <PanelFiltros filtros={filtros} onChange={setFiltros} opciones={opciones} />
+            )}
+          </div>
+
+          {/* Lista */}
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+            {loadingLista ? (
+              <div className="flex items-center justify-center py-12 text-primary/30">
+                <Loader2 className="animate-spin" size={20} />
               </div>
-            ))
-          ) : (
-            // Vista plana (búsqueda activa o filtro aplicado)
-            filtradas.map(c => (
-              <SidebarItem
-                key={c.id}
-                cancion={c}
-                selected={selectedId === c.id}
-                onClick={() => setSelectedId(c.id)}
-              />
-            ))
-          )}
-        </div>
+            ) : filtradas.length === 0 ? (
+              <div className="text-center py-10 text-primary/25">
+                <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
+              </div>
+            ) : usarGrupos ? (
+              grupos.map(({ estado, items }) => (
+                <div key={estado} className="mb-3">
+                  <p className={`text-[9px] font-black uppercase tracking-[0.3em] px-4 py-2 ${ESTADO_COLOR[estado].split(" ")[1]}`}>
+                    {estado} ({items.length})
+                  </p>
+                  {items.map(c => (
+                    <SidebarItem key={c.id} cancion={c} selected={selectedId === c.id} onClick={() => setSelectedId(c.id)} />
+                  ))}
+                </div>
+              ))
+            ) : (
+              filtradas.map(c => (
+                <SidebarItem key={c.id} cancion={c} selected={selectedId === c.id} onClick={() => setSelectedId(c.id)} />
+              ))
+            )}
+          </div>
 
-        {/* Footer */}
-        <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase text-primary/20 tracking-widest flex justify-between">
-          <span>{canciones.length} canciones</span>
-          <span>{filtradas.length} mostradas</span>
-        </div>
-      </aside>
+          {/* Footer */}
+          <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase text-primary/20 tracking-widest flex justify-between">
+            <span>{canciones.length} canciones</span>
+            <span>{filtradas.length} mostradas</span>
+          </div>
+        </aside>
+      )}
 
-      {/* ══════════════════════════════ PANEL ════════════════════════════════ */}
+      {/* ════ PANEL PRINCIPAL ════ */}
       <main className="flex-1 flex flex-col min-w-0 min-h-0">
-        {selectedId
-          ? <PanelEditor key={selectedId} cancionId={selectedId} />
-          : (
-            <div className="flex-1 flex flex-col items-center justify-center gap-6 text-primary/20 select-none">
-              <div className="p-8 rounded-3xl border-2 border-dashed border-primary/10">
-                <BookOpen size={56} strokeWidth={1} />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-black uppercase tracking-[0.3em]">Lyric Studio</p>
-                <p className="text-xs mt-1 tracking-widest">Selecciona una canción para editar sus secciones</p>
-              </div>
+        {selectedId ? (
+          <PanelEditor key={selectedId} cancionId={selectedId} />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center gap-6 text-primary/20 select-none">
+            <div className="p-8 rounded-3xl border-2 border-dashed border-primary/10">
+              <BookOpen size={52} strokeWidth={1} />
             </div>
-          )
-        }
+            <div className="text-center">
+              <p className="text-sm font-black uppercase tracking-[0.3em]">Lyric Studio</p>
+              <p className="text-xs mt-1 tracking-widest opacity-60">Selecciona una canción del sidebar</p>
+            </div>
+          </div>
+        )}
       </main>
+
     </div>
   );
 }
