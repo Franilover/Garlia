@@ -1280,7 +1280,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             </aside>
           )}
       </div>
-      </div>
+ |     </div>
     </>
   );
 }
