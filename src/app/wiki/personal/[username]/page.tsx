@@ -6,9 +6,10 @@
  */
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Sword, Package, Star, ChevronLeft, Loader2, Tag, Calendar, X, Users } from "lucide-react";
+import {
+  User, Sword, Package, Calendar, X, Tag, Loader2, Users} from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
@@ -19,6 +20,8 @@ interface PerfilData {
   status?: string;
   avatar_url?: string;
   descripcion?: string;
+  personaje_favorito?: { id: string; nombre: string; img_url?: string } | null;
+  mascota?: { id: string; nombre: string; imagen_url?: string } | null;
 }
 
 interface Descubrimiento {
@@ -40,7 +43,7 @@ interface ItemInventario {
   items: { id: string; nombre: string; categoria: string; imagen_url?: string };
 }
 
-// ─── CARD ─────────────────────────────────────────────────────────────────────
+// ─── SUB-COMPONENTES ─────────────────────────────────────────────────────────
 
 function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
   imagen?: string; nombre: string; sub: string;
@@ -63,8 +66,7 @@ function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
         const el = e.currentTarget as HTMLElement;
         el.style.borderColor = "color-mix(in srgb, var(--primary) 5%, transparent)";
         el.style.boxShadow = "none";
-      }}
-    >
+      }}>
       <div className="w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-110 transition-transform"
         style={{
           background: "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -73,12 +75,13 @@ function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
         }}>
         {imagen
           ? <img src={imagen} alt={nombre} className="w-full h-full object-contain p-1" />
-          : icono
-        }
+          : icono}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-black uppercase tracking-tight truncate" style={{ color: "var(--primary)" }}>{nombre}</p>
-        <p className="text-[9px] font-black uppercase" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>{sub}</p>
+        <p className="text-[11px] font-black uppercase tracking-tight truncate capitalize"
+          style={{ color: "var(--primary)" }}>{nombre}</p>
+        <p className="text-[9px] font-black uppercase capitalize"
+          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>{sub}</p>
       </div>
     </button>
   );
@@ -86,28 +89,28 @@ function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
 
 function EmptyTab({ label }: { label: string }) {
   return (
-    <div className="col-span-full py-20 text-center">
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] italic"
-        style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+    <div className="col-span-full py-16 text-center">
+      <p className="font-serif italic"
+        style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
         "{label}"
       </p>
     </div>
   );
 }
 
-// ─── MODAL DETALLE (simplificado — solo lectura) ───────────────────────────────
-
 function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }) {
   const tags = [d.categoria, d.habitat, d.alma ? `Alma ${d.alma}` : null, d.reino, d.especie].filter(Boolean) as string[];
   return (
     <AnimatePresence>
       <motion.div key="bd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose} className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "rgba(0,0,0,0.35)" }} />
+        onClick={onClose} className="fixed inset-0 z-40 backdrop-blur-sm"
+        style={{ background: "rgba(0,0,0,0.35)" }} />
       <motion.div key="md"
-        initial={{ opacity: 0, scale: 0.92, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92, y: 20 }}
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, y: 20 }}
         transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
-      >
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div className="pointer-events-auto w-full max-w-sm overflow-hidden"
           style={{
             background: "var(--white-custom)",
@@ -115,14 +118,12 @@ function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }
             border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
             boxShadow: "var(--shadow-card)",
           }}
-          onClick={e => e.stopPropagation()}
-        >
+          onClick={e => e.stopPropagation()}>
           <div className="relative h-40 flex items-center justify-center"
             style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
             {d.imagen_url
               ? <img src={d.imagen_url} alt={d.nombre} className="w-full h-full object-contain p-2" />
-              : <User size={48} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-            }
+              : <User size={48} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />}
             <button onClick={onClose}
               className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center"
               style={{
@@ -132,19 +133,11 @@ function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }
               }}>
               <X size={14} style={{ color: "var(--primary)" }} />
             </button>
-            <div className="absolute bottom-3 left-3 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest"
-              style={{
-                background: "color-mix(in srgb, var(--white-custom) 80%, transparent)",
-                borderRadius: "var(--radius-btn)",
-                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-                color: "color-mix(in srgb, var(--primary) 60%, transparent)",
-              }}>
-              {d.tipo}
-            </div>
           </div>
           <div className="p-5 space-y-3">
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight" style={{ color: "var(--primary)" }}>{d.nombre}</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight capitalize"
+                style={{ color: "var(--primary)" }}>{d.nombre}</h2>
               <p className="flex items-center gap-1.5 mt-1 text-[9px] font-black uppercase tracking-widest"
                 style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
                 <Calendar size={10} />
@@ -154,7 +147,8 @@ function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {tags.map((tag, i) => (
-                  <span key={i} className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider"
+                  <span key={i}
+                    className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider"
                     style={{
                       background: "color-mix(in srgb, var(--primary) 8%, transparent)",
                       color: "color-mix(in srgb, var(--primary) 70%, transparent)",
@@ -182,11 +176,11 @@ function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }
   );
 }
 
+
 // ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 
 export default function PerfilPublico() {
   const params  = useParams();
-  const router  = useRouter();
   const username = params?.username as string;
 
   const [perfil, setPerfil]           = useState<PerfilData | null>(null);
@@ -267,13 +261,6 @@ export default function PerfilPublico() {
         })),
       ]);
 
-      // 4. Otros perfiles para el sidebar
-      const { data: otros } = await supabase
-        .from("perfiles")
-        .select("id, username, status, avatar_url")
-        .neq("id", uid)
-        .order("username");
-      if (otros) setOtrosPerfiles(otros);
 
       setCargando(false);
     }
@@ -292,26 +279,21 @@ export default function PerfilPublico() {
 
   if (cargando) return (
     <div className="flex items-center justify-center min-h-60">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-        <span className="text-[9px] font-black uppercase tracking-[0.3em]"
-          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-          Cargando perfil…
-        </span>
-      </div>
+      <Loader2 size={20} className="animate-spin"
+        style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
     </div>
   );
 
   if (notFound) return (
     <div className="flex flex-col items-center justify-center min-h-60 gap-4">
-      <p className="text-[10px] font-black uppercase tracking-widest italic"
-        style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+      <p className="font-serif italic"
+        style={{ fontSize: "0.9rem", color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
         "Explorador no encontrado"
       </p>
       <Link href="/wiki/personal"
-        className="text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-opacity hover:opacity-70"
+        className="font-serif italic text-[9px] flex items-center gap-1.5 hover:opacity-70"
         style={{ color: "var(--primary)" }}>
-        <ChevronLeft size={12} /> Volver
+        ← Volver a mi perfil
       </Link>
     </div>
   );
@@ -319,6 +301,19 @@ export default function PerfilPublico() {
   return (
     <>
       {modalD && <ModalDetalle d={modalD} onClose={() => setModalD(null)} />}
+
+      {/* ── Botón volver — pelotita en esquina superior izquierda ── */}
+      <Link href="/wiki/personal"
+        className="fixed top-4 left-4 z-[100] flex items-center justify-center w-9 h-9 transition-all hover:scale-110 group"
+        style={{
+          background: "var(--bg-menu)",
+          borderRadius: "50%",
+          border: "2px solid color-mix(in srgb, var(--menu-text) 20%, transparent)",
+          boxShadow: "var(--shadow-card)",
+        }}
+        title="Volver a mi perfil">
+        <X size={14} style={{ color: "var(--menu-text)", opacity: 0.7 }} />
+      </Link>
 
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pb-20">
 
@@ -332,11 +327,11 @@ export default function PerfilPublico() {
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         </div>
 
-        {/* Zona superior: ficha + descripción */}
+        {/* ── Fila superior ── */}
         <div className="flex flex-col md:flex-row gap-5 mb-6">
 
-          {/* COL 1 — ficha perfil */}
-          <div className="w-full md:w-56 xl:w-64 shrink-0 self-start animate-in fade-in duration-500">
+          {/* Ficha perfil */}
+          <div className="w-full md:w-56 xl:w-64 shrink-0 md:sticky md:top-16 self-start animate-in fade-in duration-500">
             <div className="mx-4 md:mx-0 relative"
               style={{
                 background: "var(--white-custom)",
@@ -346,9 +341,11 @@ export default function PerfilPublico() {
                 outlineOffset: "4px",
                 border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
               }}>
+
               <div className="text-center pt-5 pb-2 px-5">
                 <p className="font-serif italic tracking-[0.4em] mb-3 text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>── ✦ ──</p>
+
                 <div className="flex justify-center mb-3">
                   <div className="overflow-hidden flex items-center justify-center"
                     style={{
@@ -362,8 +359,9 @@ export default function PerfilPublico() {
                       : <User size={30} style={{ color: "color-mix(in srgb, var(--primary) 15%, transparent)" }} />}
                   </div>
                 </div>
+
                 <h1 className="font-serif italic leading-tight mb-1"
-                  style={{ fontSize: "1.05rem", color: "var(--primary)", letterSpacing: "0.02em" }}>
+                  style={{ fontSize: "1.05rem", color: "var(--primary)", letterSpacing: "0.02em", textTransform: "capitalize" }}>
                   {perfil?.username}
                 </h1>
                 <p className="font-serif italic text-[9px]"
@@ -371,12 +369,14 @@ export default function PerfilPublico() {
                   {perfil?.status ?? "Explorador"}
                 </p>
               </div>
+
               <div className="mx-5 my-3 flex items-center gap-2">
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                 <span className="text-[8px]" style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>◆</span>
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
               </div>
-              <div className="px-5 pb-4 space-y-2">
+
+              <div className="px-5 pb-5 space-y-2">
                 {[
                   { icon: <Package size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
                   { icon: <Sword size={11} />,   label: "Bestias",   count: misCriaturas.length },
@@ -401,6 +401,7 @@ export default function PerfilPublico() {
                   </div>
                 ))}
               </div>
+
               {/* Tabs mobile */}
               <div className="md:hidden px-4 pb-4"
                 style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", paddingTop: "0.75rem" }}>
@@ -422,16 +423,16 @@ export default function PerfilPublico() {
             </div>
           </div>
 
-          {/* Descripción — solo lectura */}
+          {/* Bloque derecho — un solo card: descripción + personaje + mascota */}
           <div className="flex-1 min-w-0 mx-4 md:mx-0">
-            <div className="h-full"
-              style={{
-                background: "var(--white-custom)",
-                borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                boxShadow: "var(--shadow-card)",
-                minHeight: "180px",
-              }}>
+            <div style={{
+              background: "var(--white-custom)",
+              borderRadius: "var(--radius-card)",
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              boxShadow: "var(--shadow-card)",
+            }}>
+
+              {/* Descripción */}
               <div className="flex items-center justify-between px-5 pt-4 pb-2">
                 <p className="font-serif italic text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -439,7 +440,7 @@ export default function PerfilPublico() {
                 </p>
               </div>
               <div className="mx-5 mb-3 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              <div className="px-5 pb-5">
+              <div className="px-5 pb-4">
                 {perfil?.descripcion ? (
                   <p className="font-serif italic leading-relaxed"
                     style={{ fontSize: "0.9rem", color: "color-mix(in srgb, var(--foreground) 75%, transparent)" }}>
@@ -452,15 +453,115 @@ export default function PerfilPublico() {
                   </p>
                 )}
               </div>
+
+              {/* Divisor */}
+              <div className="mx-5 h-px" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
+
+              {/* Personaje + Mascota — 2 cols */}
+              <div className="grid grid-cols-2">
+
+                {/* Personaje favorito */}
+                <div className="px-4 py-3">
+                  <p className="font-serif italic text-[8px] mb-2"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    ✦ Personaje favorito
+                  </p>
+                  <div className="flex items-center gap-2.5">
+                    {perfil?.personaje_favorito ? (
+                      <>
+                        <div className="w-9 h-9 shrink-0 overflow-hidden"
+                          style={{
+                            borderRadius: "var(--radius-btn)",
+                            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                          }}>
+                          {perfil.personaje_favorito.img_url
+                            ? <img src={perfil.personaje_favorito.img_url} alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" />
+                            : <User size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                        </div>
+                        <p className="font-serif italic text-[11px] leading-tight capitalize"
+                          style={{ color: "var(--primary)" }}>
+                          {perfil.personaje_favorito.nombre}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-serif italic text-[9px]"
+                        style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                        Ninguno elegido…
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mascota */}
+                <div className="px-4 py-3"
+                  style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <p className="font-serif italic text-[8px] mb-2"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    ✦ Mascota
+                  </p>
+                  <div className="flex items-center gap-2.5">
+                    {perfil?.mascota ? (
+                      <>
+                        <div className="w-9 h-9 shrink-0 overflow-hidden"
+                          style={{
+                            borderRadius: "var(--radius-btn)",
+                            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                          }}>
+                          {perfil.mascota.imagen_url
+                            ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
+                            : <Sword size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                        </div>
+                        <p className="font-serif italic text-[11px] leading-tight capitalize"
+                          style={{ color: "var(--primary)" }}>
+                          {perfil.mascota.nombre}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-serif italic text-[9px]"
+                        style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                        Ninguna…
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Zona inferior: colección + sidebar */}
+        {/* Tabs mobile — justo antes de la colección */}
+        <div className="md:hidden mb-4 mx-4">
+          <div className="flex gap-1"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+              border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderRadius: "var(--radius-btn)",
+              padding: "4px",
+            }}>
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 transition-all font-serif italic text-[10px]"
+                style={{
+                  borderRadius: "var(--radius-btn)",
+                  background: tab === t.id ? "var(--primary)" : "transparent",
+                  color: tab === t.id ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                }}>
+                <t.icon size={12} />
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Zona inferior: colección + sidebar ── */}
         <div className="flex gap-6 items-start">
 
-          {/* COL 2 — colección */}
-          <div className="flex-1 min-w-0 pt-2 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+          {/* Colección */}
+          <div className="flex-1 min-w-0 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+
             {/* Tabs desktop */}
             <div className="hidden md:flex items-center gap-2 mb-5">
               {tabs.map(t => (
@@ -474,24 +575,28 @@ export default function PerfilPublico() {
                     boxShadow: tab === t.id ? "var(--shadow-card)" : "none",
                   }}>
                   <t.icon size={12} />
-                  <span className="text-[10px] font-serif italic">{t.label}</span>
+                  <span className="text-[10px]">{t.label}</span>
                 </button>
               ))}
             </div>
+
             <AnimatePresence mode="wait">
               <motion.div key={tab}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}
                 className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+
                 {tab === "items" && (
                   <>
                     {inventario.map((item, i) => (
-                      <EntidadCard key={`inv-${i}`} imagen={item.items.imagen_url} nombre={item.items.nombre}
-                        sub={item.items.categoria} icono={<Package size={20} />} onClick={() => {}} />
+                      <EntidadCard key={`inv-${i}`} imagen={item.items.imagen_url}
+                        nombre={item.items.nombre} sub={item.items.categoria}
+                        icono={<Package size={20} />} onClick={() => {}} />
                     ))}
                     {misItemsDesc.map((d, i) => (
-                      <EntidadCard key={`desc-${i}`} imagen={d.imagen_url} nombre={d.nombre ?? "Objeto"}
-                        sub={d.categoria ?? "Item"} icono={<Package size={20} />} onClick={() => setModalD(d)} />
+                      <EntidadCard key={`desc-${i}`} imagen={d.imagen_url}
+                        nombre={d.nombre ?? "Objeto"} sub={d.categoria ?? "Item"}
+                        icono={<Package size={20} />} onClick={() => setModalD(d)} />
                     ))}
                     {inventario.length === 0 && misItemsDesc.length === 0 && <EmptyTab label="Sin items aún" />}
                   </>
@@ -499,35 +604,43 @@ export default function PerfilPublico() {
                 {tab === "criaturas" && (
                   misCriaturas.length > 0
                     ? misCriaturas.map((d, i) => (
-                      <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Criatura"}
-                        sub={d.habitat ?? "Criatura"} icono={<Sword size={20} />} onClick={() => setModalD(d)} />
+                      <EntidadCard key={i} imagen={d.imagen_url}
+                        nombre={d.nombre ?? "Criatura"} sub={d.habitat ?? "Criatura"}
+                        icono={<Sword size={20} />} onClick={() => setModalD(d)} />
                     ))
                     : <EmptyTab label="Sin criaturas descubiertas" />
                 )}
                 {tab === "personajes" && (
                   misPersonajes.length > 0
                     ? misPersonajes.map((d, i) => (
-                      <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Personaje"}
+                      <EntidadCard key={i} imagen={d.imagen_url}
+                        nombre={d.nombre ?? "Personaje"}
                         sub={`Visto el ${new Date(d.fecha_descubrimiento).toLocaleDateString("es-ES")}`}
                         icono={<User size={20} />} onClick={() => setModalD(d)} />
                     ))
                     : <EmptyTab label="Sin personajes conocidos" />
                 )}
+
               </motion.div>
             </AnimatePresence>
           </div>
 
-          {/* COL 3 — otros exploradores (derecha, solo lg+) */}
+          {/* Sidebar exploradores — derecha, solo lg+ */}
           {otrosPerfiles.length > 0 && (
             <aside className="hidden lg:flex flex-col gap-2 w-44 xl:w-52 shrink-0 sticky top-24 pt-2">
-              <p className="font-serif italic text-[9px] mb-1 px-1 flex items-center gap-1.5 opacity-60"
+              <p className="font-serif italic text-[9px] mb-1 px-1 flex items-center gap-1.5"
                 style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
                 <Users size={9} /> Exploradores
               </p>
               {/* Mi perfil */}
               <Link href="/wiki/personal">
-                <div className="flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-widest"
-                  style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)", borderRadius: "var(--radius-btn)", color: "var(--accent)" }}>
+                <div className="flex items-center gap-2 px-3 py-2 font-serif italic text-[9px]"
+                  style={{
+                    background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+                    borderRadius: "var(--radius-btn)",
+                    color: "var(--accent)",
+                  }}>
                   <User size={9} /> Mi perfil
                 </div>
               </Link>
@@ -549,9 +662,11 @@ export default function PerfilPublico() {
                           : <User size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-serif italic text-[11px] truncate transition-colors group-hover:text-[var(--accent)]"
-                          style={{ color: isCurrent ? "var(--accent)" : "var(--primary)" }}>{p.username}</p>
-                        <p className="text-[8px] font-bold uppercase tracking-widest truncate"
+                        <p className="font-serif italic text-[10px] truncate capitalize transition-colors group-hover:text-accent"
+                          style={{ color: isCurrent ? "var(--accent)" : "var(--primary)" }}>
+                          {p.username}
+                        </p>
+                        <p className="font-serif italic text-[8px] truncate"
                           style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
                           {p.status ?? "Explorador"}
                         </p>
@@ -562,7 +677,8 @@ export default function PerfilPublico() {
               })}
             </aside>
           )}
-      </div>
+
+        </div>
       </div>
     </>
   );
