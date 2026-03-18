@@ -38,8 +38,8 @@
   }
 }
 
-/* FUENTES */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@400;600;700&family=VT323&family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400..700&family=Montserrat:wght@300;400;700&display=swap');
+/* IMPORTACIÓN DE FUENTES */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Pixelify+Sans:wght@400..700&family=Montserrat:wght@400;700&display=swap');
 
 /* =========================================
    TEMA: DEFAULT (MINIMALISTA)
@@ -101,7 +101,7 @@
   --radius-input: 0px;
   --shadow-card: 0 2px 0px 0px rgba(26,26,26,0.15);
   --border-width: 2px;
-  --font-display: 'Pixelify Sans', cursive;
+  --font-display: "Pixelify Sans", sans-serif;
   font-size: 16px;
   image-rendering: pixelated;
 }
@@ -141,7 +141,7 @@
   --shadow-card: 4px 4px 0px rgba(74,52,39,0.1);
   --border-width: 1px;
   --font-display: 'Caveat', cursive;
-  font-size: 18px;
+  font-size: 19px;
 }
 
 [data-theme="scribble"].dark {
@@ -158,10 +158,10 @@
   --input-text: #f0e6d0;
 }
 
-/* ASIGNACIÓN DE FUENTES POR TEMA */
-[data-theme="default"] body { font-family: 'Montserrat', sans-serif !important; }
-[data-theme="pixel"] body { font-family: 'Pixelify Sans', cursive !important; }
-[data-theme="scribble"] body { font-family: 'Caveat', cursive !important; }
+/* FUERZA BRUTA DE FUENTES POR TEMA */
+[data-theme="default"], [data-theme="default"] * { font-family: 'Montserrat', sans-serif !important; }
+[data-theme="pixel"], [data-theme="pixel"] * { font-family: "Pixelify Sans", sans-serif !important; }
+[data-theme="scribble"], [data-theme="scribble"] * { font-family: 'Caveat', cursive !important; }
 
 /* Textura de papel (Scribble) */
 [data-theme="scribble"] body::after {
@@ -174,7 +174,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
 }
 
-/* Efectos CRT y Barra (Pixel Dark) */
+/* Efectos CRT y Scanline (Pixel Dark) */
 [data-theme="pixel"].dark body::before {
   content: " ";
   display: block;
@@ -190,15 +190,12 @@
   content: " ";
   display: block;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100px;
+  top: 0; left: 0; width: 100%; height: 100px;
   background: linear-gradient(0deg, transparent 0%, rgba(0, 255, 0, 0.07) 50%, transparent 100%);
   opacity: 0.1;
   z-index: 9999;
   pointer-events: none;
-  animation: scanline-move 10s linear infinite;
+  animation: scanline-move 8s linear infinite;
 }
 
 @layer base {
@@ -234,7 +231,7 @@
     z-index: 10;
   }
 
-  /* PERSONAJES / GALERÍA */
+  /* PERSONAJES */
   .char-card-base {
     @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
     border-radius: var(--radius-card);
@@ -246,16 +243,7 @@
     grayscale: 0;
   }
 
-  [data-theme="scribble"] .char-card-base::after {
-    content: "";
-    position: absolute;
-    inset: 6px;
-    border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
-    pointer-events: none;
-    z-index: 20;
-  }
-
-  /* INPUTS Y BUSCADOR */
+  /* BUSCADOR E INPUTS */
   .input-brand {
     width: 100%;
     background: var(--input-bg);
@@ -264,16 +252,7 @@
     padding: 0.75rem 1rem;
     color: var(--input-text);
     outline: none;
-  }
-
-  [data-theme="pixel"] input[type="text"] {
-    font-family: 'Pixelify Sans', cursive !important;
-  }
-
-  [data-theme="scribble"] input[type="text"] {
-    border: 1px solid var(--primary) !important;
-    font-family: 'Caveat', cursive !important;
-    font-size: 1.4rem;
+    transition: all 0.2s ease;
   }
 
   [data-theme="scribble"] .relative:has(input[type="text"])::after {
@@ -303,17 +282,9 @@
     border: 1px solid var(--primary);
     background: transparent;
     color: var(--primary);
-    font-family: 'Caveat', cursive;
   }
 
-  /* UTILIDADES DARK */
-  .dark .border-\[\\#6B5E70\]\/8,
-  .dark .border-\[\\#6B5E70\]\/10,
-  .dark .border-\[\\#6B5E70\]\/12 {
-    border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
-  }
-
-  /* SELECTORES */
+  /* SELECTS */
   select, select option {
     background-color: var(--input-bg, var(--white-custom));
     color: var(--input-text, var(--foreground));
@@ -335,8 +306,15 @@
     background-color: var(--white-custom) !important;
   }
 
-  /* Animación Flicker Pixel Dark */
+  /* Animación Flicker */
   [data-theme="pixel"].dark body {
     animation: flicker 0.15s infinite;
+  }
+
+  /* Utilidades de bordes específicas del modo oscuro */
+  .dark .border-\[\\#6B5E70\]\/8,
+  .dark .border-\[\\#6B5E70\]\/10,
+  .dark .border-\[\\#6B5E70\]\/12 {
+    border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
   }
 }
