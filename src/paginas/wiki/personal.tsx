@@ -1,20 +1,22 @@
 "use client";
-/**
- * COMPONENTE: components/paginas/personal/personal.tsx
- *
- * FIX: Era dependiente de que el padre pasara datos correctamente.
- * Ahora es self-contained — fetchea su propio perfil desde `perfiles`
- * y los descubrimientos directamente con el user del auth.
- *
- * El prop `datos` sigue siendo aceptado como fallback opcional.
- */
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Sword, Package, Star, ShieldCheck, X, Calendar, Tag, Loader2 } from "lucide-react";
+import { User, Sword, Package, Star, ShieldCheck, X, Calendar, Tag, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/api/client/supabase";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
+
+interface PerfilResumen {
+  id: string;
+  username: string;
+  status?: string;
+  avatar_url?: string;
+  items_count: number;
+  criaturas_count: number;
+  personajes_count: number;
+}
 
 interface Perfil {
   username: string;
@@ -282,6 +284,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [cargando, setCargando]       = useState(true);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [otrosPerfiles, setOtrosPerfiles] = useState<PerfilResumen[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
@@ -376,6 +379,31 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         ];
 
         setDescubrimientos(planos);
+
+        // ── 5. Otros perfiles (excluir el propio) ─────────────────────────
+        const { data: perfilesData } = await supabase
+          .from("perfiles")
+          .select("id, username, status, avatar_url")
+          .neq("id", user.id)
+          .order("username");
+
+        if (perfilesData && perfilesData.length > 0) {
+          // Contar descubrimientos de cada perfil
+          const counts = await Promise.all(perfilesData.map(async (p: any) => {
+            const [i, c, pe] = await Promise.all([
+              supabase.from("descubrimientos_items").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
+              supabase.from("descubrimientos_criaturas").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
+              supabase.from("descubrimientos_personajes").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
+            ]);
+            return {
+              ...p,
+              items_count:     i.count ?? 0,
+              criaturas_count: c.count ?? 0,
+              personajes_count: pe.count ?? 0,
+            } as PerfilResumen;
+          }));
+          setOtrosPerfiles(counts);
+        }
       } catch (err) {
         console.error("[Personal] Error inesperado:", err);
       } finally {
@@ -565,7 +593,69 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         )}
       </AnimatePresence>
 
-      <div className="w-full max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* ── LAYOUT CON SIDEBAR ── */}
+      <div className="flex gap-8 items-start w-full max-w-4xl mx-auto">
+
+        {/* Sidebar de otros perfiles */}
+        {otrosPerfiles.length > 0 && (
+          <aside className="hidden lg:flex flex-col gap-3 w-52 shrink-0 sticky top-24">
+            <p className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-1"
+              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              <Users size={11} /> Exploradores
+            </p>
+            {otrosPerfiles.map(p => (
+              <Link key={p.id} href={`/wiki/personal/${p.username}`}>
+                <motion.div
+                  whileHover={{ x: 3 }}
+                  className="flex items-center gap-3 p-3 transition-all cursor-pointer"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                    border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                    borderRadius: "var(--radius-card)",
+                  }}
+                >
+                  {/* Avatar */}
+                  <div className="w-10 h-10 shrink-0 overflow-hidden flex items-center justify-center"
+                    style={{
+                      borderRadius: "50%",
+                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      border: "1.5px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    }}>
+                    {p.avatar_url
+                      ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
+                      : <User size={16} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+                    }
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-tight truncate" style={{ color: "var(--primary)" }}>
+                      {p.username}
+                    </p>
+                    <p className="text-[8px] font-bold uppercase tracking-widest truncate"
+                      style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                      {p.status ?? "Explorador"}
+                    </p>
+                    {/* Mini stats */}
+                    <div className="flex items-center gap-2 mt-1">
+                      {[
+                        { icon: <Package size={7} />, n: p.items_count },
+                        { icon: <Sword size={7} />,   n: p.criaturas_count },
+                        { icon: <User size={7} />,    n: p.personajes_count },
+                      ].map(({ icon, n }, i) => (
+                        <span key={i} className="flex items-center gap-0.5 text-[8px] font-black tabular-nums"
+                          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                          {icon} {n}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              </Link>
+            ))}
+          </aside>
+        )}
+
+      <div className="flex-1 min-w-0 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
         {/* ── HEADER ── */}
         <section className="flex flex-col items-center gap-4 text-center">
@@ -721,6 +811,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               )}
             </motion.div>
           </AnimatePresence>
+        </div>
         </div>
       </div>
     </>
