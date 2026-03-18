@@ -117,24 +117,24 @@
 [data-theme="scribble"] {
   --primary: #4a3427;
   --accent: #d2691e;
-  --bg-main: #e2d1b9; /* Fondo café papel antiguo */
+  --bg-main: #e2d1b9;
   --bg-menu: #4a3427;
-  --white-custom: #ebdecb; /* Fondo café claro para cartas */
+  --white-custom: #ebdecb;
   --foreground: #2d1f18;
   --btn-text: #ebdecb;
   --menu-text: #ebdecb;
   --text-on-card: #2d1f18;
   --input-bg: #f2e6d5;
   --input-text: #2d1f18;
-  --radius-card: 0px; /* Bordes rectos para aspecto clásico */
+  --radius-card: 0px;
   --radius-btn: 0px;
   --radius-input: 0px;
-  --shadow-card: 4px 4px 0px rgba(74,52,39,0.1); /* Sombra sólida, no difuminada */
+  --shadow-card: 4px 4px 0px rgba(74,52,39,0.1);
   --border-width: 1px;
   --font-display: 'Caveat', cursive;
   --transition-card: all 0.25s ease;
-  --btn-transform-hover: none; /* Forzamos a que no se mueva */
-  --btn-transform-active: none; /* Forzamos a que no se mueva */
+  --btn-transform-hover: none;
+  --btn-transform-active: none;
   font-size: 15px;
 }
 
@@ -174,6 +174,7 @@
 }
 
 @layer components {
+  /* TARJETAS GENERALES */
   .card-main {
     background: var(--white-custom);
     color: var(--text-on-card, var(--foreground));
@@ -182,32 +183,47 @@
     padding: 1.5rem;
     box-shadow: var(--shadow-card);
     transition: var(--transition-card);
+    position: relative;
   }
 
-  /* Estilo Antiguo: Borde doble garantizado generado por dentro de la caja */
   [data-theme="scribble"] .card-main {
     border: 1px solid var(--primary);
-    outline: none; /* Quitamos outline exterior que da problemas */
-    position: relative;
-    transform: none !important; /* Bloqueamos movimientos CSS */
-    animation: none !important; /* Bloqueamos animaciones CSS */
+    transform: none !important;
+    animation: none !important;
   }
 
-  /* Este es el borde interno que forma el estilo elegante */
   [data-theme="scribble"] .card-main::after {
     content: "";
     position: absolute;
-    inset: 4px; /* Crea el margen interior sin depender del espacio exterior */
+    inset: 4px;
     border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
     pointer-events: none;
     z-index: 10;
   }
 
-  [data-theme="scribble"] .card-main:hover {
-    background: color-mix(in srgb, var(--white-custom) 95%, var(--primary));
-    transform: none !important;
+  /* IMÁGENES / TARJETAS DE PERSONAJES (GalleryGrid) */
+  .char-card-base {
+    @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
+    border-radius: var(--radius-card);
+    border: var(--border-width) solid transparent;
   }
 
+  [data-theme="scribble"] .char-card-base {
+    border: 1px solid var(--primary);
+    grayscale: 0; /* Opcional: quitar grayscale en tema antiguo para ver mejor los detalles */
+  }
+
+  /* El borde doble para las imágenes */
+  [data-theme="scribble"] .char-card-base::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  /* BOTONES */
   .btn-brand {
     background: var(--primary);
     color: var(--btn-text, white);
@@ -222,20 +238,16 @@
     gap: 0.5rem;
     cursor: pointer;
     transition: var(--transition-card);
+    position: relative;
   }
 
-  /* Estilos de botón para el tema antiguo estático */
   [data-theme="scribble"] .btn-brand {
     border: 1px solid var(--primary);
-    position: relative;
-    outline: none;
-    box-shadow: 2px 2px 0px rgba(74,52,39,0.1) !important;
-    font-family: 'Caveat', cursive;
     background: transparent;
     color: var(--primary);
+    font-family: 'Caveat', cursive;
     font-size: 1.2rem;
-    transform: none !important; /* Bloqueamos movimientos CSS */
-    animation: none !important; /* Bloqueamos animaciones CSS */
+    transform: none !important;
   }
 
   [data-theme="scribble"] .btn-brand::after {
@@ -246,13 +258,9 @@
     pointer-events: none;
   }
 
-  [data-theme="scribble"] .btn-brand:hover {
-    background: var(--primary);
-    color: var(--btn-text);
-    transform: none !important;
-  }
-
-  .input-brand {
+  /* INPUTS (Incluye el buscador de EntidadPageBase) */
+  .input-brand, 
+  [data-theme="scribble"] input[type="text"] {
     width: 100%;
     background: var(--input-bg, var(--bg-main));
     border: var(--border-width) solid color-mix(in srgb, var(--primary) 20%, transparent);
@@ -263,11 +271,19 @@
     transition: var(--transition-card);
   }
 
-  [data-theme="scribble"] .input-brand {
-    border: 1px solid var(--primary);
-    position: relative;
-    outline: none;
+  [data-theme="scribble"] input[type="text"] {
+    border: 1px solid var(--primary) !important;
     font-family: 'Caveat', cursive;
+  }
+
+  /* Estilo de borde doble para el contenedor del input en el buscador */
+  [data-theme="scribble"] .relative:has(input[type="text"])::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+    pointer-events: none;
+    border-radius: 2px;
   }
 
   [data-theme="scribble"] h1, [data-theme="scribble"] h2, [data-theme="scribble"] h3 {
@@ -278,10 +294,5 @@
   
   .dark .bg-white, [data-theme="scribble"].dark .bg-white {
     background-color: var(--white-custom) !important;
-  }
-
-  .char-card-base {
-    @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
-    border-radius: var(--radius-card);
   }
 }
