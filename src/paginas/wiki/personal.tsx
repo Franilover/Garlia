@@ -247,7 +247,7 @@ function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
           color: "color-mix(in srgb, var(--primary) 35%, transparent)",
         }}>
         {imagen
-          ? <img src={imagen} alt={nombre} className="w-full h-full object-cover" />
+          ? <img src={imagen} alt={nombre} className="w-full h-full object-contain p-1" />
           : icono
         }
       </div>
@@ -280,6 +280,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [inventario, setInventario]   = useState<ItemInventario[]>(datosProp?.inventario_usuario ?? []);
   const [descubrimientos, setDescubrimientos] = useState<Descubrimiento[]>([]);
   const [cargando, setCargando]       = useState(true);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const userIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     async function cargarTodo() {
@@ -292,20 +295,21 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           setCargando(false);
           return;
         }
+        userIdRef.current = user.id;
 
         // ── 2. Perfil desde tabla `perfiles` ───────────────────────────────
         const { data: perfilData, error: perfilError } = await supabase
           .from("perfiles")
-          .select("username, status, rol")
+          .select("username, status, rol, avatar_url")
           .eq("id", user.id)
           .maybeSingle();
 
         if (perfilError) console.warn("[Personal] Error al cargar perfil:", perfilError.message);
 
         setPerfil({
-          username:   perfilData?.username  ?? datosProp?.username ?? user.email?.split("@")[0] ?? "Aventurero",
-          status:     perfilData?.status    ?? datosProp?.status,
-          avatar_url: datosProp?.avatar_url, // no existe en tabla, usar solo si el padre la pasa
+          username:   perfilData?.username   ?? datosProp?.username ?? user.email?.split("@")[0] ?? "Aventurero",
+          status:     perfilData?.status     ?? datosProp?.status,
+          avatar_url: perfilData?.avatar_url ?? datosProp?.avatar_url,
         });
 
         // ── 3. Inventario ──────────────────────────────────────────────────
@@ -386,6 +390,26 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const misCriaturas  = descubrimientos.filter(d => d.tipo === "criatura");
   const misItemsDesc  = descubrimientos.filter(d => d.tipo === "item");
 
+  // Personajes desbloqueados que tienen imagen — candidatos para avatar
+  const personajesConImagen = misPersonajes.filter(d => d.imagen_url);
+
+  const handleSelectAvatar = async (imgUrl: string) => {
+    const userId = userIdRef.current;
+    if (!userId) return;
+    setSavingAvatar(true);
+    const { error } = await supabase
+      .from("perfiles")
+      .update({ avatar_url: imgUrl })
+      .eq("id", userId);
+    if (!error) {
+      setPerfil(prev => prev ? { ...prev, avatar_url: imgUrl } : prev);
+      setShowAvatarPicker(false);
+    } else {
+      console.warn("[Personal] Error guardando avatar:", error.message);
+    }
+    setSavingAvatar(false);
+  };
+
   const tabs = [
     { id: "items",      label: "Inventario", icon: Package },
     { id: "criaturas",  label: "Bestiario",  icon: Sword   },
@@ -410,22 +434,165 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         <ModalDetalle entidad={modalEntidad} onClose={() => setModalEntidad(null)} />
       )}
 
+      {/* ── AVATAR PICKER MODAL ── */}
+      <AnimatePresence>
+        {showAvatarPicker && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowAvatarPicker(false)}
+              className="fixed inset-0 z-40 backdrop-blur-sm"
+              style={{ background: "rgba(0,0,0,0.4)" }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:w-96"
+              style={{
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                boxShadow: "var(--shadow-card)",
+                maxHeight: "80dvh",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 shrink-0"
+                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--primary)" }}>
+                    Elegir foto de perfil
+                  </p>
+                  <p className="text-[8px] font-bold uppercase tracking-widest mt-0.5"
+                    style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                    Personajes desbloqueados
+                  </p>
+                </div>
+                <button onClick={() => setShowAvatarPicker(false)}
+                  className="p-1.5 transition-opacity hover:opacity-100"
+                  style={{ color: "var(--primary)", opacity: 0.4, borderRadius: "var(--radius-btn)" }}>
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Grid de personajes */}
+              <div className="overflow-y-auto flex-1 p-4">
+                {personajesConImagen.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <p className="text-[10px] font-black uppercase tracking-widest italic"
+                      style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                      "Desbloquea personajes leyendo para usar sus imágenes"
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {/* Opción quitar avatar */}
+                    <button
+                      onClick={() => handleSelectAvatar("")}
+                      className="flex flex-col items-center gap-1.5 p-2 transition-all"
+                      style={{
+                        borderRadius: "var(--radius-btn)",
+                        border: !perfil?.avatar_url
+                          ? "2px solid var(--accent)"
+                          : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                        background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                      }}>
+                      <div className="w-16 h-16 flex items-center justify-center"
+                        style={{ borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                        <User size={24} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                      </div>
+                      <span className="text-[8px] font-black uppercase tracking-widest"
+                        style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                        Ninguna
+                      </span>
+                    </button>
+
+                    {personajesConImagen.map((p, i) => {
+                      const isSelected = perfil?.avatar_url === p.imagen_url;
+                      return (
+                        <button key={i}
+                          onClick={() => handleSelectAvatar(p.imagen_url!)}
+                          disabled={savingAvatar}
+                          className="flex flex-col items-center gap-1.5 p-2 transition-all"
+                          style={{
+                            borderRadius: "var(--radius-btn)",
+                            border: isSelected
+                              ? "2px solid var(--accent)"
+                              : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                            background: isSelected
+                              ? "color-mix(in srgb, var(--accent) 6%, transparent)"
+                              : "transparent",
+                          }}
+                          onMouseEnter={e => {
+                            if (!isSelected) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
+                          }}
+                          onMouseLeave={e => {
+                            if (!isSelected) (e.currentTarget as HTMLElement).style.background = "transparent";
+                          }}
+                        >
+                          <div className="w-16 h-16 overflow-hidden"
+                            style={{ borderRadius: "50%", border: isSelected ? "2px solid var(--accent)" : "none" }}>
+                            <img src={p.imagen_url} alt={p.nombre}
+                              className="w-full h-full object-contain" />
+                          </div>
+                          <span className="text-[8px] font-black uppercase tracking-widest truncate w-full text-center"
+                            style={{ color: isSelected ? "var(--accent)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+                            {p.nombre}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {savingAvatar && (
+                <div className="flex items-center justify-center gap-2 py-3 shrink-0"
+                  style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <Loader2 size={13} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+                  <span className="text-[9px] font-black uppercase tracking-widest"
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                    Guardando…
+                  </span>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <div className="w-full max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
         {/* ── HEADER ── */}
         <section className="flex flex-col items-center gap-4 text-center">
           <div className="relative">
-            <div className="w-24 h-24 overflow-hidden flex items-center justify-center"
+            <button
+              onClick={() => setShowAvatarPicker(true)}
+              className="group relative w-24 h-24 overflow-hidden flex items-center justify-center transition-all"
               style={{
                 borderRadius: "50%",
                 background: "color-mix(in srgb, var(--primary) 10%, var(--bg-main))",
                 border: "2px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              }}>
+              }}
+              title="Cambiar foto de perfil"
+            >
               {perfil?.avatar_url
-                ? <img src={perfil.avatar_url} alt={perfil.username} className="w-full h-full object-cover" />
+                ? <img src={perfil.avatar_url} alt={perfil?.username} className="w-full h-full object-contain" />
                 : <User size={40} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
               }
-            </div>
+              {/* Overlay hover */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: "color-mix(in srgb, var(--primary) 50%, transparent)", borderRadius: "50%" }}>
+                <span className="text-[8px] font-black uppercase tracking-widest"
+                  style={{ color: "var(--btn-text)" }}>
+                  Cambiar
+                </span>
+              </div>
+            </button>
             <div className="absolute -bottom-1 -right-1 p-1.5"
               style={{
                 background: "var(--bg-main)",
