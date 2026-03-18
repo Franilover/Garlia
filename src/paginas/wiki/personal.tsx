@@ -326,7 +326,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_criaturas")
-            .select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma, imagen_url, descripcion)")
+            .select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma)")
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_personajes")
@@ -338,6 +338,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         if (itemsRes.error)     console.warn("[Personal] descubrimientos_items:", itemsRes.error.message);
         if (criaturasRes.error) console.warn("[Personal] descubrimientos_criaturas:", criaturasRes.error.message);
         if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes:", personajesRes.error.message);
+
+        // DEBUG — ver qué llega crudo de criaturas
+        console.log("[Personal] criaturas raw:", JSON.stringify(criaturasRes.data?.slice(0, 2)));
 
         const planos: Descubrimiento[] = [
           ...(itemsRes.data ?? []).map((r: any) => ({
@@ -353,8 +356,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             entidad_id:           r.criaturas?.id,
             fecha_descubrimiento: r.fecha_descubrimiento,
             nombre:      r.criaturas?.nombre,
-            descripcion: r.criaturas?.descripcion,
-            imagen_url:  r.criaturas?.imagen_url,
             habitat:     r.criaturas?.habitat,
             alma:        r.criaturas?.alma,
           })),
