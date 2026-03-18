@@ -32,15 +32,14 @@
     50% { transform: translateX(-5px); }
     75% { transform: translateX(5px); }
   }
-  @keyframes pixel-in {
-    0%   { clip-path: inset(0 100% 0 0); }
-    100% { clip-path: inset(0 0% 0 0); }
-  }
   @keyframes scanline-move {
     0%   { transform: translateY(-100%); }
     100% { transform: translateY(100vh); }
   }
 }
+
+/* FUENTES */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@400;600;700&family=VT323&family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400..700&family=Montserrat:wght@300;400;700&display=swap');
 
 /* =========================================
    TEMA: DEFAULT (MINIMALISTA)
@@ -63,7 +62,7 @@
   --radius-input: 0.75rem;
   --shadow-card: 0 2px 16px 0 rgba(103,85,109,0.07);
   --border-width: 1px;
-  --font-display: var(--font-montserrat);
+  --font-display: 'Montserrat', sans-serif;
   font-size: 14px;
 }
 
@@ -83,7 +82,7 @@
 }
 
 /* =========================================
-   TEMA: PIXEL (RETRO / TERMINAL)
+   TEMA: PIXEL (RETRO)
    ========================================= */
 [data-theme="pixel"] {
   --primary: #2d2d2d;
@@ -102,9 +101,8 @@
   --radius-input: 0px;
   --shadow-card: 0 2px 0px 0px rgba(26,26,26,0.15);
   --border-width: 2px;
-  /* Actualizado a Pixelify Sans */
-  --font-display: 'Pixelify Sans', 'Silkscreen', 'VT323', monospace;
-  font-size: 15px; /* Un poco más grande para mejor legibilidad del pixel */
+  --font-display: 'Pixelify Sans', cursive;
+  font-size: 16px;
   image-rendering: pixelated;
 }
 
@@ -143,7 +141,7 @@
   --shadow-card: 4px 4px 0px rgba(74,52,39,0.1);
   --border-width: 1px;
   --font-display: 'Caveat', cursive;
-  font-size: 15px;
+  font-size: 18px;
 }
 
 [data-theme="scribble"].dark {
@@ -160,9 +158,12 @@
   --input-text: #f0e6d0;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@400;600;700&family=VT323&family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400..700&display=swap');
+/* ASIGNACIÓN DE FUENTES POR TEMA */
+[data-theme="default"] body { font-family: 'Montserrat', sans-serif !important; }
+[data-theme="pixel"] body { font-family: 'Pixelify Sans', cursive !important; }
+[data-theme="scribble"] body { font-family: 'Caveat', cursive !important; }
 
-/* Textura de papel para el tema antiguo */
+/* Textura de papel (Scribble) */
 [data-theme="scribble"] body::after {
   content: "";
   position: fixed;
@@ -173,7 +174,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
 }
 
-/* Efectos de Pantalla CRT para Retro Oscuro */
+/* Efectos CRT y Barra (Pixel Dark) */
 [data-theme="pixel"].dark body::before {
   content: " ";
   display: block;
@@ -185,7 +186,6 @@
   pointer-events: none;
 }
 
-/* La barra que baja (Scanline animada) */
 [data-theme="pixel"].dark body::after {
   content: " ";
   display: block;
@@ -204,7 +204,6 @@
 @layer base {
   body {
     @apply bg-[var(--bg-main)] text-[var(--foreground)] antialiased;
-    font-family: var(--font-display), sans-serif;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
@@ -235,7 +234,7 @@
     z-index: 10;
   }
 
-  /* IMÁGENES / PERSONAJES */
+  /* PERSONAJES / GALERÍA */
   .char-card-base {
     @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
     border-radius: var(--radius-card);
@@ -256,11 +255,25 @@
     z-index: 20;
   }
 
-  /* BUSCADOR E INPUTS */
+  /* INPUTS Y BUSCADOR */
+  .input-brand {
+    width: 100%;
+    background: var(--input-bg);
+    border: var(--border-width) solid color-mix(in srgb, var(--primary) 20%, transparent);
+    border-radius: var(--radius-input);
+    padding: 0.75rem 1rem;
+    color: var(--input-text);
+    outline: none;
+  }
+
+  [data-theme="pixel"] input[type="text"] {
+    font-family: 'Pixelify Sans', cursive !important;
+  }
+
   [data-theme="scribble"] input[type="text"] {
     border: 1px solid var(--primary) !important;
     font-family: 'Caveat', cursive !important;
-    font-size: 1.2rem;
+    font-size: 1.4rem;
   }
 
   [data-theme="scribble"] .relative:has(input[type="text"])::after {
@@ -281,6 +294,9 @@
     border-radius: var(--radius-btn);
     position: relative;
     transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   [data-theme="scribble"] .btn-brand {
@@ -290,52 +306,37 @@
     font-family: 'Caveat', cursive;
   }
 
-  [data-theme="scribble"] .btn-brand::after {
-    content: "";
-    position: absolute;
-    inset: 2px;
-    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
-    pointer-events: none;
-  }
-
-  /* Animación de flicker para el modo oscuro del tema pixel */
-  [data-theme="pixel"].dark body {
-    animation: flicker 0.15s infinite;
-  }
-
-  /* Utilidades de bordes específicos (Originales) */
+  /* UTILIDADES DARK */
   .dark .border-\[\\#6B5E70\]\/8,
   .dark .border-\[\\#6B5E70\]\/10,
   .dark .border-\[\\#6B5E70\]\/12 {
     border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
   }
 
-  /* Select/Dropdown — todos los temas */
-  select {
+  /* SELECTORES */
+  select, select option {
     background-color: var(--input-bg, var(--white-custom));
     color: var(--input-text, var(--foreground));
   }
-  select option {
-    background-color: var(--input-bg, var(--white-custom));
-    color: var(--input-text, var(--foreground));
-  }
-  .dark select,
-  [data-theme="pixel"].dark select,
-  [data-theme="scribble"].dark select {
+
+  .dark select, [data-theme="pixel"].dark select, [data-theme="scribble"].dark select {
     background-color: var(--input-bg);
     color: var(--input-text);
     border-color: color-mix(in srgb, var(--primary) 40%, transparent);
   }
-  .dark select option,
-  [data-theme="pixel"].dark select option,
-  [data-theme="scribble"].dark select option {
-    background-color: var(--input-bg);
-    color: var(--input-text);
+
+  /* MODALES Y SUPERFICIES */
+  .modal-surface { 
+    background: var(--white-custom); 
+    color: var(--text-on-card); 
   }
 
-  .modal-surface { background: var(--white-custom); color: var(--text-on-card); }
-  
   .dark .bg-white, [data-theme="scribble"].dark .bg-white {
     background-color: var(--white-custom) !important;
+  }
+
+  /* Animación Flicker Pixel Dark */
+  [data-theme="pixel"].dark body {
+    animation: flicker 0.15s infinite;
   }
 }
