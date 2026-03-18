@@ -40,31 +40,12 @@
     100% { transform: translateY(100vh); }
   }
   @keyframes ink-spread {
-    0%   { opacity: 0; transform: scale(0.96) rotate(-0.5deg); }
-    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    0%   { opacity: 0; transform: scale(0.96); }
+    100% { opacity: 1; transform: scale(1); }
   }
-  @keyframes wobble {
-    0%, 100% { transform: rotate(-1deg); }
-    50%       { transform: rotate(1deg); }
-  }
-  /* Keyframes para el garabateo scribble */
   @keyframes border-draw {
     0%   { stroke-dashoffset: 1000; }
     100% { stroke-dashoffset: 0; }
-  }
-  @keyframes scribble-border {
-    0%   { box-shadow: none; }
-    100% { box-shadow: none; }
-  }
-  @keyframes pixel-border {
-    0%   { box-shadow: none; }
-    50%  { box-shadow: none; }
-    100% { box-shadow: none; }
-  }
-  @keyframes scribble-wiggle {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    33% { transform: translate(0.5px, -0.5px) rotate(0.5deg); }
-    66% { transform: translate(-0.5px, 0.5px) rotate(-0.5deg); }
   }
 }
 
@@ -149,28 +130,28 @@
   --input-text: #e0ffe8;
 }
 
-/* TEMA: INDIE (SCRIBBLE) */
+/* TEMA: INDIE (SCRIBBLE / ANTIGUO) */
 [data-theme="scribble"] {
-  --primary: #4a3427; /* Café más profundo */
+  --primary: #4a3427;
   --accent: #d2691e;
-  --bg-main: #e2d1b9; /* Café claro tipo papel antiguo */
+  --bg-main: #e2d1b9;
   --bg-menu: #4a3427;
-  --white-custom: #ebdecb; /* Tono pergamino para las cartas */
+  --white-custom: #ebdecb;
   --foreground: #2d1f18;
   --btn-text: #ebdecb;
   --menu-text: #ebdecb;
   --text-on-card: #2d1f18;
   --input-bg: #f2e6d5;
   --input-text: #2d1f18;
-  --radius-card: 0.25rem;
-  --radius-btn: 0.125rem;
-  --radius-input: 0.125rem;
-  --shadow-card: 0 4px 12px 0 rgba(74,52,39,0.08);
+  --radius-card: 0.125rem;
+  --radius-btn: 0px;
+  --radius-input: 0px;
+  --shadow-card: 0 1px 3px rgba(74,52,39,0.1);
   --border-width: 1px;
   --font-display: 'Caveat', cursive;
-  --transition-card: all 0.15s ease;
-  --btn-transform-hover: translate(-1px, -1px);
-  --btn-transform-active: translate(1px, 1px);
+  --transition-card: all 0.2s ease;
+  --btn-transform-hover: translateY(-1px);
+  --btn-transform-active: translateY(1px);
   font-size: 15px;
 }
 
@@ -221,7 +202,7 @@
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  opacity: 0.05; /* Un poco más de textura para el efecto papel */
+  opacity: 0.06;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
 }
 
@@ -244,16 +225,22 @@
     transition: var(--transition-card);
   }
 
-  [data-theme="pixel"] .card-main { border-color: var(--primary); animation: pixel-in 0.15s steps(8) both; }
+  [data-theme="pixel"] .card-main { 
+    border-color: var(--primary); 
+    animation: pixel-in 0.15s steps(8) both; 
+  }
 
   [data-theme="scribble"] .card-main {
-    border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
-    outline: 1px solid color-mix(in srgb, var(--primary) 12%, transparent);
-    outline-offset: 4px;
-    animation: ink-spread 0.2s ease both, flicker 0.15s infinite;
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
+    outline-offset: 3px;
+    animation: ink-spread 0.3s ease both;
     position: relative;
   }
-  [data-theme="scribble"] .card-main:hover { transform: translateY(-2px); }
+  [data-theme="scribble"] .card-main:hover {
+    outline-offset: 5px;
+    border-color: var(--primary);
+  }
 
   .btn-brand {
     background: var(--primary);
@@ -280,19 +267,21 @@
     letter-spacing: 0.1em;
     font-size: 0.65rem;
   }
-  [data-theme="pixel"] .btn-brand:hover { box-shadow: none !important; animation: none; }
-  [data-theme="pixel"] .btn-brand:active { box-shadow: none !important; }
-  [data-theme="pixel"] .btn-brand { animation: pixel-border 1.5s steps(2) infinite; }
 
   [data-theme="scribble"] .btn-brand {
-    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
-    outline: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+    border: 1px solid var(--primary);
+    outline: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
     outline-offset: 2px;
     box-shadow: none !important;
     font-family: 'Caveat', cursive;
     font-size: 1.1rem;
     font-weight: 700;
-    animation: flicker 0.15s infinite;
+    background: transparent;
+    color: var(--primary);
+  }
+  [data-theme="scribble"] .btn-brand:hover {
+    background: var(--primary);
+    color: var(--btn-text);
   }
 
   .input-brand {
@@ -305,24 +294,17 @@
     outline: none;
     transition: var(--transition-card);
   }
-  .input-brand:focus {
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent);
-    border-color: var(--primary);
-  }
-
-  [data-theme="pixel"] .input-brand {
-    border: 2px solid var(--primary);
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.6rem;
-  }
-  [data-theme="pixel"] .input-brand:focus { box-shadow: inset 2px 2px 0 var(--accent), 2px 2px 0 var(--primary); }
 
   [data-theme="scribble"] .input-brand {
-    border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
-    outline: 1px solid color-mix(in srgb, var(--primary) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
     outline-offset: 2px;
     font-family: 'Caveat', cursive;
-    font-size: 1rem;
+    background: color-mix(in srgb, var(--white-custom) 40%, transparent);
+  }
+  [data-theme="scribble"] .input-brand:focus {
+    outline-color: var(--primary);
+    border-color: var(--primary);
   }
 
   [data-theme="scribble"] h1,
@@ -333,16 +315,7 @@
     letter-spacing: 0.01em;
   }
 
-  [data-theme="pixel"] *,
-  [data-theme="pixel"] h1,
-  [data-theme="pixel"] h2,
-  [data-theme="pixel"] h3,
-  [data-theme="pixel"] h4,
-  [data-theme="pixel"] p,
-  [data-theme="pixel"] span,
-  [data-theme="pixel"] button,
-  [data-theme="pixel"] a,
-  [data-theme="pixel"] label {
+  [data-theme="pixel"] * {
     font-family: 'Silkscreen', 'Press Start 2P', monospace !important;
     letter-spacing: 0.04em;
   }
@@ -351,103 +324,24 @@
     background: var(--white-custom);
     color: var(--text-on-card, var(--foreground));
   }
-  .panel-surface {
-    background: color-mix(in srgb, var(--white-custom) 60%, var(--bg-main));
-    color: var(--text-on-card, var(--foreground));
-  }
-  .text-on-surface {
-    color: var(--text-on-card, var(--foreground));
-  }
-  .text-muted-on-surface {
-    color: color-mix(in srgb, var(--foreground) 50%, transparent);
-  }
-
+  
   .dark .bg-white,
   [data-theme="pixel"].dark .bg-white,
   [data-theme="scribble"].dark .bg-white {
     background-color: var(--white-custom) !important;
-  }
-  .dark .bg-\[#FDFCFD\],
-  [data-theme="pixel"].dark .bg-\[#FDFCFD\],
-  [data-theme="scribble"].dark .bg-\[#FDFCFD\] {
-    background-color: color-mix(in srgb, var(--white-custom) 80%, var(--bg-main)) !important;
-  }
-
-  .dark .text-\[\#2C262E\],
-  [data-theme="pixel"].dark .text-\[\#2C262E\],
-  [data-theme="scribble"].dark .text-\[\#2C262E\] {
-    color: var(--foreground) !important;
-  }
-  .dark .text-\[\#1A1218\],
-  [data-theme="pixel"].dark .text-\[\#1A1218\],
-  [data-theme="scribble"].dark .text-\[\#1A1218\] {
-    color: var(--foreground) !important;
-  }
-
-  .dark input:not(.input-brand),
-  [data-theme="pixel"].dark input:not(.input-brand),
-  [data-theme="scribble"].dark input:not(.input-brand) {
-    background-color: var(--input-bg, var(--bg-main));
-    color: var(--input-text, var(--foreground));
-    caret-color: var(--primary);
-  }
-  .dark input::placeholder,
-  [data-theme="pixel"].dark input::placeholder,
-  [data-theme="scribble"].dark input::placeholder {
-    color: color-mix(in srgb, var(--foreground) 35%, transparent);
-  }
-
-  .dark input[class*="bg-white"],
-  [data-theme="pixel"].dark input[class*="bg-white"],
-  [data-theme="scribble"].dark input[class*="bg-white"],
-  .dark input[class*="bg-bg-main"],
-  [data-theme="pixel"].dark input[class*="bg-bg-main"],
-  [data-theme="scribble"].dark input[class*="bg-bg-main"] {
-    background-color: var(--input-bg) !important;
-    color: var(--input-text) !important;
-  }
-
-  .dark .border-\[\#6B5E70\]\/8,
-  .dark .border-\[\#6B5E70\]\/10,
-  .dark .border-\[\#6B5E70\]\/12 {
-    border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
   }
 
   select {
     background-color: var(--input-bg, var(--white-custom));
     color: var(--input-text, var(--foreground));
   }
-  select option {
-    background-color: var(--input-bg, var(--white-custom));
-    color: var(--input-text, var(--foreground));
-  }
-  .dark select,
-  [data-theme="pixel"].dark select,
-  [data-theme="scribble"].dark select {
-    background-color: var(--input-bg);
-    color: var(--input-text);
-    border-color: color-mix(in srgb, var(--primary) 40%, transparent);
-  }
-  .dark select option,
-  [data-theme="pixel"].dark select option,
-  [data-theme="scribble"].dark select option {
-    background-color: var(--input-bg);
-    color: var(--input-text);
-  }
+  
   .char-card-base {
     @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
     border-radius: var(--radius-card);
   }
+  
   .char-card-active {
-    @apply ring-8 ring-primary z-20 scale-95 grayscale-0 shadow-2xl;
-  }
-  .scanlines {
-    @apply relative overflow-hidden;
-  }
-  .scanlines::before {
-    content: "";
-    @apply absolute inset-0 z-20 pointer-events-none;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
-    background-size: 100% 4px;
+    @apply ring-4 ring-primary z-20 scale-95 grayscale-0 shadow-2xl;
   }
 }
