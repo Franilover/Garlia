@@ -53,12 +53,8 @@
     100% { stroke-dashoffset: 0; }
   }
   @keyframes scribble-border {
-    0%   { box-shadow: 2px 2px 0 0 var(--primary), -1px -1px 0 0 var(--primary); }
-    20%  { box-shadow: 3px 1px 0 0 var(--primary), -2px -1px 0 0 var(--primary); }
-    40%  { box-shadow: 1px 3px 0 0 var(--primary), -1px -2px 0 0 var(--primary); }
-    60%  { box-shadow: 2px 2px 0 0 var(--primary), -2px -2px 0 0 var(--primary); }
-    80%  { box-shadow: 3px 1px 0 0 var(--primary), -1px -1px 0 0 var(--primary); }
-    100% { box-shadow: 2px 2px 0 0 var(--primary), -1px -1px 0 0 var(--primary); }
+    0%   { box-shadow: none; }
+    100% { box-shadow: none; }
   }
   @keyframes pixel-border {
     0%   { box-shadow: none; }
@@ -129,7 +125,7 @@
   --radius-card: 0px;
   --radius-btn: 0px;
   --radius-input: 0px;
-  --shadow-card: 0 2px 0px 0px rgba(26,26,26,0.15);
+  --shadow-card: none;
   --border-width: 2px;
   --font-display: 'Silkscreen', 'Press Start 2P', monospace;
   --transition-card: none;
@@ -169,7 +165,7 @@
   --radius-card: 0.25rem;
   --radius-btn: 0.125rem;
   --radius-input: 0.125rem;
-  --shadow-card: 3px 3px 0px 0px #3d2b1f;
+  --shadow-card: none;
   --border-width: 1.5px;
   --font-display: 'Caveat', cursive;
   --transition-card: all 0.15s ease;
@@ -262,14 +258,7 @@
     position: relative;
   }
   [data-theme="scribble"] .card-main::after {
-    content: "";
-    position: absolute;
-    inset: -3px;
-    border: 1.5px solid var(--primary);
-    border-radius: inherit;
-    animation: scribble-border 2s ease-in-out infinite;
-    pointer-events: none;
-    opacity: 0.7;
+    display: none;
   }
   [data-theme="scribble"] .card-main:hover { transform: rotate(0deg) translateY(-2px); }
 
@@ -304,20 +293,14 @@
 
   [data-theme="scribble"] .btn-brand {
     border: 1.5px solid var(--foreground);
-    box-shadow: 3px 3px 0 var(--foreground);
+    box-shadow: none !important;
     font-family: 'Caveat', cursive;
     font-size: 1.1rem;
     font-weight: 700;
     position: relative;
   }
   [data-theme="scribble"] .btn-brand::after {
-    content: "";
-    position: absolute;
-    inset: -3px;
-    border: 1.5px solid var(--accent);
-    border-radius: inherit;
-    animation: scribble-border 1.8s ease-in-out infinite;
-    pointer-events: none;
+    display: none;
   }
 
   .input-brand {
