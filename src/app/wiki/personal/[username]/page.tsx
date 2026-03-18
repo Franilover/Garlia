@@ -78,9 +78,9 @@ function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
           : icono}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-black uppercase tracking-tight truncate capitalize"
+        <p className="text-[11px] font-black truncate capitalize"
           style={{ color: "var(--primary)" }}>{nombre}</p>
-        <p className="text-[9px] font-black uppercase capitalize"
+        <p className="text-[9px] font-black capitalize"
           style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>{sub}</p>
       </div>
     </button>
@@ -136,7 +136,7 @@ function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }
           </div>
           <div className="p-5 space-y-3">
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight capitalize"
+              <h2 className="text-xl font-black tracking-tight capitalize"
                 style={{ color: "var(--primary)" }}>{d.nombre}</h2>
               <p className="flex items-center gap-1.5 mt-1 text-[9px] font-black uppercase tracking-widest"
                 style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -176,17 +176,15 @@ function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }
   );
 }
 
-
 // ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 
 export default function PerfilPublico() {
-  const params  = useParams();
+  const params   = useParams();
   const username = params?.username as string;
 
   const [perfil, setPerfil]           = useState<PerfilData | null>(null);
   const [inventario, setInventario]   = useState<ItemInventario[]>([]);
   const [descubrimientos, setDescubrimientos] = useState<Descubrimiento[]>([]);
-  const [otrosPerfiles, setOtrosPerfiles] = useState<PerfilData[]>([]);
   const [cargando, setCargando]       = useState(true);
   const [notFound, setNotFound]       = useState(false);
   const [tab, setTab]                 = useState<"items" | "criaturas" | "personajes">("items");
@@ -197,26 +195,26 @@ export default function PerfilPublico() {
     async function cargar() {
       setCargando(true);
 
-      // 1. Perfil por username
+      // Perfil con joins a personaje favorito y mascota
       const { data: perfilData } = await supabase
         .from("perfiles")
-        .select("id, username, status, avatar_url, descripcion")
+        .select("id, username, status, avatar_url, descripcion, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)")
         .eq("username", username)
         .maybeSingle();
 
       if (!perfilData) { setNotFound(true); setCargando(false); return; }
-      setPerfil(perfilData);
+      setPerfil(perfilData as unknown as PerfilData);
 
       const uid = perfilData.id;
 
-      // 2. Inventario
+      // Inventario
       const { data: invData } = await supabase
         .from("inventario_usuario")
         .select("equipado, items(id, nombre, categoria, imagen_url)")
         .eq("perfil_id", uid);
       if (invData) setInventario(invData as unknown as ItemInventario[]);
 
-      // 3. Descubrimientos
+      // Descubrimientos
       const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
         supabase.from("descubrimientos_items")
           .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
@@ -261,7 +259,6 @@ export default function PerfilPublico() {
         })),
       ]);
 
-
       setCargando(false);
     }
     cargar();
@@ -304,7 +301,7 @@ export default function PerfilPublico() {
 
       {/* ── Botón volver — pelotita en esquina superior izquierda ── */}
       <Link href="/wiki/personal"
-        className="fixed top-4 left-4 z-[100] flex items-center justify-center w-9 h-9 transition-all hover:scale-110 group"
+        className="fixed top-4 left-4 z-100 flex items-center justify-center w-9 h-9 transition-all hover:scale-110 group"
         style={{
           background: "var(--bg-menu)",
           borderRadius: "50%",
@@ -624,59 +621,6 @@ export default function PerfilPublico() {
               </motion.div>
             </AnimatePresence>
           </div>
-
-          {/* Sidebar exploradores — derecha, solo lg+ */}
-          {otrosPerfiles.length > 0 && (
-            <aside className="hidden lg:flex flex-col gap-2 w-44 xl:w-52 shrink-0 sticky top-24 pt-2">
-              <p className="font-serif italic text-[9px] mb-1 px-1 flex items-center gap-1.5"
-                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                <Users size={9} /> Exploradores
-              </p>
-              {/* Mi perfil */}
-              <Link href="/wiki/personal">
-                <div className="flex items-center gap-2 px-3 py-2 font-serif italic text-[9px]"
-                  style={{
-                    background: "color-mix(in srgb, var(--accent) 8%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
-                    borderRadius: "var(--radius-btn)",
-                    color: "var(--accent)",
-                  }}>
-                  <User size={9} /> Mi perfil
-                </div>
-              </Link>
-              {otrosPerfiles.map(p => {
-                const isCurrent = p.username === username;
-                return (
-                  <Link key={p.id} href={`/wiki/personal/${p.username}`}>
-                    <motion.div whileHover={{ x: -2 }}
-                      className="flex items-center gap-2.5 px-3 py-2.5 transition-all cursor-pointer group"
-                      style={{
-                        background: isCurrent ? "color-mix(in srgb, var(--primary) 8%, var(--white-custom))" : "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                        border: isCurrent ? "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" : "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
-                        borderRadius: "var(--radius-btn)",
-                      }}>
-                      <div className="w-8 h-8 shrink-0 overflow-hidden flex items-center justify-center"
-                        style={{ borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                        {p.avatar_url
-                          ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
-                          : <User size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-serif italic text-[10px] truncate capitalize transition-colors group-hover:text-accent"
-                          style={{ color: isCurrent ? "var(--accent)" : "var(--primary)" }}>
-                          {p.username}
-                        </p>
-                        <p className="font-serif italic text-[8px] truncate"
-                          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                          {p.status ?? "Explorador"}
-                        </p>
-                      </div>
-                    </motion.div>
-                  </Link>
-                );
-              })}
-            </aside>
-          )}
 
         </div>
       </div>
