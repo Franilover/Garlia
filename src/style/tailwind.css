@@ -293,13 +293,13 @@
   .btn-brand:disabled { opacity: 0.5; }
 
   [data-theme="pixel"] .btn-brand {
-    box-shadow: 4px 4px 0 var(--foreground);
+    box-shadow: none;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-size: 0.65rem;
   }
-  [data-theme="pixel"] .btn-brand:hover { box-shadow: 2px 2px 0 var(--foreground); animation: none; }
-  [data-theme="pixel"] .btn-brand:active { box-shadow: 0px 0px 0 var(--foreground); }
+  [data-theme="pixel"] .btn-brand:hover { box-shadow: none; animation: none; }
+  [data-theme="pixel"] .btn-brand:active { box-shadow: none; }
   [data-theme="pixel"] .btn-brand { animation: pixel-border 1.5s steps(2) infinite; }
 
   [data-theme="scribble"] .btn-brand {
