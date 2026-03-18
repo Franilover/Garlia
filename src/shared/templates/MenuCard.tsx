@@ -15,52 +15,8 @@ interface MenuCardProps {
   horizontal?: boolean;
 }
 
-function ScribbleBorder() {
-  return (
-    <svg
-      aria-hidden="true"
-      style={{
-        position: "absolute",
-        inset: "-4px",
-        width: "calc(100% + 8px)",
-        height: "calc(100% + 8px)",
-        pointerEvents: "none",
-        overflow: "visible",
-      }}
-    >
-      <rect
-        x="4" y="4"
-        width="calc(100% - 8px)" height="calc(100% - 8px)"
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="2"
-        strokeDasharray="12 4 6 4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        rx="4"
-      >
-        <animate attributeName="stroke-dashoffset" from="0" to="100" dur="6s" repeatCount="indefinite" />
-      </rect>
-      <rect
-        x="7" y="7"
-        width="calc(100% - 14px)" height="calc(100% - 14px)"
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="1"
-        strokeDasharray="5 8 3 8"
-        strokeLinecap="round"
-        rx="3"
-        opacity="0.5"
-      >
-        <animate attributeName="stroke-dashoffset" from="100" to="0" dur="9s" repeatCount="indefinite" />
-      </rect>
-    </svg>
-  );
-}
-
 export const MenuCard = ({ href, title, icon, delay = 0, hasNewContent, onClick, horizontal = false }: MenuCardProps) => {
   const { theme } = useTheme();
-  const isScribble = theme === "scribble";
 
   return (
     <motion.div
@@ -71,21 +27,12 @@ export const MenuCard = ({ href, title, icon, delay = 0, hasNewContent, onClick,
     >
       <Link href={href} className={`group block relative ${horizontal ? "" : "h-full"}`} onClick={onClick}>
         <div
-          className={`bg-white-custom border-primary/5 transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] ${
+          className={`card-main transition-all duration-500 group-hover:border-primary group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.15)] ${
             horizontal
               ? "flex flex-row items-center gap-4 px-6 py-4 group-hover:-translate-y-1"
               : "h-full p-6 md:p-12 flex flex-col items-center justify-center text-center group-hover:-translate-y-3"
           }`}
-          style={{
-            borderRadius: "var(--radius-card)",
-            borderWidth: "var(--border-width)",
-            borderStyle: "solid",
-            boxShadow: "var(--shadow-card)",
-            position: "relative",
-          }}
         >
-          {isScribble && <ScribbleBorder />}
-
           {hasNewContent && (
             <motion.div
               initial={{ scale: 0 }}
