@@ -149,7 +149,7 @@
   --input-text: #e0ffe8;
 }
 
-/* TEMA: INDIE */
+/* TEMA: INDIE (SCRIBBLE) */
 [data-theme="scribble"] {
   --primary: #3d2b1f;
   --accent: #e07b39;
@@ -165,11 +165,11 @@
   --radius-card: 0.25rem;
   --radius-btn: 0.125rem;
   --radius-input: 0.125rem;
-  --shadow-card: none;
-  --border-width: 1.5px;
+  --shadow-card: 0 4px 12px 0 rgba(61,43,31,0.05);
+  --border-width: 1px;
   --font-display: 'Caveat', cursive;
   --transition-card: all 0.15s ease;
-  --btn-transform-hover: translate(-1px, -2px);
+  --btn-transform-hover: translate(-1px, -1px);
   --btn-transform-active: translate(1px, 1px);
   font-size: 15px;
 }
@@ -234,11 +234,6 @@
 }
 
 @layer components {
-  /* Nueva clase para activar el efecto de movimiento scribble */
-
-
-
-
   .card-main {
     background: var(--white-custom);
     color: var(--text-on-card, var(--foreground));
@@ -252,15 +247,13 @@
   [data-theme="pixel"] .card-main { border-color: var(--primary); animation: pixel-in 0.15s steps(8) both; }
 
   [data-theme="scribble"] .card-main {
-    border-color: var(--primary);
-    transform: rotate(-0.3deg);
-    animation: ink-spread 0.2s ease both;
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--primary) 8%, transparent);
+    outline-offset: 4px;
+    animation: ink-spread 0.2s ease both, flicker 0.15s infinite;
     position: relative;
   }
-  [data-theme="scribble"] .card-main::after {
-    display: none;
-  }
-  [data-theme="scribble"] .card-main:hover { transform: rotate(0deg) translateY(-2px); }
+  [data-theme="scribble"] .card-main:hover { transform: translateY(-2px); }
 
   .btn-brand {
     background: var(--primary);
@@ -292,15 +285,14 @@
   [data-theme="pixel"] .btn-brand { animation: pixel-border 1.5s steps(2) infinite; }
 
   [data-theme="scribble"] .btn-brand {
-    border: 1.5px solid var(--foreground);
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
+    outline-offset: 2px;
     box-shadow: none !important;
     font-family: 'Caveat', cursive;
     font-size: 1.1rem;
     font-weight: 700;
-    position: relative;
-  }
-  [data-theme="scribble"] .btn-brand::after {
-    display: none;
+    animation: flicker 0.15s infinite;
   }
 
   .input-brand {
@@ -326,7 +318,9 @@
   [data-theme="pixel"] .input-brand:focus { box-shadow: inset 2px 2px 0 var(--accent), 2px 2px 0 var(--primary); }
 
   [data-theme="scribble"] .input-brand {
-    border: 1.5px solid var(--foreground);
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--primary) 5%, transparent);
+    outline-offset: 2px;
     font-family: 'Caveat', cursive;
     font-size: 1rem;
   }
@@ -353,10 +347,6 @@
     letter-spacing: 0.04em;
   }
 
-  /* CLASES DE CARTAS QUE NO DEBÍ QUITAR */
-  
-  /* ─── UTILIDADES PARA MODALES Y PANELES ──────────────────────────────
-     Reemplaza bg-white hardcodeado en modales para que respete el tema  */
   .modal-surface {
     background: var(--white-custom);
     color: var(--text-on-card, var(--foreground));
@@ -372,9 +362,6 @@
     color: color-mix(in srgb, var(--foreground) 50%, transparent);
   }
 
-  /* ─── DARK MODE: neutraliza bg-white hardcodeados en componentes ─────
-     Los modales (SoundPicker, ImagePicker, EntidadPicker, DropWord)
-     tienen bg-white / text hardcodeados — estas reglas los corrigen     */
   .dark .bg-white,
   [data-theme="pixel"].dark .bg-white,
   [data-theme="scribble"].dark .bg-white {
@@ -386,7 +373,6 @@
     background-color: color-mix(in srgb, var(--white-custom) 80%, var(--bg-main)) !important;
   }
 
-  /* Texto oscuro hardcodeado sobre fondos que ahora son oscuros */
   .dark .text-\[\#2C262E\],
   [data-theme="pixel"].dark .text-\[\#2C262E\],
   [data-theme="scribble"].dark .text-\[\#2C262E\] {
@@ -398,7 +384,6 @@
     color: var(--foreground) !important;
   }
 
-  /* Inputs dentro de modales en modo oscuro */
   .dark input:not(.input-brand),
   [data-theme="pixel"].dark input:not(.input-brand),
   [data-theme="scribble"].dark input:not(.input-brand) {
@@ -412,7 +397,6 @@
     color: color-mix(in srgb, var(--foreground) 35%, transparent);
   }
 
-  /* Fix global para cualquier input/search bar con bg-white hardcodeado */
   .dark input[class*="bg-white"],
   [data-theme="pixel"].dark input[class*="bg-white"],
   [data-theme="scribble"].dark input[class*="bg-white"],
@@ -423,14 +407,12 @@
     color: var(--input-text) !important;
   }
 
-  /* Bordes sutiles en modo oscuro para paneles blancos */
   .dark .border-\[\#6B5E70\]\/8,
   .dark .border-\[\#6B5E70\]\/10,
   .dark .border-\[\#6B5E70\]\/12 {
     border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
   }
 
-  /* Select/Dropdown — todos los temas, incluye opciones del desplegable nativo */
   select {
     background-color: var(--input-bg, var(--white-custom));
     color: var(--input-text, var(--foreground));
