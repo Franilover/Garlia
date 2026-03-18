@@ -23,6 +23,12 @@ interface Perfil {
   status?: string;
   avatar_url?: string;
   descripcion?: string;
+  titulo?: string;
+  personaje_favorito_id?: string;
+  mascota_id?: string;
+  // joined data
+  personaje_favorito?: { id: string; nombre: string; img_url?: string } | null;
+  mascota?: { id: string; nombre: string; imagen_url?: string } | null;
 }
 
 interface Descubrimiento {
@@ -288,6 +294,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [editingDesc, setEditingDesc] = useState(false);
   const [descDraft, setDescDraft] = useState('');
   const [savingDesc, setSavingDesc] = useState(false);
+  const [showPersonajePicker, setShowPersonajePicker] = useState(false);
+  const [showMascotaPicker, setShowMascotaPicker] = useState(false);
+  const [savingFav, setSavingFav] = useState<'personaje' | 'mascota' | null>(null);
   const [otrosPerfiles, setOtrosPerfiles] = useState<PerfilResumen[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
@@ -307,17 +316,22 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         // ── 2. Perfil desde tabla `perfiles` ───────────────────────────────
         const { data: perfilData, error: perfilError } = await supabase
           .from("perfiles")
-          .select("username, status, rol, avatar_url, descripcion")
+          .select("username, status, rol, avatar_url, descripcion, titulo, personaje_favorito_id, mascota_id, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)")
           .eq("id", user.id)
           .maybeSingle();
 
         if (perfilError) console.warn("[Personal] Error al cargar perfil:", perfilError.message);
 
         setPerfil({
-          username:    perfilData?.username   ?? datosProp?.username ?? user.email?.split("@")[0] ?? "Aventurero",
-          status:      perfilData?.status     ?? datosProp?.status,
-          avatar_url:  perfilData?.avatar_url ?? datosProp?.avatar_url,
-          descripcion: perfilData?.descripcion,
+          username:              perfilData?.username   ?? datosProp?.username ?? user.email?.split("@")[0] ?? "Aventurero",
+          status:                perfilData?.status     ?? datosProp?.status,
+          avatar_url:            perfilData?.avatar_url ?? datosProp?.avatar_url,
+          descripcion:           perfilData?.descripcion,
+          titulo:                perfilData?.titulo,
+          personaje_favorito_id: perfilData?.personaje_favorito_id,
+          mascota_id:            perfilData?.mascota_id,
+          personaje_favorito:    (perfilData as any)?.personajes ?? null,
+          mascota:               (perfilData as any)?.mascota ?? null,
         });
 
         // ── 3. Inventario ──────────────────────────────────────────────────
@@ -456,6 +470,23 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       setEditingDesc(false);
     }
     setSavingDesc(false);
+  };
+
+  const handleSaveFavorito = async (tipo: 'personaje' | 'mascota', id: string, data: any) => {
+    const userId = userIdRef.current;
+    if (!userId) return;
+    setSavingFav(tipo);
+    const col = tipo === 'personaje' ? 'personaje_favorito_id' : 'mascota_id';
+    const { error } = await supabase.from("perfiles").update({ [col]: id }).eq("id", userId);
+    if (!error) {
+      setPerfil(prev => prev ? {
+        ...prev,
+        [col]: id,
+        [tipo === 'personaje' ? 'personaje_favorito' : 'mascota']: data,
+      } : prev);
+      tipo === 'personaje' ? setShowPersonajePicker(false) : setShowMascotaPicker(false);
+    }
+    setSavingFav(null);
   };
 
   const tabs = [
@@ -612,6 +643,163 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           </>
         )}
       </AnimatePresence>
+
+      {/* ── PERSONAJE FAVORITO PICKER ── */}
+      <AnimatePresence>
+        {showPersonajePicker && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowPersonajePicker(false)}
+              className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "rgba(0,0,0,0.4)" }} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:w-96"
+              style={{
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                boxShadow: "var(--shadow-card)",
+                maxHeight: "80dvh",
+                display: "flex",
+                flexDirection: "column",
+              }}>
+              <div className="flex items-center justify-between px-5 py-4 shrink-0"
+                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <p className="font-serif italic text-[11px]" style={{ color: "var(--primary)" }}>
+                  ✦ Elegir personaje favorito
+                </p>
+                <button onClick={() => setShowPersonajePicker(false)}
+                  className="p-1 transition-opacity hover:opacity-100"
+                  style={{ color: "var(--primary)", opacity: 0.4, borderRadius: "var(--radius-btn)" }}>
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1 p-3">
+                <p className="font-serif italic text-[9px] px-2 mb-2"
+                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                  Solo puedes elegir personajes que hayas desbloqueado
+                </p>
+                {misPersonajes.length === 0 ? (
+                  <p className="font-serif italic text-[11px] text-center py-8"
+                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    "Aún no conoces ningún personaje…"
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {misPersonajes.map((p, i) => {
+                      const isSelected = perfil?.personaje_favorito_id === p.entidad_id;
+                      return (
+                        <button key={i}
+                          onClick={() => handleSaveFavorito('personaje', p.entidad_id, { id: p.entidad_id, nombre: p.nombre, img_url: p.imagen_url })}
+                          disabled={savingFav === 'personaje'}
+                          className="flex flex-col items-center gap-1.5 p-2 transition-all"
+                          style={{
+                            borderRadius: "var(--radius-btn)",
+                            border: isSelected ? "2px solid var(--accent)" : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                            background: isSelected ? "color-mix(in srgb, var(--accent) 6%, transparent)" : "transparent",
+                          }}>
+                          <div className="w-14 h-14 overflow-hidden"
+                            style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
+                            {p.imagen_url
+                              ? <img src={p.imagen_url} alt={p.nombre} className="w-full h-full object-contain" />
+                              : <User size={20} className="m-auto mt-2.5" style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+                            }
+                          </div>
+                          <span className="font-serif italic text-[9px] truncate w-full text-center"
+                            style={{ color: isSelected ? "var(--accent)" : "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                            {p.nombre}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── MASCOTA PICKER ── */}
+      <AnimatePresence>
+        {showMascotaPicker && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowMascotaPicker(false)}
+              className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "rgba(0,0,0,0.4)" }} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:w-96"
+              style={{
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                boxShadow: "var(--shadow-card)",
+                maxHeight: "80dvh",
+                display: "flex",
+                flexDirection: "column",
+              }}>
+              <div className="flex items-center justify-between px-5 py-4 shrink-0"
+                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <p className="font-serif italic text-[11px]" style={{ color: "var(--primary)" }}>
+                  ✦ Elegir mascota
+                </p>
+                <button onClick={() => setShowMascotaPicker(false)}
+                  className="p-1 transition-opacity hover:opacity-100"
+                  style={{ color: "var(--primary)", opacity: 0.4, borderRadius: "var(--radius-btn)" }}>
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1 p-3">
+                <p className="font-serif italic text-[9px] px-2 mb-2"
+                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                  Solo puedes elegir criaturas que hayas descubierto
+                </p>
+                {misCriaturas.length === 0 ? (
+                  <p className="font-serif italic text-[11px] text-center py-8"
+                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    "Aún no has descubierto ninguna criatura…"
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {misCriaturas.map((c, i) => {
+                      const isSelected = perfil?.mascota_id === c.entidad_id;
+                      return (
+                        <button key={i}
+                          onClick={() => handleSaveFavorito('mascota', c.entidad_id, { id: c.entidad_id, nombre: c.nombre, imagen_url: c.imagen_url })}
+                          disabled={savingFav === 'mascota'}
+                          className="flex flex-col items-center gap-1.5 p-2 transition-all"
+                          style={{
+                            borderRadius: "var(--radius-btn)",
+                            border: isSelected ? "2px solid var(--accent)" : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                            background: isSelected ? "color-mix(in srgb, var(--accent) 6%, transparent)" : "transparent",
+                          }}>
+                          <div className="w-14 h-14 overflow-hidden"
+                            style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
+                            {c.imagen_url
+                              ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-contain" />
+                              : <Sword size={20} className="m-auto mt-2.5" style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+                            }
+                          </div>
+                          <span className="font-serif italic text-[9px] truncate w-full text-center"
+                            style={{ color: isSelected ? "var(--accent)" : "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                            {c.nombre}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
 
       {/* ── LAYOUT CON SIDEBAR ── */}
 
@@ -842,6 +1030,144 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* ── FAVORITOS: personaje + mascota ── */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 mx-4 md:mx-0">
+
+          {/* Personaje favorito */}
+          <div className="flex-1"
+            style={{
+              background: "var(--white-custom)",
+              borderRadius: "var(--radius-card)",
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              boxShadow: "var(--shadow-card)",
+            }}>
+            <div className="flex items-center justify-between px-5 pt-4 pb-2">
+              <p className="font-serif italic text-[9px]"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                ✦ Personaje favorito
+              </p>
+              <button
+                onClick={() => setShowPersonajePicker(true)}
+                className="font-serif italic text-[9px] px-2 py-1 transition-opacity hover:opacity-100"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  borderRadius: "var(--radius-btn)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                }}>
+                {perfil?.personaje_favorito ? "cambiar" : "elegir"}
+              </button>
+            </div>
+            <div className="mx-5 mb-3 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+            <div className="px-5 pb-4 flex items-center gap-4">
+              {perfil?.personaje_favorito ? (
+                <>
+                  <div className="w-14 h-14 shrink-0 overflow-hidden"
+                    style={{
+                      borderRadius: "var(--radius-btn)",
+                      background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    }}>
+                    {perfil.personaje_favorito.img_url
+                      ? <img src={perfil.personaje_favorito.img_url} alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" />
+                      : <User size={24} className="m-auto mt-2" style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+                    }
+                  </div>
+                  <div>
+                    <p className="font-serif italic leading-tight"
+                      style={{ fontSize: "1rem", color: "var(--primary)" }}>
+                      {perfil.personaje_favorito.nombre}
+                    </p>
+                    {perfil.titulo && (
+                      <p className="font-serif italic text-[10px] mt-0.5"
+                        style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }}>
+                        — {perfil.titulo}
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="font-serif italic text-[11px]"
+                  style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                  "Ninguno elegido aún…"
+                </p>
+              )}
+            </div>
+            {/* Título personalizado */}
+            <div className="px-5 pb-4">
+              <input
+                type="text"
+                value={perfil?.titulo ?? ""}
+                onChange={async e => {
+                  const v = e.target.value;
+                  setPerfil(prev => prev ? { ...prev, titulo: v } : prev);
+                  const userId = userIdRef.current;
+                  if (!userId) return;
+                  await supabase.from("perfiles").update({ titulo: v }).eq("id", userId);
+                }}
+                placeholder="Tu título o apodo…"
+                className="w-full bg-transparent outline-none font-serif italic text-[11px]"
+                style={{
+                  color: "color-mix(in srgb, var(--accent) 80%, transparent)",
+                  borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                  paddingBottom: "4px",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Mascota */}
+          <div className="flex-1"
+            style={{
+              background: "var(--white-custom)",
+              borderRadius: "var(--radius-card)",
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              boxShadow: "var(--shadow-card)",
+            }}>
+            <div className="flex items-center justify-between px-5 pt-4 pb-2">
+              <p className="font-serif italic text-[9px]"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                ✦ Mascota
+              </p>
+              <button
+                onClick={() => setShowMascotaPicker(true)}
+                className="font-serif italic text-[9px] px-2 py-1 transition-opacity hover:opacity-100"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  borderRadius: "var(--radius-btn)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                }}>
+                {perfil?.mascota ? "cambiar" : "elegir"}
+              </button>
+            </div>
+            <div className="mx-5 mb-3 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+            <div className="px-5 pb-5 flex items-center gap-4">
+              {perfil?.mascota ? (
+                <>
+                  <div className="w-14 h-14 shrink-0 overflow-hidden"
+                    style={{
+                      borderRadius: "var(--radius-btn)",
+                      background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    }}>
+                    {perfil.mascota.imagen_url
+                      ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
+                      : <Sword size={24} className="m-auto mt-2" style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+                    }
+                  </div>
+                  <p className="font-serif italic" style={{ fontSize: "1rem", color: "var(--primary)" }}>
+                    {perfil.mascota.nombre}
+                  </p>
+                </>
+              ) : (
+                <p className="font-serif italic text-[11px]"
+                  style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                  "Ninguna criatura adoptada…"
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
