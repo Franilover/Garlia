@@ -16,6 +16,7 @@
   --animate-terminal-flicker: flicker 0.15s infinite;
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
+  
   @keyframes flicker {
     0% { opacity: 0.97; }
     50% { opacity: 1; }
@@ -40,12 +41,8 @@
     100% { transform: translateY(100vh); }
   }
   @keyframes ink-spread {
-    0%   { opacity: 0; transform: scale(0.96); }
+    0%   { opacity: 0; transform: scale(0.98); }
     100% { opacity: 1; transform: scale(1); }
-  }
-  @keyframes border-draw {
-    0%   { stroke-dashoffset: 1000; }
-    100% { stroke-dashoffset: 0; }
   }
 }
 
@@ -106,7 +103,7 @@
   --radius-card: 0px;
   --radius-btn: 0px;
   --radius-input: 0px;
-  --shadow-card: none;
+  --shadow-card: 0 2px 0px 0px rgba(26,26,26,0.15);
   --border-width: 2px;
   --font-display: 'Silkscreen', 'Press Start 2P', monospace;
   --transition-card: none;
@@ -116,27 +113,13 @@
   image-rendering: pixelated;
 }
 
-[data-theme="pixel"].dark {
-  --primary: #00ff88;
-  --accent: #ff6b35;
-  --bg-main: #0a0a12;
-  --bg-menu: #050510;
-  --white-custom: #111122;
-  --foreground: #e0ffe8;
-  --btn-text: #0a0a12;
-  --menu-text: #c8ffd8;
-  --text-on-card: #e0ffe8;
-  --input-bg: #111122;
-  --input-text: #e0ffe8;
-}
-
-/* TEMA: INDIE (SCRIBBLE / ANTIGUO) */
+/* TEMA: SCRIBBLE (ANTIGUO) */
 [data-theme="scribble"] {
   --primary: #4a3427;
   --accent: #d2691e;
-  --bg-main: #e2d1b9;
+  --bg-main: #e2d1b9; /* Fondo café papel antiguo */
   --bg-menu: #4a3427;
-  --white-custom: #ebdecb;
+  --white-custom: #ebdecb; /* Fondo café claro para cartas */
   --foreground: #2d1f18;
   --btn-text: #ebdecb;
   --menu-text: #ebdecb;
@@ -146,11 +129,11 @@
   --radius-card: 0.125rem;
   --radius-btn: 0px;
   --radius-input: 0px;
-  --shadow-card: 0 1px 3px rgba(74,52,39,0.1);
+  --shadow-card: 0 2px 5px rgba(74,52,39,0.1);
   --border-width: 1px;
   --font-display: 'Caveat', cursive;
-  --transition-card: all 0.2s ease;
-  --btn-transform-hover: translateY(-1px);
+  --transition-card: all 0.25s ease;
+  --btn-transform-hover: translateY(-2px);
   --btn-transform-active: translateY(1px);
   font-size: 15px;
 }
@@ -169,33 +152,9 @@
   --input-text: #f0e6d0;
 }
 
-@media (min-width: 768px) {
-  :root { font-size: 15px; }
-}
-
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@400;600;700&family=VT323&family=Silkscreen:wght@400;700&display=swap');
 
-/* EFECTOS POR TEMA */
-[data-theme="pixel"] body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-}
-
-[data-theme="pixel"].dark body::before {
-  content: "";
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 40px;
-  z-index: 9998;
-  pointer-events: none;
-  background: linear-gradient(transparent, rgba(0,255,136,0.04), transparent);
-  animation: scanline-move 6s linear infinite;
-}
-
+/* Textura de papel para el tema antiguo */
 [data-theme="scribble"] body::after {
   content: "";
   position: fixed;
@@ -225,21 +184,18 @@
     transition: var(--transition-card);
   }
 
-  [data-theme="pixel"] .card-main { 
-    border-color: var(--primary); 
-    animation: pixel-in 0.15s steps(8) both; 
+  /* Estilo Antiguo: Borde doble elegante y estático */
+  [data-theme="scribble"] .card-main {
+    border: 1px solid var(--primary);
+    outline: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+    outline-offset: 3px;
+    animation: ink-spread 0.4s ease both;
+    transform: none; /* Quitamos rotaciones */
   }
 
-  [data-theme="scribble"] .card-main {
-    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
-    outline: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
-    outline-offset: 3px;
-    animation: ink-spread 0.3s ease both;
-    position: relative;
-  }
   [data-theme="scribble"] .card-main:hover {
     outline-offset: 5px;
-    border-color: var(--primary);
+    background: color-mix(in srgb, var(--white-custom) 95%, var(--primary));
   }
 
   .btn-brand {
@@ -257,28 +213,18 @@
     cursor: pointer;
     transition: var(--transition-card);
   }
-  .btn-brand:hover  { transform: var(--btn-transform-hover); }
-  .btn-brand:active { transform: var(--btn-transform-active); }
-  .btn-brand:disabled { opacity: 0.5; }
-
-  [data-theme="pixel"] .btn-brand {
-    box-shadow: none !important;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-size: 0.65rem;
-  }
 
   [data-theme="scribble"] .btn-brand {
     border: 1px solid var(--primary);
-    outline: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
     outline-offset: 2px;
     box-shadow: none !important;
     font-family: 'Caveat', cursive;
-    font-size: 1.1rem;
-    font-weight: 700;
     background: transparent;
     color: var(--primary);
+    font-size: 1.2rem;
   }
+
   [data-theme="scribble"] .btn-brand:hover {
     background: var(--primary);
     color: var(--btn-text);
@@ -296,52 +242,25 @@
   }
 
   [data-theme="scribble"] .input-brand {
-    border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+    border: 1px solid var(--primary);
     outline: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
     outline-offset: 2px;
     font-family: 'Caveat', cursive;
-    background: color-mix(in srgb, var(--white-custom) 40%, transparent);
-  }
-  [data-theme="scribble"] .input-brand:focus {
-    outline-color: var(--primary);
-    border-color: var(--primary);
   }
 
-  [data-theme="scribble"] h1,
-  [data-theme="scribble"] h2,
-  [data-theme="scribble"] h3,
-  [data-theme="scribble"] h4 {
+  /* Limpieza de fuentes y utilidades */
+  [data-theme="scribble"] h1, [data-theme="scribble"] h2, [data-theme="scribble"] h3 {
     font-family: 'Caveat', cursive !important;
-    letter-spacing: 0.01em;
   }
 
-  [data-theme="pixel"] * {
-    font-family: 'Silkscreen', 'Press Start 2P', monospace !important;
-    letter-spacing: 0.04em;
-  }
-
-  .modal-surface {
-    background: var(--white-custom);
-    color: var(--text-on-card, var(--foreground));
-  }
+  .modal-surface { background: var(--white-custom); color: var(--text-on-card); }
   
-  .dark .bg-white,
-  [data-theme="pixel"].dark .bg-white,
-  [data-theme="scribble"].dark .bg-white {
+  .dark .bg-white, [data-theme="scribble"].dark .bg-white {
     background-color: var(--white-custom) !important;
   }
 
-  select {
-    background-color: var(--input-bg, var(--white-custom));
-    color: var(--input-text, var(--foreground));
-  }
-  
   .char-card-base {
     @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
     border-radius: var(--radius-card);
-  }
-  
-  .char-card-active {
-    @apply ring-4 ring-primary z-20 scale-95 grayscale-0 shadow-2xl;
   }
 }
