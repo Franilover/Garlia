@@ -22,6 +22,7 @@ interface Perfil {
   username: string;
   status?: string;
   avatar_url?: string;
+  descripcion?: string;
 }
 
 interface Descubrimiento {
@@ -284,6 +285,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   const [cargando, setCargando]       = useState(true);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [descDraft, setDescDraft] = useState('');
+  const [savingDesc, setSavingDesc] = useState(false);
   const [otrosPerfiles, setOtrosPerfiles] = useState<PerfilResumen[]>([]);
   const userIdRef = React.useRef<string | null>(null);
 
@@ -303,16 +307,17 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         // ── 2. Perfil desde tabla `perfiles` ───────────────────────────────
         const { data: perfilData, error: perfilError } = await supabase
           .from("perfiles")
-          .select("username, status, rol, avatar_url")
+          .select("username, status, rol, avatar_url, descripcion")
           .eq("id", user.id)
           .maybeSingle();
 
         if (perfilError) console.warn("[Personal] Error al cargar perfil:", perfilError.message);
 
         setPerfil({
-          username:   perfilData?.username   ?? datosProp?.username ?? user.email?.split("@")[0] ?? "Aventurero",
-          status:     perfilData?.status     ?? datosProp?.status,
-          avatar_url: perfilData?.avatar_url ?? datosProp?.avatar_url,
+          username:    perfilData?.username   ?? datosProp?.username ?? user.email?.split("@")[0] ?? "Aventurero",
+          status:      perfilData?.status     ?? datosProp?.status,
+          avatar_url:  perfilData?.avatar_url ?? datosProp?.avatar_url,
+          descripcion: perfilData?.descripcion,
         });
 
         // ── 3. Inventario ──────────────────────────────────────────────────
@@ -436,6 +441,21 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       console.warn("[Personal] Error guardando avatar:", error.message);
     }
     setSavingAvatar(false);
+  };
+
+  const handleSaveDesc = async () => {
+    const userId = userIdRef.current;
+    if (!userId) return;
+    setSavingDesc(true);
+    const { error } = await supabase
+      .from("perfiles")
+      .update({ descripcion: descDraft })
+      .eq("id", userId);
+    if (!error) {
+      setPerfil(prev => prev ? { ...prev, descripcion: descDraft } : prev);
+      setEditingDesc(false);
+    }
+    setSavingDesc(false);
   };
 
   const tabs = [
@@ -599,8 +619,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       {/* Desktop: [exploradores | ficha perfil | colección full-width] */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pb-20">
 
-        {/* ── Separador ornamental — sin banner ── */}
-        <div className="flex items-center gap-4 py-6 px-2">
+        {/* ── Separador ornamental ── */}
+        <div className="flex items-center gap-4 py-5 px-2">
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
           <span className="font-serif italic text-[10px] select-none"
             style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
@@ -609,11 +629,15 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         </div>
 
-        <div className="flex gap-6 items-start">
+        {/* ── LAYOUT PRINCIPAL ──
+              Mobile:  [ficha] [descripcion] [colección]   (apilado)
+              Desktop: [ficha | descripcion] [colección]  (dos zonas) */}
+
+        {/* Zona superior en desktop: ficha + descripción lado a lado */}
+        <div className="flex flex-col md:flex-row gap-5 mb-6">
 
           {/* COL 2 — ficha del perfil */}
-          <div className="w-full md:w-56 xl:w-64 shrink-0 md:sticky md:top-16 animate-in fade-in duration-500">
-            {/* Ficha estilo manuscrito */}
+          <div className="w-full md:w-56 xl:w-64 shrink-0 md:sticky md:top-16 self-start animate-in fade-in duration-500">
             <div className="mx-4 md:mx-0 relative"
               style={{
                 background: "var(--white-custom)",
@@ -624,12 +648,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
               }}>
 
-              {/* Cabecera ornamental */}
               <div className="text-center pt-5 pb-2 px-5">
                 <p className="font-serif italic tracking-[0.4em] mb-3 text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>── ✦ ──</p>
 
-                {/* Avatar */}
                 <div className="flex justify-center mb-3">
                   <button onClick={() => setShowAvatarPicker(true)}
                     className="group relative overflow-hidden flex items-center justify-center transition-all"
@@ -660,14 +682,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </p>
               </div>
 
-              {/* Divisor ornamental */}
               <div className="mx-5 my-3 flex items-center gap-2">
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                 <span className="text-[8px]" style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>◆</span>
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
               </div>
 
-              {/* Stats estilo libro de cuentas */}
               <div className="px-5 pb-4 space-y-2">
                 {[
                   { icon: <Package size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
@@ -687,8 +707,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       style={{ color: "color-mix(in srgb, var(--primary) 12%, transparent)", letterSpacing: "0.2em" }}>
                       . . . . . .
                     </span>
-                    <span className="font-serif italic text-sm tabular-nums"
-                      style={{ color: "var(--primary)" }}>
+                    <span className="font-serif italic text-sm tabular-nums" style={{ color: "var(--primary)" }}>
                       {count}
                     </span>
                   </div>
@@ -714,33 +733,120 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Exploradores en mobile */}
+          {/* Descripción — al lado en desktop, abajo en mobile */}
+          <div className="flex-1 min-w-0 mx-4 md:mx-0">
+            <div className="h-full relative"
+              style={{
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                boxShadow: "var(--shadow-card)",
+                minHeight: "180px",
+              }}>
+
+              {/* Cabecera */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                <p className="font-serif italic text-[9px]"
+                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                  ✦ Sobre mí
+                </p>
+                {!editingDesc ? (
+                  <button
+                    onClick={() => { setDescDraft(perfil?.descripcion ?? ''); setEditingDesc(true); }}
+                    className="font-serif italic text-[9px] transition-opacity hover:opacity-100 px-2 py-1"
+                    style={{
+                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                      borderRadius: "var(--radius-btn)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    }}>
+                    editar
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setEditingDesc(false)}
+                      className="font-serif italic text-[9px] px-2 py-1 transition-opacity hover:opacity-70"
+                      style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                      cancelar
+                    </button>
+                    <button onClick={handleSaveDesc} disabled={savingDesc}
+                      className="font-serif italic text-[9px] px-3 py-1 transition-all disabled:opacity-50"
+                      style={{
+                        background: "var(--primary)",
+                        color: "var(--btn-text)",
+                        borderRadius: "var(--radius-btn)",
+                      }}>
+                      {savingDesc ? "guardando…" : "guardar"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="mx-5 mb-3 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+
+              {/* Contenido */}
+              <div className="px-5 pb-5">
+                {editingDesc ? (
+                  <textarea
+                    value={descDraft}
+                    onChange={e => setDescDraft(e.target.value)}
+                    autoFocus
+                    rows={5}
+                    placeholder="Escribe algo sobre ti…"
+                    className="w-full bg-transparent outline-none resize-none font-serif italic leading-relaxed"
+                    style={{
+                      fontSize: "0.9rem",
+                      color: "var(--foreground)",
+                      caretColor: "var(--primary)",
+                    }}
+                  />
+                ) : perfil?.descripcion ? (
+                  <p className="font-serif italic leading-relaxed"
+                    style={{ fontSize: "0.9rem", color: "color-mix(in srgb, var(--foreground) 75%, transparent)" }}>
+                    {perfil.descripcion}
+                  </p>
+                ) : (
+                  <p className="font-serif italic"
+                    style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                    "Sin descripción aún… pulsa editar para añadir una."
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Exploradores en mobile — debajo de descripción */}
             {otrosPerfiles.length > 0 && (
-              <div className="lg:hidden mt-4 mx-4 md:mx-0 space-y-1.5">
+              <div className="lg:hidden mt-4 space-y-1.5">
                 <p className="font-serif italic text-[9px] px-1 flex items-center gap-1.5"
                   style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
                   <Users size={9} /> Otros exploradores
                 </p>
-                {otrosPerfiles.map(p => (
-                  <Link key={p.id} href={`/wiki/personal/${p.username}`}>
-                    <div className="flex items-center gap-2.5 px-3 py-2"
-                      style={{
-                        background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                        border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                        borderRadius: "var(--radius-btn)",
-                      }}>
-                      <div className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center"
-                        style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
-                        {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" /> : <User size={10} style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
+                <div className="flex flex-wrap gap-2">
+                  {otrosPerfiles.map(p => (
+                    <Link key={p.id} href={`/wiki/personal/${p.username}`}>
+                      <div className="flex items-center gap-2 px-3 py-1.5"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                          border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                          borderRadius: "var(--radius-btn)",
+                        }}>
+                        <div className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center"
+                          style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
+                          {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" /> : <User size={9} style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
+                        </div>
+                        <span className="font-serif italic text-[10px]" style={{ color: "var(--primary)" }}>{p.username}</span>
                       </div>
-                      <span className="font-serif italic text-[10px]" style={{ color: "var(--primary)" }}>{p.username}</span>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>
+        </div>
+
+        {/* ── ZONA INFERIOR: colección + sidebar derecho ── */}
+        <div className="flex gap-6 items-start">
 
           {/* COL 3 — colección expandida */}
           <div className="flex-1 min-w-0 pt-2 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">

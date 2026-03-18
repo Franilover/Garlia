@@ -18,6 +18,7 @@ interface PerfilData {
   username: string;
   status?: string;
   avatar_url?: string;
+  descripcion?: string;
 }
 
 interface Descubrimiento {
@@ -205,7 +206,7 @@ export default function PerfilPublico() {
       // 1. Perfil por username
       const { data: perfilData } = await supabase
         .from("perfiles")
-        .select("id, username, status, avatar_url")
+        .select("id, username, status, avatar_url, descripcion")
         .eq("username", username)
         .maybeSingle();
 
@@ -321,8 +322,8 @@ export default function PerfilPublico() {
 
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pb-20">
 
-        {/* ── Separador ornamental — sin banner ── */}
-        <div className="flex items-center gap-4 py-6 px-2">
+        {/* ── Separador ornamental ── */}
+        <div className="flex items-center gap-4 py-5 px-2">
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
           <span className="font-serif italic text-[10px] select-none"
             style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
@@ -331,10 +332,11 @@ export default function PerfilPublico() {
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         </div>
 
-        <div className="flex gap-6 items-start">
+        {/* Zona superior: ficha + descripción */}
+        <div className="flex flex-col md:flex-row gap-5 mb-6">
 
           {/* COL 1 — ficha perfil */}
-          <div className="w-full md:w-56 xl:w-64 shrink-0 md:sticky md:top-16 animate-in fade-in duration-500">
+          <div className="w-full md:w-56 xl:w-64 shrink-0 self-start animate-in fade-in duration-500">
             <div className="mx-4 md:mx-0 relative"
               style={{
                 background: "var(--white-custom)",
@@ -344,11 +346,9 @@ export default function PerfilPublico() {
                 outlineOffset: "4px",
                 border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
               }}>
-
               <div className="text-center pt-5 pb-2 px-5">
                 <p className="font-serif italic tracking-[0.4em] mb-3 text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>── ✦ ──</p>
-
                 <div className="flex justify-center mb-3">
                   <div className="overflow-hidden flex items-center justify-center"
                     style={{
@@ -362,7 +362,6 @@ export default function PerfilPublico() {
                       : <User size={30} style={{ color: "color-mix(in srgb, var(--primary) 15%, transparent)" }} />}
                   </div>
                 </div>
-
                 <h1 className="font-serif italic leading-tight mb-1"
                   style={{ fontSize: "1.05rem", color: "var(--primary)", letterSpacing: "0.02em" }}>
                   {perfil?.username}
@@ -372,13 +371,11 @@ export default function PerfilPublico() {
                   {perfil?.status ?? "Explorador"}
                 </p>
               </div>
-
               <div className="mx-5 my-3 flex items-center gap-2">
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
                 <span className="text-[8px]" style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>◆</span>
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
               </div>
-
               <div className="px-5 pb-4 space-y-2">
                 {[
                   { icon: <Package size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
@@ -404,7 +401,6 @@ export default function PerfilPublico() {
                   </div>
                 ))}
               </div>
-
               {/* Tabs mobile */}
               <div className="md:hidden px-4 pb-4"
                 style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", paddingTop: "0.75rem" }}>
@@ -425,6 +421,43 @@ export default function PerfilPublico() {
               </div>
             </div>
           </div>
+
+          {/* Descripción — solo lectura */}
+          <div className="flex-1 min-w-0 mx-4 md:mx-0">
+            <div className="h-full"
+              style={{
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                boxShadow: "var(--shadow-card)",
+                minHeight: "180px",
+              }}>
+              <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                <p className="font-serif italic text-[9px]"
+                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                  ✦ Sobre {perfil?.username}
+                </p>
+              </div>
+              <div className="mx-5 mb-3 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              <div className="px-5 pb-5">
+                {perfil?.descripcion ? (
+                  <p className="font-serif italic leading-relaxed"
+                    style={{ fontSize: "0.9rem", color: "color-mix(in srgb, var(--foreground) 75%, transparent)" }}>
+                    {perfil.descripcion}
+                  </p>
+                ) : (
+                  <p className="font-serif italic"
+                    style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                    "Este explorador aún no ha escrito nada sobre sí mismo."
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Zona inferior: colección + sidebar */}
+        <div className="flex gap-6 items-start">
 
           {/* COL 2 — colección */}
           <div className="flex-1 min-w-0 pt-2 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
