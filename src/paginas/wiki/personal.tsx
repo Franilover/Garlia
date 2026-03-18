@@ -45,6 +45,7 @@ interface ItemInventario {
     nombre: string;
     categoria: string;
     imagen_url?: string;
+    descripcion?: string;
   };
 }
 
@@ -76,7 +77,7 @@ function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onClose: ()
       ?? (isCriatura ? "Criatura Desconocida" : entidad.tipo === "item" ? "Objeto" : "Contacto");
 
   const descripcion = isItemInv
-    ? undefined
+    ? (entidad.data as ItemInventario).items.descripcion
     : (entidad.data as Descubrimiento).descripcion;
 
   const imagen = isItemInv
@@ -312,7 +313,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         if (!datosProp?.inventario_usuario?.length) {
           const { data: invData, error: invError } = await supabase
             .from("inventario_usuario")
-            .select("equipado, items(id, nombre, categoria, imagen_url)")
+            .select("equipado, items(id, nombre, categoria, imagen_url, descripcion)")
             .eq("perfil_id", user.id);
           if (invError) console.warn("[Personal] Error inventario:", invError.message);
           if (invData)  setInventario(invData as unknown as ItemInventario[]);
@@ -322,11 +323,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
           supabase
             .from("descubrimientos_items")
-            .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url)")
+            .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_criaturas")
-            .select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma)")
+            .select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma, descripcion)")
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_personajes")
@@ -334,13 +335,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .eq("perfil_id", user.id),
         ]);
 
-        // Logs de debug — quitar en producción si todo funciona
-        if (itemsRes.error)     console.warn("[Personal] descubrimientos_items:", itemsRes.error.message);
-        if (criaturasRes.error) console.warn("[Personal] descubrimientos_criaturas:", criaturasRes.error.message);
-        if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes:", personajesRes.error.message);
+        if (itemsRes.error)      console.warn("[Personal] descubrimientos_items error:", itemsRes.error.message);
+        if (criaturasRes.error)  console.warn("[Personal] descubrimientos_criaturas error:", criaturasRes.error.message);
+        if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes error:", personajesRes.error.message);
 
-        // DEBUG — ver qué llega crudo de criaturas
-        console.log("[Personal] criaturas raw:", JSON.stringify(criaturasRes.data?.slice(0, 2)));
+        // DEBUG — quitá estos logs cuando funcione
+        console.log("[Personal] criaturas count:", criaturasRes.data?.length, "| primer item:", JSON.stringify(criaturasRes.data?.[0]));
+        console.log("[Personal] personajes count:", personajesRes.data?.length, "| primer item:", JSON.stringify(personajesRes.data?.[0]));
 
         const planos: Descubrimiento[] = [
           ...(itemsRes.data ?? []).map((r: any) => ({
@@ -348,6 +349,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             entidad_id:           r.items?.id,
             fecha_descubrimiento: r.fecha_descubrimiento,
             nombre:      r.items?.nombre,
+            descripcion: r.items?.descripcion,
             imagen_url:  r.items?.imagen_url,
             categoria:   r.items?.categoria,
           })),
@@ -356,6 +358,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             entidad_id:           r.criaturas?.id,
             fecha_descubrimiento: r.fecha_descubrimiento,
             nombre:      r.criaturas?.nombre,
+            descripcion: r.criaturas?.descripcion,
             habitat:     r.criaturas?.habitat,
             alma:        r.criaturas?.alma,
           })),
