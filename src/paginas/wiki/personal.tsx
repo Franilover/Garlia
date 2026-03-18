@@ -45,8 +45,6 @@ interface ItemInventario {
     nombre: string;
     categoria: string;
     imagen_url?: string;
-    descripcion?: string;
-    rareza?: string;
   };
 }
 
@@ -78,7 +76,7 @@ function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onClose: ()
       ?? (isCriatura ? "Criatura Desconocida" : entidad.tipo === "item" ? "Objeto" : "Contacto");
 
   const descripcion = isItemInv
-    ? (entidad.data as ItemInventario).items.descripcion
+    ? undefined
     : (entidad.data as Descubrimiento).descripcion;
 
   const imagen = isItemInv
@@ -91,7 +89,6 @@ function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onClose: ()
   if (isItemInv) {
     const d = (entidad.data as ItemInventario).items;
     if (d.categoria) tags.push(d.categoria);
-    if (d.rareza)    tags.push(d.rareza!);
     if ((entidad.data as ItemInventario).equipado) tags.push("Equipado");
   } else {
     const d = entidad.data as Descubrimiento;
@@ -298,7 +295,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         // ── 2. Perfil desde tabla `perfiles` ───────────────────────────────
         const { data: perfilData, error: perfilError } = await supabase
           .from("perfiles")
-          .select("username, status, avatar_url")
+          .select("username, status, rol")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -307,7 +304,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         setPerfil({
           username:   perfilData?.username  ?? datosProp?.username ?? user.email?.split("@")[0] ?? "Aventurero",
           status:     perfilData?.status    ?? datosProp?.status,
-          avatar_url: perfilData?.avatar_url ?? datosProp?.avatar_url,
+          avatar_url: datosProp?.avatar_url, // no existe en tabla, usar solo si el padre la pasa
         });
 
         // ── 3. Inventario ──────────────────────────────────────────────────
@@ -315,7 +312,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         if (!datosProp?.inventario_usuario?.length) {
           const { data: invData, error: invError } = await supabase
             .from("inventario_usuario")
-            .select("equipado, items(id, nombre, categoria, imagen_url, descripcion, rareza)")
+            .select("equipado, items(id, nombre, categoria, imagen_url)")
             .eq("perfil_id", user.id);
           if (invError) console.warn("[Personal] Error inventario:", invError.message);
           if (invData)  setInventario(invData as unknown as ItemInventario[]);
@@ -325,7 +322,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
           supabase
             .from("descubrimientos_items")
-            .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion, rareza)")
+            .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url)")
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_criaturas")
@@ -333,7 +330,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_personajes")
-            .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, descripcion)")
+            .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url)")
             .eq("perfil_id", user.id),
         ]);
 
@@ -348,10 +345,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             entidad_id:           r.items?.id,
             fecha_descubrimiento: r.fecha_descubrimiento,
             nombre:      r.items?.nombre,
-            descripcion: r.items?.descripcion,
             imagen_url:  r.items?.imagen_url,
             categoria:   r.items?.categoria,
-            rareza:      r.items?.rareza,
           })),
           ...(criaturasRes.data ?? []).map((r: any) => ({
             tipo: "criatura" as const,
@@ -368,7 +363,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             entidad_id:           r.personajes?.id,
             fecha_descubrimiento: r.fecha_descubrimiento,
             nombre:      r.personajes?.nombre,
-            descripcion: r.personajes?.descripcion,
             // Personajes usa img_url no imagen_url
             imagen_url:  r.personajes?.img_url,
             reino:       r.personajes?.reino,
