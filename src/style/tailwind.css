@@ -102,8 +102,9 @@
   --radius-input: 0px;
   --shadow-card: 0 2px 0px 0px rgba(26,26,26,0.15);
   --border-width: 2px;
-  --font-display: 'Silkscreen', monospace;
-  font-size: 13px;
+  /* Actualizado a Pixelify Sans */
+  --font-display: 'Pixelify Sans', 'Silkscreen', 'VT323', monospace;
+  font-size: 15px; /* Un poco más grande para mejor legibilidad del pixel */
   image-rendering: pixelated;
 }
 
@@ -159,7 +160,7 @@
   --input-text: #f0e6d0;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@400;600;700&family=VT323&family=Silkscreen:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@400;600;700&family=VT323&family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400..700&display=swap');
 
 /* Textura de papel para el tema antiguo */
 [data-theme="scribble"] body::after {
@@ -184,7 +185,7 @@
   pointer-events: none;
 }
 
-/* LA BARRA QUE BAJA (Scanline animada) */
+/* La barra que baja (Scanline animada) */
 [data-theme="pixel"].dark body::after {
   content: " ";
   display: block;
