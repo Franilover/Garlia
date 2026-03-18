@@ -616,44 +616,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
         <div className="flex gap-6 items-start">
 
-          {/* COL 1 — otros exploradores (solo lg+) */}
-          {otrosPerfiles.length > 0 && (
-            <aside className="hidden lg:flex flex-col gap-2 w-44 xl:w-52 shrink-0 sticky top-24 pt-4">
-              <p className="text-[8px] font-black uppercase tracking-[0.25em] mb-1 px-1 flex items-center gap-1.5"
-                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                <Users size={9} /> Exploradores
-              </p>
-              {otrosPerfiles.map(p => (
-                <Link key={p.id} href={`/wiki/personal/${p.username}`}>
-                  <motion.div whileHover={{ x: 2 }}
-                    className="flex items-center gap-2.5 px-3 py-2.5 transition-all cursor-pointer group"
-                    style={{
-                      background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                      border: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
-                      borderRadius: "var(--radius-btn)",
-                    }}>
-                    <div className="w-8 h-8 shrink-0 overflow-hidden flex items-center justify-center"
-                      style={{ borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                      {p.avatar_url
-                        ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
-                        : <User size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-tight truncate transition-colors group-hover:text-[var(--accent)]"
-                        style={{ color: "var(--primary)" }}>{p.username}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        {[{ icon: <Package size={7} />, n: p.items_count }, { icon: <Sword size={7} />, n: p.criaturas_count }, { icon: <User size={7} />, n: p.personajes_count }].map(({ icon, n }, i) => (
-                          <span key={i} className="flex items-center gap-0.5 text-[8px] font-black tabular-nums"
-                            style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>{icon} {n}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                </Link>
-              ))}
-            </aside>
-          )}
-
           {/* COL 2 — ficha del perfil */}
           <div className="w-full md:w-60 xl:w-68 shrink-0 md:sticky md:top-16 -mt-10 animate-in fade-in duration-500">
             <div className="mx-4 md:mx-0"
@@ -817,7 +779,44 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             </AnimatePresence>
           </div>
 
-        </div>
+          {/* COL 3 — otros exploradores derecha (solo lg+) */}
+          {otrosPerfiles.length > 0 && (
+            <aside className="hidden lg:flex flex-col gap-2 w-44 xl:w-52 shrink-0 sticky top-24 pt-4">
+              <p className="text-[8px] font-black uppercase tracking-[0.25em] mb-1 px-1 flex items-center gap-1.5"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                <Users size={9} /> Exploradores
+              </p>
+              {otrosPerfiles.map(p => (
+                <Link key={p.id} href={`/wiki/personal/${p.username}`}>
+                  <motion.div whileHover={{ x: 2 }}
+                    className="flex items-center gap-2.5 px-3 py-2.5 transition-all cursor-pointer group"
+                    style={{
+                      background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                      border: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+                      borderRadius: "var(--radius-btn)",
+                    }}>
+                    <div className="w-8 h-8 shrink-0 overflow-hidden flex items-center justify-center"
+                      style={{ borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                      {p.avatar_url
+                        ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
+                        : <User size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-tight truncate transition-colors group-hover:text-[var(--accent)]"
+                        style={{ color: "var(--primary)" }}>{p.username}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {[{ icon: <Package size={7} />, n: p.items_count }, { icon: <Sword size={7} />, n: p.criaturas_count }, { icon: <User size={7} />, n: p.personajes_count }].map(({ icon, n }, i) => (
+                          <span key={i} className="flex items-center gap-0.5 text-[8px] font-black tabular-nums"
+                            style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>{icon} {n}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                </Link>
+              ))}
+            </aside>
+          )}
+      </div>
       </div>
     </>
   );
