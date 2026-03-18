@@ -599,89 +599,115 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       {/* Desktop: [exploradores | ficha perfil | colección full-width] */}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pb-20">
 
-        {/* Banner con patrón decorativo */}
-        <div className="relative w-full h-24 md:h-32 overflow-hidden"
-          style={{ borderRadius: `var(--radius-card) var(--radius-card) 0 0`, background: "color-mix(in srgb, var(--primary) 7%, var(--bg-main))" }}>
-          <div className="absolute inset-0 opacity-[0.035]"
-            style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--primary) 0, var(--primary) 1px, transparent 0, transparent 50%)", backgroundSize: "16px 16px" }} />
-          <div className="absolute bottom-0 left-0 right-0 h-12"
-            style={{ background: "linear-gradient(to top, var(--bg-main), transparent)" }} />
-          <div className="absolute top-3 right-5">
-            <span className="text-[8px] font-black uppercase tracking-[0.3em]"
-              style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-              {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos
-            </span>
-          </div>
+        {/* ── Separador ornamental — sin banner ── */}
+        <div className="flex items-center gap-4 py-6 px-2">
+          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
+          <span className="font-serif italic text-[10px] select-none"
+            style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+            ✦ {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos ✦
+          </span>
+          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         </div>
 
         <div className="flex gap-6 items-start">
 
           {/* COL 2 — ficha del perfil */}
-          <div className="w-full md:w-60 xl:w-68 shrink-0 md:sticky md:top-16 -mt-10 animate-in fade-in duration-500">
-            <div className="mx-4 md:mx-0"
+          <div className="w-full md:w-56 xl:w-64 shrink-0 md:sticky md:top-16 animate-in fade-in duration-500">
+            {/* Ficha estilo manuscrito */}
+            <div className="mx-4 md:mx-0 relative"
               style={{
                 background: "var(--white-custom)",
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                 borderRadius: "var(--radius-card)",
                 boxShadow: "var(--shadow-card)",
+                outline: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                outlineOffset: "4px",
+                border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
               }}>
 
-              {/* Avatar */}
-              <div className="flex justify-center pt-5 pb-3">
-                <button onClick={() => setShowAvatarPicker(true)}
-                  className="group relative overflow-hidden flex items-center justify-center transition-all"
-                  style={{ width: 88, height: 88, borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))", border: "3px solid var(--white-custom)", boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent)" }}
-                  title="Cambiar foto de perfil">
-                  {perfil?.avatar_url
-                    ? <img src={perfil.avatar_url} alt={perfil?.username} className="w-full h-full object-contain" />
-                    : <User size={34} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ background: "color-mix(in srgb, var(--primary) 55%, transparent)", borderRadius: "50%" }}>
-                    <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text)" }}>Cambiar</span>
-                  </div>
-                </button>
-              </div>
+              {/* Cabecera ornamental */}
+              <div className="text-center pt-5 pb-2 px-5">
+                <p className="font-serif italic tracking-[0.4em] mb-3 text-[9px]"
+                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>── ✦ ──</p>
 
-              <div className="text-center px-4 pb-4">
-                <div className="flex items-center justify-center gap-1.5 mb-0.5">
-                  <Star size={10} className="text-amber-400 fill-amber-400" />
-                  <h1 className="text-base font-black uppercase tracking-tighter leading-none" style={{ color: "var(--primary)" }}>
-                    {perfil?.username ?? "…"}
-                  </h1>
+                {/* Avatar */}
+                <div className="flex justify-center mb-3">
+                  <button onClick={() => setShowAvatarPicker(true)}
+                    className="group relative overflow-hidden flex items-center justify-center transition-all"
+                    style={{
+                      width: 84, height: 84,
+                      borderRadius: "var(--radius-btn)",
+                      background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
+                      border: "2px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+                    }}
+                    title="Cambiar imagen">
+                    {perfil?.avatar_url
+                      ? <img src={perfil.avatar_url} alt={perfil?.username} className="w-full h-full object-contain" />
+                      : <User size={30} style={{ color: "color-mix(in srgb, var(--primary) 15%, transparent)" }} />}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+                      <span className="font-serif italic text-[8px]" style={{ color: "var(--btn-text)" }}>cambiar</span>
+                    </div>
+                  </button>
                 </div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.2em]"
+
+                <h1 className="font-serif italic leading-tight mb-1"
+                  style={{ fontSize: "1.05rem", color: "var(--primary)", letterSpacing: "0.02em" }}>
+                  {perfil?.username ?? "…"}
+                </h1>
+                <p className="font-serif italic text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
                   {perfil?.status ?? "Enciclopedia"}
                 </p>
               </div>
 
-              <div className="mx-4" style={{ height: 1, background: "color-mix(in srgb, var(--primary) 7%, transparent)" }} />
+              {/* Divisor ornamental */}
+              <div className="mx-5 my-3 flex items-center gap-2">
+                <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                <span className="text-[8px]" style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>◆</span>
+                <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+              </div>
 
-              {/* Stats */}
-              <div className="px-4 py-4 space-y-2.5">
+              {/* Stats estilo libro de cuentas */}
+              <div className="px-5 pb-4 space-y-2">
                 {[
-                  { icon: <Package size={12} />, label: "Items",      count: inventario.length + misItemsDesc.length },
-                  { icon: <Sword size={12} />,   label: "Criaturas",  count: misCriaturas.length },
-                  { icon: <User size={12} />,    label: "Personajes", count: misPersonajes.length },
+                  { icon: <Package size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
+                  { icon: <Sword size={11} />,   label: "Bestias",   count: misCriaturas.length },
+                  { icon: <User size={11} />,    label: "Conocidos", count: misPersonajes.length },
                 ].map(({ icon, label, count }) => (
-                  <div key={label} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                  <div key={label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5"
+                      style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
                       {icon}
-                      <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{label}</span>
+                      <span className="font-serif italic text-[10px]"
+                        style={{ color: "color-mix(in srgb, var(--primary) 42%, transparent)" }}>
+                        {label}
+                      </span>
                     </div>
-                    <div className="flex-1 mx-1" style={{ height: 1, background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
-                    <span className="text-base font-black tabular-nums" style={{ color: "var(--primary)" }}>{count}</span>
+                    <span className="flex-1 mx-2 font-serif text-[10px] overflow-hidden text-center"
+                      style={{ color: "color-mix(in srgb, var(--primary) 12%, transparent)", letterSpacing: "0.2em" }}>
+                      . . . . . .
+                    </span>
+                    <span className="font-serif italic text-sm tabular-nums"
+                      style={{ color: "var(--primary)" }}>
+                      {count}
+                    </span>
                   </div>
                 ))}
               </div>
 
-              {/* Tabs mobile — dentro de la ficha */}
-              <div className="md:hidden px-4 pb-4">
-                <div className="flex gap-1 mt-1">
+              {/* Tabs mobile */}
+              <div className="md:hidden px-4 pb-4"
+                style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", paddingTop: "0.75rem" }}>
+                <div className="flex gap-1 mt-2">
                   {tabs.map(t => (
                     <button key={t.id} onClick={() => setTab(t.id)}
                       className="flex-1 flex items-center justify-center py-2 transition-all"
-                      style={{ borderRadius: "var(--radius-btn)", background: tab === t.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 5%, transparent)", color: tab === t.id ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                      style={{
+                        borderRadius: "var(--radius-btn)",
+                        background: tab === t.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                        color: tab === t.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 32%, transparent)",
+                        border: tab === t.id ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                      }}>
                       <t.icon size={12} />
                     </button>
                   ))}
@@ -691,19 +717,24 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
             {/* Exploradores en mobile */}
             {otrosPerfiles.length > 0 && (
-              <div className="lg:hidden mt-4 mx-4 md:mx-0 space-y-2">
-                <p className="text-[8px] font-black uppercase tracking-[0.25em] px-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                  <Users size={9} className="inline mr-1" /> Exploradores
+              <div className="lg:hidden mt-4 mx-4 md:mx-0 space-y-1.5">
+                <p className="font-serif italic text-[9px] px-1 flex items-center gap-1.5"
+                  style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                  <Users size={9} /> Otros exploradores
                 </p>
                 {otrosPerfiles.map(p => (
                   <Link key={p.id} href={`/wiki/personal/${p.username}`}>
                     <div className="flex items-center gap-2.5 px-3 py-2"
-                      style={{ background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))", border: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)", borderRadius: "var(--radius-btn)" }}>
+                      style={{
+                        background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                        border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                        borderRadius: "var(--radius-btn)",
+                      }}>
                       <div className="w-6 h-6 shrink-0 overflow-hidden flex items-center justify-center"
-                        style={{ borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                        {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" /> : <User size={11} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                        style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
+                        {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" /> : <User size={10} style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-tight" style={{ color: "var(--primary)" }}>{p.username}</span>
+                      <span className="font-serif italic text-[10px]" style={{ color: "var(--primary)" }}>{p.username}</span>
                     </div>
                   </Link>
                 ))}
@@ -718,7 +749,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             <div className="hidden md:flex items-center gap-2 mb-5">
               {tabs.map(t => (
                 <button key={t.id} onClick={() => setTab(t.id)}
-                  className="flex items-center gap-2 px-4 py-2 transition-all duration-200"
+                  className="flex items-center gap-2 px-4 py-2 transition-all duration-200 font-serif italic"
                   style={{
                     borderRadius: "var(--radius-btn)",
                     background: tab === t.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 5%, var(--white-custom))",
@@ -727,7 +758,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     boxShadow: tab === t.id ? "var(--shadow-card)" : "none",
                   }}>
                   <t.icon size={12} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
+                  <span className="text-[10px] font-serif italic">{t.label}</span>
                 </button>
               ))}
             </div>
@@ -782,7 +813,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           {/* COL 3 — otros exploradores derecha (solo lg+) */}
           {otrosPerfiles.length > 0 && (
             <aside className="hidden lg:flex flex-col gap-2 w-44 xl:w-52 shrink-0 sticky top-24 pt-4">
-              <p className="text-[8px] font-black uppercase tracking-[0.25em] mb-1 px-1 flex items-center gap-1.5"
+              <p className="font-serif italic text-[9px] mb-1 px-1 flex items-center gap-1.5 opacity-60"
                 style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
                 <Users size={9} /> Exploradores
               </p>
@@ -802,9 +833,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         : <User size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-tight truncate transition-colors group-hover:text-[var(--accent)]"
+                      <p className="font-serif italic text-[11px] truncate transition-colors group-hover:text-[var(--accent)]"
                         style={{ color: "var(--primary)" }}>{p.username}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="flex items-center gap-1.5 mt-0.5 font-serif italic">
                         {[{ icon: <Package size={7} />, n: p.items_count }, { icon: <Sword size={7} />, n: p.criaturas_count }, { icon: <User size={7} />, n: p.personajes_count }].map(({ icon, n }, i) => (
                           <span key={i} className="flex items-center gap-0.5 text-[8px] font-black tabular-nums"
                             style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>{icon} {n}</span>

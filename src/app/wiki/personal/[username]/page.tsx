@@ -321,83 +321,103 @@ export default function PerfilPublico() {
 
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pb-20">
 
-        {/* Banner */}
-        <div className="relative w-full h-24 md:h-32 overflow-hidden"
-          style={{ borderRadius: "var(--radius-card) var(--radius-card) 0 0", background: "color-mix(in srgb, var(--primary) 7%, var(--bg-main))" }}>
-          <div className="absolute inset-0 opacity-[0.035]"
-            style={{ backgroundImage: "repeating-linear-gradient(45deg, var(--primary) 0, var(--primary) 1px, transparent 0, transparent 50%)", backgroundSize: "16px 16px" }} />
-          <div className="absolute bottom-0 left-0 right-0 h-12"
-            style={{ background: "linear-gradient(to top, var(--bg-main), transparent)" }} />
-          <div className="absolute top-3 left-5">
-            <Link href="/wiki/personal"
-              className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest transition-opacity hover:opacity-60"
-              style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-              <ChevronLeft size={11} /> Mi perfil
-            </Link>
-          </div>
-          <div className="absolute top-3 right-5">
-            <span className="text-[8px] font-black uppercase tracking-[0.3em]"
-              style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-              {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos
-            </span>
-          </div>
+        {/* ── Separador ornamental — sin banner ── */}
+        <div className="flex items-center gap-4 py-6 px-2">
+          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
+          <span className="font-serif italic text-[10px] select-none"
+            style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+            ✦ {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos ✦
+          </span>
+          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         </div>
 
         <div className="flex gap-6 items-start">
 
           {/* COL 1 — ficha perfil */}
-          <div className="w-full md:w-60 xl:w-68 shrink-0 md:sticky md:top-16 -mt-10 animate-in fade-in duration-500">
-            <div className="mx-4 md:mx-0"
+          <div className="w-full md:w-56 xl:w-64 shrink-0 md:sticky md:top-16 animate-in fade-in duration-500">
+            <div className="mx-4 md:mx-0 relative"
               style={{
                 background: "var(--white-custom)",
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                 borderRadius: "var(--radius-card)",
                 boxShadow: "var(--shadow-card)",
+                outline: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                outlineOffset: "4px",
+                border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
               }}>
-              <div className="flex justify-center pt-5 pb-3">
-                <div className="overflow-hidden flex items-center justify-center"
-                  style={{ width: 88, height: 88, borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))", border: "3px solid var(--white-custom)", boxShadow: "0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-                  {perfil?.avatar_url
-                    ? <img src={perfil.avatar_url} alt={perfil?.username} className="w-full h-full object-contain" />
-                    : <User size={34} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />}
+
+              <div className="text-center pt-5 pb-2 px-5">
+                <p className="font-serif italic tracking-[0.4em] mb-3 text-[9px]"
+                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>── ✦ ──</p>
+
+                <div className="flex justify-center mb-3">
+                  <div className="overflow-hidden flex items-center justify-center"
+                    style={{
+                      width: 84, height: 84,
+                      borderRadius: "var(--radius-btn)",
+                      background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
+                      border: "2px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+                    }}>
+                    {perfil?.avatar_url
+                      ? <img src={perfil.avatar_url} alt={perfil?.username} className="w-full h-full object-contain" />
+                      : <User size={30} style={{ color: "color-mix(in srgb, var(--primary) 15%, transparent)" }} />}
+                  </div>
                 </div>
-              </div>
-              <div className="text-center px-4 pb-4">
-                <div className="flex items-center justify-center gap-1.5 mb-0.5">
-                  <Star size={10} className="text-amber-400 fill-amber-400" />
-                  <h1 className="text-base font-black uppercase tracking-tighter leading-none" style={{ color: "var(--primary)" }}>
-                    {perfil?.username}
-                  </h1>
-                </div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.2em]"
+
+                <h1 className="font-serif italic leading-tight mb-1"
+                  style={{ fontSize: "1.05rem", color: "var(--primary)", letterSpacing: "0.02em" }}>
+                  {perfil?.username}
+                </h1>
+                <p className="font-serif italic text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
                   {perfil?.status ?? "Explorador"}
                 </p>
               </div>
-              <div className="mx-4" style={{ height: 1, background: "color-mix(in srgb, var(--primary) 7%, transparent)" }} />
-              <div className="px-4 py-4 space-y-2.5">
+
+              <div className="mx-5 my-3 flex items-center gap-2">
+                <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+                <span className="text-[8px]" style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>◆</span>
+                <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+              </div>
+
+              <div className="px-5 pb-4 space-y-2">
                 {[
-                  { icon: <Package size={12} />, label: "Items",      count: inventario.length + misItemsDesc.length },
-                  { icon: <Sword size={12} />,   label: "Criaturas",  count: misCriaturas.length },
-                  { icon: <User size={12} />,    label: "Personajes", count: misPersonajes.length },
+                  { icon: <Package size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
+                  { icon: <Sword size={11} />,   label: "Bestias",   count: misCriaturas.length },
+                  { icon: <User size={11} />,    label: "Conocidos", count: misPersonajes.length },
                 ].map(({ icon, label, count }) => (
-                  <div key={label} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                  <div key={label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5"
+                      style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
                       {icon}
-                      <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{label}</span>
+                      <span className="font-serif italic text-[10px]"
+                        style={{ color: "color-mix(in srgb, var(--primary) 42%, transparent)" }}>
+                        {label}
+                      </span>
                     </div>
-                    <div className="flex-1 mx-1" style={{ height: 1, background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
-                    <span className="text-base font-black tabular-nums" style={{ color: "var(--primary)" }}>{count}</span>
+                    <span className="flex-1 mx-2 font-serif text-[10px] overflow-hidden text-center"
+                      style={{ color: "color-mix(in srgb, var(--primary) 12%, transparent)", letterSpacing: "0.2em" }}>
+                      . . . . . .
+                    </span>
+                    <span className="font-serif italic text-sm tabular-nums" style={{ color: "var(--primary)" }}>
+                      {count}
+                    </span>
                   </div>
                 ))}
               </div>
+
               {/* Tabs mobile */}
-              <div className="md:hidden px-4 pb-4">
-                <div className="flex gap-1 mt-1">
+              <div className="md:hidden px-4 pb-4"
+                style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", paddingTop: "0.75rem" }}>
+                <div className="flex gap-1 mt-2">
                   {tabs.map(t => (
                     <button key={t.id} onClick={() => setTab(t.id)}
                       className="flex-1 flex items-center justify-center py-2 transition-all"
-                      style={{ borderRadius: "var(--radius-btn)", background: tab === t.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 5%, transparent)", color: tab === t.id ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                      style={{
+                        borderRadius: "var(--radius-btn)",
+                        background: tab === t.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                        color: tab === t.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 32%, transparent)",
+                        border: tab === t.id ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                      }}>
                       <t.icon size={12} />
                     </button>
                   ))}
@@ -412,7 +432,7 @@ export default function PerfilPublico() {
             <div className="hidden md:flex items-center gap-2 mb-5">
               {tabs.map(t => (
                 <button key={t.id} onClick={() => setTab(t.id)}
-                  className="flex items-center gap-2 px-4 py-2 transition-all duration-200"
+                  className="flex items-center gap-2 px-4 py-2 transition-all duration-200 font-serif italic"
                   style={{
                     borderRadius: "var(--radius-btn)",
                     background: tab === t.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 5%, var(--white-custom))",
@@ -421,7 +441,7 @@ export default function PerfilPublico() {
                     boxShadow: tab === t.id ? "var(--shadow-card)" : "none",
                   }}>
                   <t.icon size={12} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
+                  <span className="text-[10px] font-serif italic">{t.label}</span>
                 </button>
               ))}
             </div>
@@ -467,7 +487,7 @@ export default function PerfilPublico() {
           {/* COL 3 — otros exploradores (derecha, solo lg+) */}
           {otrosPerfiles.length > 0 && (
             <aside className="hidden lg:flex flex-col gap-2 w-44 xl:w-52 shrink-0 sticky top-24 pt-2">
-              <p className="text-[8px] font-black uppercase tracking-[0.25em] mb-1 px-1 flex items-center gap-1.5"
+              <p className="font-serif italic text-[9px] mb-1 px-1 flex items-center gap-1.5 opacity-60"
                 style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
                 <Users size={9} /> Exploradores
               </p>
@@ -496,7 +516,7 @@ export default function PerfilPublico() {
                           : <User size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-tight truncate transition-colors group-hover:text-[var(--accent)]"
+                        <p className="font-serif italic text-[11px] truncate transition-colors group-hover:text-[var(--accent)]"
                           style={{ color: isCurrent ? "var(--accent)" : "var(--primary)" }}>{p.username}</p>
                         <p className="text-[8px] font-bold uppercase tracking-widest truncate"
                           style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
