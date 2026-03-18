@@ -880,8 +880,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               <div className="px-5 pb-5 space-y-2">
                 {[
                   { icon: <Package size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
-                  { icon: <Sword size={11} />,   label: "Bestias",   count: misCriaturas.length },
-                  { icon: <User size={11} />,    label: "Conocidos", count: misPersonajes.length },
+                  { icon: <Sword size={11} />,   label: "Criaturas",   count: misCriaturas.length },
+                  { icon: <User size={11} />,    label: "Amigos", count: misPersonajes.length },
                 ].map(({ icon, label, count }) => (
                   <div key={label} className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5"
@@ -985,7 +985,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-serif italic text-[8px]"
                       style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                      ✦ Personaje
+                      ✦ Personaje Favorito
                     </p>
                     <button onClick={() => setShowPersonajePicker(true)}
                       className="font-serif italic text-[8px] px-1.5 py-0.5"
