@@ -856,13 +856,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       : <User size={30} style={{ color: "color-mix(in srgb, var(--primary) 15%, transparent)" }} />}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       style={{ background: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-                      <span className="font-serif italic text-[8px]" style={{ color: "var(--btn-text)" }}>cambiar</span>
+                      <span className="font-serif italic text-[8px]" style={{ color: "var(--btn-text)" }}>Cambiar</span>
                     </div>
                   </button>
                 </div>
 
                 <h1 className="font-serif italic leading-tight mb-1"
-                  style={{ fontSize: "1.05rem", color: "var(--primary)", letterSpacing: "0.02em" }}>
+                  style={{ fontSize: "1.05rem", color: "var(--primary)", letterSpacing: "0.02em", textTransform: "capitalize" }}>
                   {perfil?.username ?? "…"}
                 </h1>
                 <p className="font-serif italic text-[9px]"
@@ -901,20 +901,23 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     </span>
                   </div>
                 ))}
-              </div>
+                </div>
             </div>
           </div>
 
-          {/* Bloque derecho: descripción arriba + favoritos abajo en 2 cols */}
+
+          {/* Bloque derecho: un solo card con descripción + personaje + mascota */}
           <div className="flex-1 min-w-0 flex flex-col gap-4 mx-4 md:mx-0">
 
-            {/* Descripción */}
+            {/* Card unificado: Sobre mí + Personaje + Mascota */}
             <div style={{
               background: "var(--white-custom)",
               borderRadius: "var(--radius-card)",
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
               boxShadow: "var(--shadow-card)",
             }}>
+
+              {/* ── Sobre mí ── */}
               <div className="flex items-center justify-between px-5 pt-4 pb-2">
                 <p className="font-serif italic text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -923,31 +926,31 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 {!editingDesc ? (
                   <button
                     onClick={() => { setDescDraft(perfil?.descripcion ?? ''); setEditingDesc(true); }}
-                    className="font-serif italic text-[9px] px-2 py-1 transition-opacity hover:opacity-100"
+                    className="font-serif italic text-[9px] px-2 py-1"
                     style={{
                       color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                       borderRadius: "var(--radius-btn)",
                       border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                     }}>
-                    editar
+                    Editar
                   </button>
                 ) : (
                   <div className="flex items-center gap-2">
                     <button onClick={() => setEditingDesc(false)}
                       className="font-serif italic text-[9px] px-2 py-1"
                       style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                      cancelar
+                      Cancelar
                     </button>
                     <button onClick={handleSaveDesc} disabled={savingDesc}
                       className="font-serif italic text-[9px] px-3 py-1 disabled:opacity-50"
                       style={{ background: "var(--primary)", color: "var(--btn-text)", borderRadius: "var(--radius-btn)" }}>
-                      {savingDesc ? "guardando…" : "guardar"}
+                      {savingDesc ? "Guardando…" : "Guardar"}
                     </button>
                   </div>
                 )}
               </div>
               <div className="mx-5 mb-3 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              <div className="px-5 pb-5">
+              <div className="px-5 pb-4">
                 {editingDesc ? (
                   <textarea
                     value={descDraft}
@@ -965,117 +968,111 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 ) : (
                   <p className="font-serif italic"
                     style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                    "Sin descripción aún… pulsa editar."
+                    "Sin descripción aún… pulsa Editar."
                   </p>
                 )}
               </div>
+
+              {/* Divisor entre descripción y favoritos */}
+              <div className="mx-5 h-px" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
+
+              {/* ── Personaje + Mascota — 2 columnas pegadas a descripción ── */}
+              <div className="grid grid-cols-2 divide-x"
+                style={{ borderTop: "none", "--tw-divide-opacity": 1 } as any}>
+
+                {/* Personaje favorito */}
+                <div className="px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-serif italic text-[8px]"
+                      style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                      ✦ Personaje
+                    </p>
+                    <button onClick={() => setShowPersonajePicker(true)}
+                      className="font-serif italic text-[8px] px-1.5 py-0.5"
+                      style={{
+                        color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        borderRadius: "var(--radius-btn)",
+                        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      }}>
+                      {perfil?.personaje_favorito ? "Cambiar" : "Elegir"}
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    {perfil?.personaje_favorito ? (
+                      <>
+                        <div className="w-9 h-9 shrink-0 overflow-hidden"
+                          style={{
+                            borderRadius: "var(--radius-btn)",
+                            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                          }}>
+                          {perfil.personaje_favorito.img_url
+                            ? <img src={perfil.personaje_favorito.img_url} alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" />
+                            : <User size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                        </div>
+                        <p className="font-serif italic text-[11px] leading-tight capitalize"
+                          style={{ color: "var(--primary)" }}>
+                          {perfil.personaje_favorito.nombre}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-serif italic text-[9px]"
+                        style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                        Ninguno elegido…
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mascota — separada por línea vertical */}
+                <div className="px-4 py-3"
+                  style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-serif italic text-[8px]"
+                      style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                      ✦ Mascota
+                    </p>
+                    <button onClick={() => setShowMascotaPicker(true)}
+                      className="font-serif italic text-[8px] px-1.5 py-0.5"
+                      style={{
+                        color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        borderRadius: "var(--radius-btn)",
+                        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      }}>
+                      {perfil?.mascota ? "Cambiar" : "Elegir"}
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    {perfil?.mascota ? (
+                      <>
+                        <div className="w-9 h-9 shrink-0 overflow-hidden"
+                          style={{
+                            borderRadius: "var(--radius-btn)",
+                            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                          }}>
+                          {perfil.mascota.imagen_url
+                            ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
+                            : <Sword size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                        </div>
+                        <p className="font-serif italic text-[11px] leading-tight capitalize"
+                          style={{ color: "var(--primary)" }}>
+                          {perfil.mascota.nombre}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-serif italic text-[9px]"
+                        style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                        Ninguna elegida…
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+              </div>
             </div>
 
-            {/* Personaje favorito + Mascota — 2 columnas compactas */}
-            <div className="grid grid-cols-2 gap-3">
-
-              {/* Personaje favorito */}
-              <div style={{
-                background: "var(--white-custom)",
-                borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                boxShadow: "var(--shadow-card)",
-              }}>
-                <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-                  <p className="font-serif italic text-[8px]"
-                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                    ✦ Personaje
-                  </p>
-                  <button onClick={() => setShowPersonajePicker(true)}
-                    className="font-serif italic text-[8px] px-1.5 py-0.5"
-                    style={{
-                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      borderRadius: "var(--radius-btn)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    }}>
-                    {perfil?.personaje_favorito ? "cambiar" : "elegir"}
-                  </button>
-                </div>
-                <div className="mx-3 mb-2 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                <div className="px-3 pb-3 flex items-center gap-2.5">
-                  {perfil?.personaje_favorito ? (
-                    <>
-                      <div className="w-10 h-10 shrink-0 overflow-hidden"
-                        style={{
-                          borderRadius: "var(--radius-btn)",
-                          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                        }}>
-                        {perfil.personaje_favorito.img_url
-                          ? <img src={perfil.personaje_favorito.img_url} alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" />
-                          : <User size={18} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
-                      </div>
-                      <p className="font-serif italic text-[11px] leading-tight"
-                        style={{ color: "var(--primary)" }}>
-                        {perfil.personaje_favorito.nombre}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="font-serif italic text-[10px]"
-                      style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                      "Ninguno…"
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Mascota */}
-              <div style={{
-                background: "var(--white-custom)",
-                borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                boxShadow: "var(--shadow-card)",
-              }}>
-                <div className="flex items-center justify-between px-3 pt-3 pb-1.5">
-                  <p className="font-serif italic text-[8px]"
-                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                    ✦ Mascota
-                  </p>
-                  <button onClick={() => setShowMascotaPicker(true)}
-                    className="font-serif italic text-[8px] px-1.5 py-0.5"
-                    style={{
-                      color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      borderRadius: "var(--radius-btn)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    }}>
-                    {perfil?.mascota ? "cambiar" : "elegir"}
-                  </button>
-                </div>
-                <div className="mx-3 mb-2 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                <div className="px-3 pb-3 flex items-center gap-2.5">
-                  {perfil?.mascota ? (
-                    <>
-                      <div className="w-10 h-10 shrink-0 overflow-hidden"
-                        style={{
-                          borderRadius: "var(--radius-btn)",
-                          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                        }}>
-                        {perfil.mascota.imagen_url
-                          ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
-                          : <Sword size={18} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
-                      </div>
-                      <p className="font-serif italic text-[11px] leading-tight"
-                        style={{ color: "var(--primary)" }}>
-                        {perfil.mascota.nombre}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="font-serif italic text-[10px]"
-                      style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                      "Ninguna…"
-                    </p>
-                  )}
-                </div>
-              </div>
-
-            </div>
-
+            {/* Exploradores en mobile */}
             {/* Exploradores en mobile — chips horizontales */}
             {otrosPerfiles.length > 0 && (
               <div className="lg:hidden">
@@ -1098,7 +1095,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
                             : <User size={9} style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
                         </div>
-                        <span className="font-serif italic text-[10px]" style={{ color: "var(--primary)" }}>{p.username}</span>
+                        <span className="font-serif italic text-[10px] capitalize" style={{ color: "var(--primary)" }}>{p.username}</span>
                       </div>
                     </Link>
                   ))}
@@ -1227,7 +1224,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         : <User size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-serif italic text-[11px] truncate transition-colors group-hover:text-[var(--accent)]"
+                      <p className="font-serif italic text-[11px] truncate transition-colors group-hover:text-[var(--accent)] capitalize"
                         style={{ color: "var(--primary)" }}>{p.username}</p>
                       <div className="flex items-center gap-1.5 mt-0.5 font-serif italic">
                         {[{ icon: <Package size={7} />, n: p.items_count }, { icon: <Sword size={7} />, n: p.criaturas_count }, { icon: <User size={7} />, n: p.personajes_count }].map(({ icon, n }, i) => (
@@ -1241,7 +1238,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               ))}
             </aside>
           )}
-      </div>
+
+
+        </div>
+
       </div>
     </>
   );
