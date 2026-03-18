@@ -327,21 +327,17 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_criaturas")
-            .select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma, descripcion)")
+            .select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma, imagen_url, descripcion)")
             .eq("perfil_id", user.id),
           supabase
             .from("descubrimientos_personajes")
-            .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url)")
+            .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
             .eq("perfil_id", user.id),
         ]);
 
         if (itemsRes.error)      console.warn("[Personal] descubrimientos_items error:", itemsRes.error.message);
         if (criaturasRes.error)  console.warn("[Personal] descubrimientos_criaturas error:", criaturasRes.error.message);
         if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes error:", personajesRes.error.message);
-
-        // DEBUG — quitá estos logs cuando funcione
-        console.log("[Personal] criaturas count:", criaturasRes.data?.length, "| primer item:", JSON.stringify(criaturasRes.data?.[0]));
-        console.log("[Personal] personajes count:", personajesRes.data?.length, "| primer item:", JSON.stringify(personajesRes.data?.[0]));
 
         const planos: Descubrimiento[] = [
           ...(itemsRes.data ?? []).map((r: any) => ({
@@ -359,6 +355,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             fecha_descubrimiento: r.fecha_descubrimiento,
             nombre:      r.criaturas?.nombre,
             descripcion: r.criaturas?.descripcion,
+            imagen_url:  r.criaturas?.imagen_url,
             habitat:     r.criaturas?.habitat,
             alma:        r.criaturas?.alma,
           })),
@@ -367,8 +364,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             entidad_id:           r.personajes?.id,
             fecha_descubrimiento: r.fecha_descubrimiento,
             nombre:      r.personajes?.nombre,
-            // Personajes usa img_url no imagen_url
             imagen_url:  r.personajes?.img_url,
+            descripcion: r.personajes?.sobre,
             reino:       r.personajes?.reino,
             especie:     r.personajes?.especie,
           })),
