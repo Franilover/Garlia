@@ -126,15 +126,15 @@
   --text-on-card: #2d1f18;
   --input-bg: #f2e6d5;
   --input-text: #2d1f18;
-  --radius-card: 0.125rem;
+  --radius-card: 0px; /* Bordes rectos para aspecto clásico */
   --radius-btn: 0px;
   --radius-input: 0px;
-  --shadow-card: 0 2px 5px rgba(74,52,39,0.1);
+  --shadow-card: 4px 4px 0px rgba(74,52,39,0.1); /* Sombra sólida, no difuminada */
   --border-width: 1px;
   --font-display: 'Caveat', cursive;
   --transition-card: all 0.25s ease;
-  --btn-transform-hover: translateY(-2px);
-  --btn-transform-active: translateY(1px);
+  --btn-transform-hover: none; /* Forzamos a que no se mueva */
+  --btn-transform-active: none; /* Forzamos a que no se mueva */
   font-size: 15px;
 }
 
@@ -184,18 +184,28 @@
     transition: var(--transition-card);
   }
 
-  /* Estilo Antiguo: Borde doble elegante y estático */
+  /* Estilo Antiguo: Borde doble garantizado generado por dentro de la caja */
   [data-theme="scribble"] .card-main {
     border: 1px solid var(--primary);
-    outline: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
-    outline-offset: 3px;
-    animation: ink-spread 0.4s ease both;
-    transform: none; /* Quitamos rotaciones */
+    outline: none; /* Quitamos outline exterior que da problemas */
+    position: relative;
+    transform: none !important; /* Bloqueamos movimientos CSS */
+    animation: none !important; /* Bloqueamos animaciones CSS */
+  }
+
+  /* Este es el borde interno que forma el estilo elegante */
+  [data-theme="scribble"] .card-main::after {
+    content: "";
+    position: absolute;
+    inset: 4px; /* Crea el margen interior sin depender del espacio exterior */
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+    pointer-events: none;
+    z-index: 10;
   }
 
   [data-theme="scribble"] .card-main:hover {
-    outline-offset: 5px;
     background: color-mix(in srgb, var(--white-custom) 95%, var(--primary));
+    transform: none !important;
   }
 
   .btn-brand {
@@ -214,20 +224,32 @@
     transition: var(--transition-card);
   }
 
+  /* Estilos de botón para el tema antiguo estático */
   [data-theme="scribble"] .btn-brand {
     border: 1px solid var(--primary);
-    outline: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
-    outline-offset: 2px;
-    box-shadow: none !important;
+    position: relative;
+    outline: none;
+    box-shadow: 2px 2px 0px rgba(74,52,39,0.1) !important;
     font-family: 'Caveat', cursive;
     background: transparent;
     color: var(--primary);
     font-size: 1.2rem;
+    transform: none !important; /* Bloqueamos movimientos CSS */
+    animation: none !important; /* Bloqueamos animaciones CSS */
+  }
+
+  [data-theme="scribble"] .btn-brand::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+    pointer-events: none;
   }
 
   [data-theme="scribble"] .btn-brand:hover {
     background: var(--primary);
     color: var(--btn-text);
+    transform: none !important;
   }
 
   .input-brand {
@@ -243,12 +265,11 @@
 
   [data-theme="scribble"] .input-brand {
     border: 1px solid var(--primary);
-    outline: 1px solid color-mix(in srgb, var(--primary) 10%, transparent);
-    outline-offset: 2px;
+    position: relative;
+    outline: none;
     font-family: 'Caveat', cursive;
   }
 
-  /* Limpieza de fuentes y utilidades */
   [data-theme="scribble"] h1, [data-theme="scribble"] h2, [data-theme="scribble"] h3 {
     font-family: 'Caveat', cursive !important;
   }
