@@ -398,25 +398,6 @@ export default function PerfilPublico() {
                   </div>
                 ))}
               </div>
-
-              {/* Tabs mobile */}
-              <div className="md:hidden px-4 pb-4"
-                style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", paddingTop: "0.75rem" }}>
-                <div className="flex gap-1 mt-2">
-                  {tabs.map(t => (
-                    <button key={t.id} onClick={() => setTab(t.id)}
-                      className="flex-1 flex items-center justify-center py-2 transition-all"
-                      style={{
-                        borderRadius: "var(--radius-btn)",
-                        background: tab === t.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-                        color: tab === t.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 32%, transparent)",
-                        border: tab === t.id ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
-                      }}>
-                      <t.icon size={12} />
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -552,14 +533,9 @@ export default function PerfilPublico() {
             ))}
           </div>
         </div>
+        {/* ── Colección ── */}
+        <div className="px-4 md:px-0">
 
-        {/* ── Zona inferior: colección + sidebar ── */}
-        <div className="flex gap-6 items-start">
-
-          {/* Colección */}
-          <div className="flex-1 min-w-0 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-
-            {/* Tabs desktop */}
             <div className="hidden md:flex items-center gap-2 mb-5">
               {tabs.map(t => (
                 <button key={t.id} onClick={() => setTab(t.id)}
@@ -620,9 +596,8 @@ export default function PerfilPublico() {
 
               </motion.div>
             </AnimatePresence>
-          </div>
-
         </div>
+
       </div>
     </>
   );
