@@ -1,10 +1,13 @@
 "use client";
 
 /**
- * LyricStudio v3 — con draft local offline
- * ─ Sidebar colapsable con búsqueda + filtros completos
+ * Estudio de Letras — editor de canciones con secciones por idioma
+ * ─ Sidebar colapsable con búsqueda + filtros
+ * ─ Botón "Nueva canción" en sidebar
+ * ─ Menú de 3 puntos por canción: editar título, estado, visibilidad, eliminar
  * ─ Vista simple (1 idioma) o vista dividida (2 idiomas en paralelo)
- * ─ Auto-save por sección, Ctrl+S manual
+ * ─ Auto-guardado por sección, Ctrl+S manual
+ * ─ Soporte offline completo con Dexie
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
@@ -13,7 +16,7 @@ import {
   Check, Loader2, Eye, EyeOff, Music, RefreshCw,
   ChevronUp, BookOpen, Layers, SlidersHorizontal,
   CheckCircle2, AlertCircle, PanelLeftClose, PanelLeftOpen,
-  Columns2, WifiOff,
+  Columns2, WifiOff, MoreHorizontal, Pencil,
 } from "lucide-react";
 import { cancionesQueries } from "@/lib/api/queries/wiki/canciones";
 import { db } from "@/lib/api/client/db";
@@ -94,11 +97,8 @@ function unique(arr: string[]): string[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DEXIE HELPERS — secciones_cancion
+// DEXIE HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
-// NOTA: asegúrate de tener "secciones_cancion" registrada en tu db Dexie y
-// añadida a DEXIE_TABLES + OFFLINE_WRITABLE en useSupabaseData.ts
-// Ej: db.version(N).stores({ secciones_cancion: "id, cancion_id, orden" })
 
 const TABLA_SEC = "secciones_cancion";
 
@@ -134,7 +134,7 @@ async function dexieSecGet(id: string): Promise<any> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HOOK: lista de canciones (con fallback Dexie offline)
+// HOOK: lista de canciones
 // ─────────────────────────────────────────────────────────────────────────────
 
 function useCanciones() {
@@ -144,8 +144,6 @@ function useCanciones() {
 
   const load = useCallback(async () => {
     setLoading(true);
-
-    // Sin red → leer de Dexie
     if (!navigator.onLine) {
       try {
         const table = (db as any)["canciones"];
@@ -158,18 +156,15 @@ function useCanciones() {
       setLoading(false);
       return;
     }
-
     setIsOffline(false);
     try {
       const data = await cancionesQueries.getAll({ isAdmin: true });
       setCanciones(data as Cancion[]);
-      // Persistir en Dexie para uso offline futuro
       try {
         const table = (db as any)["canciones"];
         if (table) await table.bulkPut((data as any[]).map(r => ({ ...r, status: "synced" })));
       } catch {}
-    } catch (e: any) {
-      // Red caída aunque onLine=true — fallback Dexie
+    } catch {
       try {
         const table = (db as any)["canciones"];
         if (table) {
@@ -182,7 +177,6 @@ function useCanciones() {
     setLoading(false);
   }, []);
 
-  // Recargar al volver online
   useEffect(() => {
     load();
     const handleOnline = () => { setIsOffline(false); load(); };
@@ -190,11 +184,11 @@ function useCanciones() {
     return () => window.removeEventListener("online", handleOnline);
   }, [load]);
 
-  return { canciones, loading, isOffline, refetch: load };
+  return { canciones, setCanciones, loading, isOffline, refetch: load };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HOOK: canción con secciones (con fallback Dexie offline)
+// HOOK: canción con secciones
 // ─────────────────────────────────────────────────────────────────────────────
 
 function useCancionEditor(id: string | null) {
@@ -204,9 +198,7 @@ function useCancionEditor(id: string | null) {
 
   const load = useCallback(async (cancionId: string) => {
     setLoading(true);
-
     if (!navigator.onLine) {
-      // Leer canción de Dexie
       try {
         const cTable = (db as any)["canciones"];
         const base   = cTable ? await cTable.get(cancionId) : null;
@@ -217,17 +209,14 @@ function useCancionEditor(id: string | null) {
       setLoading(false);
       return;
     }
-
     setIsOffline(false);
     try {
       const data = await cancionesQueries.getById(cancionId);
       setCancion(data as Cancion);
-      // Persistir secciones en Dexie
       if (data?.secciones?.length) {
         await dexieSecWrite(data.secciones.map((s: Seccion) => ({ ...s, status: "synced" })));
       }
-    } catch (e: any) {
-      // Fallback Dexie
+    } catch {
       try {
         const cTable = (db as any)["canciones"];
         const base   = cTable ? await cTable.get(cancionId) : null;
@@ -243,7 +232,6 @@ function useCancionEditor(id: string | null) {
     else setCancion(null);
   }, [id, load]);
 
-  // Recargar al volver online
   useEffect(() => {
     const handleOnline = () => { if (id) { setIsOffline(false); load(id); } };
     window.addEventListener("online", handleOnline);
@@ -254,8 +242,7 @@ function useCancionEditor(id: string | null) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OPERACIONES CRUD DE SECCIONES — con soporte offline
-// Estas funciones reemplazan las llamadas directas a cancionesQueries.secciones
+// CRUD SECCIONES
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function secUpdate(id: string, updates: Partial<Seccion>): Promise<void> {
@@ -270,7 +257,6 @@ async function secUpdate(id: string, updates: Partial<Seccion>): Promise<void> {
     const updated = await cancionesQueries.secciones.update(id, updates as any);
     await dexieSecWrite([{ ...updated, status: "synced" }]);
   } catch {
-    // Red caída aunque onLine=true
     const existing = await dexieSecGet(id);
     const row = { ...existing, ...updates, id, status: "pending" };
     await dexieSecWrite([row]);
@@ -314,7 +300,7 @@ async function secDelete(id: string): Promise<void> {
     const existing = await dexieSecGet(id);
     if (existing) await dexieSecWrite([{ ...existing, deleted: true, status: "pending" }]);
     await enqueueOperation(TABLA_SEC, "delete", id);
-    throw new Error("Sin conexión — eliminación encolada");
+    throw new Error("Sin conexión — eliminación en cola");
   }
 }
 
@@ -323,8 +309,7 @@ async function secReorder(secciones: { id: string; orden: number }[]): Promise<v
     for (const { id, orden } of secciones) {
       const existing = await dexieSecGet(id);
       if (existing) {
-        const row = { ...existing, orden, status: "pending" };
-        await dexieSecWrite([row]);
+        await dexieSecWrite([{ ...existing, orden, status: "pending" }]);
         await enqueueOperation(TABLA_SEC, "update", id, { orden });
       }
     }
@@ -332,18 +317,15 @@ async function secReorder(secciones: { id: string; orden: number }[]): Promise<v
   }
   try {
     await cancionesQueries.secciones.reorder(secciones);
-    // Actualizar orden en Dexie
     for (const { id, orden } of secciones) {
       const existing = await dexieSecGet(id);
       if (existing) await dexieSecWrite([{ ...existing, orden, status: "synced" }]);
     }
   } catch {
-    // Encolar cada update de orden
     for (const { id, orden } of secciones) {
       const existing = await dexieSecGet(id);
       if (existing) {
-        const row = { ...existing, orden, status: "pending" };
-        await dexieSecWrite([row]);
+        await dexieSecWrite([{ ...existing, orden, status: "pending" }]);
         await enqueueOperation(TABLA_SEC, "update", id, { orden });
       }
     }
@@ -394,49 +376,109 @@ const IdiomaTab = ({
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: SIDEBAR item
+// COMPONENTE: sidebar item con menú de 3 puntos
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SidebarItem = ({
-  cancion, selected, onClick,
-}: { cancion: Cancion; selected: boolean; onClick: () => void }) => (
-  <button
-    onClick={onClick}
-    className={`w-full text-left px-4 py-3 rounded-xl transition-all border ${
-      selected
-        ? "bg-primary text-bg-main border-primary shadow-lg shadow-primary/20"
-        : "border-transparent hover:bg-primary/5 hover:border-primary/10 text-primary"
-    }`}
-  >
-    <div className="flex items-start justify-between gap-2">
-      <span className={`font-black text-sm uppercase italic tracking-tight leading-tight truncate flex-1 ${selected ? "text-bg-main" : ""}`}>
-        {cancion.titulo}
-      </span>
-      <span className={`shrink-0 text-[9px] font-black uppercase px-2 py-1 rounded-full border ${
-        selected ? "bg-bg-main/20 text-bg-main border-bg-main/30" : ESTADO_COLOR[cancion.estado]
-      }`}>
-        {cancion.estado === "EN PROCESO" ? "WIP" : cancion.estado === "TERMINADA" ? "✓" : "…"}
-      </span>
+  cancion, selected, onClick, onEdit, onDelete,
+}: {
+  cancion: Cancion;
+  selected: boolean;
+  onClick: () => void;
+  onEdit: (c: Cancion) => void;
+  onDelete: (id: string) => void;
+}) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar menú al hacer click fuera
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
+
+  return (
+    <div className="relative group/item">
+      <button
+        onClick={onClick}
+        className={`w-full text-left px-4 py-3 rounded-xl transition-all border ${
+          selected
+            ? "bg-primary text-bg-main border-primary shadow-lg shadow-primary/20"
+            : "border-transparent hover:bg-primary/5 hover:border-primary/10 text-primary"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <span className={`font-black text-sm uppercase italic tracking-tight leading-tight truncate flex-1 ${selected ? "text-bg-main" : ""}`}>
+            {cancion.titulo}
+          </span>
+          <span className={`shrink-0 text-[9px] font-black uppercase px-2 py-1 rounded-full border ${
+            selected ? "bg-bg-main/20 text-bg-main border-bg-main/30" : ESTADO_COLOR[cancion.estado]
+          }`}>
+            {cancion.estado === "EN PROCESO" ? "WIP" : cancion.estado === "TERMINADA" ? "✓" : "…"}
+          </span>
+        </div>
+        {(cancion.personaje || cancion.cantante) && (
+          <p className={`text-[10px] mt-1 truncate ${selected ? "text-bg-main/70" : "text-primary/40"}`}>
+            {cancion.personaje || cancion.cantante}
+          </p>
+        )}
+      </button>
+
+      {/* Botón 3 puntos — visible siempre en hover o cuando está abierto */}
+      <div ref={menuRef} className="absolute top-2 right-2">
+        <button
+          onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
+          className={`p-1 rounded-lg transition-all z-10 ${
+            menuOpen
+              ? "bg-primary/20 text-primary opacity-100"
+              : selected
+                ? "opacity-60 hover:opacity-100 text-bg-main hover:bg-bg-main/20"
+                : "opacity-0 group-hover/item:opacity-100 text-primary/50 hover:bg-primary/10 hover:text-primary"
+          }`}
+        >
+          <MoreHorizontal size={13} />
+        </button>
+
+        {menuOpen && (
+          <div className="absolute right-0 top-7 z-50 min-w-[160px] bg-bg-main border border-primary/15 rounded-xl shadow-xl shadow-primary/10 py-1 overflow-hidden">
+            <button
+              onClick={e => { e.stopPropagation(); setMenuOpen(false); onEdit(cancion); }}
+              className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2"
+            >
+              <Pencil size={11} /> Editar canción
+            </button>
+            <div className="h-px bg-primary/8 mx-2 my-1" />
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                if (confirm(`¿Eliminar "${cancion.titulo}"?`)) onDelete(cancion.id);
+              }}
+              className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-red-400/70 hover:bg-red-500/8 hover:text-red-400 transition-all flex items-center gap-2"
+            >
+              <Trash2 size={11} /> Eliminar
+            </button>
+          </div>
+        )}
+      </div>
     </div>
-    {(cancion.personaje || cancion.cantante) && (
-      <p className={`text-[10px] mt-1 truncate ${selected ? "text-bg-main/70" : "text-primary/40"}`}>
-        {cancion.personaje || cancion.cantante}
-      </p>
-    )}
-  </button>
-);
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: textarea de una sección para un idioma
-// Todo el guardado pasa por secUpdate → Dexie + enqueueOperation (sin localStorage)
+// COMPONENTE: textarea de una sección
 // ─────────────────────────────────────────────────────────────────────────────
 
 type ColState = {
   dirty:  boolean;
   saving: boolean;
   saved:  boolean;
-  // "pending" = guardado en Dexie offline, esperando sync
-  // "error"   = fallo inesperado
   mode:   "idle" | "pending" | "error";
   msg:    string | null;
 };
@@ -451,25 +493,18 @@ const SeccionTextarea = ({
   onSave: (id: string, updates: Partial<Seccion>) => Promise<void>;
 }) => {
   const campo = IDIOMAS.find(i => i.id === idioma)!.campo;
-
-  // Inicializar desde Dexie si existe un pending local más reciente que sec
   const [texto, setTexto] = useState(() => (sec[campo] as string) || "");
   const [st, setSt]       = useState<ColState>(IDLE_STATE);
   const timer             = useRef<any>(null);
 
-  // Sincronizar cuando cambia sección o idioma
   useEffect(() => {
     clearTimeout(timer.current);
-
-    // Intentar leer desde Dexie para ver si hay un pending más reciente
     const loadLocal = async () => {
       try {
         const local = await dexieSecGet(sec.id);
         const localVal = local?.[campo] as string | undefined;
         const remoteVal = (sec[campo] as string) || "";
-
         if (local?.status === "pending" && localVal !== undefined && localVal !== remoteVal) {
-          // Hay cambios pendientes de sync — cargar versión local
           setTexto(localVal);
           setSt({ ...IDLE_STATE, dirty: true, mode: "pending", msg: "Pendiente de sincronizar" });
         } else {
@@ -481,7 +516,6 @@ const SeccionTextarea = ({
         setSt(IDLE_STATE);
       }
     };
-
     loadLocal();
   }, [idioma, sec.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -489,20 +523,14 @@ const SeccionTextarea = ({
     clearTimeout(timer.current);
     setSt(s => ({ ...s, saving: true, msg: null }));
     try {
-      // secUpdate escribe en Dexie + encola si offline, o guarda en Supabase si online
       await onSave(sec.id, { [campo]: val });
-
-      const isNowOnline = navigator.onLine;
-      if (isNowOnline) {
-        // Guardado exitosamente en Supabase
+      if (navigator.onLine) {
         setSt({ dirty: false, saving: false, saved: true, mode: "idle", msg: null });
         setTimeout(() => setSt(s => ({ ...s, saved: false })), 2000);
       } else {
-        // Sin red: guardado en Dexie, se sincronizará solo al volver la conexión
-        setSt({ dirty: false, saving: false, saved: false, mode: "pending", msg: "Guardado localmente — sync pendiente" });
+        setSt({ dirty: false, saving: false, saved: false, mode: "pending", msg: "Guardado sin conexión" });
       }
     } catch (e: any) {
-      // secUpdate ya intentó el fallback Dexie — este catch es para errores inesperados
       setSt(s => ({ ...s, saving: false, mode: "error", msg: e.message }));
     }
   }, [sec.id, campo, onSave]);
@@ -511,12 +539,10 @@ const SeccionTextarea = ({
     setTexto(val);
     setSt(s => ({ ...s, dirty: true, saved: false, mode: s.mode === "error" ? "idle" : s.mode, msg: null }));
     clearTimeout(timer.current);
-    // Auto-save: 1.5s sin escribir → intenta guardar (Supabase o Dexie según red)
     timer.current = setTimeout(() => doSave(val), 1500);
   };
 
   const rows = Math.max(3, texto.split("\n").length + 1);
-
   const borderClass =
     st.mode === "pending" ? "border-blue-500/40  focus:border-blue-500/60"  :
     st.mode === "error"   ? "border-red-500/40   focus:border-red-500/60"   :
@@ -525,14 +551,12 @@ const SeccionTextarea = ({
 
   return (
     <div className="flex-1 min-w-0 space-y-1.5">
-      {/* Indicador de sync pendiente */}
       {st.mode === "pending" && !st.saving && (
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-blue-400">
           <WifiOff size={10} />
-          Guardado en dispositivo — se sincronizará al volver la conexión
+          Guardado sin conexión — se sincronizará al reconectar
         </div>
       )}
-
       <div className="relative">
         <textarea
           value={texto}
@@ -541,7 +565,7 @@ const SeccionTextarea = ({
           rows={rows}
           spellCheck={false}
           className={`w-full bg-bg-main/60 border rounded-xl px-4 py-3 text-sm text-primary font-mono resize-none outline-none transition-colors placeholder:text-primary/20 leading-relaxed ${borderClass}`}
-          placeholder={`Letra ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
+          placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
         />
         <span className="absolute top-2 right-2 pointer-events-none flex flex-col items-end gap-1">
           {st.saving                          && <Loader2     size={11} className="animate-spin text-primary/30" />}
@@ -550,12 +574,8 @@ const SeccionTextarea = ({
           {st.mode === "error"                && <AlertCircle  size={11} className="text-red-400" />}
         </span>
       </div>
-
-      {/* Error inesperado — inline */}
       {st.mode === "error" && st.msg && (
-        <p className="text-[9px] font-black uppercase text-red-400/80 tracking-widest px-1">
-          ⚠ {st.msg}
-        </p>
+        <p className="text-[9px] font-black uppercase text-red-400/80 tracking-widest px-1">⚠ {st.msg}</p>
       )}
     </div>
   );
@@ -585,14 +605,8 @@ const SeccionEditor = ({
   const [nombre, setNombre]     = useState(sec.nombre_seccion);
   const [expanded, setExpanded] = useState(true);
 
-  const handleDelete = async () => {
-    if (!confirm(`¿Eliminar sección "${nombre}"?`)) return;
-    await onDelete(sec.id);
-  };
-
   return (
     <div className="border border-primary/10 rounded-xl bg-bg-main/50 hover:border-primary/20 transition-all">
-      {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2.5">
         <GripVertical size={13} className="text-primary/15 shrink-0" />
         <input
@@ -605,14 +619,12 @@ const SeccionEditor = ({
         <div className="flex items-center gap-0.5 shrink-0">
           <button onClick={onMoveUp}   disabled={isFirst} className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary disabled:opacity-20 transition-all"><ChevronUp   size={12} /></button>
           <button onClick={onMoveDown} disabled={isLast}  className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary disabled:opacity-20 transition-all"><ChevronDown size={12} /></button>
-          <button onClick={handleDelete} className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"><Trash2 size={12} /></button>
+          <button onClick={() => { if (confirm(`¿Eliminar sección "${nombre}"?`)) onDelete(sec.id); }} className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"><Trash2 size={12} /></button>
           <button onClick={() => setExpanded(e => !e)} className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary transition-all">
             {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         </div>
       </div>
-
-      {/* Body */}
       {expanded && (
         <div className={`px-4 pb-4 ${splitMode ? "flex gap-3" : ""}`}>
           <SeccionTextarea sec={sec} idioma={idiomaA} onSave={onSaveField} />
@@ -644,7 +656,6 @@ const PanelFiltros = ({
 
   return (
     <div className="space-y-4 p-3 bg-primary/5 rounded-xl border border-primary/10">
-      {/* Estado */}
       <div>
         <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Estado</p>
         <div className="flex gap-1 flex-wrap">
@@ -655,8 +666,6 @@ const PanelFiltros = ({
           ))}
         </div>
       </div>
-
-      {/* Visibilidad */}
       <div>
         <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Visibilidad</p>
         <div className="flex gap-1">
@@ -664,8 +673,6 @@ const PanelFiltros = ({
           <Chip active={filtros.visible === "false"} onClick={() => toggle("visible", "false")}>Oculta</Chip>
         </div>
       </div>
-
-      {/* Idioma */}
       {opciones.idiomas.length > 0 && (
         <div>
           <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Idioma</p>
@@ -676,8 +683,6 @@ const PanelFiltros = ({
           </div>
         </div>
       )}
-
-      {/* Cantante */}
       {opciones.cantantes.length > 0 && (
         <div>
           <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Cantante</p>
@@ -687,15 +692,13 @@ const PanelFiltros = ({
               onChange={e => onChange({ ...filtros, cantante: e.target.value })}
               className="w-full appearance-none bg-bg-main border border-primary/15 rounded-xl px-3 py-2 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors cursor-pointer pr-7"
             >
-              <option value="">Todas</option>
+              <option value="">Todos</option>
               {opciones.cantantes.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
           </div>
         </div>
       )}
-
-      {/* Compositor */}
       {opciones.compositores.length > 0 && (
         <div>
           <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Compositor</p>
@@ -712,16 +715,246 @@ const PanelFiltros = ({
           </div>
         </div>
       )}
-
-      {/* Limpiar */}
       {Object.values(filtros).some(Boolean) && (
         <button
           onClick={() => onChange(FILTROS_VACIOS)}
           className="text-[9px] font-black uppercase text-red-400 hover:text-red-300 tracking-widest"
         >
-          ✕ Limpiar todos los filtros
+          ✕ Limpiar filtros
         </button>
       )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODAL: nueva canción
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ModalNuevaCancion = ({
+  onCreated,
+  onClose,
+}: {
+  onCreated: (c: Cancion) => void;
+  onClose: () => void;
+}) => {
+  const [titulo,      setTitulo]      = useState("");
+  const [personaje,   setPersonaje]   = useState("");
+  const [cantante,    setCantante]    = useState("");
+  const [compositor,  setCompositor]  = useState("");
+  const [idioma,      setIdioma]      = useState("");
+  const [estado,      setEstado]      = useState<Cancion["estado"]>("BORRADOR");
+  const [saving,      setSaving]      = useState(false);
+  const [error,       setError]       = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!titulo.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      const { data, error: err } = await supabase
+        .from("canciones")
+        .insert([{
+          titulo: titulo.trim().toUpperCase(),
+          personaje: personaje.trim() || null,
+          cantante:  cantante.trim()  || null,
+          compositor: compositor.trim() || null,
+          idioma:    idioma.trim()    || null,
+          estado,
+          visible: false,
+        }])
+        .select()
+        .single();
+      if (err) throw err;
+      onCreated(data as Cancion);
+      onClose();
+    } catch (e: any) {
+      setError(e.message || "Error al crear la canción");
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-bg-main border border-primary/15 rounded-2xl p-8 w-full max-w-sm shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+            <Music size={12} /> Nueva Canción
+          </h3>
+          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Campo label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
+          <Campo label="Personaje" value={personaje} onChange={setPersonaje} placeholder="Personaje relacionado…" />
+          <Campo label="Cantante" value={cantante} onChange={setCantante} placeholder="Cantante…" />
+          <Campo label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" />
+          <Campo label="Idioma" value={idioma} onChange={setIdioma} placeholder="ES, JP, EN…" />
+
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Estado</label>
+            <div className="flex gap-2">
+              {ESTADOS.map(e => (
+                <button
+                  key={e} type="button"
+                  onClick={() => setEstado(e)}
+                  className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                    estado === e ? "bg-primary text-bg-main border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30"
+                  }`}
+                >
+                  {e === "EN PROCESO" ? "WIP" : e}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {error && <p className="text-[9px] font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
+
+          <button
+            type="submit"
+            disabled={saving || !titulo.trim()}
+            className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+          >
+            {saving ? <><Loader2 size={13} className="animate-spin" />Creando…</> : <><Plus size={13} />Crear Canción</>}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// pequeño helper de campo de texto reutilizable
+const Campo = ({ label, value, onChange, placeholder, autoFocus }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; autoFocus?: boolean;
+}) => (
+  <div className="space-y-1.5">
+    <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">{label}</label>
+    <input
+      autoFocus={autoFocus}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-2.5 text-sm font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20"
+    />
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODAL: editar canción existente
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ModalEditarCancion = ({
+  cancion,
+  onSaved,
+  onClose,
+}: {
+  cancion: Cancion;
+  onSaved: (c: Cancion) => void;
+  onClose: () => void;
+}) => {
+  const [titulo,     setTitulo]     = useState(cancion.titulo);
+  const [personaje,  setPersonaje]  = useState(cancion.personaje  || "");
+  const [cantante,   setCantante]   = useState(cancion.cantante   || "");
+  const [compositor, setCompositor] = useState(cancion.compositor || "");
+  const [idioma,     setIdioma]     = useState(cancion.idioma     || "");
+  const [estado,     setEstado]     = useState<Cancion["estado"]>(cancion.estado);
+  const [visible,    setVisible]    = useState(cancion.visible);
+  const [saving,     setSaving]     = useState(false);
+  const [error,      setError]      = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!titulo.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      const updates = {
+        titulo: titulo.trim().toUpperCase(),
+        personaje:  personaje.trim()  || null,
+        cantante:   cantante.trim()   || null,
+        compositor: compositor.trim() || null,
+        idioma:     idioma.trim()     || null,
+        estado,
+        visible,
+      };
+      const { data, error: err } = await supabase
+        .from("canciones")
+        .update(updates)
+        .eq("id", cancion.id)
+        .select()
+        .single();
+      if (err) throw err;
+      onSaved(data as Cancion);
+      onClose();
+    } catch (e: any) {
+      setError(e.message || "Error al guardar");
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-bg-main border border-primary/15 rounded-2xl p-8 w-full max-w-sm shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+            <Pencil size={12} /> Editar Canción
+          </h3>
+          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Campo label="Título *"    value={titulo}     onChange={setTitulo}     placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
+          <Campo label="Personaje"   value={personaje}  onChange={setPersonaje}  placeholder="Personaje…" />
+          <Campo label="Cantante"    value={cantante}   onChange={setCantante}   placeholder="Cantante…" />
+          <Campo label="Compositor"  value={compositor} onChange={setCompositor} placeholder="Compositor…" />
+          <Campo label="Idioma"      value={idioma}     onChange={setIdioma}     placeholder="ES, JP, EN…" />
+
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Estado</label>
+            <div className="flex gap-2">
+              {ESTADOS.map(e => (
+                <button
+                  key={e} type="button"
+                  onClick={() => setEstado(e)}
+                  className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                    estado === e ? "bg-primary text-bg-main border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30"
+                  }`}
+                >
+                  {e === "EN PROCESO" ? "WIP" : e}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Visibilidad</label>
+            <button
+              type="button"
+              onClick={() => setVisible(v => !v)}
+              className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border flex items-center justify-center gap-2 transition-all ${
+                visible
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                  : "border-primary/15 text-primary/40 hover:border-primary/30"
+              }`}
+            >
+              {visible ? <><Eye size={12} /> Visible para lectores</> : <><EyeOff size={12} /> Oculta</>}
+            </button>
+          </div>
+
+          {error && <p className="text-[9px] font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
+
+          <button
+            type="submit"
+            disabled={saving || !titulo.trim()}
+            className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+          >
+            {saving ? <><Loader2 size={13} className="animate-spin" />Guardando…</> : <><Check size={13} />Guardar Cambios</>}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
@@ -737,8 +970,6 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const [splitMode,  setSplitMode]  = useState(false);
   const [addingOpen, setAddingOpen] = useState(false);
   const [addingName, setAddingName] = useState("");
-
-  // ── CRUD — todas las operaciones pasan por sec* (Dexie + enqueue) ───────────
 
   const handleSaveField = useCallback(async (id: string, updates: Partial<Seccion>) => {
     await secUpdate(id, updates);
@@ -787,7 +1018,6 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
     await secReorder(reordenadas.map(s => ({ id: s.id, orden: s.orden })));
   };
 
-  // Cambio de idioma con guard anti-colisión
   const changeIdiomaA = (v: IdiomaKey) => {
     setIdiomaA(v);
     if (splitMode && v === idiomaB) setIdiomaB(IDIOMAS.find(i => i.id !== v)!.id);
@@ -797,13 +1027,10 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
     if (v === idiomaA) setIdiomaA(IDIOMAS.find(i => i.id !== v)!.id);
   };
 
-  // Progreso
   const secciones = cancion?.secciones || [];
   const campoA    = IDIOMAS.find(i => i.id === idiomaA)!.campo;
   const conLetra  = secciones.filter(s => !!(s[campoA] as string)?.trim()).length;
   const pct       = secciones.length ? Math.round((conLetra / secciones.length) * 100) : 0;
-
-  // ── RENDER ──────────────────────────────────────────────────────────────────
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center text-primary/30">
@@ -814,18 +1041,14 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-      {/* Banner offline */}
       {editorOffline && (
         <div className="shrink-0 flex items-center gap-2 px-8 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-400">
           <WifiOff size={12} />
-          Modo offline — los cambios se sincronizan al volver a conectarse
+          Modo sin conexión — los cambios se sincronizan al reconectar
         </div>
       )}
 
-      {/* Cabecera */}
       <div className="shrink-0 px-8 pt-7 pb-5 border-b border-primary/10 space-y-4">
-        {/* Título + badges */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             <h1 className="text-2xl font-black uppercase italic tracking-tight text-primary leading-none truncate">
@@ -856,10 +1079,8 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           </div>
         </div>
 
-        {/* Controles idioma + split */}
         <div className="flex items-center gap-3 flex-wrap">
           <IdiomaTab value={idiomaA} onChange={changeIdiomaA} exclude={splitMode ? idiomaB : undefined} />
-
           <button
             onClick={() => setSplitMode(m => !m)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
@@ -868,15 +1089,11 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                 : "border-primary/20 text-primary/40 hover:text-primary hover:border-primary/30"
             }`}
           >
-            <Columns2 size={13} />
-            Vista dividida
+            <Columns2 size={13} /> Vista dividida
           </button>
-
           {splitMode && (
             <IdiomaTab value={idiomaB} onChange={changeIdiomaB} exclude={idiomaA} />
           )}
-
-          {/* Progreso */}
           <div className="ml-auto flex items-center gap-2 text-[10px] font-black uppercase text-primary/35 tracking-widest">
             <span>{conLetra}/{secciones.length}</span>
             <div className="w-20 h-1.5 rounded-full bg-primary/10 overflow-hidden">
@@ -886,7 +1103,6 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           </div>
         </div>
 
-        {/* Labels columnas split */}
         {splitMode && (
           <div className="flex gap-3 text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 px-1">
             <span className="flex-1 text-center">{IDIOMAS.find(i => i.id === idiomaA)?.nombre}</span>
@@ -896,7 +1112,6 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
         )}
       </div>
 
-      {/* Secciones */}
       <div className="flex-1 overflow-y-auto px-8 py-5 space-y-2.5">
         {secciones.map((sec, i) => (
           <SeccionEditor
@@ -918,11 +1133,10 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
         {secciones.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-primary/25">
             <Layers size={40} strokeWidth={1} />
-            <p className="text-xs font-black uppercase tracking-widest">No hay secciones aún</p>
+            <p className="text-xs font-black uppercase tracking-widest">Sin secciones aún</p>
           </div>
         )}
 
-        {/* Añadir sección */}
         {addingOpen ? (
           <div className="flex gap-2 pt-1">
             <input
@@ -957,22 +1171,22 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 // PÁGINA PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function LyricStudio() {
-  const { canciones, loading: loadingLista, isOffline: listaOffline, refetch } = useCanciones();
-  const [selectedId,  setSelectedId]  = useState<string | null>(null);
-  const [busqueda,    setBusqueda]    = useState("");
-  const [filtros,     setFiltros]     = useState<Filtros>(FILTROS_VACIOS);
-  const [showFiltros, setShowFiltros] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+export default function EstudioLetras() {
+  const { canciones, setCanciones, loading: loadingLista, isOffline: listaOffline, refetch } = useCanciones();
+  const [selectedId,       setSelectedId]       = useState<string | null>(null);
+  const [busqueda,         setBusqueda]         = useState("");
+  const [filtros,          setFiltros]          = useState<Filtros>(FILTROS_VACIOS);
+  const [showFiltros,      setShowFiltros]      = useState(false);
+  const [sidebarOpen,      setSidebarOpen]      = useState(true);
+  const [showNueva,        setShowNueva]        = useState(false);
+  const [editandoCancion,  setEditandoCancion]  = useState<Cancion | null>(null);
 
-  // Opciones dinámicas
   const opciones = useMemo(() => ({
     idiomas:      unique(canciones.map(c => c.idioma     || "")),
     cantantes:    unique(canciones.map(c => c.cantante   || "")),
     compositores: unique(canciones.map(c => c.compositor || "")),
   }), [canciones]);
 
-  // Filtrado
   const filtradas = useMemo(() => canciones.filter(c => {
     if (busqueda) {
       const q = normalize(busqueda);
@@ -1000,15 +1214,32 @@ export default function LyricStudio() {
 
   const numFiltros = Object.values(filtros).filter(Boolean).length;
 
+  const handleCancionCreada = (c: Cancion) => {
+    setCanciones(prev => [c, ...prev]);
+    setSelectedId(c.id);
+  };
+
+  const handleCancionEditada = (c: Cancion) => {
+    setCanciones(prev => prev.map(x => x.id === c.id ? c : x));
+  };
+
+  const handleCancionEliminada = async (id: string) => {
+    try {
+      await supabase.from("canciones").delete().eq("id", id);
+      setCanciones(prev => prev.filter(c => c.id !== id));
+      if (selectedId === id) setSelectedId(null);
+    } catch (e) { console.error(e); }
+  };
+
   return (
     <div className="flex h-screen bg-bg-main overflow-hidden">
 
-      {/* ════ SIDEBAR COLAPSADA (tab) ════ */}
+      {/* ════ SIDEBAR COLAPSADA ════ */}
       {!sidebarOpen && (
         <div className="shrink-0 w-10 flex flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
           <button
             onClick={() => setSidebarOpen(true)}
-            title="Abrir sidebar"
+            title="Abrir panel"
             className="p-2 rounded-xl hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
           >
             <PanelLeftOpen size={16} />
@@ -1030,13 +1261,13 @@ export default function LyricStudio() {
           <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-                <Music size={12} /> Lyric Studio
+                <Music size={12} /> Estudio de Letras
               </h2>
               <div className="flex items-center gap-1">
                 <button onClick={refetch} title="Recargar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
                   <RefreshCw size={12} />
                 </button>
-                <button onClick={() => setSidebarOpen(false)} title="Cerrar sidebar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
+                <button onClick={() => setSidebarOpen(false)} title="Cerrar panel" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
                   <PanelLeftClose size={14} />
                 </button>
               </div>
@@ -1057,6 +1288,14 @@ export default function LyricStudio() {
                 </button>
               )}
             </div>
+
+            {/* Botón nueva canción */}
+            <button
+              onClick={() => setShowNueva(true)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
+            >
+              <Plus size={12} /> Nueva Canción
+            </button>
 
             {/* Toggle filtros */}
             <button
@@ -1100,13 +1339,27 @@ export default function LyricStudio() {
                     {estado} ({items.length})
                   </p>
                   {items.map(c => (
-                    <SidebarItem key={c.id} cancion={c} selected={selectedId === c.id} onClick={() => setSelectedId(c.id)} />
+                    <SidebarItem
+                      key={c.id}
+                      cancion={c}
+                      selected={selectedId === c.id}
+                      onClick={() => setSelectedId(c.id)}
+                      onEdit={setEditandoCancion}
+                      onDelete={handleCancionEliminada}
+                    />
                   ))}
                 </div>
               ))
             ) : (
               filtradas.map(c => (
-                <SidebarItem key={c.id} cancion={c} selected={selectedId === c.id} onClick={() => setSelectedId(c.id)} />
+                <SidebarItem
+                  key={c.id}
+                  cancion={c}
+                  selected={selectedId === c.id}
+                  onClick={() => setSelectedId(c.id)}
+                  onEdit={setEditandoCancion}
+                  onDelete={handleCancionEliminada}
+                />
               ))
             )}
           </div>
@@ -1114,7 +1367,7 @@ export default function LyricStudio() {
           {/* Footer */}
           <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
             {listaOffline
-              ? <span className="flex items-center gap-1 text-amber-400"><WifiOff size={10} /> Offline</span>
+              ? <span className="flex items-center gap-1 text-amber-400"><WifiOff size={10} /> Sin conexión</span>
               : <span className="text-primary/20">{canciones.length} canciones</span>
             }
             <span className="text-primary/20">{filtradas.length} mostradas</span>
@@ -1132,12 +1385,27 @@ export default function LyricStudio() {
               <BookOpen size={52} strokeWidth={1} />
             </div>
             <div className="text-center">
-              <p className="text-sm font-black uppercase tracking-[0.3em]">Lyric Studio</p>
-              <p className="text-xs mt-1 tracking-widest opacity-60">Selecciona una canción del sidebar</p>
+              <p className="text-sm font-black uppercase tracking-[0.3em]">Estudio de Letras</p>
+              <p className="text-xs mt-1 tracking-widest opacity-60">Selecciona una canción o crea una nueva</p>
             </div>
           </div>
         )}
       </main>
+
+      {/* Modales */}
+      {showNueva && (
+        <ModalNuevaCancion
+          onCreated={handleCancionCreada}
+          onClose={() => setShowNueva(false)}
+        />
+      )}
+      {editandoCancion && (
+        <ModalEditarCancion
+          cancion={editandoCancion}
+          onSaved={handleCancionEditada}
+          onClose={() => setEditandoCancion(null)}
+        />
+      )}
 
     </div>
   );

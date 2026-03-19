@@ -1,25 +1,25 @@
 "use client";
 
 /**
- * ChapterStudio — Editor privado de capítulos
- * ─ Sidebar colapsable: libros → capítulos
- * ─ Editor de texto enriquecido (plain text / markdown-ish)
- * ─ Auto-save 2s + Ctrl/Cmd+S manual
- * ─ Offline completo: Dexie + enqueueOperation → sync automático al volver la red
- * ─ Conteo de palabras, caracteres, tiempo estimado de lectura
- * ─ Modo focus (oculta todo excepto el texto)
+ * Estudio de Capítulos — editor con soporte offline
+ * ─ Sidebar: libros expandibles → capítulos con menú 3 puntos
+ * ─ Editar título y fecha de publicación directamente desde el panel
+ * ─ Auto-guardado 2s + Ctrl/Cmd+S manual
+ * ─ Offline: Dexie + enqueueOperation → sync automático al reconectar
+ * ─ Contador de palabras, caracteres, tiempo de lectura estimado
+ * ─ Modo foco (oculta todo excepto el texto)
  */
 
 import React, {
   useState, useEffect, useCallback, useRef, useMemo,
 } from "react";
 import {
-  BookOpen, ChevronDown, ChevronRight, ChevronUp,
+  BookOpen, ChevronDown, ChevronRight,
   Loader2, PanelLeftClose, PanelLeftOpen,
-  Plus, RefreshCw, Save, Search, SlidersHorizontal,
+  Plus, RefreshCw, Save, Search,
   Trash2, WifiOff, X, Check, CheckCircle2, AlertCircle,
   Eye, EyeOff, Maximize2, Minimize2, Clock, Hash,
-  AlignLeft, Edit3, Calendar, BookMarked, Pencil,
+  AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
@@ -81,8 +81,12 @@ function readingTime(words: number) {
   return mins < 1 ? "<1 min" : `${mins} min`;
 }
 
+function toDateInput(iso: string) {
+  return iso ? iso.split("T")[0] : new Date().toISOString().split("T")[0];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// DEXIE HELPERS — capitulos
+// DEXIE HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function dexieCapRead(libroId: string): Promise<Capitulo[]> {
@@ -118,53 +122,41 @@ async function dexieLibrosRead(): Promise<Libro[]> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CRUD CAPÍTULOS — con soporte offline total
+// CRUD CAPÍTULOS
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function capUpdateContenido(id: string, contenido: string): Promise<void> {
   const existing = await dexieCapGet(id);
-
   if (!navigator.onLine) {
-    const row = { ...existing, id, contenido, status: "pending" as const };
-    await dexieCapWrite([row]);
+    await dexieCapWrite([{ ...existing, id, contenido, status: "pending" } as Capitulo]);
     await enqueueOperation(TABLA_CAPS, "update", id, { contenido });
     return;
   }
-
   try {
     const res = await librosQueries.updateContenido(id, contenido);
     if (res.error) throw res.error;
     if (existing) await dexieCapWrite([{ ...existing, contenido, status: "synced" }]);
   } catch {
-    // Fallback offline
-    const row = { ...existing, id, contenido, status: "pending" as const };
-    await dexieCapWrite([row]);
+    await dexieCapWrite([{ ...existing, id, contenido, status: "pending" } as Capitulo]);
     await enqueueOperation(TABLA_CAPS, "update", id, { contenido });
     throw new Error("offline");
   }
 }
 
-async function capUpdateTitulo(id: string, titulo: string): Promise<void> {
+async function capUpdateMeta(id: string, fields: Partial<Capitulo>): Promise<void> {
   const existing = await dexieCapGet(id);
-
   if (!navigator.onLine) {
-    const row = { ...existing, id, titulo_capitulo: titulo, status: "pending" as const };
-    await dexieCapWrite([row]);
-    await enqueueOperation(TABLA_CAPS, "update", id, { titulo_capitulo: titulo });
+    await dexieCapWrite([{ ...existing, id, ...fields, status: "pending" } as Capitulo]);
+    await enqueueOperation(TABLA_CAPS, "update", id, fields);
     return;
   }
-
   try {
-    const { error } = await supabase
-      .from(TABLA_CAPS)
-      .update({ titulo_capitulo: titulo.toUpperCase() })
-      .eq("id", id);
+    const { error } = await supabase.from(TABLA_CAPS).update(fields).eq("id", id);
     if (error) throw error;
-    if (existing) await dexieCapWrite([{ ...existing, titulo_capitulo: titulo.toUpperCase(), status: "synced" }]);
+    if (existing) await dexieCapWrite([{ ...existing, ...fields, status: "synced" }]);
   } catch {
-    const row = { ...existing, id, titulo_capitulo: titulo, status: "pending" as const };
-    await dexieCapWrite([row]);
-    await enqueueOperation(TABLA_CAPS, "update", id, { titulo_capitulo: titulo.toUpperCase() });
+    await dexieCapWrite([{ ...existing, id, ...fields, status: "pending" } as Capitulo]);
+    await enqueueOperation(TABLA_CAPS, "update", id, fields);
     throw new Error("offline");
   }
 }
@@ -177,7 +169,6 @@ async function capCreate(libroId: string, titulo: string, orden: number, fecha: 
     orden,
     fecha_publicacion: fecha,
   };
-
   if (!navigator.onLine) {
     const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const row = { ...base, id: tmpId, status: "pending" as const };
@@ -185,13 +176,8 @@ async function capCreate(libroId: string, titulo: string, orden: number, fecha: 
     await enqueueOperation(TABLA_CAPS, "upsert", tmpId, row);
     return row;
   }
-
   try {
-    const { data, error } = await supabase
-      .from(TABLA_CAPS)
-      .insert([base])
-      .select()
-      .single();
+    const { data, error } = await supabase.from(TABLA_CAPS).insert([base]).select().single();
     if (error) throw error;
     await dexieCapWrite([{ ...data, status: "synced" }]);
     return data as Capitulo;
@@ -206,13 +192,11 @@ async function capCreate(libroId: string, titulo: string, orden: number, fecha: 
 
 async function capDelete(id: string): Promise<void> {
   const existing = await dexieCapGet(id);
-
   if (!navigator.onLine) {
     if (existing) await dexieCapWrite([{ ...existing, deleted: true, status: "pending" }]);
     await enqueueOperation(TABLA_CAPS, "delete", id);
     return;
   }
-
   try {
     const { error } = await supabase.from(TABLA_CAPS).delete().eq("id", id);
     if (error) throw error;
@@ -225,7 +209,7 @@ async function capDelete(id: string): Promise<void> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HOOK: libros
+// HOOKS
 // ─────────────────────────────────────────────────────────────────────────────
 
 function useLibros() {
@@ -235,28 +219,23 @@ function useLibros() {
 
   const load = useCallback(async () => {
     setLoading(true);
-
     if (!navigator.onLine) {
-      const local = await dexieLibrosRead();
-      setLibros(local);
+      setLibros(await dexieLibrosRead());
       setIsOffline(true);
       setLoading(false);
       return;
     }
-
     setIsOffline(false);
     try {
       const { data } = await librosQueries.getAll({ order: { campo: "created_at", asc: false } });
-      const libros = (data || []) as Libro[];
-      setLibros(libros);
-      // Persistir en Dexie
+      const l = (data || []) as Libro[];
+      setLibros(l);
       try {
         const table = (db as any)["libros"];
-        if (table) await table.bulkPut(libros.map((l) => ({ ...l, status: "synced" })));
+        if (table) await table.bulkPut(l.map((x) => ({ ...x, status: "synced" })));
       } catch {}
     } catch {
-      const local = await dexieLibrosRead();
-      setLibros(local);
+      setLibros(await dexieLibrosRead());
       setIsOffline(true);
     }
     setLoading(false);
@@ -264,17 +243,13 @@ function useLibros() {
 
   useEffect(() => {
     load();
-    const handleOnline = () => { setIsOffline(false); load(); };
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
+    const h = () => { setIsOffline(false); load(); };
+    window.addEventListener("online", h);
+    return () => window.removeEventListener("online", h);
   }, [load]);
 
   return { libros, loading, isOffline, refetch: load };
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HOOK: capítulos de un libro
-// ─────────────────────────────────────────────────────────────────────────────
 
 function useCapitulos(libroId: string | null) {
   const [capitulos, setCapitulos] = useState<Capitulo[]>([]);
@@ -283,30 +258,22 @@ function useCapitulos(libroId: string | null) {
 
   const load = useCallback(async (id: string) => {
     setLoading(true);
-
     if (!navigator.onLine) {
-      const local = await dexieCapRead(id);
-      setCapitulos(local);
+      setCapitulos(await dexieCapRead(id));
       setIsOffline(true);
       setLoading(false);
       return;
     }
-
     setIsOffline(false);
     try {
       const { data, error } = await supabase
-        .from(TABLA_CAPS)
-        .select("*")
-        .eq("libro_id", id)
-        .order("orden", { ascending: true });
-
+        .from(TABLA_CAPS).select("*").eq("libro_id", id).order("orden", { ascending: true });
       if (error) throw error;
       const caps = (data || []) as Capitulo[];
       setCapitulos(caps);
       await dexieCapWrite(caps.map((c) => ({ ...c, status: "synced" })));
     } catch {
-      const local = await dexieCapRead(id);
-      setCapitulos(local);
+      setCapitulos(await dexieCapRead(id));
       setIsOffline(true);
     }
     setLoading(false);
@@ -318,17 +285,13 @@ function useCapitulos(libroId: string | null) {
   }, [libroId, load]);
 
   useEffect(() => {
-    const handleOnline = () => { if (libroId) { setIsOffline(false); load(libroId); } };
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
+    const h = () => { if (libroId) { setIsOffline(false); load(libroId); } };
+    window.addEventListener("online", h);
+    return () => window.removeEventListener("online", h);
   }, [libroId, load]);
 
   return { capitulos, setCapitulos, loading, isOffline, reload: () => libroId && load(libroId) };
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HOOK: capítulo completo para editar
-// ─────────────────────────────────────────────────────────────────────────────
 
 function useCapituloEditor(capId: string | null) {
   const [cap, setCap]         = useState<Capitulo | null>(null);
@@ -337,27 +300,17 @@ function useCapituloEditor(capId: string | null) {
 
   const load = useCallback(async (id: string) => {
     setLoading(true);
-
-    // Intentar Dexie primero para respuesta instantánea
     const local = await dexieCapGet(id);
-
     if (!navigator.onLine) {
       setCap(local);
       setIsOffline(true);
       setLoading(false);
       return;
     }
-
     setIsOffline(false);
     try {
-      const { data, error } = await supabase
-        .from(TABLA_CAPS)
-        .select("*")
-        .eq("id", id)
-        .single();
+      const { data, error } = await supabase.from(TABLA_CAPS).select("*").eq("id", id).single();
       if (error) throw error;
-
-      // Si hay un pending local más reciente, usarlo
       if (local?.status === "pending" && local.contenido !== data.contenido) {
         setCap({ ...data, contenido: local.contenido, status: "pending" });
       } else {
@@ -377,9 +330,9 @@ function useCapituloEditor(capId: string | null) {
   }, [capId, load]);
 
   useEffect(() => {
-    const handleOnline = () => { if (capId) { setIsOffline(false); load(capId); } };
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
+    const h = () => { if (capId) { setIsOffline(false); load(capId); } };
+    window.addEventListener("online", h);
+    return () => window.removeEventListener("online", h);
   }, [capId, load]);
 
   return { cap, setCap, loading, isOffline, reload: () => capId && load(capId) };
@@ -391,11 +344,11 @@ function useCapituloEditor(capId: string | null) {
 
 const SaveIndicator = ({ status }: { status: SaveStatus }) => {
   const map: Record<SaveStatus, { label: string; icon: React.ReactNode; cls: string }> = {
-    idle:    { label: "",                             icon: null,                                         cls: "" },
-    saving:  { label: "Guardando…",                  icon: <Loader2 size={10} className="animate-spin"/>, cls: "text-primary/40" },
-    saved:   { label: "Guardado",                    icon: <CheckCircle2 size={10}/>,                    cls: "text-emerald-400" },
-    pending: { label: "Guardado sin conexión",        icon: <WifiOff size={10}/>,                         cls: "text-blue-400" },
-    error:   { label: "Error al guardar",             icon: <AlertCircle size={10}/>,                     cls: "text-red-400" },
+    idle:    { label: "",                       icon: null,                                          cls: "" },
+    saving:  { label: "Guardando…",             icon: <Loader2 size={10} className="animate-spin"/>, cls: "text-primary/40" },
+    saved:   { label: "Guardado",               icon: <CheckCircle2 size={10}/>,                     cls: "text-emerald-400" },
+    pending: { label: "Sin conexión — pendiente", icon: <WifiOff size={10}/>,                          cls: "text-blue-400" },
+    error:   { label: "Error al guardar",        icon: <AlertCircle size={10}/>,                      cls: "text-red-400" },
   };
   const { label, icon, cls } = map[status];
   if (!label) return null;
@@ -407,39 +360,123 @@ const SaveIndicator = ({ status }: { status: SaveStatus }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: stats de escritura
+// COMPONENTE: estadísticas de escritura
 // ─────────────────────────────────────────────────────────────────────────────
 
-const WritingStats = ({ texto }: { texto: string }) => {
-  const words  = wordCount(texto);
-  const chars  = texto.length;
-  const rtime  = readingTime(words);
-
+const EstadisticasEscritura = ({ texto }: { texto: string }) => {
+  const palabras  = wordCount(texto);
+  const caracteres = texto.length;
+  const lectura   = readingTime(palabras);
   return (
     <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-primary/25">
-      <span className="flex items-center gap-1"><Hash size={9}/>{words.toLocaleString()} pal.</span>
-      <span className="flex items-center gap-1"><AlignLeft size={9}/>{chars.toLocaleString()} car.</span>
-      <span className="flex items-center gap-1"><Clock size={9}/>{rtime}</span>
+      <span className="flex items-center gap-1"><Hash size={9}/>{palabras.toLocaleString()} pal.</span>
+      <span className="flex items-center gap-1"><AlignLeft size={9}/>{caracteres.toLocaleString()} car.</span>
+      <span className="flex items-center gap-1"><Clock size={9}/>{lectura}</span>
     </div>
   );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: sidebar item libro (expandible)
+// COMPONENTE: item de capítulo en sidebar con menú 3 puntos
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CapituloItem = ({
+  cap, selected, onClick, onEdit, onDelete,
+}: {
+  cap: Capitulo;
+  selected: boolean;
+  onClick: () => void;
+  onEdit: (cap: Capitulo) => void;
+  onDelete: (id: string) => void;
+}) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
+
+  return (
+    <div className="relative group/cap">
+      <button
+        onClick={onClick}
+        className={`w-full text-left px-3 py-2 rounded-lg transition-all border text-[11px] font-bold ${
+          selected
+            ? "bg-primary text-bg-main border-primary shadow-md shadow-primary/15"
+            : "border-transparent hover:bg-primary/5 hover:border-primary/10 text-primary/70"
+        }`}
+      >
+        <span className="flex items-center gap-2 pr-5">
+          {cap.status === "pending" && (
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+          )}
+          <span className="truncate">
+            {cap.orden}. {cap.titulo_capitulo}
+          </span>
+        </span>
+      </button>
+
+      <div ref={menuRef} className="absolute top-1 right-1">
+        <button
+          onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
+          className={`p-1 rounded transition-all ${
+            menuOpen
+              ? "bg-primary/20 text-primary opacity-100"
+              : selected
+                ? "opacity-50 hover:opacity-100 text-bg-main hover:bg-bg-main/20"
+                : "opacity-0 group-hover/cap:opacity-100 text-primary/40 hover:bg-primary/10 hover:text-primary"
+          }`}
+        >
+          <MoreHorizontal size={11} />
+        </button>
+
+        {menuOpen && (
+          <div className="absolute right-0 top-7 z-50 min-w-[150px] bg-bg-main border border-primary/15 rounded-xl shadow-xl py-1 overflow-hidden">
+            <button
+              onClick={e => { e.stopPropagation(); setMenuOpen(false); onEdit(cap); }}
+              className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2"
+            >
+              <Pencil size={10} /> Editar
+            </button>
+            <div className="h-px bg-primary/8 mx-2 my-1" />
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                if (confirm(`¿Eliminar "${cap.titulo_capitulo}"?`)) onDelete(cap.id);
+              }}
+              className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-red-400/70 hover:bg-red-500/8 hover:text-red-400 transition-all flex items-center gap-2"
+            >
+              <Trash2 size={10} /> Eliminar
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE: libro expandible en sidebar
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LibroItem = ({
-  libro,
-  selectedCapId,
-  onSelectCap,
-  expanded,
-  onToggle,
+  libro, selectedCapId, onSelectCap, expanded, onToggle, onEditCap, onDeleteCap,
 }: {
   libro: Libro;
   selectedCapId: string | null;
   onSelectCap: (libroId: string, capId: string) => void;
   expanded: boolean;
   onToggle: () => void;
+  onEditCap: (cap: Capitulo) => void;
+  onDeleteCap: (id: string, libroId: string) => void;
 }) => {
   const { capitulos, loading } = useCapitulos(expanded ? libro.id : null);
 
@@ -447,7 +484,7 @@ const LibroItem = ({
     <div className="mb-1">
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-primary/5 transition-all group text-left"
+        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-primary/5 transition-all text-left"
       >
         <BookMarked size={12} className="text-primary/30 shrink-0" />
         <span className="flex-1 text-xs font-black uppercase italic tracking-tight text-primary leading-tight truncate">
@@ -472,24 +509,14 @@ const LibroItem = ({
             <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest px-2 py-2">Sin capítulos</p>
           ) : (
             capitulos.map(cap => (
-              <button
+              <CapituloItem
                 key={cap.id}
+                cap={cap}
+                selected={selectedCapId === cap.id}
                 onClick={() => onSelectCap(libro.id, cap.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg transition-all border text-[11px] font-bold ${
-                  selectedCapId === cap.id
-                    ? "bg-primary text-bg-main border-primary shadow-md shadow-primary/15"
-                    : "border-transparent hover:bg-primary/5 hover:border-primary/10 text-primary/70"
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  {cap.status === "pending" && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0"/>
-                  )}
-                  <span className="truncate">
-                    {cap.orden}. {cap.titulo_capitulo}
-                  </span>
-                </span>
-              </button>
+                onEdit={onEditCap}
+                onDelete={id => onDeleteCap(id, libro.id)}
+              />
             ))
           )}
         </div>
@@ -503,11 +530,7 @@ const LibroItem = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PanelEditor = ({
-  capId,
-  libroId,
-  onCapitulosChange,
-  focusMode,
-  onToggleFocus,
+  capId, libroId, onCapitulosChange, focusMode, onToggleFocus,
 }: {
   capId: string;
   libroId: string;
@@ -516,24 +539,25 @@ const PanelEditor = ({
   onToggleFocus: () => void;
 }) => {
   const { cap, setCap, loading, isOffline, reload } = useCapituloEditor(capId);
-  const [contenido, setContenido]   = useState("");
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titulo, setTitulo]         = useState("");
+  const [contenido,     setContenido]     = useState("");
+  const [saveStatus,    setSaveStatus]    = useState<SaveStatus>("idle");
+  const [editingTitle,  setEditingTitle]  = useState(false);
+  const [titulo,        setTitulo]        = useState("");
+  const [editingFecha,  setEditingFecha]  = useState(false);
+  const [fecha,         setFecha]         = useState("");
+  const [savingMeta,    setSavingMeta]    = useState(false);
   const timer   = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Sincronizar al cargar capítulo
   useEffect(() => {
     if (!cap) return;
     setContenido(cap.contenido || "");
     setTitulo(cap.titulo_capitulo || "");
-    // Si hay pending local, marcar
+    setFecha(toDateInput(cap.fecha_publicacion));
     if (cap.status === "pending") setSaveStatus("pending");
     else setSaveStatus("idle");
   }, [cap?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-resize textarea
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -550,7 +574,6 @@ const PanelEditor = ({
       setSaveStatus(navigator.onLine ? "saved" : "pending");
       if (navigator.onLine) setTimeout(() => setSaveStatus("idle"), 2500);
     } catch (e: any) {
-      // capUpdateContenido ya guardó en Dexie
       setSaveStatus(e?.message === "offline" ? "pending" : "error");
     }
   }, [capId, setCap]);
@@ -564,12 +587,26 @@ const PanelEditor = ({
 
   const handleSaveTitle = async () => {
     if (!titulo.trim()) return;
+    setSavingMeta(true);
     try {
-      await capUpdateTitulo(capId, titulo);
-      setCap(prev => prev ? { ...prev, titulo_capitulo: titulo.toUpperCase() } : prev);
+      await capUpdateMeta(capId, { titulo_capitulo: titulo.trim().toUpperCase() });
+      setCap(prev => prev ? { ...prev, titulo_capitulo: titulo.trim().toUpperCase() } : prev);
       onCapitulosChange();
     } catch {}
     setEditingTitle(false);
+    setSavingMeta(false);
+  };
+
+  const handleSaveFecha = async () => {
+    if (!fecha) return;
+    setSavingMeta(true);
+    try {
+      await capUpdateMeta(capId, { fecha_publicacion: fecha });
+      setCap(prev => prev ? { ...prev, fecha_publicacion: fecha } : prev);
+      onCapitulosChange();
+    } catch {}
+    setEditingFecha(false);
+    setSavingMeta(false);
   };
 
   const handleDelete = async () => {
@@ -585,23 +622,21 @@ const PanelEditor = ({
       <Loader2 className="animate-spin" size={28}/>
     </div>
   );
-
   if (!cap) return null;
 
-  const words = wordCount(contenido);
+  const palabras = wordCount(contenido);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-      {/* Banner offline */}
+      {/* Banner sin conexión */}
       {isOffline && (
         <div className="shrink-0 flex items-center gap-2 px-8 py-2.5 bg-blue-500/10 border-b border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-400">
           <WifiOff size={12}/>
-          Sin conexión — los cambios se guardan localmente y se sincronizan al volver
+          Sin conexión — los cambios se guardan localmente
         </div>
       )}
 
-      {/* Pending banner */}
       {saveStatus === "pending" && !isOffline && (
         <div className="shrink-0 flex items-center gap-2 px-8 py-2 bg-blue-500/8 border-b border-blue-500/15 text-[9px] font-black uppercase tracking-widest text-blue-400/70">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-400"/>
@@ -611,7 +646,8 @@ const PanelEditor = ({
 
       {/* Cabecera */}
       {!focusMode && (
-        <div className="shrink-0 px-8 pt-6 pb-4 border-b border-primary/8 space-y-3">
+        <div className="shrink-0 px-8 pt-6 pb-4 border-b border-primary/8 space-y-4">
+
           {/* Título editable */}
           <div className="flex items-start gap-3">
             {editingTitle ? (
@@ -626,8 +662,12 @@ const PanelEditor = ({
                   }}
                   className="flex-1 bg-transparent text-2xl font-black uppercase italic tracking-tight text-primary outline-none border-b-2 border-primary/30 focus:border-primary pb-1"
                 />
-                <button onClick={handleSaveTitle} className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all"><Check size={14}/></button>
-                <button onClick={() => { setEditingTitle(false); setTitulo(cap.titulo_capitulo); }} className="p-2 rounded-lg hover:bg-primary/5 text-primary/30 hover:text-primary transition-all"><X size={14}/></button>
+                <button onClick={handleSaveTitle} disabled={savingMeta} className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40">
+                  {savingMeta ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>}
+                </button>
+                <button onClick={() => { setEditingTitle(false); setTitulo(cap.titulo_capitulo); }} className="p-2 rounded-lg hover:bg-primary/5 text-primary/30 hover:text-primary transition-all">
+                  <X size={14}/>
+                </button>
               </div>
             ) : (
               <div className="flex items-start gap-2 flex-1 min-w-0">
@@ -643,17 +683,17 @@ const PanelEditor = ({
               </div>
             )}
 
-            {/* Acciones top-right */}
+            {/* Acciones */}
             <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => doSave(contenido)}
                 disabled={saveStatus === "saving"}
                 className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30"
-                title="Guardar ahora (Ctrl+S)"
+                title="Guardar (Ctrl+S)"
               >
                 <Save size={14}/>
               </button>
-              <button onClick={onToggleFocus} className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all" title="Modo focus">
+              <button onClick={onToggleFocus} className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all" title="Modo foco">
                 <Maximize2 size={14}/>
               </button>
               <button onClick={reload as any} className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all" title="Recargar">
@@ -665,32 +705,65 @@ const PanelEditor = ({
             </div>
           </div>
 
-          {/* Meta + stats */}
+          {/* Meta: número orden + fecha editable + stats */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3 text-[9px] font-black uppercase text-primary/30 tracking-widest">
-              <span className="flex items-center gap-1"><Hash size={9}/>{cap.orden}</span>
+            <div className="flex items-center gap-3 text-[9px] font-black uppercase text-primary/30 tracking-widest flex-wrap">
               <span className="flex items-center gap-1">
-                <Calendar size={9}/>
-                {new Date(cap.fecha_publicacion) > new Date() ? "Programado " : ""}
-                {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
+                <Hash size={9}/> Cap. {cap.orden}
               </span>
+
+              {/* Fecha editable */}
+              {editingFecha ? (
+                <span className="flex items-center gap-1.5">
+                  <Calendar size={9}/>
+                  <input
+                    autoFocus
+                    type="date"
+                    value={fecha}
+                    onChange={e => setFecha(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") handleSaveFecha();
+                      if (e.key === "Escape") { setEditingFecha(false); setFecha(toDateInput(cap.fecha_publicacion)); }
+                    }}
+                    className="bg-primary/5 border border-primary/20 rounded-lg px-2 py-0.5 text-[9px] font-bold text-primary outline-none focus:border-primary/40 transition-colors"
+                  />
+                  <button onClick={handleSaveFecha} disabled={savingMeta} className="p-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40">
+                    {savingMeta ? <Loader2 size={10} className="animate-spin"/> : <Check size={10}/>}
+                  </button>
+                  <button onClick={() => { setEditingFecha(false); setFecha(toDateInput(cap.fecha_publicacion)); }} className="p-1 rounded hover:bg-primary/5 text-primary/30 hover:text-primary transition-all">
+                    <X size={10}/>
+                  </button>
+                </span>
+              ) : (
+                <button
+                  onClick={() => setEditingFecha(true)}
+                  className="flex items-center gap-1 hover:text-primary transition-colors group/fecha"
+                  title="Editar fecha"
+                >
+                  <Calendar size={9}/>
+                  {new Date(cap.fecha_publicacion) > new Date() ? "Programado · " : ""}
+                  {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
+                  <Pencil size={8} className="opacity-0 group-hover/fecha:opacity-60 transition-opacity ml-0.5"/>
+                </button>
+              )}
             </div>
+
             <div className="flex items-center gap-4">
-              <WritingStats texto={contenido}/>
+              <EstadisticasEscritura texto={contenido}/>
               <SaveIndicator status={saveStatus}/>
             </div>
           </div>
         </div>
       )}
 
-      {/* Focus mode top bar */}
+      {/* Modo foco — barra mínima */}
       {focusMode && (
         <div className="shrink-0 flex items-center justify-between px-8 py-3 border-b border-primary/5">
           <span className="text-xs font-black uppercase italic tracking-tight text-primary/40 truncate max-w-xs">
             {cap.titulo_capitulo}
           </span>
           <div className="flex items-center gap-3">
-            <WritingStats texto={contenido}/>
+            <EstadisticasEscritura texto={contenido}/>
             <SaveIndicator status={saveStatus}/>
             <button onClick={onToggleFocus} className="p-1.5 rounded-lg hover:bg-primary/8 text-primary/25 hover:text-primary transition-all">
               <Minimize2 size={13}/>
@@ -699,7 +772,7 @@ const PanelEditor = ({
         </div>
       )}
 
-      {/* EDITOR */}
+      {/* Editor */}
       <div className={`flex-1 overflow-y-auto ${focusMode ? "px-16 py-12 max-w-3xl mx-auto w-full" : "px-8 py-6"}`}>
         <textarea
           ref={textareaRef}
@@ -709,25 +782,90 @@ const PanelEditor = ({
             if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(contenido); }
           }}
           spellCheck
-          className={`w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all ${
-            focusMode
-              ? "text-xl"
-              : "text-base"
-          }`}
+          className={`w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all ${focusMode ? "text-xl" : "text-base"}`}
           style={{ minHeight: "60vh" }}
           placeholder="Empieza a escribir…"
         />
       </div>
 
-      {/* Footer con stats en modo normal */}
+      {/* Footer normal */}
       {!focusMode && (
         <div className="shrink-0 px-8 py-3 border-t border-primary/5 flex items-center justify-between">
-          <WritingStats texto={contenido}/>
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase text-primary/20 tracking-widest">
-            <span>Ctrl+S para guardar</span>
-          </div>
+          <EstadisticasEscritura texto={contenido}/>
+          <span className="text-[9px] font-black uppercase text-primary/20 tracking-widest">Ctrl+S para guardar</span>
         </div>
       )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODAL: editar metadatos de capítulo (título + fecha)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ModalEditarCapitulo = ({
+  cap, onSaved, onClose,
+}: {
+  cap: Capitulo;
+  onSaved: (c: Capitulo) => void;
+  onClose: () => void;
+}) => {
+  const [titulo, setTitulo] = useState(cap.titulo_capitulo);
+  const [fecha,  setFecha]  = useState(toDateInput(cap.fecha_publicacion));
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!titulo.trim()) return;
+    setSaving(true);
+    try {
+      const fields = { titulo_capitulo: titulo.trim().toUpperCase(), fecha_publicacion: fecha };
+      await capUpdateMeta(cap.id, fields);
+      onSaved({ ...cap, ...fields });
+      onClose();
+    } catch {}
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={onClose}/>
+      <div className="relative bg-bg-main border border-primary/15 rounded-2xl p-8 w-full max-w-sm shadow-2xl space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+            <Pencil size={12}/> Editar Capítulo
+          </h3>
+          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16}/></button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Título</label>
+            <input
+              autoFocus
+              value={titulo}
+              onChange={e => setTitulo(e.target.value)}
+              className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-3 text-sm font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20"
+              placeholder="NOMBRE DEL CAPÍTULO…"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Fecha de publicación</label>
+            <input
+              type="date"
+              value={fecha}
+              onChange={e => setFecha(e.target.value)}
+              className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-primary/40 transition-colors"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={saving || !titulo.trim()}
+            className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+          >
+            {saving ? <><Loader2 size={13} className="animate-spin"/>Guardando…</> : <><Check size={13}/>Guardar Cambios</>}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
@@ -737,19 +875,16 @@ const PanelEditor = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ModalNuevoCapitulo = ({
-  libroId,
-  ordenSiguiente,
-  onCreated,
-  onClose,
+  libroId, ordenSiguiente, onCreated, onClose,
 }: {
   libroId: string;
   ordenSiguiente: number;
   onCreated: (cap: Capitulo) => void;
   onClose: () => void;
 }) => {
-  const [titulo, setTitulo]     = useState("");
-  const [fecha, setFecha]       = useState(new Date().toISOString().split("T")[0]);
-  const [saving, setSaving]     = useState(false);
+  const [titulo, setTitulo] = useState("");
+  const [fecha,  setFecha]  = useState(new Date().toISOString().split("T")[0]);
+  const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -771,7 +906,6 @@ const ModalNuevoCapitulo = ({
           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic">Nuevo Capítulo</h3>
           <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16}/></button>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Título</label>
@@ -806,25 +940,24 @@ const ModalNuevoCapitulo = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PÁGINA PRINCIPAL — ChapterStudio
+// PÁGINA PRINCIPAL — Estudio de Capítulos
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function ChapterStudio() {
+export default function EstudioCapitulos() {
   const { libros, loading: loadingLibros, isOffline: listaOffline, refetch } = useLibros();
 
-  const [expandedLibros, setExpandedLibros] = useState<Set<string>>(new Set());
+  const [expandedLibros, setExpandedLibros]     = useState<Set<string>>(new Set());
   const [selectedLibroId, setSelectedLibroId]   = useState<string | null>(null);
   const [selectedCapId,   setSelectedCapId]     = useState<string | null>(null);
   const [sidebarOpen,     setSidebarOpen]       = useState(true);
   const [focusMode,       setFocusMode]         = useState(false);
   const [busqueda,        setBusqueda]          = useState("");
   const [showNuevoCap,    setShowNuevoCap]      = useState(false);
-  const [capRefreshKey,   setCapRefreshKey]     = useState(0); // para forzar reload de lista
+  const [editandoCap,     setEditandoCap]       = useState<Capitulo | null>(null);
+  const [capRefreshKey,   setCapRefreshKey]     = useState(0);
 
-  // Capítulos del libro activo (para saber el orden siguiente)
   const { capitulos, setCapitulos, reload: reloadCaps } = useCapitulos(selectedLibroId);
 
-  // Filtrado de libros
   const librosFiltrados = useMemo(() =>
     libros.filter(l => !busqueda || normalize(l.titulo).includes(normalize(busqueda))),
     [libros, busqueda]
@@ -845,10 +978,24 @@ export default function ChapterStudio() {
     setFocusMode(false);
   };
 
-  const handleCapCreated = (cap: Capitulo) => {
+  const handleCapCreada = (cap: Capitulo) => {
     setCapitulos(prev => [...prev, cap]);
     setSelectedCapId(cap.id);
     setCapRefreshKey(k => k + 1);
+  };
+
+  const handleCapEditada = (cap: Capitulo) => {
+    setCapitulos(prev => prev.map(c => c.id === cap.id ? cap : c));
+    setCapRefreshKey(k => k + 1);
+    setEditandoCap(null);
+  };
+
+  const handleCapEliminada = async (id: string, libroId: string) => {
+    try {
+      await capDelete(id);
+      if (selectedCapId === id) setSelectedCapId(null);
+      setCapRefreshKey(k => k + 1);
+    } catch {}
   };
 
   return (
@@ -860,7 +1007,7 @@ export default function ChapterStudio() {
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-xl hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
-            title="Abrir sidebar"
+            title="Abrir panel"
           >
             <PanelLeftOpen size={16}/>
           </button>
@@ -881,19 +1028,19 @@ export default function ChapterStudio() {
           <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-                <BookOpen size={12}/> Chapter Studio
+                <BookOpen size={12}/> Estudio de Capítulos
               </h2>
               <div className="flex items-center gap-1">
                 <button onClick={refetch} title="Recargar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
                   <RefreshCw size={12}/>
                 </button>
-                <button onClick={() => setSidebarOpen(false)} title="Cerrar sidebar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
+                <button onClick={() => setSidebarOpen(false)} title="Cerrar panel" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
                   <PanelLeftClose size={14}/>
                 </button>
               </div>
             </div>
 
-            {/* Buscador libros */}
+            {/* Buscador */}
             <div className="relative">
               <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30"/>
               <input
@@ -909,7 +1056,7 @@ export default function ChapterStudio() {
               )}
             </div>
 
-            {/* Botón nuevo capítulo (si hay libro seleccionado) */}
+            {/* Botón nuevo capítulo */}
             {selectedLibroId && (
               <button
                 onClick={() => setShowNuevoCap(true)}
@@ -939,6 +1086,8 @@ export default function ChapterStudio() {
                   onSelectCap={handleSelectCap}
                   expanded={expandedLibros.has(libro.id)}
                   onToggle={() => toggleExpanded(libro.id)}
+                  onEditCap={setEditandoCap}
+                  onDeleteCap={handleCapEliminada}
                 />
               ))
             )}
@@ -947,14 +1096,14 @@ export default function ChapterStudio() {
           {/* Footer */}
           <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
             {listaOffline
-              ? <span className="flex items-center gap-1 text-blue-400"><WifiOff size={10}/> Offline</span>
+              ? <span className="flex items-center gap-1 text-blue-400"><WifiOff size={10}/> Sin conexión</span>
               : <span className="text-primary/20">{libros.length} libros</span>
             }
             {selectedCapId && (
               <button
                 onClick={() => setFocusMode(m => !m)}
                 className="text-primary/25 hover:text-primary transition-colors"
-                title="Modo focus"
+                title="Modo foco"
               >
                 {focusMode ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
               </button>
@@ -980,20 +1129,28 @@ export default function ChapterStudio() {
               <BookOpen size={52} strokeWidth={1}/>
             </div>
             <div className="text-center">
-              <p className="text-sm font-black uppercase tracking-[0.3em]">Chapter Studio</p>
+              <p className="text-sm font-black uppercase tracking-[0.3em]">Estudio de Capítulos</p>
               <p className="text-xs mt-1 tracking-widest opacity-60">Expande un libro y selecciona un capítulo</p>
             </div>
           </div>
         )}
       </main>
 
-      {/* Modal nuevo capítulo */}
+      {/* Modales */}
       {showNuevoCap && selectedLibroId && (
         <ModalNuevoCapitulo
           libroId={selectedLibroId}
           ordenSiguiente={capitulos.length + 1}
-          onCreated={handleCapCreated}
+          onCreated={handleCapCreada}
           onClose={() => setShowNuevoCap(false)}
+        />
+      )}
+
+      {editandoCap && (
+        <ModalEditarCapitulo
+          cap={editandoCap}
+          onSaved={handleCapEditada}
+          onClose={() => setEditandoCap(null)}
         />
       )}
     </div>
