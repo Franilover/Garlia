@@ -149,7 +149,7 @@ const Navbar = () => {
             }}
           >
             <Link
-              href="/myself"
+              href="/personal"
               className="px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
               style={{
                 borderRadius: "var(--radius-btn)",
