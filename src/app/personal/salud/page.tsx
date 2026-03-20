@@ -2,10 +2,10 @@
 
 import { Dumbbell, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
 import Secciones from "@/components/layout/Secciones";
-import { PaginaEjercicios } from "@/paginas/personal/salud/EjerciciosComponent";
-import ComprasPage from "@/paginas/personal/salud/Compras";
-import { IngredientesPage } from "@/paginas/personal/salud/ingredientes";
-import RecetasPage from "@/paginas/personal/salud/recetas";
+import { PaginaEjercicios } from "@/components/layout/paginas/personal/salud/EjerciciosComponent";
+import ComprasPage from "@/components/layout/paginas/personal/salud/Compras";
+import { IngredientesPage } from "@/components/layout/paginas/personal/salud/ingredientes";
+import RecetasPage from "@/components/layout/paginas/personal/salud/recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";
 
 export default function SaludPage() {

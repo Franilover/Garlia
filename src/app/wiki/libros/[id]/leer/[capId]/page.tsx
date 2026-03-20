@@ -1,5 +1,5 @@
 // app/wiki/libros/[id]/leer/[capId]/page.tsx
-import Leer from '@/paginas/wiki/libros/Leer';
+import Leer from '@/components/layout/paginas/wiki/libros/Leer';
 export default function Page() {
   return <Leer />;
 }
