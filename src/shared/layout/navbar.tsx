@@ -199,8 +199,8 @@ const Navbar = () => {
                   className="p-2 transition-all"
                   style={{
                     borderRadius: "var(--radius-btn)",
-                    background: currentPath?.includes("/ensayos") ? "var(--primary)" : "transparent",
-                    color: currentPath?.includes("/ensayos")
+                    background: currentPath?.includes("/escritorio") ? "var(--primary)" : "transparent",
+                    color: currentPath?.includes("/escritorio")
                       ? "var(--btn-text)"
                       : "color-mix(in srgb, var(--primary) 30%, transparent)",
                   }}
@@ -457,7 +457,7 @@ const Navbar = () => {
               </div>
 
               {esFranilover && (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Link
                     href="/personal/salud"
                     onClick={closeAll}
@@ -477,8 +477,8 @@ const Navbar = () => {
                     className="p-4 flex items-center justify-center transition-all"
                     style={{
                       border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color: currentPath?.includes("/ensayos") ? "var(--btn-text)" : "var(--primary)",
-                      background: currentPath?.includes("/ensayos") ? "var(--primary)" : "transparent",
+                      color: currentPath?.includes("/escritorio") ? "var(--btn-text)" : "var(--primary)",
+                      background: currentPath?.includes("/escritorio") ? "var(--primary)" : "transparent",
                       borderRadius: "var(--radius-card)",
                     }}
                   >
