@@ -26,7 +26,7 @@ import { librosQueries } from "@/lib/api/queries/wiki/libros";
 import { db } from "@/lib/api/client/db";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
-import { BannerOffline, EmptyEstudio, ModalBase, SaveIndicator, SaveStatus, CampoInput, BotonSubmit, normalize } from "@/components/templates/EstudioTemplates";
+import { BannerOffline, EmptyEstudio, ModalBase, SaveIndicator, CampoInput, BotonSubmit, normalize } from "@/components/templates/EstudioTemplates";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TIPOS
