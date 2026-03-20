@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cancionesQueries } from "@/lib/api/queries/wiki/canciones";
 import EstudioLayout from "@/components/layout/EstudioLayout";
+import { BannerOffline, EmptyEstudio, ModalBase, CampoInput, BotonSubmit, normalize, unique } from "@/components/templates/EstudioTemplates";
 import { db } from "@/lib/api/client/db";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
@@ -89,13 +90,9 @@ const FILTROS_VACIOS: Filtros = {
 // UTILIDADES
 // ─────────────────────────────────────────────────────────────────────────────
 
-function normalize(s: string) {
-  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
+// normalize importado de EstudioTemplates
 
-function unique(arr: string[]): string[] {
-  return Array.from(new Set(arr.filter(Boolean).map(s => s.trim()))).sort();
-}
+// unique importado de EstudioTemplates
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DEXIE HELPERS
@@ -807,9 +804,7 @@ const ModalNuevaCancion = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-      <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-bg-main border border-primary/15 rounded-2xl p-8 w-full max-w-sm shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+    <ModalBase onClose={onClose}>
         <div className="flex items-center justify-between">
           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
             <Music size={12} /> Nueva Canción
@@ -818,11 +813,11 @@ const ModalNuevaCancion = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Campo label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
-          <Campo label="Personaje" value={personaje} onChange={setPersonaje} placeholder="Personaje relacionado…" />
-          <Campo label="Cantante" value={cantante} onChange={setCantante} placeholder="Cantante…" />
-          <Campo label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" />
-          <Campo label="Idioma" value={idioma} onChange={setIdioma} placeholder="ES, JP, EN…" />
+          <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
+          <CampoInput label="Personaje" value={personaje} onChange={setPersonaje} placeholder="Personaje relacionado…" />
+          <CampoInput label="Cantante" value={cantante} onChange={setCantante} placeholder="Cantante…" />
+          <CampoInput label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" />
+          <CampoInput label="Idioma" value={idioma} onChange={setIdioma} placeholder="ES, JP, EN…" />
 
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Estado</label>
@@ -843,16 +838,9 @@ const ModalNuevaCancion = ({
 
           {error && <p className="text-[9px] font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
 
-          <button
-            type="submit"
-            disabled={saving || !titulo.trim()}
-            className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-          >
-            {saving ? <><Loader2 size={13} className="animate-spin" />Creando…</> : <><Plus size={13} />Crear Canción</>}
-          </button>
+          <BotonSubmit loading={saving} disabled={!titulo.trim()} labelLoading={<><Loader2 size={13} className="animate-spin" />Creando…</>} labelNormal={<><Plus size={13} />Crear Canción</>} />
         </form>
-      </div>
-    </div>
+    </ModalBase>
   );
 };
 
@@ -926,9 +914,7 @@ const ModalEditarCancion = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-      <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-bg-main border border-primary/15 rounded-2xl p-8 w-full max-w-sm shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+    <ModalBase onClose={onClose}>
         <div className="flex items-center justify-between">
           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
             <Pencil size={12} /> Editar Canción
@@ -937,11 +923,11 @@ const ModalEditarCancion = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Campo label="Título *"    value={titulo}     onChange={setTitulo}     placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
-          <Campo label="Personaje"   value={personaje}  onChange={setPersonaje}  placeholder="Personaje…" />
-          <Campo label="Cantante"    value={cantante}   onChange={setCantante}   placeholder="Cantante…" />
-          <Campo label="Compositor"  value={compositor} onChange={setCompositor} placeholder="Compositor…" />
-          <Campo label="Idioma"      value={idioma}     onChange={setIdioma}     placeholder="ES, JP, EN…" />
+          <CampoInput label="Título *"    value={titulo}     onChange={setTitulo}     placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
+          <CampoInput label="Personaje"   value={personaje}  onChange={setPersonaje}  placeholder="Personaje…" />
+          <CampoInput label="Cantante"    value={cantante}   onChange={setCantante}   placeholder="Cantante…" />
+          <CampoInput label="Compositor"  value={compositor} onChange={setCompositor} placeholder="Compositor…" />
+          <CampoInput label="Idioma"      value={idioma}     onChange={setIdioma}     placeholder="ES, JP, EN…" />
 
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Estado</label>
@@ -977,16 +963,9 @@ const ModalEditarCancion = ({
 
           {error && <p className="text-[9px] font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
 
-          <button
-            type="submit"
-            disabled={saving || !titulo.trim()}
-            className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-          >
-            {saving ? <><Loader2 size={13} className="animate-spin" />Guardando…</> : <><Check size={13} />Guardar Cambios</>}
-          </button>
+          <BotonSubmit loading={saving} disabled={!titulo.trim()} labelLoading={<><Loader2 size={13} className="animate-spin" />Guardando…</>} labelNormal={<><Check size={13} />Guardar Cambios</>} />
         </form>
-      </div>
-    </div>
+    </ModalBase>
   );
 };
 
@@ -1072,12 +1051,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      {editorOffline && (
-        <div className="shrink-0 flex items-center gap-2 px-8 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-400">
-          <WifiOff size={12} />
-          Modo sin conexión — los cambios se sincronizan al reconectar
-        </div>
-      )}
+      {editorOffline && <BannerOffline color="amber" mensaje="Sin conexión — los cambios se sincronizan al reconectar" />}
 
       <div className="shrink-0 px-8 pt-7 pb-5 border-b border-primary/10 space-y-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1263,30 +1237,72 @@ export default function EstudioLetras() {
   };
 
   return (
-    <>
-      <EstudioLayout
-        titulo="Estudio de Letras"
-        icono={<Music size={12}/>}
-        colapsadoLabel="Canciones"
-        onRefetch={refetch}
-        isOffline={listaOffline}
-        busqueda={busqueda}
-        onBusquedaChange={setBusqueda}
-        busquedaPlaceholder="Título, cantante, compositor…"
-        sidebarOpen={sidebarOpen}
-        onSidebarOpenChange={setSidebarOpen}
-        footerLeft={`${canciones.length} canciones`}
-        footerRight={
-          <span className="text-primary/20">{filtradas.length} mostradas</span>
-        }
-        headerExtra={
-          <>
+    <div className="flex h-screen bg-bg-main overflow-hidden">
+
+      {/* ════ SIDEBAR COLAPSADA ════ */}
+      {!sidebarOpen && (
+        <div className="shrink-0 w-10 flex flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            title="Abrir panel"
+            className="p-2 rounded-xl hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
+          >
+            <PanelLeftOpen size={16} />
+          </button>
+          <span
+            className="text-[9px] font-black uppercase text-primary/15 tracking-[0.25em] select-none"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+          >
+            Canciones
+          </span>
+        </div>
+      )}
+
+      {/* ════ SIDEBAR ABIERTA ════ */}
+      {sidebarOpen && (
+        <aside className="w-72 shrink-0 flex flex-col border-r border-primary/10 bg-bg-main">
+
+          {/* Header */}
+          <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+                <Music size={12} /> Estudio de Letras
+              </h2>
+              <div className="flex items-center gap-1">
+                <button onClick={refetch} title="Recargar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
+                  <RefreshCw size={12} />
+                </button>
+                <button onClick={() => setSidebarOpen(false)} title="Cerrar panel" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
+                  <PanelLeftClose size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Buscador */}
+            <div className="relative">
+              <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" />
+              <input
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Título, cantante, compositor…"
+                className="w-full bg-primary/5 border border-primary/10 rounded-xl pl-9 pr-9 py-2.5 text-xs font-medium text-primary outline-none focus:border-primary/30 placeholder:text-primary/25 transition-colors"
+              />
+              {busqueda && (
+                <button onClick={() => setBusqueda("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Botón nueva canción */}
             <button
               onClick={() => setShowNueva(true)}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
             >
               <Plus size={12} /> Nueva Canción
             </button>
+
+            {/* Toggle filtros */}
             <button
               onClick={() => setShowFiltros(f => !f)}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
@@ -1305,23 +1321,24 @@ export default function EstudioLetras() {
               </span>
               <ChevronDown size={11} className={`transition-transform duration-200 ${showFiltros ? "rotate-180" : ""}`} />
             </button>
+
             {showFiltros && (
               <PanelFiltros filtros={filtros} onChange={setFiltros} opciones={opciones} />
             )}
-          </>
-        }
-        sidebarContent={
-          loadingLista ? (
-            <div className="flex items-center justify-center py-12 text-primary/30">
-              <Loader2 className="animate-spin" size={20} />
-            </div>
-          ) : filtradas.length === 0 ? (
-            <div className="text-center py-10 text-primary/25">
-              <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
-            </div>
-          ) : usarGrupos ? (
-            <div className="space-y-1">
-              {grupos.map(({ estado, items }) => (
+          </div>
+
+          {/* Lista */}
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+            {loadingLista ? (
+              <div className="flex items-center justify-center py-12 text-primary/30">
+                <Loader2 className="animate-spin" size={20} />
+              </div>
+            ) : filtradas.length === 0 ? (
+              <div className="text-center py-10 text-primary/25">
+                <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
+              </div>
+            ) : usarGrupos ? (
+              grupos.map(({ estado, items }) => (
                 <div key={estado} className="mb-3">
                   <p className={`text-[9px] font-black uppercase tracking-[0.3em] px-4 py-2 ${ESTADO_COLOR[estado].split(" ")[1]}`}>
                     {estado} ({items.length})
@@ -1337,11 +1354,9 @@ export default function EstudioLetras() {
                     />
                   ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {filtradas.map(c => (
+              ))
+            ) : (
+              filtradas.map(c => (
                 <SidebarItem
                   key={c.id}
                   cancion={c}
@@ -1350,27 +1365,31 @@ export default function EstudioLetras() {
                   onEdit={setEditandoCancion}
                   onDelete={handleCancionEliminada}
                 />
-              ))}
-            </div>
-          )
-        }
-      >
+              ))
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
+            {listaOffline
+              ? <span className="flex items-center gap-1 text-amber-400"><WifiOff size={10} /> Sin conexión</span>
+              : <span className="text-primary/20">{canciones.length} canciones</span>
+            }
+            <span className="text-primary/20">{filtradas.length} mostradas</span>
+          </div>
+        </aside>
+      )}
+
+      {/* ════ PANEL PRINCIPAL ════ */}
+      <main className="flex-1 flex flex-col min-w-0 min-h-0">
         {selectedId ? (
           <PanelEditor key={selectedId} cancionId={selectedId} />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center gap-6 text-primary/20 select-none">
-            <div className="p-8 rounded-3xl border-2 border-dashed border-primary/10">
-              <BookOpen size={52} strokeWidth={1} />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-black uppercase tracking-[0.3em]">Estudio de Letras</p>
-              <p className="text-xs mt-1 tracking-widest opacity-60">Selecciona una canción o crea una nueva</p>
-            </div>
-          </div>
+          <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Estudio de Letras" subtitulo="Selecciona una canción o crea una nueva" />
         )}
-      </EstudioLayout>
+      </main>
 
-      {/* Modales fuera del layout */}
+      {/* Modales */}
       {showNueva && (
         <ModalNuevaCancion
           onCreated={handleCancionCreada}
@@ -1384,6 +1403,7 @@ export default function EstudioLetras() {
           onClose={() => setEditandoCancion(null)}
         />
       )}
-    </>
+
+    </div>
   );
 }

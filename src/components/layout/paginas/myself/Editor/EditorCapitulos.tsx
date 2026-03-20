@@ -26,6 +26,7 @@ import { librosQueries } from "@/lib/api/queries/wiki/libros";
 import { db } from "@/lib/api/client/db";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
+import { BannerOffline, EmptyEstudio, ModalBase, SaveIndicator, SaveStatus, CampoInput, BotonSubmit, normalize } from "@/components/templates/EstudioTemplates";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TIPOS
@@ -69,9 +70,7 @@ const ESTADO_COLOR: Record<string, string> = {
 // UTILIDADES
 // ─────────────────────────────────────────────────────────────────────────────
 
-function normalize(s: string) {
-  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
+// normalize importado de EstudioTemplates
 
 function wordCount(text: string) {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -391,26 +390,7 @@ function useCapituloEditor(capId: string | null) {
   return { cap, setCap, loading, isOffline, reload: () => capId && load(capId) };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: indicador de guardado
-// ─────────────────────────────────────────────────────────────────────────────
-
-const SaveIndicator = ({ status }: { status: SaveStatus }) => {
-  const map: Record<SaveStatus, { label: string; icon: React.ReactNode; cls: string }> = {
-    idle:    { label: "",                       icon: null,                                          cls: "" },
-    saving:  { label: "Guardando…",             icon: <Loader2 size={10} className="animate-spin"/>, cls: "text-primary/40" },
-    saved:   { label: "Guardado",               icon: <CheckCircle2 size={10}/>,                     cls: "text-emerald-400" },
-    pending: { label: "Sin conexión — pendiente", icon: <WifiOff size={10}/>,                          cls: "text-blue-400" },
-    error:   { label: "Error al guardar",        icon: <AlertCircle size={10}/>,                      cls: "text-red-400" },
-  };
-  const { label, icon, cls } = map[status];
-  if (!label) return null;
-  return (
-    <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest ${cls}`}>
-      {icon}{label}
-    </span>
-  );
-};
+// SaveIndicator importado de EstudioTemplates
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE: estadísticas de escritura
@@ -682,13 +662,7 @@ const PanelEditor = ({
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-      {/* Banner sin conexión */}
-      {isOffline && (
-        <div className="shrink-0 flex items-center gap-2 px-8 py-2.5 bg-blue-500/10 border-b border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-400">
-          <WifiOff size={12}/>
-          Sin conexión — los cambios se guardan localmente
-        </div>
-      )}
+      {isOffline && <BannerOffline color="blue" mensaje="Sin conexión — los cambios se guardan localmente" />}
 
       {saveStatus === "pending" && !isOffline && (
         <div className="shrink-0 flex items-center gap-2 px-8 py-2 bg-blue-500/8 border-b border-blue-500/15 text-[9px] font-black uppercase tracking-widest text-blue-400/70">
@@ -881,45 +855,24 @@ const ModalEditarCapitulo = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-      <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={onClose}/>
-      <div className="relative bg-bg-main border border-primary/15 rounded-2xl p-8 w-full max-w-sm shadow-2xl space-y-5">
-        <div className="flex items-center justify-between">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
-            <Pencil size={12}/> Editar Capítulo
-          </h3>
-          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16}/></button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Título</label>
-            <input
-              autoFocus
-              value={titulo}
-              onChange={e => setTitulo(e.target.value)}
-              className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-3 text-sm font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20"
-              placeholder="NOMBRE DEL CAPÍTULO…"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Fecha de publicación</label>
-            <input
-              type="date"
-              value={fecha}
-              onChange={e => setFecha(e.target.value)}
-              className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-primary/40 transition-colors"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={saving || !titulo.trim()}
-            className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-          >
-            {saving ? <><Loader2 size={13} className="animate-spin"/>Guardando…</> : <><Check size={13}/>Guardar Cambios</>}
-          </button>
-        </form>
+    <ModalBase onClose={onClose}>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+          <Pencil size={12}/> Editar Capítulo
+        </h3>
+        <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16}/></button>
       </div>
-    </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
+        <CampoInput label="Fecha de publicación" value={fecha} onChange={setFecha} type="date" />
+        <BotonSubmit
+          loading={saving}
+          disabled={!titulo.trim()}
+          labelLoading={<><Loader2 size={13} className="animate-spin"/>Guardando…</>}
+          labelNormal={<><Check size={13}/>Guardar Cambios</>}
+        />
+      </form>
+    </ModalBase>
   );
 };
 
@@ -952,43 +905,22 @@ const ModalNuevoCapitulo = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-      <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={onClose}/>
-      <div className="relative bg-bg-main border border-primary/15 rounded-2xl p-8 w-full max-w-sm shadow-2xl space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic">Nuevo Capítulo</h3>
-          <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16}/></button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Título</label>
-            <input
-              autoFocus
-              value={titulo}
-              onChange={e => setTitulo(e.target.value)}
-              className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-3 text-sm font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20"
-              placeholder="NOMBRE DEL CAPÍTULO…"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Fecha de publicación</label>
-            <input
-              type="date"
-              value={fecha}
-              onChange={e => setFecha(e.target.value)}
-              className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-3 text-sm font-bold text-primary outline-none focus:border-primary/40 transition-colors"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={saving || !titulo.trim()}
-            className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-          >
-            {saving ? <><Loader2 size={13} className="animate-spin"/>Creando…</> : <><Plus size={13}/>Crear Capítulo</>}
-          </button>
-        </form>
+    <ModalBase onClose={onClose}>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic">Nuevo Capítulo</h3>
+        <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16}/></button>
       </div>
-    </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
+        <CampoInput label="Fecha de publicación" value={fecha} onChange={setFecha} type="date" />
+        <BotonSubmit
+          loading={saving}
+          disabled={!titulo.trim()}
+          labelLoading={<><Loader2 size={13} className="animate-spin"/>Creando…</>}
+          labelNormal={<><Plus size={13}/>Crear Capítulo</>}
+        />
+      </form>
+    </ModalBase>
   );
 };
 
@@ -1052,52 +984,86 @@ export default function EstudioCapitulos() {
   };
 
   return (
-    <>
-      <EstudioLayout
-        titulo="Estudio de Capítulos"
-        icono={<BookOpen size={12}/>}
-        colapsadoLabel="Biblioteca"
-        onRefetch={refetch}
-        isOffline={listaOffline}
-        busqueda={busqueda}
-        onBusquedaChange={setBusqueda}
-        busquedaPlaceholder="Buscar libro…"
-        sidebarOpen={sidebarOpen}
-        onSidebarOpenChange={setSidebarOpen}
-        footerLeft={`${libros.length} libros`}
-        footerRight={
-          selectedCapId ? (
-            <button
-              onClick={() => setFocusMode(m => !m)}
-              className="text-primary/25 hover:text-primary transition-colors"
-              title="Modo foco"
-            >
-              {focusMode ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
-            </button>
-          ) : undefined
-        }
-        headerExtra={
-          selectedLibroId ? (
-            <button
-              onClick={() => setShowNuevoCap(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
-            >
-              <Plus size={12}/> Nuevo Capítulo
-            </button>
-          ) : undefined
-        }
-        sidebarContent={
-          loadingLibros ? (
-            <div className="flex items-center justify-center py-12 text-primary/30">
-              <Loader2 className="animate-spin" size={20}/>
+    <div className="flex h-screen bg-bg-main overflow-hidden">
+
+      {/* ════ SIDEBAR COLAPSADA ════ */}
+      {!sidebarOpen && (
+        <div className="shrink-0 w-10 flex flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-xl hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
+            title="Abrir panel"
+          >
+            <PanelLeftOpen size={16}/>
+          </button>
+          <span
+            className="text-[9px] font-black uppercase text-primary/15 tracking-[0.25em] select-none"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+          >
+            Biblioteca
+          </span>
+        </div>
+      )}
+
+      {/* ════ SIDEBAR ABIERTA ════ */}
+      {sidebarOpen && (
+        <aside className="w-72 shrink-0 flex flex-col border-r border-primary/10 bg-bg-main">
+
+          {/* Header */}
+          <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+                <BookOpen size={12}/> Estudio de Capítulos
+              </h2>
+              <div className="flex items-center gap-1">
+                <button onClick={refetch} title="Recargar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
+                  <RefreshCw size={12}/>
+                </button>
+                <button onClick={() => setSidebarOpen(false)} title="Cerrar panel" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
+                  <PanelLeftClose size={14}/>
+                </button>
+              </div>
             </div>
-          ) : librosFiltrados.length === 0 ? (
-            <div className="text-center py-10 text-primary/25">
-              <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
+
+            {/* Buscador */}
+            <div className="relative">
+              <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30"/>
+              <input
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Buscar libro…"
+                className="w-full bg-primary/5 border border-primary/10 rounded-xl pl-9 pr-9 py-2.5 text-xs font-medium text-primary outline-none focus:border-primary/30 placeholder:text-primary/25 transition-colors"
+              />
+              {busqueda && (
+                <button onClick={() => setBusqueda("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
+                  <X size={12}/>
+                </button>
+              )}
             </div>
-          ) : (
-            <>
-              {librosFiltrados.map(libro => (
+
+            {/* Botón nuevo capítulo */}
+            {selectedLibroId && (
+              <button
+                onClick={() => setShowNuevoCap(true)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
+              >
+                <Plus size={12}/> Nuevo Capítulo
+              </button>
+            )}
+          </div>
+
+          {/* Lista de libros */}
+          <div className="flex-1 overflow-y-auto px-3 py-3">
+            {loadingLibros ? (
+              <div className="flex items-center justify-center py-12 text-primary/30">
+                <Loader2 className="animate-spin" size={20}/>
+              </div>
+            ) : librosFiltrados.length === 0 ? (
+              <div className="text-center py-10 text-primary/25">
+                <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
+              </div>
+            ) : (
+              librosFiltrados.map(libro => (
                 <LibroItem
                   key={libro.id + capRefreshKey}
                   libro={libro}
@@ -1108,11 +1074,31 @@ export default function EstudioCapitulos() {
                   onEditCap={setEditandoCap}
                   onDeleteCap={handleCapEliminada}
                 />
-              ))}
-            </>
-          )
-        }
-      >
+              ))
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
+            {listaOffline
+              ? <span className="flex items-center gap-1 text-blue-400"><WifiOff size={10}/> Sin conexión</span>
+              : <span className="text-primary/20">{libros.length} libros</span>
+            }
+            {selectedCapId && (
+              <button
+                onClick={() => setFocusMode(m => !m)}
+                className="text-primary/25 hover:text-primary transition-colors"
+                title="Modo foco"
+              >
+                {focusMode ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
+              </button>
+            )}
+          </div>
+        </aside>
+      )}
+
+      {/* ════ PANEL PRINCIPAL ════ */}
+      <main className="flex-1 flex flex-col min-w-0 min-h-0">
         {selectedCapId && selectedLibroId ? (
           <PanelEditor
             key={selectedCapId}
@@ -1123,19 +1109,11 @@ export default function EstudioCapitulos() {
             onToggleFocus={() => setFocusMode(m => !m)}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center gap-6 text-primary/20 select-none">
-            <div className="p-8 rounded-3xl border-2 border-dashed border-primary/10">
-              <BookOpen size={52} strokeWidth={1}/>
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-black uppercase tracking-[0.3em]">Estudio de Capítulos</p>
-              <p className="text-xs mt-1 tracking-widest opacity-60">Expande un libro y selecciona un capítulo</p>
-            </div>
-          </div>
+          <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Estudio de Capítulos" subtitulo="Expande un libro y selecciona un capítulo" />
         )}
-      </EstudioLayout>
+      </main>
 
-      {/* Modales fuera del layout */}
+      {/* Modales */}
       {showNuevoCap && selectedLibroId && (
         <ModalNuevoCapitulo
           libroId={selectedLibroId}
@@ -1144,6 +1122,7 @@ export default function EstudioCapitulos() {
           onClose={() => setShowNuevoCap(false)}
         />
       )}
+
       {editandoCap && (
         <ModalEditarCapitulo
           cap={editandoCap}
@@ -1151,6 +1130,6 @@ export default function EstudioCapitulos() {
           onClose={() => setEditandoCap(null)}
         />
       )}
-    </>
+    </div>
   );
 }
