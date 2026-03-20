@@ -142,37 +142,49 @@ function useCanciones() {
   const [loading,    setLoading]   = useState(true);
   const [isOffline,  setIsOffline] = useState(false);
 
+  const readLocal = async (): Promise<Cancion[]> => {
+    try {
+      const table = (db as any)["canciones"];
+      if (!table) return [];
+      return (await table.toArray()).filter((r: any) => !r.deleted) as Cancion[];
+    } catch { return []; }
+  };
+
   const load = useCallback(async () => {
-    setLoading(true);
+    // Mostrar local inmediatamente
+    const local = await readLocal();
+    if (local.length > 0) {
+      setCanciones(local);
+      setLoading(false);
+    }
+
     if (!navigator.onLine) {
-      try {
-        const table = (db as any)["canciones"];
-        if (table) {
-          const rows = (await table.toArray()).filter((r: any) => !r.deleted);
-          setCanciones(rows as Cancion[]);
-          setIsOffline(true);
-        }
-      } catch {}
+      setIsOffline(true);
       setLoading(false);
       return;
     }
     setIsOffline(false);
+
     try {
-      const data = await cancionesQueries.getAll({ isAdmin: true });
-      setCanciones(data as Cancion[]);
+      const fetchPromise = cancionesQueries.getAll({ isAdmin: true });
+      const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
+      const result = await Promise.race([fetchPromise, timeout]);
+
+      if (result === "timeout") {
+        setIsOffline(local.length === 0);
+        setLoading(false);
+        return;
+      }
+
+      const data = result as Cancion[];
+      setCanciones(data);
       try {
         const table = (db as any)["canciones"];
-        if (table) await table.bulkPut((data as any[]).map(r => ({ ...r, status: "synced" })));
+        if (table) await table.bulkPut(data.map(r => ({ ...r, status: "synced" })));
       } catch {}
     } catch {
-      try {
-        const table = (db as any)["canciones"];
-        if (table) {
-          const rows = (await table.toArray()).filter((r: any) => !r.deleted);
-          setCanciones(rows as Cancion[]);
-          setIsOffline(true);
-        }
-      } catch {}
+      if (local.length === 0) setCanciones(await readLocal());
+      setIsOffline(true);
     }
     setLoading(false);
   }, []);
@@ -197,22 +209,39 @@ function useCancionEditor(id: string | null) {
   const [isOffline, setIsOffline]= useState(false);
 
   const load = useCallback(async (cancionId: string) => {
-    setLoading(true);
+    // Mostrar local inmediatamente
+    try {
+      const cTable = (db as any)["canciones"];
+      const base   = cTable ? await cTable.get(cancionId) : null;
+      const secs   = await dexieSecRead(cancionId);
+      if (base) {
+        setCancion({ ...base, secciones: secs });
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    } catch { setLoading(true); }
+
     if (!navigator.onLine) {
-      try {
-        const cTable = (db as any)["canciones"];
-        const base   = cTable ? await cTable.get(cancionId) : null;
-        const secs   = await dexieSecRead(cancionId);
-        if (base) setCancion({ ...base, secciones: secs });
-        setIsOffline(true);
-      } catch {}
+      setIsOffline(true);
       setLoading(false);
       return;
     }
     setIsOffline(false);
+
     try {
-      const data = await cancionesQueries.getById(cancionId);
-      setCancion(data as Cancion);
+      const fetchPromise = cancionesQueries.getById(cancionId);
+      const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
+      const result = await Promise.race([fetchPromise, timeout]);
+
+      if (result === "timeout") {
+        setIsOffline(true);
+        setLoading(false);
+        return;
+      }
+
+      const data = result as Cancion;
+      setCancion(data);
       if (data?.secciones?.length) {
         await dexieSecWrite(data.secciones.map((s: Seccion) => ({ ...s, status: "synced" })));
       }
@@ -221,8 +250,9 @@ function useCancionEditor(id: string | null) {
         const cTable = (db as any)["canciones"];
         const base   = cTable ? await cTable.get(cancionId) : null;
         const secs   = await dexieSecRead(cancionId);
-        if (base) { setCancion({ ...base, secciones: secs }); setIsOffline(true); }
+        if (base) setCancion({ ...base, secciones: secs });
       } catch {}
+      setIsOffline(true);
     }
     setLoading(false);
   }, []);

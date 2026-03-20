@@ -213,29 +213,44 @@ async function capDelete(id: string): Promise<void> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function useLibros() {
-  const [libros, setLibros]     = useState<Libro[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [libros, setLibros]       = useState<Libro[]>([]);
+  const [loading, setLoading]     = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    // Mostrar Dexie inmediatamente — sin spinner si ya hay datos
+    const local = await dexieLibrosRead();
+    if (local.length > 0) {
+      setLibros(local);
+      setLoading(false);
+    }
+
     if (!navigator.onLine) {
-      setLibros(await dexieLibrosRead());
       setIsOffline(true);
       setLoading(false);
       return;
     }
     setIsOffline(false);
+
     try {
-      const { data } = await librosQueries.getAll({ order: { campo: "created_at", asc: false } });
-      const l = (data || []) as Libro[];
+      const fetchPromise = librosQueries.getAll({ order: { campo: "created_at", asc: false } });
+      const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
+      const result = await Promise.race([fetchPromise, timeout]);
+
+      if (result === "timeout") {
+        setIsOffline(local.length === 0); // solo marcar offline si no había local
+        setLoading(false);
+        return;
+      }
+
+      const l = ((result as any)?.data || []) as Libro[];
       setLibros(l);
       try {
         const table = (db as any)["libros"];
         if (table) await table.bulkPut(l.map((x) => ({ ...x, status: "synced" })));
       } catch {}
     } catch {
-      setLibros(await dexieLibrosRead());
+      if (local.length === 0) setLibros(await dexieLibrosRead());
       setIsOffline(true);
     }
     setLoading(false);
@@ -257,23 +272,41 @@ function useCapitulos(libroId: string | null) {
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async (id: string) => {
-    setLoading(true);
+    // Mostrar local inmediatamente
+    const local = await dexieCapRead(id);
+    if (local.length > 0) {
+      setCapitulos(local);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     if (!navigator.onLine) {
-      setCapitulos(await dexieCapRead(id));
       setIsOffline(true);
       setLoading(false);
       return;
     }
     setIsOffline(false);
+
     try {
-      const { data, error } = await supabase
+      const fetchPromise = supabase
         .from(TABLA_CAPS).select("*").eq("libro_id", id).order("orden", { ascending: true });
+      const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
+      const result = await Promise.race([fetchPromise, timeout]);
+
+      if (result === "timeout") {
+        setIsOffline(local.length === 0);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = result as any;
       if (error) throw error;
       const caps = (data || []) as Capitulo[];
       setCapitulos(caps);
       await dexieCapWrite(caps.map((c) => ({ ...c, status: "synced" })));
     } catch {
-      setCapitulos(await dexieCapRead(id));
+      if (local.length === 0) setCapitulos(await dexieCapRead(id));
       setIsOffline(true);
     }
     setLoading(false);
@@ -294,23 +327,42 @@ function useCapitulos(libroId: string | null) {
 }
 
 function useCapituloEditor(capId: string | null) {
-  const [cap, setCap]         = useState<Capitulo | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [cap, setCap]             = useState<Capitulo | null>(null);
+  const [loading, setLoading]     = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async (id: string) => {
-    setLoading(true);
+    // Mostrar local inmediatamente — sin bloquear
     const local = await dexieCapGet(id);
-    if (!navigator.onLine) {
+    if (local) {
       setCap(local);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    if (!navigator.onLine) {
       setIsOffline(true);
       setLoading(false);
       return;
     }
     setIsOffline(false);
+
     try {
-      const { data, error } = await supabase.from(TABLA_CAPS).select("*").eq("id", id).single();
+      const fetchPromise = supabase.from(TABLA_CAPS).select("*").eq("id", id).single();
+      const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
+      const result = await Promise.race([fetchPromise, timeout]);
+
+      if (result === "timeout") {
+        setIsOffline(!local); // degradado solo si no había local
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = result as any;
       if (error) throw error;
+
+      // Si hay cambios pendientes locales, preservarlos
       if (local?.status === "pending" && local.contenido !== data.contenido) {
         setCap({ ...data, contenido: local.contenido, status: "pending" });
       } else {
@@ -318,7 +370,7 @@ function useCapituloEditor(capId: string | null) {
         await dexieCapWrite([{ ...data, status: "synced" }]);
       }
     } catch {
-      setCap(local);
+      if (!local) setCap(await dexieCapGet(id));
       setIsOffline(true);
     }
     setLoading(false);

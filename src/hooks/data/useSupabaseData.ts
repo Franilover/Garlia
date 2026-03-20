@@ -96,37 +96,64 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     if (!isMounted.current) return;
     if (tabla === "__skip__") return;
 
-    setLoading(true);
     setError(null);
 
-    // ── OFFLINE: leer de Dexie ───────────────────────────────────────────────
+    // ── PASO 1: mostrar Dexie INMEDIATAMENTE (sin spinner) ───────────────────
+    // Así aunque la red tarde, el usuario ve datos al instante.
+    const localData = await readFromDexie<T>(tabla);
+    const hasLocalData = localData.length > 0;
+
+    if (hasLocalData && isMounted.current) {
+      setData(localData);
+      setLoading(false); // quitar spinner — ya hay algo que mostrar
+    } else {
+      setLoading(true);  // solo mostrar spinner si no hay nada local
+    }
+
+    // ── PASO 2: sin red → quedarse con Dexie ────────────────────────────────
     if (!navigator.onLine) {
-      const localData = await readFromDexie<T>(tabla);
       if (isMounted.current) {
-        setData(localData);
+        if (!hasLocalData) setLoading(false);
         setIsOffline(true);
-        setLoading(false);
       }
       return;
     }
 
-    // ── ONLINE: siempre buscar en Supabase ───────────────────────────────────
     setIsOffline(false);
 
+    // ── PASO 3: fetch Supabase con timeout de 5s ────────────────────────────
+    // Si tarda más, usa Dexie sin bloquear.
     try {
       const currentOptions = JSON.parse(optionsKey);
-      let res: any;
 
-      if (QUERIES_MAP[tabla]) {
-        res = await QUERIES_MAP[tabla].getAll(currentOptions);
-      } else {
-        let query = supabase.from(tabla).select(currentOptions.select || "*");
-        if (currentOptions.order) {
-          query = query.order(currentOptions.order.campo, { ascending: currentOptions.order.asc ?? true });
+      const fetchPromise = async () => {
+        if (QUERIES_MAP[tabla]) {
+          return await QUERIES_MAP[tabla].getAll(currentOptions);
+        } else {
+          let query = supabase.from(tabla).select(currentOptions.select || "*");
+          if (currentOptions.order) {
+            query = query.order(currentOptions.order.campo, { ascending: currentOptions.order.asc ?? true });
+          }
+          return await query;
         }
-        res = await query;
+      };
+
+      const timeoutPromise = new Promise<"timeout">(resolve =>
+        setTimeout(() => resolve("timeout"), 5000)
+      );
+
+      const result = await Promise.race([fetchPromise(), timeoutPromise]);
+
+      // Timeout alcanzado — quedarse con datos locales sin mostrar error
+      if (result === "timeout") {
+        if (isMounted.current) {
+          if (!hasLocalData) setLoading(false);
+          setIsOffline(true); // señalar que estamos en modo degradado
+        }
+        return;
       }
 
+      const res = result as any;
       const finalData = Array.isArray(res) ? res : (res?.data || []);
       const errorFetch = res?.error || null;
 
@@ -137,33 +164,27 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         updateCache(tabla, finalData);
         retryCount.current = 0;
         writeToDexie(tabla, finalData);
+        setLoading(false);
       }
     } catch (err: any) {
-      const isNetworkError =
-        err.message?.includes("fetch") ||
-        err.message?.includes("NetworkError") ||
-        err.message?.includes("Failed to fetch");
+      // Error de red — ya tenemos datos locales mostrados, no hacer nada brusco
+      if (isMounted.current) {
+        if (!hasLocalData) {
+          const isNetworkError =
+            err.message?.includes("fetch") ||
+            err.message?.includes("NetworkError") ||
+            err.message?.includes("Failed to fetch");
 
-      if (isNetworkError) {
-        // Red caída aunque navigator.onLine diga true — usar Dexie como fallback
-        const localData = await readFromDexie<T>(tabla);
-        if (isMounted.current) {
-          if (localData.length > 0) {
-            setData(localData);
-            setIsOffline(true);
-            setLoading(false);
-            return;
-          }
-          if (retryCount.current < 3) {
+          if (isNetworkError && retryCount.current < 3) {
             retryCount.current++;
-            setTimeout(() => fetchData(true), 1000 * retryCount.current);
+            setTimeout(() => fetchData(true), 1500 * retryCount.current);
             return;
           }
+          setError(err.message);
         }
+        setIsOffline(true);
+        setLoading(false);
       }
-      if (isMounted.current) setError(err.message);
-    } finally {
-      if (isMounted.current) setLoading(false);
     }
   }, [tabla, updateCache, optionsKey]);
 
