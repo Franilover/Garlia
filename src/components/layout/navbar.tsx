@@ -31,11 +31,11 @@ const Navbar = () => {
   const closeAll = () => { setUserMenuOpen(false); setThemeMenuOpen(false); };
 
   const isWiki     = currentPath?.startsWith("/wiki") && currentPath !== "/wiki/personal";
-  const isPersonal = currentPath?.startsWith("/personal") &&
-    !currentPath.includes("/paginas/salud") &&
-    !currentPath.includes("/paginas/tareas") &&
-    !currentPath.includes("/paginas/ejercicios") &&
-    !currentPath.includes("/paginas/ensayos");
+  const isPersonal = currentPath?.startsWith("/myself") &&
+    !currentPath.includes("/myself/salud") &&
+    !currentPath.includes("/myself/tareas") &&
+    !currentPath.includes("/myself/ejercicios") &&
+    !currentPath.includes("/myself/ensayos");
 
   const DarkToggleBtn = () => (
     <motion.button
@@ -73,7 +73,7 @@ const Navbar = () => {
 
   const navContentMobile = useMemo(() => (
     <div className="flex w-full items-center justify-evenly h-full">
-      <Link href="/personal" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
+      <Link href="/myself" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
         <Star
           size={26}
           className="transition-all duration-300"
@@ -149,7 +149,7 @@ const Navbar = () => {
             }}
           >
             <Link
-              href="/personal"
+              href="/myself"
               className="px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
               style={{
                 borderRadius: "var(--radius-btn)",
@@ -182,7 +182,7 @@ const Navbar = () => {
                 style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
               >
                 <Link
-                  href="/personal/salud"
+                  href="/myself/salud"
                   className="p-2 transition-all"
                   style={{
                     borderRadius: "var(--radius-btn)",
@@ -195,12 +195,12 @@ const Navbar = () => {
                   <Utensils size={16} />
                 </Link>
                 <Link
-                  href="/personal/escritorio"
+                  href="/myself/escritorio"
                   className="p-2 transition-all"
                   style={{
                     borderRadius: "var(--radius-btn)",
-                    background: currentPath?.includes("/escritorio") ? "var(--primary)" : "transparent",
-                    color: currentPath?.includes("/escritorio")
+                    background: currentPath?.includes("/ensayos") ? "var(--primary)" : "transparent",
+                    color: currentPath?.includes("/ensayos")
                       ? "var(--btn-text)"
                       : "color-mix(in srgb, var(--primary) 30%, transparent)",
                   }}
@@ -208,7 +208,7 @@ const Navbar = () => {
                   <PenTool size={16} />
                 </Link>
                 <Link
-                  href="/personal/ropa"
+                  href="/myself/ropa"
                   className="p-2 transition-all"
                   style={{
                     borderRadius: "var(--radius-btn)",
@@ -457,9 +457,9 @@ const Navbar = () => {
               </div>
 
               {esFranilover && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   <Link
-                    href="/personal/salud"
+                    href="/myself/salud"
                     onClick={closeAll}
                     className="p-4 flex items-center justify-center transition-all"
                     style={{
@@ -472,20 +472,20 @@ const Navbar = () => {
                     <Utensils size={18} />
                   </Link>
                   <Link
-                    href="/personal/escritorio"
+                    href="/myself/escritorio"
                     onClick={closeAll}
                     className="p-4 flex items-center justify-center transition-all"
                     style={{
                       border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color: currentPath?.includes("/escritorio") ? "var(--btn-text)" : "var(--primary)",
-                      background: currentPath?.includes("/escritorio") ? "var(--primary)" : "transparent",
+                      color: currentPath?.includes("/ensayos") ? "var(--btn-text)" : "var(--primary)",
+                      background: currentPath?.includes("/ensayos") ? "var(--primary)" : "transparent",
                       borderRadius: "var(--radius-card)",
                     }}
                   >
                     <PenTool size={18} />
                   </Link>
                   <Link
-                    href="/personal/ropa"
+                    href="/myself/ropa"
                     onClick={closeAll}
                     className="p-4 flex items-center justify-center transition-all"
                     style={{
