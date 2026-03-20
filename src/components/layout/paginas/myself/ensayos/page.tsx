@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { ChevronLeft, Loader2, Menu, X } from "lucide-react";
+import { ChevronLeft, Loader2, Menu, X, PenTool } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -11,6 +11,7 @@ import Editor from "./components/Editor";
 import EmptyState from "./components/EmptyState";
 import NewNoteModal from "./components/NewNoteModal";
 import { TagPanel } from "./components/TagPanel";
+import EstudioLayout from "@/components/layout/EstudioLayout";
 
 export interface ZoteroSource {
   title: string;
@@ -305,17 +306,24 @@ export default function Ensayos() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-bg-main text-primary selection:bg-accent/20 overflow-hidden">
-      <nav className="shrink-0 z-50 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-3 flex items-center justify-between w-full bg-bg-main/80">
-        <button onClick={() => window.history.back()}
-          className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-colors"
-        >
-          <ChevronLeft size={13} /> Grafos
-        </button>
-        <span className="font-mono text-[9px] uppercase tracking-[0.35em] text-primary/20 hidden sm:block">
-          Knowledge Base
-        </span>
-        <div className="flex items-center gap-3">
+    <>
+      <EstudioLayout
+        titulo="Knowledge Base"
+        icono={<PenTool size={12}/>}
+        colapsadoLabel="Notas"
+        sidebarOpen={sidebarOpen}
+        onSidebarOpenChange={setSidebarOpen}
+        isOffline={false}
+        footerLeft={`${ensayos.length} notas`}
+        sidebarContent={<Sidebar {...sidebarProps} embedded />}
+      >
+        {/* Barra de estado interna del editor */}
+        <div className="shrink-0 z-10 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-2.5 flex items-center justify-between bg-bg-main/80">
+          <button onClick={() => window.history.back()}
+            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-colors"
+          >
+            <ChevronLeft size={13} /> Grafos
+          </button>
           <AnimatePresence mode="wait">
             {saveStatus !== "idle" && (
               <motion.span key={saveStatus} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -326,38 +334,13 @@ export default function Ensayos() {
               </motion.span>
             )}
           </AnimatePresence>
-          <button onClick={() => setSidebarOpen(p => !p)}
-            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-md transition-colors"
-            style={{ background: sidebarOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: "var(--primary)" }}
-          >
-            {sidebarOpen ? <X size={16} /> : <Menu size={16} />}
-          </button>
-          <div className="w-4 hidden lg:block" />
+          <span className="font-mono text-[9px] uppercase tracking-[0.35em] text-primary/20">
+            Knowledge Base
+          </span>
         </div>
-      </nav>
 
-      <AnimatePresence>
-        {sidebarOpen && (
-          <>
-            <motion.div key="overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-30 lg:hidden" style={{ background: "rgba(0,0,0,0.4)" }}
-              onClick={() => setSidebarOpen(false)}
-            />
-            <motion.div key="drawer" initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 280 }}
-              className="fixed top-0 left-0 z-40 h-full w-75 lg:hidden"
-              style={{ background: "var(--bg-menu, var(--bg-main))" }}
-            >
-              <div className="h-full pt-14"><Sidebar {...sidebarProps} /></div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[300px_1fr] min-h-0 overflow-hidden">
-        <div className="hidden lg:flex flex-col overflow-hidden h-full"><Sidebar {...sidebarProps} /></div>
-
-        <main className="relative p-4 md:p-8 lg:p-12 overflow-y-auto min-h-0">
+        {/* Panel principal */}
+        <main className="relative flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto min-h-0">
           {loading ? (
             <div className="flex flex-col gap-4 animate-pulse">
               <div className="h-10 rounded-xl w-1/3" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
@@ -392,13 +375,13 @@ export default function Ensayos() {
             onTagClick={t => setTagPanel(t)}
           />
         </main>
-      </div>
+      </EstudioLayout>
 
       <AnimatePresence>
         {showNewNoteModal && (
           <NewNoteModal onConfirm={crearEnsayo} onClose={() => setShowNewNoteModal(false)} />
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

@@ -20,6 +20,8 @@ interface SidebarProps {
   onSearchChange: (value: string) => void;
   onConnectZotero: () => void;
   onRefreshZotero: () => void;
+  /** Cuando es true, EstudioLayout ya provee h-full y border-r */
+  embedded?: boolean;
 }
 
 export default function Sidebar({
@@ -27,6 +29,7 @@ export default function Sidebar({
   searchTerm, sources, zoteroConnected,
   onTagClick, onEnsayoClick, onCrearEnsayo, onEliminarEnsayo,
   onSearchChange, onConnectZotero, onRefreshZotero,
+  embedded = false,
 }: SidebarProps) {
   const activeStyle = {
     background: "var(--accent)", color: "var(--white-custom)",
@@ -49,7 +52,7 @@ export default function Sidebar({
   const labelStyle = { color: "color-mix(in srgb, var(--primary) 30%, transparent)" } as React.CSSProperties;
 
   return (
-    <aside className="h-full min-h-0 flex flex-col gap-4 overflow-y-auto p-4 border-r"
+    <aside className={`flex flex-col gap-4 overflow-y-auto p-4 ${embedded ? "flex-1 min-h-0" : "h-full border-r"}`}
       style={{
         background: "var(--white-custom)",
         color: "color-mix(in srgb, var(--primary) 80%, transparent)",
