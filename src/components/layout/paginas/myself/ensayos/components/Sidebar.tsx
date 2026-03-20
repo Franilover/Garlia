@@ -49,7 +49,7 @@ export default function Sidebar({
   const labelStyle = { color: "color-mix(in srgb, var(--primary) 30%, transparent)" } as React.CSSProperties;
 
   return (
-    <aside className="h-full flex flex-col gap-4 overflow-y-auto p-4 border-r"
+    <aside className="h-full min-h-0 flex flex-col gap-4 overflow-y-auto p-4 border-r"
       style={{
         background: "var(--white-custom)",
         color: "color-mix(in srgb, var(--primary) 80%, transparent)",

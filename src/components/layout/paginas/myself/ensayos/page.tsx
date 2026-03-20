@@ -305,8 +305,8 @@ export default function Ensayos() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-main text-primary selection:bg-accent/20">
-      <nav className="sticky top-0 z-50 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-3 flex items-center justify-between max-w-screen-2xl mx-auto bg-bg-main/80">
+    <div className="h-screen flex flex-col bg-bg-main text-primary selection:bg-accent/20 overflow-hidden">
+      <nav className="shrink-0 z-50 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-3 flex items-center justify-between w-full bg-bg-main/80">
         <button onClick={() => window.history.back()}
           className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-colors"
         >
@@ -354,10 +354,10 @@ export default function Ensayos() {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] max-w-screen-2xl mx-auto min-h-[calc(100vh-57px)]">
-        <div className="hidden lg:block"><Sidebar {...sidebarProps} /></div>
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[300px_1fr] min-h-0 overflow-hidden">
+        <div className="hidden lg:flex flex-col overflow-hidden h-full"><Sidebar {...sidebarProps} /></div>
 
-        <main className="relative p-4 md:p-8 lg:p-12 overflow-hidden">
+        <main className="relative p-4 md:p-8 lg:p-12 overflow-y-auto min-h-0">
           {loading ? (
             <div className="flex flex-col gap-4 animate-pulse">
               <div className="h-10 rounded-xl w-1/3" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
