@@ -9,8 +9,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { SmartImage } from "@/shared/display/SmartImage";
-import EntidadPageBase from "@/shared/templates/GaleriaBase";
+import { SmartImage } from "@/components/display/SmartImage";
+import EntidadPageBase from "@/components/templates/GaleriaBase";
 
 // ============================================================================
 // CONSTANTES

@@ -1,8 +1,8 @@
 "use client";
 import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { useLightbox } from "@/shared/modal/lightbox";
-import Navbar from "@/shared/layout/navbar";
+import { useLightbox } from "@/components/modal/lightbox";
+import Navbar from "@/components/layout/navbar";
 
 export default function AppLogic({ children }) {
   const pathname = usePathname();

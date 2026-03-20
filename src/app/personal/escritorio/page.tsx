@@ -1,10 +1,10 @@
 "use client";
 
 import { Calendar, FileText, BookOpen, Music } from "lucide-react";
-import { Secciones } from "@/shared/layout/Secciones";
+import { Secciones } from "@/components/layout/Secciones";
 import { GestionPersonal } from "@/paginas/personal/tareas";
 import EnsayosView from "@/paginas/personal/ensayos/page";
-import { AdminOnly } from "@/shared/forms/AdminOnly";
+import { AdminOnly } from "@/components/forms/AdminOnly";
 import EstudioCapitulos from "@/paginas/wiki/Editor/EditorCapitulos";
 import EstudioLetras    from "@/paginas/wiki/Editor/EditorLetras";
 

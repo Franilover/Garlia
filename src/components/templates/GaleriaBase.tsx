@@ -2,12 +2,12 @@
 import { useState } from "react";
 import { LayoutGrid, AlignJustify, Search, X, ArrowUpNarrowWide, ArrowDownNarrowWide, WifiOff } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { GalleryGrid } from "@/shared/layout/gallery";
-import DetalleMaestro from "@/shared/display/detalles";
-import FiltrosMaestros from "@/shared/layout/Filtros";
-import PageHeader from "@/shared/layout/PageHeader";
-import { LoadingState, EmptyState } from "@/shared/feedback/StateComponents";
-import { AdminAddButton } from "@/shared/forms/AdminAddButton";
+import { GalleryGrid } from "@/components/layout/gallery";
+import DetalleMaestro from "@/components/display/detalles";
+import FiltrosMaestros from "@/components/layout/Filtros";
+import PageHeader from "@/components/layout/PageHeader";
+import { LoadingState, EmptyState } from "@/components/feedback/StateComponents";
+import { AdminAddButton } from "@/components/forms/AdminAddButton";
 import { useOfflineData } from "@/hooks/data/useOfflineData";
 import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
 import { useAdminItem } from "@/hooks/features/useAdminItem";

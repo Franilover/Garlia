@@ -7,7 +7,7 @@ import {
   ChevronLeft, Play, ListOrdered, Plus, Trash2, X, Edit3, Save, Calendar, Loader2 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SmartImage } from "@/shared/display/SmartImage";
+import { SmartImage } from "@/components/display/SmartImage";
 
 // --- INTERFACES ---
 interface Capitulo {

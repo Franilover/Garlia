@@ -1,7 +1,7 @@
 "use client";
 
 import { User, Sword, Panda } from "lucide-react";
-import Secciones from "@/shared/layout/Secciones";
+import Secciones from "@/components/layout/Secciones";
 import Personajes from "@/paginas/wiki/info/personajes";
 import PureGridItems from "@/paginas/wiki/info/items";
 import Criaturas from "@/paginas/wiki/info/criaturas";

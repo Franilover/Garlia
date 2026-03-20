@@ -8,7 +8,7 @@ import {
   FileText, Copy, Layers, CheckCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SmartImage } from "@/shared/display/SmartImage";
+import { SmartImage } from "@/components/display/SmartImage";
 import { MassEditModal } from "@/paginas/wiki/canciones/MassEditor";
 
 // ============================================================================

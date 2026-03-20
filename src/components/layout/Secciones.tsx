@@ -286,4 +286,4 @@ export function PanelSlider({
 }
 
 export default PanelSlider;
-export { default as Secciones } from "@/shared/layout/Secciones";
+export { default as Secciones } from "@/components/layout/Secciones";

@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import SimpleImagePicker from "@/shared/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 
 // ─── TIPOS ───────────────────────────────────────────────────────────────────
 type Categoria = "Superior" | "Inferior" | "Calzado" | "Accesorios" | "Outfit";

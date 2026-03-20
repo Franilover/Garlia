@@ -1,5 +1,5 @@
 import { Montserrat } from 'next/font/google';
-import { LightboxProvider } from "@/shared/modal/lightbox/";
+import { LightboxProvider } from "@/components/modal/lightbox/";
 import { AuthProvider } from "@/app/providers/AuthProvider";
 import { DataProvider } from "@/app/providers/DataProvider";
 import AppLogic from "@/app/providers/AppLogic";

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Compass, BookText, Music } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-import { MenuCard } from "@/shared/templates/MenuCard";
+import { MenuCard } from "@/components/templates/MenuCard";
 
 export default function WikiMenuPage() {
   const [notifications, setNotifications] = useState<Record<string, boolean>>({});

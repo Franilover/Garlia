@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import EntidadPageBase from "@/shared/templates/GaleriaBase";
-import { GalleryItem } from "@/shared/layout/gallery";
-import { LightboxProvider, LightboxVisual, useLightbox } from "@/shared/modal/lightbox";
+import EntidadPageBase from "@/components/templates/GaleriaBase";
+import { GalleryItem } from "@/components/layout/gallery";
+import { LightboxProvider, LightboxVisual, useLightbox } from "@/components/modal/lightbox";
 import { supabase } from "@/lib/api/client/supabase";
 import { X, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import SimpleImagePicker from "@/shared/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 
 const CATEGORIAS_DIBUJO = ["fanart", "original", "bocetos"];
 
