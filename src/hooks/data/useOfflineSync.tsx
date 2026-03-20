@@ -13,6 +13,8 @@ const SYNC_TABLES: Record<string, {
   eventos:           { supabaseTable: "eventos",            excludeFields: ["status", "deleted"] },
   rutinas:           { supabaseTable: "rutinas",            excludeFields: ["status", "deleted"] },
   ejercicios_rutina: { supabaseTable: "ejercicios_rutina",  excludeFields: ["status", "deleted"] },
+  secciones_cancion: { supabaseTable: "secciones_cancion",  excludeFields: ["status", "deleted"] },
+  capitulos:         { supabaseTable: "capitulos",          excludeFields: ["status", "deleted"] },
 };
 
 const MAX_RETRIES = 3;
