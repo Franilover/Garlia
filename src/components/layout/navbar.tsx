@@ -73,7 +73,7 @@ const Navbar = () => {
 
   const navContentMobile = useMemo(() => (
     <div className="flex w-full items-center justify-evenly h-full">
-      <Link href="/myself" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
+      <Link href="/personal" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
         <Star
           size={26}
           className="transition-all duration-300"
