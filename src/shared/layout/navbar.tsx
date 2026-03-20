@@ -219,7 +219,6 @@ const Navbar = () => {
                   }}
                 >
                   <Shirt size={16} />
-                  <BookOpen size={16} />
                 </Link>
               </div>
             )}
