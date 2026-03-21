@@ -215,8 +215,8 @@
 [data-theme="scribble"] .card-title,
 [data-theme="scribble"] .heading {
   font-family: 'Caveat', cursive !important;
-  font-size: 1.4em; /* Caveat necesita un poco más de tamaño para lucir */
-  line-height: 1.2;
+  font-size: 2.8em;
+  line-height: 1.15;
 }
 
 /* Textura de papel (Scribble) */
