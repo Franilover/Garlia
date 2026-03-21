@@ -1,395 +1,675 @@
-@import "tailwindcss";
-@plugin "tailwindcss-animate";
+"use client";
+import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/app/providers/AuthProvider";
+import { supabase } from "@/lib/api/client/supabase";
+import { useDarkMode } from "@/hooks/features/useDarkMode";
+import { ThemeSelector } from "@/app/providers/ThemeProvider";
+import {
+  LogOut, CircleUser, Flower2,
+  Utensils, PenTool, Moon, Sun, Star, Palette, Shirt, Sword
+} from "lucide-react";
 
-@theme inline {
-  --color-primary: var(--primary);
-  --color-accent: var(--accent);
-  --color-bg-main: var(--bg-main);
-  --color-bg-menu: var(--bg-menu);
-  --color-white-custom: var(--white-custom);
-  --color-foreground: var(--foreground);
-  --color-btn-text: var(--btn-text);
-  --color-text-on-card: var(--text-on-card);
-  --color-input-bg: var(--input-bg);
-  --color-input-text: var(--input-text);
+const Navbar = () => {
+  const currentPath = usePathname();
+  const { user, perfil } = useAuth() as { user: any; perfil: any };
+  const [userMenuOpen, setUserMenuOpen]   = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const { isDark, toggle } = useDarkMode();
 
-  --animate-terminal-flicker: flicker 0.15s infinite;
-  --animate-cursor-blink: blink 1s step-end infinite;
-  --animate-shake: shake 0.2s ease-in-out 0s 2;
-  
-  @keyframes flicker {
-    0% { opacity: 0.97; }
-    50% { opacity: 1; }
-    100% { opacity: 0.98; }
-  }
-  @keyframes blink {
-    /* CAMBIO: blink ahora usa el accent cálido del pixel dark, no verde puro */
-    from, to { color: transparent; }
-    50% { color: var(--accent); }
-  }
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(5px); }
-    50% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-  }
-  @keyframes scanline-move {
-    0%   { transform: translateY(-100%); }
-    100% { transform: translateY(100vh); }
-  }
-}
+  const esFranilover = perfil?.username?.toLowerCase() === "franilover";
 
-/* IMPORTACIÓN DE FUENTES */
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Pixelify+Sans:wght@400..700&family=Montserrat:wght@400;700&display=swap');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.clear();
+    window.location.href = "/";
+  };
 
-/* =========================================
-   TEMA: DEFAULT (MINIMALISTA)
-   ========================================= */
-:root,
-[data-theme="default"] {
-  --primary: #67556d;
-  --accent: #be97d1;
-  --bg-main: #e4d7e6;
-  --bg-menu: #67556d;
-  --white-custom: #ffffff;
-  --foreground: #3a2e3d;
-  --btn-text: #ffffff;
-  --menu-text: #ffffff;
-  --text-on-card: #3a2e3d;
-  --input-bg: #ffffff;
-  --input-text: #3a2e3d;
-  --radius-card: 2rem;
-  --radius-btn: 0.75rem;
-  --radius-input: 0.75rem;
-  --shadow-card: 0 2px 16px 0 rgba(103,85,109,0.07);
-  --border-width: 1px;
-  --font-display: 'Montserrat', sans-serif;
-  font-size: 14px;
-}
+  const closeAll = () => {
+    setUserMenuOpen(false);
+    setThemeMenuOpen(false);
+  };
 
-[data-theme="default"].dark,
-.dark {
-  /* CAMBIO: primary más suave y menos saturado, evita que los botones griten */
-  --primary: #b89ec8;
-  /* CAMBIO: accent ligeramente menos intenso para mejor convivencia con fondo oscuro */
-  --accent: #9d70b5;
-  /* CAMBIO: bg-main más cálido y menos negro puro — gris-azulado oscuro */
-  --bg-main: #1c1720;
-  /* CAMBIO: bg-menu diferenciado del bg-main para dar jerarquía real */
-  --bg-menu: #251e2c;
-  /* CAMBIO: white-custom más elevado para que las cards destaquen del fondo */
-  --white-custom: #28202f;
-  /* CAMBIO: foreground más cálido — menos blanco frío, más crema-lila */
-  --foreground: #e8daf2;
-  --btn-text: #1c1720;
-  --menu-text: #e8daf2;
-  /* CAMBIO: text-on-card con buen contraste sobre white-custom */
-  --text-on-card: #e8daf2;
-  /* CAMBIO: input-bg ligeramente más claro que las cards para distinguirse */
-  --input-bg: #32273c;
-  --input-text: #e8daf2;
-}
+  const isWiki     = currentPath?.startsWith("/wiki") ?? false;
+  const isPersonal = currentPath?.startsWith("/personal") ?? false;
 
-/* =========================================
-   TEMA: PIXEL (RETRO)
-   ========================================= */
-[data-theme="pixel"] {
-  --primary: #2d2d2d;
-  --accent: #ff6b35;
-  --bg-main: #c8c8c8;
-  --bg-menu: #1a1a2e;
-  --white-custom: #f0f0f0;
-  --foreground: #1a1a1a;
-  --btn-text: #f0f0f0;
-  --menu-text: #f0f0f0;
-  --text-on-card: #1a1a1a;
-  --input-bg: #f0f0f0;
-  --input-text: #1a1a1a;
-  --radius-card: 0px;
-  --radius-btn: 0px;
-  --radius-input: 0px;
-  --shadow-card: 0 2px 0px 0px rgba(26,26,26,0.15);
-  --border-width: 2px;
-  --font-display: "Pixelify Sans", sans-serif;
-  font-size: 16px;
-  image-rendering: pixelated;
-}
+  const mainLinks = [
+    { href: "/personal", label: "Personal", icon: Star,    active: isPersonal, fillActive: true  },
+    { href: "/wiki",     label: "Wiki",      icon: Flower2, active: isWiki,     fillActive: false },
+  ];
 
-[data-theme="pixel"].dark {
-  /* 
-    ANTES: --primary: #00ff00 → verde fosforescente puro = agotador
-    CAMBIO: Verde desaturado, "verde viejo de monitor" real.
-    Los monitores CRT reales eran más bien P31 phosphor: verde-amarillento suave.
-  */
-  --primary: #7dbb8a;
-  /* CAMBIO: accent como verde-lima más brillante, solo para highlights puntuales */
-  --accent: #a8d5a2;
-  /* 
-    ANTES: bg-main: #0a0a0a = negro puro, muy duro
-    CAMBIO: verde-negro muy oscuro, evoca CRT sin ahogar 
-  */
-  --bg-main: #0b100c;
-  /* CAMBIO: bg-menu ligeramente diferenciado */
-  --bg-menu: #0e1510;
-  /* CAMBIO: white-custom con tinte verdoso suave para coherencia temática */
-  --white-custom: #111a12;
-  /* CAMBIO: foreground = texto principal legible, verde suave sin ser fosfo */
-  --foreground: #c8e8c4;
-  /* CAMBIO: btn-text oscuro para contrastar sobre primary más suave */
-  --btn-text: #0b100c;
-  --menu-text: #c8e8c4;
-  --text-on-card: #c8e8c4;
-  --input-bg: #131d14;
-  --input-text: #c8e8c4;
-}
+  const franiLinks = [
+    { href: "/myself/salud",      label: "Salud",      icon: Utensils, key: "/salud"      },
+    { href: "/myself/escritorio", label: "Escritorio", icon: PenTool,  key: "/escritorio" },
+    { href: "/myself/ropa",       label: "Ropa",       icon: Shirt,    key: "/ropa"       },
+  ];
 
-/* =========================================
-   TEMA: SCRIBBLE (ANTIGUO)
-   ========================================= */
-[data-theme="scribble"] {
-  --primary: #4a3427;
-  --accent: #d2691e;
-  --bg-main: #e2d1b9;
-  --bg-menu: #4a3427;
-  --white-custom: #ebdecb;
-  --foreground: #2d1f18;
-  --btn-text: #ebdecb;
-  --menu-text: #ebdecb;
-  --text-on-card: #2d1f18;
-  --input-bg: #f2e6d5;
-  --input-text: #2d1f18;
-  --radius-card: 0px;
-  --radius-btn: 0px;
-  --radius-input: 0px;
-  --shadow-card: 4px 4px 0px rgba(74,52,39,0.1);
-  --border-width: 1px;
-  --font-display: 'Caveat', cursive;
-  font-size: 19px;
-}
+  return (
+    <>
+      {/* ══════════════════════════════════════════════════════════════
+          SIDEBAR — desktop
+      ══════════════════════════════════════════════════════════════ */}
+      <aside
+        onMouseEnter={() => setSidebarExpanded(true)}
+        onMouseLeave={() => { setSidebarExpanded(false); closeAll(); }}
+        className="hidden md:flex fixed left-0 top-0 h-full z-[100] flex-col transition-all duration-300 ease-in-out"
+        style={{
+          width: sidebarExpanded ? "220px" : "68px",
+          background: "color-mix(in srgb, var(--bg-main) 92%, transparent)",
+          borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+        }}
+      >
+        {/* Logo */}
+        <Link
+          href="/"
+          onClick={closeAll}
+          className="flex items-center gap-3 px-4 shrink-0 overflow-hidden"
+          style={{
+            height: "68px",
+            color: "var(--primary)",
+          }}
+        >
+          <span className="shrink-0 flex items-center justify-center" style={{ width: "36px" }}>
+            <Flower2 size={22} />
+          </span>
+          <AnimatePresence>
+            {sidebarExpanded && (
+              <motion.span
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.18 }}
+                className="text-base font-black italic tracking-tighter whitespace-nowrap"
+              >
+                FRANI<span style={{ opacity: 0.35 }}>LOVER</span>
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </Link>
 
-[data-theme="scribble"].dark {
-  /* 
-    ANTES: primary: #e8c9a0 sobre bg oscuro podía perderse
-    CAMBIO: tono sepia más dorado-cálido con contraste mejorado
-  */
-  --primary: #d4a96a;
-  /* CAMBIO: accent más saturado para que los highlights se lean */
-  --accent: #e08040;
-  /* 
-    ANTES: bg-main: #1a1208 = muy oscuro y verdoso
-    CAMBIO: sepia-negro más cálido, menos frío 
-  */
-  --bg-main: #1a130a;
-  /* CAMBIO: bg-menu diferenciado */
-  --bg-menu: #120e06;
-  /* CAMBIO: white-custom = pergamino oscuro visible sobre bg-main */
-  --white-custom: #261c0f;
-  /* CAMBIO: foreground = crema cálida, cómoda para leer texto largo */
-  --foreground: #ede0c8;
-  --btn-text: #1a130a;
-  --menu-text: #ede0c8;
-  --text-on-card: #ede0c8;
-  /* CAMBIO: input-bg ligeramente más claro que cards */
-  --input-bg: #2e2010;
-  --input-text: #ede0c8;
-}
+        {/* Divider */}
+        <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "0 12px" }} />
 
-/* FUERZA BRUTA DE FUENTES POR TEMA */
-[data-theme="default"], [data-theme="default"] * { font-family: 'Montserrat', sans-serif !important; }
-[data-theme="pixel"], [data-theme="pixel"] * { font-family: "Pixelify Sans", sans-serif !important; }
-[data-theme="scribble"], [data-theme="scribble"] * { font-family: 'Caveat', cursive !important; }
+        {/* Main nav links */}
+        <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
+          {mainLinks.map(({ href, label, icon: Icon, active, fillActive }) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={closeAll}
+              className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
+              style={{
+                height: "44px",
+                borderRadius: "var(--radius-btn)",
+                background: active
+                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                  : "transparent",
+                color: active
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                paddingLeft: "10px",
+                paddingRight: sidebarExpanded ? "12px" : "10px",
+              }}
+              onMouseEnter={(e) => {
+                if (!active) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
+                (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+              }}
+              onMouseLeave={(e) => {
+                if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.color = active
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 40%, transparent)";
+              }}
+            >
+              <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
+                <Icon
+                  size={18}
+                  fill={active && fillActive ? "currentColor" : "none"}
+                  strokeWidth={active ? 2.5 : 2}
+                />
+              </span>
+              <AnimatePresence>
+                {sidebarExpanded && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -6 }}
+                    transition={{ duration: 0.16 }}
+                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap"
+                  >
+                    {label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              {/* Active indicator dot (collapsed) */}
+              {active && !sidebarExpanded && (
+                <span
+                  className="absolute left-[3px]"
+                  style={{
+                    width: "3px",
+                    height: "20px",
+                    borderRadius: "0 2px 2px 0",
+                    background: "var(--primary)",
+                  }}
+                />
+              )}
+            </Link>
+          ))}
 
-/* Textura de papel (Scribble) */
-[data-theme="scribble"] body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0.06;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-}
+          {/* Franilover links */}
+          {esFranilover && (
+            <>
+              <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "6px 4px" }} />
+              {franiLinks.map(({ href, label, icon: Icon, key }) => {
+                const active = !!currentPath?.includes(key);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={closeAll}
+                    className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
+                    style={{
+                      height: "44px",
+                      borderRadius: "var(--radius-btn)",
+                      background: active
+                        ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                        : "transparent",
+                      color: active
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                      paddingLeft: "10px",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!active) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
+                      (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
+                      (e.currentTarget as HTMLElement).style.color = active
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 40%, transparent)";
+                    }}
+                  >
+                    <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
+                      <Icon size={16} strokeWidth={active ? 2.5 : 2} />
+                    </span>
+                    <AnimatePresence>
+                      {sidebarExpanded && (
+                        <motion.span
+                          initial={{ opacity: 0, x: -6 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -6 }}
+                          transition={{ duration: 0.16 }}
+                          className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap"
+                        >
+                          {label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </Link>
+                );
+              })}
+            </>
+          )}
+        </nav>
 
-/* =========================================
-   EFECTOS CRT — PIXEL DARK
-   CAMBIO: opacidad reducida en scanlines para que no sofoqen
-   ========================================= */
-[data-theme="pixel"].dark body::before {
-  content: " ";
-  display: block;
-  position: fixed;
-  inset: 0;
-  /* CAMBIO: tinte verdoso en lugar de RGB genérico, y menos opacidad */
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%, 
-    rgba(0, 0, 0, 0.18) 50%
-  ), linear-gradient(
-    90deg, 
-    rgba(0, 255, 80, 0.03), 
-    rgba(0, 255, 0, 0.015), 
-    rgba(0, 200, 50, 0.03)
+        {/* Bottom controls */}
+        <div className="flex flex-col gap-1 px-2 pb-4 shrink-0">
+          <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "4px 4px 8px" }} />
+
+          {/* Dark mode */}
+          <button
+            onClick={toggle}
+            className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
+            style={{
+              height: "44px",
+              borderRadius: "var(--radius-btn)",
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              paddingLeft: "10px",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
+              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "transparent";
+              (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)";
+            }}
+          >
+            <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
+              <AnimatePresence mode="wait" initial={false}>
+                {isDark ? (
+                  <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                    <Sun size={16} />
+                  </motion.span>
+                ) : (
+                  <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                    <Moon size={16} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </span>
+            <AnimatePresence>
+              {sidebarExpanded && (
+                <motion.span
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -6 }}
+                  transition={{ duration: 0.16 }}
+                  className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap"
+                >
+                  {isDark ? "Modo claro" : "Modo oscuro"}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
+
+          {/* Theme picker */}
+          <div className="relative">
+            <button
+              onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); }}
+              className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
+              style={{
+                height: "44px",
+                borderRadius: "var(--radius-btn)",
+                background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                paddingLeft: "10px",
+              }}
+              onMouseEnter={(e) => {
+                if (!themeMenuOpen) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
+                (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+              }}
+              onMouseLeave={(e) => {
+                if (!themeMenuOpen) (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.color = themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)";
+              }}
+            >
+              <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
+                <Palette size={16} />
+              </span>
+              <AnimatePresence>
+                {sidebarExpanded && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -6 }}
+                    transition={{ duration: 0.16 }}
+                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap"
+                  >
+                    Tema
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+            <AnimatePresence>
+              {themeMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, x: -8, scale: 0.97 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -8, scale: 0.97 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={e => e.stopPropagation()}
+                  className="absolute bottom-full left-full ml-2 mb-0 w-56 z-[1001] overflow-hidden"
+                  style={{
+                    background: "var(--white-custom)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    borderRadius: "var(--radius-card)",
+                    boxShadow: "var(--shadow-card)",
+                    bottom: "0",
+                    top: "auto",
+                  }}
+                >
+                  <ThemeSelector />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* User */}
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={e => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); setThemeMenuOpen(false); }}
+                className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
+                style={{
+                  height: "44px",
+                  borderRadius: "var(--radius-btn)",
+                  background: userMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                  color: userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                  paddingLeft: "10px",
+                }}
+                onMouseEnter={(e) => {
+                  if (!userMenuOpen) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!userMenuOpen) (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (e.currentTarget as HTMLElement).style.color = userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)";
+                }}
+              >
+                <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
+                  <CircleUser size={18} />
+                </span>
+                <AnimatePresence>
+                  {sidebarExpanded && (
+                    <motion.span
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -6 }}
+                      transition={{ duration: 0.16 }}
+                      className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap truncate max-w-[110px]"
+                    >
+                      {perfil?.username}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -8, scale: 0.97 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -8, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={e => e.stopPropagation()}
+                    className="absolute left-full ml-2 w-48 p-2 z-[1001]"
+                    style={{
+                      bottom: "0",
+                      background: "var(--white-custom)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      borderRadius: "var(--radius-card)",
+                      boxShadow: "var(--shadow-card)",
+                    }}
+                  >
+                    <Link
+                      href="/wiki/personal"
+                      onClick={closeAll}
+                      className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase transition-all"
+                      style={{
+                        color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                        borderRadius: "var(--radius-btn)",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
+                        (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.background = "transparent";
+                        (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 60%, transparent)";
+                      }}
+                    >
+                      <Sword size={14} /> Mi Personaje
+                    </Link>
+                    <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)", margin: "4px 0" }} />
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase transition-all"
+                      style={{
+                        color: "oklch(0.6 0.2 25)",
+                        borderRadius: "var(--radius-btn)",
+                        background: "transparent",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.background = "oklch(0.97 0.01 25)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.background = "transparent";
+                      }}
+                    >
+                      <LogOut size={14} /> Salir
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <Link
+              href="/auth/login"
+              className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
+              style={{
+                height: "44px",
+                borderRadius: "var(--radius-btn)",
+                color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                paddingLeft: "10px",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
+                (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 50%, transparent)";
+              }}
+            >
+              <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
+                <CircleUser size={18} />
+              </span>
+              <AnimatePresence>
+                {sidebarExpanded && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -6 }}
+                    transition={{ duration: 0.16 }}
+                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap"
+                  >
+                    Entrar
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+          )}
+        </div>
+      </aside>
+
+      {/* ══════════════════════════════════════════════════════════════
+          MÓVIL — Barra compacta
+      ══════════════════════════════════════════════════════════════ */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full z-[1000]">
+
+        {/* Theme picker popup */}
+        <AnimatePresence>
+          {themeMenuOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[90]"
+                onClick={closeAll}
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                onClick={e => e.stopPropagation()}
+                className="absolute bottom-full right-4 mb-2 w-56 overflow-hidden z-[1001]"
+                style={{
+                  background: "var(--white-custom)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderRadius: "var(--radius-card)",
+                  boxShadow: "0 8px 32px color-mix(in srgb, var(--primary) 15%, transparent)",
+                }}
+              >
+                <ThemeSelector />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Barra */}
+        <div
+          className="flex items-center px-4"
+          style={{
+            height: "56px",
+            background: "color-mix(in srgb, var(--bg-main) 90%, transparent)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          }}
+        >
+          {/* Izquierda: vacío para balancear */}
+          <div className="flex-1" />
+
+          {/* Centro: Personal + Wiki */}
+          <div
+            className="flex items-center gap-1 p-1"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+              borderRadius: "var(--radius-card)",
+              border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          >
+            {mainLinks.map(({ href, label, icon: Icon, active, fillActive }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={closeAll}
+                className="flex items-center gap-1.5 transition-all"
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "var(--radius-btn)",
+                  background: active ? "var(--primary)" : "transparent",
+                  color: active ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                }}
+              >
+                <Icon size={14} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
+                <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+              </Link>
+            ))}
+          </div>
+
+          {/* Derecha: tema + perfil */}
+          <div className="flex-1 flex items-center justify-end gap-1">
+
+            {/* Selector de tema */}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); }}
+              className="flex items-center justify-center transition-all"
+              style={{
+                width: 34, height: 34,
+                borderRadius: "var(--radius-btn)",
+                background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+              }}
+            >
+              <Palette size={16} />
+            </motion.button>
+
+            {/* Perfil — abre menú si hay user, redirige a login si no */}
+            <div className="relative">
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={() => user
+                  ? (setUserMenuOpen(!userMenuOpen), setThemeMenuOpen(false))
+                  : (window.location.href = "/auth/login")
+                }
+                className="flex items-center justify-center transition-all"
+                style={{
+                  width: 34, height: 34,
+                  borderRadius: "var(--radius-btn)",
+                  background: userMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                  color: userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                }}
+              >
+                <CircleUser size={16} />
+              </motion.button>
+
+              {/* Mini menú de perfil */}
+              <AnimatePresence>
+                {userMenuOpen && user && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                    onClick={e => e.stopPropagation()}
+                    className="absolute bottom-full right-0 mb-2 overflow-hidden z-[1001]"
+                    style={{
+                      width: 180,
+                      background: "var(--white-custom)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      borderRadius: "var(--radius-card)",
+                      boxShadow: "0 8px 32px color-mix(in srgb, var(--primary) 15%, transparent)",
+                    }}
+                  >
+                    {/* Username */}
+                    <div className="px-4 py-3" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-primary truncate">{perfil?.username}</p>
+                    </div>
+
+                    {/* Link perfil */}
+                    <Link
+                      href="/wiki/personal"
+                      onClick={closeAll}
+                      className="flex items-center gap-2.5 px-4 py-3 transition-all"
+                      style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
+                    >
+                      <CircleUser size={13} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Mi perfil</span>
+                    </Link>
+
+                    {/* Franilover links */}
+                    {esFranilover && (
+                      <div className="p-2" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                        <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Franilover</p>
+                        {franiLinks.map(({ href, icon: Icon, label, key }) => {
+                          const active = !!currentPath?.includes(key);
+                          return (
+                            <Link
+                              key={href}
+                              href={href}
+                              onClick={closeAll}
+                              className="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-btn)] transition-all"
+                              style={{
+                                background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                                color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                              }}
+                            >
+                              <Icon size={13} />
+                              <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Logout */}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2.5 px-4 py-3 transition-all"
+                      style={{ color: "oklch(0.55 0.18 25)" }}
+                    >
+                      <LogOut size={13} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Salir</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {(userMenuOpen || themeMenuOpen) && (
+        <div
+          className="fixed inset-0 z-[90]"
+          style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
+          onClick={closeAll}
+        />
+      )}
+    </>
   );
-  z-index: 9998;
-  background-size: 100% 4px, 3px 100%;
-  pointer-events: none;
-}
+};
 
-[data-theme="pixel"].dark body::after {
-  content: " ";
-  display: block;
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100px;
-  /* CAMBIO: scanline con tinte verde coherente con nuevo primary */
-  background: linear-gradient(0deg, transparent 0%, rgba(125, 187, 138, 0.05) 50%, transparent 100%);
-  opacity: 0.12;
-  z-index: 9999;
-  pointer-events: none;
-  animation: scanline-move 8s linear infinite;
-}
-
-/* 
-  CAMBIO: Flicker en pixel dark — mucho más sutil.
-  El original flickeaba entre 0.97–1, que ya era suave. 
-  Rango más amplio solo en modo dark para "vida" sin marear.
-*/
-[data-theme="pixel"].dark body {
-  animation: flicker 0.12s infinite;
-}
-
-@layer base {
-  body {
-    @apply bg-[var(--bg-main)] text-[var(--foreground)] antialiased;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-}
-
-@layer components {
-  /* TARJETAS */
-  .card-main {
-    background: var(--white-custom);
-    color: var(--text-on-card, var(--foreground));
-    border: var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent);
-    border-radius: var(--radius-card);
-    padding: 1.5rem;
-    box-shadow: var(--shadow-card);
-    position: relative;
-    overflow: hidden;
-  }
-
-  [data-theme="scribble"] .card-main {
-    border: 1px solid var(--primary);
-  }
-
-  [data-theme="scribble"] .card-main::after {
-    content: "";
-    position: absolute;
-    inset: 4px;
-    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
-    pointer-events: none;
-    z-index: 10;
-  }
-
-  /* CAMBIO: pixel dark — cards con borde visible en tono verde apagado */
-  [data-theme="pixel"].dark .card-main {
-    border: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 15%, transparent);
-  }
-
-  /* PERSONAJES */
-  .char-card-base {
-    @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
-    border-radius: var(--radius-card);
-    border: var(--border-width) solid transparent;
-  }
-
-  [data-theme="scribble"] .char-card-base {
-    border: 1px solid var(--primary);
-    grayscale: 0;
-  }
-
-  /* BUSCADOR E INPUTS */
-  .input-brand {
-    width: 100%;
-    background: var(--input-bg);
-    border: var(--border-width) solid color-mix(in srgb, var(--primary) 20%, transparent);
-    border-radius: var(--radius-input);
-    padding: 0.75rem 1rem;
-    color: var(--input-text);
-    outline: none;
-    transition: all 0.2s ease;
-  }
-
-  /* CAMBIO: focus visible en todos los temas oscuros */
-  .dark .input-brand:focus,
-  [data-theme="pixel"].dark .input-brand:focus,
-  [data-theme="scribble"].dark .input-brand:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent);
-  }
-
-  [data-theme="scribble"] .relative:has(input[type="text"])::after {
-    content: "";
-    position: absolute;
-    inset: 4px;
-    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
-    pointer-events: none;
-    z-index: 5;
-  }
-
-  /* BOTONES */
-  .btn-brand {
-    background: var(--primary);
-    color: var(--btn-text, white);
-    font-weight: 700;
-    padding: 0.75rem 2rem;
-    border-radius: var(--radius-btn);
-    position: relative;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  [data-theme="scribble"] .btn-brand {
-    border: 1px solid var(--primary);
-    background: transparent;
-    color: var(--primary);
-  }
-
-  /* CAMBIO: pixel dark — botones con glow suave para no perder affordance */
-  [data-theme="pixel"].dark .btn-brand {
-    box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 30%, transparent);
-  }
-  [data-theme="pixel"].dark .btn-brand:hover {
-    box-shadow: 0 0 16px color-mix(in srgb, var(--primary) 50%, transparent);
-  }
-
-  /* SELECTS */
-  select, select option {
-    background-color: var(--input-bg, var(--white-custom));
-    color: var(--input-text, var(--foreground));
-  }
-
-  .dark select, [data-theme="pixel"].dark select, [data-theme="scribble"].dark select {
-    background-color: var(--input-bg);
-    color: var(--input-text);
-    border-color: color-mix(in srgb, var(--primary) 40%, transparent);
-  }
-
-  /* MODALES Y SUPERFICIES */
-  .modal-surface { 
-    background: var(--white-custom); 
-    color: var(--text-on-card); 
-  }
-
-  .dark .bg-white, [data-theme="scribble"].dark .bg-white {
-    background-color: var(--white-custom) !important;
-  }
-
-  /* Utilidades de bordes específicas del modo oscuro */
-  .dark .border-\[\\#6B5E70\]\/8,
-  .dark .border-\[\\#6B5E70\]\/10,
-  .dark .border-\[\\#6B5E70\]\/12 {
-    border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
-  }
-}
+export default Navbar;
