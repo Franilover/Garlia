@@ -37,6 +37,17 @@ const Navbar = () => {
   const isWiki     = currentPath?.startsWith("/wiki") ?? false;
   const isPersonal = currentPath?.startsWith("/personal") ?? false;
 
+  const mainLinks = [
+    { href: "/personal", label: "Personal", icon: Star,    active: isPersonal, fillActive: true  },
+    { href: "/wiki",     label: "Wiki",      icon: Flower2, active: isWiki,     fillActive: false },
+  ];
+
+  const franiLinks = [
+    { href: "/myself/salud",      label: "Salud",      icon: Utensils, key: "/salud"      },
+    { href: "/myself/escritorio", label: "Escritorio", icon: PenTool,  key: "/escritorio" },
+    { href: "/myself/ropa",       label: "Ropa",       icon: Shirt,    key: "/ropa"       },
+  ];
+
   return (
     <>
       {/* ══════════════════════════════════════════════════════════════
