@@ -1191,6 +1191,206 @@ function LectorSkeleton() {
   );
 }
 
+// ─── CAPÍTULO INDIVIDUAL EN MODO SCROLL ──────────────────────────────────────
+interface CapituloScrollItem {
+  id: string;
+  orden: number;
+  titulo_capitulo: string;
+  contenido: string;
+  fecha_publicacion: string;
+  libros?: { titulo?: string };
+}
+
+function CapituloScrollBlock({
+  cap,
+  isAdmin,
+  isEditing,
+  onStartEdit,
+  onNavigate,
+}: {
+  cap: CapituloScrollItem;
+  isAdmin: boolean;
+  isEditing: boolean;
+  onStartEdit: (cap: CapituloScrollItem) => void;
+  onNavigate: (capId: string) => void;
+}) {
+  const { words } = useTextStats(cap.contenido ?? "");
+  return (
+    <article
+      id={`cap-${cap.id}`}
+      className="max-w-2xl mx-auto px-6 py-16 md:py-24 scroll-mt-20"
+    >
+      <header className="mb-12 text-center">
+        <span className="text-primary/20 font-serif italic text-4xl block mb-2">§ {cap.orden}</span>
+        <h1 className="text-3xl md:text-4xl font-black text-primary tracking-tighter uppercase italic leading-none">
+          {cap.titulo_capitulo}
+        </h1>
+        <div className="flex items-center justify-center gap-4 mt-4 text-[9px] font-black uppercase tracking-widest text-primary/25">
+          <span className="flex items-center gap-1"><AlignLeft size={9} /> {words.toLocaleString()} palabras</span>
+          <span className="flex items-center gap-1"><Clock size={9} /> ~{Math.max(1, Math.round(words / 200))} min</span>
+          {isAdmin && (
+            <button
+              onClick={() => onStartEdit(cap)}
+              className="flex items-center gap-1 text-primary/30 hover:text-primary transition-colors"
+            >
+              <Edit3 size={9} /> Editar
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="min-h-[20vh]">
+        <ContenidoInteractivo texto={cap.contenido ?? ""} onNavigate={onNavigate} />
+      </div>
+
+      {/* Separador entre capítulos */}
+      <div className="mt-20 flex items-center gap-4">
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+        <span className="text-primary/20 font-serif italic text-2xl select-none">✦</span>
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+      </div>
+    </article>
+  );
+}
+
+// ─── MODAL DE EDICIÓN INLINE (para modo scroll) ───────────────────────────────
+function EditCapModal({
+  cap,
+  listaCapitulos,
+  onClose,
+  onSaved,
+}: {
+  cap: CapituloScrollItem;
+  listaCapitulos: CapituloLista[];
+  onClose: () => void;
+  onSaved: (id: string, nuevoContenido: string) => void;
+}) {
+  const [nuevoContenido, setNuevoContenido] = useState(cap.contenido ?? "");
+  const [previewMode, setPreviewMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedContent = useRef(cap.contenido ?? "");
+  const { words: wordsEdit } = useTextStats(nuevoContenido);
+  const { words: wordsPublicado } = useTextStats(cap.contenido ?? "");
+
+  const handleNavigate = useCallback((capId: string) => {
+    onClose();
+    setTimeout(() => {
+      document.getElementById(`cap-${capId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (nuevoContenido === lastSavedContent.current) return;
+    setSaveStatus("pending");
+    saveLocalDraft(cap.id, nuevoContenido);
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(async () => {
+      if (!navigator.onLine) { setSaveStatus("offline"); return; }
+      setSaveStatus("saving");
+      try {
+        const { error: saveError } = await librosQueries.updateContenido(cap.id, nuevoContenido);
+        if (saveError) throw saveError;
+        lastSavedContent.current = nuevoContenido;
+        clearLocalDraft(cap.id);
+        setSaveStatus("saved");
+      } catch {
+        setSaveStatus("offline");
+      }
+    }, 2000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nuevoContenido]);
+
+  const handleSave = async () => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    setSaving(true);
+    setSaveStatus("saving");
+    try {
+      const { error: saveError } = await librosQueries.updateContenido(cap.id, nuevoContenido);
+      if (saveError) throw saveError;
+      lastSavedContent.current = nuevoContenido;
+      clearLocalDraft(cap.id);
+      setSaveStatus("saved");
+      onSaved(cap.id, nuevoContenido);
+      onClose();
+    } catch (err: any) {
+      setSaveStatus("error");
+      alert("Error al guardar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[70] bg-bg-main flex flex-col"
+    >
+      <EditorToolbar
+        textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
+        value={nuevoContenido}
+        onChange={setNuevoContenido}
+        onSave={handleSave}
+        onCancel={onClose}
+        saving={saving}
+        saveStatus={saveStatus}
+        libroId={cap.libros?.titulo ?? ""}
+        nextOrder={listaCapitulos.length + 1}
+        listaCapitulos={listaCapitulos}
+      />
+
+      {/* Draft recovery banner */}
+      {saveStatus === "pending" && loadLocalDraft(cap.id) && (
+        <div className="max-w-2xl mx-auto w-full px-6 pt-4">
+          <div className="rounded-[var(--radius-btn)] bg-amber-50 border border-amber-200 px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">⚠ Borrador local recuperado</p>
+            <button onClick={() => { setNuevoContenido(cap.contenido ?? ""); clearLocalDraft(cap.id); setSaveStatus("saved"); }} className="text-[9px] font-black uppercase tracking-widest text-amber-400 hover:text-amber-600 shrink-0">Descartar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Header del cap dentro del editor */}
+      <div className="max-w-2xl mx-auto w-full px-6 pt-6 pb-2 text-center shrink-0">
+        <span className="text-primary/20 font-serif italic text-2xl">§ {cap.orden}</span>
+        <h2 className="text-xl font-black text-primary tracking-tighter uppercase italic">{cap.titulo_capitulo}</h2>
+      </div>
+
+      {/* Tabs editar / preview */}
+      <div className="max-w-2xl mx-auto w-full px-6 shrink-0">
+        <div className="flex items-center gap-2 mb-3">
+          {([{ key: false, icon: Edit3, label: "Editar" }, { key: true, icon: Eye, label: "Preview" }] as const).map(({ key, icon: Icon, label }) => (
+            <button key={String(key)} onClick={() => setPreviewMode(key as boolean)} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-widest transition-all", previewMode === key ? "bg-primary text-white" : "text-primary/50 hover:bg-primary/8")}>
+              <Icon size={11} /> {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto px-6 pb-10">
+        <div className="max-w-2xl mx-auto">
+          <AnimatePresence mode="wait">
+            {previewMode
+              ? <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[var(--radius-card)] overflow-hidden"><ContenidoInteractivo texto={nuevoContenido} onNavigate={handleNavigate} /></motion.div>
+              : <motion.textarea key="editor" ref={textareaRef as any} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} value={nuevoContenido} onChange={e => setNuevoContenido(e.target.value)} className="w-full min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[var(--radius-card)] font-serif text-lg leading-relaxed text-primary-dark focus:outline-none focus:border-primary/30 shadow-inner resize-none" autoFocus placeholder={"Escribe aquí…\n\n[[choice|Opción|ID_Capitulo]]"} />
+            }
+          </AnimatePresence>
+          <div className="flex justify-end mt-3 px-2">
+            {wordsEdit !== wordsPublicado && wordsEdit > 0 && (
+              <span className={cn("text-[9px] font-black uppercase tracking-widest", wordsEdit > wordsPublicado ? "text-emerald-400" : "text-amber-400")}>
+                {wordsEdit > wordsPublicado ? "+" : ""}{wordsEdit - wordsPublicado} palabras vs. guardado
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── COMPONENTE PRINCIPAL ────────────────────────────────────────────────────
 export default function Lector() {
   const params = useParams();
@@ -1198,23 +1398,35 @@ export default function Lector() {
   const capId = params?.capId as string;
   const router = useRouter();
 
-  const [capitulo, setCapitulo] = useState<Capitulo | null>(null);
+  const [capitulos, setCapitulos] = useState<CapituloScrollItem[]>([]);
   const [listaCapitulos, setListaCapitulos] = useState<CapituloLista[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
   const [showIndex, setShowIndex] = useState(false);
-  const [nuevoContenido, setNuevoContenido] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
-  const isInitialMount = useRef(true);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSavedContent = useRef<string>("");
-  const { words: wordsPublicado } = useTextStats(capitulo?.contenido ?? "");
-  const { words: wordsEdit } = useTextStats(nuevoContenido);
+  const [editingCap, setEditingCap] = useState<CapituloScrollItem | null>(null);
+  const libroTitulo = capitulos[0]?.libros?.titulo;
+  const hasScrolled = useRef(false);
+
+  // Scroll al capítulo objetivo una vez que cargaron los datos
+  // Prioriza el hash de la URL (ej: #cap-{id}) sobre el capId de la ruta
+  useEffect(() => {
+    if (loading || hasScrolled.current) return;
+    hasScrolled.current = true;
+    const hashCapId = typeof window !== "undefined"
+      ? window.location.hash.replace("#cap-", "")
+      : "";
+    const targetId = hashCapId || capId;
+    setTimeout(() => {
+      document.getElementById(`cap-${targetId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 180);
+  }, [loading, capId]);
+
+  // Si cambia el capId en la URL (navegación entre caps) hacer scroll sin recargar
+  useEffect(() => {
+    if (loading || !capId) return;
+    document.getElementById(`cap-${capId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [capId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!capId || !id) return;
@@ -1222,7 +1434,6 @@ export default function Lector() {
       supabase.auth.getSession(),
       librosQueries.getCapituloParaLectura(capId, id, true),
     ]).then(async ([sessionRes, queryRes]) => {
-      // ✅ Verificamos rol en perfiles, no solo si hay sesión
       const session = sessionRes.data.session;
       let admin = false;
       if (session) {
@@ -1234,108 +1445,68 @@ export default function Lector() {
         admin = perfil?.rol === "admin";
       }
       setIsAdmin(admin);
+
       if (queryRes.error || !queryRes.data) {
         setError(queryRes.error || "No se pudo cargar el capítulo");
-      } else {
-        setCapitulo(queryRes.data.capitulo);
-        setListaCapitulos(queryRes.data.listaCapitulos);
-        const serverContent = queryRes.data.capitulo.contenido || "";
-        lastSavedContent.current = serverContent;
-        // Recover local draft if it's newer/different
-        const draft = loadLocalDraft(capId);
-        if (draft && draft.content !== serverContent) {
-          setNuevoContenido(draft.content);
-          setSaveStatus("pending");
-        } else {
-          setNuevoContenido(serverContent);
-          setSaveStatus("saved");
-        }
+        return;
       }
+
+      const lista = queryRes.data.listaCapitulos;
+      setListaCapitulos(lista);
+
+      // Cargar contenido de todos los capítulos publicados (o todos si admin)
+      const hoy = new Date().toISOString().split("T")[0];
+      const idsACargar = lista
+        .filter(c => admin || c.fecha_publicacion <= hoy)
+        .map(c => c.id);
+
+      const { data: contenidos } = await supabase
+        .from("capitulos")
+        .select("id, orden, titulo_capitulo, contenido, fecha_publicacion, libros(titulo)")
+        .in("id", idsACargar)
+        .order("orden", { ascending: true });
+
+      setCapitulos((contenidos as CapituloScrollItem[]) ?? []);
     }).catch((err) => {
       console.error("Error crítico en Lector:", err);
       setError("Error al abrir el pergamino");
-    }).finally(() => {
-      setLoading(false);
-      isInitialMount.current = false;
-    });
+    }).finally(() => setLoading(false));
   }, [capId, id]);
 
-  // ── AUTOSAVE: debounce 2s tras cada cambio en editMode ────────────────────
-  useEffect(() => {
-    if (!editMode) return;
-    if (nuevoContenido === lastSavedContent.current) return;
-
-    setSaveStatus("pending");
-    saveLocalDraft(capId, nuevoContenido);
-
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(async () => {
-      if (!capId) return;
-      if (!navigator.onLine) { setSaveStatus("offline"); return; }
-      setSaveStatus("saving");
-      try {
-        const { error: saveError } = await librosQueries.updateContenido(capId, nuevoContenido);
-        if (saveError) throw saveError;
-        lastSavedContent.current = nuevoContenido;
-        setCapitulo(prev => prev ? { ...prev, contenido: nuevoContenido } : prev);
-        clearLocalDraft(capId);
-        setSaveStatus("saved");
-      } catch {
-        setSaveStatus("offline");
-      }
-    }, 2000);
-    // Sin return cleanup: no cancelar el timer al re-renderizar
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nuevoContenido, editMode]);
-
-  const handleSave = async () => {
-    if (!capitulo || !capId) return;
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    const contenidoPrevio = capitulo.contenido;
-    setCapitulo({ ...capitulo, contenido: nuevoContenido });
-    setEditMode(false);
-    setSaving(true);
-    setSaveStatus("saving");
-    try {
-      const { error: saveError } = await librosQueries.updateContenido(capId, nuevoContenido);
-      if (saveError) throw saveError;
-      lastSavedContent.current = nuevoContenido;
-      clearLocalDraft(capId);
-      setSaveStatus("saved");
-    } catch (err: any) {
-      setCapitulo({ ...capitulo, contenido: contenidoPrevio });
-      setNuevoContenido(contenidoPrevio);
-      setEditMode(true);
-      setSaveStatus("error");
-      alert("Error al guardar: " + err.message);
-    } finally {
-      setSaving(false);
+  const handleNavigate = useCallback((targetCapId: string) => {
+    // Scroll al capítulo si ya está cargado, si no navegar
+    const el = document.getElementById(`cap-${targetCapId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      router.replace(`/wiki/libros/${id}/leer/${targetCapId}`, { scroll: false });
+    } else {
+      router.push(`/wiki/libros/${id}/leer/${targetCapId}`);
     }
-  };
+  }, [id, router]);
 
-  const handleCancelEdit = () => {
-    setEditMode(false);
-    setNuevoContenido(capitulo?.contenido ?? "");
-    setPreviewMode(false);
-  };
+  const handleChapterSelect = useCallback((newCapId: string) => {
+    const el = document.getElementById(`cap-${newCapId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      router.replace(`/wiki/libros/${id}/leer/${newCapId}`, { scroll: false });
+    } else {
+      router.push(`/wiki/libros/${id}/leer/${newCapId}`);
+    }
+  }, [id, router]);
 
-  const handleChapterSelect = useCallback(
-    (newCapId: string) => router.push(`/wiki/libros/${id}/leer/${newCapId}`),
-    [id, router]
-  );
+  const handleSaved = useCallback((savedId: string, newContent: string) => {
+    setCapitulos(prev => prev.map(c => c.id === savedId ? { ...c, contenido: newContent } : c));
+  }, []);
 
-  const hoy = new Date().toISOString().split("T")[0];
-  const indiceActual = listaCapitulos.findIndex(c => c.id === capId);
-  const anteriorCap = listaCapitulos.slice(0, indiceActual).reverse().find(c => isAdmin || c.fecha_publicacion <= hoy);
-  const siguienteCap = listaCapitulos.slice(indiceActual + 1).find(c => isAdmin || c.fecha_publicacion <= hoy);
-
-  if (loading && !capitulo) return <LectorSkeleton />;
-  if (error || !capitulo) return (
+  if (loading) return <LectorSkeleton />;
+  if (error || capitulos.length === 0) return (
     <div className="h-screen flex flex-col items-center justify-center bg-bg-main text-primary p-6 text-center">
-      <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">{error || "Capítulo no encontrado"}</h2>
+      <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">{error || "No hay capítulos disponibles"}</h2>
       <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-primary pb-1">Volver al índice</button>
     </div>
   );
+
+  const capActual = capitulos.find(c => c.id === capId) ?? capitulos[0];
 
   return (
     <div className="min-h-screen bg-bg-main text-primary-dark pb-24">
@@ -1345,119 +1516,62 @@ export default function Lector() {
         lista={listaCapitulos}
         capIdActual={capId}
         isAdmin={isAdmin}
-        libroTitulo={capitulo.libros?.titulo}
-        onSelect={handleChapterSelect}
+        libroTitulo={libroTitulo}
+        onSelect={(id) => { handleChapterSelect(id); setShowIndex(false); }}
       />
+
+      {/* Editor modal de pantalla completa */}
+      <AnimatePresence>
+        {editingCap && (
+          <EditCapModal
+            cap={editingCap}
+            listaCapitulos={listaCapitulos}
+            onClose={() => setEditingCap(null)}
+            onSaved={handleSaved}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Navbar fija */}
       <nav className="sticky top-0 z-50 bg-bg-main/80 backdrop-blur-md border-b border-primary/5 px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-primary/40 hover:text-primary transition-colors shrink-0"><ChevronLeft size={24} /></button>
+          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-primary/40 hover:text-primary transition-colors shrink-0">
+            <ChevronLeft size={24} />
+          </button>
           <div className="flex flex-col items-center gap-1 min-w-0">
-            <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40 leading-none truncate">{capitulo.libros?.titulo}</h2>
+            <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40 leading-none truncate">{libroTitulo}</h2>
             {listaCapitulos.length > 1
               ? <ChapterSelector lista={listaCapitulos} capIdActual={capId} isAdmin={isAdmin} onSelect={handleChapterSelect} />
-              : <p className="text-[11px] font-bold text-primary uppercase">Capítulo {capitulo.orden}</p>
+              : <p className="text-[11px] font-bold text-primary uppercase">Capítulo {capActual?.orden}</p>
             }
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {isAdmin && !editMode && <button onClick={() => setEditMode(true)} className="text-primary/40 hover:text-primary transition-colors p-1"><Edit3 size={20} /></button>}
-            <button onClick={() => setShowIndex(true)} className="text-primary/40 hover:text-primary transition-colors"><List size={24} /></button>
-          </div>
+          <button onClick={() => setShowIndex(true)} className="text-primary/40 hover:text-primary transition-colors shrink-0">
+            <List size={24} />
+          </button>
         </div>
       </nav>
 
-      {isAdmin && editMode && (
-        <>
-          {saveStatus === "pending" && loadLocalDraft(capId) && (
-            <div className="max-w-2xl mx-auto px-6 pt-4">
-              <div className="rounded-[var(--radius-btn)] bg-amber-50 border border-amber-200 px-4 py-3 flex items-center justify-between gap-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">⚠ Borrador local recuperado — guardá para sincronizar</p>
-                <button onClick={() => { setNuevoContenido(capitulo?.contenido ?? ""); clearLocalDraft(capId); setSaveStatus("saved"); }} className="text-[9px] font-black uppercase tracking-widest text-amber-400 hover:text-amber-600 transition-colors shrink-0">Descartar</button>
-              </div>
-            </div>
-          )}
-          <EditorToolbar
-            textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
-            value={nuevoContenido}
-            onChange={setNuevoContenido}
-            onSave={handleSave}
-            onCancel={handleCancelEdit}
-            saving={saving}
-            saveStatus={saveStatus}
-            libroId={id}
-            nextOrder={listaCapitulos.length + 1}
-            listaCapitulos={listaCapitulos}
-          />
-        </>
-      )}
+      {/* Todos los capítulos en scroll continuo */}
+      {capitulos.map((cap) => (
+        <CapituloScrollBlock
+          key={cap.id}
+          cap={cap}
+          isAdmin={isAdmin}
+          isEditing={editingCap?.id === cap.id}
+          onStartEdit={setEditingCap}
+          onNavigate={handleNavigate}
+        />
+      ))}
 
-      <article className="max-w-2xl mx-auto px-6 py-12 md:py-20">
-        <header className="mb-12 text-center">
-          <span className="text-primary/20 font-serif italic text-4xl block mb-2">§ {capitulo.orden}</span>
-          <h1 className="text-3xl md:text-4xl font-black text-primary tracking-tighter uppercase italic leading-none">{capitulo.titulo_capitulo}</h1>
-          {!editMode && (
-            <div className="flex items-center justify-center gap-4 mt-4 text-[9px] font-black uppercase tracking-widest text-primary/25">
-              <span className="flex items-center gap-1"><AlignLeft size={9} /> {wordsPublicado.toLocaleString()} palabras</span>
-              <span className="flex items-center gap-1"><Clock size={9} /> ~{Math.max(1, Math.round(wordsPublicado / 200))} min</span>
-            </div>
-          )}
-        </header>
-
-        <div className="min-h-[50vh]">
-          {isAdmin && editMode ? (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                {([{ key: false, icon: Edit3, label: "Editar" }, { key: true, icon: Eye, label: "Preview" }] as const).map(({ key, icon: Icon, label }) => (
-                  <button key={String(key)} onClick={() => setPreviewMode(key as boolean)} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-widest transition-all", previewMode === key ? "bg-primary text-white" : "text-primary/50 hover:bg-primary/8")}>
-                    <Icon size={11} /> {label}
-                  </button>
-                ))}
-              </div>
-              <AnimatePresence mode="wait">
-                {previewMode
-                  ? <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[var(--radius-card)] overflow-hidden"><ContenidoInteractivo texto={nuevoContenido} onNavigate={handleChapterSelect} /></motion.div>
-                  : <motion.textarea key="editor" ref={textareaRef as any} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} value={nuevoContenido} onChange={e => setNuevoContenido(e.target.value)} className="w-full min-h-[60vh] p-8 bg-white-custom border border-primary/10 rounded-[var(--radius-card)] font-serif text-lg leading-relaxed text-primary-dark focus:outline-none focus:border-primary/30 shadow-inner resize-none" autoFocus placeholder={"Escribe aquí…\n\n[[choice|Opción|ID_Capitulo]]"} />
-                }
-              </AnimatePresence>
-              <div className="flex justify-end mt-3 px-2">
-                {wordsEdit !== wordsPublicado && wordsEdit > 0 && (
-                  <span className={cn("text-[9px] font-black uppercase tracking-widest", wordsEdit > wordsPublicado ? "text-emerald-400" : "text-amber-400")}>
-                    {wordsEdit > wordsPublicado ? "+" : ""}{wordsEdit - wordsPublicado} palabras vs. guardado
-                  </span>
-                )}
-              </div>
-            </div>
-          ) : (
-            <ContenidoInteractivo texto={capitulo.contenido} onNavigate={handleChapterSelect} />
-          )}
-        </div>
-
-        {!editMode && (
-          <footer className="mt-20 pt-10 border-t border-primary/10 flex flex-col items-center gap-8">
-            <button onClick={() => setShowIndex(true)} className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"><List size={16} /> Índice</button>
-            <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-              <button
-                onClick={() => anteriorCap && router.push(`/wiki/libros/${id}/leer/${anteriorCap.id}`)}
-                disabled={!anteriorCap}
-                className={cn("p-5 rounded-[var(--radius-btn)] border font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all", !anteriorCap ? "opacity-20 cursor-not-allowed" : "border-primary/10 text-primary/60 hover:bg-primary/5 active:scale-95")}
-              >
-                <ChevronLeft size={14} /> Anterior
-              </button>
-              <button
-                onClick={() => siguienteCap ? router.push(`/wiki/libros/${id}/leer/${siguienteCap.id}`) : router.push(`/wiki/libros/${id}`)}
-                className="p-5 rounded-[var(--radius-btn)] bg-primary text-white font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-lg hover:shadow-primary/30 active:scale-95 transition-all"
-              >
-                {siguienteCap ? "Siguiente" : "Finalizar"} <ChevronRight size={14} />
-              </button>
-            </div>
-            {!isAdmin && !siguienteCap && listaCapitulos[indiceActual + 1] && (
-              <p className="text-primary/40 font-bold text-[10px] uppercase tracking-widest italic text-center">
-                Próximo capítulo el{" "}
-                {new Date(listaCapitulos[indiceActual + 1].fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}
-              </p>
-            )}
-          </footer>
-        )}
-      </article>
+      {/* Footer al final del scroll */}
+      <footer className="max-w-2xl mx-auto px-6 pb-20 pt-4 flex flex-col items-center gap-6">
+        <button
+          onClick={() => router.push(`/wiki/libros/${id}`)}
+          className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+        >
+          <List size={16} /> Volver al índice
+        </button>
+      </footer>
     </div>
   );
 }

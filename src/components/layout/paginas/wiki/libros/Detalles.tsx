@@ -298,7 +298,10 @@ export default function LibroDetalle() {
                   return (
                     <button
                       key={cap.id}
-                      onClick={() => router.push(`/wiki/libros/${id}/leer/${cap.id}`)}
+                      onClick={() => {
+                        const primerCap = capitulos[0];
+                        router.push(`/wiki/libros/${id}/leer/${primerCap?.id ?? cap.id}#cap-${cap.id}`);
+                      }}
                       className={`w-full flex items-center justify-between p-6 border rounded-[var(--radius-card)] hover:border-primary/20 transition-all text-left group ${esRuta ? "bg-blue-50/60 border-blue-100" : "bg-white-custom border-primary/5"}`}
                     >
                       <div className="flex flex-col gap-1">
