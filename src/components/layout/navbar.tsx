@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,7 +10,7 @@ import { useDarkMode } from "@/hooks/features/useDarkMode";
 import { ThemeSelector } from "@/app/providers/ThemeProvider";
 import {
   LogOut, CircleUser, Flower2, Sword,
-  Utensils, PenTool, Moon, Sun, Star, User, Palette, Shirt, Music2, BookOpen,
+  Utensils, PenTool, Moon, Sun, Star, Palette, Shirt,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -36,76 +36,6 @@ const Navbar = () => {
 
   const isWiki     = currentPath?.startsWith("/wiki") ?? false;
   const isPersonal = currentPath?.startsWith("/personal") ?? false;
-
-  // ── Links principales ────────────────────────────────────────────────────────
-  const mainLinks = [
-    {
-      href: "/personal",
-      label: "Personal",
-      icon: Star,
-      active: isPersonal,
-      fillActive: true,
-    },
-    {
-      href: "/wiki",
-      label: "Wiki",
-      icon: Flower2,
-      active: isWiki,
-      fillActive: false,
-    },
-  ];
-
-  // ── Links de franilover ───────────────────────────────────────────────────────
-  const franiLinks = [
-    { href: "/myself/salud",      label: "Salud",      icon: Utensils, key: "/salud"       },
-    { href: "/myself/escritorio", label: "Escritorio", icon: PenTool,  key: "/escritorio"  },
-    { href: "/myself/ropa",       label: "Ropa",       icon: Shirt,    key: "/ropa"        },
-  ];
-
-  // ── MOBILE bottom nav ────────────────────────────────────────────────────────
-  const navContentMobile = useMemo(() => (
-    <div className="flex w-full items-center justify-evenly h-full">
-      <Link href="/personal" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
-        <Star
-          size={26}
-          className="transition-all duration-300"
-          style={{
-            color: isPersonal
-              ? "var(--primary)"
-              : "color-mix(in srgb, var(--primary) 30%, transparent)",
-            transform: isPersonal ? "scale(1.1)" : "scale(1)",
-          }}
-          fill={isPersonal ? "currentColor" : "none"}
-        />
-      </Link>
-
-      <button
-        onClick={() => user ? setUserMenuOpen(!userMenuOpen) : (window.location.href = "/auth/login")}
-        className="p-3 transition-all duration-300 shadow-lg"
-        style={{
-          borderRadius: "9999px",
-          background: userMenuOpen ? "var(--white-custom)" : "var(--primary)",
-          color: userMenuOpen ? "var(--primary)" : "var(--btn-text)",
-          transform: userMenuOpen ? "scale(1.1)" : "scale(1)",
-        }}
-      >
-        <User size={24} strokeWidth={2.5} />
-      </button>
-
-      <Link href="/wiki" onClick={closeAll} className="flex flex-col items-center justify-center w-16 h-16">
-        <Flower2
-          size={26}
-          className="transition-all duration-300"
-          style={{
-            color: isWiki
-              ? "var(--primary)"
-              : "color-mix(in srgb, var(--primary) 30%, transparent)",
-            transform: isWiki ? "scale(1.1)" : "scale(1)",
-          }}
-        />
-      </Link>
-    </div>
-  ), [isPersonal, isWiki, user, userMenuOpen]);
 
   return (
     <>
@@ -529,129 +459,174 @@ const Navbar = () => {
       </aside>
 
       {/* ══════════════════════════════════════════════════════════════
-          MÓVIL — bottom bar (igual que antes)
+          MÓVIL — Dock flotante tipo iOS
       ══════════════════════════════════════════════════════════════ */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full z-[1000]">
-        <nav
-          className="backdrop-blur-xl h-16 flex items-center w-full"
-          style={{
-            background: "color-mix(in srgb, var(--bg-main) 95%, transparent)",
-            borderTop: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-            boxShadow: "0 -8px 32px color-mix(in srgb, var(--primary) 8%, transparent)",
-          }}
-        >
-          {navContentMobile}
-        </nav>
+      <div className="md:hidden fixed bottom-0 left-0 w-full z-[1000] flex flex-col items-center pb-5 px-6 pointer-events-none">
 
+        {/* Sheet de usuario */}
         <AnimatePresence>
-          {userMenuOpen && user && (
+          {userMenuOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 420, damping: 34 }}
               onClick={e => e.stopPropagation()}
-              className="absolute bottom-16 left-4 right-4 p-5 flex flex-col gap-3 z-[1001]"
+              className="w-full max-w-sm mb-3 pointer-events-auto overflow-hidden"
               style={{
                 background: "var(--white-custom)",
                 border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                 borderRadius: "var(--radius-card)",
-                boxShadow: "var(--shadow-card)",
+                boxShadow: "0 16px 48px color-mix(in srgb, var(--primary) 18%, transparent)",
               }}
             >
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={toggle}
-                  className="w-11 h-11 flex items-center justify-center transition-all shrink-0"
-                  style={{
-                    borderRadius: "var(--radius-btn)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    color: "var(--primary)",
-                    background: "transparent",
-                  }}
+              {user ? (
+                <>
+                  {/* Header */}
+                  <div className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                      <CircleUser size={18} style={{ color: "var(--primary)" }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-black uppercase tracking-widest text-primary truncate leading-none">{perfil?.username}</p>
+                      <p className="text-[10px] italic mt-0.5" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Franilover</p>
+                    </div>
+                    <button onClick={toggle} className="w-8 h-8 flex items-center justify-center rounded-full shrink-0" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", color: "var(--primary)" }}>
+                      <AnimatePresence mode="wait" initial={false}>
+                        {isDark
+                          ? <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><Sun size={14} /></motion.span>
+                          : <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><Moon size={14} /></motion.span>
+                        }
+                      </AnimatePresence>
+                    </button>
+                  </div>
+
+                  {/* Tema */}
+                  <div style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                    <ThemeSelector />
+                  </div>
+
+                  {/* Links franilover */}
+                  {esFranilover && (
+                    <div className="grid grid-cols-3 gap-2 p-3" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                      {[
+                        { href: "/myself/salud",      icon: Utensils, label: "Salud",      key: "/salud"       },
+                        { href: "/myself/escritorio", icon: PenTool,  label: "Escritorio", key: "/escritorio"  },
+                        { href: "/myself/ropa",       icon: Shirt,    label: "Ropa",       key: "/ropa"        },
+                      ].map(({ href, icon: Icon, label, key }) => {
+                        const active = !!currentPath?.includes(key);
+                        return (
+                          <Link key={href} href={href} onClick={closeAll}
+                            className="flex flex-col items-center gap-1.5 py-3 rounded-[var(--radius-btn)] transition-all active:scale-95"
+                            style={{ background: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 5%, transparent)", color: active ? "var(--btn-text)" : "var(--primary)" }}
+                          >
+                            <Icon size={17} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Mi personaje + Logout */}
+                  <div className="flex items-center">
+                    <Link href="/wiki/personal" onClick={closeAll}
+                      className="flex-1 flex items-center gap-2 px-4 py-3.5 text-[10px] font-black uppercase tracking-widest transition-all"
+                      style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)", borderRight: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
+                    >
+                      <Sword size={13} /> Mi Personaje
+                    </Link>
+                    <button onClick={handleLogout}
+                      className="flex items-center gap-2 px-4 py-3.5 text-[10px] font-black uppercase tracking-widest transition-all"
+                      style={{ color: "oklch(0.55 0.18 25)" }}
+                    >
+                      <LogOut size={13} /> Salir
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <Link href="/auth/login" onClick={closeAll}
+                  className="flex items-center gap-3 px-5 py-4 text-[11px] font-black uppercase tracking-widest"
+                  style={{ color: "var(--primary)" }}
                 >
-                  {isDark ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
-                <Link
-                  href="/wiki/personal"
-                  onClick={closeAll}
-                  className="flex-1 p-3 font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-all"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                    color: "var(--primary)",
-                    borderRadius: "var(--radius-btn)",
-                  }}
-                >
-                  <Sword size={16} /> {perfil?.username}
+                  <CircleUser size={18} /> Iniciar sesión
                 </Link>
-                <button
-                  onClick={handleLogout}
-                  className="w-11 h-11 flex items-center justify-center transition-all shrink-0"
-                  style={{
-                    borderRadius: "var(--radius-btn)",
-                    background: "oklch(0.97 0.01 25)",
-                    color: "oklch(0.6 0.2 25)",
-                  }}
-                >
-                  <LogOut size={18} />
-                </button>
-              </div>
-
-              <div
-                className="overflow-hidden"
-                style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                  borderRadius: "var(--radius-card)",
-                }}
-              >
-                <ThemeSelector />
-              </div>
-
-              {esFranilover && (
-                <div className="grid grid-cols-4 gap-2">
-                  <Link
-                    href="/myself/salud"
-                    onClick={closeAll}
-                    className="p-4 flex items-center justify-center transition-all"
-                    style={{
-                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color: currentPath?.includes("/salud") ? "var(--btn-text)" : "var(--primary)",
-                      background: currentPath?.includes("/salud") ? "var(--primary)" : "transparent",
-                      borderRadius: "var(--radius-card)",
-                    }}
-                  >
-                    <Utensils size={18} />
-                  </Link>
-                  <Link
-                    href="/myself/escritorio"
-                    onClick={closeAll}
-                    className="p-4 flex items-center justify-center transition-all"
-                    style={{
-                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color: currentPath?.includes("/escritorio") ? "var(--btn-text)" : "var(--primary)",
-                      background: currentPath?.includes("/escritorio") ? "var(--primary)" : "transparent",
-                      borderRadius: "var(--radius-card)",
-                    }}
-                  >
-                    <PenTool size={18} />
-                  </Link>
-                  <Link
-                    href="/myself/ropa"
-                    onClick={closeAll}
-                    className="p-4 flex items-center justify-center transition-all"
-                    style={{
-                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color: currentPath?.includes("/ropa") ? "var(--btn-text)" : "var(--primary)",
-                      background: currentPath?.includes("/ropa") ? "var(--primary)" : "transparent",
-                      borderRadius: "var(--radius-card)",
-                    }}
-                  >
-                    <Shirt size={18} />
-                  </Link>
-                </div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ── Dock ── */}
+        <motion.div
+          className="pointer-events-auto flex items-end gap-2 px-4 py-3"
+          style={{
+            background: "color-mix(in srgb, var(--bg-main) 72%, transparent)",
+            backdropFilter: "blur(28px)",
+            WebkitBackdropFilter: "blur(28px)",
+            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            borderRadius: "32px",
+            boxShadow: "0 8px 32px color-mix(in srgb, var(--primary) 14%, transparent)",
+          }}
+        >
+          {/* Personal */}
+          <Link href="/personal" onClick={closeAll} className="flex flex-col items-center gap-1.5">
+            <motion.div
+              whileTap={{ scale: 0.75 }}
+              transition={{ type: "spring", stiffness: 500, damping: 22 }}
+              className="flex items-center justify-center rounded-2xl transition-all duration-200"
+              style={{
+                width: 52, height: 52,
+                background: isPersonal
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 8%, transparent)",
+              }}
+            >
+              <Star size={24} style={{ color: isPersonal ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 50%, transparent)", fill: isPersonal ? "var(--btn-text)" : "none" }} />
+            </motion.div>
+            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: isPersonal ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Yo</span>
+          </Link>
+
+          {/* Wiki */}
+          <Link href="/wiki" onClick={closeAll} className="flex flex-col items-center gap-1.5">
+            <motion.div
+              whileTap={{ scale: 0.75 }}
+              transition={{ type: "spring", stiffness: 500, damping: 22 }}
+              className="flex items-center justify-center rounded-2xl transition-all duration-200"
+              style={{
+                width: 52, height: 52,
+                background: isWiki
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 8%, transparent)",
+              }}
+            >
+              <Flower2 size={24} style={{ color: isWiki ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }} />
+            </motion.div>
+            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: isWiki ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Wiki</span>
+          </Link>
+
+          {/* Usuario */}
+          <button
+            onClick={() => { setUserMenuOpen(!userMenuOpen); setThemeMenuOpen(false); }}
+            className="flex flex-col items-center gap-1.5"
+          >
+            <motion.div
+              whileTap={{ scale: 0.75 }}
+              transition={{ type: "spring", stiffness: 500, damping: 22 }}
+              className="flex items-center justify-center rounded-2xl transition-all duration-200"
+              style={{
+                width: 52, height: 52,
+                background: userMenuOpen
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 8%, transparent)",
+              }}
+            >
+              <CircleUser size={24} style={{ color: userMenuOpen ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }} />
+            </motion.div>
+            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              {user ? (perfil?.username ?? "Perfil") : "Entrar"}
+            </span>
+          </button>
+        </motion.div>
       </div>
 
       {(userMenuOpen || themeMenuOpen) && (
