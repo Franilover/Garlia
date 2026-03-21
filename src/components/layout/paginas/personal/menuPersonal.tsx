@@ -32,17 +32,12 @@ export default function PersonalMenuPage() {
   };
 
   return (
-    <div
-      className="flex flex-col p-4 md:p-8"
-      style={{
-        height: 'calc(100svh - 5rem)', // desktop: total - spacer del navbar
-      }}
-    >
+    <div className="flex flex-col h-svh p-4 md:p-8 pb-20 md:pb-8">
       {/* Título */}
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center py-3 md:py-4 shrink-0"
+        className="text-center py-6 md:py-8 shrink-0"
       >
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter text-primary italic">
           Personal
@@ -79,8 +74,8 @@ export default function PersonalMenuPage() {
         </div>
       </div>
 
-      {/* Mobile: columna horizontal con espacio para la barra inferior */}
-      <div className="flex flex-col gap-3 flex-1 min-h-0 md:hidden pb-16">
+      {/* Mobile: columna horizontal */}
+      <div className="flex flex-col gap-3 flex-1 min-h-0 md:hidden">
         <MenuCard href="/personal/sobre-mi" title="Sobre Mí" icon={<Star />}    delay={0.1} hasNewContent={notifications["sobre-mi"]} onClick={() => handleVisit("sobre-mi")} horizontal />
         <MenuCard href="/personal/dibujos"  title="Dibujos"  icon={<Palette />} delay={0.2} hasNewContent={notifications["dibujos"]}  onClick={() => handleVisit("dibujos")}  horizontal />
         <MenuCard href="/personal/fotos"    title="Fotos"    icon={<Camera />}  delay={0.3} hasNewContent={notifications["fotos"]}    onClick={() => handleVisit("fotos")}    horizontal />
