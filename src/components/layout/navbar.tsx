@@ -34,12 +34,8 @@ const Navbar = () => {
     setThemeMenuOpen(false);
   };
 
-  const isWiki     = currentPath?.startsWith("/wiki") && currentPath !== "/wiki/personal";
-  const isPersonal = currentPath?.startsWith("/myself") &&
-    !currentPath.includes("/myself/salud") &&
-    !currentPath.includes("/myself/tareas") &&
-    !currentPath.includes("/myself/ejercicios") &&
-    !currentPath.includes("/myself/ensayos");
+  const isWiki     = currentPath?.startsWith("/wiki") ?? false;
+  const isPersonal = currentPath?.startsWith("/personal") ?? false;
 
   // ── Links principales ────────────────────────────────────────────────────────
   const mainLinks = [
@@ -61,9 +57,9 @@ const Navbar = () => {
 
   // ── Links de franilover ───────────────────────────────────────────────────────
   const franiLinks = [
-    { href: "/myself/salud",      label: "Salud",      icon: Utensils, key: "/salud"   },
-    { href: "/myself/escritorio", label: "Escritorio", icon: PenTool,  key: "/ensayos" },
-    { href: "/myself/ropa",       label: "Ropa",       icon: Shirt,    key: "/ropa"    },
+    { href: "/myself/salud",      label: "Salud",      icon: Utensils, key: "/salud"       },
+    { href: "/myself/escritorio", label: "Escritorio", icon: PenTool,  key: "/escritorio"  },
+    { href: "/myself/ropa",       label: "Ropa",       icon: Shirt,    key: "/ropa"        },
   ];
 
   // ── MOBILE bottom nav ────────────────────────────────────────────────────────
@@ -631,8 +627,8 @@ const Navbar = () => {
                     className="p-4 flex items-center justify-center transition-all"
                     style={{
                       border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color: currentPath?.includes("/ensayos") ? "var(--btn-text)" : "var(--primary)",
-                      background: currentPath?.includes("/ensayos") ? "var(--primary)" : "transparent",
+                      color: currentPath?.includes("/escritorio") ? "var(--btn-text)" : "var(--primary)",
+                      background: currentPath?.includes("/escritorio") ? "var(--primary)" : "transparent",
                       borderRadius: "var(--radius-card)",
                     }}
                   >
