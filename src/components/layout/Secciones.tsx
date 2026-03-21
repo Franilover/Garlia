@@ -169,7 +169,7 @@ export function PanelSlider({
   return (
     // FIX: usar svh en vez de dvh — svh es la altura mínima estable (con browser chrome visible)
     // dvh cambia cuando la barra del browser se oculta/muestra al hacer scroll, empujando el footer
-    <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100svh-64px)] md:h-[calc(100svh-80px)]">
+    <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100svh-64px)] md:h-svh">
 
       {/* ── NAV ── */}
       <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 32px", position: "relative", zIndex: 50 }}>

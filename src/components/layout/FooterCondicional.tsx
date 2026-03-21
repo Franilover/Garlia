@@ -1,11 +1,11 @@
 "use client";
 import { usePathname } from "next/navigation";
 
-// Rutas que usan Secciones (full-height) — el footer no tiene sentido aquí
 const RUTAS_SIN_FOOTER = [
   "/personal",
   "/personal/salud",
   "/wiki",
+  "/wiki/enciclopedia",
 ];
 
 export default function FooterCondicional() {
