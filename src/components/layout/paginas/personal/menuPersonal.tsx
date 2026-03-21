@@ -32,7 +32,12 @@ export default function PersonalMenuPage() {
   };
 
   return (
-    <div className="flex flex-col h-svh p-4 md:p-8 pb-20 md:pb-8">
+    <div
+      className="flex flex-col p-4 md:p-8"
+      style={{
+        height: 'calc(100svh - 64px)',
+      }}
+    >
       {/* Título */}
       <motion.div
         initial={{ opacity: 0, y: -30 }}

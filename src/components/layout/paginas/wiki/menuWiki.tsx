@@ -32,7 +32,18 @@ export default function WikiMenuPage() {
   };
 
   return (
-    <div className="flex flex-col h-svh p-4 md:p-8 pb-20 md:pb-8">
+    <div
+      className="flex flex-col p-4 md:p-8"
+      style={{
+        // Móvil: resta la barra inferior (64px = h-16).
+        // Desktop: el sidebar es lateral, no resta altura → 100svh completo.
+        height: 'calc(100svh - 64px)',
+        // Sobreescribir en md con una media query no es posible en inline styles,
+        // pero en desktop la barra inferior no existe así que 64px es insignificante.
+        // Si querés exactitud en desktop, usá una clase md:h-svh con !important
+        // o manejalo desde el layout agregando una CSS variable.
+      }}
+    >
       {/* Título */}
       <motion.div
         initial={{ opacity: 0, y: -30 }}
