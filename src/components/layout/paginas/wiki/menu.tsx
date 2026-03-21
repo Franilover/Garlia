@@ -32,12 +32,20 @@ export default function WikiMenuPage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-bg-main flex flex-col p-4 md:p-8">
+    // En desktop: ocupa desde abajo del navbar fijo (h-20 = 5rem) hasta el fondo
+    // En mobile: ocupa desde abajo de la barra inferior (pb-16 = 4rem) hasta arriba
+    <div
+      className="flex flex-col p-4 md:p-8"
+      style={{
+        height: 'calc(100svh - 5rem)',        // desktop: total - spacer del navbar
+        // mobile usa pb seguro abajo
+      }}
+    >
       {/* Título */}
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center py-4 md:py-6 shrink-0"
+        className="text-center py-3 md:py-4 shrink-0"
       >
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter text-primary italic">
           Jardin
@@ -52,8 +60,10 @@ export default function WikiMenuPage() {
         <MenuCard href="/wiki/canciones"    title="Canciones"   icon={<Music />}    delay={0.3} hasNewContent={notifications['canciones']}    onClick={() => handleVisit('canciones')} />
       </div>
 
-      {/* Mobile: columna de cards horizontales */}
-      <div className="flex flex-col gap-3 flex-1 min-h-0 md:hidden">
+      {/* Mobile: columna de cards horizontales, espacio justo sin scroll */}
+      <div
+        className="flex flex-col gap-3 flex-1 min-h-0 md:hidden pb-16"
+      >
         <MenuCard href="/wiki/enciclopedia" title="Información" icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']} onClick={() => handleVisit('enciclopedia')} horizontal />
         <MenuCard href="/wiki/mapa"         title="Mapa"        icon={<Compass />}  delay={0.1} hasNewContent={notifications['mapa']}         onClick={() => handleVisit('mapa')} horizontal />
         <MenuCard href="/wiki/libros"       title="Libros"      icon={<BookText />} delay={0.2} hasNewContent={notifications['libros']}       onClick={() => handleVisit('libros')} horizontal />

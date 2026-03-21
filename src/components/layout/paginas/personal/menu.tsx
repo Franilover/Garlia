@@ -32,19 +32,24 @@ export default function PersonalMenuPage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-bg-main flex flex-col p-4 md:p-8">
+    <div
+      className="flex flex-col p-4 md:p-8"
+      style={{
+        height: 'calc(100svh - 5rem)', // desktop: total - spacer del navbar
+      }}
+    >
       {/* Título */}
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center py-4 md:py-6 shrink-0"
+        className="text-center py-3 md:py-4 shrink-0"
       >
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter text-primary italic">
           Personal
         </h1>
       </motion.div>
 
-      {/* Desktop: grid - "Sobre Mí" ocupa columna entera a la izquierda, las otras dos apiladas a la derecha */}
+      {/* Desktop: "Sobre Mí" a la izquierda, Dibujos+Fotos apiladas a la derecha */}
       <div className="hidden md:grid grid-cols-2 gap-4 lg:gap-6 flex-1 min-h-0">
         <MenuCard
           href="/personal/sobre-mi"
@@ -74,8 +79,8 @@ export default function PersonalMenuPage() {
         </div>
       </div>
 
-      {/* Mobile: columna de cards horizontales */}
-      <div className="flex flex-col gap-3 flex-1 min-h-0 md:hidden">
+      {/* Mobile: columna horizontal con espacio para la barra inferior */}
+      <div className="flex flex-col gap-3 flex-1 min-h-0 md:hidden pb-16">
         <MenuCard href="/personal/sobre-mi" title="Sobre Mí" icon={<Star />}    delay={0.1} hasNewContent={notifications["sobre-mi"]} onClick={() => handleVisit("sobre-mi")} horizontal />
         <MenuCard href="/personal/dibujos"  title="Dibujos"  icon={<Palette />} delay={0.2} hasNewContent={notifications["dibujos"]}  onClick={() => handleVisit("dibujos")}  horizontal />
         <MenuCard href="/personal/fotos"    title="Fotos"    icon={<Camera />}  delay={0.3} hasNewContent={notifications["fotos"]}    onClick={() => handleVisit("fotos")}    horizontal />

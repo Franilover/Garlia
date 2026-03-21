@@ -54,13 +54,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={`${montserrat.className} antialiased bg-bg-main h-svh overflow-hidden flex flex-col`}>
+      <body className={`${montserrat.className} antialiased bg-bg-main min-h-svh flex flex-col`}>
         <OfflineSyncActivator />
         <AuthProvider>
           <DataProvider>
             <ThemeProvider>
               <LightboxProvider>
-                <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="flex-grow">
                   <AppLogic>
                     {children}
                   </AppLogic>
