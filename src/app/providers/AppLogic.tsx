@@ -49,14 +49,14 @@ export default function AppLogic({ children }) {
   }, [pathname, closeLightbox]);
 
   return (
-    <div className="app-container select-none">
+    <div className="app-container select-none h-full flex flex-col">
       <Navbar />
 
       {/* Spacer para PC: empuja el contenido debajo del navbar fijo */}
-      <div className="hidden md:block h-20 w-full" />
+      <div className="hidden md:block h-20 w-full shrink-0" />
 
       {/* Padding inferior en móvil: evita que el contenido quede tapado por la barra */}
-      <main className="pb-16 md:pb-0">
+      <main className="flex-1 min-h-0 pb-16 md:pb-0">
         {children}
       </main>
     </div>
