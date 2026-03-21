@@ -40,7 +40,7 @@
 }
 
 /* IMPORTACIÓN DE FUENTES */
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Pixelify+Sans:wght@400..700&family=Montserrat:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Pixelify+Sans:wght@400..700&family=Montserrat:wght@400;700&display=swap');
 
 /* =========================================
    TEMA: DEFAULT (MINIMALISTA)
@@ -164,7 +164,9 @@
   --shadow-card: 4px 4px 0px rgba(74,52,39,0.1);
   --border-width: 1px;
   --font-display: 'Caveat', cursive;
-  font-size: 19px;
+  --font-body: 'Lora', serif;
+  /* Caveat a 19px se usa solo en títulos, el body va con Lora a 14px */
+  font-size: 14px;
 }
 
 [data-theme="scribble"].dark {
@@ -197,7 +199,25 @@
 /* FUERZA BRUTA DE FUENTES POR TEMA */
 [data-theme="default"], [data-theme="default"] * { font-family: 'Montserrat', sans-serif !important; }
 [data-theme="pixel"], [data-theme="pixel"] * { font-family: "Pixelify Sans", sans-serif !important; }
-[data-theme="scribble"], [data-theme="scribble"] * { font-family: 'Caveat', cursive !important; }
+
+/* SCRIBBLE: dos fuentes — Lora para cuerpo, Caveat para títulos */
+[data-theme="scribble"], [data-theme="scribble"] * {
+  font-family: 'Lora', serif !important;
+}
+[data-theme="scribble"] h1,
+[data-theme="scribble"] h2,
+[data-theme="scribble"] h3,
+[data-theme="scribble"] h4,
+[data-theme="scribble"] h5,
+[data-theme="scribble"] h6,
+[data-theme="scribble"] .font-display,
+[data-theme="scribble"] .title,
+[data-theme="scribble"] .card-title,
+[data-theme="scribble"] .heading {
+  font-family: 'Caveat', cursive !important;
+  font-size: 1.4em; /* Caveat necesita un poco más de tamaño para lucir */
+  line-height: 1.2;
+}
 
 /* Textura de papel (Scribble) */
 [data-theme="scribble"] body::after {
