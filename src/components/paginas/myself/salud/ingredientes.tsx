@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import {
-  Search, Plus, ChevronLeft, X, Loader2, Save,
+  Search, Plus, ChevronLeft, X, Save,
   Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator, ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
@@ -230,15 +230,7 @@ export const IngredientesPage = () => {
               Compras
             </Link>
 
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setIsModalOpen(true)}
-              className="btn-brand flex text-[11px] py-2.5 px-5 tracking-widest"
-            >
-              <Plus size={14} />
-              Añadir
-            </motion.button>
+            <Btn onClick={() => setIsModalOpen(true)} icon={<Plus size={14} />} size="md">Añadir</Btn>
           </div>
         </div>
       </header>
@@ -387,16 +379,9 @@ export const IngredientesPage = () => {
                             </button>
                           </motion.div>
                         ) : (
-                          <motion.button
-                            key="trash"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setConfirmDelete(item.id)}
-                            className="p-1.5 rounded-[var(--radius-btn)] text-primary/20 hover:text-red-400 hover:bg-red-50 transition-all mt-0.5"
-                          >
-                            <Trash2 size={13} />
-                          </motion.button>
+                          <motion.div key="trash" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                            <BtnIcon variant="ghost" size="sm" onClick={() => setConfirmDelete(item.id)} className="border-none text-primary/20 hover:text-red-400 hover:bg-red-50 mt-0.5 w-7 h-7"><Trash2 size={13} /></BtnIcon>
+                          </motion.div>
                         )}
                       </AnimatePresence>
                     </div>
@@ -575,12 +560,7 @@ export const IngredientesPage = () => {
                     Nuevo <span className="text-primary/20">Insumo</span>
                   </h2>
                 </div>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-[var(--radius-btn)] bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all"
-                >
-                  <X size={16} />
-                </button>
+                <BtnIcon variant="ghost" onClick={() => setIsModalOpen(false)} className="hidden sm:flex border-none bg-primary/8 text-primary/40"><X size={16} /></BtnIcon>
               </div>
 
               <div className="overflow-y-auto flex-1 px-7 pb-7">
@@ -626,14 +606,7 @@ export const IngredientesPage = () => {
                   </div>
                 </section>
 
-                <button
-                  disabled={isSaving || !formData.nombre.trim()}
-                  type="submit"
-                  className="btn-brand w-full py-4 text-[11px] tracking-[0.25em]"
-                >
-                  {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                  Registrar insumo
-                </button>
+                <Btn type="submit" loading={isSaving} disabled={!formData.nombre.trim()} icon={<Save size={16} />} fullWidth size="lg">Registrar insumo</Btn>
               </form>
               </div>
             </motion.div>

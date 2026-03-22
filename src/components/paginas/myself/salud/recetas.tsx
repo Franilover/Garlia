@@ -6,9 +6,10 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/types/personal/receta";
 import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
+import { Btn, BtnIcon, Badge, Modal, InputLine, Textarea, Loading, EmptyState, BackBtn, Divider, PageHeader } from "@/components/ui";
 import {
   Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
-  Plus, X, ArrowLeft, Trash2, Activity, Loader2, Save, ChevronLeft, Minus, Carrot,
+  Plus, X, ArrowLeft, Trash2, Activity, Save, ChevronLeft, Minus, Carrot,
   Dumbbell, Wheat, Droplets,
 } from "lucide-react";
 
@@ -392,9 +393,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
             Nueva <span className="text-primary/20">Receta</span>
           </h2>
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-[var(--radius-btn)] bg-primary/8 text-primary/40 hover:bg-primary/15 hover:text-primary transition-all">
-            <X size={16} />
-          </button>
+          <BtnIcon variant="ghost" onClick={onClose} className="border-none bg-primary/8 text-primary/40"><X size={16} /></BtnIcon>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-7">
@@ -524,16 +523,8 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                     </div>
 
                     <div className="flex gap-2 pt-1">
-                      <button type="button" onClick={() => setPendingIng(null)}
-                        className="flex-1 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide border border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary transition-all"
-                      >
-                        Cancelar
-                      </button>
-                      <button type="button" onClick={confirmIngrediente}
-                        className="flex-1 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide bg-bg-menu text-menu-text hover:opacity-80 transition-all"
-                      >
-                        ✓ Añadir
-                      </button>
+                      <Btn type="button" variant="ghost" onClick={() => setPendingIng(null)} className="flex-1">Cancelar</Btn>
+                      <Btn type="button" onClick={confirmIngrediente} className="flex-1">✓ Añadir</Btn>
                     </div>
                   </div>
                 </motion.div>
@@ -590,11 +581,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addPaso(); }}}
                 placeholder="Describe un paso…"
               />
-              <button type="button" onClick={addPaso}
-                className="w-10 h-10 flex items-center justify-center bg-bg-menu text-menu-text rounded-[var(--radius-btn)] hover:opacity-80 transition-all shrink-0"
-              >
-                <Plus size={16} />
-              </button>
+              <BtnIcon type="button" onClick={addPaso} className="shrink-0 w-10 h-10"><Plus size={16} /></BtnIcon>
             </div>
             {formData.instrucciones.length > 0 && (
               <div className="space-y-2">
@@ -616,14 +603,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
             )}
           </section>
 
-          <button
-            disabled={isSaving || !formData.nombre.trim()}
-            type="submit"
-            className="btn-brand w-full py-4 text-[11px] tracking-[0.25em]"
-          >
-            {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-            Guardar receta
-          </button>
+          <Btn type="submit" loading={isSaving} disabled={!formData.nombre.trim()} icon={<Save size={16} />} fullWidth size="lg">Guardar receta</Btn>
         </form>
       </motion.div>
     </div>
@@ -643,11 +623,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
 
   if (selectedRecipeId) {
     const receta = recipes.find(r => String(r.id) === selectedRecipeId);
-    if (loading) return (
-      <div className="min-h-screen bg-bg-main flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary/30" size={36} />
-      </div>
-    );
+    if (loading) return <Loading />;
     if (!receta) return (
       <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-3">
         <Utensils className="text-primary/15" size={48} />
@@ -719,13 +695,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
             </Link>
 
             {}
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => setIsModalOpen(true)}
-              className="btn-brand flex text-[11px] py-2.5 px-5 tracking-widest"
-            >
-              <Plus size={14} /> Añadir
-            </motion.button>
+            <Btn onClick={() => setIsModalOpen(true)} icon={<Plus size={14} />} size="md">Añadir</Btn>
           </div>
         </div>
       </header>
@@ -782,9 +752,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
 
         {}
         {loading ? (
-          <div className="flex justify-center py-32">
-            <Loader2 className="animate-spin text-primary/30" size={36} />
-          </div>
+          <Loading fullScreen={false} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
             {}
