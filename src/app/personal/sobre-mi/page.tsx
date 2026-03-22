@@ -1,5 +1,5 @@
 
-import SobreMi from '@/components/layout/paginas/personal/sobre-mi';
+import SobreMi from '@/components/paginas/personal/sobre-mi';
 
 export default function Page() {
   return (

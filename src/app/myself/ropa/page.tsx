@@ -1,4 +1,4 @@
-import ArmarioCanvasPage from "@/components/layout/paginas/myself/ropa";
+import ArmarioCanvasPage from "@/components/paginas/myself/ropa";
 
 export default function Page() {
   return <ArmarioCanvasPage />;

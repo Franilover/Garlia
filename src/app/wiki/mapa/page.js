@@ -1,4 +1,4 @@
-import MapaInteractivo from '@/components/layout/paginas/wiki/MapaInteractivo';
+import MapaInteractivo from '@/components/paginas/wiki/MapaInteractivo';
 
 export default function Page() {
   return <MapaInteractivo />; 

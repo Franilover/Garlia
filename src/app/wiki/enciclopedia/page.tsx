@@ -2,9 +2,9 @@
 
 import { User, Sword, Panda } from "lucide-react";
 import Secciones from "@/components/layout/Secciones";
-import Personajes from "@/components/layout/paginas/wiki/info/personajes";
-import PureGridItems from "@/components/layout/paginas/wiki/info/items";
-import Criaturas from "@/components/layout/paginas/wiki/info/criaturas";
+import Personajes from "@/components/paginas/wiki/info/personajes";
+import PureGridItems from "@/components/paginas/wiki/info/items";
+import Criaturas from "@/components/paginas/wiki/info/criaturas";
 
 export default function WikiPage() {
   return (

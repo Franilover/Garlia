@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import SobreMi from "@/components/layout/paginas/personal/sobre-mi";
+import SobreMi from "@/components/paginas/personal/sobre-mi";
 
 export default function Home() {
   return (
