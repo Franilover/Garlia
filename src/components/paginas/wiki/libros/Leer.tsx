@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
 import {
-  ChevronLeft, List,
+  ChevronLeft, List, X,
   BookOpen, Clock, AlignLeft,
   ChevronDown, Check,
   Folder, FolderOpen, ChevronRight as ChevronR,
@@ -13,10 +13,8 @@ import { DropWord } from "@/components/ui/DropWord";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { librosQueries, Capitulo } from "@/lib/api/queries/wiki/libros";
-import { X } from "lucide-react"; 
-import { Btn } from "@/components/ui"; 
-import { BtnIcon } from "@/components/ui";
-import { useTextStats } from "@/hooks/useTextStats"; 
+import { Btn, BtnIcon, Loading } from "@/components/ui";
+
 interface CapituloLista {
   id: string; orden: number; fecha_publicacion: string; titulo_capitulo?: string;
 }
@@ -467,6 +465,8 @@ function ChapterSelector({ lista, capIdActual, onSelect }: { lista: CapituloList
 
 // ─── EDITOR TOOLBAR ──────────────────────────────────────────────────────────
 // ─── SKELETON DE CARGA ───────────────────────────────────────────────────────
+
+// ─── CAPÍTULO INDIVIDUAL EN MODO SCROLL ──────────────────────────────────────
 function LectorSkeleton() {
   return (
     <div className="min-h-screen bg-bg-main pb-24 animate-pulse">
@@ -481,23 +481,17 @@ function LectorSkeleton() {
         </div>
       </div>
       <div className="max-w-2xl mx-auto px-6 py-12 md:py-20">
-        <div className="text-center mb-12 space-y-3">
-          <div className="h-10 w-16 rounded-[var(--radius-btn)] bg-primary/8 mx-auto" />
-          <div className="h-8 w-2/3 rounded-[var(--radius-btn)] bg-primary/10 mx-auto" />
-          <div className="h-3 w-40 rounded-full bg-primary/8 mx-auto" />
-        </div>
         <div className="space-y-4">
           {[100, 85, 95, 70, 90, 60, 80, 75].map((w, i) => (
             <div key={i} className="h-4 rounded-full bg-primary/8" style={{ width: `${w}%` }} />
           ))}
-          <div className="h-4 w-1/2 rounded-full bg-primary/8" />
         </div>
       </div>
     </div>
   );
 }
 
-// ─── CAPÍTULO INDIVIDUAL EN MODO SCROLL ──────────────────────────────────────
+
 interface CapituloScrollItem {
   id: string;
   orden: number;
@@ -514,7 +508,7 @@ function CapituloScrollBlock({
   cap: CapituloScrollItem;
   onNavigate: (capId: string) => void;
 }) {
-  const { words } = useTextStats(cap.contenido ?? "");
+  const words = (cap.contenido ?? "").trim() ? (cap.contenido ?? "").trim().split(/\s+/).length : 0;
   return (
     <article
       id={`cap-${cap.id}`}
