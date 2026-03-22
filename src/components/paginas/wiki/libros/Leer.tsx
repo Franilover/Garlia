@@ -650,20 +650,13 @@ export default function Lector() {
       />
 
       {/* Navbar fija */}
-      <nav className="sticky top-0 z-50 bg-bg-main/80 backdrop-blur-md border-b border-primary/5 px-6 py-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-primary/40 hover:text-primary transition-colors shrink-0">
-            <ChevronLeft size={24} />
+      <nav className="sticky top-0 z-50 bg-bg-main/80 backdrop-blur-md border-b border-primary/5 px-6 py-3">
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-primary/40 hover:text-primary transition-colors">
+            <ChevronLeft size={20} />
           </button>
-          <div className="flex flex-col items-center gap-1 min-w-0">
-            <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40 leading-none truncate">{libroTitulo}</h2>
-            {listaCapitulos.length > 1
-              ? <ChapterSelector lista={listaCapitulos} capIdActual={capId} onSelect={handleChapterSelect} />
-              : <p className="text-[11px] font-bold text-primary uppercase">Capítulo {capActual?.orden}</p>
-            }
-          </div>
-          <button onClick={() => setShowIndex(true)} className="text-primary/40 hover:text-primary transition-colors shrink-0">
-            <List size={24} />
+          <button onClick={() => setShowIndex(true)} className="text-primary/40 hover:text-primary transition-colors">
+            <List size={20} />
           </button>
         </div>
       </nav>
