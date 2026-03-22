@@ -5,8 +5,8 @@ import { Secciones } from "@/components/layout/Secciones";
 import { GestionPersonal } from "@/components/paginas/myself/tareas";
 import EnsayosView from "@/components/paginas/myself/ensayos/page";
 import { AdminOnly } from "@/components/forms/AdminOnly";
-/* import EstudioCapitulos from "@/components/paginas/myself/Editor/EditorCapitulos";
- */import EstudioLetras    from "@/components/paginas/myself/Editor/EditorLetras";
+import EstudioCapitulos from "@/components/paginas/myself/Editor/EditorCapitulos";
+import EstudioLetras    from "@/components/paginas/myself/Editor/EditorLetras";
 
 export default function DashboardPage() {
   return (
@@ -30,16 +30,16 @@ export default function DashboardPage() {
             icon: FileText,
             content: <EnsayosView />,
           },
-/*           {
+         {
             id: "capitulos",
             label: "Capítulos",
             icon: BookOpen,
             content: <EstudioCapitulos />,
-          }, */
+          },
           {
             id: "letras",
             label: "Letras",
-            icon: Music,
+            icon: Music, 
             content: <EstudioLetras />,
           },
         ]}

@@ -14,9 +14,9 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { librosQueries, Capitulo } from "@/lib/api/queries/wiki/libros";
 import { X } from "lucide-react"; 
-import { BtnIcon } from "@/components/ui/BtnIcon"; 
-import { Btn } from "@/components/ui/Btn";
-import { useTextStats } from "@/hooks/useTextStats"; // Asegúrate de que esta ruta sea correcta
+import { Btn } from "@/components/ui"; 
+import { BtnIcon } from "@/components/ui";
+import { useTextStats } from "@/hooks/useTextStats"; 
 interface CapituloLista {
   id: string; orden: number; fecha_publicacion: string; titulo_capitulo?: string;
 }

@@ -483,7 +483,7 @@ const CapituloItem = ({
 };
 
 const LibroItem = ({
-  libro, selectedCapId, onSelectCap, expanded, onToggle, onEditCap, onDeleteCap,
+  libro, selectedCapId, onSelectCap, expanded, onToggle, onEditCap, onDeleteCap, onEditLibro,
 }: {
   libro: Libro;
   selectedCapId: string | null;
@@ -527,7 +527,7 @@ const LibroItem = ({
         }
       </button>
       <button
-        onClick={e => { e.stopPropagation(); onEditLibro(libro); }}
+        onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEditLibro(libro); }}
         className="opacity-0 group-hover/libro:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary transition-all mr-1 shrink-0"
         title="Editar libro"
       >
@@ -1088,7 +1088,7 @@ const ModalEditarLibro = ({
         portada_url: portada.trim(),
         estado,
         visibilidad,
-        fecha_publicacion: visibilidad === "programado" ? fechaLibro || null : null,
+        fecha_publicacion: visibilidad === "programado" ? (fechaLibro || undefined) : undefined,
       };
       await libroUpdateMeta(libro.id, fields);
       onSaved({ ...libro, ...fields });
