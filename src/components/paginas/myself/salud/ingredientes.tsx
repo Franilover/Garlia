@@ -8,6 +8,7 @@ import {
   Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator, ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
+import { Btn, BtnIcon, Badge, Modal, InputLine, Textarea, Loading, EmptyState, BackBtn, Divider, PageHeader } from "@/components/ui";
 
 const CATEGORIAS = [
   { label: "Proteínas",     emoji: "🥩" },
@@ -323,9 +324,7 @@ export const IngredientesPage = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-32">
-            <Loader2 className="animate-spin text-primary/30" size={36} />
-          </div>
+          <Loading fullScreen={false} />
         ) : filteredItems.length === 0 ? (
           <div className="text-center py-32 space-y-2">
             <FlaskConical className="mx-auto text-primary/15" size={48} />
