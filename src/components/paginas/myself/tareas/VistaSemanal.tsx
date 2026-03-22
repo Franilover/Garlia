@@ -20,7 +20,7 @@ const EventoBadge = ({ item, compact = false }: { item: Evento; compact?: boolea
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "rounded-xl border px-2 py-1 flex items-center gap-1.5 cursor-default select-none",
+        "rounded-[var(--radius-btn)] border px-2 py-1 flex items-center gap-1.5 cursor-default select-none",
         color,
         compact ? "text-[9px]" : "text-[10px]"
       )}
@@ -40,7 +40,7 @@ const ColumniaDia = ({
   <div
     onClick={onClick}
     className={cn(
-      "flex flex-col min-h-0 flex-1 rounded-2xl border transition-all cursor-pointer group",
+      "flex flex-col min-h-0 flex-1 rounded-[var(--radius-btn)] border transition-all cursor-pointer group",
       seleccionado
         ? "bg-primary/5 border-primary/30 shadow-md shadow-primary/10"
         : "bg-white-custom border-primary/10 hover:border-primary/25 hover:shadow-sm",
@@ -58,7 +58,7 @@ const ColumniaDia = ({
         {compact ? DIAS_SEMANA_LETRA[fecha.getDay()] : DIAS_SEMANA_CORTO[fecha.getDay()]}
       </span>
       <div className={cn(
-        "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
+        "w-8 h-8 rounded-[var(--radius-btn)] flex items-center justify-center transition-all",
         esHoy
           ? "bg-primary text-white shadow-md shadow-primary/30"
           : seleccionado
@@ -153,29 +153,29 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
   const compact = vista >= 5;
 
   return (
-    <div className="bg-white-custom border border-primary/10 rounded-[40px] p-5 shadow-xl shadow-primary/5 flex flex-col gap-3 flex-1 overflow-hidden">
+    <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-5 shadow-xl shadow-primary/5 flex flex-col gap-3 flex-1 overflow-hidden">
       {}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-center gap-3 flex-1">
-          <button onClick={irAHoy} className="text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary px-3 py-1.5 rounded-xl hover:bg-primary hover:text-white transition-all">
+          <button onClick={irAHoy} className="text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary hover:text-white transition-all">
             Hoy
           </button>
-          <button onClick={() => navegar(-1)} className="p-1.5 hover:bg-primary/8 rounded-xl text-primary/40 hover:text-primary transition-all">
+          <button onClick={() => navegar(-1)} className="p-1.5 hover:bg-primary/8 rounded-[var(--radius-btn)] text-primary/40 hover:text-primary transition-all">
             <ChevronLeft size={18} />
           </button>
-          <button onClick={() => navegar(1)} className="p-1.5 hover:bg-primary/8 rounded-xl text-primary/40 hover:text-primary transition-all">
+          <button onClick={() => navegar(1)} className="p-1.5 hover:bg-primary/8 rounded-[var(--radius-btn)] text-primary/40 hover:text-primary transition-all">
             <ChevronRight size={18} />
           </button>
           <span className="text-[11px] font-black uppercase tracking-wider text-primary/70 ml-1">{rangoTexto}</span>
         </div>
-        <div className="flex items-center gap-1 bg-primary/5 rounded-2xl p-1">
+        <div className="flex items-center gap-1 bg-primary/5 rounded-[var(--radius-btn)] p-1">
           {VISTAS.map((v) => (
             <button
               key={v.valor}
               onClick={() => setVista(v.valor)}
               className={cn(
-                "text-[9px] font-black uppercase tracking-wide px-3 py-1.5 rounded-xl transition-all",
-                vista === v.valor ? "bg-primary text-white shadow-md shadow-primary/20" : "text-primary/40 hover:text-primary hover:bg-white"
+                "text-[9px] font-black uppercase tracking-wide px-3 py-1.5 rounded-[var(--radius-btn)] transition-all",
+                vista === v.valor ? "bg-primary text-white shadow-md shadow-primary/20" : "text-primary/40 hover:text-primary hover:bg-white-custom"
               )}
             >
               <span className="hidden sm:inline">{v.label}</span>
@@ -209,7 +209,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
       </AnimatePresence>
 
       {}
-      <div className="bg-primary/5 rounded-2xl p-3 border border-primary/10 shrink-0">
+      <div className="bg-primary/5 rounded-[var(--radius-btn)] p-3 border border-primary/10 shrink-0">
         <div className="flex items-center gap-2 mb-2">
           <Calendar size={14} className="text-primary/40" />
           <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
@@ -220,7 +220,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           <select
             value={tipoEvento}
             onChange={e => setTipoEvento(e.target.value)}
-            className="bg-white border border-primary/10 rounded-xl px-3 py-2 text-[10px] font-black text-primary outline-none focus:border-primary/30 cursor-pointer"
+            className="bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-black text-primary outline-none focus:border-primary/30 cursor-pointer"
           >
             {["Plan", "Reunión", "Personal"].map(t => <option key={t} value={t}>{t}</option>)}
           </select>
@@ -230,9 +230,9 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
             onChange={e => setNuevoEvento(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleAdd()}
             placeholder='"Nuevo evento..."'
-            className="flex-1 bg-white border border-primary/10 rounded-xl px-4 py-2 text-[10px] font-bold text-primary placeholder:text-primary/25 outline-none focus:border-primary/30"
+            className="flex-1 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-4 py-2 text-[10px] font-bold text-primary placeholder:text-primary/25 outline-none focus:border-primary/30"
           />
-          <BtnIcon loading={isAddingEvento} disabled={!nuevoEvento.trim()} onClick={handleAdd} className="rounded-xl w-10 h-10 shrink-0">
+          <BtnIcon loading={isAddingEvento} disabled={!nuevoEvento.trim()} onClick={handleAdd} className="rounded-[var(--radius-btn)] w-10 h-10 shrink-0">
             <Plus size={14} />
           </BtnIcon>
         </div>
@@ -246,11 +246,11 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
               key={ev.id}
               initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
               className={cn(
-                "flex items-center gap-3 p-3 rounded-2xl border",
+                "flex items-center gap-3 p-3 rounded-[var(--radius-btn)] border",
                 ev.esCapitulo ? "bg-amber-500/10 border-amber-500/20" : "bg-white-custom border-primary/10 shadow-sm"
               )}
             >
-              <div className="w-8 h-8 bg-primary/8 rounded-xl flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 bg-primary/8 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0">
                 {ev.esCapitulo
                   ? <BookOpen size={14} className="text-amber-600" />
                   : <Bookmark size={14} className="text-primary/50" />

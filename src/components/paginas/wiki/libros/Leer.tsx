@@ -670,7 +670,7 @@ function IndexPanel({ open, onClose, lista, capIdActual, isAdmin, libroTitulo, o
                       </span>
                       {esFuturo && <span className="text-[8px] font-black uppercase tracking-widest text-primary/40 mt-0.5 block">Programado · {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</span>}
                     </div>
-                    {esActual ? <span className="w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" /> : <ChevronR size={13} className="text-primary/20 shrink-0" />}
+                    {esActual ? <span className="w-1.5 h-1.5 rounded-full bg-white-custom/60 shrink-0" /> : <ChevronR size={13} className="text-primary/20 shrink-0" />}
                   </button>
                 );
               })}

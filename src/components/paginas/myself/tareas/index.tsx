@@ -167,9 +167,9 @@ export const GestionPersonal = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-var(--navbar-height,80px))] overflow-hidden">
 
-      <section className="lg:col-span-5">
+      <section className="lg:col-span-5 flex flex-col gap-4 h-full overflow-hidden">
         <RelojDigital horario={horarioRaw || []} />
         <ListaTareas
           tareas={tareas}
@@ -182,12 +182,12 @@ export const GestionPersonal = () => {
         />
       </section>
 
-      <section className="lg:col-span-7 flex flex-col gap-4">
-        <div className="flex items-center gap-1 bg-white border border-primary/10 rounded-2xl p-1 self-end shadow-sm">
+      <section className="lg:col-span-7 flex flex-col gap-4 h-full overflow-hidden">
+        <div className="flex items-center gap-1 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] p-1 self-end shadow-sm">
           <button
             onClick={() => setModoCalendario("mes")}
             className={cn(
-              "flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all",
+              "flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-[var(--radius-btn)] transition-all",
               modoCalendario === "mes" ? "bg-primary text-white shadow-md shadow-primary/20" : "text-primary/40 hover:text-primary"
             )}
           >
@@ -196,7 +196,7 @@ export const GestionPersonal = () => {
           <button
             onClick={() => setModoCalendario("semana")}
             className={cn(
-              "flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all",
+              "flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-[var(--radius-btn)] transition-all",
               modoCalendario === "semana" ? "bg-primary text-white shadow-md shadow-primary/20" : "text-primary/40 hover:text-primary"
             )}
           >

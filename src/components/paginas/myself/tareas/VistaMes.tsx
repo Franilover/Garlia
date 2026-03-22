@@ -20,7 +20,7 @@ const EventoBadge = ({ item, compact = false }: { item: any; compact?: boolean }
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "rounded-xl border px-2 py-1 flex items-center gap-1.5 cursor-default select-none",
+        "rounded-[var(--radius-btn)] border px-2 py-1 flex items-center gap-1.5 cursor-default select-none",
         color,
         compact ? "text-[9px]" : "text-[10px]"
       )}
@@ -90,20 +90,20 @@ export const VistaMes = ({
   }, [eventos, capitulosRaw, diaSeleccionado, mesActual, añoActual]);
 
   return (
-    <div className="bg-white-custom border border-primary/10 rounded-[40px] p-5 shadow-xl shadow-primary/5 flex-1 flex flex-col overflow-hidden">
+    <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-5 shadow-xl shadow-primary/5 flex-1 flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-4 px-2 shrink-0">
         <div className="flex items-center gap-3">
           <CalendarIcon className="text-primary" size={20} />
           <h2 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Calendario</h2>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={() => cambiarMes(-1)} className="p-2 hover:bg-primary/5 rounded-xl text-primary/40">
+          <button onClick={() => cambiarMes(-1)} className="p-2 hover:bg-primary/5 rounded-[var(--radius-btn)] text-primary/40">
             <ChevronLeft size={20} />
           </button>
           <span className="text-[11px] font-black uppercase tracking-widest text-primary min-w-35 text-center">
             {MESES[mesActual]} {añoActual}
           </span>
-          <button onClick={() => cambiarMes(1)} className="p-2 hover:bg-primary/5 rounded-xl text-primary/40">
+          <button onClick={() => cambiarMes(1)} className="p-2 hover:bg-primary/5 rounded-[var(--radius-btn)] text-primary/40">
             <ChevronRight size={20} />
           </button>
         </div>
@@ -124,7 +124,7 @@ export const VistaMes = ({
               onClick={() => setDiaSeleccionado(dia)}
               whileHover={{ scale: 1.05 }}
               className={cn(
-                "aspect-square rounded-xl border flex flex-col items-center justify-center relative transition-all cursor-pointer",
+                "aspect-square rounded-[var(--radius-btn)] border flex flex-col items-center justify-center relative transition-all cursor-pointer",
                 estaSeleccionado
                   ? "bg-primary text-btn-text border-primary shadow-lg shadow-primary/30"
                   : "bg-primary/5 border-primary/5 hover:bg-white-custom hover:border-primary/20 text-foreground"
@@ -132,14 +132,14 @@ export const VistaMes = ({
             >
               <span className="text-xs font-black">{dia}</span>
               {tieneAlgo && (
-                <div className={cn("absolute bottom-2 w-1.5 h-1.5 rounded-full", estaSeleccionado ? "bg-white" : "bg-primary")} />
+                <div className={cn("absolute bottom-2 w-1.5 h-1.5 rounded-full", estaSeleccionado ? "bg-white-custom" : "bg-primary")} />
               )}
             </motion.div>
           );
         })}
       </div>
 
-      <div className="bg-primary/5 rounded-2xl p-3 mb-3 border border-primary/10 shrink-0">
+      <div className="bg-primary/5 rounded-[var(--radius-btn)] p-3 mb-3 border border-primary/10 shrink-0">
         <div className="flex items-center gap-3 mb-2">
           <Bookmark size={16} className="text-primary/40" />
           <span className="text-[10px] font-black uppercase tracking-widest text-primary/40">
@@ -153,9 +153,9 @@ export const VistaMes = ({
             onChange={(e) => setNuevoEvento(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddEvento()}
             placeholder='"Nombre del evento..."'
-            className="flex-1 bg-white rounded-xl px-4 py-2 text-xs text-primary font-bold outline-none border border-primary/10 focus:border-primary/30"
+            className="flex-1 bg-white-custom rounded-[var(--radius-btn)] px-4 py-2 text-xs text-primary font-bold outline-none border border-primary/10 focus:border-primary/30"
           />
-          <BtnIcon loading={isAddingEvento} disabled={!nuevoEvento.trim()} onClick={handleAddEvento} className="rounded-xl w-10 h-10 shrink-0">
+          <BtnIcon loading={isAddingEvento} disabled={!nuevoEvento.trim()} onClick={handleAddEvento} className="rounded-[var(--radius-btn)] w-10 h-10 shrink-0">
             <Plus size={16} />
           </BtnIcon>
         </div>
@@ -171,11 +171,11 @@ export const VistaMes = ({
               <motion.div
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={item.id}
                 className={cn(
-                  "flex items-center gap-4 p-4 rounded-3xl border transition-all",
+                  "flex items-center gap-4 p-4 rounded-[var(--radius-card)] border transition-all",
                   item.esCapitulo ? "bg-primary/10 border-primary/20" : "bg-primary/5 border-primary/10"
                 )}
               >
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                <div className="w-10 h-10 bg-white-custom rounded-[var(--radius-btn)] flex items-center justify-center shadow-sm">
                   {item.esCapitulo
                     ? <BookOpen size={18} className="text-primary" />
                     : <span className="text-[14px] font-black text-primary">{diaSeleccionado}</span>

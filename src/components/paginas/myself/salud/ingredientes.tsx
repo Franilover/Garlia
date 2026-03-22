@@ -551,7 +551,7 @@ export const IngredientesPage = () => {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               transition={{ type: "spring", stiffness: 380, damping: 36 }}
-              className="relative w-full sm:max-w-lg rounded-t-[40px] sm:rounded-[40px] overflow-hidden bg-white-custom shadow-2xl max-h-[92vh] flex flex-col"
+              className="relative w-full sm:max-w-lg rounded-t-[40px] sm:rounded-[var(--radius-card)] overflow-hidden bg-white-custom shadow-2xl max-h-[92vh] flex flex-col"
             >
               <div className="flex items-center justify-between px-7 pt-7 pb-4 shrink-0">
                 <div>

@@ -46,7 +46,7 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
         <SimpleImagePicker onSelect={handleImageSelect} onClose={onClose} />
       ) : (
         <div className="space-y-6">
-          <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-primary/10 bg-black/20">
+          <div className="aspect-[4/3] rounded-[var(--radius-btn)] overflow-hidden border border-primary/10 bg-black/20">
             <img src={url} alt="Preview" className="w-full h-full object-contain" />
           </div>
           <div className="space-y-4">

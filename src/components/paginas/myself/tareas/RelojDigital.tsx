@@ -124,7 +124,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
       <motion.div
         layout
         onClick={() => setExpandido(e => !e)}
-        className="flex flex-col sm:flex-row items-center gap-6 bg-white-custom text-primary px-6 py-4 rounded-[30px] shadow-xl shadow-primary/5 border border-primary/10 cursor-pointer hover:border-primary/30 transition-all select-none"
+        className="flex flex-col sm:flex-row items-center gap-6 bg-white-custom text-primary px-6 py-4 rounded-[var(--radius-card)] shadow-xl shadow-primary/5 border border-primary/10 cursor-pointer hover:border-primary/30 transition-all select-none"
       >
         <div className="flex items-center gap-4">
           <Clock size={24} className={cn("text-primary/60", !expandido && "animate-pulse")} />
@@ -160,10 +160,10 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden relative z-10"
           >
-            <div className="mt-2 bg-white-custom border border-primary/10 rounded-[30px] p-5 shadow-xl shadow-primary/5 flex flex-col sm:flex-row gap-6 items-center">
+            <div className="mt-2 bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-5 shadow-xl shadow-primary/5 flex flex-col sm:flex-row gap-6 items-center">
 
               {}
-              <div className="flex flex-col items-center gap-1 shrink-0 bg-primary/4 rounded-2xl px-6 py-4 border border-primary/8">
+              <div className="flex flex-col items-center gap-1 shrink-0 bg-primary/4 rounded-[var(--radius-btn)] px-6 py-4 border border-primary/8">
                 <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30 italic">Hora Actual</span>
                 <span className="text-5xl font-black tracking-tighter tabular-nums text-primary italic leading-none">
                   {hora.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false })}
@@ -184,7 +184,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                   <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30 italic">Pomodoro</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setPomPantallaCompleta(true); }}
-                    className="text-[8px] font-black uppercase tracking-widest text-primary/30 hover:text-primary border border-primary/10 hover:border-primary/30 px-2.5 py-1 rounded-lg transition-all flex items-center gap-1"
+                    className="text-[8px] font-black uppercase tracking-widest text-primary/30 hover:text-primary border border-primary/10 hover:border-primary/30 px-2.5 py-1 rounded-[var(--radius-btn)] transition-all flex items-center gap-1"
                   >
                     ⛶ Enfocar
                   </button>
@@ -225,7 +225,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                   <button
                     onClick={(e) => { e.stopPropagation(); togglePomodoro(); }}
                     className={cn(
-                      "text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all",
+                      "text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-[var(--radius-btn)] transition-all",
                       pomActivo ? "bg-red-50 text-red-500 border border-red-100" : "bg-primary text-white shadow-md shadow-primary/20 hover:scale-105"
                     )}
                   >
@@ -234,7 +234,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                   {(pomActivo || pomSegundos !== pomMinutos * 60) && !pomTerminado && (
                     <button
                       onClick={(e) => { e.stopPropagation(); resetPomodoro(); }}
-                      className="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
+                      className="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-[var(--radius-btn)] border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
                     >
                       Reset
                     </button>
@@ -248,7 +248,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                       key={op.valor}
                       onClick={(e) => { e.stopPropagation(); seleccionarTiempo(op.valor); }}
                       className={cn(
-                        "text-[8px] font-black uppercase tracking-wide px-2.5 py-1.5 rounded-lg transition-all",
+                        "text-[8px] font-black uppercase tracking-wide px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all",
                         pomMinutos === op.valor && !pomActivo
                           ? "bg-primary/10 text-primary border border-primary/20"
                           : "text-primary/30 hover:text-primary hover:bg-primary/5 border border-transparent"
@@ -267,11 +267,11 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                     onChange={e => setPomPersonalizado(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && aplicarPersonalizado()}
                     placeholder="Min custom..."
-                    className="flex-1 bg-primary/5 border border-primary/10 rounded-xl px-3 py-1.5 text-[10px] font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20 w-full"
+                    className="flex-1 bg-primary/5 border border-primary/10 rounded-[var(--radius-btn)] px-3 py-1.5 text-[10px] font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20 w-full"
                   />
                   <button
                     onClick={aplicarPersonalizado}
-                    className="bg-primary/10 text-primary px-2 py-1.5 rounded-xl text-[9px] font-black hover:bg-primary hover:text-white transition-all"
+                    className="bg-primary/10 text-primary px-2 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black hover:bg-primary hover:text-white transition-all"
                   >
                     OK
                   </button>
@@ -295,7 +295,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
           >
             <button
               onClick={() => setPomPantallaCompleta(false)}
-              className="absolute top-6 right-6 text-white/40 hover:text-white text-[9px] font-black uppercase tracking-widest border border-white/15 hover:border-white/40 px-4 py-2 rounded-xl transition-all"
+              className="absolute top-6 right-6 text-white/40 hover:text-white text-[9px] font-black uppercase tracking-widest border border-white/15 hover:border-white/40 px-4 py-2 rounded-[var(--radius-btn)] transition-all"
             >
               ✕ Salir
             </button>
@@ -356,10 +356,10 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
               <button
                 onClick={togglePomodoro}
                 className={cn(
-                  "font-black uppercase tracking-widest px-8 py-3 rounded-2xl transition-all text-sm",
+                  "font-black uppercase tracking-widest px-8 py-3 rounded-[var(--radius-btn)] transition-all text-sm",
                   pomActivo
-                    ? "bg-white/10 text-white border border-white/20 hover:bg-white/20"
-                    : "bg-white text-primary shadow-2xl hover:scale-105 active:scale-95"
+                    ? "bg-white-custom/10 text-white border border-white/20 hover:bg-white-custom/20"
+                    : "bg-white-custom text-primary shadow-2xl hover:scale-105 active:scale-95"
                 )}
               >
                 {pomTerminado ? "Reiniciar" : pomActivo ? "Pausar" : "Iniciar"}
@@ -367,7 +367,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
               {(pomActivo || pomSegundos !== pomMinutos * 60) && !pomTerminado && (
                 <button
                   onClick={resetPomodoro}
-                  className="text-white/30 hover:text-white text-[9px] font-black uppercase tracking-widest border border-white/10 hover:border-white/30 px-4 py-3 rounded-2xl transition-all"
+                  className="text-white/30 hover:text-white text-[9px] font-black uppercase tracking-widest border border-white/10 hover:border-white/30 px-4 py-3 rounded-[var(--radius-btn)] transition-all"
                 >
                   Reset
                 </button>
@@ -380,10 +380,10 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                   key={op.valor}
                   onClick={() => seleccionarTiempo(op.valor)}
                   className={cn(
-                    "text-[9px] font-black uppercase tracking-wide px-3 py-2 rounded-xl transition-all",
+                    "text-[9px] font-black uppercase tracking-wide px-3 py-2 rounded-[var(--radius-btn)] transition-all",
                     pomMinutos === op.valor
-                      ? "bg-white/20 text-white border border-white/30"
-                      : "text-white/25 hover:text-white hover:bg-white/10 border border-transparent"
+                      ? "bg-white-custom/20 text-white border border-white/30"
+                      : "text-white/25 hover:text-white hover:bg-white-custom/10 border border-transparent"
                   )}
                 >
                   {op.label}
@@ -398,11 +398,11 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                 onChange={e => setPomPersonalizado(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && aplicarPersonalizado()}
                 placeholder="Min..."
-                className="bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/20 outline-none focus:border-white/40 w-24 text-center"
+                className="bg-white-custom/10 border border-white/15 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/20 outline-none focus:border-white/40 w-24 text-center"
               />
               <button
                 onClick={aplicarPersonalizado}
-                className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-wide border border-white/15 hover:border-white/30 transition-all"
+                className="bg-white-custom/10 hover:bg-white-custom/20 text-white px-3 py-2 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border border-white/15 hover:border-white/30 transition-all"
               >
                 OK
               </button>

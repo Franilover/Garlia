@@ -384,7 +384,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
         initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
         exit={{ y: 60, opacity: 0 }}
         transition={{ type: "spring", stiffness: 380, damping: 36 }}
-        className="relative w-full sm:max-w-2xl rounded-t-[40px] sm:rounded-[40px] p-7 overflow-y-auto max-h-[92vh] bg-white-custom shadow-2xl"
+        className="relative w-full sm:max-w-2xl rounded-t-[40px] sm:rounded-[var(--radius-card)] p-7 overflow-y-auto max-h-[92vh] bg-white-custom shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mx-auto mb-6" />
@@ -759,7 +759,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
             <motion.button
               whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
               onClick={() => setIsModalOpen(true)}
-              className="border-2 border-dashed border-primary/15 rounded-[var(--radius-card)] flex flex-col items-center justify-center p-8 bg-white-custom hover:bg-primary/5 transition-all group min-h-55"
+              className="border-[length:var(--border-width)] border-dashed border-primary/15 rounded-[var(--radius-card)] flex flex-col items-center justify-center p-8 bg-white-custom hover:bg-primary/5 transition-all group min-h-55"
             >
               <div className="w-10 h-10 flex items-center justify-center bg-primary text-btn-text rounded-[var(--radius-btn)] shadow-lg group-hover:scale-110 transition-transform">
                 <Plus size={18} />

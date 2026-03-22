@@ -181,7 +181,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
               const actual = i === serieActual - 1;
               return (
                 <div key={i} className={cn("w-9 h-9 rounded-[var(--radius-btn)] flex items-center justify-center font-black text-xs transition-all",
-                  done ? "bg-white-custom text-primary" : actual ? "bg-btn-text/20 text-btn-text border-2 border-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]" : "bg-btn-text/8 text-[color-mix(in_srgb,var(--btn-text)_20%,transparent)] border border-[color-mix(in_srgb,var(--btn-text)_10%,transparent)]")}>
+                  done ? "bg-white-custom text-primary" : actual ? "bg-btn-text/20 text-btn-text border-[length:var(--border-width)] border-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]" : "bg-btn-text/8 text-[color-mix(in_srgb,var(--btn-text)_20%,transparent)] border border-[color-mix(in_srgb,var(--btn-text)_10%,transparent)]")}>
                   {done ? <Check size={14} /> : i + 1}
                 </div>
               );
@@ -278,8 +278,8 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white-custom border border-primary/10 rounded-[28px] p-6 shadow-xl shadow-primary/5">
       <div className="flex items-center gap-3 mb-6"><Plus size={18} className="text-primary" /><h3 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Nueva Rutina</h3></div>
       <div className="space-y-3 mb-6">
-        <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la rutina..." className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
-        <input value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Descripción..." className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
+        <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la rutina..." className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
+        <input value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Descripción..." className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
         <div className="flex gap-2 flex-wrap">
           {TAGS.filter(t => t !== "Todas").map(t => <Badge key={t} active={tag === t} onClick={() => setTag(t)}>{t}</Badge>)}
         </div>
