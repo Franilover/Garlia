@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
-import { Play, ListOrdered, Plus, Trash2, Edit3, Save, Calendar, Loader2 } from "lucide-react";
+import { Play, ListOrdered, Calendar, Loader2 } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
-import { Btn, BtnIcon, Modal, InputLine, Loading, BackBtn } from "@/components/ui";
+import { Loading, BackBtn } from "@/components/ui";
 
 interface Capitulo {
   id: string;
@@ -29,101 +29,32 @@ export default function LibroDetalle() {
   const router = useRouter();
 
   const [libro, setLibro]       = useState<Libro | null>(null);
-  const [isAdmin, setIsAdmin]   = useState(false);
-  const [procesando, setProcesando] = useState(false);
   const [loadingLibro, setLoadingLibro] = useState(true);
   const [capitulos, setCapitulos] = useState<Capitulo[]>([]);
   const [loadingCaps, setLoadingCaps] = useState(true);
 
-  const [showAddModal, setShowAddModal]         = useState(false);
-  const [showEditCapModal, setShowEditCapModal] = useState(false);
-  const [nuevoTitulo, setNuevoTitulo]           = useState("");
-  const [nuevaFecha, setNuevaFecha]             = useState(new Date().toISOString().split("T")[0]);
-  const [selectedCap, setSelectedCap]           = useState<Capitulo | null>(null);
-  const [editCapTitle, setEditCapTitle]         = useState("");
-  const [editCapFecha, setEditCapFecha]         = useState("");
 
-  const refetchCaps = useCallback(async (admin: boolean) => {
-    if (!id) return;
-    const hoy = new Date().toISOString().split("T")[0];
-    let q = supabase.from("capitulos").select("*").eq("libro_id", id).order("orden", { ascending: true });
-    if (!admin) { q = q.not("titulo_capitulo", "like", "[Ruta]%"); q = q.lte("fecha_publicacion", hoy); }
-    const { data } = await q;
-    if (data) setCapitulos(data);
-  }, [id]);
+
 
   useEffect(() => {
     if (!id) return;
     const hoy = new Date().toISOString().split("T")[0];
     Promise.all([
-      supabase.auth.getSession(),
       supabase.from("libros").select("*").eq("id", id).single(),
-      supabase.from("capitulos").select("*").eq("libro_id", id).order("orden", { ascending: true }),
-      supabase.from("capitulos").select("*").eq("libro_id", id).lte("fecha_publicacion", hoy).not("titulo_capitulo", "like", "[Ruta]%").order("orden", { ascending: true }),
-    ]).then(async ([authRes, libroRes, capsAll, capsPublic]) => {
-      let admin = false;
-      if (authRes.data.session) {
-        const { data: perfil } = await supabase.from("perfiles").select("rol").eq("id", authRes.data.session.user.id).single();
-        admin = perfil?.rol === "admin";
-      }
-      setIsAdmin(admin);
+      supabase.from("capitulos")
+        .select("*").eq("libro_id", id)
+        .lte("fecha_publicacion", hoy)
+        .not("titulo_capitulo", "like", "[Ruta]%")
+        .order("orden", { ascending: true }),
+    ]).then(([libroRes, capsRes]) => {
       if (libroRes.data) setLibro(libroRes.data);
-      setCapitulos((admin ? capsAll.data : capsPublic.data) ?? []);
+      setCapitulos(capsRes.data ?? []);
     }).finally(() => { setLoadingLibro(false); setLoadingCaps(false); });
   }, [id]);
 
-  const handleCrearCapitulo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nuevoTitulo.trim() || procesando) return;
-    setProcesando(true);
-    const { error } = await supabase.from("capitulos").insert([{
-      libro_id: id, titulo_capitulo: nuevoTitulo.toUpperCase(),
-      orden: capitulos.length + 1, contenido: "Nueva crónica...", fecha_publicacion: nuevaFecha
-    }]);
-    if (!error) { setNuevoTitulo(""); setShowAddModal(false); await refetchCaps(isAdmin); }
-    setProcesando(false);
-  };
-
-  const handleUpdateCapitulo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editCapTitle.trim() || !selectedCap || procesando) return;
-    setProcesando(true);
-    const { error } = await supabase.from("capitulos")
-      .update({ titulo_capitulo: editCapTitle.toUpperCase(), fecha_publicacion: editCapFecha })
-      .eq("id", selectedCap.id);
-    if (!error) { setShowEditCapModal(false); await refetchCaps(isAdmin); }
-    setProcesando(false);
-  };
-
-  const deleteCapitulo = async () => {
-    if (!selectedCap || !confirm("¿Eliminar permanentemente este capítulo?")) return;
-    setProcesando(true);
-    const { error } = await supabase.from("capitulos").delete().eq("id", selectedCap.id);
-    if (!error) { setShowEditCapModal(false); await refetchCaps(isAdmin); }
-    setProcesando(false);
-  };
 
   return (
     <div className="min-h-screen bg-bg-main pb-20 relative">
-      <Modal open={showAddModal} onClose={() => !procesando && setShowAddModal(false)} title="Nuevo Capítulo">
-        <form onSubmit={handleCrearCapitulo} className="space-y-6">
-          <InputLine autoFocus placeholder="TÍTULO..." value={nuevoTitulo} onChange={e => setNuevoTitulo(e.target.value)} className="text-center" />
-          <InputLine label="Fecha de estreno" type="date" value={nuevaFecha} onChange={e => setNuevaFecha(e.target.value)} className="text-center" />
-          <Btn type="submit" loading={procesando} fullWidth size="lg">Revelar</Btn>
-        </form>
-      </Modal>
-
-      <Modal open={showEditCapModal} onClose={() => !procesando && setShowEditCapModal(false)} title="Gestionar Capítulo">
-        <form onSubmit={handleUpdateCapitulo} className="space-y-6">
-          <InputLine autoFocus placeholder="TÍTULO..." value={editCapTitle} onChange={e => setEditCapTitle(e.target.value)} className="text-center" />
-          <InputLine label="Fecha de estreno" type="date" value={editCapFecha} onChange={e => setEditCapFecha(e.target.value)} className="text-center" />
-          <div className="grid grid-cols-2 gap-3">
-            <Btn type="submit" loading={procesando} icon={<Save size={14} />}>Guardar</Btn>
-            <Btn type="button" variant="danger" onClick={deleteCapitulo} loading={procesando} icon={<Trash2 size={14} />}>Borrar</Btn>
-          </div>
-        </form>
-      </Modal>
-
       <BackBtn onClick={() => router.push("/wiki/libros")} />
 
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[320px_1fr] gap-16 mt-4">
@@ -166,7 +97,7 @@ export default function LibroDetalle() {
               <h3 className="text-primary font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
                 <ListOrdered size={16} /> Índice
               </h3>
-              {isAdmin && <BtnIcon onClick={() => setShowAddModal(true)}><Plus size={18} /></BtnIcon>}
+
             </div>
 
             <div className="grid gap-3">
@@ -191,14 +122,7 @@ export default function LibroDetalle() {
                               {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
                             </span>
                           </div>
-                          {isAdmin ? (
-                            <div onClick={(e) => { e.stopPropagation(); setSelectedCap(cap); setEditCapTitle(cap.titulo_capitulo); setEditCapFecha(cap.fecha_publicacion || ""); setShowEditCapModal(true); }}
-                              className="bg-primary/5 p-2 rounded-[var(--radius-btn)] text-primary hover:bg-primary hover:text-white transition-colors">
-                              <Edit3 size={16} />
-                            </div>
-                          ) : (
-                            <Play size={14} fill="currentColor" className="text-primary" />
-                          )}
+                          <Play size={14} fill="currentColor" className="text-primary" />
                         </button>
                       );
                     })

@@ -26,6 +26,7 @@ type Libro = {
   estado?: string;
   visibilidad?: "publico" | "programado" | "oculto";
   fecha_publicacion?: string;
+  fecha_proximo_capitulo?: string;
 };
 
 type Capitulo = {
@@ -35,6 +36,7 @@ type Capitulo = {
   contenido: string;
   orden: number;
   fecha_publicacion: string;
+  visibilidad?: "publico" | "programado" | "oculto";
   status?: "pending" | "synced";
   deleted?: boolean;
 };
@@ -145,6 +147,7 @@ async function capCreate(libroId: string, titulo: string, orden: number, fecha: 
     contenido: "",
     orden,
     fecha_publicacion: fecha,
+    visibilidad: (new Date(fecha) > new Date() ? "programado" : "publico") as "publico" | "programado" | "oculto",
   };
   if (!navigator.onLine) {
     const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -184,6 +187,12 @@ async function capDelete(id: string): Promise<void> {
     throw new Error("offline");
   }
 }
+
+async function libroUpdateMeta(id: string, fields: Partial<Libro>): Promise<void> {
+  const { error } = await supabase.from("libros").update(fields).eq("id", id);
+  if (error) throw error;
+}
+
 
 async function libroUpdateVisibilidad(id: string, visibilidad: string, fechaPublicacion?: string): Promise<void> {
   const fields: any = { visibilidad };
@@ -419,7 +428,13 @@ const CapituloItem = ({
       >
         <span className="flex items-center gap-2 pr-5">
           {cap.status === "pending" && (
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" title="Pendiente de sync" />
+          )}
+          {cap.visibilidad === "oculto" && (
+            <Lock size={9} className="shrink-0 opacity-40" />
+          )}
+          {cap.visibilidad === "programado" && new Date(cap.fecha_publicacion) > new Date() && (
+            <Timer size={9} className="shrink-0 opacity-40" />
           )}
           <span className="truncate">
             {cap.orden}. {cap.titulo_capitulo}
@@ -477,14 +492,16 @@ const LibroItem = ({
   onToggle: () => void;
   onEditCap: (cap: Capitulo) => void;
   onDeleteCap: (id: string, libroId: string) => void;
+  onEditLibro: (libro: Libro) => void;
 }) => {
   const { capitulos, loading } = useCapitulos(expanded ? libro.id : null);
 
   return (
     <div className="mb-1">
+      <div className="flex items-center gap-1 group/libro">
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-primary/5 transition-all text-left"
+        className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-primary/5 transition-all text-left"
       >
         <BookMarked size={12} className="text-primary/30 shrink-0" />
         <span className="flex-1 text-xs font-black uppercase italic tracking-tight text-primary leading-tight truncate">
@@ -509,6 +526,14 @@ const LibroItem = ({
           : <ChevronRight size={11} className="text-primary/25 shrink-0"/>
         }
       </button>
+      <button
+        onClick={e => { e.stopPropagation(); onEditLibro(libro); }}
+        className="opacity-0 group-hover/libro:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary transition-all mr-1 shrink-0"
+        title="Editar libro"
+      >
+        <Pencil size={10}/>
+      </button>
+      </div>
 
       {expanded && (
         <div className="ml-4 pl-3 border-l border-primary/10 mt-1 space-y-0.5">
@@ -533,6 +558,52 @@ const LibroItem = ({
     </div>
   );
 };
+
+// ─── Selector de visibilidad inline para capítulo ────────────────────────────
+const VisibilidadCapPicker = ({
+  capId, current, onChanged,
+}: {
+  capId: string;
+  current: "publico" | "programado" | "oculto";
+  onChanged: (v: "publico" | "programado" | "oculto") => void;
+}) => {
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = async (v: "publico" | "programado" | "oculto") => {
+    if (v === current || saving) return;
+    setSaving(true);
+    try {
+      await capUpdateMeta(capId, { visibilidad: v });
+      onChanged(v);
+    } catch {}
+    setSaving(false);
+  };
+
+  return (
+    <span className="flex items-center gap-1">
+      {(["publico", "programado", "oculto"] as const).map(v => {
+        const cfg = VISIBILIDAD_CONFIG[v];
+        const Icon = cfg.icon;
+        const active = current === v;
+        return (
+          <button
+            key={v}
+            onClick={() => handleChange(v)}
+            title={cfg.label}
+            disabled={saving}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wide transition-all disabled:opacity-40 ${
+              active ? cfg.color : "border-primary/10 text-primary/25 hover:border-primary/25 hover:text-primary/50"
+            }`}
+          >
+            <Icon size={8} />
+            {active && <span>{cfg.label}</span>}
+          </button>
+        );
+      })}
+    </span>
+  );
+};
+
 
 const PanelEditor = ({
   capId, libroId, onCapitulosChange, focusMode, onToggleFocus,
@@ -745,6 +816,9 @@ const PanelEditor = ({
                   <Pencil size={8} className="opacity-0 group-hover/fecha:opacity-60 transition-opacity ml-0.5"/>
                 </button>
               )}
+
+              {/* Visibilidad del capítulo */}
+              <VisibilidadCapPicker capId={capId} current={cap.visibilidad ?? "programado"} onChanged={(v) => setCap(prev => prev ? { ...prev, visibilidad: v } : prev)} />
             </div>
 
             <div className="flex items-center gap-4">
@@ -800,16 +874,17 @@ const PanelEditor = ({
 
 // ─── Selector de visibilidad inline ─────────────────────────────────────────
 const SelectorVisibilidad = ({
-  value, onChange, fechaPublicacion, onFechaChange,
+  value, onChange, fechaPublicacion, onFechaChange, label = "Visibilidad del Libro",
 }: {
   value: "publico" | "programado" | "oculto";
   onChange: (v: "publico" | "programado" | "oculto") => void;
   fechaPublicacion?: string;
   onFechaChange?: (v: string) => void;
+  label?: string;
 }) => (
   <div className="space-y-2">
     <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-      Visibilidad del Libro
+      {label}
     </label>
     <div className="flex gap-2">
       {(["publico", "programado", "oculto"] as const).map((v) => {
@@ -918,11 +993,12 @@ const ModalNuevoCapitulo = ({
   onLibroUpdated?: (l: Partial<Libro>) => void;
   onClose: () => void;
 }) => {
-  const [titulo,      setTitulo]      = useState("");
-  const [fecha,       setFecha]       = useState(new Date().toISOString().split("T")[0]);
-  const [visibilidad, setVisibilidad] = useState<"publico" | "programado" | "oculto">(libro?.visibilidad ?? "oculto");
-  const [fechaLibro,  setFechaLibro]  = useState(libro?.fecha_publicacion ?? "");
-  const [saving,      setSaving]      = useState(false);
+  const [titulo,         setTitulo]         = useState("");
+  const [fecha,          setFecha]          = useState(new Date().toISOString().split("T")[0]);
+  const [visibilidadCap, setVisibilidadCap] = useState<"publico" | "programado" | "oculto">("programado");
+  const [visibilidad,    setVisibilidad]    = useState<"publico" | "programado" | "oculto">(libro?.visibilidad ?? "oculto");
+  const [fechaLibro,     setFechaLibro]     = useState(libro?.fecha_publicacion ?? "");
+  const [saving,         setSaving]         = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -930,6 +1006,11 @@ const ModalNuevoCapitulo = ({
     setSaving(true);
     try {
       const nuevo = await capCreate(libroId, titulo, ordenSiguiente, fecha);
+      // Actualizar visibilidad del capítulo si no es la default
+      if (visibilidadCap !== nuevo.visibilidad) {
+        await capUpdateMeta(nuevo.id, { visibilidad: visibilidadCap });
+        nuevo.visibilidad = visibilidadCap;
+      }
       // Actualizar visibilidad del libro si cambió
       if (libro && (visibilidad !== libro.visibilidad || fechaLibro !== libro.fecha_publicacion)) {
         await libroUpdateVisibilidad(libro.id, visibilidad, visibilidad === "programado" ? fechaLibro : undefined);
@@ -950,13 +1031,22 @@ const ModalNuevoCapitulo = ({
       <form onSubmit={handleSubmit} className="space-y-4">
         <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
         <CampoInput label="Fecha de publicación del capítulo" value={fecha} onChange={setFecha} type="date" />
+        <SelectorVisibilidad
+          value={visibilidadCap}
+          onChange={setVisibilidadCap}
+          label="Visibilidad del Capítulo"
+        />
         {libro && (
-          <SelectorVisibilidad
-            value={visibilidad}
-            onChange={setVisibilidad}
-            fechaPublicacion={fechaLibro}
-            onFechaChange={setFechaLibro}
-          />
+          <>
+            <div className="h-px bg-primary/8" />
+            <SelectorVisibilidad
+              value={visibilidad}
+              onChange={setVisibilidad}
+              fechaPublicacion={fechaLibro}
+              onFechaChange={setFechaLibro}
+              label="Visibilidad del Libro"
+            />
+          </>
         )}
         <BotonSubmit
           loading={saving}
@@ -968,6 +1058,101 @@ const ModalNuevoCapitulo = ({
     </ModalBase>
   );
 };
+
+// ─── Modal para editar metadatos del libro ────────────────────────────────────
+const ModalEditarLibro = ({
+  libro, onSaved, onClose,
+}: {
+  libro: Libro;
+  onSaved: (l: Libro) => void;
+  onClose: () => void;
+}) => {
+  const [titulo,      setTitulo]      = useState(libro.titulo);
+  const [sinopsis,    setSinopsis]    = useState(libro.sinopsis ?? "");
+  const [portada,     setPortada]     = useState(libro.portada_url ?? "");
+  const [estado,      setEstado]      = useState(libro.estado ?? "BORRADOR");
+  const [visibilidad, setVisibilidad] = useState<"publico" | "programado" | "oculto">(libro.visibilidad ?? "oculto");
+  const [fechaLibro,  setFechaLibro]  = useState(libro.fecha_publicacion ?? "");
+  const [saving,      setSaving]      = useState(false);
+
+  const ESTADOS = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!titulo.trim()) return;
+    setSaving(true);
+    try {
+      const fields: Partial<Libro> = {
+        titulo: titulo.trim().toUpperCase(),
+        sinopsis: sinopsis.trim(),
+        portada_url: portada.trim(),
+        estado,
+        visibilidad,
+        fecha_publicacion: visibilidad === "programado" ? fechaLibro || null : null,
+      };
+      await libroUpdateMeta(libro.id, fields);
+      onSaved({ ...libro, ...fields });
+      onClose();
+    } catch {}
+    setSaving(false);
+  };
+
+  return (
+    <ModalBase onClose={onClose}>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+          <BookMarked size={12}/> Editar Libro
+        </h3>
+        <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16}/></button>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+        <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="TÍTULO DEL LIBRO…" autoFocus />
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Sinopsis</label>
+          <textarea
+            value={sinopsis}
+            onChange={e => setSinopsis(e.target.value)}
+            rows={4}
+            placeholder="Descripción del libro…"
+            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2.5 text-[12px] text-primary outline-none focus:border-primary/30 resize-none transition-colors"
+          />
+        </div>
+        <CampoInput label="URL de portada" value={portada} onChange={setPortada} placeholder="https://…" />
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Estado</label>
+          <div className="flex gap-1.5 flex-wrap">
+            {ESTADOS.map(est => (
+              <button key={est} type="button" onClick={() => setEstado(est)}
+                className={`px-3 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border transition-all ${
+                  estado === est
+                    ? "bg-primary text-btn-text border-primary shadow-sm"
+                    : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary/70"
+                }`}>
+                {est}
+              </button>
+            ))}
+          </div>
+        </div>
+        <SelectorVisibilidad
+          value={visibilidad}
+          onChange={setVisibilidad}
+          fechaPublicacion={fechaLibro}
+          onFechaChange={setFechaLibro}
+          label="Visibilidad del Libro"
+        />
+        <div className="pt-2">
+          <BotonSubmit
+            loading={saving}
+            disabled={!titulo.trim()}
+            labelLoading={<><Loader2 size={13} className="animate-spin"/>Guardando…</>}
+            labelNormal={<><Check size={13}/>Guardar Cambios</>}
+          />
+        </div>
+      </form>
+    </ModalBase>
+  );
+};
+
 
 export default function EstudioCapitulos() {
   const { libros, setLibros, loading: loadingLibros, isOffline: listaOffline, refetch } = useLibros();
@@ -981,6 +1166,7 @@ export default function EstudioCapitulos() {
   const [showNuevoCap,    setShowNuevoCap]      = useState(false);
   const [editandoCap,     setEditandoCap]       = useState<Capitulo | null>(null);
   const [capRefreshKey,   setCapRefreshKey]     = useState(0);
+  const [editandoLibro,   setEditandoLibro]     = useState<Libro | null>(null);
 
   const { capitulos, setCapitulos, reload: reloadCaps } = useCapitulos(selectedLibroId);
 
@@ -1014,6 +1200,11 @@ export default function EstudioCapitulos() {
     setCapitulos(prev => prev.map(c => c.id === cap.id ? cap : c));
     setCapRefreshKey(k => k + 1);
     setEditandoCap(null);
+  };
+
+  const handleLibroEditado = (libro: Libro) => {
+    setLibros(prev => prev.map(l => l.id === libro.id ? libro : l));
+    setEditandoLibro(null);
   };
 
   const handleCapEliminada = async (id: string, libroId: string) => {
@@ -1114,6 +1305,7 @@ export default function EstudioCapitulos() {
                   onToggle={() => toggleExpanded(libro.id)}
                   onEditCap={setEditandoCap}
                   onDeleteCap={handleCapEliminada}
+                  onEditLibro={setEditandoLibro}
                 />
               ))
             )}
@@ -1170,6 +1362,14 @@ export default function EstudioCapitulos() {
           />
         );
       })()}
+
+      {editandoLibro && (
+        <ModalEditarLibro
+          libro={editandoLibro}
+          onSaved={handleLibroEditado}
+          onClose={() => setEditandoLibro(null)}
+        />
+      )}
 
       {editandoCap && (() => {
         const libro = libros.find(l => l.id === selectedLibroId);
