@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, Compass, BookText, Music } from "lucide-react";
+import { Compass, BookText, Music, UserCircle2 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { MenuCard } from "@/components/templates/MenuCard";
 
@@ -13,7 +13,7 @@ export default function WikiMenuPage() {
       const { data } = await supabase
         .from("wiki_notifications")
         .select("page_name, has_new_content")
-        .in("page_name", ["enciclopedia", "mapa", "libros", "canciones"]);
+        .in("page_name", ["mapa", "libros", "canciones", "personajes"]);
       if (data) {
         const mapped = data.reduce((acc: any, curr) => {
           acc[curr.page_name] = curr.has_new_content;
@@ -51,18 +51,17 @@ export default function WikiMenuPage() {
 
       {}
       <div className="hidden md:grid grid-cols-2 gap-4 lg:gap-6 flex-1 min-h-0">
-        <MenuCard href="/wiki/enciclopedia" title="Información" icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']} onClick={() => handleVisit('enciclopedia')} />
-        <MenuCard href="/wiki/mapa"         title="Mapa"        icon={<Compass />}  delay={0.1} hasNewContent={notifications['mapa']}         onClick={() => handleVisit('mapa')} />
-        <MenuCard href="/wiki/libros"       title="Libros"      icon={<BookText />} delay={0.2} hasNewContent={notifications['libros']}       onClick={() => handleVisit('libros')} />
-        <MenuCard href="/wiki/canciones"    title="Canciones"   icon={<Music />}    delay={0.3} hasNewContent={notifications['canciones']}    onClick={() => handleVisit('canciones')} />
+        <MenuCard href="/wiki/personajes"  title="Mi Personaje" icon={<UserCircle2 />} delay={0.1} hasNewContent={notifications['personajes']}  onClick={() => handleVisit('personajes')} />
+        <MenuCard href="/wiki/mapa"        title="Mapa"         icon={<Compass />}     delay={0.2} hasNewContent={notifications['mapa']}         onClick={() => handleVisit('mapa')} />
+        <MenuCard href="/wiki/libros"      title="Libros"       icon={<BookText />}    delay={0.3} hasNewContent={notifications['libros']}       onClick={() => handleVisit('libros')} />
+        <MenuCard href="/wiki/canciones"   title="Canciones"    icon={<Music />}       delay={0.4} hasNewContent={notifications['canciones']}    onClick={() => handleVisit('canciones')} />
       </div>
 
-      {}
       <div className="flex flex-col gap-3 shrink-0 md:hidden">
-        <MenuCard href="/wiki/enciclopedia" title="Información" icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']} onClick={() => handleVisit('enciclopedia')} horizontal />
-        <MenuCard href="/wiki/mapa"         title="Mapa"        icon={<Compass />}  delay={0.1} hasNewContent={notifications['mapa']}         onClick={() => handleVisit('mapa')} horizontal />
-        <MenuCard href="/wiki/libros"       title="Libros"      icon={<BookText />} delay={0.2} hasNewContent={notifications['libros']}       onClick={() => handleVisit('libros')} horizontal />
-        <MenuCard href="/wiki/canciones"    title="Canciones"   icon={<Music />}    delay={0.3} hasNewContent={notifications['canciones']}    onClick={() => handleVisit('canciones')} horizontal />
+        <MenuCard href="/wiki/personajes" title="Mi Personaje" icon={<UserCircle2 />} delay={0.1} hasNewContent={notifications['personajes']}  onClick={() => handleVisit('personajes')} horizontal />
+        <MenuCard href="/wiki/mapa"       title="Mapa"         icon={<Compass />}     delay={0.2} hasNewContent={notifications['mapa']}         onClick={() => handleVisit('mapa')}        horizontal />
+        <MenuCard href="/wiki/libros"     title="Libros"       icon={<BookText />}    delay={0.3} hasNewContent={notifications['libros']}       onClick={() => handleVisit('libros')}      horizontal />
+        <MenuCard href="/wiki/canciones"  title="Canciones"    icon={<Music />}       delay={0.4} hasNewContent={notifications['canciones']}    onClick={() => handleVisit('canciones')}   horizontal />
       </div>
     </div>
   );

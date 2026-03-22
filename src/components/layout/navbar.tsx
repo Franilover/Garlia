@@ -10,7 +10,7 @@ import { useDarkMode } from "@/hooks/features/useDarkMode";
 import { ThemeSelector } from "@/app/providers/ThemeProvider";
 import {
   LogOut, CircleUser, Flower2,
-  Utensils, PenTool, Moon, Sun, Star, Palette, Shirt, Sword
+  Utensils, PenTool, Moon, Sun, Star, Palette, Shirt, Sword, BookOpen
 } from "lucide-react";
 
 const Navbar = () => {
@@ -43,9 +43,10 @@ const Navbar = () => {
   ];
 
   const franiLinks = [
-    { href: "/myself/salud",      label: "Salud",      icon: Utensils, key: "/salud"      },
-    { href: "/myself/escritorio", label: "Escritorio", icon: PenTool,  key: "/escritorio" },
-    { href: "/myself/ropa",       label: "Ropa",       icon: Shirt,    key: "/ropa"       },
+    { href: "/wiki/enciclopedia", label: "Información", icon: BookOpen, key: "/enciclopedia" },
+    { href: "/myself/salud",      label: "Salud",        icon: Utensils, key: "/salud"        },
+    { href: "/myself/escritorio", label: "Escritorio",   icon: PenTool,  key: "/escritorio"   },
+    { href: "/myself/ropa",       label: "Ropa",         icon: Shirt,    key: "/ropa"         },
   ];
 
   return (
