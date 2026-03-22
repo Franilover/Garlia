@@ -3,7 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { LucideProps } from "lucide-react";
-import { useTheme } from "@/app/providers/ThemeProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 interface MenuCardProps {
   href: string;

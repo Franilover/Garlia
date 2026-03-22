@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/app/providers/AuthProvider";
+import { useAuth } from "@/providers/AuthProvider";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDarkMode } from "@/hooks/features/useDarkMode";
-import { ThemeSelector } from "@/app/providers/ThemeProvider";
+import { ThemeSelector } from "@/providers/ThemeProvider";
 import {
   LogOut, CircleUser, Flower2,
   Utensils, PenTool, Moon, Sun, Star, Palette, Shirt, Sword, BookOpen

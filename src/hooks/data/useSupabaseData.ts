@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
-import { useDataCache } from "@/app/providers/DataProvider";
+import { useDataCache } from "@/providers/DataProvider";
 import { db } from "@/lib/api/client/db";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 

@@ -1,11 +1,11 @@
 import { Montserrat } from 'next/font/google';
 import { LightboxProvider } from "@/components/modal/lightbox/";
-import { AuthProvider } from "@/app/providers/AuthProvider";
-import { DataProvider } from "@/app/providers/DataProvider";
-import AppLogic from "@/app/providers/AppLogic";
+import { AuthProvider } from "@/providers/AuthProvider";
+import { DataProvider } from "@/providers/DataProvider";
+import AppLogic from "@/providers/AppLogic";
 import "@/style/tailwind.css";
-import { OfflineSyncActivator } from "@/app/providers/OfflineSyncActivator";
-import { ThemeProvider } from "@/app/providers/ThemeProvider";
+import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
 const montserrat = Montserrat({
   subsets: ['latin'],
