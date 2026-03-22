@@ -235,7 +235,7 @@ const CancionModal = ({ selected, isCreating, onClose, onUpdate }: {
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Visibilidad</label>
                       <button type="button" onClick={() => set("visible", !form.visible)}
-                        className={`w-full flex items-center justify-between py-4 px-6 rounded-[var(--radius-btn)] border-2 transition-all ${
+                        className={`w-full flex items-center justify-between py-4 px-6 rounded-[var(--radius-btn)] border-[length:var(--border-width)] transition-all ${
                           form.visible ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300" : "border-primary/20 bg-primary/5 text-primary/60"
                         }`}>
                         <span className="text-[10px] font-black uppercase tracking-widest">{form.visible ? "Público" : "Privado"}</span>

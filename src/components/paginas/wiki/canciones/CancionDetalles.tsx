@@ -82,8 +82,8 @@ const LanguageToggler = ({ idiomasActivos, toggleIdioma }) => (
       {IDIOMAS.map(l => (
         <motion.button key={l.id} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
           onClick={() => toggleIdioma(l.id)} title={l.nombre}
-          className={`py-2 rounded-[var(--radius-btn)] font-black text-[9px] transition-all uppercase border-2 ${
-            idiomasActivos.includes(l.id) ? "bg-white-custom border-white-custom scale-105" : "bg-transparent border-2"
+          className={`py-2 rounded-[var(--radius-btn)] font-black text-[9px] transition-all uppercase border-[length:var(--border-width)] ${
+            idiomasActivos.includes(l.id) ? "bg-white-custom border-white-custom scale-105" : "bg-transparent border-[length:var(--border-width)]"
           }`}
           style={idiomasActivos.includes(l.id) ? { color: "var(--primary)" } : { color: "color-mix(in srgb, var(--btn-text) 50%, transparent)", borderColor: "color-mix(in srgb, var(--btn-text) 15%, transparent)" }}>
           {l.label}

@@ -19,7 +19,7 @@ export const ListaTareas = ({
   tareas, nuevaTarea, setNuevaTarea,
   isAddingTarea, onAdd, onToggle, onDelete,
 }: Props) => (
-  <div className="bg-white-custom border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 flex-1 flex flex-col overflow-hidden">
+  <div className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-6 shadow-xl shadow-primary/5 flex-1 flex flex-col overflow-hidden">
     <div className="flex items-center gap-3 mb-8 px-2">
       <CheckSquare className="text-primary" size={20} />
       <h2 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Lista de Pendientes</h2>
@@ -32,9 +32,9 @@ export const ListaTareas = ({
         onChange={(e) => setNuevaTarea(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && onAdd()}
         placeholder='"Añadir una tarea..."'
-        className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/10 focus:bg-white rounded-2xl py-4 px-6 text-sm text-primary transition-all outline-none font-bold placeholder:text-primary/30"
+        className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/10 focus:bg-white-custom rounded-[var(--radius-btn)] py-4 px-6 text-sm text-foreground transition-all outline-none font-bold placeholder:text-primary/30"
       />
-      <BtnIcon loading={isAddingTarea} disabled={!nuevaTarea.trim()} onClick={onAdd} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl w-10 h-10">
+      <BtnIcon loading={isAddingTarea} disabled={!nuevaTarea.trim()} onClick={onAdd} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[var(--radius-btn)] w-10 h-10">
         <Plus size={20} />
       </BtnIcon>
     </div>
@@ -46,8 +46,8 @@ export const ListaTareas = ({
             key={t.id} layout
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
             className={cn(
-              "flex items-center justify-between p-4 rounded-2xl border transition-all group",
-              t.completada ? "bg-primary/5 border-primary/5 opacity-60" : "bg-white-custom border-primary/15 shadow-sm hover:border-primary/30"
+              "flex items-center justify-between p-4 rounded-[var(--radius-btn)] border transition-all group",
+              t.completada ? "bg-primary/5 border-[length:var(--border-width)] border-primary/5 opacity-60" : "bg-white-custom border-[length:var(--border-width)] border-primary/15 shadow-sm hover:border-primary/30"
             )}
           >
             <div
@@ -55,7 +55,7 @@ export const ListaTareas = ({
               onClick={() => onToggle(t.id, t.completada)}
             >
               <div className={cn(
-                "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all",
+                "w-6 h-6 rounded-[var(--radius-input)] border-[length:var(--border-width)] flex items-center justify-center transition-all",
                 t.completada ? "bg-primary border-primary" : "border-primary/30 group-hover:border-primary/60"
               )}>
                 {t.completada && <Plus size={14} className="text-white rotate-45" strokeWidth={4} />}
