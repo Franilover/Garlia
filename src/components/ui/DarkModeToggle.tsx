@@ -1,6 +1,4 @@
-// components/shared/DarkModeToggle.tsx
-// Botón listo para usar en cualquier navbar o layout.
-// Importa el hook y ponlo donde quieras.
+
 
 "use client";
 import { useDarkMode } from "@/hooks/features/useDarkMode";

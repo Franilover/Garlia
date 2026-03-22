@@ -1,4 +1,4 @@
-// ─── TIPOS ────────────────────────────────────────────────────────────────────
+
 export type VistaOpcion = 1 | 2 | 3 | 4 | 5 | 7;
 export type ModoCalendario = "mes" | "semana";
 
@@ -10,7 +10,6 @@ export interface Evento {
   esCapitulo?: boolean;
 }
 
-// ─── CONSTANTES ───────────────────────────────────────────────────────────────
 export const DIAS_SEMANA_CORTO = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 export const DIAS_SEMANA_LETRA = ["D", "L", "M", "X", "J", "V", "S"];
 export const MESES = [
@@ -26,7 +25,6 @@ export const VISTAS: { valor: VistaOpcion; label: string; short: string }[] = [
   { valor: 7, label: "Semana",   short: "7D" },
 ];
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
 export const addDays = (date: Date, n: number) => {
   const d = new Date(date);
   d.setDate(d.getDate() + n);

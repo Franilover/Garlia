@@ -2,8 +2,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/api/client/db";
 
-// Clave usada en Dexie para el caché general (tabla notas u otras sin tabla propia)
-// No confundir con reproductor_handles — ese es solo para el reproductor.
 const CACHE_KEY = "app_data_cache";
 
 interface DataContextValue {
@@ -16,12 +14,12 @@ const DataContext = createContext<DataContextValue | null>(null);
 export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [cache, setCache] = useState<Record<string, any>>({});
 
-  // Al montar, intenta recuperar desde Dexie primero, luego localStorage como fallback
+  
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const loadCache = async () => {
-      // Intento 1: Dexie (más capacidad, más robusto)
+      
       try {
         if (db) {
           const stored = await (db as any).table?.("app_cache")?.get(CACHE_KEY);
@@ -31,10 +29,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
       } catch {
-        // Dexie no tiene tabla app_cache (versiones anteriores), usar localStorage
+        
       }
 
-      // Intento 2: localStorage como fallback
+      
       try {
         const saved = localStorage.getItem("fran_nexus_cache");
         if (saved) setCache(JSON.parse(saved));
@@ -50,12 +48,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     setCache(prev => {
       const newCache = { ...prev, [tabla]: data };
 
-      // Persistir en localStorage (siempre funciona como respaldo)
+      
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem("fran_nexus_cache", JSON.stringify(newCache));
         } catch {
-          // localStorage lleno — no es crítico, solo el caché en memoria funciona igual
+          
         }
       }
 

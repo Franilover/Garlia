@@ -38,7 +38,7 @@ export default function PersonalMenuPage() {
         height: 'calc(100svh - 64px)',
       }}
     >
-      {/* Título */}
+      {}
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -49,7 +49,7 @@ export default function PersonalMenuPage() {
         </h1>
       </motion.div>
 
-      {/* Desktop: "Sobre Mí" a la izquierda, Dibujos+Fotos apiladas a la derecha */}
+      {}
       <div className="hidden md:grid grid-cols-2 gap-4 lg:gap-6 flex-1 min-h-0">
         <MenuCard
           href="/personal/sobre-mi"
@@ -79,7 +79,7 @@ export default function PersonalMenuPage() {
         </div>
       </div>
 
-      {/* Mobile: columna horizontal */}
+      {}
       <div className="flex flex-col gap-3 shrink-0 md:hidden">
         <MenuCard href="/personal/sobre-mi" title="Sobre Mí" icon={<Star />}    delay={0.1} hasNewContent={notifications["sobre-mi"]} onClick={() => handleVisit("sobre-mi")} horizontal />
         <MenuCard href="/personal/dibujos"  title="Dibujos"  icon={<Palette />} delay={0.2} hasNewContent={notifications["dibujos"]}  onClick={() => handleVisit("dibujos")}  horizontal />

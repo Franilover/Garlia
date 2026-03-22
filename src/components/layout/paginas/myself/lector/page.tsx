@@ -9,12 +9,8 @@ import {
   Upload, Keyboard, RotateCcw, List, EyeOff, Eye,
 } from "lucide-react";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TYPES & STATE
-// ─────────────────────────────────────────────────────────────────────────────
 interface Bookmark { page: number; createdAt: number }
 
-// Modos de lectura — filtros CSS que se aplican al canvas
 export type ReadMode = "normal" | "night" | "sepia" | "dim" | "theme";
 
 export const READ_MODES: { id: ReadMode; label: string; emoji: string; filter: string; bg: string }[] = [
@@ -43,7 +39,7 @@ export const READ_MODES: { id: ReadMode; label: string; emoji: string; filter: s
     id: "theme",
     label: "Tema",
     emoji: "🎨",
-    // Tinte del color primario del tema — sutil
+    
     filter: "brightness(0.9) contrast(0.95) hue-rotate(var(--reader-hue, 0deg)) saturate(0.7)",
     bg: "color-mix(in srgb, var(--bg-main) 70%, var(--accent) 30%)",
   },
@@ -131,9 +127,6 @@ const SHORTCUTS = [
   { key: "Esc",               desc: "Cerrar paneles" },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PAGE CANVAS (individual, memoized)
-// ─────────────────────────────────────────────────────────────────────────────
 const PageCanvas = React.memo(function PageCanvas({
   pdfDoc, pageNum, zoom, readMode, onVisible,
 }: {
@@ -145,7 +138,7 @@ const PageCanvas = React.memo(function PageCanvas({
   const taskRef   = useRef<any>(null);
   const [rendered, setRendered] = useState(false);
 
-  // Report visibility to parent
+  
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -157,7 +150,7 @@ const PageCanvas = React.memo(function PageCanvas({
     return () => obs.disconnect();
   }, [pageNum, onVisible]);
 
-  // Render canvas
+  
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return;
     let cancelled = false;
@@ -223,9 +216,6 @@ const PageCanvas = React.memo(function PageCanvas({
   );
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN COMPONENT
-// ─────────────────────────────────────────────────────────────────────────────
 export default function LectorPDF() {
   const [s, dispatch]    = useReducer(reducer, init);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -236,7 +226,7 @@ export default function LectorPDF() {
   const fileRef   = useRef<HTMLInputElement>(null);
   const touch     = useRef({ x: 0, y: 0, dist: 0, pinching: false });
 
-  // ── Load pdf.js from CDN ───────────────────────────────────────────────────
+  
   useEffect(() => {
     if ((window as any).pdfjsLib) { setPdfjsReady(true); return; }
     const script = document.createElement("script");
@@ -249,7 +239,7 @@ export default function LectorPDF() {
     document.head.appendChild(script);
   }, []);
 
-  // ── Load PDF ───────────────────────────────────────────────────────────────
+  
   const loadPDF = useCallback(async (file: File) => {
     if (!pdfjsReady) return;
     const buf = await file.arrayBuffer();
@@ -275,8 +265,8 @@ export default function LectorPDF() {
     loadPDF(file);
   }, [loadPDF]);
 
-  // ── Scroll helpers ─────────────────────────────────────────────────────────
-  // KEY FEATURE: scroll by fraction of viewport height, smooth
+  
+  
   const scrollBy = useCallback((fraction: number) => {
     const el = scrollRef.current;
     if (!el) return;
@@ -291,7 +281,7 @@ export default function LectorPDF() {
     dispatch({ type: "SET_VISIBLE_PAGE", page });
   }, []);
 
-  // ── Keyboard ───────────────────────────────────────────────────────────────
+  
   useEffect(() => {
     if (!pdfDoc) return;
     const onKey = (e: KeyboardEvent) => {
@@ -331,7 +321,7 @@ export default function LectorPDF() {
     return () => window.removeEventListener("keydown", onKey);
   }, [pdfDoc, s, scrollBy, scrollToPage]);
 
-  // ── Touch ─────────────────────────────────────────────────────────────────
+  
   const onTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       touch.current = { ...touch.current, x: e.touches[0].clientX, y: e.touches[0].clientY, pinching: false };
@@ -356,14 +346,14 @@ export default function LectorPDF() {
   const progress     = s.totalPages ? (s.visiblePage / s.totalPages) * 100 : 0;
   const pages        = useMemo(() => Array.from({ length: s.totalPages }, (_, i) => i + 1), [s.totalPages]);
 
-  // ─────────────────────────────────────────────────────────────────────────
+  
   return (
     <div className={`flex flex-col w-full transition-colors duration-300 ${
         s.fullscreen ? "fixed inset-0 z-[2000]" : "h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)]"
       } ${s.readMode === "night" ? "bg-[#111008]" : "bg-bg-main"}`}
     >
 
-      {/* ── HEADER ── */}
+      {}
       <AnimatePresence initial={false}>
         {!s.immersive && (
           <motion.div
@@ -391,7 +381,7 @@ export default function LectorPDF() {
                     {s.visiblePage} / {s.totalPages}
                   </span>
 
-                  {/* Zoom — desktop */}
+                  {}
                   <div className="hidden sm:flex items-center gap-0.5">
                     <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: s.zoom - 0.2 })}
                       className="p-1.5 transition-opacity hover:opacity-100"
@@ -410,7 +400,7 @@ export default function LectorPDF() {
                     </button>
                   </div>
 
-                  {/* Icon buttons */}
+                  {}
                   {[
                     { icon: <List size={12}/>,     fn: () => dispatch({ type: "TOGGLE_TOC" }),       active: s.showTOC,       show: s.toc.length > 0, title: "Índice" },
                     { icon: <BookMarked size={12}/>, fn: () => dispatch({ type: "ADD_BOOKMARK", page: s.visiblePage }), active: isBookmarked, show: true, title: "Marcar" },
@@ -444,7 +434,7 @@ export default function LectorPDF() {
               )}
             </header>
 
-            {/* ── PROGRESS BAR ── */}
+            {}
             {pdfDoc && (
               <div className="h-[2px]" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
                 <motion.div className="h-full" style={{ background: "var(--accent)" }}
@@ -456,7 +446,7 @@ export default function LectorPDF() {
         )}
       </AnimatePresence>
 
-      {/* ── IMMERSIVE: floating restore button ── */}
+      {}
       <AnimatePresence>
         {s.immersive && pdfDoc && (
           <motion.div
@@ -466,7 +456,7 @@ export default function LectorPDF() {
             transition={{ delay: 0.15, type: "spring", stiffness: 400, damping: 30 }}
             className="fixed top-4 right-4 z-[1500] flex items-center gap-2"
           >
-            {/* Page indicator pill */}
+            {}
             <div className="px-3 py-1.5 text-[9px] font-black tabular-nums"
               style={{
                 background: "color-mix(in srgb, var(--foreground) 12%, transparent)",
@@ -477,7 +467,7 @@ export default function LectorPDF() {
               }}>
               {s.visiblePage} / {s.totalPages}
             </div>
-            {/* Eye button to exit */}
+            {}
             <button
               onClick={() => dispatch({ type: "TOGGLE_IMMERSIVE" })}
               title="Salir del modo inmersivo (I / Esc)"
@@ -498,10 +488,10 @@ export default function LectorPDF() {
         )}
       </AnimatePresence>
 
-      {/* ── BODY ── */}
+      {}
       <div className="flex flex-1 overflow-hidden relative">
 
-        {/* ── MODE PICKER — floating dropdown ── */}
+        {}
         <AnimatePresence>
           {s.showModes && (
             <motion.div
@@ -542,7 +532,7 @@ export default function LectorPDF() {
                     }}>
                       {mode.label}
                     </p>
-                    {/* Mini preview strip */}
+                    {}
                     <div className="w-16 h-1.5 mt-0.5 rounded-full overflow-hidden"
                       style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                       <div className="h-full w-full" style={{
@@ -564,7 +554,7 @@ export default function LectorPDF() {
           )}
         </AnimatePresence>
 
-        {/* TOC sidebar */}
+        {}
         <AnimatePresence>
           {s.showTOC && s.toc.length > 0 && (
             <motion.aside
@@ -589,10 +579,10 @@ export default function LectorPDF() {
           )}
         </AnimatePresence>
 
-        {/* MAIN SCROLL */}
+        {}
         <div className="flex-1 overflow-hidden flex flex-col">
           {!pdfDoc ? (
-            /* ── DROP ZONE ── */
+            
             <div className="flex-1 flex items-center justify-center p-8 cursor-pointer"
               onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
               onDragOver={e => e.preventDefault()}
@@ -644,7 +634,7 @@ export default function LectorPDF() {
               </motion.div>
             </div>
           ) : (
-            /* ── CONTINUOUS SCROLL ── */
+            
             <div
               ref={scrollRef}
               className="flex-1 overflow-y-auto overflow-x-auto py-6 px-4"
@@ -672,7 +662,7 @@ export default function LectorPDF() {
           )}
         </div>
 
-        {/* Bookmarks panel */}
+        {}
         <AnimatePresence>
           {s.showBookmarks && (
             <motion.aside
@@ -715,7 +705,7 @@ export default function LectorPDF() {
         </AnimatePresence>
       </div>
 
-      {/* ── BOTTOM NAV ── */}
+      {}
       <AnimatePresence initial={false}>
         {pdfDoc && !s.immersive && (
           <motion.nav
@@ -751,7 +741,7 @@ export default function LectorPDF() {
               <BookMarked size={13} />
             </button>
 
-            {/* Zoom — mobile */}
+            {}
             <div className="flex sm:hidden items-center gap-1 flex-1 justify-center">
               <button onClick={() => dispatch({ type: "SET_ZOOM", zoom: s.zoom - 0.2 })}
                 className="p-1.5" style={{ color: "var(--menu-text)", opacity: 0.5 }}><ZoomOut size={13} /></button>
@@ -768,7 +758,7 @@ export default function LectorPDF() {
               Pág. {s.visiblePage} / {s.totalPages}
             </span>
 
-            {/* Jump to page */}
+            {}
             <div className="hidden sm:flex items-center gap-1.5">
               <span className="text-[8px] font-bold uppercase" style={{ color: "var(--menu-text)", opacity: 0.35 }}>Ir a</span>
               <input
@@ -808,7 +798,7 @@ export default function LectorPDF() {
         )}
       </AnimatePresence>
 
-      {/* ── SHORTCUTS MODAL ── */}
+      {}
       <AnimatePresence>
         {s.showShortcuts && (
           <motion.div

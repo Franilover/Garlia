@@ -194,7 +194,6 @@ export default function SobreMi() {
               })}
             </div>
 
-
           </motion.section>
 
           <motion.section {...fade(0.3)} className="space-y-12 flex flex-col items-center text-center">

@@ -35,7 +35,7 @@ export default function MusicPlayer() {
   const [isDragging, setIsDragging] = useState(false);
   const [spinning, setSpinning] = useState(false);
 
-  /* ── Open folder ── */
+  
   const openFolder = useCallback(async () => {
     try {
       const dir = await (window as any).showDirectoryPicker({ mode: "read" });
@@ -51,7 +51,7 @@ export default function MusicPlayer() {
         url: URL.createObjectURL(f),
         duration: null,
       }));
-      // load durations async
+      
       loaded.forEach((t, i) => {
         const a = new Audio(t.url);
         a.addEventListener("loadedmetadata", () => {
@@ -68,7 +68,7 @@ export default function MusicPlayer() {
     }
   }, []);
 
-  /* ── Drag & drop ── */
+  
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const files = [...e.dataTransfer.files].filter(f =>
@@ -90,7 +90,7 @@ export default function MusicPlayer() {
     setFiltered(loaded);
   }, []);
 
-  /* ── Play track ── */
+  
   const playTrack = useCallback((idx: number) => {
     const audio = audioRef.current;
     if (!audio || !tracks[idx]) return;
@@ -102,7 +102,7 @@ export default function MusicPlayer() {
     setSpinning(true);
   }, [tracks, volume]);
 
-  /* ── Toggle play/pause ── */
+  
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -118,7 +118,7 @@ export default function MusicPlayer() {
     }
   }, [currentIdx, tracks, playTrack]);
 
-  /* ── Next / Prev ── */
+  
   const playNext = useCallback(() => {
     if (!tracks.length) return;
     const idx = shuffled
@@ -134,7 +134,7 @@ export default function MusicPlayer() {
     playTrack(idx);
   }, [tracks, currentIdx, playTrack]);
 
-  /* ── Audio events ── */
+  
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -152,7 +152,7 @@ export default function MusicPlayer() {
     };
   }, [isDragging, playNext]);
 
-  /* ── Seek ── */
+  
   const seek = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = progressRef.current!.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -162,18 +162,18 @@ export default function MusicPlayer() {
     setProgress(pct * 100);
   };
 
-  /* ── Volume ── */
+  
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
 
-  /* ── Search ── */
+  
   useEffect(() => {
     const q = search.toLowerCase();
     setFiltered(tracks.filter(t => t.name.toLowerCase().includes(q)));
   }, [search, tracks]);
 
-  /* ── Keyboard ── */
+  
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === "INPUT") return;
@@ -200,7 +200,7 @@ export default function MusicPlayer() {
     >
       <audio ref={audioRef} />
 
-      {/* ── Sidebar ── */}
+      {}
       <aside
         className="flex flex-col h-full overflow-hidden border-r"
         style={{
@@ -210,7 +210,7 @@ export default function MusicPlayer() {
           flexShrink: 0,
         }}
       >
-        {/* Header */}
+        {}
         <div className="p-6 pb-4 flex flex-col gap-4"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
         >
@@ -242,7 +242,7 @@ export default function MusicPlayer() {
           </button>
         </div>
 
-        {/* Search */}
+        {}
         <div className="px-5 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div className="relative flex items-center">
             <Search size={11} className="absolute left-0 pointer-events-none"
@@ -263,7 +263,7 @@ export default function MusicPlayer() {
           </div>
         </div>
 
-        {/* Track list */}
+        {}
         <div className="flex-1 overflow-y-auto py-2"
           style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}
         >
@@ -313,13 +313,13 @@ export default function MusicPlayer() {
         </div>
       </aside>
 
-      {/* ── Main ── */}
+      {}
       <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Now playing */}
+        {}
         <div className="flex-1 flex items-center justify-center relative overflow-hidden">
 
-          {/* Ambient glow */}
+          {}
           {currentTrack && (
             <div className="absolute inset-0 pointer-events-none"
               style={{
@@ -330,7 +330,7 @@ export default function MusicPlayer() {
 
           {currentTrack ? (
             <div className="flex flex-col items-center gap-6 text-center px-8 relative z-10">
-              {/* Vinyl disc */}
+              {}
               <div
                 className="relative flex items-center justify-center"
                 style={{
@@ -342,7 +342,7 @@ export default function MusicPlayer() {
                   animation: spinning ? (isPlaying ? "spin 4s linear infinite" : "spin 4s linear infinite paused") : "none",
                 }}
               >
-                {/* Center dot */}
+                {}
                 <div style={{
                   width: 36, height: 36, borderRadius: "50%",
                   background: "var(--accent)",
@@ -394,7 +394,7 @@ export default function MusicPlayer() {
           )}
         </div>
 
-        {/* ── Player bar ── */}
+        {}
         <div
           className="flex flex-col justify-center gap-3 px-10"
           style={{
@@ -405,7 +405,7 @@ export default function MusicPlayer() {
             flexShrink: 0,
           }}
         >
-          {/* Progress */}
+          {}
           <div className="flex items-center gap-3">
             <span className="text-[9px] w-9 text-right flex-shrink-0"
               style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
@@ -443,9 +443,9 @@ export default function MusicPlayer() {
             </span>
           </div>
 
-          {/* Controls */}
+          {}
           <div className="flex items-center">
-            {/* Shuffle */}
+            {}
             <div style={{ width: 80 }}>
               <button
                 onClick={() => setShuffled(s => !s)}
@@ -459,7 +459,7 @@ export default function MusicPlayer() {
               </button>
             </div>
 
-            {/* Main controls */}
+            {}
             <div className="flex items-center justify-center gap-5 flex-1">
               <button
                 onClick={playPrev}
@@ -499,7 +499,7 @@ export default function MusicPlayer() {
               </button>
             </div>
 
-            {/* Volume */}
+            {}
             <div className="flex items-center gap-2" style={{ width: 120 }}>
               <Volume2 size={13} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
               <input
@@ -518,7 +518,7 @@ export default function MusicPlayer() {
         </div>
       </div>
 
-      {/* Vinyl spin keyframe */}
+      {}
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         input[type=range]::-webkit-slider-thumb {

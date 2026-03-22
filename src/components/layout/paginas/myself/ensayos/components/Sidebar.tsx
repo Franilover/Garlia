@@ -20,7 +20,7 @@ interface SidebarProps {
   onSearchChange: (value: string) => void;
   onConnectZotero: () => void;
   onRefreshZotero: () => void;
-  /** Cuando es true, EstudioLayout ya provee h-full y border-r */
+  
   embedded?: boolean;
 }
 
@@ -59,7 +59,7 @@ export default function Sidebar({
         borderColor: "color-mix(in srgb, var(--accent) 18%, color-mix(in srgb, var(--primary) 8%, transparent))",
       }}
     >
-      {/* Buscador */}
+      {}
       <div className="relative">
         <Search size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
           style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
@@ -76,7 +76,7 @@ export default function Sidebar({
         />
       </div>
 
-      {/* Etiquetas */}
+      {}
       <div className="p-3 flex flex-col gap-2.5" style={sectionStyle}>
         <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]" style={labelStyle}>
           <Hash size={10} /> Etiquetas
@@ -102,7 +102,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Notas */}
+      {}
       <div className="p-3 flex flex-col gap-2.5 flex-1 min-h-0" style={sectionStyle}>
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]" style={labelStyle}>
@@ -147,7 +147,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Bibliografía Zotero */}
+      {}
       <div className="p-3 flex flex-col gap-2.5" style={sectionStyle}>
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]" style={labelStyle}>
@@ -161,7 +161,7 @@ export default function Sidebar({
                 {sources.length}
               </span>
             )}
-            {/* Botón refrescar — solo si ya está conectado */}
+            {}
             {zoteroConnected && (
               <button onClick={onRefreshZotero} title="Actualizar fuentes"
                 className="w-6 h-6 flex items-center justify-center transition-all opacity-50 hover:opacity-100"
@@ -173,7 +173,7 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Estado de conexión */}
+        {}
         {zoteroConnected ? (
           <div className="flex items-center gap-2 px-2 py-1.5"
             style={{ background: "color-mix(in srgb, oklch(0.6 0.15 145) 8%, transparent)", borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, oklch(0.6 0.15 145) 20%, transparent)" }}
@@ -200,7 +200,7 @@ export default function Sidebar({
           </button>
         )}
 
-        {/* Lista de fuentes */}
+        {}
         {sources.length > 0 && (
           <div className="flex flex-col gap-1 mt-1 max-h-36 overflow-y-auto"
             style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 10%, transparent) transparent" }}

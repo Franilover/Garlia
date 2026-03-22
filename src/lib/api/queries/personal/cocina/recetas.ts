@@ -8,7 +8,7 @@ export const recetasQueries = {
   
   
 
-  /** Obtener todas las recetas del usuario actual */
+  
   getAll: async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
@@ -23,7 +23,7 @@ export const recetasQueries = {
     return data as Receta[];
   },
 
-  /** Obtener una receta por ID */
+  
   getById: async (id: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
@@ -39,7 +39,7 @@ export const recetasQueries = {
     return data as Receta;
   },
 
-  /** Obtener recetas por categoría */
+  
   getByCategoria: async (categoria: RecetaCategoria) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
@@ -55,7 +55,7 @@ export const recetasQueries = {
     return data as Receta[];
   },
 
-  /** Buscar recetas por nombre */
+  
   search: async (query: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
@@ -75,7 +75,7 @@ export const recetasQueries = {
   
   
 
-  /** Crear nueva receta */
+  
   create: async (nuevaReceta: NuevaReceta) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
@@ -106,7 +106,7 @@ export const recetasQueries = {
   
   
 
-  /** Actualizar una receta existente */
+  
   update: async (id: string, updates: Partial<NuevaReceta>) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
@@ -142,7 +142,7 @@ export const recetasQueries = {
   
   
 
-  /** Eliminar una receta */
+  
   delete: async (id: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');

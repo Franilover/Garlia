@@ -1,21 +1,4 @@
-// components/ui/ImagePicker.tsx
-// Explorador visual de imágenes desde /public/dibujos
-//
-// USO BÁSICO — modo URL (cualquier página):
-//   import { ImagePicker } from "@/components/ui/ImagePicker"
-//   const [open, setOpen] = useState(false)
-//   <ImagePicker open={open} onClose={() => setOpen(false)} onInsert={({ url }) => setImg(url)} />
-//
-// USO EN EDITOR — modo snippet:
-//   <ImagePicker snippetMode open={open} onClose={() => setOpen(false)} onInsert={(snippet) => insertAtCursor(snippet)} />
-//
-// PROPS:
-//   open             boolean
-//   onClose          () => void
-//   onInsert         (result: string | InsertResult) => void
-//   snippetMode?     boolean — si true entrega snippet "[[img|...]]" / "[[float|...]]"
-//   showModeSelector? boolean — muestra selector inline/flotante (default: true)
-//   defaultMode?     "img" | "float" (default: "img")
+
 
 "use client";
 
@@ -139,7 +122,7 @@ export function ImagePicker({ open, onClose, onInsert, snippetMode = false, show
             className="fixed z-[71] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[680px] bg-white rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             style={{ maxHeight: "88vh" }}
           >
-            {/* Header */}
+            {}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#6B5E70]/8 shrink-0">
               <div>
                 <h3 className="text-sm font-black text-[#2C262E] uppercase tracking-tight">Explorador de imágenes</h3>
@@ -150,10 +133,10 @@ export function ImagePicker({ open, onClose, onInsert, snippetMode = false, show
               </button>
             </div>
 
-            {/* Body */}
+            {}
             <div className="flex flex-1 overflow-hidden min-h-0">
 
-              {/* Árbol */}
+              {}
               <div className="w-1/2 border-r border-[#6B5E70]/8 overflow-y-auto py-2">
                 {loading && (
                   <div className="flex items-center justify-center h-32 gap-2 text-[#6B5E70]/30">
@@ -177,7 +160,7 @@ export function ImagePicker({ open, onClose, onInsert, snippetMode = false, show
                 )}
               </div>
 
-              {/* Panel derecho */}
+              {}
               <div className="w-1/2 flex flex-col overflow-y-auto">
                 {selected ? (
                   <>
@@ -238,7 +221,7 @@ export function ImagePicker({ open, onClose, onInsert, snippetMode = false, show
               </div>
             </div>
 
-            {/* Footer */}
+            {}
             <div className="px-6 py-4 border-t border-[#6B5E70]/8 shrink-0 flex items-center justify-between gap-4">
               <p className="text-[10px] text-[#6B5E70]/30 font-bold uppercase tracking-widest">{selected ? "Lista para insertar" : "Ninguna seleccionada"}</p>
               <div className="flex items-center gap-2">

@@ -13,7 +13,7 @@ export default async function Page() {
       username: datos.username,
       status: datos.status,
       avatar_url: datos.avatar_url,
-      inventario_usuario: datos.inventario_usuario, // si lo traes del server
+      inventario_usuario: datos.inventario_usuario, 
     }} />
   );
 }

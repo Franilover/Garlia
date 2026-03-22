@@ -21,8 +21,8 @@ export interface Variante {
 
 export function useDetalleMaestro(
   data: any,
-  tabla: string,                      // ← NUEVO: tabla explícita
-  onUpdate?: (record: any) => void    // ← CAMBIO: recibe el registro guardado
+  tabla: string,                      
+  onUpdate?: (record: any) => void    
 ) {
   const isAdmin = useIsAdmin();
   const [editMode, setEditMode] = useState(false);
@@ -31,18 +31,18 @@ export function useDetalleMaestro(
   const [variantes, setVariantes] = useState<Variante[]>([]);
   const [varianteActiva, setVarianteActiva] = useState<Variante | null>(null);
 
-  // Campos editables genéricos — se sincronizan desde `data`
+  
   const [editFields, setEditFields] = useState<Record<string, any>>({});
   const [editCanciones, setEditCanciones] = useState<number[]>([]);
   const [editRelaciones, setEditRelaciones] = useState<Relacion[]>([]);
 
   const prevIdRef = useRef<number | string | null>(null);
 
-  // ─── Helpers de lectura ────────────────────────────────────────────────────
-  // El campo de texto largo varía según tabla
+  
+  
   const campoTexto = tabla === "personajes" ? "sobre" : "descripcion";
 
-  // Nombre de display legible para el editNombre (alias de comodidad)
+  
   const editNombre: string = editFields["nombre"] ?? "";
   const setEditNombre = (v: string) =>
     setEditFields((prev) => ({ ...prev, nombre: v }));
@@ -51,12 +51,12 @@ export function useDetalleMaestro(
   const setEditDescripcion = (v: string) =>
     setEditFields((prev) => ({ ...prev, [campoTexto]: v }));
 
-  // ─── Sync desde data ───────────────────────────────────────────────────────
+  
   useEffect(() => {
     if (!data) return;
     if (prevIdRef.current === data.id) return;
 
-    // Copia todos los campos del objeto data al estado editable
+    
     setEditFields({ ...data });
 
     setEditRelaciones(data.relaciones || []);
@@ -70,7 +70,7 @@ export function useDetalleMaestro(
       : [];
     setEditCanciones(idsIniciales);
 
-    // Variantes solo para criaturas
+    
     if (tabla === "criaturas" && data.id) {
       fetchVariantes(data.id);
     } else {
@@ -93,7 +93,7 @@ export function useDetalleMaestro(
     }
   };
 
-  // ─── Guardar ───────────────────────────────────────────────────────────────
+  
   const handleSave = async () => {
     if (!editNombre.trim()) {
       alert("El nombre es obligatorio.");
@@ -102,21 +102,21 @@ export function useDetalleMaestro(
 
     setSaving(true);
     try {
-      // Construimos el payload con TODOS los campos editables
-      // más los cambios de nombre y descripción.
+      
+      
       const payload: Record<string, any> = {
         ...editFields,
         nombre: editNombre,
         [campoTexto]: editDescripcion,
       };
 
-      // Eliminamos campos que Supabase no acepta en insert/update
+      
       delete payload.id;
-      delete payload.canciones;   // relación separada
-      delete payload.relaciones;  // relación separada
-      delete payload.variantes;   // relación separada
+      delete payload.canciones;   
+      delete payload.relaciones;  
+      delete payload.variantes;   
 
-      // Eliminamos el campo de texto que NO corresponde a esta tabla
+      
       if (tabla === "personajes") {
         delete payload.descripcion;
       } else {
@@ -126,7 +126,7 @@ export function useDetalleMaestro(
       let finalId = data?.id;
 
       if (!finalId) {
-        // ── CREAR ──────────────────────────────────────────────────────────
+        
         const { data: newRecord, error: insError } = await supabase
           .from(tabla)
           .insert([payload])
@@ -135,7 +135,7 @@ export function useDetalleMaestro(
         if (insError) throw insError;
         finalId = newRecord.id;
 
-        // Guardar variantes para criaturas recién creadas
+        
         if (tabla === "criaturas" && variantes.length > 0) {
           const { error: varError } = await supabase
             .from("criatura_variantes")
@@ -143,10 +143,10 @@ export function useDetalleMaestro(
           if (varError) throw varError;
         }
 
-        // Devolvemos el registro completo al caller
+        
         if (onUpdate) onUpdate({ ...newRecord });
       } else {
-        // ── ACTUALIZAR ─────────────────────────────────────────────────────
+        
         const { data: updRecord, error: updError } = await supabase
           .from(tabla)
           .update(payload)
@@ -155,7 +155,7 @@ export function useDetalleMaestro(
           .single();
         if (updError) throw updError;
 
-        // Upsert variantes para criaturas
+        
         if (tabla === "criaturas" && variantes.length > 0) {
           const { error: varError } = await supabase
             .from("criatura_variantes")
@@ -180,7 +180,7 @@ export function useDetalleMaestro(
     }
   };
 
-  // ─── Borrar ───────────────────────────────────────────────────────────────
+  
   const handleDelete = async (onDeleted?: () => void) => {
     if (!data?.id) return;
     const confirmar = window.confirm(`¿Borrar "${editNombre}" de forma permanente? Esta acción no se puede deshacer.`);
@@ -188,7 +188,7 @@ export function useDetalleMaestro(
 
     setSaving(true);
     try {
-      // Si es criatura, borramos sus variantes primero (FK)
+      
       if (tabla === "criaturas") {
         await supabase.from("criatura_variantes").delete().eq("criatura_id", data.id);
       }

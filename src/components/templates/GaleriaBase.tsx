@@ -107,11 +107,11 @@ export default function EntidadPageBase({
   const vistaFila = permitirVistaFila && !vistaGrid;
 
   return (
-    // FIX: min-h-svh en vez de min-h-screen (100vh)
-    // svh = altura estable, no cambia cuando la barra del browser móvil se oculta
+    
+    
     <main className="min-h-svh bg-bg-main pb-20 overflow-x-hidden">
 
-      {/* Banner offline */}
+      {}
       <AnimatePresence>
         {isOffline && (
           <motion.div

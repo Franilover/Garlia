@@ -11,9 +11,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/display/SmartImage";
 import { MassEditModal } from "@/components/layout/paginas/wiki/canciones/MassEditor";
 
-// ============================================================================
-// CONSTANTES Y CONFIGURACIÓN
-// ============================================================================
 const IDIOMAS = [
   { id: "es", label: "ES", nombre: "Español" },
   { id: "en", label: "EN", nombre: "Inglés" },
@@ -30,9 +27,6 @@ const getEstadoColor = (estado) => {
   return colores[estado] || colores["BORRADOR"];
 };
 
-// ============================================================================
-// REDUCER PARA MODALES Y FORMULARIOS
-// ============================================================================
 const initialModalState = {
   showAddModal: false,
   showEditSecModal: false,
@@ -86,9 +80,6 @@ const formReducer = (state, action) => {
   }
 };
 
-// ============================================================================
-// COMPONENTES AUXILIARES
-// ============================================================================
 const LanguageToggler = ({ idiomasActivos, toggleIdioma }) => (
   <div className="p-6 bg-primary rounded-[var(--radius-card)] shadow-xl shadow-primary/20">
     <h4 className="font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic"
@@ -187,9 +178,6 @@ const LinkSection = ({ links, isAdmin, onOpenModal, onEdit, onDelete }) => (
   </motion.div>
 );
 
-// ============================================================================
-// MODAL DE LETRA COMPLETA
-// ============================================================================
 const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
   const [zoom, setZoom] = useState(0.5);
   const handleCopy = () => {
@@ -266,9 +254,6 @@ const FullLyricsModal = ({ isOpen, onClose, secciones, idiomaActivo }) => {
   );
 };
 
-// ============================================================================
-// MODAL DE ENLACES
-// ============================================================================
 const LinksModal = ({ isOpen, onClose, isProcessing, titulo, onTituloChange, url, onUrlChange, onSave, links, onEdit, onDelete, isEditing }) => (
   <AnimatePresence>
     {isOpen && (
@@ -304,9 +289,6 @@ const LinksModal = ({ isOpen, onClose, isProcessing, titulo, onTituloChange, url
   </AnimatePresence>
 );
 
-// ============================================================================
-// MODAL DE SECCIÓN (EDITOR INDIVIDUAL)
-// ============================================================================
 const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNombreChange, es, onEsChange, en, onEnChange, jp, onJpChange, romaji, onRomajiChange, onSave, onDelete = null }) => {
   const [activeTab, setActiveTab] = React.useState("es");
   return (
@@ -348,9 +330,6 @@ const SeccionModal = ({ isOpen, isEditing, onClose, isProcessing, nombre, onNomb
   );
 };
 
-// ============================================================================
-// COMPONENTE PRINCIPAL
-// ============================================================================
 export default function CancionDetallesPage() {
   const params = useParams();
   const router = useRouter();
@@ -523,25 +502,25 @@ export default function CancionDetallesPage() {
     }
   };
 
-  // ✅ CORREGIDO: ya no llama fetchData() al terminar de guardar.
-  // Antes, fetchData() hacía setLoading(true) que reseteaba todo el componente
-  // y cerraba/reiniciaba el modal mientras se editaba.
+  
+  
+  
   const handleMassUpdate = async (seccionesEditadas) => {
     try {
       const seccionesNuevas = seccionesEditadas.filter((sec) => sec.id.toString().startsWith("temp-"));
       const seccionesExistentes = seccionesEditadas.filter((sec) => !sec.id.toString().startsWith("temp-"));
 
-      // Secciones que se eliminaron dentro del editor
+      
       const idsEditadas = new Set(seccionesExistentes.map((s) => String(s.id)));
       const seccionesEliminadas = secciones.filter((s) => !idsEditadas.has(String(s.id)));
 
-      // 1. Eliminar las que se borraron en el editor
+      
       for (const sec of seccionesEliminadas) {
         const { error } = await supabase.from("secciones_cancion").delete().eq("id", sec.id);
         if (error) throw error;
       }
 
-      // 2. Insertar las nuevas y guardar el id real que devuelve Supabase
+      
       const seccionesInsertadas = [];
       for (const sec of seccionesNuevas) {
         const { data, error } = await supabase
@@ -561,7 +540,7 @@ export default function CancionDetallesPage() {
         seccionesInsertadas.push({ tempId: sec.id, real: data });
       }
 
-      // 3. Actualizar las existentes
+      
       for (const sec of seccionesExistentes) {
         const { error } = await supabase
           .from("secciones_cancion")
@@ -577,7 +556,7 @@ export default function CancionDetallesPage() {
         if (error) throw error;
       }
 
-      // 4. Actualizar estado local directamente — sin fetchData()
+      
       const seccionesFinales = seccionesEditadas.map((sec) => {
         if (sec.id.toString().startsWith("temp-")) {
           const insertada = seccionesInsertadas.find((i) => i.tempId === sec.id);

@@ -14,13 +14,12 @@ import { VistaMes } from "./VistaMes";
 import { VistaSemanal } from "./VistaSemanal";
 import type { ModoCalendario } from "./types";
 
-// Helper seguro para Dexie — nunca rompe el flujo principal
 async function dexiePut(table: string, data: any) {
   try {
     const { db } = await import("@/lib/api/client/db");
     if (!db) return;
     await (db as any)[table]?.put(data);
-  } catch { /* silencioso */ }
+  } catch {  }
 }
 
 async function dexieUpdate(table: string, id: string, data: any) {
@@ -28,7 +27,7 @@ async function dexieUpdate(table: string, id: string, data: any) {
     const { db } = await import("@/lib/api/client/db");
     if (!db) return;
     await (db as any)[table]?.update(id, data);
-  } catch { /* silencioso */ }
+  } catch {  }
 }
 
 async function dexieDelete(table: string, id: string) {
@@ -36,7 +35,7 @@ async function dexieDelete(table: string, id: string) {
     const { db } = await import("@/lib/api/client/db");
     if (!db) return;
     await (db as any)[table]?.delete(id);
-  } catch { /* silencioso */ }
+  } catch {  }
 }
 
 export const GestionPersonal = () => {
@@ -55,21 +54,21 @@ export const GestionPersonal = () => {
   const [nuevoEvento, setNuevoEvento] = useState("");
   const [tipoEvento, setTipoEvento] = useState("Plan");
 
-  // ── HANDLERS TAREAS ──────────────────────────────────────────────────────────
+  
   const handleAddTarea = async () => {
     if (!nuevaTarea.trim() || isAddingTarea) return;
     setIsAddingTarea(true);
     try {
       if (navigator.onLine) {
-        // ── ONLINE: exactamente igual que antes ──────────────────────────────
+        
         const creada = await tareasQueries.add(nuevaTarea);
         if (creada) {
           setTareas([creada, ...tareas]);
           setNuevaTarea("");
-          dexiePut("tareas", { ...creada, status: "synced" }); // extra, no bloquea
+          dexiePut("tareas", { ...creada, status: "synced" }); 
         }
       } else {
-        // ── OFFLINE: crear localmente ────────────────────────────────────────
+        
         const tempId = `temp_${Date.now()}`;
         const tarea = {
           id: tempId, titulo: nuevaTarea, categoria: "general",
@@ -85,16 +84,16 @@ export const GestionPersonal = () => {
   };
 
   const handleToggle = async (id: string, completada: boolean) => {
-    // Actualizar UI inmediatamente (igual que antes)
-    // eslint-disable-next-line eqeqeq
+    
+    
     setTareas(tareas.map((t: any) => t.id == id ? { ...t, completada: !completada } : t));
     try {
       if (navigator.onLine) {
-        // ── ONLINE: exactamente igual que antes ──────────────────────────────
+        
         await tareasQueries.updateStatus(id, !completada);
         dexieUpdate("tareas", id, { completada: !completada, status: "synced" });
       } else {
-        // ── OFFLINE: encolar ─────────────────────────────────────────────────
+        
         await dexieUpdate("tareas", id, { completada: !completada, status: "pending" });
         await enqueueOperation("tareas", "update", id, { completada: !completada });
       }
@@ -102,22 +101,22 @@ export const GestionPersonal = () => {
   };
 
   const handleDelete = async (id: string) => {
-    // eslint-disable-next-line eqeqeq
+    
     setTareas(tareas.filter((t: any) => t.id != id));
     try {
       if (navigator.onLine) {
-        // ── ONLINE: exactamente igual que antes ──────────────────────────────
+        
         await tareasQueries.delete(id);
         dexieDelete("tareas", id);
       } else {
-        // ── OFFLINE: encolar ─────────────────────────────────────────────────
+        
         await dexieDelete("tareas", id);
         await enqueueOperation("tareas", "delete", id);
       }
     } catch (err) { console.error(err); }
   };
 
-  // ── HANDLERS EVENTOS ─────────────────────────────────────────────────────────
+  
   const handleAddEventoMes = async () => {
     if (!nuevoEvento.trim() || isAddingEvento) return;
     setIsAddingEvento(true);

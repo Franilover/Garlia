@@ -1,7 +1,5 @@
 import { supabase } from "@/lib/api/client/supabase";
 
-
-
 interface Cancion {
   id: string;
   titulo: string;
@@ -17,8 +15,6 @@ interface Personaje {
   canciones?: Cancion[];
   [key: string]: any; 
 }
-
-
 
 interface QueryOptions {
   order?: {

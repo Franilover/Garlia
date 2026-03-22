@@ -13,7 +13,6 @@ type FileEntry   = { name: string; url: string; type: "image" };
 type FolderEntry = { name: string; type: "folder"; children: TreeNode[] };
 type TreeNode    = FileEntry | FolderEntry;
 
-// Devuelve todas las imágenes de un nodo (recursivo)
 function flattenImages(nodes: TreeNode[]): FileEntry[] {
   return nodes.flatMap(n =>
     n.type === "image" ? [n] : flattenImages(n.children)
@@ -24,7 +23,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
   const [tree, setTree]       = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
-  // Pila de carpetas: cada elemento es la lista de nodos de esa carpeta
+  
   const [stack, setStack] = useState<{ name: string; nodes: TreeNode[] }[]>([]);
 
   useEffect(() => {
@@ -34,7 +33,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
       .finally(() => setLoading(false));
   }, []);
 
-  // Nodos actuales: raíz o carpeta abierta
+  
   const currentNodes = stack.length > 0 ? stack[stack.length - 1].nodes : tree;
 
   const folders = useMemo(
@@ -57,7 +56,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
   return (
     <div className="flex flex-col" style={{ maxHeight: "60vh" }}>
 
-      {/* Breadcrumb */}
+      {}
       <div className="flex items-center gap-1 px-1 pb-3 flex-wrap">
         <button
           onClick={() => setStack([])}
@@ -78,7 +77,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
         ))}
       </div>
 
-      {/* Contenido */}
+      {}
       <div className="flex-1 overflow-y-auto space-y-4 pr-1">
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -86,7 +85,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
           </div>
         ) : (
           <>
-            {/* Carpetas */}
+            {}
             {folders.length > 0 && (
               <div className="grid grid-cols-2 gap-2">
                 {folders.map((folder, i) => (
@@ -111,7 +110,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
               </div>
             )}
 
-            {/* Imágenes */}
+            {}
             {images.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {images.map((img, i) => (
@@ -153,7 +152,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
         )}
       </div>
 
-      {/* Footer */}
+      {}
       <div className="pt-4 flex gap-3">
         <button
           onClick={onClose}

@@ -22,7 +22,7 @@ export function SoundPicker({ open, onClose, onInsert }: SoundPickerProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [volume, setVolume] = useState(0.5);
   
-  // Audio Preview Logic
+  
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -61,7 +61,7 @@ export function SoundPicker({ open, onClose, onInsert }: SoundPickerProps) {
 
   const handleInsert = () => {
     if (!selected) return;
-    // Formato compatible con Franilover: [[sound|url|volumen]]
+    
     onInsert(`[[sound|${selected}|${volume.toFixed(1)}]]`);
     onClose();
   };
@@ -119,7 +119,7 @@ export function SoundPicker({ open, onClose, onInsert }: SoundPickerProps) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="bg-white w-full max-w-2xl h-[500px] rounded-[32px] shadow-2xl border border-[#6B5E70]/10 flex flex-col overflow-hidden"
       >
-        {/* Header */}
+        {}
         <div className="px-8 py-6 border-b border-[#6B5E70]/5 flex items-center justify-between bg-gradient-to-r from-white to-[#6B5E70]/5">
           <div>
             <h3 className="text-[#6B5E70] font-black text-xs uppercase tracking-[0.2em]">Biblioteca de Sonidos</h3>
@@ -129,7 +129,7 @@ export function SoundPicker({ open, onClose, onInsert }: SoundPickerProps) {
         </div>
 
         <div className="flex-1 flex min-h-0">
-          {/* Sidebar: Árbol */}
+          {}
           <div className="w-64 border-r border-[#6B5E70]/5 overflow-y-auto p-4 custom-scrollbar">
             {loading ? (
               <div className="flex items-center justify-center h-full"><Loader2 size={20} className="animate-spin text-[#6B5E70]/20" /></div>
@@ -138,7 +138,7 @@ export function SoundPicker({ open, onClose, onInsert }: SoundPickerProps) {
             )}
           </div>
 
-          {/* Preview Panel */}
+          {}
           <div className="flex-1 bg-[#FDFCFD] p-8 flex flex-col items-center justify-center relative overflow-hidden">
             {selected ? (
               <div className="w-full max-w-xs space-y-8 relative z-10 text-center">
@@ -187,7 +187,7 @@ export function SoundPicker({ open, onClose, onInsert }: SoundPickerProps) {
           </div>
         </div>
 
-        {/* Footer */}
+        {}
         <div className="px-8 py-4 border-t border-[#6B5E70]/5 flex items-center justify-between bg-white shrink-0">
           <p className="text-[9px] text-[#6B5E70]/30 font-bold uppercase">{selected ? "Audio listo para Franilover" : "Esperando selección"}</p>
           <div className="flex gap-3">

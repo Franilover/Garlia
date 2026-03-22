@@ -1,39 +1,15 @@
 "use client";
 
-/**
- * EstudioTemplates — componentes compartidos para todos los estudios
- * (EditorCapitulos, EditorLetras, y futuros editores)
- *
- * Exporta:
- *  - normalize(s)           → normaliza texto para búsqueda
- *  - unique(arr)            → array único y ordenado
- *  - CampoInput             → input de formulario etiquetado
- *  - BannerOffline          → banner "sin conexión" con color configurable
- *  - EmptyEstudio           → estado vacío con icono+título+subtítulo
- *  - ModalBase              → wrapper de modal (backdrop + card)
- *  - SaveIndicator          → indicador de estado de guardado
- */
-
 import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, WifiOff } from "lucide-react";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UTILIDADES
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Normaliza texto para búsqueda insensible a mayúsculas y acentos */
 export function normalize(s: string): string {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-/** Devuelve un array único, filtrado y ordenado */
 export function unique(arr: string[]): string[] {
   return Array.from(new Set(arr.filter(Boolean).map(s => s.trim()))).sort();
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CAMPO INPUT — input de formulario con label
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface CampoInputProps {
   label: string;
@@ -62,13 +38,9 @@ export function CampoInput({ label, value, onChange, placeholder, autoFocus, typ
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BANNER OFFLINE
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface BannerOfflineProps {
   mensaje?: string;
-  /** "blue" para capitulos, "amber" para letras — default "blue" */
+  
   color?: "blue" | "amber";
 }
 
@@ -87,10 +59,6 @@ export function BannerOffline({
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// EMPTY ESTUDIO — estado vacío
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface EmptyEstudioProps {
   icono: React.ReactNode;
@@ -114,19 +82,15 @@ export function EmptyEstudio({ icono, titulo, subtitulo }: EmptyEstudioProps) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MODAL BASE — wrapper de modal con backdrop y card
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface ModalBaseProps {
   onClose: () => void;
   children: React.ReactNode;
-  /** Ancho máximo del card — default "max-w-sm" */
+  
   maxWidth?: string;
 }
 
 export function ModalBase({ onClose, children, maxWidth = "max-w-sm" }: ModalBaseProps) {
-  // Cerrar con Escape
+  
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", handler);
@@ -148,10 +112,6 @@ export function ModalBase({ onClose, children, maxWidth = "max-w-sm" }: ModalBas
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SAVE INDICATOR — indicador de estado de guardado
-// ─────────────────────────────────────────────────────────────────────────────
 
 export type SaveStatus = "idle" | "saving" | "saved" | "pending" | "error";
 
@@ -175,10 +135,6 @@ export function SaveIndicator({ status }: SaveIndicatorProps) {
     </span>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// BOTÓN PRIMARIO DE SUBMIT — botón de formulario estándar
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface BotonSubmitProps {
   loading: boolean;

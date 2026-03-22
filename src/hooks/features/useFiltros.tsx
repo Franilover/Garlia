@@ -35,7 +35,7 @@ export function useFiltrosGenericos(data: any[], config: { campos: string[] }) {
         const filtroActivo = filtros[campo];
         if (!filtroActivo || filtroActivo === 'todos') return true;
 
-        // FILTRO ESPECIAL: Soporta img_url (Personajes) e imagen_url (Criaturas/Items)
+        
         if (campo === 'conFoto') {
           if (filtroActivo === 'solo_con_foto') {
             const url = item.img_url || item.imagen_url;

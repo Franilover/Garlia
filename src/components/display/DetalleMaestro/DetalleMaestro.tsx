@@ -16,7 +16,7 @@ interface DetalleMaestroProps {
   tabla: string;
   tags?: string[];
   onUpdate?: (record: any) => void;
-  onDelete?: () => void;               // ← NUEVO
+  onDelete?: () => void;               
   isNew?: boolean;
   mostrarMusica?: boolean;
 }
@@ -60,12 +60,12 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
     editNombre, setEditNombre,
     editDescripcion, setEditDescripcion,
     editCanciones, setEditCanciones,
-  } = useDetalleMaestro(data, tabla, onUpdate);   // ← pasa tabla y callback
+  } = useDetalleMaestro(data, tabla, onUpdate);   
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
 
-  // Campo de imagen según tabla
+  
   const campoImagen = tabla === "personajes" ? "img_url" : "imagen_url";
 
   const handlePickImage = (url: string) => {
@@ -150,7 +150,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
         </button>
 
         <div className="flex flex-col lg:flex-row items-stretch">
-          {/* LADO IZQUIERDO: VISUAL */}
+          {}
           <div className="w-full lg:w-112.5 xl:w-125 shrink-0 bg-bg-main p-12 lg:p-16 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-primary/10">
             <div className="relative w-full aspect-square max-w-sm">
               <div
@@ -179,7 +179,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
             </div>
           </div>
 
-          {/* PICKER MODAL */}
+          {}
           <AnimatePresence>
             {showPicker && (
               <motion.div
@@ -216,7 +216,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
             )}
           </AnimatePresence>
 
-          {/* LADO DERECHO: CONTENIDO */}
+          {}
           <div className="flex-1 p-8 lg:p-16 bg-white-custom/30 overflow-hidden flex flex-col justify-center">
             {editMode ? (
               <div className="space-y-8">
@@ -271,7 +271,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
         </div>
       </div>
 
-      {/* GESTIÓN DE VARIANTES (Solo Admin y Criaturas) */}
+      {}
       {editMode && tabla === "criaturas" && (
         <div className="bg-white-custom rounded-[var(--radius-card)] p-12 shadow-2xl border border-primary/10">
           <div className="flex items-center justify-between mb-8">
@@ -322,7 +322,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
         </div>
       )}
 
-      {/* SECCIONES INFERIORES: MÚSICA */}
+      {}
       {(esPersonaje || editMode) && mostrarMusica && (
         <div className="bg-white-custom rounded-[var(--radius-card)] p-12 lg:p-20 shadow-2xl border border-primary/10">
           <div className="w-full">
@@ -338,14 +338,14 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
         </div>
       )}
 
-      {/* BARRA FLOTANTE DE ACCIONES ADMIN */}
+      {}
       {isAdmin && !isNew && (
         <motion.div
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="fixed bottom-10 left-1/2 -translate-x-1/2 z-1100 flex items-center gap-4 backdrop-blur-md p-4 border border-primary/20 shadow-2xl" style={{background:"var(--white-custom)",borderRadius:"var(--radius-card)"}}
         >
-          {/* Borrar — solo visible en modo edición */}
+          {}
           {editMode && (
             <button
               onClick={() => handleDelete(() => { if (onDelete) onDelete(); onClose(); })}

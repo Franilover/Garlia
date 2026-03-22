@@ -45,7 +45,7 @@ export default function AppLogic({ children }) {
     <div className="app-container select-none h-full flex flex-col">
       <Navbar />
 
-      {/* Padding inferior en móvil: evita que el contenido quede tapado por la barra */}
+      {}
       <main className="flex-1 min-h-0 pb-16 md:pb-0">
         {children}
       </main>

@@ -1,7 +1,5 @@
 import Dexie, { type Table } from "dexie";
 
-// ─── WIKI ─────────────────────────────────────────────────────────────────────
-
 export interface Personaje {
   id: string;
   nombre: string;
@@ -92,8 +90,6 @@ export interface Relacion {
   [key: string]: any;
 }
 
-// ─── PERSONAL ─────────────────────────────────────────────────────────────────
-
 export interface Tarea {
   id: string;
   titulo: string;
@@ -161,8 +157,6 @@ export interface Dibujo {
   categoria?: string;
 }
 
-// ─── ENSAYOS / NOTAS ──────────────────────────────────────────────────────────
-
 export interface Nota {
   id: string;
   titulo?: string;
@@ -172,8 +166,6 @@ export interface Nota {
   status: "pending" | "synced";
   deleted?: boolean;
 }
-
-// ─── SALUD ────────────────────────────────────────────────────────────────────
 
 export interface RutinaLocal {
   id: string;
@@ -199,8 +191,6 @@ export interface EjercicioLocal {
   deleted?: boolean;
 }
 
-// ─── COLA OFFLINE ─────────────────────────────────────────────────────────────
-
 export interface OfflineOperation {
   id?: number;
   table: string;
@@ -211,24 +201,18 @@ export interface OfflineOperation {
   retries: number;
 }
 
-// ─── REPRODUCTOR ─────────────────────────────────────────────────────────────
-// Guarda el FileSystemDirectoryHandle de la última carpeta abierta
 export interface ReproductorHandle {
-  key: string; // siempre "lastFolder"
+  key: string; 
   handle: FileSystemDirectoryHandle;
 }
-
-// ─── COMPRAS ─────────────────────────────────────────────────────────────────
 
 export interface Compra {
   id: string;
   [key: string]: any;
 }
 
-// ─── BASE DE DATOS ────────────────────────────────────────────────────────────
-
 class AgendaFraniDB extends Dexie {
-  // Wiki
+  
   personajes!: Table<Personaje, string>;
   criaturas!: Table<Criatura, string>;
   criatura_variantes!: Table<CriaturaVariante, string>;
@@ -240,7 +224,7 @@ class AgendaFraniDB extends Dexie {
   reinos!: Table<Reino, string>;
   relaciones!: Table<Relacion, string>;
 
-  // Personal
+  
   tareas!: Table<Tarea, string>;
   eventos!: Table<Evento, string>;
   recetas!: Table<Receta, string>;
@@ -251,23 +235,23 @@ class AgendaFraniDB extends Dexie {
   dibujos!: Table<Dibujo, number>;
   compras!: Table<Compra, string>;
 
-  // Ensayos
+  
   notas!: Table<Nota, string>;
 
-  // Salud
+  
   rutinas!: Table<RutinaLocal, string>;
   ejercicios_rutina!: Table<EjercicioLocal, string>;
 
-  // Cola universal de operaciones offline
+  
   offline_queue!: Table<OfflineOperation, number>;
 
-  // Reproductor
+  
   reproductor_handles!: Table<ReproductorHandle, string>;
 
   constructor() {
     super("AgendaFranilover");
 
-    // ── v1: esquema original — NO modificar ──────────────────────────────────
+    
     this.version(1).stores({
       personajes:         "id, nombre, visible",
       criaturas:          "id, nombre, habitat, alma, pensamiento",
@@ -290,7 +274,7 @@ class AgendaFraniDB extends Dexie {
       notas:              "id, status, updated_at",
     });
 
-    // ── v2: agrega sync offline ───────────────────────────────────────────────
+    
     this.version(2).stores({
       personajes:         "id, nombre, visible",
       criaturas:          "id, nombre, habitat, alma, pensamiento",
@@ -316,7 +300,7 @@ class AgendaFraniDB extends Dexie {
       offline_queue:      "++id, table, operation, recordId, timestamp",
     });
 
-    // ── v3: agrega reproductor y compras ─────────────────────────────────────
+    
     this.version(3).stores({
       personajes:           "id, nombre, visible",
       criaturas:            "id, nombre, habitat, alma, pensamiento",
@@ -341,7 +325,7 @@ class AgendaFraniDB extends Dexie {
       ejercicios_rutina:    "id, rutina_id, status",
       offline_queue:        "++id, table, operation, recordId, timestamp",
       compras:              "id",
-      reproductor_handles:  "key", // clave primaria = "lastFolder"
+      reproductor_handles:  "key", 
     });
   }
 }

@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 
-// ─── TIPOS ───────────────────────────────────────────────────────────────────
 type Categoria = "Superior" | "Inferior" | "Calzado" | "Accesorios" | "Outfit";
 type Temporada = "Primavera" | "Verano" | "Otoño" | "Invierno";
 type Vibra     = "Casual" | "Formal" | "Sport" | "Noche" | "Aesthetic";
@@ -50,12 +49,10 @@ const EMPTY_FORM: FormData = {
   temporadas: [], vibras: [], colores: [],
 };
 
-// ─── Toggle helper ────────────────────────────────────────────────────────────
 function toggleArr<T>(arr: T[], val: T): T[] {
   return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
 }
 
-// ─── Chip multi-toggle ────────────────────────────────────────────────────────
 function ChipGroup<T extends string>({
   options, selected, onToggle, colorDot,
 }: {
@@ -91,7 +88,6 @@ function ChipGroup<T extends string>({
   );
 }
 
-// ─── Formulario ───────────────────────────────────────────────────────────────
 interface PrendaFormProps {
   initial: FormData;
   onSave: (data: FormData) => Promise<void>;
@@ -121,7 +117,7 @@ function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFor
       </div>
 
       <div className="p-5 flex flex-col gap-4 overflow-y-auto" style={{ maxHeight: "80vh" }}>
-        {/* Imagen */}
+        {}
         {!showPicker ? (
           <button
             onClick={() => setShowPicker(true)}
@@ -163,7 +159,7 @@ function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFor
 
         {!showPicker && (
           <>
-            {/* Nombre */}
+            {}
             <input
               type="text"
               placeholder="NOMBRE..."
@@ -172,7 +168,7 @@ function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFor
               className="input-brand text-[10px] font-black"
             />
 
-            {/* Categoría */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Categoría</p>
               <div className="flex flex-wrap gap-1.5">
@@ -194,19 +190,19 @@ function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFor
               </div>
             </div>
 
-            {/* Temporada */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Temporada</p>
               <ChipGroup options={TEMPORADAS} selected={form.temporadas} onToggle={(v) => set("temporadas", toggleArr(form.temporadas, v))} />
             </div>
 
-            {/* Vibra */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Vibra</p>
               <ChipGroup options={VIBRAS} selected={form.vibras} onToggle={(v) => set("vibras", toggleArr(form.vibras, v))} />
             </div>
 
-            {/* Colores */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Colores</p>
               <ChipGroup options={COLORES} selected={form.colores} onToggle={(v) => set("colores", toggleArr(form.colores, v))} colorDot={COLOR_DOT} />
@@ -227,7 +223,6 @@ function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFor
   );
 }
 
-// ─── Página principal ─────────────────────────────────────────────────────────
 export default function ArmarioPage() {
   const { 
     data: prendas = [], 
@@ -240,7 +235,7 @@ export default function ArmarioPage() {
     order: { campo: "created_at", asc: false }
   });
 
-  // modales
+  
   const [lightbox, setLightbox]           = useState<Prenda | null>(null);
   const [showNueva, setShowNueva]         = useState(false);
   const [editando, setEditando]           = useState<Prenda | null>(null);
@@ -248,7 +243,7 @@ export default function ArmarioPage() {
   const [savingPrenda, setSavingPrenda]   = useState(false);
   const [deletingId, setDeletingId]       = useState<string | null>(null);
 
-  // filtros activos
+  
   const [filtroCategoria, setFiltroCategoria] = useState<Categoria | null>(null);
   const [filtroTemporada, setFiltroTemporada] = useState<Temporada | null>(null);
   const [filtroVibra, setFiltroVibra]         = useState<Vibra | null>(null);
@@ -272,7 +267,7 @@ export default function ArmarioPage() {
     setFiltroVibra(null); setFiltroColor(null);
   };
 
-  // handlers
+  
   const guardarNueva = async (data: FormData) => {
     setSavingPrenda(true);
     const { error } = await addPrenda(data);
@@ -303,7 +298,7 @@ export default function ArmarioPage() {
     </div>
   );
 
-  // ─── Modal wrapper ────────────────────────────────────────────────────────
+  
   const Modal = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -327,7 +322,7 @@ export default function ArmarioPage() {
   return (
     <div className="min-h-screen bg-bg-main">
 
-      {/* ═══ MODAL: NUEVA ═══ */}
+      {}
       <AnimatePresence>
         {showNueva && (
           <Modal onClose={() => setShowNueva(false)}>
@@ -337,7 +332,7 @@ export default function ArmarioPage() {
         )}
       </AnimatePresence>
 
-      {/* ═══ MODAL: EDITAR ═══ */}
+      {}
       <AnimatePresence>
         {editando && (
           <Modal onClose={() => setEditando(null)}>
@@ -351,7 +346,7 @@ export default function ArmarioPage() {
         )}
       </AnimatePresence>
 
-      {/* ═══ MODAL: CONFIRMAR BORRADO ═══ */}
+      {}
       <AnimatePresence>
         {confirmDelete && (
           <Modal onClose={() => setConfirmDelete(null)}>
@@ -385,11 +380,11 @@ export default function ArmarioPage() {
         )}
       </AnimatePresence>
 
-      {/* ═══ LIGHTBOX ═══ */}
+      {}
       <AnimatePresence>
         {lightbox && (
           <Modal onClose={() => setLightbox(null)}>
-            {/* Acciones */}
+            {}
             <div className="absolute top-4 left-4 z-10 flex gap-2">
               <button onClick={() => { setEditando(lightbox); setLightbox(null); }}
                 className="modal-surface p-2 shadow-md text-muted-on-surface hover:text-primary transition-colors"
@@ -419,7 +414,7 @@ export default function ArmarioPage() {
               <p className="text-xs font-black uppercase text-on-surface">{lightbox.nombre}</p>
               <p className="text-[9px] text-muted-on-surface uppercase tracking-widest mt-0.5">{lightbox.categoria}</p>
 
-              {/* Tags del lightbox */}
+              {}
               <div className="flex flex-wrap gap-1 mt-3">
                 {lightbox.temporadas?.map(t => (
                   <span key={t} className="px-2 py-0.5 text-[7px] font-black uppercase tracking-widest bg-primary/10 text-primary" style={{ borderRadius: "var(--radius-btn)" }}>{t}</span>
@@ -438,7 +433,7 @@ export default function ArmarioPage() {
         )}
       </AnimatePresence>
 
-      {/* ═══ HEADER + FILTROS ═══ */}
+      {}
       <div className="sticky top-0 z-40 backdrop-blur-md" style={{ background: "color-mix(in srgb, var(--bg-main) 90%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div>
@@ -451,7 +446,7 @@ export default function ArmarioPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Botón filtros */}
+            {}
             <button
               onClick={() => setShowFiltros(!showFiltros)}
               className={cn(
@@ -478,7 +473,7 @@ export default function ArmarioPage() {
           </div>
         </div>
 
-        {/* Panel filtros expandible */}
+        {}
         <AnimatePresence>
           {showFiltros && (
             <motion.div
@@ -490,7 +485,7 @@ export default function ArmarioPage() {
             >
               <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-4">
 
-                {/* Categoría */}
+                {}
                 <div className="flex items-start gap-4 flex-wrap">
                   <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Categoría</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -508,7 +503,7 @@ export default function ArmarioPage() {
                   </div>
                 </div>
 
-                {/* Temporada */}
+                {}
                 <div className="flex items-start gap-4 flex-wrap">
                   <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Temporada</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -526,7 +521,7 @@ export default function ArmarioPage() {
                   </div>
                 </div>
 
-                {/* Vibra */}
+                {}
                 <div className="flex items-start gap-4 flex-wrap">
                   <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Vibra</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -544,7 +539,7 @@ export default function ArmarioPage() {
                   </div>
                 </div>
 
-                {/* Color */}
+                {}
                 <div className="flex items-start gap-4 flex-wrap">
                   <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Color</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -563,7 +558,7 @@ export default function ArmarioPage() {
                   </div>
                 </div>
 
-                {/* Limpiar */}
+                {}
                 {hayFiltros && (
                   <button onClick={limpiarFiltros} className="self-start text-[8px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors underline underline-offset-2">
                     Limpiar filtros
@@ -575,10 +570,10 @@ export default function ArmarioPage() {
         </AnimatePresence>
       </div>
 
-      {/* ═══ GALERÍA ═══ */}
+      {}
       <main className="max-w-7xl mx-auto p-6 md:p-10">
 
-        {/* Chips de filtros activos (resumen) */}
+        {}
         {hayFiltros && (
           <div className="flex flex-wrap gap-2 mb-6">
             {[
@@ -630,14 +625,14 @@ export default function ArmarioPage() {
                     }
                   </div>
 
-                  {/* Hover overlay */}
+                  {}
                   <div className="absolute inset-0 bg-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="modal-surface p-3 rounded-full shadow-lg">
                       <ZoomIn size={18} className="text-primary" />
                     </div>
                   </div>
 
-                  {/* Tags de color como puntos */}
+                  {}
                   {prenda.colores && prenda.colores.length > 0 && (
                     <div className="absolute top-2 right-2 flex gap-0.5">
                       {prenda.colores.slice(0, 4).map(c => (
@@ -646,11 +641,11 @@ export default function ArmarioPage() {
                     </div>
                   )}
 
-                  {/* Info */}
+                  {}
                   <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-foreground/80 to-transparent">
                     <p className="text-[9px] font-black text-white uppercase truncate">{prenda.nombre}</p>
                     <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{prenda.categoria}</p>
-                    {/* Vibra chips */}
+                    {}
                     {prenda.vibras && prenda.vibras.length > 0 && (
                       <div className="flex gap-1 mt-1 flex-wrap">
                         {prenda.vibras.slice(0, 2).map(v => (
@@ -661,7 +656,7 @@ export default function ArmarioPage() {
                   </div>
                 </motion.button>
 
-                {/* Botones editar/borrar */}
+                {}
                 <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all">
                   <button onClick={() => setEditando(prenda)}
                     className="modal-surface p-1.5 shadow-md text-muted-on-surface hover:text-primary transition-colors"
@@ -677,7 +672,7 @@ export default function ArmarioPage() {
               </div>
             ))}
 
-            {/* Tarjeta añadir */}
+            {}
             <motion.button
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowNueva(true)}

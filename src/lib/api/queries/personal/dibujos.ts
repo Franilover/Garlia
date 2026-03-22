@@ -14,7 +14,7 @@ export const dibujosQueries = {
   
   
 
-  /** Obtener todos los dibujos */
+  
   getAll: async () => {
     const { data, error } = await supabase
       .from('dibujos')
@@ -25,7 +25,7 @@ export const dibujosQueries = {
     return data as Dibujo[];
   },
 
-  /** Obtener dibujos por categoría (ej: "original", "fanart", "bocetos") */
+  
   getByCategoria: async (categoria: string) => {
     const { data, error } = await supabase
       .from('dibujos')
@@ -37,7 +37,7 @@ export const dibujosQueries = {
     return data as Dibujo[];
   },
 
-  /** Obtener un dibujo por ID */
+  
   getById: async (id: number) => {
     const { data, error } = await supabase
       .from('dibujos')
@@ -49,7 +49,7 @@ export const dibujosQueries = {
     return data as Dibujo;
   },
 
-  /** Buscar dibujos por título */
+  
   search: async (query: string) => {
     const { data, error } = await supabase
       .from('dibujos')
@@ -65,7 +65,7 @@ export const dibujosQueries = {
   
   
 
-  /** Agregar un nuevo dibujo */
+  
   create: async (dibujo: Omit<Dibujo, 'id'>) => {
     const { data, error } = await supabase
       .from('dibujos')
@@ -81,7 +81,7 @@ export const dibujosQueries = {
   
   
 
-  /** Actualizar un dibujo existente */
+  
   update: async (id: number, updates: Partial<Omit<Dibujo, 'id'>>) => {
     const { data, error } = await supabase
       .from('dibujos')
@@ -98,7 +98,7 @@ export const dibujosQueries = {
   
   
 
-  /** Eliminar un dibujo por ID */
+  
   delete: async (id: number) => {
     const { error } = await supabase
       .from('dibujos')

@@ -9,7 +9,7 @@ interface DetallesModalProps {
   data: any;
   tabla: string;
   onUpdate: (record: any) => void;
-  onDelete?: () => void;               // ← NUEVO
+  onDelete?: () => void;               
   tags?: any[];
   mostrarMusica?: boolean;
   isNew?: boolean;

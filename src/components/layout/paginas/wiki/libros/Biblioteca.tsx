@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Book, Plus, Edit2, X, ChevronDown, EyeOff } from "lucide-react"; // Añadido EyeOff
+import { Book, Plus, Edit2, X, ChevronDown, EyeOff } from "lucide-react"; 
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
@@ -33,7 +33,7 @@ const Biblioteca = () => {
   const [editForm, setEditForm] = useState({ titulo: "", sinopsis: "", estado: "" });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Filtrado de libros: Si no es admin, ocultamos los "BORRADOR"
+  
   const librosVisibles = (libros as Libro[]).filter(libro => 
     isAdmin || libro.estado !== "BORRADOR"
   );
@@ -48,7 +48,7 @@ const Biblioteca = () => {
       .insert([{ 
         titulo: nuevoTitulo.toUpperCase(),
         sinopsis: "Nueva crónica por escribir...",
-        estado: "BORRADOR", // Ahora nacen como borrador por defecto
+        estado: "BORRADOR", 
         portada_url: "" 
       }])
       .select();
@@ -183,7 +183,7 @@ const Biblioteca = () => {
         ))}
       </div>
 
-      {/* Modales */}
+      {}
       <AnimatePresence>
         {showAddModal && isAdmin && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">

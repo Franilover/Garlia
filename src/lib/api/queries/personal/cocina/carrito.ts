@@ -55,7 +55,7 @@ export const comprasQueries = {
     const { error } = await supabase
       .from("compras")
       .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000"); // Borra todo
+      .neq("id", "00000000-0000-0000-0000-000000000000"); 
     if (error) throw error;
   },
 

@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Calendar, BookOpen, Bookmark, Plus, Loader2 } from "lucide-react";
 import { VistaOpcion, Evento, DIAS_SEMANA_CORTO, DIAS_SEMANA_LETRA, MESES, VISTAS, addDays, isSameDay, toUTCDate } from "./types";
 
-// ─── BADGE EVENTO ─────────────────────────────────────────────────────────────
 const EventoBadge = ({ item, compact = false }: { item: Evento; compact?: boolean }) => {
   const colores: Record<string, string> = {
     "Plan":              "bg-primary/10 text-primary border-primary/15",
@@ -31,7 +30,6 @@ const EventoBadge = ({ item, compact = false }: { item: Evento; compact?: boolea
   );
 };
 
-// ─── COLUMNA DÍA ──────────────────────────────────────────────────────────────
 const ColumniaDia = ({
   fecha, eventos, esHoy, seleccionado, onClick, compact,
 }: {
@@ -78,7 +76,6 @@ const ColumniaDia = ({
   </div>
 );
 
-// ─── VISTA SEMANAL ────────────────────────────────────────────────────────────
 interface Props {
   eventos: any[];
   capitulosRaw: any[];
@@ -156,7 +153,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
 
   return (
     <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 flex flex-col gap-6 h-full">
-      {/* CABECERA */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-center gap-3 flex-1">
           <button onClick={irAHoy} className="text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary px-3 py-1.5 rounded-xl hover:bg-primary hover:text-white transition-all">
@@ -187,7 +184,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </div>
       </div>
 
-      {/* GRID DÍAS */}
+      {}
       <AnimatePresence mode="wait">
         <motion.div
           key={`${vista}-${fechaBase.toISOString()}`}
@@ -210,7 +207,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </motion.div>
       </AnimatePresence>
 
-      {/* PANEL AGREGAR EVENTO */}
+      {}
       <div className="bg-primary/4 rounded-3xl p-5 border border-primary/8">
         <div className="flex items-center gap-2 mb-4">
           <Calendar size={14} className="text-primary/40" />
@@ -243,7 +240,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           </button>
         </div>
 
-        {/* LISTA EVENTOS DÍA SELECCIONADO */}
+        {}
         <div className="space-y-2">
           {eventosDiaSeleccionado.length === 0 ? (
             <p className="text-[9px] font-bold text-primary/20 italic px-1">"Sin eventos para este día."</p>

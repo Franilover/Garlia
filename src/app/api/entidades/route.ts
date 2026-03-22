@@ -30,13 +30,13 @@ export async function GET(req: Request) {
       })),
       criaturas: (criaturasRes.data || []).map((c: any) => ({
         ...c,
-        // criaturas usa imagen_url directamente
+        
         tipo: "criatura",
       })),
       personajes: (personajesRes.data || []).map((p: any) => ({
         ...p,
-        imagen_url: p.img_url,       // personajes usa img_url
-        descripcion: p.sobre,        // personajes usa sobre
+        imagen_url: p.img_url,       
+        descripcion: p.sobre,        
         tipo: "personaje",
       })),
     };

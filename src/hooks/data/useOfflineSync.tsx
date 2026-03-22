@@ -41,7 +41,7 @@ export function useOfflineSync() {
       for (const op of queue) {
         const config = SYNC_TABLES[op.table];
         if (!config) {
-          // Tabla no registrada en sync — descartar
+          
           await db.offline_queue.delete(op.id!);
           continue;
         }
@@ -55,7 +55,7 @@ export function useOfflineSync() {
               .delete()
               .eq("id", op.recordId));
 
-            // Eliminar también de Dexie al confirmar sync
+            
             if (!error) {
               try { await (db as any)[op.table]?.delete(op.recordId); } catch {}
             }
@@ -74,7 +74,7 @@ export function useOfflineSync() {
 
           if (error) throw error;
 
-          // Marcar como synced en Dexie
+          
           try {
             const table = (db as any)[op.table];
             if (table && op.operation !== "delete") {
@@ -101,7 +101,7 @@ export function useOfflineSync() {
   };
 
   useEffect(() => {
-    // Intentar sync al montar (por si había cosas pendientes de sesiones anteriores)
+    
     syncAll();
     window.addEventListener("online", syncAll);
     return () => window.removeEventListener("online", syncAll);
@@ -110,13 +110,6 @@ export function useOfflineSync() {
   return { syncAll };
 }
 
-/**
- * Encola una operación para sincronizar cuando haya conexión.
- * Se llama automáticamente desde useSupabaseData cuando se detecta que no hay red.
- * @example
- * await enqueueOperation("tareas", "upsert", tarea.id, tarea);
- * await enqueueOperation("eventos", "delete", evento.id);
- */
 export async function enqueueOperation(
   table: string,
   operation: "upsert" | "update" | "delete",
@@ -134,7 +127,6 @@ export async function enqueueOperation(
   console.log(`[Queue] Encolado: ${operation} en ${table}/${recordId}`);
 }
 
-/** Cuántas operaciones hay pendientes — útil para mostrar badge en la UI */
 export async function getPendingCount(): Promise<number> {
   return await db.offline_queue.count();
 }

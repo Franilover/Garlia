@@ -38,7 +38,7 @@ export function useAdminItem<T extends Record<string, any>>(
     setIsCreating(false);
   }, []);
 
-  // Elimina el item del estado local tras borrarlo en Supabase
+  
   const handleDeleted = useCallback((id: any) => {
     setDatos(prev => prev.filter(c => c.id !== id));
     setSelected(null);

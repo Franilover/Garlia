@@ -34,8 +34,6 @@ const TOOLBAR_ACTIONS: ToolbarAction[] = [
   { icon: <Code size={12} />, label: "Código", prefix: "`", suffix: "`" },
 ];
 
-// ── Autocompletado de citas ───────────────────────────────────────────────────
-
 interface CitePopupProps {
   sources: ZoteroSource[];
   query: string;
@@ -138,8 +136,6 @@ function CitePopup({ sources, query, position, onSelect, onClose, activeIndex }:
   );
 }
 
-// ── Editor principal ──────────────────────────────────────────────────────────
-
 export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMode, onUpdateField, onSelectEnsayo }: EditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -151,10 +147,10 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
   const [tagInputFocused, setTagInputFocused] = useState(false);
   const [tagPanelActivo, setTagPanelActivo] = useState<string | null>(null);
 
-  // Estado del popup de citas
+  
   const [citePopup, setCitePopup] = useState<{
     query: string;
-    atStart: number; // posición del @ en el texto
+    atStart: number; 
     position: { top: number; left: number };
   } | null>(null);
   const [citeActiveIdx, setCiteActiveIdx] = useState(0);
@@ -163,7 +159,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     setTagInput(ensayo.tags?.join(", ") || "");
   }, [ensayo.id]);
 
-  // ── Detecta @... en el textarea ───────────────────────────────────────────
+  
   const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     onUpdateField(ensayo.id, "contenido", value);
@@ -175,13 +171,13 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     const match = textToCursor.match(/@([\w\-.]*)$/);
 
     if (match) {
-      // Calcula posición visual del popup
+      
       const textarea = textareaRef.current;
       if (!textarea) return;
 
-      // Posición estimada basada en el cursor
+      
       const linesBefore = textToCursor.split("\n");
-      const lineHeight = 28; // aprox px por línea
+      const lineHeight = 28; 
       const linesCount = linesBefore.length;
       const top = Math.min(linesCount * lineHeight + 8, textarea.offsetHeight - 200);
       const left = 0;
@@ -197,7 +193,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     }
   }, [ensayo.id, onUpdateField, sources]);
 
-  // ── Inserta la cita seleccionada ──────────────────────────────────────────
+  
   const insertCite = useCallback((src: ZoteroSource) => {
     if (!citePopup) return;
     const textarea = textareaRef.current;
@@ -214,7 +210,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     onUpdateField(ensayo.id, "contenido", newContent);
     setCitePopup(null);
 
-    // Mueve el cursor al final de la cita insertada
+    
     requestAnimationFrame(() => {
       textarea.focus();
       const pos = citePopup.atStart + cite.length;
@@ -222,7 +218,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     });
   }, [citePopup, ensayo.id, ensayo.contenido, onUpdateField]);
 
-  // ── Teclado en el textarea ────────────────────────────────────────────────
+  
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (!citePopup || !sources.length) return;
 
@@ -249,7 +245,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     }
   }, [citePopup, sources, citeActiveIdx, insertCite]);
 
-  // ── Toolbar de Markdown ───────────────────────────────────────────────────
+  
   const applyFormat = (action: ToolbarAction) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -290,7 +286,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         className="flex flex-col gap-0 min-h-[80vh]"
       >
-        {/* Tags bar */}
+        {}
         <div
           className="flex items-center gap-2 px-3 md:px-4 py-2.5 mb-3"
           style={{
@@ -377,7 +373,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
           </button>
         </div>
 
-        {/* Toolbar Markdown */}
+        {}
         {editMode && (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
@@ -417,7 +413,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
             >
               Markdown
             </span>
-            {/* Indicador de Zotero conectado */}
+            {}
             {sources.length > 0 && (
               <>
                 <div className="ml-2 h-4 w-px shrink-0"
@@ -434,7 +430,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
           </motion.div>
         )}
 
-        {/* Editor card */}
+        {}
         <div
           className="flex flex-col gap-0 flex-1 p-5 md:p-8"
           style={{
@@ -456,7 +452,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
             style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
           />
 
-          {/* Textarea con popup de citas */}
+          {}
           <div className="flex-1 relative">
             {editMode ? (
               <>
@@ -472,7 +468,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
                     : "Escribe en Markdown...\n\n## Subtítulos con ##\n**negrita**, *cursiva*\n> citas con >"
                   }
                 />
-                {/* Popup de autocompletado */}
+                {}
                 <AnimatePresence>
                   {citePopup && (
                     <CitePopup
@@ -524,7 +520,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
         </div>
       </motion.div>
 
-      {/* TagPanel */}
+      {}
       <TagPanel
         tag={tagPanelActivo}
         ensayos={ensayos}

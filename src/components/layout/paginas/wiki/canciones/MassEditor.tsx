@@ -8,10 +8,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ============================================================================
-// TIPOS Y CONSTANTES
-// ============================================================================
-
 const IDIOMAS = [
   { id: "es", label: "ES", nombre: "Español" },
   { id: "en", label: "EN", nombre: "Inglés" },
@@ -29,10 +25,6 @@ type Seccion = {
   orden?: number;
 };
 
-// ============================================================================
-// HOOK: DETECCIÓN DE RED LENTA
-// ============================================================================
-
 function useNetworkStatus() {
   const [isOnline, setIsOnline] = useState(true);
   const [isSlow, setIsSlow] = useState(false);
@@ -42,7 +34,7 @@ function useNetworkStatus() {
     window.addEventListener("online", updateStatus);
     window.addEventListener("offline", updateStatus);
 
-    // Detección de red lenta via navigator.connection (cuando disponible)
+    
     const conn = (navigator as any).connection;
     if (conn) {
       const checkSpeed = () => {
@@ -67,10 +59,6 @@ function useNetworkStatus() {
   return { isOnline, isSlow };
 }
 
-// ============================================================================
-// HOOK: BORRADOR LOCAL (anti-pérdida de datos)
-// ============================================================================
-
 function useDraftStorage(key: string) {
   const saveDraft = useCallback((data: Seccion[]) => {
     try {
@@ -91,10 +79,6 @@ function useDraftStorage(key: string) {
 
   return { saveDraft, loadDraft, clearDraft };
 }
-
-// ============================================================================
-// COMPONENTE: BARRA DE ESTADO DE GUARDADO (top pill)
-// ============================================================================
 
 type SaveStatus = "idle" | "draft" | "saving" | "saved" | "error" | "offline";
 
@@ -123,10 +107,6 @@ function SaveStatusPill({ status, isSlow }: { status: SaveStatus; isSlow: boolea
     </motion.div>
   );
 }
-
-// ============================================================================
-// COMPONENTE: TARJETA DE SECCIÓN (móvil-first)
-// ============================================================================
 
 function SeccionCard({
   sec,
@@ -175,14 +155,14 @@ function SeccionCard({
           : "border-primary/10 bg-white-custom"
       } ${expanded ? "shadow-xl shadow-primary/8" : "shadow-sm"}`}
     >
-      {/* Header de la tarjeta */}
+      {}
       <div className="flex items-center gap-2 p-3 md:p-4">
-        {/* Número */}
+        {}
         <span className="text-[10px] font-black text-primary/30 italic w-7 text-center flex-shrink-0">
           {(idx + 1).toString().padStart(2, "0")}
         </span>
 
-        {/* Nombre editable */}
+        {}
         <input
           type="text"
           value={sec.nombre_seccion}
@@ -191,7 +171,7 @@ function SeccionCard({
           placeholder="NOMBRE DE SECCIÓN"
         />
 
-        {/* Botones de reorden (siempre visibles en móvil) */}
+        {}
         <div className="flex gap-0.5 flex-shrink-0">
           <button
             disabled={idx === 0}
@@ -209,7 +189,7 @@ function SeccionCard({
           </button>
         </div>
 
-        {/* Expand/Collapse */}
+        {}
         <button
           onClick={onToggleExpand}
           className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-input)] bg-primary/5 text-primary active:scale-90 transition-all touch-manipulation flex-shrink-0"
@@ -219,7 +199,7 @@ function SeccionCard({
           </motion.div>
         </button>
 
-        {/* Eliminar */}
+        {}
         <button
           onClick={() => onEliminar(idx)}
           className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-input)] text-red-400 hover:bg-red-500/15 active:scale-90 transition-all touch-manipulation flex-shrink-0"
@@ -228,7 +208,7 @@ function SeccionCard({
         </button>
       </div>
 
-      {/* Área de texto — solo visible cuando expandido */}
+      {}
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -239,7 +219,7 @@ function SeccionCard({
             className="overflow-hidden"
           >
             <div className={`px-3 pb-4 md:px-5 md:pb-5 ${splitMode && splitLetraKey ? "grid grid-cols-2 gap-3" : ""}`}>
-              {/* Columna principal */}
+              {}
               <div className="flex flex-col gap-1">
                 {splitMode && splitLetraKey && (
                   <span className="text-[9px] font-black uppercase tracking-widest text-primary/50 px-1">
@@ -256,7 +236,7 @@ function SeccionCard({
                 />
               </div>
 
-              {/* Columna secundaria (split) */}
+              {}
               {splitMode && splitLetraKey && (
                 <div className="flex flex-col gap-1">
                   <span className="text-[9px] font-black uppercase tracking-widest text-primary/50 px-1">
@@ -277,7 +257,7 @@ function SeccionCard({
         )}
       </AnimatePresence>
 
-      {/* Preview de líneas cuando colapsado */}
+      {}
       {!expanded && letraVal && (
         <div className="px-4 pb-3">
           <p className="text-primary/40 text-[11px] italic font-serif leading-relaxed line-clamp-2">
@@ -289,17 +269,13 @@ function SeccionCard({
   );
 }
 
-// ============================================================================
-// MODAL PRINCIPAL: EDITOR MAESTRO v2
-// ============================================================================
-
 interface MassEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   secciones: Seccion[];
   isProcessing: boolean;
   onSave: (secciones: Seccion[]) => Promise<void>;
-  cancionId?: string | number; // para el borrador local
+  cancionId?: string | number; 
 }
 
 export const MassEditModal: React.FC<MassEditModalProps> = ({
@@ -326,24 +302,24 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
   const { isOnline, isSlow } = useNetworkStatus();
   const { saveDraft, loadDraft, clearDraft } = useDraftStorage(String(cancionId));
 
-  // Mantener ref sincronizada con el estado (sin causar re-renders en autosave)
+  
   useEffect(() => {
     localSeccionesRef.current = localSecciones;
   }, [localSecciones]);
 
-  // Inicializar datos — solo cuando el modal se ABRE (no en cada re-render)
+  
   const isOpenRef = useRef(false);
   useEffect(() => {
     if (!isOpen) {
       isOpenRef.current = false;
       return;
     }
-    if (isOpenRef.current) return; // Ya inicializado, no pisar datos actuales
+    if (isOpenRef.current) return; 
     isOpenRef.current = true;
 
     const draft = loadDraft();
     const ahora = Date.now();
-    const MAX_DRAFT_AGE = 1000 * 60 * 60 * 4; // 4 horas
+    const MAX_DRAFT_AGE = 1000 * 60 * 60 * 4; 
 
     if (draft && ahora - draft.ts < MAX_DRAFT_AGE) {
       setHasDraftRecovery(true);
@@ -362,9 +338,9 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
     }
   }, [isOpen]);
 
-  // guardarEnServidor siempre lee de la ref, nunca del closure
+  
   const guardarEnServidor = useCallback(async () => {
-    if (isSavingRef.current) return; // evitar guardados duplicados
+    if (isSavingRef.current) return; 
     isSavingRef.current = true;
     setSaveStatus("saving");
     try {
@@ -381,11 +357,11 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
     }
   }, [onSave, clearDraft]);
 
-  // Auto-guardado: solo se dispara cuando cambia cambiosPendientes, NO en cada keystroke
+  
   useEffect(() => {
     if (!cambiosPendientes || isProcessing) return;
 
-    // Borrador local inmediato (no bloquea UI)
+    
     saveDraft(localSeccionesRef.current);
 
     if (!isOnline) {
@@ -403,11 +379,11 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  // ⚠️ localSecciones INTENCIONALMENTE excluido de deps — usamos ref para leer el valor actual
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  
+  
   }, [cambiosPendientes, isOnline, isSlow, isProcessing, guardarEnServidor]);
 
-  // Ctrl+S / Cmd+S
+  
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s" && isOpen) {
@@ -418,7 +394,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
     };
     if (isOpen) window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  // guardarEnServidor es estable (useCallback), localSecciones se lee via ref
+  
   }, [isOpen, guardarEnServidor]);
 
   const handleChange = useCallback((id: string | number, campo: string, valor: string) => {
@@ -495,7 +471,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center">
-        {/* Overlay */}
+        {}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -504,7 +480,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
           className="absolute inset-0 bg-primary/40 backdrop-blur-md"
         />
 
-        {/* Panel principal — bottom sheet en móvil, modal centrado en desktop */}
+        {}
         <motion.div
           initial={{ y: "100%", opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -517,15 +493,15 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
             shadow-2xl border border-primary/10 overflow-hidden
           "
         >
-          {/* ───── HEADER ───── */}
+          {}
           <div className="flex-shrink-0 bg-white-custom border-b border-primary/10">
-            {/* Pill de drag en móvil */}
+            {}
             <div className="flex justify-center pt-3 pb-1 md:hidden">
               <div className="w-10 h-1 bg-primary/20 rounded-full" />
             </div>
 
             <div className="px-4 py-3 md:px-8 md:py-5 flex items-center gap-3">
-              {/* Icono + título */}
+              {}
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="bg-primary p-2 rounded-[var(--radius-btn)] flex-shrink-0" style={{ color: "var(--btn-text)" }}>
                   <Layers size={16} />
@@ -540,19 +516,19 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                 </div>
               </div>
 
-              {/* Estado de guardado */}
+              {}
               <AnimatePresence mode="wait">
                 <SaveStatusPill key={saveStatus} status={saveStatus} isSlow={isSlow} />
               </AnimatePresence>
 
-              {/* Indicador de red (icono compacto) */}
+              {}
               {!isOnline && (
                 <div className="text-slate-400 flex-shrink-0" title="Sin conexión">
                   <WifiOff size={16} />
                 </div>
               )}
 
-              {/* Cerrar */}
+              {}
               <button
                 onClick={onClose}
                 className="w-10 h-10 flex items-center justify-center rounded-[var(--radius-btn)] text-primary/30 hover:text-red-500 hover:bg-red-500/15 transition-all active:scale-90 touch-manipulation flex-shrink-0"
@@ -561,7 +537,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
               </button>
             </div>
 
-            {/* Selector de idioma — scrollable en móvil */}
+            {}
             <div className="px-4 pb-3 md:px-8 md:pb-4 flex flex-col gap-2">
               <div className="flex gap-1 bg-primary/5 p-1 rounded-[var(--radius-btn)] border border-primary/10 overflow-x-auto scrollbar-none">
                 {IDIOMAS.map((lang) => (
@@ -582,7 +558,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                   </button>
                 ))}
 
-                {/* Botón split */}
+                {}
                 <button
                   onClick={() => {
                     if (splitMode) {
@@ -607,7 +583,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                 </button>
               </div>
 
-              {/* Selector del segundo idioma cuando split está activo */}
+              {}
               <AnimatePresence>
                 {splitMode && (
                   <motion.div
@@ -646,7 +622,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
             </div>
           </div>
 
-          {/* ───── BANNER DE RECUPERACIÓN ───── */}
+          {}
           <AnimatePresence>
             {showRecoveryBanner && (
               <motion.div
@@ -683,7 +659,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
             )}
           </AnimatePresence>
 
-          {/* ───── TOOLBAR DE SECCIONES ───── */}
+          {}
           <div className="flex-shrink-0 px-4 py-2 md:px-8 flex items-center gap-2 border-b border-primary/5 bg-white-custom/50">
             <button
               onClick={expandAll}
@@ -704,7 +680,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
             </span>
           </div>
 
-          {/* ───── LISTA DE SECCIONES ───── */}
+          {}
           <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 md:px-8 md:py-6 space-y-3">
             <AnimatePresence mode="popLayout">
               {localSecciones.map((sec, idx) => (
@@ -725,7 +701,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
               ))}
             </AnimatePresence>
 
-            {/* Botón añadir sección */}
+            {}
             <motion.button
               layout
               onClick={añadirSeccion}
@@ -737,21 +713,21 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
               </span>
             </motion.button>
 
-            {/* Espacio extra para el footer fijo */}
+            {}
             <div className="h-4" />
           </div>
 
-          {/* ───── FOOTER ───── */}
+          {}
           <div className="flex-shrink-0 bg-white-custom border-t border-primary/10 px-4 py-3 md:px-8 md:py-5">
             <div className="flex items-center gap-3">
-              {/* Info de guardado */}
+              {}
               <p className="flex-1 text-[9px] font-bold text-primary/40 uppercase tracking-wider hidden md:block">
                 {isOnline
                   ? `💡 Ctrl+S para guardar · ${isSlow ? "Red lenta: guardado cada 5s" : "Auto: cada 2.5s"}`
                   : "⚠️ Sin conexión · Los cambios están en borrador local"}
               </p>
 
-              {/* Cerrar sin guardar */}
+              {}
               <button
                 onClick={onClose}
                 className="px-5 py-3 md:px-6 bg-primary/8 text-primary rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest hover:bg-primary/15 transition-colors touch-manipulation"
@@ -759,7 +735,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({
                 Cerrar
               </button>
 
-              {/* Guardar ahora */}
+              {}
               <button
                 onClick={() => {
                   if (saveTimerRef.current) clearTimeout(saveTimerRef.current);

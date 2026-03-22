@@ -17,7 +17,7 @@ export interface ZoteroSource {
   title: string;
   author: string;
   year: string;
-  citekey?: string;   // Better BibTeX genera citekeys tipo "autor2024titulo"
+  citekey?: string;   
   journal?: string;
   url?: string;
 }
@@ -25,8 +25,6 @@ export interface ZoteroSource {
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 const LS_ACTIVE = "ensayos-active-id";
 const DEXIE_ZOTERO_KEY = "zotero_file_handle";
-
-// ── Helpers para persistir el FileHandle del .json de Zotero ─────────────────
 
 async function saveZoteroHandle(handle: FileSystemFileHandle) {
   try {
@@ -42,8 +40,6 @@ async function loadZoteroHandle(): Promise<FileSystemFileHandle | null> {
     return row?.handle ?? null;
   } catch { return null; }
 }
-
-// ── Parsea el JSON de Better BibTeX / Zotero CSL ─────────────────────────────
 
 function parseZoteroJson(json: any[]): ZoteroSource[] {
   return json.map((item: any) => ({
@@ -62,13 +58,11 @@ function parseZoteroJson(json: any[]): ZoteroSource[] {
   }));
 }
 
-// ── Lee el archivo .json y parsea las fuentes ─────────────────────────────────
-
 async function readZoteroFile(handle: FileSystemFileHandle): Promise<ZoteroSource[]> {
   const file = await handle.getFile();
   const text = await file.text();
   const json = JSON.parse(text);
-  // Better BibTeX exporta { items: [...] } o directamente [...]
+  
   const items = Array.isArray(json) ? json : (json.items || json.references || []);
   return parseZoteroJson(items);
 }
@@ -99,7 +93,7 @@ export default function Ensayos() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Cargar ensayos ────────────────────────────────────────────────────────
+  
   const fetchData = useCallback(async () => {
     if (!user) return;
     setEnsayos((prev) => { if (prev.length === 0) setLoading(true); return prev; });
@@ -111,15 +105,15 @@ export default function Ensayos() {
     setLoading(false);
   }, [user]);
 
-  // ── Cargar Zotero automáticamente al iniciar ──────────────────────────────
+  
   useEffect(() => {
     fetchData();
 
     (async () => {
-      // 1. Intenta leer el handle guardado en Dexie
+      
       const handle = await loadZoteroHandle();
       if (!handle) {
-        // Fallback: caché viejo de localStorage
+        
         const cached = localStorage.getItem("fran-zotero-cache");
         if (cached) {
           try { setSources(JSON.parse(cached)); } catch {}
@@ -127,22 +121,22 @@ export default function Ensayos() {
         return;
       }
 
-      // 2. Pide permiso si es necesario
+      
       try {
         const h = handle as any;
         const perm = await h.queryPermission({ mode: "read" });
         const granted = perm === "granted" ? "granted" : await h.requestPermission({ mode: "read" });
         if (granted !== "granted") return;
 
-        // 3. Lee y parsea el archivo
+        
         const parsed = await readZoteroFile(handle);
         setSources(parsed);
         setZoteroConnected(true);
-        // Guarda en localStorage como caché rápido para próxima carga
+        
         localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
       } catch (e) {
         console.warn("[Zotero] No se pudo leer el archivo:", e);
-        // Usa el caché de localStorage si falla
+        
         const cached = localStorage.getItem("fran-zotero-cache");
         if (cached) {
           try { setSources(JSON.parse(cached)); } catch {}
@@ -151,10 +145,10 @@ export default function Ensayos() {
     })();
   }, [fetchData]);
 
-  // ── Conectar Zotero por primera vez (o reconectar) ────────────────────────
+  
   const connectZotero = useCallback(async () => {
     if (!("showOpenFilePicker" in window)) {
-      // Fallback para Firefox — input file clásico
+      
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".json";
@@ -191,7 +185,7 @@ export default function Ensayos() {
     }
   }, []);
 
-  // ── Reconectar (leer el archivo de nuevo — útil si Zotero lo actualizó) ──
+  
   const refreshZotero = useCallback(async () => {
     const handle = await loadZoteroHandle();
     if (!handle) { connectZotero(); return; }
@@ -317,7 +311,7 @@ export default function Ensayos() {
         footerLeft={`${ensayos.length} notas`}
         sidebarContent={<Sidebar {...sidebarProps} embedded />}
       >
-        {/* Barra de estado interna del editor */}
+        {}
         <div className="shrink-0 z-10 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-2.5 flex items-center justify-between bg-bg-main/80">
           <button onClick={() => window.history.back()}
             className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-colors"
@@ -339,7 +333,7 @@ export default function Ensayos() {
           </span>
         </div>
 
-        {/* Panel principal */}
+        {}
         <main className="relative flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto min-h-0">
           {loading ? (
             <div className="flex flex-col gap-4 animate-pulse">

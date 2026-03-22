@@ -1,15 +1,5 @@
 "use client";
 
-/**
- * Estudio de Letras — editor de canciones con secciones por idioma
- * ─ Sidebar colapsable con búsqueda + filtros
- * ─ Botón "Nueva canción" en sidebar
- * ─ Menú de 3 puntos por canción: editar título, estado, visibilidad, eliminar
- * ─ Vista simple (1 idioma) o vista dividida (2 idiomas en paralelo)
- * ─ Auto-guardado por sección, Ctrl+S manual
- * ─ Soporte offline completo con Dexie
- */
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Search, X, ChevronDown, Plus, Trash2, Save, GripVertical,
@@ -24,10 +14,6 @@ import { BannerOffline, EmptyEstudio, ModalBase, CampoInput, BotonSubmit, normal
 import { db } from "@/lib/api/client/db";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TIPOS
-// ─────────────────────────────────────────────────────────────────────────────
 
 type Seccion = {
   id: string;
@@ -63,10 +49,6 @@ type Filtros = {
   compositor: string;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTES
-// ─────────────────────────────────────────────────────────────────────────────
-
 const IDIOMAS: { id: IdiomaKey; label: string; nombre: string; campo: keyof Seccion }[] = [
   { id: "es",     label: "ES", nombre: "Español",  campo: "letra_es" },
   { id: "en",     label: "EN", nombre: "Inglés",   campo: "letra_en" },
@@ -85,18 +67,6 @@ const ESTADO_COLOR: Record<string, string> = {
 const FILTROS_VACIOS: Filtros = {
   estado: "", visible: "", idioma: "", cantante: "", compositor: "",
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// UTILIDADES
-// ─────────────────────────────────────────────────────────────────────────────
-
-// normalize importado de EstudioTemplates
-
-// unique importado de EstudioTemplates
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DEXIE HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
 
 const TABLA_SEC = "secciones_cancion";
 
@@ -131,10 +101,6 @@ async function dexieSecGet(id: string): Promise<any> {
   try { return await (db as any)[TABLA_SEC]?.get(id); } catch { return null; }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HOOK: lista de canciones
-// ─────────────────────────────────────────────────────────────────────────────
-
 function useCanciones() {
   const [canciones,  setCanciones] = useState<Cancion[]>([]);
   const [loading,    setLoading]   = useState(true);
@@ -149,7 +115,7 @@ function useCanciones() {
   };
 
   const load = useCallback(async () => {
-    // Mostrar local inmediatamente
+    
     const local = await readLocal();
     if (local.length > 0) {
       setCanciones(local);
@@ -197,17 +163,13 @@ function useCanciones() {
   return { canciones, setCanciones, loading, isOffline, refetch: load };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HOOK: canción con secciones
-// ─────────────────────────────────────────────────────────────────────────────
-
 function useCancionEditor(id: string | null) {
   const [cancion,   setCancion]  = useState<Cancion | null>(null);
   const [loading,   setLoading]  = useState(false);
   const [isOffline, setIsOffline]= useState(false);
 
   const load = useCallback(async (cancionId: string) => {
-    // Mostrar local inmediatamente
+    
     try {
       const cTable = (db as any)["canciones"];
       const base   = cTable ? await cTable.get(cancionId) : null;
@@ -268,10 +230,6 @@ function useCancionEditor(id: string | null) {
 
   return { cancion, setCancion, loading, isOffline, reload: () => id && load(id) };
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CRUD SECCIONES
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function secUpdate(id: string, updates: Partial<Seccion>): Promise<void> {
   if (!navigator.onLine) {
@@ -360,10 +318,6 @@ async function secReorder(secciones: { id: string; orden: number }[]): Promise<v
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: Chip
-// ─────────────────────────────────────────────────────────────────────────────
-
 const Chip = ({
   active, onClick, children,
 }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
@@ -378,10 +332,6 @@ const Chip = ({
     {children}
   </button>
 );
-
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: tabs de idioma
-// ─────────────────────────────────────────────────────────────────────────────
 
 const IdiomaTab = ({
   value, onChange, exclude,
@@ -403,10 +353,6 @@ const IdiomaTab = ({
   </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: sidebar item con menú de 3 puntos
-// ─────────────────────────────────────────────────────────────────────────────
-
 const SidebarItem = ({
   cancion, selected, onClick, onEdit, onDelete,
 }: {
@@ -419,7 +365,7 @@ const SidebarItem = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar menú al hacer click fuera
+  
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
@@ -458,7 +404,7 @@ const SidebarItem = ({
         )}
       </button>
 
-      {/* Botón 3 puntos — visible siempre en hover o cuando está abierto */}
+      {}
       <div ref={menuRef} className="absolute top-2 right-2">
         <button
           onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
@@ -498,10 +444,6 @@ const SidebarItem = ({
     </div>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: textarea de una sección
-// ─────────────────────────────────────────────────────────────────────────────
 
 type ColState = {
   dirty:  boolean;
@@ -545,7 +487,7 @@ const SeccionTextarea = ({
       }
     };
     loadLocal();
-  }, [idioma, sec.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [idioma, sec.id]); 
 
   const doSave = useCallback(async (val: string) => {
     clearTimeout(timer.current);
@@ -609,10 +551,6 @@ const SeccionTextarea = ({
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: editor de una sección
-// ─────────────────────────────────────────────────────────────────────────────
-
 const SeccionEditor = ({
   sec, idiomaA, idiomaB, splitMode,
   onSaveField, onSaveNombre, onDelete, onMoveUp, onMoveDown,
@@ -667,10 +605,6 @@ const SeccionEditor = ({
     </div>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: panel de filtros
-// ─────────────────────────────────────────────────────────────────────────────
 
 const PanelFiltros = ({
   filtros, onChange, opciones,
@@ -754,10 +688,6 @@ const PanelFiltros = ({
     </div>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MODAL: nueva canción
-// ─────────────────────────────────────────────────────────────────────────────
 
 const ModalNuevaCancion = ({
   onCreated,
@@ -844,7 +774,6 @@ const ModalNuevaCancion = ({
   );
 };
 
-// pequeño helper de campo de texto reutilizable
 const Campo = ({ label, value, onChange, placeholder, autoFocus }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; autoFocus?: boolean;
 }) => (
@@ -859,10 +788,6 @@ const Campo = ({ label, value, onChange, placeholder, autoFocus }: {
     />
   </div>
 );
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MODAL: editar canción existente
-// ─────────────────────────────────────────────────────────────────────────────
 
 const ModalEditarCancion = ({
   cancion,
@@ -968,10 +893,6 @@ const ModalEditarCancion = ({
     </ModalBase>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: panel principal del editor
-// ─────────────────────────────────────────────────────────────────────────────
 
 const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const { cancion, setCancion, loading, isOffline: editorOffline, reload } = useCancionEditor(cancionId);
@@ -1172,10 +1093,6 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PÁGINA PRINCIPAL
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function EstudioLetras() {
   const { canciones, setCanciones, loading: loadingLista, isOffline: listaOffline, refetch } = useCanciones();
   const [selectedId,       setSelectedId]       = useState<string | null>(null);
@@ -1239,7 +1156,7 @@ export default function EstudioLetras() {
   return (
     <div className="flex h-screen bg-bg-main overflow-hidden">
 
-      {/* ════ SIDEBAR COLAPSADA ════ */}
+      {}
       {!sidebarOpen && (
         <div className="shrink-0 w-10 flex flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
           <button
@@ -1258,11 +1175,11 @@ export default function EstudioLetras() {
         </div>
       )}
 
-      {/* ════ SIDEBAR ABIERTA ════ */}
+      {}
       {sidebarOpen && (
         <aside className="w-72 shrink-0 flex flex-col border-r border-primary/10 bg-bg-main">
 
-          {/* Header */}
+          {}
           <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
@@ -1278,7 +1195,7 @@ export default function EstudioLetras() {
               </div>
             </div>
 
-            {/* Buscador */}
+            {}
             <div className="relative">
               <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" />
               <input
@@ -1294,7 +1211,7 @@ export default function EstudioLetras() {
               )}
             </div>
 
-            {/* Botón nueva canción */}
+            {}
             <button
               onClick={() => setShowNueva(true)}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
@@ -1302,7 +1219,7 @@ export default function EstudioLetras() {
               <Plus size={12} /> Nueva Canción
             </button>
 
-            {/* Toggle filtros */}
+            {}
             <button
               onClick={() => setShowFiltros(f => !f)}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
@@ -1327,7 +1244,7 @@ export default function EstudioLetras() {
             )}
           </div>
 
-          {/* Lista */}
+          {}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
             {loadingLista ? (
               <div className="flex items-center justify-center py-12 text-primary/30">
@@ -1369,7 +1286,7 @@ export default function EstudioLetras() {
             )}
           </div>
 
-          {/* Footer */}
+          {}
           <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
             {listaOffline
               ? <span className="flex items-center gap-1 text-amber-400"><WifiOff size={10} /> Sin conexión</span>
@@ -1380,7 +1297,7 @@ export default function EstudioLetras() {
         </aside>
       )}
 
-      {/* ════ PANEL PRINCIPAL ════ */}
+      {}
       <main className="flex-1 flex flex-col min-w-0 min-h-0">
         {selectedId ? (
           <PanelEditor key={selectedId} cancionId={selectedId} />
@@ -1389,7 +1306,7 @@ export default function EstudioLetras() {
         )}
       </main>
 
-      {/* Modales */}
+      {}
       {showNueva && (
         <ModalNuevaCancion
           onCreated={handleCancionCreada}

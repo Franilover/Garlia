@@ -2,9 +2,7 @@
 import { supabase } from "@/lib/api/client/supabase";
 
 export const eventosQueries = {
-  /**
-   * Obtiene los eventos (usado por el hook useSupabaseData)
-   */
+  
   getAll: async () => {
     return await supabase
       .from("eventos")
@@ -13,9 +11,7 @@ export const eventosQueries = {
       .order("fecha", { ascending: true });
   },
 
-  /**
-   * Añade un evento
-   */
+  
   add: async (evento: { titulo: string, fecha: string, tipo: string, hora_inicio?: string }) => {
     const { data, error } = await supabase
       .from("eventos")
@@ -29,9 +25,7 @@ export const eventosQueries = {
     return data[0];
   },
 
-  /**
-   * Elimina un evento
-   */
+  
   delete: async (id: string) => {
     const { error } = await supabase
       .from("eventos")

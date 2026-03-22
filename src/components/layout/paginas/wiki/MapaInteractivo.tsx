@@ -8,7 +8,6 @@ import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
 
 type ToastType = "success" | "error";
 
-// ── Toast ──────────────────────────────────────────────────────────────────
 function Toast({ message, type, onClose }: { message: string; type: ToastType; onClose: () => void }) {
   useEffect(() => {
     const t = setTimeout(onClose, 3000);
@@ -25,7 +24,6 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   );
 }
 
-// ── Marker ─────────────────────────────────────────────────────────────────
 const Marker = ({ x, y, info, onClick, tipo, editMode }: any) => (
   <div
     className="absolute z-20 flex flex-col items-center"
@@ -53,7 +51,6 @@ const Marker = ({ x, y, info, onClick, tipo, editMode }: any) => (
   </div>
 );
 
-// ── Componente principal ───────────────────────────────────────────────────
 export default function MapaInteractivo() {
   const isAdmin = useIsAdmin();
   const [reinos, setReinos] = useState([]);
@@ -189,15 +186,15 @@ export default function MapaInteractivo() {
   return (
     <div className="flex flex-col md:flex-row w-full bg-bg-main overflow-hidden">
 
-      {/* Toast */}
+      {}
       <AnimatePresence>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
-      {/* ── SECCIÓN MAPA ── */}
+      {}
       <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
 
-        {/* Botones admin */}
+        {}
         {isAdmin && (
           <div className="absolute top-6 right-6 z-[70] flex gap-2">
             <button
@@ -222,7 +219,7 @@ export default function MapaInteractivo() {
           </div>
         )}
 
-        {/* Hint coordenadas */}
+        {}
         <AnimatePresence>
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
             <motion.div
@@ -234,7 +231,7 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
-        {/* Loader imagen */}
+        {}
         <AnimatePresence>
           {cargandoImagen && (
             <motion.div
@@ -247,7 +244,7 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
-        {/* Botón volver */}
+        {}
         <AnimatePresence>
           {vistaActual === "reino" && (
             <motion.button
@@ -260,7 +257,7 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
-        {/* Mapa */}
+        {}
         <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5} enabled={!editMode}>
           <div ref={mapRef} className="w-full h-full origin-top-left">
             <div
@@ -290,7 +287,7 @@ export default function MapaInteractivo() {
         </QuickPinchZoom>
       </div>
 
-      {/* ── PANEL LATERAL ── */}
+      {}
       <AnimatePresence>
         {vistaActual === "reino" && reinoSeleccionado && (
           <motion.div
@@ -312,11 +309,11 @@ export default function MapaInteractivo() {
               </span>
             </div>
 
-            {/* ── MODO EDICIÓN ── */}
+            {}
             {editMode ? (
               <div className="flex flex-col gap-4 flex-grow">
 
-                {/* Nombre */}
+                {}
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] font-bold uppercase text-primary/50 ml-1">Nombre</label>
                   <input
@@ -330,7 +327,7 @@ export default function MapaInteractivo() {
                   />
                 </div>
 
-                {/* Descripción */}
+                {}
                 <div className="flex flex-col gap-1 flex-grow">
                   <label className="text-[9px] font-bold uppercase text-primary/50 ml-1">Descripción / Lore</label>
                   <textarea
@@ -343,7 +340,7 @@ export default function MapaInteractivo() {
                   />
                 </div>
 
-                {/* Coordenadas (read-only, se mueven desde el mapa) */}
+                {}
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] font-bold uppercase text-primary/50 ml-1 flex items-center gap-1">
                     <Move size={9} /> Coordenadas
@@ -359,7 +356,7 @@ export default function MapaInteractivo() {
                   </div>
                 </div>
 
-                {/* Imagen del mapa (solo para reinos) */}
+                {}
                 {!puntoSeleccionado && (
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] font-bold uppercase text-primary/50 ml-1 flex items-center gap-1">
@@ -387,7 +384,7 @@ export default function MapaInteractivo() {
                   </div>
                 )}
 
-                {/* Guardar */}
+                {}
                 <button
                   onClick={handleSaveChanges}
                   disabled={isSaving}
@@ -399,7 +396,7 @@ export default function MapaInteractivo() {
               </div>
 
             ) : (
-              /* ── MODO LECTURA ── */
+              
               <>
                 <h2 className="text-primary font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
                   {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}

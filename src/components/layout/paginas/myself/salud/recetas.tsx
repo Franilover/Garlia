@@ -12,7 +12,6 @@ import {
   Dumbbell, Wheat, Droplets,
 } from "lucide-react";
 
-
 const CATEGORIAS = [
   { label: "General",    emoji: "🍽️" },
   { label: "Desayunos",  emoji: "🥞" },
@@ -34,7 +33,6 @@ const INITIAL_FORM = {
   descripcion: "",
 };
 
-
 function parseIngredientes(raw: any): IngredienteReceta[] {
   try {
     if (Array.isArray(raw)) return raw as IngredienteReceta[];
@@ -55,7 +53,6 @@ function calcTotales(list: IngredienteReceta[]) {
     { kcal: 0, proteinas: 0, carbos: 0, grasas: 0 }
   );
 }
-
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -97,7 +94,6 @@ function MacroBadge({ label, value, unit }: { label: string; value: number; unit
   );
 }
 
-
 function RecetaDetalle({ receta }: { receta: Receta }) {
   const ingredientesList = parseIngredientes(receta.ingredientes);
   const totales = calcTotales(ingredientesList);
@@ -116,7 +112,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
       </header>
 
       <main className="max-w-4xl mx-auto px-5 pt-6 space-y-5">
-        {/* imagen */}
+        {}
         <div className="card-main overflow-hidden p-0 rounded-[var(--radius-card)]">
           <div className="h-56 bg-primary/5 relative">
             {receta.imagen_url ? (
@@ -155,7 +151,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
           </div>
         </div>
 
-        {/* macros totales */}
+        {}
         <div className="grid grid-cols-3 gap-3">
           {[
             { label: "Proteínas", value: totales.proteinas, unit: "g" },
@@ -171,7 +167,7 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
           ))}
         </div>
 
-        {/* ingredientes + pasos */}
+        {}
         <div className="grid md:grid-cols-2 gap-4">
           <div className="card-main space-y-3">
             <SectionTitle>Ingredientes</SectionTitle>
@@ -209,7 +205,6 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
   );
 }
 
-
 function RecipeCard({
   receta,
   index,
@@ -228,7 +223,7 @@ function RecipeCard({
       layout
       className="card-main overflow-hidden p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all group flex flex-col"
     >
-      {/* imagen */}
+      {}
       <div className="h-44 bg-primary/5 relative overflow-hidden">
         {receta.imagen_url ? (
           <img
@@ -244,14 +239,14 @@ function RecipeCard({
         <span className="absolute top-3 left-3 text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-menu-text">
           {catEmoji} {receta.categoria}
         </span>
-        {/* kcal badge */}
+        {}
         <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/30 backdrop-blur-sm rounded-[var(--radius-btn)] px-2 py-1">
           <Flame size={9} className="text-amber-300 fill-amber-300/60" />
           <span className="text-[8px] font-black text-btn-text tracking-widest">{totales.kcal.toFixed(0)}</span>
         </div>
       </div>
 
-      {/* info */}
+      {}
       <div className="p-5 space-y-3 flex flex-col flex-1">
         <h3 className="text-[13px] font-black uppercase italic tracking-tight text-primary leading-tight">
           {receta.nombre}
@@ -262,7 +257,7 @@ function RecipeCard({
           <span className="flex items-center gap-1"><ChefHat size={11} />{receta.dificultad}</span>
         </div>
 
-        {/* macros rápidos */}
+        {}
         <div className="grid grid-cols-3 gap-1">
           {[
             { label: "Prot", value: totales.proteinas, unit: "g" },
@@ -280,7 +275,7 @@ function RecipeCard({
 
         <div className="flex-1" />
 
-        {/* acciones */}
+        {}
         <div className="flex gap-2">
           <Link
             href={`/personal/salud/recetas/${receta.id}`}
@@ -293,7 +288,6 @@ function RecipeCard({
     </motion.div>
   );
 }
-
 
 interface PendingIng {
   base: Ingrediente;
@@ -405,7 +399,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
         <form onSubmit={handleSubmit} className="space-y-7">
 
-          {/* INFO BÁSICA */}
+          {}
           <section className="space-y-4">
             <SectionTitle>Información básica</SectionTitle>
             <FieldInput label="Nombre del plato" required value={formData.nombre} onChange={v => setFormData(p => ({ ...p, nombre: v }))} placeholder="Tortilla, Ensalada…" />
@@ -442,7 +436,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
             </div>
           </section>
 
-          {/* INGREDIENTES */}
+          {}
           <section className="space-y-4">
             <SectionTitle>Ingredientes de la despensa</SectionTitle>
 
@@ -585,7 +579,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
             )}
           </section>
 
-          {/* PASOS */}
+          {}
           <section className="space-y-4">
             <SectionTitle>Pasos de preparación</SectionTitle>
             <div className="flex gap-2">
@@ -636,7 +630,6 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
   );
 }
 
-
 interface RecetasPageProps {
   selectedRecipeId?: string;
 }
@@ -645,7 +638,6 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   const [filter, setFilter]               = useState("");
   const [catFilter, setCatFilter]         = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen]     = useState(false);
-
 
   const { data: recipes, loading } = useSupabaseData<Receta>("recetas");
 
@@ -686,7 +678,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   return (
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
 
-      {/* HEADER */}
+      {}
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
@@ -718,7 +710,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
 
           <div className="hidden sm:flex items-center gap-2">
 
-            {/* Botón Ingredientes */}
+            {}
             <Link
               href="/personal/salud/ingredientes"
               className="flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-[var(--radius-btn)] border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
@@ -726,7 +718,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
               <Carrot size={14} /> Ingredientes
             </Link>
 
-            {/* Botón Añadir */}
+            {}
             <motion.button
               whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => setIsModalOpen(true)}
@@ -740,7 +732,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
 
       <main className="max-w-7xl mx-auto px-5 pt-5 space-y-5">
 
-        {/* chips categoría */}
+        {}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setCatFilter(null)}
@@ -788,14 +780,14 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           )}
         </div>
 
-        {/* grid */}
+        {}
         {loading ? (
           <div className="flex justify-center py-32">
             <Loader2 className="animate-spin text-primary/30" size={36} />
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-            {/* botón añadir */}
+            {}
             <motion.button
               whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
               onClick={() => setIsModalOpen(true)}
@@ -835,7 +827,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         )}
       </main>
 
-      {/* FAB móvil */}
+      {}
       <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
         <Link
           href="/personal/salud/ingredientes"
@@ -852,7 +844,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         </motion.button>
       </div>
 
-      {/* modal nueva receta */}
+      {}
       <AnimatePresence>
         {isModalOpen && (
           <ModalAddReceta
@@ -861,9 +853,6 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           />
         )}
       </AnimatePresence>
-
-
-
 
     </div>
   );

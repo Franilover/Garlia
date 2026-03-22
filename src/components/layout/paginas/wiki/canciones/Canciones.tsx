@@ -12,10 +12,6 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { SmartImage } from "@/components/display/SmartImage";
 import EntidadPageBase from "@/components/templates/GaleriaBase";
 
-// ============================================================================
-// CONSTANTES
-// ============================================================================
-
 const ESTADOS = ["BORRADOR", "EN PROCESO", "TERMINADA"];
 const IDIOMAS_DISPONIBLES = ["Español", "Inglés", "Japonés"];
 const TEMAS_DISPONIBLES = [
@@ -49,10 +45,6 @@ const getEstadoColor = (estado: string) => {
   };
   return colores[estado] || colores["BORRADOR"];
 };
-
-// ============================================================================
-// CANCION CARD
-// ============================================================================
 
 const CancionCard = ({
   cancion,
@@ -135,7 +127,7 @@ const CancionCard = ({
         </motion.div>
       </Link>
 
-      {/* Botón editar — aparece en hover, abre el modal sin navegar */}
+      {}
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick(); }}
         className="absolute top-4 right-4 z-50 bg-white-custom/95 text-primary p-3 rounded-full shadow-2xl border-[length:var(--border-width)] border-primary/20 hover:shadow-[0_0_20px_rgba(107,94,112,0.3)] transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm"
@@ -145,10 +137,6 @@ const CancionCard = ({
     </div>
   );
 };
-
-// ============================================================================
-// MODAL DE CANCION (editar + crear)
-// ============================================================================
 
 const CancionModal = ({
   selected,
@@ -255,7 +243,7 @@ const CancionModal = ({
             className="relative bg-white-custom w-full max-w-3xl rounded-[var(--radius-card)] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             <div className="p-8 sm:p-12 overflow-y-auto">
-              {/* HEADER */}
+              {}
               <div className="flex justify-between items-center mb-10">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-primary rounded-[var(--radius-btn)] shadow-lg shadow-primary/20" style={{ color: "var(--btn-text)" }}>
@@ -274,7 +262,7 @@ const CancionModal = ({
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-8">
-                {/* TITULO + PERSONAJE */}
+                {}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Título</label>
@@ -299,7 +287,7 @@ const CancionModal = ({
                   </div>
                 </div>
 
-                {/* CANTANTE + COMPOSITOR + IDIOMA */}
+                {}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {(["cantante", "compositor"] as const).map((field) => (
                     <div key={field} className="space-y-2">
@@ -323,7 +311,7 @@ const CancionModal = ({
                   </div>
                 </div>
 
-                {/* TEMA + EMOCION */}
+                {}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Tema / Motivo</label>
@@ -349,7 +337,7 @@ const CancionModal = ({
                   </div>
                 </div>
 
-                {/* ESTADO + VISIBILIDAD */}
+                {}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-primary/40 ml-4 tracking-widest">Estado</label>
@@ -391,7 +379,7 @@ const CancionModal = ({
                   )}
                 </div>
 
-                {/* ACCIONES */}
+                {}
                 <div className="flex flex-col sm:flex-row gap-4 pt-6">
                   <button
                     type="submit" disabled={isProcessing}
@@ -420,7 +408,6 @@ const CancionModal = ({
     </AnimatePresence>
   );
 };
-
 
 export default function CancionesPage() {
   return (

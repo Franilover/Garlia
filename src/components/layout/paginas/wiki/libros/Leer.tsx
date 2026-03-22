@@ -33,7 +33,6 @@ type Segment =
   | { type: "use"; word: string; itemId: string; targetSuccess: string; targetFail?: string }
   | { type: "section"; id: string; label?: string };
 
-// ─── AUTOSAVE & LOCAL BACKUP ──────────────────────────────────────────────────
 type SaveStatus = "saved" | "saving" | "pending" | "offline" | "error";
 
 function getLocalKey(capId: string) { return `cap_draft_${capId}`; }
@@ -73,7 +72,6 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
   );
 }
 
-// ─── PARSER DE SECCIONES ─────────────────────────────────────────────────────
 type SectionMap = Record<string, Segment[]>;
 
 function parseSections(segs: Segment[]): SectionMap {

@@ -37,15 +37,14 @@ const DEXIE_TABLES = new Set([
   "tareas", "eventos", "recetas", "ingredientes",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
   "compras", "notas", "rutinas", "ejercicios_rutina",
-  "secciones_cancion",   // ← LyricStudio offline
-  "capitulos",           // ← ChapterStudio offline
+  "secciones_cancion",   
+  "capitulos",           
 ]);
 
-// Tablas que soportan escritura offline (encolado para sync posterior)
 const OFFLINE_WRITABLE = new Set([
   "notas", "tareas", "eventos", "rutinas", "ejercicios_rutina",
-  "secciones_cancion",   // ← LyricStudio offline
-  "capitulos",           // ← ChapterStudio offline
+  "secciones_cancion",   
+  "capitulos",           
 ]);
 
 interface UseSupabaseOptions {
@@ -60,7 +59,7 @@ async function readFromDexie<T>(tabla: string): Promise<T[]> {
     if (!db || !DEXIE_TABLES.has(tabla)) return [];
     const table = (db as any)[tabla];
     if (!table) return [];
-    // Filtra registros marcados como eliminados
+    
     const rows = (await table.toArray()) as any[];
     return rows.filter((r: any) => !r.deleted) as T[];
   } catch {
@@ -98,19 +97,19 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     setError(null);
 
-    // ── PASO 1: mostrar Dexie INMEDIATAMENTE (sin spinner) ───────────────────
-    // Así aunque la red tarde, el usuario ve datos al instante.
+    
+    
     const localData = await readFromDexie<T>(tabla);
     const hasLocalData = localData.length > 0;
 
     if (hasLocalData && isMounted.current) {
       setData(localData);
-      setLoading(false); // quitar spinner — ya hay algo que mostrar
+      setLoading(false); 
     } else {
-      setLoading(true);  // solo mostrar spinner si no hay nada local
+      setLoading(true);  
     }
 
-    // ── PASO 2: sin red → quedarse con Dexie ────────────────────────────────
+    
     if (!navigator.onLine) {
       if (isMounted.current) {
         if (!hasLocalData) setLoading(false);
@@ -121,8 +120,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     setIsOffline(false);
 
-    // ── PASO 3: fetch Supabase con timeout de 5s ────────────────────────────
-    // Si tarda más, usa Dexie sin bloquear.
+    
+    
     try {
       const currentOptions = JSON.parse(optionsKey);
 
@@ -144,11 +143,11 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
       const result = await Promise.race([fetchPromise(), timeoutPromise]);
 
-      // Timeout alcanzado — quedarse con datos locales sin mostrar error
+      
       if (result === "timeout") {
         if (isMounted.current) {
           if (!hasLocalData) setLoading(false);
-          setIsOffline(true); // señalar que estamos en modo degradado
+          setIsOffline(true); 
         }
         return;
       }
@@ -167,7 +166,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         setLoading(false);
       }
     } catch (err: any) {
-      // Error de red — ya tenemos datos locales mostrados, no hacer nada brusco
+      
       if (isMounted.current) {
         if (!hasLocalData) {
           const isNetworkError =
@@ -188,10 +187,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla, updateCache, optionsKey]);
 
-  // ── addRow: guarda offline si no hay red ────────────────────────────────────
+  
   const addRow = useCallback(async (newData: any) => {
     if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
-      // Guardar localmente y encolar para sync
+      
       const row = { ...newData, status: "pending" };
       await writeToDexie(tabla, [row]);
       await enqueueOperation(tabla, "upsert", newData.id, row);
@@ -209,7 +208,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       }
       return { data: created, error: res?.error || null };
     } catch (err: any) {
-      // Falló la red aunque onLine=true — guardar offline igual
+      
       if (OFFLINE_WRITABLE.has(tabla)) {
         const row = { ...newData, status: "pending" };
         await writeToDexie(tabla, [row]);
@@ -221,7 +220,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
 
-  // ── updateRow: guarda offline si no hay red ──────────────────────────────────
+  
   const updateRow = useCallback(async (id: string | number, updates: any) => {
     if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
       const existing = db ? await (db as any)[tabla]?.get(id) : null;
@@ -254,10 +253,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
 
-  // ── deleteRow: marca como eliminado offline ──────────────────────────────────
+  
   const deleteRow = useCallback(async (id: string | number) => {
     if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
-      // Marcar como eliminado localmente, sincronizar después
+      
       const existing = db ? await (db as any)[tabla]?.get(id) : null;
       if (existing) {
         await writeToDexie(tabla, [{ ...existing, deleted: true, status: "pending" }]);

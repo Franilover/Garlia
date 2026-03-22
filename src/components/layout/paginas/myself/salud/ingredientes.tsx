@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-
 const CATEGORIAS = [
   { label: "Proteínas",     emoji: "🥩" },
   { label: "Carbohidratos", emoji: "🍞" },
@@ -91,7 +90,6 @@ export const IngredientesPage = () => {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
   const [qtyOpen, setQtyOpen] = useState<Record<string, boolean>>({});
-
 
   useEffect(() => {
     if (localItems === null && ingredientes?.length) {

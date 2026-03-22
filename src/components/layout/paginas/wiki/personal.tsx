@@ -6,8 +6,6 @@ import { User, Sword, Package, Star, ShieldCheck, X, Calendar, Tag, Loader2, Use
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/api/client/supabase";
 
-// ─── TIPOS ────────────────────────────────────────────────────────────────────
-
 interface PerfilResumen {
   id: string;
   username: string;
@@ -26,7 +24,7 @@ interface Perfil {
   titulo?: string;
   personaje_favorito_id?: string;
   mascota_id?: string;
-  // joined data
+  
   personaje_favorito?: { id: string; nombre: string; img_url?: string } | null;
   mascota?: { id: string; nombre: string; imagen_url?: string } | null;
 }
@@ -58,7 +56,6 @@ interface ItemInventario {
   };
 }
 
-// Prop opcional — si el padre lo pasa bien úsalo, si no lo fetcheamos aquí
 interface PersonalProps {
   datos?: {
     username?: string;
@@ -68,8 +65,6 @@ interface PersonalProps {
     inventario_usuario?: ItemInventario[];
   };
 }
-
-// ─── MODAL FLOTANTE ───────────────────────────────────────────────────────────
 
 type EntidadModal =
   | { tipo: "item_inv"; data: ItemInventario }
@@ -138,7 +133,7 @@ function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onClose: ()
           }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Imagen / placeholder */}
+          {}
           <div className="relative h-40 flex items-center justify-center"
             style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
             {imagen
@@ -224,8 +219,6 @@ function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onClose: ()
   );
 }
 
-// ─── CARD DE ENTIDAD ──────────────────────────────────────────────────────────
-
 function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
   imagen?: string; nombre: string; sub: string;
   icono: React.ReactNode; onClick: () => void;
@@ -279,8 +272,6 @@ function EmptyTab({ label }: { label: string }) {
   );
 }
 
-// ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
-
 export default function Personal({ datos: datosProp }: PersonalProps) {
   const [tab, setTab] = useState<"items" | "criaturas" | "personajes">("items");
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
@@ -304,7 +295,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     async function cargarTodo() {
       setCargando(true);
       try {
-        // ── 1. Usuario actual ──────────────────────────────────────────────
+        
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
           console.warn("[Personal] Sin sesión activa:", userError?.message);
@@ -313,7 +304,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         }
         userIdRef.current = user.id;
 
-        // ── 2. Perfil desde tabla `perfiles` ───────────────────────────────
+        
         const { data: perfilData, error: perfilError } = await supabase
           .from("perfiles")
           .select("username, status, rol, avatar_url, descripcion, titulo, personaje_favorito_id, mascota_id, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)")
@@ -334,8 +325,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           mascota:               (perfilData as any)?.mascota ?? null,
         });
 
-        // ── 3. Inventario ──────────────────────────────────────────────────
-        // Solo fetchear si el padre no lo pasó
+        
+        
         if (!datosProp?.inventario_usuario?.length) {
           const { data: invData, error: invError } = await supabase
             .from("inventario_usuario")
@@ -345,7 +336,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           if (invData)  setInventario(invData as unknown as ItemInventario[]);
         }
 
-        // ── 4. Descubrimientos desde las 3 tablas ─────────────────────────
+        
         const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
           supabase
             .from("descubrimientos_items")
@@ -399,7 +390,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
         setDescubrimientos(planos);
 
-        // ── 5. Otros perfiles (excluir el propio) ─────────────────────────
+        
         const { data: perfilesData } = await supabase
           .from("perfiles")
           .select("id, username, status, avatar_url")
@@ -407,7 +398,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           .order("username");
 
         if (perfilesData && perfilesData.length > 0) {
-          // Contar descubrimientos de cada perfil
+          
           const counts = await Promise.all(perfilesData.map(async (p: any) => {
             const [i, c, pe] = await Promise.all([
               supabase.from("descubrimientos_items").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
@@ -431,13 +422,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     }
 
     cargarTodo();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); 
 
   const misPersonajes = descubrimientos.filter(d => d.tipo === "personaje");
   const misCriaturas  = descubrimientos.filter(d => d.tipo === "criatura");
   const misItemsDesc  = descubrimientos.filter(d => d.tipo === "item");
 
-  // Personajes desbloqueados que tienen imagen — candidatos para avatar
+  
   const personajesConImagen = misPersonajes.filter(d => d.imagen_url);
 
   const handleSelectAvatar = async (imgUrl: string) => {
@@ -513,7 +504,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         <ModalDetalle entidad={modalEntidad} onClose={() => setModalEntidad(null)} />
       )}
 
-      {/* ── AVATAR PICKER MODAL ── */}
+      {}
       <AnimatePresence>
         {showAvatarPicker && (
           <>
@@ -539,7 +530,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 flexDirection: "column",
               }}
             >
-              {/* Header */}
+              {}
               <div className="flex items-center justify-between px-5 py-4 shrink-0"
                 style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                 <div>
@@ -558,7 +549,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </button>
               </div>
 
-              {/* Grid de personajes */}
+              {}
               <div className="overflow-y-auto flex-1 p-4">
                 {personajesConImagen.length === 0 ? (
                   <div className="py-12 text-center">
@@ -569,7 +560,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-3">
-                    {/* Opción quitar avatar */}
+                    {}
                     <button
                       onClick={() => handleSelectAvatar("")}
                       className="flex flex-col items-center gap-1.5 p-2 transition-all"
@@ -644,7 +635,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         )}
       </AnimatePresence>
 
-      {/* ── PERSONAJE FAVORITO PICKER ── */}
+      {}
       <AnimatePresence>
         {showPersonajePicker && (
           <>
@@ -722,7 +713,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         )}
       </AnimatePresence>
 
-      {/* ── MASCOTA PICKER ── */}
+      {}
       <AnimatePresence>
         {showMascotaPicker && (
           <>
@@ -800,14 +791,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         )}
       </AnimatePresence>
 
+      {}
 
-      {/* ── LAYOUT CON SIDEBAR ── */}
-
-      {/* ── LAYOUT PRINCIPAL ── */}
-      {/* Desktop: [exploradores | ficha perfil | colección full-width] */}
+      {}
+      {}
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pb-20">
 
-        {/* ── Separador ornamental ── */}
+        {}
         <div className="flex items-center gap-4 py-5 px-2">
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
           <span className="font-serif italic text-[10px] select-none"
@@ -817,15 +807,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         </div>
 
-        {/*
-          LAYOUT MOBILE:  ficha → [descripcion + fav + mascota en 2 cols] → tabs → colección
-          LAYOUT DESKTOP: [ficha | descripcion+favoritos] | [colección + sidebar]
-        */}
+        {}
 
-        {/* ── Fila superior: ficha izq + bloque derecho ── */}
+        {}
         <div className="flex flex-col md:flex-row gap-5 mb-6">
 
-          {/* COL 2 — ficha del perfil */}
+          {}
           <div className="w-full md:w-56 xl:w-64 shrink-0 md:sticky md:top-16 self-start animate-in fade-in duration-500">
             <div className="mx-4 md:mx-0 relative"
               style={{
@@ -905,11 +892,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             </div>
           </div>
 
-
-          {/* Bloque derecho: un solo card con descripción + personaje + mascota */}
+          {}
           <div className="flex-1 min-w-0 flex flex-col gap-4 mx-4 md:mx-0">
 
-            {/* Card unificado: Sobre mí + Personaje + Mascota */}
+            {}
             <div style={{
               background: "var(--white-custom)",
               borderRadius: "var(--radius-card)",
@@ -917,7 +903,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               boxShadow: "var(--shadow-card)",
             }}>
 
-              {/* ── Sobre mí ── */}
+              {}
               <div className="flex items-center justify-between px-5 pt-4 pb-2">
                 <p className="font-serif italic text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -973,14 +959,14 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 )}
               </div>
 
-              {/* Divisor entre descripción y favoritos */}
+              {}
               <div className="mx-5 h-px" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
 
-              {/* ── Personaje + Mascota — 2 columnas pegadas a descripción ── */}
+              {}
               <div className="grid grid-cols-2 divide-x"
                 style={{ borderTop: "none", "--tw-divide-opacity": 1 } as any}>
 
-                {/* Personaje favorito */}
+                {}
                 <div className="px-4 py-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-serif italic text-[8px]"
@@ -1024,7 +1010,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </div>
                 </div>
 
-                {/* Mascota — separada por línea vertical */}
+                {}
                 <div className="px-4 py-3"
                   style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                   <div className="flex items-center justify-between mb-2">
@@ -1072,8 +1058,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               </div>
             </div>
 
-            {/* Exploradores en mobile */}
-            {/* Exploradores en mobile — chips horizontales */}
+            {}
+            {}
             {otrosPerfiles.length > 0 && (
               <div className="lg:hidden">
                 <p className="font-serif italic text-[9px] mb-2 flex items-center gap-1.5"
@@ -1106,7 +1092,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           </div>
         </div>
 
-        {/* Tabs mobile — JUSTO antes de la colección */}
+        {}
         <div className="md:hidden mb-4 mx-4">
           <div className="flex gap-1"
             style={{
@@ -1130,13 +1116,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           </div>
         </div>
 
-        {/* ── ZONA INFERIOR: colección + sidebar derecho ── */}
+        {}
         <div className="flex gap-6 items-start">
 
-          {/* COL 3 — colección expandida */}
+          {}
           <div className="flex-1 min-w-0 pt-2 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
-            {/* Tabs desktop */}
+            {}
             <div className="hidden md:flex items-center gap-2 mb-5">
               {tabs.map(t => (
                 <button key={t.id} onClick={() => setTab(t.id)}
@@ -1154,7 +1140,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               ))}
             </div>
 
-            {/* Grid — 2 cols tablet, 3 cols desktop */}
+            {}
             <AnimatePresence mode="wait">
               <motion.div key={tab}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
@@ -1201,7 +1187,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             </AnimatePresence>
           </div>
 
-          {/* COL 3 — otros exploradores derecha (solo lg+) */}
+          {}
           {otrosPerfiles.length > 0 && (
             <aside className="hidden lg:flex flex-col gap-2 w-44 xl:w-52 shrink-0 sticky top-24 pt-4">
               <p className="font-serif italic text-[9px] mb-1 px-1 flex items-center gap-1.5 opacity-60"
@@ -1238,7 +1224,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               ))}
             </aside>
           )}
-
 
         </div>
 

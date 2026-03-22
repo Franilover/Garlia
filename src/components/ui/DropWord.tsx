@@ -1,7 +1,4 @@
 "use client";
-// components/shared/ui/DropWord.tsx
-// Palabra interactiva en el lector que otorga un item, criatura o personaje al usuario.
-// Sintaxis en el texto: [[drop|palabra|tipo|id|Nombre Entidad]]
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,13 +20,13 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
   const [open, setOpen] = useState(false);
 
   const handleClick = async () => {
-    // Si ya se obtuvo o ya lo tenía, no hacemos nada más que mostrar el éxito si se desea
+    
     if (state === "success" || state === "already") return;
     
     setOpen(true);
     setState("loading");
 
-    // 1. CONSULTA DIRECTA A AUTH (Ignorando la tabla perfiles para evitar errores de columnas)
+    
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -39,7 +36,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
 
     const userId = user.id;
 
-    // Tabla y columna según tipo
+    
     const tablaMap = {
       item:      { tabla: "descubrimientos_items",     col: "item_id" },
       criatura:  { tabla: "descubrimientos_criaturas", col: "criatura_id" },
@@ -48,7 +45,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
     const { tabla, col } = tablaMap[tipo];
 
     try {
-      // 2. Verificar si ya existe
+      
       const { data: existing, error: checkError } = await supabase
         .from(tabla)
         .select("id")
@@ -59,7 +56,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
       if (checkError) throw checkError;
       if (existing) { setState("already"); return; }
 
-      // 3. Insertar
+      
       const { error: insertError } = await supabase
         .from(tabla)
         .insert({ perfil_id: userId, [col]: entidadId });

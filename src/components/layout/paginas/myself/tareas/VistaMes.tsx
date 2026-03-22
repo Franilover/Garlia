@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Bookmark, BookOpen, Plus, Loader2 } from "lucide-react";
 import { MESES } from "./types";
 
-// ─── BADGE EVENTO ─────────────────────────────────────────────────────────────
 const EventoBadge = ({ item, compact = false }: { item: any; compact?: boolean }) => {
   const colores: Record<string, string> = {
     "Plan":              "bg-primary/10 text-primary border-primary/15",
@@ -31,7 +30,6 @@ const EventoBadge = ({ item, compact = false }: { item: any; compact?: boolean }
   );
 };
 
-// ─── VISTA MES ────────────────────────────────────────────────────────────────
 interface Props {
   eventos: any[];
   capitulosRaw: any[];

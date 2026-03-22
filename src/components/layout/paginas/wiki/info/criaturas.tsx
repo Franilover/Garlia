@@ -9,14 +9,14 @@ export default function CriaturasGrid() {
     <EntidadPageBase
       tabla="criaturas"
       titulo="Bestiario"
-      // Añadimos 'conFoto' al final de la lista
+      
       configFiltros={['habitat', 'pensamiento', 'alma', 'conFoto']}
-      // Etiquetas dinámicas para el modal
+      
       getCustomTags={(c) => [
         c?.habitat,
         c?.alma ? `Alma ${c.alma}` : null
       ].filter(Boolean)}
-      // Pasamos la estructura para cuando crees una nueva criatura
+      
       plantillaNueva={{
         nombre: "",
         descripcion: "",

@@ -12,9 +12,7 @@ interface GetAllOptions {
 }
 
 export const criaturasQueries = {
-  /**
-   * Obtener todas las criaturas
-   */
+  
   getAll: async (opciones: GetAllOptions = {}) => {
     let query = supabase
       .from('criaturas')
@@ -39,9 +37,7 @@ export const criaturasQueries = {
     return data as CriaturaConVariantes[];
   },
   
-  /**
-   * Obtener criatura por ID con sus variantes
-   */
+  
   getById: async (id: string) => {
     const { data, error } = await supabase
       .from('criaturas')
@@ -56,9 +52,7 @@ export const criaturasQueries = {
     return data as CriaturaConVariantes;
   },
 
-  /**
-   * Obtener criaturas por habitat
-   */
+  
   getByHabitat: async (habitat: string) => {
     const { data, error } = await supabase
       .from('criaturas')
@@ -73,9 +67,7 @@ export const criaturasQueries = {
     return data as CriaturaConVariantes[];
   },
 
-  /**
-   * Obtener criaturas por tipo de alma
-   */
+  
   getByAlma: async (alma: string) => {
     const { data, error } = await supabase
       .from('criaturas')
@@ -90,9 +82,7 @@ export const criaturasQueries = {
     return data as CriaturaConVariantes[];
   },
 
-  /**
-   * Obtener criaturas por pensamiento
-   */
+  
   getByPensamiento: async (pensamiento: string) => {
     const { data, error } = await supabase
       .from('criaturas')
@@ -107,9 +97,7 @@ export const criaturasQueries = {
     return data as CriaturaConVariantes[];
   },
 
-  /**
-   * Crear nueva criatura
-   */
+  
   create: async (criatura: Omit<Criatura, 'id' | 'created_at' | 'variantes'>) => {
     const { data, error } = await supabase
       .from('criaturas')
@@ -121,9 +109,7 @@ export const criaturasQueries = {
     return data as Criatura;
   },
 
-  /**
-   * Actualizar criatura
-   */
+  
   update: async (id: string, updates: Partial<Omit<Criatura, 'id' | 'created_at' | 'variantes'>>) => {
     const { data, error } = await supabase
       .from('criaturas')
@@ -136,9 +122,7 @@ export const criaturasQueries = {
     return data as Criatura;
   },
 
-  /**
-   * Eliminar criatura
-   */
+  
   delete: async (id: string) => {
     const { error } = await supabase
       .from('criaturas')
@@ -149,9 +133,7 @@ export const criaturasQueries = {
     return true;
   },
 
-  /**
-   * Buscar criaturas por nombre
-   */
+  
   search: async (query: string) => {
     const { data, error } = await supabase
       .from('criaturas')
@@ -166,13 +148,9 @@ export const criaturasQueries = {
     return data as CriaturaConVariantes[];
   },
 
-  /**
-   * QUERIES PARA VARIANTES
-   */
+  
   variantes: {
-    /**
-     * Obtener variantes de una criatura
-     */
+    
     getByCriaturaId: async (criaturaId: string) => {
       const { data, error } = await supabase
         .from('criatura_variantes')
@@ -184,9 +162,7 @@ export const criaturasQueries = {
       return data as CriaturaVariante[];
     },
 
-    /**
-     * Obtener variante por ID
-     */
+    
     getById: async (id: string) => {
       const { data, error } = await supabase
         .from('criatura_variantes')
@@ -198,9 +174,7 @@ export const criaturasQueries = {
       return data as CriaturaVariante;
     },
 
-    /**
-     * Crear variante
-     */
+    
     create: async (variante: Omit<CriaturaVariante, 'id' | 'created_at'>) => {
       const { data, error } = await supabase
         .from('criatura_variantes')
@@ -212,9 +186,7 @@ export const criaturasQueries = {
       return data as CriaturaVariante;
     },
 
-    /**
-     * Actualizar variante
-     */
+    
     update: async (id: string, updates: Partial<Omit<CriaturaVariante, 'id' | 'created_at' | 'criatura_id'>>) => {
       const { data, error } = await supabase
         .from('criatura_variantes')
@@ -227,9 +199,7 @@ export const criaturasQueries = {
       return data as CriaturaVariante;
     },
 
-    /**
-     * Eliminar variante
-     */
+    
     delete: async (id: string) => {
       const { error } = await supabase
         .from('criatura_variantes')
@@ -240,9 +210,7 @@ export const criaturasQueries = {
       return true;
     },
 
-    /**
-     * Obtener variantes por tipo
-     */
+    
     getByTipo: async (tipo: string) => {
       const { data, error } = await supabase
         .from('criatura_variantes')

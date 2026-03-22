@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/api/client/supabase';
 
-
 interface Seccion {
   id: string; 
   cancion_id: string; 
@@ -30,10 +29,7 @@ interface Cancion {
 }
 
 export const cancionesQueries = {
-  /**
-   * Obtiene todas las canciones.
-   * @param options - Permite pasar { isAdmin: true } para saltar el filtro de visibilidad.
-   */
+  
   getAll: async (options?: { isAdmin?: boolean }) => {
     let query = supabase
       .from('canciones')
@@ -55,9 +51,7 @@ export const cancionesQueries = {
     return data as Cancion[];
   },
 
-  /**
-   * Obtiene una canción completa con sus secciones ordenadas
-   */
+  
   getById: async (id: string) => {
     const { data, error } = await supabase
       .from('canciones')
@@ -78,9 +72,7 @@ export const cancionesQueries = {
     return data as Cancion;
   },
 
-  /**
-   * Crear nueva canción
-   */
+  
   create: async (cancion: Omit<Cancion, 'id' | 'created_at' | 'updated_at' | 'secciones'>) => {
     const { data, error } = await supabase
       .from('canciones')
@@ -92,9 +84,7 @@ export const cancionesQueries = {
     return data as Cancion;
   },
 
-  /**
-   * Actualiza los datos base de la canción
-   */
+  
   update: async (id: string, datos: Partial<Omit<Cancion, 'id' | 'created_at' | 'secciones'>>) => {
     const { data, error } = await supabase
       .from('canciones')
@@ -110,9 +100,7 @@ export const cancionesQueries = {
     return data as Cancion;
   },
 
-  /**
-   * Eliminar canción
-   */
+  
   delete: async (id: string) => {
     const { error } = await supabase
       .from('canciones')
@@ -123,9 +111,7 @@ export const cancionesQueries = {
     return true;
   },
 
-  /**
-   * Filtrar por personaje
-   */
+  
   getByPersonaje: async (personaje: string, options?: { isAdmin?: boolean }) => {
     let query = supabase
       .from('canciones')
@@ -144,9 +130,7 @@ export const cancionesQueries = {
     return data as Cancion[];
   },
 
-  /**
-   * QUERIES PARA SECCIONES (Estrofas/Coros)
-   */
+  
   secciones: {
     getByCancionId: async (cancionId: string) => {
       const { data, error } = await supabase

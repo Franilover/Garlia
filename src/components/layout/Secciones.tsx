@@ -4,7 +4,6 @@ import React, { useState, useCallback, useRef, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
-// ─── TIPOS ────────────────────────────────────────────────────────────────────
 export interface Panel {
   id: string;
   label: string;
@@ -22,7 +21,6 @@ export interface PanelSliderProps {
   storageKey?: string;
 }
 
-// ─── HELPERS DE ESTILO ────────────────────────────────────────────────────────
 const navStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
   borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -88,7 +86,6 @@ const arrowStyle: React.CSSProperties = {
   justifyContent: "center",
 };
 
-// ─── HELPER: leer índice guardado ─────────────────────────────────────────────
 function readStoredIndex(key: string | undefined, fallback: number, max: number): number {
   if (!key || typeof window === "undefined") return fallback;
   try {
@@ -101,7 +98,6 @@ function readStoredIndex(key: string | undefined, fallback: number, max: number)
   }
 }
 
-// ─── COMPONENTE ───────────────────────────────────────────────────────────────
 export function PanelSlider({
   panels,
   title,
@@ -127,7 +123,7 @@ export function PanelSlider({
     }
   }, [active, panels.length, storageKey]);
 
-  // ── TRACKPAD ──────────────────────────────────────────────────────────────
+  
   const wheelCooldown = useRef(false);
   const handleWheel = (e: React.WheelEvent) => {
     if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
@@ -139,7 +135,7 @@ export function PanelSlider({
     else              goTo(active - 1);
   };
 
-  // ── SWIPE TOUCH ───────────────────────────────────────────────────────────
+  
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
@@ -167,14 +163,14 @@ export function PanelSlider({
   };
 
   return (
-    // FIX: usar svh en vez de dvh — svh es la altura mínima estable (con browser chrome visible)
-    // dvh cambia cuando la barra del browser se oculta/muestra al hacer scroll, empujando el footer
+    
+    
     <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100svh-64px)] md:h-svh">
 
-      {/* ── NAV ── */}
+      {}
       <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 32px", position: "relative", zIndex: 50 }}>
 
-        {/* Pills */}
+        {}
         <div style={pillsWrapperStyle}>
           {panels.map((p, i) => {
             const Icon = p.icon;
@@ -198,7 +194,7 @@ export function PanelSlider({
           })}
         </div>
 
-        {/* Flechas + dots */}
+        {}
         <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "absolute", right: "32px", top: "50%", transform: "translateY(-50%)" }}>
           {showArrows && (
             <button
@@ -257,7 +253,7 @@ export function PanelSlider({
         </div>
       </nav>
 
-      {/* ── CONTENIDO ── */}
+      {}
       <div
         style={{ flex: 1, position: "relative", overflow: "hidden" }}
         onTouchStart={handleTouchStart}

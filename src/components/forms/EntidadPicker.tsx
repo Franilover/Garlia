@@ -39,7 +39,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
       .then(d => {
         if (!d.ok) throw new Error(d.error);
         
-        // Mapeo de Items (usan imagen_url)
+        
         const items = (d.data?.items ?? []).map((x: any) => ({
           id: x.id, 
           nombre: x.nombre, 
@@ -49,23 +49,23 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
           descripcion: x.descripcion
         }));
         
-        // Mapeo de Criaturas (usan img_url en DB)
+        
         const criaturas = (d.data?.criaturas ?? []).map((x: any) => ({
           id: x.id, 
           nombre: x.nombre, 
           tipo: "criatura" as const,
           subtipo: x.habitat || "Criatura",
-          imagen_url: x.img_url || x.imagen_url, // 🔥 Fallback para ambos nombres
+          imagen_url: x.img_url || x.imagen_url, 
           descripcion: x.descripcion || x.sobre
         }));
 
-        // Mapeo de Personajes (usan img_url en DB)
+        
         const personajes = (d.data?.personajes ?? []).map((x: any) => ({
           id: x.id, 
           nombre: x.nombre, 
           tipo: "personaje" as const,
           subtipo: x.ocupacion || (x.visible ? "Poblador" : "Misterioso"),
-          imagen_url: x.img_url || x.imagen_url, // 🔥 Fallback para ambos nombres
+          imagen_url: x.img_url || x.imagen_url, 
           descripcion: x.descripcion || x.sobre
         }));
 
@@ -105,7 +105,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
             className="fixed z-[73] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[600px] bg-white rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             style={{ maxHeight: "85vh" }}
           >
-            {/* Header */}
+            {}
             <div className="flex items-center justify-between px-6 py-4 border-b border-primary/8 shrink-0">
               <div>
                 <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight">Easter Egg — Drop</h3>
@@ -115,7 +115,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
             </div>
 
             <div className="flex flex-1 overflow-hidden min-h-0">
-              {/* Panel izquierdo: Lista */}
+              {}
               <div className="w-1/2 border-r border-primary/8 flex flex-col">
                 <div className="flex border-b border-primary/8 shrink-0">
                   {(["item", "criatura", "personaje"] as const).map(t => (
@@ -162,7 +162,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
                 </div>
               </div>
 
-              {/* Panel derecho: Configuración */}
+              {}
               <div className="w-1/2 flex flex-col overflow-y-auto bg-primary/[0.01]">
                 {selected ? (
                   <div className="p-5 flex flex-col gap-5 flex-1">
@@ -194,7 +194,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
               </div>
             </div>
 
-            {/* Footer */}
+            {}
             <div className="px-6 py-4 border-t border-primary/8 shrink-0 flex items-center justify-between bg-white">
               <button onClick={onClose} className="text-[10px] font-black uppercase text-primary/40 hover:text-primary/60 transition-colors">Cancelar</button>
               <button onClick={handleInsert} disabled={!selected || !palabra.trim()} className="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase bg-primary text-white disabled:opacity-30 shadow-lg shadow-primary/20 transition-all active:scale-95">Insertar Drop</button>

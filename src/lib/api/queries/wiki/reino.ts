@@ -18,7 +18,7 @@ export const reinosQueries = {
   
   
 
-  /** Obtener todos los reinos ordenados */
+  
   getAll: async () => {
     const { data, error } = await supabase
       .from('reinos')
@@ -29,7 +29,7 @@ export const reinosQueries = {
     return data as Reino[];
   },
 
-  /** Obtener un reino por ID */
+  
   getById: async (id: string) => {
     const { data, error } = await supabase
       .from('reinos')
@@ -41,7 +41,7 @@ export const reinosQueries = {
     return data as Reino;
   },
 
-  /** Buscar reinos por nombre */
+  
   search: async (query: string) => {
     const { data, error } = await supabase
       .from('reinos')
@@ -57,7 +57,7 @@ export const reinosQueries = {
   
   
 
-  /** Crear nuevo reino */
+  
   create: async (reino: Omit<Reino, 'id'>) => {
     const { data, error } = await supabase
       .from('reinos')
@@ -73,7 +73,7 @@ export const reinosQueries = {
   
   
 
-  /** Actualizar un reino existente */
+  
   update: async (id: string, updates: Partial<Omit<Reino, 'id'>>) => {
     const { data, error } = await supabase
       .from('reinos')
@@ -90,7 +90,7 @@ export const reinosQueries = {
   
   
 
-  /** Eliminar un reino */
+  
   delete: async (id: string) => {
     const { error } = await supabase
       .from('reinos')

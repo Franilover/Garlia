@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // --- ESTILOS ---
+  
   const labelStyle = "block text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 mb-2 ml-1";
 
   const handleAuth = async (e) => {
@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     try {
       if (isRegistering) {
-        // 1. Registro en Supabase Auth
+        
         const { data, error } = await supabase.auth.signUp({ 
           email, 
           password,
@@ -35,8 +35,8 @@ export default function LoginPage() {
 
         if (error) throw error;
 
-        // 2. Creación del perfil en la tabla 'perfiles'
-        // Cambiado 'nombre' por 'username' para coincidir con tu captura de pantalla
+        
+        
         if (data.user) {
           const { error: profileError } = await supabase
             .from("perfiles")
@@ -44,15 +44,15 @@ export default function LoginPage() {
               id: data.user.id, 
               username: username, 
               email: email,
-              status: "Explorador Novato", // Valor por defecto según tu imagen
-              rol: "user" // O el rol por defecto que prefieras
+              status: "Explorador Novato", 
+              rol: "user" 
             });
           
           if (profileError) throw profileError;
           setMensaje("¡Revisa tu correo para confirmar tu cuenta!");
         }
       } else {
-        // Inicio de sesión
+        
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         

@@ -56,7 +56,7 @@ export function TagPanel({ tag, ensayos, onClose, onSelectEnsayo, onTagClick }: 
               boxShadow: "-8px 0 32px color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            {/* Header */}
+            {}
             <div
               className="flex items-center justify-between px-5 py-4 shrink-0"
               style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
@@ -101,12 +101,12 @@ export function TagPanel({ tag, ensayos, onClose, onSelectEnsayo, onTagClick }: 
               </button>
             </div>
 
-            {/* Contenido scrolleable */}
+            {}
             <div
               className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5"
               style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 10%, transparent) transparent" }}
             >
-              {/* Grafo */}
+              {}
               <div>
                 <p className="font-mono text-[9px] uppercase tracking-[0.25em] mb-3"
                   style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
@@ -123,7 +123,7 @@ export function TagPanel({ tag, ensayos, onClose, onSelectEnsayo, onTagClick }: 
                 </div>
               </div>
 
-              {/* Tags relacionados */}
+              {}
               {relatedTags.length > 0 && (
                 <div>
                   <p className="font-mono text-[9px] uppercase tracking-[0.25em] mb-2.5"
@@ -169,7 +169,7 @@ export function TagPanel({ tag, ensayos, onClose, onSelectEnsayo, onTagClick }: 
                 </div>
               )}
 
-              {/* Lista de ensayos */}
+              {}
               <div>
                 <p className="font-mono text-[9px] uppercase tracking-[0.25em] mb-2.5"
                   style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}

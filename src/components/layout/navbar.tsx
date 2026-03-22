@@ -50,9 +50,7 @@ const Navbar = () => {
 
   return (
     <>
-      {/* ══════════════════════════════════════════════════════════════
-          SIDEBAR — desktop
-      ══════════════════════════════════════════════════════════════ */}
+      {}
       <aside
         onMouseEnter={() => setSidebarExpanded(true)}
         onMouseLeave={() => { setSidebarExpanded(false); closeAll(); }}
@@ -65,7 +63,7 @@ const Navbar = () => {
           WebkitBackdropFilter: "blur(16px)",
         }}
       >
-        {/* Logo */}
+        {}
         <Link
           href="/"
           onClick={closeAll}
@@ -93,10 +91,10 @@ const Navbar = () => {
           </AnimatePresence>
         </Link>
 
-        {/* Divider */}
+        {}
         <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "0 12px" }} />
 
-        {/* Main nav links */}
+        {}
         <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
           {mainLinks.map(({ href, label, icon: Icon, active, fillActive }) => (
             <Link
@@ -147,7 +145,7 @@ const Navbar = () => {
                   </motion.span>
                 )}
               </AnimatePresence>
-              {/* Active indicator dot (collapsed) */}
+              {}
               {active && !sidebarExpanded && (
                 <span
                   className="absolute left-[3px]"
@@ -162,7 +160,7 @@ const Navbar = () => {
             </Link>
           ))}
 
-          {/* Franilover links */}
+          {}
           {esFranilover && (
             <>
               <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "6px 4px" }} />
@@ -219,11 +217,11 @@ const Navbar = () => {
           )}
         </nav>
 
-        {/* Bottom controls */}
+        {}
         <div className="flex flex-col gap-1 px-2 pb-4 shrink-0">
           <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "4px 4px 8px" }} />
 
-          {/* Dark mode */}
+          {}
           <button
             onClick={toggle}
             className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
@@ -270,7 +268,7 @@ const Navbar = () => {
             </AnimatePresence>
           </button>
 
-          {/* Theme picker */}
+          {}
           <div className="relative">
             <button
               onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); }}
@@ -332,7 +330,7 @@ const Navbar = () => {
             </AnimatePresence>
           </div>
 
-          {/* User */}
+          {}
           {user ? (
             <div className="relative">
               <button
@@ -469,12 +467,10 @@ const Navbar = () => {
         </div>
       </aside>
 
-      {/* ══════════════════════════════════════════════════════════════
-          MÓVIL — Barra compacta
-      ══════════════════════════════════════════════════════════════ */}
+      {}
       <div className="md:hidden fixed bottom-0 left-0 w-full z-[1000]">
 
-        {/* Theme picker popup */}
+        {}
         <AnimatePresence>
           {themeMenuOpen && (
             <>
@@ -505,7 +501,7 @@ const Navbar = () => {
           )}
         </AnimatePresence>
 
-        {/* Barra */}
+        {}
         <div
           className="flex items-center px-4"
           style={{
@@ -516,10 +512,10 @@ const Navbar = () => {
             borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
-          {/* Izquierda: vacío para balancear */}
+          {}
           <div className="flex-1" />
 
-          {/* Centro: Personal + Wiki */}
+          {}
           <div
             className="flex items-center gap-1 p-1"
             style={{
@@ -547,10 +543,10 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Derecha: tema + perfil */}
+          {}
           <div className="flex-1 flex items-center justify-end gap-1">
 
-            {/* Selector de tema */}
+            {}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); }}
@@ -565,7 +561,7 @@ const Navbar = () => {
               <Palette size={16} />
             </motion.button>
 
-            {/* Perfil — abre menú si hay user, redirige a login si no */}
+            {}
             <div className="relative">
               <motion.button
                 whileTap={{ scale: 0.88 }}
@@ -584,7 +580,7 @@ const Navbar = () => {
                 <CircleUser size={16} />
               </motion.button>
 
-              {/* Mini menú de perfil */}
+              {}
               <AnimatePresence>
                 {userMenuOpen && user && (
                   <motion.div
@@ -602,12 +598,12 @@ const Navbar = () => {
                       boxShadow: "0 8px 32px color-mix(in srgb, var(--primary) 15%, transparent)",
                     }}
                   >
-                    {/* Username */}
+                    {}
                     <div className="px-4 py-3" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
                       <p className="text-[10px] font-black uppercase tracking-widest text-primary truncate">{perfil?.username}</p>
                     </div>
 
-                    {/* Link perfil */}
+                    {}
                     <Link
                       href="/wiki/personal"
                       onClick={closeAll}
@@ -618,7 +614,7 @@ const Navbar = () => {
                       <span className="text-[10px] font-black uppercase tracking-widest">Mi perfil</span>
                     </Link>
 
-                    {/* Franilover links */}
+                    {}
                     {esFranilover && (
                       <div className="p-2" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
                         <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Franilover</p>
@@ -643,7 +639,7 @@ const Navbar = () => {
                       </div>
                     )}
 
-                    {/* Logout */}
+                    {}
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2.5 px-4 py-3 transition-all"

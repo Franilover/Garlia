@@ -7,7 +7,7 @@ export const ShareButton = ({ url, titulo }) => {
   
   const handleShare = async (e) => {
     e.stopPropagation(); 
-    // Aseguramos que la URL sea absoluta
+    
     const fullUrl = typeof window !== 'undefined' 
       ? window.location.origin + url 
       : url;
@@ -22,7 +22,7 @@ export const ShareButton = ({ url, titulo }) => {
         console.log("Error compartiendo:", err);
       }
     } else {
-      // Fallback para navegadores que no soportan share nativo
+      
       try {
         await navigator.clipboard.writeText(fullUrl);
         setCopiado(true);

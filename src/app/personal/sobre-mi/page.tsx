@@ -1,4 +1,4 @@
-// app/sobre-mi/page.js
+
 import SobreMi from '@/components/layout/paginas/personal/sobre-mi';
 
 export default function Page() {

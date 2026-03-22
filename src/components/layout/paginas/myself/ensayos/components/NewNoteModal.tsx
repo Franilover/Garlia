@@ -27,7 +27,7 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
 
   return (
     <>
-      {/* Backdrop */}
+      {}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -37,7 +37,7 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {}
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -52,7 +52,7 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
           padding: "28px",
         }}
       >
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 flex items-center justify-center"
@@ -79,7 +79,7 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
           </button>
         </div>
 
-        {/* Input */}
+        {}
         <input
           ref={inputRef}
           type="text"
@@ -95,7 +95,7 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
           style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
         />
 
-        {/* Actions */}
+        {}
         <div className="flex gap-2 justify-end">
           <button
             onClick={onClose}

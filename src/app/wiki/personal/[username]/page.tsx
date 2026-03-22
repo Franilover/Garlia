@@ -1,9 +1,5 @@
 "use client";
-/**
- * PÁGINA: /wiki/personal/[username]
- * Vista pública del perfil de otro usuario — solo lectura.
- * Ruta: src/app/wiki/personal/[username]/page.tsx
- */
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -11,8 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Sword, Package, Calendar, X, Tag, Loader2, Users} from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-
-// ─── TIPOS ────────────────────────────────────────────────────────────────────
 
 interface PerfilData {
   id: string;
@@ -42,8 +36,6 @@ interface ItemInventario {
   equipado: boolean;
   items: { id: string; nombre: string; categoria: string; imagen_url?: string };
 }
-
-// ─── SUB-COMPONENTES ─────────────────────────────────────────────────────────
 
 function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
   imagen?: string; nombre: string; sub: string;
@@ -176,8 +168,6 @@ function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }
   );
 }
 
-// ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
-
 export default function PerfilPublico() {
   const params   = useParams();
   const username = params?.username as string;
@@ -195,7 +185,7 @@ export default function PerfilPublico() {
     async function cargar() {
       setCargando(true);
 
-      // Perfil con joins a personaje favorito y mascota
+      
       const { data: perfilData } = await supabase
         .from("perfiles")
         .select("id, username, status, avatar_url, descripcion, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)")
@@ -207,14 +197,14 @@ export default function PerfilPublico() {
 
       const uid = perfilData.id;
 
-      // Inventario
+      
       const { data: invData } = await supabase
         .from("inventario_usuario")
         .select("equipado, items(id, nombre, categoria, imagen_url)")
         .eq("perfil_id", uid);
       if (invData) setInventario(invData as unknown as ItemInventario[]);
 
-      // Descubrimientos
+      
       const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
         supabase.from("descubrimientos_items")
           .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
@@ -299,7 +289,7 @@ export default function PerfilPublico() {
     <>
       {modalD && <ModalDetalle d={modalD} onClose={() => setModalD(null)} />}
 
-      {/* ── Botón volver — pelotita en esquina superior izquierda ── */}
+      {}
       <Link href="/wiki/personal"
         className="fixed top-4 left-4 z-100 flex items-center justify-center w-9 h-9 transition-all hover:scale-110 group"
         style={{
@@ -314,7 +304,7 @@ export default function PerfilPublico() {
 
       <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pb-20">
 
-        {/* ── Separador ornamental ── */}
+        {}
         <div className="flex items-center gap-4 py-5 px-2">
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
           <span className="font-serif italic text-[10px] select-none"
@@ -324,10 +314,10 @@ export default function PerfilPublico() {
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         </div>
 
-        {/* ── Fila superior ── */}
+        {}
         <div className="flex flex-col md:flex-row gap-5 mb-6">
 
-          {/* Ficha perfil */}
+          {}
           <div className="w-full md:w-56 xl:w-64 shrink-0 md:sticky md:top-16 self-start animate-in fade-in duration-500">
             <div className="mx-4 md:mx-0 relative"
               style={{
@@ -401,7 +391,7 @@ export default function PerfilPublico() {
             </div>
           </div>
 
-          {/* Bloque derecho — un solo card: descripción + personaje + mascota */}
+          {}
           <div className="flex-1 min-w-0 mx-4 md:mx-0">
             <div style={{
               background: "var(--white-custom)",
@@ -410,7 +400,7 @@ export default function PerfilPublico() {
               boxShadow: "var(--shadow-card)",
             }}>
 
-              {/* Descripción */}
+              {}
               <div className="flex items-center justify-between px-5 pt-4 pb-2">
                 <p className="font-serif italic text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -432,13 +422,13 @@ export default function PerfilPublico() {
                 )}
               </div>
 
-              {/* Divisor */}
+              {}
               <div className="mx-5 h-px" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
 
-              {/* Personaje + Mascota — 2 cols */}
+              {}
               <div className="grid grid-cols-2">
 
-                {/* Personaje favorito */}
+                {}
                 <div className="px-4 py-3">
                   <p className="font-serif italic text-[8px] mb-2"
                     style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -471,7 +461,7 @@ export default function PerfilPublico() {
                   </div>
                 </div>
 
-                {/* Mascota */}
+                {}
                 <div className="px-4 py-3"
                   style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                   <p className="font-serif italic text-[8px] mb-2"
@@ -510,7 +500,7 @@ export default function PerfilPublico() {
           </div>
         </div>
 
-        {/* Tabs mobile — justo antes de la colección */}
+        {}
         <div className="md:hidden mb-4 mx-4">
           <div className="flex gap-1"
             style={{
@@ -533,7 +523,7 @@ export default function PerfilPublico() {
             ))}
           </div>
         </div>
-        {/* ── Colección ── */}
+        {}
         <div className="px-4 md:px-0">
 
             <div className="hidden md:flex items-center gap-2 mb-5">

@@ -38,7 +38,7 @@ export default function WikiMenuPage() {
         height: 'calc(100svh - 64px)',
       }}
     >
-      {/* Título */}
+      {}
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -49,7 +49,7 @@ export default function WikiMenuPage() {
         </h1>
       </motion.div>
 
-      {/* Desktop: grid 2x2 */}
+      {}
       <div className="hidden md:grid grid-cols-2 gap-4 lg:gap-6 flex-1 min-h-0">
         <MenuCard href="/wiki/enciclopedia" title="Información" icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']} onClick={() => handleVisit('enciclopedia')} />
         <MenuCard href="/wiki/mapa"         title="Mapa"        icon={<Compass />}  delay={0.1} hasNewContent={notifications['mapa']}         onClick={() => handleVisit('mapa')} />
@@ -57,7 +57,7 @@ export default function WikiMenuPage() {
         <MenuCard href="/wiki/canciones"    title="Canciones"   icon={<Music />}    delay={0.3} hasNewContent={notifications['canciones']}    onClick={() => handleVisit('canciones')} />
       </div>
 
-      {/* Mobile: columna de cards horizontales */}
+      {}
       <div className="flex flex-col gap-3 shrink-0 md:hidden">
         <MenuCard href="/wiki/enciclopedia" title="Información" icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']} onClick={() => handleVisit('enciclopedia')} horizontal />
         <MenuCard href="/wiki/mapa"         title="Mapa"        icon={<Compass />}  delay={0.1} hasNewContent={notifications['mapa']}         onClick={() => handleVisit('mapa')} horizontal />

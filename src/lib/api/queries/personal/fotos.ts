@@ -15,7 +15,7 @@ export const fotosQueries = {
   
   
 
-  /** Obtener todas las fotos ordenadas por fecha */
+  
   getAll: async () => {
     const { data, error } = await supabase
       .from('diario_fotos')
@@ -26,7 +26,7 @@ export const fotosQueries = {
     return data as DiarioFoto[];
   },
 
-  /** Obtener fotos por categoría (ej: "yo", "amigos") */
+  
   getByCategoria: async (categoria: string) => {
     const { data, error } = await supabase
       .from('diario_fotos')
@@ -38,7 +38,7 @@ export const fotosQueries = {
     return data as DiarioFoto[];
   },
 
-  /** Obtener una foto por ID */
+  
   getById: async (id: number) => {
     const { data, error } = await supabase
       .from('diario_fotos')
@@ -54,7 +54,7 @@ export const fotosQueries = {
   
   
 
-  /** Agregar una nueva foto */
+  
   create: async (foto: Omit<DiarioFoto, 'id' | 'created_at'>) => {
     const { data, error } = await supabase
       .from('diario_fotos')
@@ -70,7 +70,7 @@ export const fotosQueries = {
   
   
 
-  /** Actualizar una foto existente */
+  
   update: async (id: number, updates: Partial<Omit<DiarioFoto, 'id' | 'created_at'>>) => {
     const { data, error } = await supabase
       .from('diario_fotos')
@@ -87,7 +87,7 @@ export const fotosQueries = {
   
   
 
-  /** Eliminar una foto por ID */
+  
   delete: async (id: number) => {
     const { error } = await supabase
       .from('diario_fotos')

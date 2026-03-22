@@ -1,15 +1,5 @@
 "use client";
 
-/**
- * Estudio de Capítulos — editor con soporte offline
- * ─ Sidebar: libros expandibles → capítulos con menú 3 puntos
- * ─ Editar título y fecha de publicación directamente desde el panel
- * ─ Auto-guardado 2s + Ctrl/Cmd+S manual
- * ─ Offline: Dexie + enqueueOperation → sync automático al reconectar
- * ─ Contador de palabras, caracteres, tiempo de lectura estimado
- * ─ Modo foco (oculta todo excepto el texto)
- */
-
 import React, {
   useState, useEffect, useCallback, useRef, useMemo,
 } from "react";
@@ -27,10 +17,6 @@ import { db } from "@/lib/api/client/db";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, EmptyEstudio, ModalBase, SaveIndicator, CampoInput, BotonSubmit, normalize } from "@/components/templates/EstudioTemplates";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TIPOS
-// ─────────────────────────────────────────────────────────────────────────────
 
 type Libro = {
   id: string;
@@ -53,10 +39,6 @@ type Capitulo = {
 
 type SaveStatus = "idle" | "saving" | "saved" | "pending" | "error";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTES
-// ─────────────────────────────────────────────────────────────────────────────
-
 const TABLA_CAPS = "capitulos";
 
 const ESTADO_COLOR: Record<string, string> = {
@@ -65,12 +47,6 @@ const ESTADO_COLOR: Record<string, string> = {
   BORRADOR:     "bg-primary/10 text-primary/40 border-primary/20",
   PAUSADO:      "bg-primary/10 text-primary/40 border-primary/20",
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// UTILIDADES
-// ─────────────────────────────────────────────────────────────────────────────
-
-// normalize importado de EstudioTemplates
 
 function wordCount(text: string) {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -84,10 +60,6 @@ function readingTime(words: number) {
 function toDateInput(iso: string) {
   return iso ? iso.split("T")[0] : new Date().toISOString().split("T")[0];
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DEXIE HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function dexieCapRead(libroId: string): Promise<Capitulo[]> {
   try {
@@ -120,10 +92,6 @@ async function dexieLibrosRead(): Promise<Libro[]> {
     return rows.filter((r: any) => !r.deleted) as Libro[];
   } catch { return []; }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CRUD CAPÍTULOS
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function capUpdateContenido(id: string, contenido: string): Promise<void> {
   const existing = await dexieCapGet(id);
@@ -208,17 +176,13 @@ async function capDelete(id: string): Promise<void> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HOOKS
-// ─────────────────────────────────────────────────────────────────────────────
-
 function useLibros() {
   const [libros, setLibros]       = useState<Libro[]>([]);
   const [loading, setLoading]     = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async () => {
-    // Mostrar Dexie inmediatamente — sin spinner si ya hay datos
+    
     const local = await dexieLibrosRead();
     if (local.length > 0) {
       setLibros(local);
@@ -238,7 +202,7 @@ function useLibros() {
       const result = await Promise.race([fetchPromise, timeout]);
 
       if (result === "timeout") {
-        setIsOffline(local.length === 0); // solo marcar offline si no había local
+        setIsOffline(local.length === 0); 
         setLoading(false);
         return;
       }
@@ -272,7 +236,7 @@ function useCapitulos(libroId: string | null) {
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async (id: string) => {
-    // Mostrar local inmediatamente
+    
     const local = await dexieCapRead(id);
     if (local.length > 0) {
       setCapitulos(local);
@@ -332,7 +296,7 @@ function useCapituloEditor(capId: string | null) {
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async (id: string) => {
-    // Mostrar local inmediatamente — sin bloquear
+    
     const local = await dexieCapGet(id);
     if (local) {
       setCap(local);
@@ -354,7 +318,7 @@ function useCapituloEditor(capId: string | null) {
       const result = await Promise.race([fetchPromise, timeout]);
 
       if (result === "timeout") {
-        setIsOffline(!local); // degradado solo si no había local
+        setIsOffline(!local); 
         setLoading(false);
         return;
       }
@@ -362,7 +326,7 @@ function useCapituloEditor(capId: string | null) {
       const { data, error } = result as any;
       if (error) throw error;
 
-      // Si hay cambios pendientes locales, preservarlos
+      
       if (local?.status === "pending" && local.contenido !== data.contenido) {
         setCap({ ...data, contenido: local.contenido, status: "pending" });
       } else {
@@ -390,12 +354,6 @@ function useCapituloEditor(capId: string | null) {
   return { cap, setCap, loading, isOffline, reload: () => capId && load(capId) };
 }
 
-// SaveIndicator importado de EstudioTemplates
-
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: estadísticas de escritura
-// ─────────────────────────────────────────────────────────────────────────────
-
 const EstadisticasEscritura = ({ texto }: { texto: string }) => {
   const palabras  = wordCount(texto);
   const caracteres = texto.length;
@@ -408,10 +366,6 @@ const EstadisticasEscritura = ({ texto }: { texto: string }) => {
     </div>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: item de capítulo en sidebar con menú 3 puntos
-// ─────────────────────────────────────────────────────────────────────────────
 
 const CapituloItem = ({
   cap, selected, onClick, onEdit, onDelete,
@@ -496,10 +450,6 @@ const CapituloItem = ({
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: libro expandible en sidebar
-// ─────────────────────────────────────────────────────────────────────────────
-
 const LibroItem = ({
   libro, selectedCapId, onSelectCap, expanded, onToggle, onEditCap, onDeleteCap,
 }: {
@@ -558,10 +508,6 @@ const LibroItem = ({
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: panel editor de capítulo
-// ─────────────────────────────────────────────────────────────────────────────
-
 const PanelEditor = ({
   capId, libroId, onCapitulosChange, focusMode, onToggleFocus,
 }: {
@@ -589,7 +535,7 @@ const PanelEditor = ({
     setFecha(toDateInput(cap.fecha_publicacion));
     if (cap.status === "pending") setSaveStatus("pending");
     else setSaveStatus("idle");
-  }, [cap?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cap?.id]); 
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -671,11 +617,11 @@ const PanelEditor = ({
         </div>
       )}
 
-      {/* Cabecera */}
+      {}
       {!focusMode && (
         <div className="shrink-0 px-8 pt-6 pb-4 border-b border-primary/8 space-y-4">
 
-          {/* Título editable */}
+          {}
           <div className="flex items-start gap-3">
             {editingTitle ? (
               <div className="flex-1 flex items-center gap-2">
@@ -710,7 +656,7 @@ const PanelEditor = ({
               </div>
             )}
 
-            {/* Acciones */}
+            {}
             <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => doSave(contenido)}
@@ -732,14 +678,14 @@ const PanelEditor = ({
             </div>
           </div>
 
-          {/* Meta: número orden + fecha editable + stats */}
+          {}
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3 text-[9px] font-black uppercase text-primary/30 tracking-widest flex-wrap">
               <span className="flex items-center gap-1">
                 <Hash size={9}/> Cap. {cap.orden}
               </span>
 
-              {/* Fecha editable */}
+              {}
               {editingFecha ? (
                 <span className="flex items-center gap-1.5">
                   <Calendar size={9}/>
@@ -783,7 +729,7 @@ const PanelEditor = ({
         </div>
       )}
 
-      {/* Modo foco — barra mínima */}
+      {}
       {focusMode && (
         <div className="shrink-0 flex items-center justify-between px-8 py-3 border-b border-primary/5">
           <span className="text-xs font-black uppercase italic tracking-tight text-primary/40 truncate max-w-xs">
@@ -799,7 +745,7 @@ const PanelEditor = ({
         </div>
       )}
 
-      {/* Editor */}
+      {}
       <div className={`flex-1 overflow-y-auto ${focusMode ? "px-16 py-12 max-w-3xl mx-auto w-full" : "px-8 py-6"}`}>
         <textarea
           ref={textareaRef}
@@ -815,7 +761,7 @@ const PanelEditor = ({
         />
       </div>
 
-      {/* Footer normal */}
+      {}
       {!focusMode && (
         <div className="shrink-0 px-8 py-3 border-t border-primary/5 flex items-center justify-between">
           <EstadisticasEscritura texto={contenido}/>
@@ -825,10 +771,6 @@ const PanelEditor = ({
     </div>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MODAL: editar metadatos de capítulo (título + fecha)
-// ─────────────────────────────────────────────────────────────────────────────
 
 const ModalEditarCapitulo = ({
   cap, onSaved, onClose,
@@ -876,10 +818,6 @@ const ModalEditarCapitulo = ({
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MODAL: nuevo capítulo
-// ─────────────────────────────────────────────────────────────────────────────
-
 const ModalNuevoCapitulo = ({
   libroId, ordenSiguiente, onCreated, onClose,
 }: {
@@ -923,10 +861,6 @@ const ModalNuevoCapitulo = ({
     </ModalBase>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PÁGINA PRINCIPAL — Estudio de Capítulos
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function EstudioCapitulos() {
   const { libros, loading: loadingLibros, isOffline: listaOffline, refetch } = useLibros();
@@ -986,7 +920,7 @@ export default function EstudioCapitulos() {
   return (
     <div className="flex h-screen bg-bg-main overflow-hidden">
 
-      {/* ════ SIDEBAR COLAPSADA ════ */}
+      {}
       {!sidebarOpen && (
         <div className="shrink-0 w-10 flex flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
           <button
@@ -1005,11 +939,11 @@ export default function EstudioCapitulos() {
         </div>
       )}
 
-      {/* ════ SIDEBAR ABIERTA ════ */}
+      {}
       {sidebarOpen && (
         <aside className="w-72 shrink-0 flex flex-col border-r border-primary/10 bg-bg-main">
 
-          {/* Header */}
+          {}
           <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
@@ -1025,7 +959,7 @@ export default function EstudioCapitulos() {
               </div>
             </div>
 
-            {/* Buscador */}
+            {}
             <div className="relative">
               <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30"/>
               <input
@@ -1041,7 +975,7 @@ export default function EstudioCapitulos() {
               )}
             </div>
 
-            {/* Botón nuevo capítulo */}
+            {}
             {selectedLibroId && (
               <button
                 onClick={() => setShowNuevoCap(true)}
@@ -1052,7 +986,7 @@ export default function EstudioCapitulos() {
             )}
           </div>
 
-          {/* Lista de libros */}
+          {}
           <div className="flex-1 overflow-y-auto px-3 py-3">
             {loadingLibros ? (
               <div className="flex items-center justify-center py-12 text-primary/30">
@@ -1078,7 +1012,7 @@ export default function EstudioCapitulos() {
             )}
           </div>
 
-          {/* Footer */}
+          {}
           <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
             {listaOffline
               ? <span className="flex items-center gap-1 text-blue-400"><WifiOff size={10}/> Sin conexión</span>
@@ -1097,7 +1031,7 @@ export default function EstudioCapitulos() {
         </aside>
       )}
 
-      {/* ════ PANEL PRINCIPAL ════ */}
+      {}
       <main className="flex-1 flex flex-col min-w-0 min-h-0">
         {selectedCapId && selectedLibroId ? (
           <PanelEditor
@@ -1113,7 +1047,7 @@ export default function EstudioCapitulos() {
         )}
       </main>
 
-      {/* Modales */}
+      {}
       {showNuevoCap && selectedLibroId && (
         <ModalNuevoCapitulo
           libroId={selectedLibroId}

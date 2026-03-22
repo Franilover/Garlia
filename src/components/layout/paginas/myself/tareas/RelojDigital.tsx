@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Clock, ChevronLeft } from "lucide-react";
 
-// ─── CONSTANTES ───────────────────────────────────────────────────────────────
 const OPCIONES_POMODORO = [
   { label: "5 min",  valor: 5 },
   { label: "15 min", valor: 15 },
@@ -13,7 +12,6 @@ const OPCIONES_POMODORO = [
   { label: "60 min", valor: 60 },
 ];
 
-// ─── SONIDO ───────────────────────────────────────────────────────────────────
 const reproducirSonidoFin = () => {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -34,12 +32,11 @@ const reproducirSonidoFin = () => {
   } catch (e) { console.warn("Audio no disponible", e); }
 };
 
-// ─── COMPONENTE ───────────────────────────────────────────────────────────────
 export const RelojDigital = ({ horario }: { horario: any[] }) => {
   const [hora, setHora] = useState(new Date());
   const [expandido, setExpandido] = useState(false);
 
-  // Pomodoro
+  
   const [pomMinutos, setPomMinutos] = useState(25);
   const [pomPersonalizado, setPomPersonalizado] = useState("");
   const [pomSegundos, setPomSegundos] = useState(25 * 60);
@@ -47,13 +44,13 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
   const [pomTerminado, setPomTerminado] = useState(false);
   const [pomPantallaCompleta, setPomPantallaCompleta] = useState(false);
 
-  // Reloj real
+  
   useEffect(() => {
     const timer = setInterval(() => setHora(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Timer pomodoro
+  
   useEffect(() => {
     if (!pomActivo) return;
     const interval = setInterval(() => {
@@ -123,7 +120,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
 
   return (
     <div className="mb-6 relative z-10">
-      {/* BARRA COMPACTA */}
+      {}
       <motion.div
         layout
         onClick={() => setExpandido(e => !e)}
@@ -153,7 +150,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
         </div>
       </motion.div>
 
-      {/* PANEL EXPANDIDO */}
+      {}
       <AnimatePresence>
         {expandido && (
           <motion.div
@@ -165,7 +162,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
           >
             <div className="mt-3 bg-white border border-primary/10 rounded-[30px] p-6 shadow-xl shadow-primary/5 flex flex-col sm:flex-row gap-6 items-center">
 
-              {/* RELOJ GRANDE */}
+              {}
               <div className="flex flex-col items-center gap-1 shrink-0 bg-primary/4 rounded-2xl px-6 py-4 border border-primary/8">
                 <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30 italic">Hora Actual</span>
                 <span className="text-5xl font-black tracking-tighter tabular-nums text-primary italic leading-none">
@@ -181,7 +178,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
 
               <div className="hidden sm:block w-px h-32 bg-primary/8 shrink-0" />
 
-              {/* POMODORO */}
+              {}
               <div className="flex flex-col items-center gap-4 flex-1 w-full">
                 <div className="flex items-center justify-between w-full">
                   <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30 italic">Pomodoro</span>
@@ -193,7 +190,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                   </button>
                 </div>
 
-                {/* Círculo progreso */}
+                {}
                 <div className="relative w-28 h-28 cursor-pointer" onClick={(e) => { e.stopPropagation(); togglePomodoro(); }}>
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 88 88">
                     <circle cx="44" cy="44" r={r} fill="none" stroke="currentColor" strokeWidth="6" className="text-primary/10" />
@@ -223,7 +220,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                   </div>
                 </div>
 
-                {/* Controles */}
+                {}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={(e) => { e.stopPropagation(); togglePomodoro(); }}
@@ -244,7 +241,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                   )}
                 </div>
 
-                {/* Selector de tiempo */}
+                {}
                 <div className="flex flex-wrap justify-center gap-1.5 w-full">
                   {OPCIONES_POMODORO.map(op => (
                     <button
@@ -262,7 +259,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                   ))}
                 </div>
 
-                {/* Tiempo personalizado */}
+                {}
                 <div className="flex items-center gap-2 w-full max-w-45" onClick={e => e.stopPropagation()}>
                   <input
                     type="number" min="1" max="180"
@@ -285,7 +282,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
         )}
       </AnimatePresence>
 
-      {/* MODAL PANTALLA COMPLETA */}
+      {}
       <AnimatePresence>
         {pomPantallaCompleta && (
           <motion.div

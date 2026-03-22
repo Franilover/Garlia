@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/api/client/supabase";
 
-
 export const rutinasQueries = {
 
   
@@ -79,7 +78,6 @@ export const rutinasQueries = {
     return data;
   },
 };
-
 
 export const ejerciciosQueries = {
 

@@ -9,7 +9,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/display/SmartImage";
 
-// --- INTERFACES ---
 interface Capitulo {
   id: string;
   titulo_capitulo: string;
@@ -38,11 +37,11 @@ export default function LibroDetalle() {
   const [capitulos, setCapitulos] = useState<Capitulo[]>([]);
   const [loadingCaps, setLoadingCaps] = useState(true);
 
-  // --- MODALES ---
+  
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditCapModal, setShowEditCapModal] = useState(false);
 
-  // --- FORMULARIOS ---
+  
   const [nuevoTitulo, setNuevoTitulo] = useState("");
   const [nuevaFecha, setNuevaFecha] = useState(new Date().toISOString().split('T')[0]);
   const [selectedCap, setSelectedCap] = useState<Capitulo | null>(null);
@@ -83,7 +82,7 @@ export default function LibroDetalle() {
     ]).then(async ([authRes, libroRes, capsAll, capsPublic]) => {
       const session = authRes.data.session;
 
-      // ✅ Verificamos rol en perfiles, no solo si hay sesión
+      
       let admin = false;
       if (session) {
         const { data: perfil } = await supabase
@@ -103,7 +102,7 @@ export default function LibroDetalle() {
     });
   }, [id]);
 
-  // --- ACCIONES ---
+  
   const handleCrearCapitulo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoTitulo.trim() || procesando) return;
