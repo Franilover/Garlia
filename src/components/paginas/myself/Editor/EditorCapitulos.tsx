@@ -795,11 +795,10 @@ const ModalImagen = ({ onInsert, onClose }: { onInsert: (s: string) => void; onC
               <CampoInput label="Palabra en el texto" value={word} onChange={setWord} placeholder="ej: el castillo, Kael…" />
             )}
             <CampoInput label="Caption (opcional)" value={caption} onChange={setCaption} placeholder="Descripción breve…" />
-            <BotonSubmit loading={false} disabled={!selected}
-              labelLoading={<>Insertar</>}
-              labelNormal={<><Image size={13}/>Insertar Imagen</>}
-              onClick={handleInsert}
-            />
+            <button type="button" onClick={handleInsert} disabled={!selected}
+              className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
+              <Image size={13}/>Insertar Imagen
+            </button>
           </>
         )}
       </div>
