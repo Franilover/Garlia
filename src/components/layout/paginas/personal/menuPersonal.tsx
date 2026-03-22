@@ -80,7 +80,7 @@ export default function PersonalMenuPage() {
       </div>
 
       {/* Mobile: columna horizontal */}
-      <div className="flex flex-col gap-3 flex-1 min-h-0 md:hidden">
+      <div className="flex flex-col gap-3 shrink-0 md:hidden">
         <MenuCard href="/personal/sobre-mi" title="Sobre Mí" icon={<Star />}    delay={0.1} hasNewContent={notifications["sobre-mi"]} onClick={() => handleVisit("sobre-mi")} horizontal />
         <MenuCard href="/personal/dibujos"  title="Dibujos"  icon={<Palette />} delay={0.2} hasNewContent={notifications["dibujos"]}  onClick={() => handleVisit("dibujos")}  horizontal />
         <MenuCard href="/personal/fotos"    title="Fotos"    icon={<Camera />}  delay={0.3} hasNewContent={notifications["fotos"]}    onClick={() => handleVisit("fotos")}    horizontal />

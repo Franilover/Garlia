@@ -58,7 +58,7 @@ export default function WikiMenuPage() {
       </div>
 
       {/* Mobile: columna de cards horizontales */}
-      <div className="flex flex-col gap-3 flex-1 min-h-0 md:hidden">
+      <div className="flex flex-col gap-3 shrink-0 md:hidden">
         <MenuCard href="/wiki/enciclopedia" title="Información" icon={<BookOpen />} delay={0.4} hasNewContent={notifications['enciclopedia']} onClick={() => handleVisit('enciclopedia')} horizontal />
         <MenuCard href="/wiki/mapa"         title="Mapa"        icon={<Compass />}  delay={0.1} hasNewContent={notifications['mapa']}         onClick={() => handleVisit('mapa')} horizontal />
         <MenuCard href="/wiki/libros"       title="Libros"      icon={<BookText />} delay={0.2} hasNewContent={notifications['libros']}       onClick={() => handleVisit('libros')} horizontal />
