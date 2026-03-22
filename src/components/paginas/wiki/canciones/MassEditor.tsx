@@ -312,7 +312,7 @@ export const MassEditModal: React.FC<MassEditModalProps> = ({ isOpen, onClose, s
               <AnimatePresence mode="wait">
                 <SaveStatusPill key={saveStatus} status={saveStatus} isSlow={isSlow} />
               </AnimatePresence>
-              {!isOnline && <WifiOff size={16} className="text-slate-400 flex-shrink-0" title="Sin conexión" />}
+              {!isOnline && <span title="Sin conexión"><WifiOff size={16} className="text-slate-400 flex-shrink-0" /></span>}
               <BtnIcon variant="ghost" onClick={onClose} className="border-none text-primary/30 hover:text-red-500 hover:bg-red-500/15 flex-shrink-0">
                 <X size={20} />
               </BtnIcon>
