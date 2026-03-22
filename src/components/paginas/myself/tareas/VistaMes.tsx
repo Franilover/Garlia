@@ -90,8 +90,8 @@ export const VistaMes = ({
   }, [eventos, capitulosRaw, diaSeleccionado, mesActual, añoActual]);
 
   return (
-    <div className="bg-white border border-primary/10 rounded-[40px] p-8 shadow-xl shadow-primary/5 h-full">
-      <div className="flex items-center justify-between mb-10 px-2">
+    <div className="bg-white-custom border border-primary/10 rounded-[40px] p-5 shadow-xl shadow-primary/5 flex-1 flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between mb-4 px-2 shrink-0">
         <div className="flex items-center gap-3">
           <CalendarIcon className="text-primary" size={20} />
           <h2 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Calendario</h2>
@@ -109,9 +109,9 @@ export const VistaMes = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-3 mb-8">
+      <div className="grid grid-cols-7 gap-1 mb-3 shrink-0">
         {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map(d => (
-          <div key={d} className="text-center text-[9px] font-black uppercase text-primary/20 mb-2">{d}</div>
+          <div key={d} className="text-center text-[8px] font-black uppercase text-primary/20 mb-1">{d}</div>
         ))}
         {Array.from({ length: primerDiaSemana }).map((_, i) => <div key={`empty-${i}`} className="aspect-square" />)}
         {Array.from({ length: diasEnMes }).map((_, i) => {
@@ -124,13 +124,13 @@ export const VistaMes = ({
               onClick={() => setDiaSeleccionado(dia)}
               whileHover={{ scale: 1.05 }}
               className={cn(
-                "aspect-square rounded-2xl border flex flex-col items-center justify-center relative transition-all cursor-pointer",
+                "aspect-square rounded-xl border flex flex-col items-center justify-center relative transition-all cursor-pointer",
                 estaSeleccionado
-                  ? "bg-primary text-white border-primary shadow-lg shadow-primary/30"
-                  : "bg-primary/5 border-transparent text-primary/60 hover:bg-white hover:border-primary/20"
+                  ? "bg-primary text-btn-text border-primary shadow-lg shadow-primary/30"
+                  : "bg-primary/5 border-primary/5 hover:bg-white-custom hover:border-primary/20 text-foreground"
               )}
             >
-              <span className="text-sm font-black">{dia}</span>
+              <span className="text-xs font-black">{dia}</span>
               {tieneAlgo && (
                 <div className={cn("absolute bottom-2 w-1.5 h-1.5 rounded-full", estaSeleccionado ? "bg-white" : "bg-primary")} />
               )}
@@ -139,8 +139,8 @@ export const VistaMes = ({
         })}
       </div>
 
-      <div className="bg-primary/5 rounded-3xl p-4 mb-6 border border-primary/5">
-        <div className="flex items-center gap-3 mb-3">
+      <div className="bg-primary/5 rounded-2xl p-3 mb-3 border border-primary/10 shrink-0">
+        <div className="flex items-center gap-3 mb-2">
           <Bookmark size={16} className="text-primary/40" />
           <span className="text-[10px] font-black uppercase tracking-widest text-primary/40">
             Nuevo evento para el día {diaSeleccionado}
@@ -161,8 +161,8 @@ export const VistaMes = ({
         </div>
       </div>
 
-      <div className="pt-6 border-t border-primary/5">
-        <h3 className="text-[10px] font-black uppercase tracking-widest text-primary/30 mb-4 px-2">
+      <div className="pt-3 border-t border-primary/10 flex-1 overflow-y-auto min-h-0">
+        <h3 className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2 px-2">
           Planes para el {diaSeleccionado}
         </h3>
         <div className="space-y-3">
@@ -172,7 +172,7 @@ export const VistaMes = ({
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} key={item.id}
                 className={cn(
                   "flex items-center gap-4 p-4 rounded-3xl border transition-all",
-                  item.esCapitulo ? "bg-primary/10 border-primary/10" : "bg-primary/5 border-transparent"
+                  item.esCapitulo ? "bg-primary/10 border-primary/20" : "bg-primary/5 border-primary/10"
                 )}
               >
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
@@ -182,7 +182,7 @@ export const VistaMes = ({
                   }
                 </div>
                 <div>
-                  <p className="text-[11px] font-black text-primary uppercase italic">"{item.titulo}"</p>
+                  <p className="text-[11px] font-black text-foreground uppercase italic">"{item.titulo}"</p>
                   <p className="text-[9px] font-bold text-primary/40 uppercase tracking-tighter">"{item.tipo}"</p>
                 </div>
                 {item.esCapitulo && (

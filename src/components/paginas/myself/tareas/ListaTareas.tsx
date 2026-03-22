@@ -19,7 +19,7 @@ export const ListaTareas = ({
   tareas, nuevaTarea, setNuevaTarea,
   isAddingTarea, onAdd, onToggle, onDelete,
 }: Props) => (
-  <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 min-h-130 flex flex-col">
+  <div className="bg-white-custom border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 flex-1 flex flex-col overflow-hidden">
     <div className="flex items-center gap-3 mb-8 px-2">
       <CheckSquare className="text-primary" size={20} />
       <h2 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Lista de Pendientes</h2>
@@ -39,7 +39,7 @@ export const ListaTareas = ({
       </BtnIcon>
     </div>
 
-    <div className="space-y-3 flex-1 overflow-y-auto max-h-100 pr-2 custom-scrollbar">
+    <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
       <AnimatePresence mode="popLayout">
         {tareas.map((t: any) => (
           <motion.div
@@ -47,7 +47,7 @@ export const ListaTareas = ({
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
             className={cn(
               "flex items-center justify-between p-4 rounded-2xl border transition-all group",
-              t.completada ? "bg-primary/5 border-transparent opacity-60" : "bg-white border-primary/10 shadow-sm"
+              t.completada ? "bg-primary/5 border-primary/5 opacity-60" : "bg-white-custom border-primary/15 shadow-sm hover:border-primary/30"
             )}
           >
             <div
@@ -56,11 +56,11 @@ export const ListaTareas = ({
             >
               <div className={cn(
                 "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all",
-                t.completada ? "bg-primary border-primary" : "border-primary/20 group-hover:border-primary/40"
+                t.completada ? "bg-primary border-primary" : "border-primary/30 group-hover:border-primary/60"
               )}>
                 {t.completada && <Plus size={14} className="text-white rotate-45" strokeWidth={4} />}
               </div>
-              <span className={cn("text-sm font-bold text-primary", t.completada && "line-through text-primary/40")}>
+              <span className={cn("text-sm font-bold", t.completada ? "line-through text-primary/40" : "text-foreground")}>
                 "{t.titulo}"
               </span>
             </div>

@@ -119,12 +119,12 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
   const secDisplay = (pomSegundos % 60).toString().padStart(2, "0");
 
   return (
-    <div className="mb-6 relative z-10">
+    <div className="relative z-10 shrink-0">
       {}
       <motion.div
         layout
         onClick={() => setExpandido(e => !e)}
-        className="flex flex-col sm:flex-row items-center gap-6 bg-white text-primary px-6 py-5 rounded-[30px] shadow-xl shadow-primary/5 border border-primary/10 cursor-pointer hover:border-primary/30 transition-all select-none"
+        className="flex flex-col sm:flex-row items-center gap-6 bg-white-custom text-primary px-6 py-4 rounded-[30px] shadow-xl shadow-primary/5 border border-primary/10 cursor-pointer hover:border-primary/30 transition-all select-none"
       >
         <div className="flex items-center gap-4">
           <Clock size={24} className={cn("text-primary/60", !expandido && "animate-pulse")} />
@@ -160,7 +160,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden relative z-10"
           >
-            <div className="mt-3 bg-white border border-primary/10 rounded-[30px] p-6 shadow-xl shadow-primary/5 flex flex-col sm:flex-row gap-6 items-center">
+            <div className="mt-2 bg-white-custom border border-primary/10 rounded-[30px] p-5 shadow-xl shadow-primary/5 flex flex-col sm:flex-row gap-6 items-center">
 
               {}
               <div className="flex flex-col items-center gap-1 shrink-0 bg-primary/4 rounded-2xl px-6 py-4 border border-primary/8">

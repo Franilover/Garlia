@@ -40,11 +40,11 @@ const ColumniaDia = ({
   <div
     onClick={onClick}
     className={cn(
-      "flex flex-col min-h-55 rounded-2xl border transition-all cursor-pointer group",
+      "flex flex-col min-h-0 flex-1 rounded-2xl border transition-all cursor-pointer group",
       seleccionado
         ? "bg-primary/5 border-primary/30 shadow-md shadow-primary/10"
-        : "bg-white border-primary/8 hover:border-primary/20 hover:shadow-sm",
-      esHoy && !seleccionado && "border-primary/20 bg-primary/3"
+        : "bg-white-custom border-primary/10 hover:border-primary/25 hover:shadow-sm",
+      esHoy && !seleccionado && "border-primary/25 bg-primary/5"
     )}
   >
     <div className={cn(
@@ -153,7 +153,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
   const compact = vista >= 5;
 
   return (
-    <div className="bg-white border border-primary/10 rounded-[40px] p-6 shadow-xl shadow-primary/5 flex flex-col gap-6 h-full">
+    <div className="bg-white-custom border border-primary/10 rounded-[40px] p-5 shadow-xl shadow-primary/5 flex flex-col gap-3 flex-1 overflow-hidden">
       {}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-center gap-3 flex-1">
@@ -191,8 +191,8 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           key={`${vista}-${fechaBase.toISOString()}`}
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
-          className="grid gap-2"
-          style={{ gridTemplateColumns: `repeat(${Math.min(vista, 7)}, minmax(0, 1fr))` }}
+          className="flex gap-2 flex-1 min-h-0"
+          style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(vista, 7)}, minmax(0, 1fr))` }}
         >
           {diasVista.map((fecha) => (
             <ColumniaDia
@@ -209,14 +209,14 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
       </AnimatePresence>
 
       {}
-      <div className="bg-primary/4 rounded-3xl p-5 border border-primary/8">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="bg-primary/5 rounded-2xl p-3 border border-primary/10 shrink-0">
+        <div className="flex items-center gap-2 mb-2">
           <Calendar size={14} className="text-primary/40" />
           <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
             {diaSeleccionado.getDate()} de {MESES[diaSeleccionado.getMonth()]} · {DIAS_SEMANA_CORTO[diaSeleccionado.getDay()]}
           </span>
         </div>
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-2">
           <select
             value={tipoEvento}
             onChange={e => setTipoEvento(e.target.value)}
@@ -238,7 +238,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </div>
 
         {}
-        <div className="space-y-2">
+        <div className="space-y-1.5 max-h-24 overflow-y-auto">
           {eventosDiaSeleccionado.length === 0 ? (
             <p className="text-[9px] font-bold text-primary/20 italic px-1">"Sin eventos para este día."</p>
           ) : eventosDiaSeleccionado.map(ev => (
@@ -247,7 +247,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
               initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
               className={cn(
                 "flex items-center gap-3 p-3 rounded-2xl border",
-                ev.esCapitulo ? "bg-amber-50 border-amber-100" : "bg-white border-primary/8 shadow-sm"
+                ev.esCapitulo ? "bg-amber-500/10 border-amber-500/20" : "bg-white-custom border-primary/10 shadow-sm"
               )}
             >
               <div className="w-8 h-8 bg-primary/8 rounded-xl flex items-center justify-center shrink-0">
@@ -257,7 +257,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
                 }
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black text-primary uppercase italic truncate">"{ev.titulo}"</p>
+                <p className="text-[10px] font-black text-foreground uppercase italic truncate">"{ev.titulo}"</p>
                 <p className="text-[8px] font-bold text-primary/35 uppercase tracking-tight">{ev.tipo}</p>
               </div>
               {ev.esCapitulo && (
