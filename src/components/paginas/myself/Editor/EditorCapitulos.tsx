@@ -1030,6 +1030,49 @@ const PanelEditor = ({
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
+      {/* Modal de preview del lector */}
+      <AnimatePresence>
+        {previewOpen && (
+          <div className="fixed inset-0 z-[200] flex flex-col">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-bg-main"
+            />
+            <div className="relative z-10 flex flex-col h-full">
+              {/* Header preview */}
+              <div className="flex items-center justify-between px-6 py-3 bg-white-custom/80 backdrop-blur-md border-b border-primary/10 shrink-0">
+                <div className="flex items-center gap-3">
+                  <Eye size={14} className="text-emerald-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 italic">
+                    Vista previa — {cap?.titulo_capitulo}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-bold text-primary/25 uppercase tracking-widest">
+                    Los drops y sounds funcionan en tiempo real
+                  </span>
+                  <button
+                    onClick={() => setPreviewOpen(false)}
+                    className="p-1.5 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+                  >
+                    <X size={16}/>
+                  </button>
+                </div>
+              </div>
+              {/* Contenido renderizado via iframe — 100% real, con drops y sounds */}
+              <div className="flex-1 overflow-hidden">
+                <iframe
+                  key={previewOpen ? "open" : "closed"}
+                  src={`/wiki/libros/${libroId}/leer/${capId}#cap-${capId}`}
+                  className="w-full h-full border-0"
+                  title="Vista previa del capítulo"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {isOffline && <BannerOffline color="blue" mensaje="Sin conexión — los cambios se guardan localmente" />}
 
       {saveStatus === "pending" && !isOffline && (
@@ -1087,6 +1130,13 @@ const PanelEditor = ({
                 title="Guardar (Ctrl+S)"
               >
                 <Save size={14}/>
+              </button>
+              <button
+                onClick={() => setPreviewOpen(true)}
+                className="p-2 rounded-lg hover:bg-emerald-500/10 text-primary/30 hover:text-emerald-500 transition-all"
+                title="Vista previa del lector"
+              >
+                <Eye size={14}/>
               </button>
               <button onClick={onToggleFocus} className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all" title="Modo foco">
                 <Maximize2 size={14}/>
