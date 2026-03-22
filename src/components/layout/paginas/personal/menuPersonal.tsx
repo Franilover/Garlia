@@ -33,7 +33,7 @@ export default function PersonalMenuPage() {
 
   return (
     <div
-      className="flex flex-col p-4 md:p-8"
+      className="flex flex-col justify-center p-4 md:p-8 gap-6 md:gap-0"
       style={{
         height: 'calc(100svh - 64px)',
       }}
@@ -42,7 +42,7 @@ export default function PersonalMenuPage() {
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center py-6 md:py-8 shrink-0"
+        className="text-center shrink-0"
       >
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter text-primary italic">
           Personal
