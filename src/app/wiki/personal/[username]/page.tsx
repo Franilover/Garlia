@@ -392,8 +392,8 @@ export default function PerfilPublico() {
           </div>
 
           {}
-          <div className="flex-1 min-w-0 mx-4 md:mx-0">
-            <div style={{
+          <div className="flex-1 min-w-0 mx-4 md:mx-0 md:self-stretch flex flex-col">
+            <div className="flex flex-col flex-1" style={{
               background: "var(--white-custom)",
               borderRadius: "var(--radius-card)",
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -502,23 +502,23 @@ export default function PerfilPublico() {
 
         {}
         <div className="md:hidden mb-4 mx-4">
-          <div className="flex gap-1"
+          <div className="flex gap-1 p-1"
             style={{
-              background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+              background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
               border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
               borderRadius: "var(--radius-btn)",
-              padding: "4px",
             }}>
             {tabs.map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 transition-all font-serif italic text-[10px]"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 transition-all"
                 style={{
-                  borderRadius: "var(--radius-btn)",
+                  borderRadius: "calc(var(--radius-btn) - 2px)",
                   background: tab === t.id ? "var(--primary)" : "transparent",
                   color: tab === t.id ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                  boxShadow: tab === t.id ? "0 1px 6px color-mix(in srgb, var(--primary) 20%, transparent)" : "none",
                 }}>
                 <t.icon size={12} />
-                {t.label}
+                <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
               </button>
             ))}
           </div>
@@ -526,19 +526,24 @@ export default function PerfilPublico() {
         {}
         <div className="px-4 md:px-0">
 
-            <div className="hidden md:flex items-center gap-2 mb-5">
+            <div className="hidden md:flex items-center gap-1.5 mb-5 p-1"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
+                borderRadius: "var(--radius-btn)",
+                border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                width: "fit-content",
+              }}>
               {tabs.map(t => (
                 <button key={t.id} onClick={() => setTab(t.id)}
-                  className="flex items-center gap-2 px-4 py-2 transition-all duration-200 font-serif italic"
+                  className="flex items-center gap-2 px-4 py-2 transition-all duration-200"
                   style={{
-                    borderRadius: "var(--radius-btn)",
-                    background: tab === t.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 5%, var(--white-custom))",
+                    borderRadius: "calc(var(--radius-btn) - 2px)",
+                    background: tab === t.id ? "var(--primary)" : "transparent",
                     color: tab === t.id ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                    border: tab === t.id ? "none" : "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    boxShadow: tab === t.id ? "var(--shadow-card)" : "none",
+                    boxShadow: tab === t.id ? "0 1px 6px color-mix(in srgb, var(--primary) 20%, transparent)" : "none",
                   }}>
                   <t.icon size={12} />
-                  <span className="text-[10px]">{t.label}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
                 </button>
               ))}
             </div>
