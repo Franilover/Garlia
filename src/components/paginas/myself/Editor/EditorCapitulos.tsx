@@ -9,7 +9,7 @@ import {
   Plus, RefreshCw, Save, Search,
   Trash2, WifiOff, X, Check, CheckCircle2, AlertCircle,
   Eye, EyeOff, Maximize2, Minimize2, Clock, Hash,
-  AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal,
+  AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal, Globe, Lock, Timer,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
@@ -24,6 +24,8 @@ type Libro = {
   sinopsis?: string;
   portada_url?: string;
   estado?: string;
+  visibilidad?: "publico" | "programado" | "oculto";
+  fecha_publicacion?: string;
 };
 
 type Capitulo = {
@@ -47,6 +49,13 @@ const ESTADO_COLOR: Record<string, string> = {
   BORRADOR:     "bg-primary/10 text-primary/40 border-primary/20",
   PAUSADO:      "bg-primary/10 text-primary/40 border-primary/20",
 };
+
+const VISIBILIDAD_CONFIG = {
+  publico:    { label: "Público",    icon: Globe, color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
+  programado: { label: "Programado", icon: Timer, color: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
+  oculto:     { label: "Oculto",     icon: Lock,  color: "bg-primary/10 text-primary/40 border-primary/20" },
+} as const;
+
 
 function wordCount(text: string) {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -176,6 +185,14 @@ async function capDelete(id: string): Promise<void> {
   }
 }
 
+async function libroUpdateVisibilidad(id: string, visibilidad: string, fechaPublicacion?: string): Promise<void> {
+  const fields: any = { visibilidad };
+  if (fechaPublicacion !== undefined) fields.fecha_publicacion = fechaPublicacion || null;
+  const { error } = await supabase.from("libros").update(fields).eq("id", id);
+  if (error) throw error;
+}
+
+
 function useLibros() {
   const [libros, setLibros]       = useState<Libro[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -227,7 +244,7 @@ function useLibros() {
     return () => window.removeEventListener("online", h);
   }, [load]);
 
-  return { libros, loading, isOffline, refetch: load };
+  return { libros, setLibros, loading, isOffline, refetch: load };
 }
 
 function useCapitulos(libroId: string | null) {
@@ -473,6 +490,15 @@ const LibroItem = ({
         <span className="flex-1 text-xs font-black uppercase italic tracking-tight text-primary leading-tight truncate">
           {libro.titulo}
         </span>
+        {libro.visibilidad && libro.visibilidad !== "publico" && (() => {
+          const cfg = VISIBILIDAD_CONFIG[libro.visibilidad] ?? VISIBILIDAD_CONFIG.oculto;
+          const Icon = cfg.icon;
+          return (
+            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border shrink-0 flex items-center gap-0.5 ${cfg.color}`}>
+              <Icon size={8} />
+            </span>
+          );
+        })()}
         {libro.estado && (
           <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border shrink-0 ${ESTADO_COLOR[libro.estado] || ESTADO_COLOR.BORRADOR}`}>
             {libro.estado === "EN PROCESO" ? "WIP" : libro.estado === "FINALIZADO" ? "✓" : "…"}
@@ -772,16 +798,67 @@ const PanelEditor = ({
   );
 };
 
+// ─── Selector de visibilidad inline ─────────────────────────────────────────
+const SelectorVisibilidad = ({
+  value, onChange, fechaPublicacion, onFechaChange,
+}: {
+  value: "publico" | "programado" | "oculto";
+  onChange: (v: "publico" | "programado" | "oculto") => void;
+  fechaPublicacion?: string;
+  onFechaChange?: (v: string) => void;
+}) => (
+  <div className="space-y-2">
+    <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+      Visibilidad del Libro
+    </label>
+    <div className="flex gap-2">
+      {(["publico", "programado", "oculto"] as const).map((v) => {
+        const cfg = VISIBILIDAD_CONFIG[v];
+        const Icon = cfg.icon;
+        const active = value === v;
+        return (
+          <button
+            key={v} type="button"
+            onClick={() => onChange(v)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border transition-all ${
+              active ? cfg.color + " shadow-sm" : "border-primary/10 text-primary/30 hover:border-primary/25 hover:text-primary/60"
+            }`}
+          >
+            <Icon size={11} /> {cfg.label}
+          </button>
+        );
+      })}
+    </div>
+    {value === "programado" && onFechaChange && (
+      <div className="mt-2">
+        <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+          Fecha de publicación del libro
+        </label>
+        <input
+          type="date"
+          value={fechaPublicacion || ""}
+          onChange={e => onFechaChange(e.target.value)}
+          className="mt-1 w-full bg-primary/5 border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] font-bold text-primary outline-none focus:border-primary/30 transition-colors"
+        />
+      </div>
+    )}
+  </div>
+);
+
 const ModalEditarCapitulo = ({
-  cap, onSaved, onClose,
+  cap, libro, onSaved, onLibroUpdated, onClose,
 }: {
   cap: Capitulo;
+  libro?: Libro;
   onSaved: (c: Capitulo) => void;
+  onLibroUpdated?: (l: Partial<Libro>) => void;
   onClose: () => void;
 }) => {
-  const [titulo, setTitulo] = useState(cap.titulo_capitulo);
-  const [fecha,  setFecha]  = useState(toDateInput(cap.fecha_publicacion));
-  const [saving, setSaving] = useState(false);
+  const [titulo,        setTitulo]        = useState(cap.titulo_capitulo);
+  const [fecha,         setFecha]         = useState(toDateInput(cap.fecha_publicacion));
+  const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">(libro?.visibilidad ?? "oculto");
+  const [fechaLibro,    setFechaLibro]    = useState(libro?.fecha_publicacion ?? "");
+  const [saving,        setSaving]        = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -790,6 +867,11 @@ const ModalEditarCapitulo = ({
     try {
       const fields = { titulo_capitulo: titulo.trim().toUpperCase(), fecha_publicacion: fecha };
       await capUpdateMeta(cap.id, fields);
+      // Actualizar visibilidad del libro si cambió
+      if (libro && (visibilidad !== libro.visibilidad || fechaLibro !== libro.fecha_publicacion)) {
+        await libroUpdateVisibilidad(libro.id, visibilidad, visibilidad === "programado" ? fechaLibro : undefined);
+        onLibroUpdated?.({ visibilidad, fecha_publicacion: visibilidad === "programado" ? fechaLibro : undefined });
+      }
       onSaved({ ...cap, ...fields });
       onClose();
     } catch {}
@@ -806,7 +888,15 @@ const ModalEditarCapitulo = ({
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
-        <CampoInput label="Fecha de publicación" value={fecha} onChange={setFecha} type="date" />
+        <CampoInput label="Fecha de publicación del capítulo" value={fecha} onChange={setFecha} type="date" />
+        {libro && (
+          <SelectorVisibilidad
+            value={visibilidad}
+            onChange={setVisibilidad}
+            fechaPublicacion={fechaLibro}
+            onFechaChange={setFechaLibro}
+          />
+        )}
         <BotonSubmit
           loading={saving}
           disabled={!titulo.trim()}
@@ -819,16 +909,20 @@ const ModalEditarCapitulo = ({
 };
 
 const ModalNuevoCapitulo = ({
-  libroId, ordenSiguiente, onCreated, onClose,
+  libroId, libro, ordenSiguiente, onCreated, onLibroUpdated, onClose,
 }: {
   libroId: string;
+  libro?: Libro;
   ordenSiguiente: number;
   onCreated: (cap: Capitulo) => void;
+  onLibroUpdated?: (l: Partial<Libro>) => void;
   onClose: () => void;
 }) => {
-  const [titulo, setTitulo] = useState("");
-  const [fecha,  setFecha]  = useState(new Date().toISOString().split("T")[0]);
-  const [saving, setSaving] = useState(false);
+  const [titulo,      setTitulo]      = useState("");
+  const [fecha,       setFecha]       = useState(new Date().toISOString().split("T")[0]);
+  const [visibilidad, setVisibilidad] = useState<"publico" | "programado" | "oculto">(libro?.visibilidad ?? "oculto");
+  const [fechaLibro,  setFechaLibro]  = useState(libro?.fecha_publicacion ?? "");
+  const [saving,      setSaving]      = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -836,6 +930,11 @@ const ModalNuevoCapitulo = ({
     setSaving(true);
     try {
       const nuevo = await capCreate(libroId, titulo, ordenSiguiente, fecha);
+      // Actualizar visibilidad del libro si cambió
+      if (libro && (visibilidad !== libro.visibilidad || fechaLibro !== libro.fecha_publicacion)) {
+        await libroUpdateVisibilidad(libro.id, visibilidad, visibilidad === "programado" ? fechaLibro : undefined);
+        onLibroUpdated?.({ visibilidad, fecha_publicacion: visibilidad === "programado" ? fechaLibro : undefined });
+      }
       onCreated(nuevo);
       onClose();
     } catch {}
@@ -850,7 +949,15 @@ const ModalNuevoCapitulo = ({
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
-        <CampoInput label="Fecha de publicación" value={fecha} onChange={setFecha} type="date" />
+        <CampoInput label="Fecha de publicación del capítulo" value={fecha} onChange={setFecha} type="date" />
+        {libro && (
+          <SelectorVisibilidad
+            value={visibilidad}
+            onChange={setVisibilidad}
+            fechaPublicacion={fechaLibro}
+            onFechaChange={setFechaLibro}
+          />
+        )}
         <BotonSubmit
           loading={saving}
           disabled={!titulo.trim()}
@@ -863,7 +970,7 @@ const ModalNuevoCapitulo = ({
 };
 
 export default function EstudioCapitulos() {
-  const { libros, loading: loadingLibros, isOffline: listaOffline, refetch } = useLibros();
+  const { libros, setLibros, loading: loadingLibros, isOffline: listaOffline, refetch } = useLibros();
 
   const [expandedLibros, setExpandedLibros]     = useState<Set<string>>(new Set());
   const [selectedLibroId, setSelectedLibroId]   = useState<string | null>(null);
@@ -1048,22 +1155,36 @@ export default function EstudioCapitulos() {
       </main>
 
       {}
-      {showNuevoCap && selectedLibroId && (
-        <ModalNuevoCapitulo
-          libroId={selectedLibroId}
-          ordenSiguiente={capitulos.length + 1}
-          onCreated={handleCapCreada}
-          onClose={() => setShowNuevoCap(false)}
-        />
-      )}
+      {showNuevoCap && selectedLibroId && (() => {
+        const libro = libros.find(l => l.id === selectedLibroId);
+        return (
+          <ModalNuevoCapitulo
+            libroId={selectedLibroId}
+            libro={libro}
+            ordenSiguiente={capitulos.length + 1}
+            onCreated={handleCapCreada}
+            onLibroUpdated={(fields) => {
+              setLibros(prev => prev.map(l => l.id === selectedLibroId ? { ...l, ...fields } : l));
+            }}
+            onClose={() => setShowNuevoCap(false)}
+          />
+        );
+      })()}
 
-      {editandoCap && (
-        <ModalEditarCapitulo
-          cap={editandoCap}
-          onSaved={handleCapEditada}
-          onClose={() => setEditandoCap(null)}
-        />
-      )}
+      {editandoCap && (() => {
+        const libro = libros.find(l => l.id === selectedLibroId);
+        return (
+          <ModalEditarCapitulo
+            cap={editandoCap}
+            libro={libro}
+            onSaved={handleCapEditada}
+            onLibroUpdated={(fields) => {
+              setLibros(prev => prev.map(l => l.id === selectedLibroId ? { ...l, ...fields } : l));
+            }}
+            onClose={() => setEditandoCap(null)}
+          />
+        );
+      })()}
     </div>
   );
 }
