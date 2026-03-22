@@ -2,7 +2,8 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Calendar, BookOpen, Bookmark, Plus, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, BookOpen, Bookmark, Plus } from "lucide-react";
+import { BtnIcon } from "@/components/ui";
 import { VistaOpcion, Evento, DIAS_SEMANA_CORTO, DIAS_SEMANA_LETRA, MESES, VISTAS, addDays, isSameDay, toUTCDate } from "./types";
 
 const EventoBadge = ({ item, compact = false }: { item: Evento; compact?: boolean }) => {
@@ -231,13 +232,9 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
             placeholder='"Nuevo evento..."'
             className="flex-1 bg-white border border-primary/10 rounded-xl px-4 py-2 text-[10px] font-bold text-primary placeholder:text-primary/25 outline-none focus:border-primary/30"
           />
-          <button
-            onClick={handleAdd}
-            disabled={isAddingEvento || !nuevoEvento.trim()}
-            className="bg-primary text-white px-4 py-2 rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-40"
-          >
-            {isAddingEvento ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
-          </button>
+          <BtnIcon loading={isAddingEvento} disabled={!nuevoEvento.trim()} onClick={handleAdd} className="rounded-xl w-10 h-10 shrink-0">
+            <Plus size={14} />
+          </BtnIcon>
         </div>
 
         {}

@@ -55,8 +55,8 @@ export function Btn({
 
 // Botón circular — para FABs y acciones icónicas
 export function BtnIcon({
-  children, size = "md", variant = "primary", className = "", ...props
-}: Omit<BtnProps, "icon" | "fullWidth" | "loading">) {
+  children, size = "md", variant = "primary", loading, className = "", ...props
+}: Omit<BtnProps, "icon" | "fullWidth">) {
   const sizes = { sm: "w-8 h-8", md: "w-10 h-10", lg: "w-12 h-12" };
   const variants = {
     primary: "bg-primary text-btn-text hover:opacity-80 shadow-lg",
@@ -68,6 +68,7 @@ export function BtnIcon({
   return (
     <button
       {...props}
+      disabled={props.disabled || loading}
       className={[
         "flex items-center justify-center rounded-full",
         "transition-all active:scale-95 disabled:opacity-50",
@@ -75,7 +76,10 @@ export function BtnIcon({
         className,
       ].join(" ")}
     >
-      {children}
+      {loading
+        ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+        : children
+      }
     </button>
   );
 }

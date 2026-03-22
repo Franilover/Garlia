@@ -2,7 +2,8 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Bookmark, BookOpen, Plus, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Bookmark, BookOpen, Plus } from "lucide-react";
+import { BtnIcon } from "@/components/ui";
 import { MESES } from "./types";
 
 const EventoBadge = ({ item, compact = false }: { item: any; compact?: boolean }) => {
@@ -154,13 +155,9 @@ export const VistaMes = ({
             placeholder='"Nombre del evento..."'
             className="flex-1 bg-white rounded-xl px-4 py-2 text-xs text-primary font-bold outline-none border border-primary/10 focus:border-primary/30"
           />
-          <button
-            onClick={handleAddEvento}
-            disabled={isAddingEvento || !nuevoEvento.trim()}
-            className="bg-primary text-white px-4 py-2 rounded-xl hover:scale-105 transition-all disabled:opacity-50"
-          >
-            {isAddingEvento ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
-          </button>
+          <BtnIcon loading={isAddingEvento} disabled={!nuevoEvento.trim()} onClick={handleAddEvento} className="rounded-xl w-10 h-10 shrink-0">
+            <Plus size={16} />
+          </BtnIcon>
         </div>
       </div>
 

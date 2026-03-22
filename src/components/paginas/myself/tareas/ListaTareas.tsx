@@ -2,7 +2,8 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { CheckSquare, Plus, Trash2, Loader2 } from "lucide-react";
+import { CheckSquare, Plus, Trash2 } from "lucide-react";
+import { Btn, BtnIcon } from "@/components/ui";
 
 interface Props {
   tareas: any[];
@@ -33,13 +34,9 @@ export const ListaTareas = ({
         placeholder='"Añadir una tarea..."'
         className="w-full bg-primary/5 border-2 border-transparent focus:border-primary/10 focus:bg-white rounded-2xl py-4 px-6 text-sm text-primary transition-all outline-none font-bold placeholder:text-primary/30"
       />
-      <button
-        onClick={onAdd}
-        disabled={isAddingTarea || !nuevaTarea.trim()}
-        className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2.5 rounded-xl hover:scale-105 active:scale-95 transition-all"
-      >
-        {isAddingTarea ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-      </button>
+      <BtnIcon loading={isAddingTarea} disabled={!nuevaTarea.trim()} onClick={onAdd} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl w-10 h-10">
+        <Plus size={20} />
+      </BtnIcon>
     </div>
 
     <div className="space-y-3 flex-1 overflow-y-auto max-h-100 pr-2 custom-scrollbar">
@@ -67,12 +64,9 @@ export const ListaTareas = ({
                 "{t.titulo}"
               </span>
             </div>
-            <button
-              onClick={() => onDelete(t.id)}
-              className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:bg-red-50 rounded-lg transition-all"
-            >
+            <BtnIcon variant="danger" size="sm" onClick={() => onDelete(t.id)} className="opacity-0 group-hover:opacity-100 border-none hover:bg-red-50 w-8 h-8">
               <Trash2 size={16} />
-            </button>
+            </BtnIcon>
           </motion.div>
         ))}
       </AnimatePresence>
