@@ -225,37 +225,54 @@ function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
 }) {
   return (
     <button onClick={onClick}
-      className="group p-4 flex items-center gap-4 text-left cursor-pointer transition-all w-full"
+      className="group text-left cursor-pointer w-full overflow-hidden"
       style={{
-        background: "var(--bg-main)",
-        border: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+        background: "var(--white-custom)",
+        border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        transition: "all 0.2s ease",
       }}
       onMouseEnter={e => {
         const el = e.currentTarget as HTMLElement;
-        el.style.borderColor = "color-mix(in srgb, var(--primary) 20%, transparent)";
-        el.style.boxShadow = "var(--shadow-card)";
+        el.style.borderColor = "color-mix(in srgb, var(--primary) 30%, transparent)";
+        el.style.transform = "translateY(-2px)";
+        el.style.boxShadow = "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)";
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLElement;
-        el.style.borderColor = "color-mix(in srgb, var(--primary) 5%, transparent)";
-        el.style.boxShadow = "none";
+        el.style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
+        el.style.transform = "translateY(0)";
+        el.style.boxShadow = "var(--shadow-card)";
       }}
     >
-      <div className="w-12 h-12 flex items-center justify-center shrink-0 overflow-hidden group-hover:scale-110 transition-transform"
+      <div className="hidden md:flex w-full items-center justify-center overflow-hidden"
         style={{
-          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-          borderRadius: "var(--radius-btn)",
-          color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+          height: "120px",
+          background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
+          color: "color-mix(in srgb, var(--primary) 20%, transparent)",
         }}>
         {imagen
-          ? <img src={imagen} alt={nombre} className="w-full h-full object-contain p-1" />
-          : icono
+          ? <img src={imagen} alt={nombre} className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300" />
+          : <div className="opacity-30 group-hover:opacity-50 transition-opacity">{icono}</div>
         }
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-black uppercase tracking-tight truncate" style={{ color: "var(--primary)" }}>{nombre}</p>
-        <p className="text-[9px] font-black uppercase" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>{sub}</p>
+      <div className="flex md:flex-col items-center md:items-start gap-3 md:gap-1 p-3 md:px-3 md:pt-2 md:pb-3">
+        <div className="md:hidden w-10 h-10 flex items-center justify-center shrink-0 overflow-hidden"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+            borderRadius: "var(--radius-btn)",
+            color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+          }}>
+          {imagen
+            ? <img src={imagen} alt={nombre} className="w-full h-full object-contain p-1" />
+            : icono
+          }
+        </div>
+        <div className="flex-1 min-w-0 md:w-full">
+          <p className="text-[11px] font-black uppercase tracking-tight truncate" style={{ color: "var(--primary)" }}>{nombre}</p>
+          <p className="text-[9px] font-black uppercase mt-0.5" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{sub}</p>
+        </div>
       </div>
     </button>
   );
@@ -1145,7 +1162,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               <motion.div key={tab}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}
-                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
 
                 {tab === "items" && (
                   <>
