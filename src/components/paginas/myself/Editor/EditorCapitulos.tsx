@@ -12,6 +12,7 @@ import {
   AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal, Globe, Lock, Timer, Image,
   Sword, Zap, Music2, GitMerge, MousePointerClick, ChevronRight as ChevronR,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
 import { db } from "@/lib/api/client/db";
@@ -937,6 +938,7 @@ const PanelEditor = ({
   const [editingFecha,  setEditingFecha]  = useState(false);
   const [fecha,         setFecha]         = useState("");
   const [savingMeta,    setSavingMeta]    = useState(false);
+  const [previewOpen,   setPreviewOpen]   = useState(false);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
   const timer   = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
