@@ -9,8 +9,8 @@ import {
   Plus, RefreshCw, Save, Search,
   Trash2, WifiOff, X, Check, CheckCircle2, AlertCircle,
   Eye, EyeOff, Maximize2, Minimize2, Clock, Hash,
-  AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal, Globe, Lock, Timer,
-  Sword, Package, Sparkles, Copy, ChevronRight as ChevronRightIcon,
+  AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal, Globe, Lock, Timer, Image,
+  Sword, Zap, Music2, GitMerge, MousePointerClick, ChevronRight as ChevronR,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
@@ -18,6 +18,9 @@ import { db } from "@/lib/api/client/db";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, EmptyEstudio, ModalBase, SaveIndicator, CampoInput, BotonSubmit, normalize } from "@/components/templates/EstudioTemplates";
+import { SoundPicker } from "@/components/forms/SoundPicker";
+import { EntidadPicker } from "@/components/forms/EntidadPicker";
+import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 
 type Libro = {
   id: string;
@@ -560,262 +563,314 @@ const LibroItem = ({
   );
 };
 
-// ─── Tipos para entidades ────────────────────────────────────────────────────
-type EntidadTipo = "item" | "criatura" | "personaje";
+// ─── Tipos de entidad ─────────────────────────────────────────────────────────
+type EntidadTipo = "personaje" | "criatura" | "item";
 
-interface Entidad {
-  id: string;
-  nombre: string;
-  img?: string;
-  subtitulo?: string;
+// ─── Hook para cargar entidades de Supabase ───────────────────────────────────
+function useEntidades(tipo: EntidadTipo) {
+  const tabla = tipo === "personaje" ? "personajes" : tipo === "criatura" ? "criaturas" : "items";
+  const [items, setItems] = useState<{ id: string; nombre: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    setLoading(true);
+    supabase.from(tabla).select("id, nombre").order("nombre").then(({ data }) => {
+      setItems((data ?? []) as { id: string; nombre: string }[]);
+      setLoading(false);
+    });
+  }, [tabla]);
+  return { items, loading };
 }
 
-const ENTIDAD_CONFIG: Record<EntidadTipo, {
-  label: string; plural: string; tabla: string;
-  icon: React.ElementType; color: string;
-  nombreCol: string; imgCol?: string; subCol?: string;
-}> = {
-  item:      { label: "Ítem",      plural: "Ítems",      tabla: "items",     icon: Package,  color: "text-amber-500",   nombreCol: "nombre",  imgCol: "img_url",    subCol: "sobre" },
-  criatura:  { label: "Criatura",  plural: "Criaturas",  tabla: "criaturas", icon: Sparkles, color: "text-violet-500",  nombreCol: "nombre",  imgCol: "imagen_url", subCol: "descripcion" },
-  personaje: { label: "Personaje", plural: "Personajes", tabla: "personajes", icon: Sword,    color: "text-primary",     nombreCol: "nombre",  imgCol: "img_url",    subCol: "sobre" },
+// ─── Modal de inserción de Drop ───────────────────────────────────────────────
+const ModalDrop = ({ onInsert, onClose }: { onInsert: (s: string) => void; onClose: () => void }) => (
+  <EntidadPicker open onClose={onClose} onInsert={onInsert} />
+);
+
+
+const ModalChoice = ({
+  onInsert, onClose, listaCapitulos,
+}: { onInsert: (s: string) => void; onClose: () => void; listaCapitulos: { id: string; orden: number; titulo_capitulo: string }[] }) => {
+  const [label,  setLabel]  = useState("");
+  const [target, setTarget] = useState("");
+  const [modo,   setModo]   = useState<"cap" | "section">("cap");
+
+  const snippet = label.trim() && target.trim() ? `[[choice|${label.trim()}|${target.trim()}]]` : "";
+
+  const handleInsert = () => { if (!snippet) return; onInsert(snippet); onClose(); };
+
+  return (
+    <ModalBase onClose={onClose}>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+          <GitMerge size={12} className="text-blue-500"/> Botón de Decisión
+        </h3>
+        <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16}/></button>
+      </div>
+      <div className="space-y-4">
+        <div className="flex gap-1 bg-primary/5 p-1 rounded-[var(--radius-btn)]">
+          {([["cap","Capítulo"],["section","Sección interna"]] as const).map(([k,v]) => (
+            <button key={k} type="button" onClick={() => { setModo(k); setTarget(""); }}
+              className={`flex-1 py-1.5 rounded-[var(--radius-input)] text-[9px] font-black uppercase transition-all ${
+                modo === k ? "bg-white-custom shadow text-primary" : "text-primary/40"
+              }`}>{v}</button>
+          ))}
+        </div>
+        <CampoInput label="Texto del botón" value={label} onChange={setLabel} placeholder="ej: Abrir el cofre, Huir…" autoFocus />
+        {modo === "cap" ? (
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulo destino</label>
+            <select value={target} onChange={e => setTarget(e.target.value)}
+              className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none">
+              <option value="">— Seleccionar —</option>
+              {listaCapitulos.map(c => (
+                <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo}</option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <CampoInput label="ID de sección" value={target} onChange={setTarget} placeholder="ej: cofre (debe coincidir con [[section|cofre]])" />
+        )}
+        {snippet && (
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-[var(--radius-btn)] px-3 py-2">
+            <code className="text-[10px] text-blue-600 font-mono break-all">{snippet}</code>
+          </div>
+        )}
+        <button type="button" onClick={handleInsert} disabled={!snippet}
+          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
+          <GitMerge size={13}/>Insertar Choice
+        </button>
+      </div>
+    </ModalBase>
+  );
 };
 
-// ─── DropPicker — panel de inserción de drops ────────────────────────────────
-const DropPicker = ({
-  open, onClose, onInsert,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onInsert: (snippet: string) => void;
-}) => {
-  const [tipo,       setTipo]       = React.useState<EntidadTipo>("item");
-  const [busqueda,   setBusqueda]   = React.useState("");
-  const [entidades,  setEntidades]  = React.useState<Entidad[]>([]);
-  const [loading,    setLoading]    = React.useState(false);
-  const [selected,   setSelected]   = React.useState<Entidad | null>(null);
-  const [palabra,    setPalabra]    = React.useState("");
-  const [copied,     setCopied]     = React.useState(false);
+// ─── Modal de Usar Ítem ───────────────────────────────────────────────────────
+const ModalUseItem = ({
+  onInsert, onClose, listaCapitulos,
+}: { onInsert: (s: string) => void; onClose: () => void; listaCapitulos: { id: string; orden: number; titulo_capitulo: string }[] }) => {
+  const [palabra,    setPalabra]    = useState("");
+  const [busqueda,   setBusqueda]   = useState("");
+  const [selectedItem, setSelectedItem] = useState<{ id: string; nombre: string } | null>(null);
+  const [targetOk,   setTargetOk]   = useState("");
+  const [targetFail, setTargetFail] = useState("");
+  const { items, loading } = useEntidades("item");
+  const filtrados = items.filter(i => i.nombre.toLowerCase().includes(busqueda.toLowerCase()));
 
-  // Cargar entidades cuando cambia el tipo
-  React.useEffect(() => {
-    if (!open) return;
-    setSelected(null); setBusqueda(""); setPalabra("");
-    setLoading(true);
-    const cfg = ENTIDAD_CONFIG[tipo];
-    supabase.from(cfg.tabla)
-      .select(`id, ${cfg.nombreCol}${cfg.imgCol ? `, ${cfg.imgCol}` : ""}${cfg.subCol ? `, ${cfg.subCol}` : ""}`)
-      .order(cfg.nombreCol, { ascending: true })
-      .then(({ data }) => {
-        setEntidades((data ?? []).map((d: any) => ({
-          id:       d.id,
-          nombre:   d[cfg.nombreCol],
-          img:      cfg.imgCol ? d[cfg.imgCol] : undefined,
-          subtitulo: cfg.subCol ? d[cfg.subCol] : undefined,
-        })));
-      })
-      .finally(() => setLoading(false));
-  }, [tipo, open]);
-
-  const filtradas = React.useMemo(() =>
-    entidades.filter(e =>
-      !busqueda || e.nombre.toLowerCase().includes(busqueda.toLowerCase())
-    ),
-    [entidades, busqueda]
-  );
-
-  const snippet = selected
-    ? `[[drop|${palabra.trim() || selected.nombre}|${tipo}|${selected.id}|${selected.nombre}]]`
+  const snippet = palabra.trim() && selectedItem && targetOk
+    ? `[[use|${palabra.trim()}|${selectedItem.id}|${targetOk}${targetFail ? `|${targetFail}` : ""}]]`
     : "";
 
-  const handleCopy = () => {
-    if (!snippet) return;
-    navigator.clipboard.writeText(snippet);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
+  const handleInsert = () => { if (!snippet) return; onInsert(snippet); onClose(); };
+
+  return (
+    <ModalBase onClose={onClose}>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+          <MousePointerClick size={12} className="text-rose-500"/> Usar Ítem
+        </h3>
+        <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16}/></button>
+      </div>
+      <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
+        <CampoInput label="Palabra en el texto" value={palabra} onChange={setPalabra} placeholder="ej: usar llave, abrir cofre…" autoFocus />
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Ítem requerido</label>
+          <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar ítem…"
+            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none focus:border-primary/30" />
+          <div className="max-h-28 overflow-y-auto space-y-0.5 mt-1">
+            {loading ? <p className="text-[9px] text-primary/30 p-2">Cargando…</p>
+              : filtrados.map(item => (
+                <button key={item.id} type="button" onClick={() => setSelectedItem(item)}
+                  className={`w-full text-left px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all ${
+                    selectedItem?.id === item.id ? "bg-primary text-btn-text" : "hover:bg-primary/8 text-primary"
+                  }`}>{item.nombre}</button>
+              ))
+            }
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cap. si TIENE el ítem *</label>
+          <select value={targetOk} onChange={e => setTargetOk(e.target.value)}
+            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none">
+            <option value="">— Seleccionar —</option>
+            {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cap. si NO tiene <span className="opacity-50">(opcional)</span></label>
+          <select value={targetFail} onChange={e => setTargetFail(e.target.value)}
+            className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] text-primary outline-none">
+            <option value="">— Ninguno —</option>
+            {listaCapitulos.map(c => <option key={c.id} value={c.id}>Cap. {c.orden} — {c.titulo_capitulo}</option>)}
+          </select>
+        </div>
+        {snippet && (
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-[var(--radius-btn)] px-3 py-2">
+            <code className="text-[10px] text-rose-600 font-mono break-all">{snippet}</code>
+          </div>
+        )}
+        <button type="button" onClick={handleInsert} disabled={!snippet}
+          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
+          <MousePointerClick size={13}/>Insertar Use
+        </button>
+      </div>
+    </ModalBase>
+  );
+};
+
+// ─── Modal de Sección ─────────────────────────────────────────────────────────
+const ModalSection = ({ onInsert, onClose }: { onInsert: (s: string) => void; onClose: () => void }) => {
+  const [sectionId, setSectionId] = useState("");
+  const [label,     setLabel]     = useState("");
+  const autoId = sectionId || label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+  const snippet = label ? `[[section|${autoId}|${label}]]` : autoId ? `[[section|${autoId}]]` : "";
+  const handleInsert = () => { if (!autoId) return; onInsert(snippet); onClose(); };
+
+  return (
+    <ModalBase onClose={onClose}>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+          <ChevronR size={12} className="text-violet-500"/> Nueva Sección
+        </h3>
+        <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16}/></button>
+      </div>
+      <div className="space-y-4">
+        <CampoInput label="Nombre visible (opcional)" value={label} onChange={setLabel} placeholder="ej: Abrir el cofre" autoFocus />
+        <CampoInput label="ID (debe coincidir con choice target)" value={sectionId}
+          onChange={v => setSectionId(v.toLowerCase().replace(/\s+/g,"-"))}
+          placeholder={autoId || "ej: cofre"} />
+        {snippet && (
+          <div className="bg-violet-500/10 border border-violet-500/20 rounded-[var(--radius-btn)] px-3 py-2">
+            <code className="text-[10px] text-violet-600 font-mono">{snippet}</code>
+          </div>
+        )}
+        <button type="button" onClick={handleInsert} disabled={!autoId}
+          className="w-full flex items-center justify-center gap-2 bg-primary text-btn-text py-3 rounded-[var(--radius-btn)] font-black uppercase text-[10px] tracking-widest disabled:opacity-40 transition-all hover:opacity-80">
+          <ChevronR size={13}/>Insertar Sección
+        </button>
+      </div>
+    </ModalBase>
+  );
+};
+
+// ─── Modal de Sonido ─────────────────────────────────────────────────────────
+const ModalImagen = ({ onInsert, onClose }: { onInsert: (s: string) => void; onClose: () => void }) => {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [caption, setCaption] = useState("");
+  const [word, setWord] = useState("");
+  const [mode, setMode] = useState<"img" | "float">("img");
 
   const handleInsert = () => {
-    if (!snippet) return;
+    if (!selected) return;
+    let snippet = "";
+    if (mode === "img") snippet = caption ? `[[img|${selected}|${caption}]]` : `[[img|${selected}]]`;
+    else { const w = word.trim() || "imagen"; snippet = caption ? `[[float|${w}|${selected}|${caption}]]` : `[[float|${w}|${selected}]]`; }
     onInsert(snippet);
     onClose();
   };
 
-  if (!open) return null;
+  return (
+    <ModalBase onClose={onClose}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+          <Image size={12} className="text-emerald-500"/> Imagen
+        </h3>
+        <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16}/></button>
+      </div>
+      <div className="space-y-4">
+        <div className="flex gap-2">
+          {([{ k: "img", l: "Inline" }, { k: "float", l: "Flotante" }] as const).map(o => (
+            <button key={o.k} type="button" onClick={() => setMode(o.k)}
+              className={`flex-1 py-2 rounded-[var(--radius-btn)] text-[9px] font-black uppercase border transition-all ${mode === o.k ? "bg-primary text-btn-text border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30"}`}>
+              {o.l}
+            </button>
+          ))}
+        </div>
+        <SimpleImagePicker
+          onSelect={url => setSelected(url)}
+          onClose={onClose}
+        />
+        {selected && (
+          <>
+            {mode === "float" && (
+              <CampoInput label="Palabra en el texto" value={word} onChange={setWord} placeholder="ej: el castillo, Kael…" />
+            )}
+            <CampoInput label="Caption (opcional)" value={caption} onChange={setCaption} placeholder="Descripción breve…" />
+            <BotonSubmit loading={false} disabled={!selected}
+              labelLoading={<>Insertar</>}
+              labelNormal={<><Image size={13}/>Insertar Imagen</>}
+              onClick={handleInsert}
+            />
+          </>
+        )}
+      </div>
+    </ModalBase>
+  );
+};
+
+
+const ModalSonido = ({ onInsert, onClose }: { onInsert: (s: string) => void; onClose: () => void }) => (
+  <SoundPicker open onClose={onClose} onInsert={onInsert} />
+);
+
+// ─── Toolbar de Snippets ──────────────────────────────────────────────────────
+const SnippetToolbar = ({
+  textareaRef, value, onChange, listaCapitulos,
+}: {
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  value: string;
+  onChange: (v: string) => void;
+  listaCapitulos: { id: string; orden: number; titulo_capitulo: string }[];
+}) => {
+  const [openModal, setOpenModal] = useState<"drop"|"choice"|"use"|"section"|"sound"|"imagen"|null>(null);
+
+  const insertAtCursor = useCallback((snippet: string) => {
+    const el = textareaRef.current;
+    if (!el) { onChange(value + snippet); return; }
+    const s = el.selectionStart, e = el.selectionEnd;
+    const next = value.slice(0, s) + snippet + value.slice(e);
+    onChange(next);
+    setTimeout(() => { el.focus(); el.setSelectionRange(s + snippet.length, s + snippet.length); }, 0);
+  }, [textareaRef, value, onChange]);
+
+  const btns = [
+    { key: "drop",    label: "Drop",     icon: <Sword size={11}/>,              color: "text-amber-500  hover:bg-amber-500/10"  },
+    { key: "imagen",  label: "Imagen",   icon: <Image size={11}/>,              color: "text-emerald-500 hover:bg-emerald-500/10"},
+    { key: "choice",  label: "Choice",   icon: <GitMerge size={11}/>,           color: "text-blue-500   hover:bg-blue-500/10"   },
+    { key: "use",     label: "Use Ítem", icon: <MousePointerClick size={11}/>,  color: "text-rose-500   hover:bg-rose-500/10"   },
+    { key: "section", label: "Sección",  icon: <ChevronR size={11}/>,           color: "text-violet-500 hover:bg-violet-500/10" },
+    { key: "sound",   label: "Sonido",   icon: <Music2 size={11}/>,             color: "text-indigo-500 hover:bg-indigo-500/10" },
+  ] as const;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center p-0 md:p-6">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose} className="absolute inset-0 bg-primary/40 backdrop-blur-md" />
-      <motion.div
-        initial={{ y: "100%", opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-        exit={{ y: "100%", opacity: 0 }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="relative z-10 w-full max-w-2xl bg-bg-main rounded-t-[2rem] md:rounded-[var(--radius-card)] shadow-2xl border border-primary/10 overflow-hidden flex flex-col"
-        style={{ maxHeight: "90vh" }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-primary/10 bg-white-custom shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary p-2 rounded-[var(--radius-btn)]" style={{ color: "var(--btn-text)" }}>
-              <Sword size={16} />
-            </div>
-            <div>
-              <h3 className="text-[11px] font-black uppercase tracking-[0.25em] italic text-primary">Drop de Entidad</h3>
-              <p className="text-[9px] font-bold text-primary/40 uppercase tracking-widest">Genera un snippet [[drop|...]]</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-primary/8 rounded-[var(--radius-btn)] text-primary/30 hover:text-primary transition-all">
-            <X size={18} />
+    <>
+      <div className="flex items-center gap-1 flex-wrap px-8 py-2 border-b border-primary/5 bg-primary/2">
+        <span className="text-[8px] font-black uppercase tracking-widest text-primary/20 mr-2">Snippets</span>
+        {btns.map(b => (
+          <button key={b.key} onClick={() => setOpenModal(b.key)}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide transition-all ${b.color} border border-transparent hover:border-current/20`}
+          >
+            {b.icon} {b.label}
           </button>
-        </div>
+        ))}
+        {/* Inserción rápida: cita y párrafo */}
+        <div className="w-px h-4 bg-primary/10 mx-1" />
+        <button onClick={() => insertAtCursor('[[cita|Texto de la cita — Fuente]]')}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide text-primary/40 hover:bg-primary/8 transition-all border border-transparent hover:border-primary/10">
+          « Cita
+        </button>
+        <button onClick={() => insertAtCursor('\n\n')}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide text-primary/40 hover:bg-primary/8 transition-all border border-transparent hover:border-primary/10">
+          ¶ Párrafo
+        </button>
+      </div>
 
-        {/* Tabs de tipo */}
-        <div className="flex gap-1 p-2 bg-primary/5 border-b border-primary/10 shrink-0">
-          {(Object.entries(ENTIDAD_CONFIG) as [EntidadTipo, typeof ENTIDAD_CONFIG[EntidadTipo]][]).map(([t, cfg]) => {
-            const Icon = cfg.icon;
-            const active = tipo === t;
-            return (
-              <button key={t} onClick={() => setTipo(t)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide transition-all ${
-                  active ? "bg-primary shadow-md" : "text-primary/50 hover:text-primary hover:bg-white-custom"
-                }`}
-                style={active ? { color: "var(--btn-text)" } : {}}>
-                <Icon size={12} /> {cfg.plural}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-1 overflow-hidden min-h-0">
-          {/* Lista de entidades */}
-          <div className="w-1/2 border-r border-primary/10 flex flex-col min-h-0">
-            <div className="p-3 border-b border-primary/8 shrink-0">
-              <div className="relative">
-                <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" />
-                <input
-                  value={busqueda}
-                  onChange={e => setBusqueda(e.target.value)}
-                  placeholder="Buscar..."
-                  className="w-full bg-primary/5 border border-primary/10 rounded-[var(--radius-btn)] pl-8 pr-3 py-2 text-[11px] font-medium text-primary outline-none focus:border-primary/30 placeholder:text-primary/25 transition-colors"
-                />
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {loading ? (
-                <div className="flex items-center justify-center py-12 text-primary/30">
-                  <Loader2 size={16} className="animate-spin" />
-                </div>
-              ) : filtradas.length === 0 ? (
-                <p className="text-[10px] text-primary/25 font-black uppercase tracking-widest text-center py-10 px-4 italic">
-                  Sin resultados
-                </p>
-              ) : (
-                filtradas.map(e => {
-                  const active = selected?.id === e.id;
-                  return (
-                    <button key={e.id} onClick={() => { setSelected(e); setPalabra(""); }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-primary/5 transition-all ${
-                        active ? "bg-primary/8 border-l-2 border-l-primary" : "hover:bg-primary/5"
-                      }`}
-                    >
-                      {e.img ? (
-                        <div className="w-8 h-8 rounded-[var(--radius-btn)] overflow-hidden shrink-0 border border-primary/10 bg-primary/5">
-                          <img src={e.img} alt={e.nombre} className="w-full h-full object-cover" loading="lazy" />
-                        </div>
-                      ) : (
-                        <div className={`w-8 h-8 rounded-[var(--radius-btn)] shrink-0 border border-primary/10 bg-primary/5 flex items-center justify-center ${ENTIDAD_CONFIG[tipo].color}`}>
-                          {React.createElement(ENTIDAD_CONFIG[tipo].icon, { size: 14 })}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-[11px] font-black uppercase truncate ${active ? "text-primary" : "text-primary/70"}`}>{e.nombre}</p>
-                        {e.subtitulo && <p className="text-[9px] text-primary/30 font-medium truncate italic mt-0.5">{e.subtitulo}</p>}
-                      </div>
-                      {active && <Check size={12} className="text-primary shrink-0" />}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Panel de configuración */}
-          <div className="w-1/2 flex flex-col p-4 gap-4 overflow-y-auto">
-            {selected ? (
-              <>
-                {/* Preview de la entidad */}
-                <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-[var(--radius-btn)] border border-primary/10">
-                  {selected.img && (
-                    <div className="w-10 h-10 rounded-[var(--radius-btn)] overflow-hidden shrink-0 border border-primary/10">
-                      <img src={selected.img} alt={selected.nombre} className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase text-primary truncate">{selected.nombre}</p>
-                    <p className={`text-[9px] font-black uppercase tracking-widest ${ENTIDAD_CONFIG[tipo].color}`}>{ENTIDAD_CONFIG[tipo].label}</p>
-                  </div>
-                </div>
-
-                {/* Palabra en el texto */}
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-                    Palabra en el texto <span className="font-normal opacity-60">(opcional)</span>
-                  </label>
-                  <input
-                    value={palabra}
-                    onChange={e => setPalabra(e.target.value)}
-                    placeholder={`ej: ${selected.nombre.split(" ")[0].toLowerCase()}, el arma, la bestia…`}
-                    className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20 placeholder:font-normal transition-colors"
-                  />
-                  <p className="text-[8px] text-primary/30 font-medium italic">
-                    La palabra que aparece en el texto. Si está vacío usa el nombre.
-                  </p>
-                </div>
-
-                {/* Snippet generado */}
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Snippet generado</label>
-                  <div className="flex items-start gap-2">
-                    <code className="flex-1 text-[10px] text-primary/60 font-mono break-all bg-primary/5 rounded-[var(--radius-btn)] px-3 py-2 block border border-primary/10 leading-relaxed">
-                      {snippet}
-                    </code>
-                    <button onClick={handleCopy}
-                      className={`shrink-0 p-2 rounded-[var(--radius-btn)] border transition-all ${
-                        copied ? "bg-emerald-500/20 text-emerald-500 border-emerald-500/30" : "bg-primary/5 text-primary/40 border-primary/10 hover:border-primary/30 hover:text-primary"
-                      }`}>
-                      {copied ? <Check size={13} /> : <Copy size={13} />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Botones */}
-                <div className="flex gap-2 mt-auto pt-2">
-                  <button onClick={onClose}
-                    className="flex-1 py-2.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide border border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary transition-all">
-                    Cancelar
-                  </button>
-                  <button onClick={handleInsert}
-                    className="flex-[2] py-2.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase tracking-wide bg-primary shadow-lg shadow-primary/20 hover:opacity-80 active:scale-95 transition-all"
-                    style={{ color: "var(--btn-text)" }}>
-                    Insertar en cursor
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-                <div className={`mb-3 opacity-20 ${ENTIDAD_CONFIG[tipo].color}`}>
-                  {React.createElement(ENTIDAD_CONFIG[tipo].icon, { size: 36 })}
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary/30">
-                  Selecciona un {ENTIDAD_CONFIG[tipo].label.toLowerCase()}
-                </p>
-                <p className="text-[9px] text-primary/20 mt-1 font-medium italic">de la lista de la izquierda</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.div>
-    </div>
+      {openModal === "drop"    && <ModalDrop    onInsert={insertAtCursor} onClose={() => setOpenModal(null)} />}
+      {openModal === "choice"  && <ModalChoice  onInsert={insertAtCursor} onClose={() => setOpenModal(null)} listaCapitulos={listaCapitulos} />}
+      {openModal === "use"     && <ModalUseItem onInsert={insertAtCursor} onClose={() => setOpenModal(null)} listaCapitulos={listaCapitulos} />}
+      {openModal === "section" && <ModalSection onInsert={insertAtCursor} onClose={() => setOpenModal(null)} />}
+      {openModal === "sound"   && <ModalSonido  onInsert={insertAtCursor} onClose={() => setOpenModal(null)} />}
+      {openModal === "imagen"  && <ModalImagen  onInsert={insertAtCursor} onClose={() => setOpenModal(null)} />}
+    </>
   );
 };
 
@@ -883,9 +938,9 @@ const PanelEditor = ({
   const [editingFecha,  setEditingFecha]  = useState(false);
   const [fecha,         setFecha]         = useState("");
   const [savingMeta,    setSavingMeta]    = useState(false);
-  const [dropPickerOpen, setDropPickerOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
   const timer   = useRef<any>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!cap) return;
@@ -894,7 +949,16 @@ const PanelEditor = ({
     setFecha(toDateInput(cap.fecha_publicacion));
     if (cap.status === "pending") setSaveStatus("pending");
     else setSaveStatus("idle");
-  }, [cap?.id]); 
+  }, [cap?.id]);
+
+  // Cargar lista de caps del libro para snippet de choice/use
+  useEffect(() => {
+    if (!libroId) return;
+    supabase.from("capitulos").select("id, orden, titulo_capitulo")
+      .eq("libro_id", libroId).order("orden").then(({ data }) => {
+        setListaSnippetCaps((data ?? []) as {id:string;orden:number;titulo_capitulo:string}[]);
+      });
+  }, [libroId]); 
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -915,24 +979,6 @@ const PanelEditor = ({
       setSaveStatus(e?.message === "offline" ? "pending" : "error");
     }
   }, [capId, setCap]);
-
-  const insertAtCursor = useCallback((snippet: string) => {
-    const el = textareaRef.current;
-    if (!el) { setContenido(prev => prev + snippet); return; }
-    const s = el.selectionStart ?? contenido.length;
-    const e = el.selectionEnd ?? s;
-    const next = contenido.slice(0, s) + snippet + contenido.slice(e);
-    setContenido(next);
-    // Re-disparar autosave
-    setSaveStatus("saving");
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => doSave(next), 2000);
-    setTimeout(() => {
-      el.focus();
-      el.setSelectionRange(s + snippet.length, s + snippet.length);
-    }, 0);
-  }, [contenido, doSave]);
-
 
   const onChange = (val: string) => {
     setContenido(val);
@@ -985,16 +1031,6 @@ const PanelEditor = ({
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-      <AnimatePresence>
-        {dropPickerOpen && (
-          <DropPicker
-            open={dropPickerOpen}
-            onClose={() => setDropPickerOpen(false)}
-            onInsert={insertAtCursor}
-          />
-        )}
-      </AnimatePresence>
-
       {isOffline && <BannerOffline color="blue" mensaje="Sin conexión — los cambios se guardan localmente" />}
 
       {saveStatus === "pending" && !isOffline && (
@@ -1045,13 +1081,6 @@ const PanelEditor = ({
 
             {}
             <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => setDropPickerOpen(true)}
-                className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-amber-500 transition-all"
-                title="Insertar Drop (entidad, ítem, criatura)"
-              >
-                <Sword size={14}/>
-              </button>
               <button
                 onClick={() => doSave(contenido)}
                 disabled={saveStatus === "saving"}
@@ -1140,6 +1169,15 @@ const PanelEditor = ({
             </button>
           </div>
         </div>
+      )}
+
+      {!focusMode && (
+        <SnippetToolbar
+          textareaRef={textareaRef}
+          value={contenido}
+          onChange={onChange}
+          listaCapitulos={listaSnippetCaps}
+        />
       )}
 
       {}
