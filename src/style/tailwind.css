@@ -214,10 +214,8 @@
 [data-theme="scribble"] .title,
 [data-theme="scribble"] .card-title,
 [data-theme="scribble"] .heading {
+  /* Solo familia — tamaño y line-height los controla Tailwind */
   font-family: 'Caveat', cursive !important;
-  /* inherit: respeta los text-5xl, text-7xl, etc. de Tailwind sin multiplicar */
-  font-size: inherit;
-  line-height: 1.15;
 }
 
 /* Textura de papel (Scribble) */
