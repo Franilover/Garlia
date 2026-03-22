@@ -6,8 +6,8 @@ import {
   ChevronLeft, ChevronRight, List, Save, Edit3, X,
   BookOpen, Clock, AlignLeft, Maximize2, Minimize2,
   ChevronDown, Check, Eye, Type, Image, Quote,
-  Folder, FolderOpen, ChevronRight as ChevronR, Loader2,
-  Music2, Sword, GitMerge, MousePointerClick, PlusCircle
+  Folder, FolderOpen, ChevronRight as ChevronR,
+  Music2, Sword, GitMerge, MousePointerClick, PlusCircle, Loader2
 } from "lucide-react";
 import { SoundPicker } from "@/components/forms/SoundPicker";
 import { EntidadPicker } from "@/components/forms/EntidadPicker";
@@ -15,6 +15,7 @@ import { DropWord } from "@/components/ui/DropWord";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { librosQueries, Capitulo } from "@/lib/api/queries/wiki/libros";
+import { Btn, BtnIcon } from "@/components/ui";
 
 interface CapituloLista {
   id: string; orden: number; fecha_publicacion: string; titulo_capitulo?: string;
@@ -65,7 +66,7 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
   const { label, color } = map[status];
   return (
     <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all ${color}`}>
-      {status === "saving" && <Loader2 size={9} className="animate-spin" />}
+      {status === "saving" && <span className="w-2 h-2 border border-current rounded-full border-t-transparent animate-spin inline-block" />}
       {status === "saved"  && <Check size={9} />}
       {label}
     </span>
@@ -186,7 +187,7 @@ function FloatWord({ word, url, caption }: { word: string; url: string; caption?
               <div className="rounded-[var(--radius-btn)] overflow-hidden shadow-2xl" style={{ boxShadow: "0 24px 64px rgba(44,38,46,0.22), 0 4px 16px rgba(44,38,46,0.12)" }}>
                 <div className="relative">
                   <img src={url} alt={caption ?? word} className="w-full object-cover" style={{ maxHeight: 260 }} />
-                  <button onClick={() => setOpen(false)} className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-primary-dark/50 backdrop-blur-sm flex items-center justify-center text-white/80 hover:bg-primary-dark/70 transition-all"><X size={13} /></button>
+                  <BtnIcon onClick={() => setOpen(false)}><X size={13} /></BtnIcon>
                 </div>
                 {caption && <div className="bg-white-custom px-4 py-3"><p className="text-[10px] font-black uppercase tracking-widest text-primary/50 text-center">{caption}</p></div>}
               </div>
@@ -472,7 +473,7 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
                 <h3 className="text-sm font-black text-primary-dark uppercase tracking-tight">Explorador de imágenes</h3>
                 <p className="text-[10px] text-primary/40 font-bold uppercase tracking-widest mt-0.5">/public/dibujos</p>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-[var(--radius-btn)] bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/50 transition-all"><X size={15} /></button>
+              <BtnIcon variant="ghost" onClick={onClose} className="border-none text-primary/50"><X size={15} /></BtnIcon>
             </div>
 
             <div className="flex flex-1 overflow-hidden min-h-0">
@@ -540,10 +541,8 @@ function ImagePicker({ open, onClose, onInsert }: { open: boolean; onClose: () =
             <div className="px-6 py-4 border-t border-primary/8 shrink-0 flex items-center justify-between gap-4">
               <p className="text-[10px] text-primary/30 font-bold uppercase tracking-widest">{selected ? "Lista para insertar" : "Ninguna seleccionada"}</p>
               <div className="flex items-center gap-2">
-                <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-                <button onClick={handleInsert} disabled={!selected || (mode === "float" && !word.trim())} className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-primary text-white hover:bg-primary/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5">
-                  <Image size={12} /> Insertar
-                </button>
+                <Btn variant="ghost" size="sm" onClick={onClose}>Cancelar</Btn>
+                <Btn size="sm" onClick={handleInsert} disabled={!selected || (mode === "float" && !word.trim())} icon={<Image size={12} />}>Insertar</Btn>
               </div>
             </div>
           </motion.div>
@@ -617,11 +616,8 @@ function NodeCreatorModal({ open, onClose, onInsert, libroId, nextOrder }: { ope
         />
 
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleCreate} disabled={loading || !label.trim()} className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
-            {loading ? <Loader2 size={12} className="animate-spin" /> : <PlusCircle size={12} />} 
-            {loading ? "Creando..." : "Crear Ruta"}
-          </button>
+          <Btn variant="ghost" size="sm" onClick={onClose}>Cancelar</Btn>
+          <Btn size="sm" loading={loading} disabled={!label.trim()} onClick={handleCreate} icon={<PlusCircle size={12} />} className="bg-blue-600 hover:bg-blue-700">Crear Ruta</Btn>
         </div>
       </div>
     </>
@@ -657,7 +653,7 @@ function IndexPanel({ open, onClose, lista, capIdActual, isAdmin, libroTitulo, o
                 {libroTitulo && <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 italic mb-0.5">{libroTitulo}</p>}
                 <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2"><List size={13} /> Índice</h3>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-[var(--radius-btn)] bg-primary/6 hover:bg-primary/12 flex items-center justify-center text-primary/40 hover:text-primary transition-all"><X size={15} /></button>
+              <BtnIcon variant="ghost" onClick={onClose} className="border-none text-primary/40"><X size={15} /></BtnIcon>
             </div>
             <div className="flex-1 overflow-y-auto py-3 px-3">
               {lista.filter(cap => isAdmin || cap.fecha_publicacion <= hoy).map((cap) => {
@@ -759,10 +755,8 @@ function CitaModal({ open, onClose, onInsert }: { open: boolean; onClose: () => 
           </div>
         )}
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleInsert} disabled={!texto.trim()} className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-amber-500 text-white hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center gap-1.5">
-            <Quote size={12} /> Insertar Cita
-          </button>
+          <Btn variant="ghost" size="sm" onClick={onClose}>Cancelar</Btn>
+          <Btn size="sm" onClick={handleInsert} disabled={!texto.trim()} icon={<Quote size={12} />} className="bg-amber-500 hover:bg-amber-600">Insertar Cita</Btn>
         </div>
       </div>
     </>
@@ -814,10 +808,8 @@ function UseModal({ open, onClose, onInsert, listaCapitulos }: { open: boolean; 
           <code className="text-[10px] text-primary/50 font-mono break-all bg-primary/5 rounded-[var(--radius-input)] px-3 py-2 block">{snippet}</code>
         </div>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleInsert} disabled={!word.trim() || !itemId.trim() || !targetSuccess} className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
-            <MousePointerClick size={12} /> Insertar
-          </button>
+          <Btn variant="ghost" size="sm" onClick={onClose}>Cancelar</Btn>
+          <Btn size="sm" onClick={handleInsert} disabled={!word.trim() || !itemId.trim() || !targetSuccess} icon={<MousePointerClick size={12} />} className="bg-rose-600 hover:bg-rose-700">Insertar</Btn>
         </div>
       </div>
     </>
@@ -897,11 +889,8 @@ function ChoiceModal({ open, onClose, onInsert, listaCapitulos }: {
         )}
 
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleInsert} disabled={!label.trim() || !target.trim()}
-            className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-blue-500 text-white hover:bg-blue-600 transition-all disabled:opacity-50 flex items-center gap-1.5">
-            <ChevronR size={12} /> Insertar Choice
-          </button>
+          <Btn variant="ghost" size="sm" onClick={onClose}>Cancelar</Btn>
+          <Btn size="sm" onClick={handleInsert} disabled={!label.trim() || !target.trim()} icon={<ChevronR size={12} />} className="bg-blue-500 hover:bg-blue-600">Insertar Choice</Btn>
         </div>
       </div>
     </>
@@ -941,10 +930,8 @@ function SectionModal({ open, onClose, onInsert }: { open: boolean; onClose: () 
           <code className="text-[11px] text-violet-600 font-mono">{snippet}</code>
         </div>
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-primary/40 hover:bg-primary/5 transition-all">Cancelar</button>
-          <button onClick={handleInsert} disabled={!autoId} className="px-5 py-2 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-violet-600 text-white hover:bg-violet-700 transition-all disabled:opacity-50 flex items-center gap-1.5">
-            <GitMerge size={12} /> Insertar Sección
-          </button>
+          <Btn variant="ghost" size="sm" onClick={onClose}>Cancelar</Btn>
+          <Btn size="sm" onClick={handleInsert} disabled={!autoId} icon={<GitMerge size={12} />} className="bg-violet-600 hover:bg-violet-700">Insertar Sección</Btn>
         </div>
       </div>
     </>
@@ -1109,12 +1096,8 @@ function EditorToolbar({ textareaRef, value, onChange, onSave, onCancel, saving,
             <Maximize2 size={14} />
           </button>
         )}
-        <button onClick={onCancel} className="px-3 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase text-red-400 hover:bg-red-50 transition-all flex items-center gap-1">
-          <X size={12} /> Cancelar
-        </button>
-        <button onClick={onSave} disabled={saving} className="px-4 py-1.5 rounded-[var(--radius-btn)] text-[10px] font-black uppercase bg-primary text-white hover:bg-primary/80 transition-all flex items-center gap-1.5 disabled:opacity-50">
-          <Save size={12} /> {saving ? "…" : "Guardar"}
-        </button>
+        <Btn variant="danger" size="sm" onClick={onCancel} icon={<X size={12} />}>Cancelar</Btn>
+        <Btn size="sm" loading={saving} onClick={onSave} icon={<Save size={12} />}>{saving ? "…" : "Guardar"}</Btn>
         {isFocus && (
           <button onClick={() => setFocusMode(false)} className="p-2 rounded-[var(--radius-btn)] text-primary/40 hover:text-primary hover:bg-primary/8 transition-all">
             <Minimize2 size={14} />
@@ -1227,12 +1210,7 @@ function CapituloScrollBlock({
           <span className="flex items-center gap-1"><AlignLeft size={9} /> {words.toLocaleString()} palabras</span>
           <span className="flex items-center gap-1"><Clock size={9} /> ~{Math.max(1, Math.round(words / 200))} min</span>
           {isAdmin && (
-            <button
-              onClick={() => onStartEdit(cap)}
-              className="flex items-center gap-1 text-primary/30 hover:text-primary transition-colors"
-            >
-              <Edit3 size={9} /> Editar
-            </button>
+            <Btn variant="ghost" size="sm" onClick={() => onStartEdit(cap)} icon={<Edit3 size={9} />} className="border-none text-primary/30 hover:text-primary px-2 py-1">Editar</Btn>
           )}
         </div>
       </header>
@@ -1500,7 +1478,7 @@ export default function Lector() {
   if (error || capitulos.length === 0) return (
     <div className="h-screen flex flex-col items-center justify-center bg-bg-main text-primary p-6 text-center">
       <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">{error || "No hay capítulos disponibles"}</h2>
-      <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-[10px] font-black uppercase border-b-2 border-primary pb-1">Volver al índice</button>
+      <Btn variant="outline" size="sm" onClick={() => router.push(`/wiki/libros/${id}`)}>Volver al índice</Btn>
     </div>
   );
 
