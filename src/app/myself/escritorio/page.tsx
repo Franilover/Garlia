@@ -2,11 +2,11 @@
 
 import { Calendar, FileText, BookOpen, Music } from "lucide-react";
 import { Secciones } from "@/components/layout/Secciones";
-import { GestionPersonal } from "@/components/paginas/myself/tareas/tareas";
+import { GestionPersonal } from "@/components/paginas/myself/tareas";
 import EnsayosView from "@/components/paginas/myself/ensayos/page";
 import { AdminOnly } from "@/components/forms/AdminOnly";
-import EstudioCapitulos from "@/components/paginas/myself/editor/EditorCapitulos";
-import EstudioLetras    from "@/components/paginas/myself/editor/EditorLetras";
+import EstudioCapitulos from "@/components/paginas/myself/EditorCapitulos";
+import EstudioLetras    from "@/components/paginas/myself/EditorLetras";
 
 export default function DashboardPage() {
   return (
