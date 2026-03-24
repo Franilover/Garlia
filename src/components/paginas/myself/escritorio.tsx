@@ -6,7 +6,7 @@ import { GestionPersonal } from "@/components/features/tareas/tareas";
 import EnsayosView from "@/components/paginas/myself/ensayos";
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import EstudioCapitulos from "@/components/features/myself/editor/editorCapitulos";
-import EstudioLetras    from "@/components/features/myself/editor/EditorLetras";
+import EstudioLetras    from "@/components/features/myself/editor/editorLetras";
 
 export default function DashboardPage() {
   return (
