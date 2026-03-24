@@ -2,7 +2,7 @@
 import React from "react";
 import { Hash, FileText, Plus, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ZoteroSource } from "./page";
+import { ZoteroSource } from "../../paginas/myself/ensayos";
 
 interface SidebarProps {
   ensayos: any[];
