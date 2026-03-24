@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/display/SmartImage";
-import { MassEditModal } from "@/components/paginas/wiki/canciones/MassEditor";
+import { MassEditModal } from "@/components/features/wiki/canciones/MassEditor";
 import { Btn, BtnIcon, Loading, BackBtn } from "@/components/ui";
 
 const IDIOMAS = [
