@@ -3,7 +3,7 @@
 import { Calendar, FileText, BookOpen, Music } from "lucide-react";
 import { Secciones } from "@/components/layout/Secciones";
 import { GestionPersonal } from "@/components/paginas/myself/tareas";
-import EnsayosView from "@/components/paginas/myself/ensayos/page";
+import EnsayosView from "@/components/paginas/myself/ensayos";
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import EstudioCapitulos from "@/components/paginas/myself/EditorCapitulos";
 import EstudioLetras    from "@/components/paginas/myself/EditorLetras";
