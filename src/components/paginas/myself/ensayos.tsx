@@ -6,11 +6,11 @@ import { supabase } from "@/lib/api/client/supabase";
 import { useAuth } from "@/providers/AuthProvider";
 import { db } from "@/lib/api/client/db";
 
-import Sidebar from "../../features/ensayos/Sidebar";
-import Editor from "../../features/ensayos/Editor";
-import EmptyState from "../../features/ensayos/EmptyState";
-import NewNoteModal from "../../features/ensayos/NewNoteModal";
-import { TagPanel } from "../../features/ensayos/TagPanel";
+import Sidebar from "../../features/ensayos/sidebar";
+import Editor from "../../features/ensayos/editor";
+import EmptyState from "../../features/ensayos/emptyState";
+import NewNoteModal from "../../features/ensayos/newNoteModal";
+import { TagPanel } from "../../features/ensayos/tagPanel";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 
 export interface ZoteroSource {

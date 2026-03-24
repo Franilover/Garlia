@@ -2,7 +2,7 @@
 import React, { useMemo } from "react";
 import { X, Hash, FileText, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TagGraph } from "./TagGraph";
+import { TagGraph } from "./tagGraph";
 
 interface TagPanelProps {
   tag: string | null;

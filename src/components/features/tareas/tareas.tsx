@@ -8,10 +8,10 @@ import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
 
-import { RelojDigital } from "./RelojDigital";
-import { ListaTareas } from "./ListaTareas";
-import { VistaMes } from "./VistaMes";
-import { VistaSemanal } from "./VistaSemanal";
+import { RelojDigital } from "./relojDigital";
+import { ListaTareas } from "./listaTareas";
+import { VistaMes } from "./vistaMes";
+import { VistaSemanal } from "./vistaSemanal";
 import type { ModoCalendario } from "./types";
 
 async function dexiePut(table: string, data: any) {

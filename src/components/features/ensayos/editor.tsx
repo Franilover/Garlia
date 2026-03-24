@@ -4,7 +4,7 @@ import { Save, Eye, Edit3, Tag, Bold, Italic, Quote, List, Heading2, Code } from
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { TagPanel } from "./TagPanel";
+import { TagPanel } from "./tagPanel";
 import { ZoteroSource } from "../../paginas/myself/ensayos";
 
 interface EditorProps {
