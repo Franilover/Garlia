@@ -1,2 +1,2 @@
-import Canciones from "@/components/paginas/wiki/Canciones";
+import Canciones from "@/components/paginas/wiki/canciones";
 export default Canciones;

@@ -3,7 +3,7 @@
 import { Dumbbell, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
 import Secciones from "@/components/layout/Secciones";
 import { PaginaEjercicios } from "@/components/features/myself/salud/ejerciciosComponent";
-import ComprasPage from "@/components/features/myself/salud/Compras";
+import ComprasPage from "@/components/features/myself/salud/compras";
 import { IngredientesPage } from "@/components/features/myself/salud/ingredientes";
 import RecetasPage from "@/components/features/myself/salud/recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";
