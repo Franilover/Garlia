@@ -49,7 +49,6 @@ type Capitulo = {
 type SaveStatus = "idle" | "saving" | "saved" | "pending" | "error";
 
 const TABLA_CAPS = "capitulos";
-const [showPicker, setShowPicker] = useState(false);
 
 const ESTADO_COLOR: Record<string, string> = {
   "EN PROCESO": "bg-amber-500/20 text-amber-400 border-amber-500/30",
@@ -1495,7 +1494,7 @@ const ModalEditarLibro = ({
   const [fechaLibro,          setFechaLibro]          = useState(libro.fecha_publicacion ?? "");
   const [fechaProximoCap,     setFechaProximoCap]     = useState(libro.fecha_proximo_capitulo ?? "");
   const [saving,              setSaving]              = useState(false);
-
+  const [showPicker,          setShowPicker]          = useState(false);
   const ESTADOS = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1649,6 +1648,10 @@ export default function EstudioCapitulos() {
   const [editandoLibro,   setEditandoLibro]     = useState<Libro | null>(null);
 
   const { capitulos, setCapitulos, reload: reloadCaps } = useCapitulos(selectedLibroId);
+
+  const libroSeleccionado = useMemo(() => 
+    libros.find(l => l.id === selectedLibroId), 
+  [libros, selectedLibroId]);
 
   const librosFiltrados = useMemo(() =>
     libros.filter(l => !busqueda || normalize(l.titulo).includes(normalize(busqueda))),
@@ -1827,22 +1830,21 @@ export default function EstudioCapitulos() {
       </main>
 
       {}
-      {showNuevoCap && selectedLibroId && (() => {
-        const libro = libros.find(l => l.id === selectedLibroId);
-        return (
-          <ModalNuevoCapitulo
-            libroId={selectedLibroId}
-            libro={libro}
-            ordenSiguiente={capitulos.length + 1}
-            onCreated={handleCapCreada}
-            onLibroUpdated={(fields) => {
-              setLibros(prev => prev.map(l => l.id === selectedLibroId ? { ...l, ...fields } : l));
-            }}
-            onClose={() => setShowNuevoCap(false)}
-          />
-        );
-      })()}
+      {/* Nuevo Capítulo */}
+      {showNuevoCap && selectedLibroId && (
+        <ModalNuevoCapitulo
+          libroId={selectedLibroId}
+          libro={libroSeleccionado}
+          ordenSiguiente={capitulos.length + 1}
+          onCreated={handleCapCreada}
+          onLibroUpdated={(fields) => {
+            setLibros(prev => prev.map(l => l.id === selectedLibroId ? { ...l, ...fields } : l));
+          }}
+          onClose={() => setShowNuevoCap(false)}
+        />
+      )}
 
+      {/* Editar Libro */}
       {editandoLibro && (
         <ModalEditarLibro
           libro={editandoLibro}
@@ -1851,20 +1853,18 @@ export default function EstudioCapitulos() {
         />
       )}
 
-      {editandoCap && (() => {
-        const libro = libros.find(l => l.id === selectedLibroId);
-        return (
-          <ModalEditarCapitulo
-            cap={editandoCap}
-            libro={libro}
-            onSaved={handleCapEditada}
-            onLibroUpdated={(fields) => {
-              setLibros(prev => prev.map(l => l.id === selectedLibroId ? { ...l, ...fields } : l));
-            }}
-            onClose={() => setEditandoCap(null)}
-          />
-        );
-      })()}
+      {/* Editar Capítulo */}
+      {editandoCap && libroSeleccionado && (
+        <ModalEditarCapitulo
+          cap={editandoCap}
+          libro={libroSeleccionado}
+          onSaved={handleCapEditada}
+          onLibroUpdated={(fields) => {
+            setLibros(prev => prev.map(l => l.id === selectedLibroId ? { ...l, ...fields } : l));
+          }}
+          onClose={() => setEditandoCap(null)}
+        />
+      )}
     </div>
   );
 }
