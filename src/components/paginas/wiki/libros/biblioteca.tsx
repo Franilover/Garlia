@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Book, Globe, Lock, Timer } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { motion } from "framer-motion";
+import { librosQueries } from "@/lib/api/queries/wiki/libros";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, PageHeader } from "@/components/ui";
 
@@ -14,18 +14,22 @@ interface Libro {
   sinopsis: string;
   portada_url: string;
   estado: string;
+  visibilidad: string;
   created_at: string;
 }
 
 const Biblioteca = () => {
-  const { data: libros = [], loading, setData: setLibros } = useSupabaseData("libros", {
-    order: { campo: "created_at", asc: false }
-  });
+  const [libros, setLibros]   = useState<Libro[]>([]);
+  const [loading, setLoading] = useState(true);
 
-
-
-  const librosVisibles = libros as Libro[];
-
+  useEffect(() => {
+    librosQueries
+      .getAll({ isAdmin: false })
+      .then(({ data }) => {
+        if (data) setLibros(data as Libro[]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   if (loading && libros.length === 0) return <Loading text="Abriendo archivos..." />;
 
@@ -36,12 +40,11 @@ const Biblioteca = () => {
           title="Biblioteca"
           subtitle="Explora los relatos del mundo"
           icon={<Book size={32} />}
-
         />
       </div>
 
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-        {librosVisibles.map((libro, index) => (
+        {libros.map((libro, index) => (
           <motion.div
             key={libro.id}
             initial={{ y: 20, opacity: 0 }}
@@ -51,21 +54,30 @@ const Biblioteca = () => {
           >
             <Link href={`/wiki/libros/${libro.id}`}>
               <div className="cursor-pointer relative">
-
-                <motion.div whileHover={{ y: -10 }} className="relative aspect-[3/4] rounded-[var(--radius-card)] overflow-hidden shadow-xl border border-primary/10 bg-white-custom">
-                  <SmartImage src={libro.portada_url || "/placeholder-cover.jpg"} alt={libro.titulo} className="w-full h-full object-cover" />
+                <motion.div
+                  whileHover={{ y: -10 }}
+                  className="relative aspect-[3/4] rounded-[var(--radius-card)] overflow-hidden shadow-xl border border-primary/10 bg-white-custom"
+                >
+                  <SmartImage
+                    src={libro.portada_url || "/placeholder-cover.jpg"}
+                    alt={libro.titulo}
+                    className="w-full h-full object-cover"
+                  />
                   {(() => {
-                    const vis = (libro as any).visibilidad;
+                    const vis = libro.visibilidad;
                     if (!vis || vis === "publico") return null;
                     return (
                       <div className="absolute top-6 left-6 z-20 bg-white-custom/90 backdrop-blur-md px-4 py-1.5 rounded-full border border-primary/10 flex items-center gap-2">
                         {vis === "programado" && <Timer size={10} className="text-primary" />}
-                        {vis === "oculto"     && <Lock size={10} className="text-primary" />}
-                        <span className="text-[9px] font-black uppercase text-primary tracking-widest">{libro.estado}</span>
+                        {vis === "oculto"     && <Lock  size={10} className="text-primary" />}
+                        <span className="text-[9px] font-black uppercase text-primary tracking-widest">
+                          {libro.estado}
+                        </span>
                       </div>
                     );
                   })()}
                 </motion.div>
+
                 <div className="mt-6 px-2">
                   <h2 className="text-primary font-black uppercase text-base group-hover:text-[var(--accent)] transition-colors leading-tight tracking-tight">
                     {libro.titulo}
@@ -78,8 +90,13 @@ const Biblioteca = () => {
             </Link>
           </motion.div>
         ))}
-      </div>
 
+        {!loading && libros.length === 0 && (
+          <p className="col-span-full text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-24 italic">
+            No hay libros disponibles por el momento
+          </p>
+        )}
+      </div>
     </div>
   );
 };
