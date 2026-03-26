@@ -14,6 +14,11 @@ export const librosQueries = {
 
   getAll: async (options: any = {}) => {
     let query = supabase.from("libros").select("*");
+
+    if (!options.isAdmin) {
+      query = query.eq("visibilidad", "publico");
+    }
+
     if (options.order) {
       query = query.order(options.order.campo, { ascending: options.order.asc ?? false });
     } else {
