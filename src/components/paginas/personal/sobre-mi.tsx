@@ -40,15 +40,6 @@ export default function SobreMi() {
       <main className="max-w-4xl mx-auto px-6 pb-40 pt-20 md:pt-36">
 
         <header className="mb-24 md:mb-32">
-
-          <motion.p
-            {...fade(0)}
-            className="text-[9px] font-black uppercase tracking-[0.45em] mb-8"
-            style={{ color: "var(--primary)", opacity: 0.32 }}
-          >
-            — Jardín digital
-          </motion.p>
-
           <div className="overflow-hidden">
             <motion.h1
               initial={{ y: "110%" }}
