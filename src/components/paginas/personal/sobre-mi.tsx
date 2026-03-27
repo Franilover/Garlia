@@ -111,15 +111,6 @@ export default function SobreMi() {
               proyectos: Mi mayor proyecto es "Garden of Sins" el cual puedes ver en el icono de la flor.
             </p>
 
-            <div
-              className="flex items-center gap-3 mt-10"
-              style={{ color: "var(--primary)", opacity: 0.2 }}
-            >
-              <div className="h-px w-10" style={{ background: "currentColor" }} />
-              <span className="text-[8px] font-black uppercase tracking-[0.5em]">2025</span>
-              <div className="h-px w-10" style={{ background: "currentColor" }} />
-            </div>
-
             <motion.div
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
