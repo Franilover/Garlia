@@ -94,15 +94,6 @@ export default function SobreMi() {
               style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
             />
 
-            <div
-              className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.5em] mb-6"
-              style={{ color: "var(--primary)", opacity: 0.35 }}
-            >
-              <Heart size={10} strokeWidth={2.5} />
-              Mi Atelier
-              <Heart size={10} strokeWidth={2.5} />
-            </div>
-
             <p
               className="text-2xl md:text-4xl leading-[1.4] font-light italic max-w-2xl"
               style={{ color: "var(--primary)", opacity: 0.88 }}
