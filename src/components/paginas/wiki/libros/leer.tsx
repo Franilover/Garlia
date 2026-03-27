@@ -533,7 +533,7 @@ function CapituloScrollBlock({
       {/* Separador entre capítulos */}
       <div className="mt-20 flex items-center gap-4">
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
-        <span className="text-primary/20 font-serif italic text-2xl select-none">˗ˏˋ ♡ ˎˊ˗</span>
+        <span className="text-primary/20 font-serif italic text-2xl select-none">❁</span>
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
       </div>
     </article>
