@@ -288,16 +288,18 @@ function MobileNavItem({
         />
       </button>
 
-      {/* Panel hacia arriba */}
+{/* Panel hacia arriba */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.97 }}
+            // 1. Añadimos x: "-50%" para que Framer Motion centre el elemento perfectamente
+            initial={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-full mb-2 right-0 z-[2000] p-2 w-44"
+            // 2. Cambiamos 'right-0' por 'left-1/2' y añadimos 'origin-bottom' para la animación
+            className="absolute bottom-full mb-2 left-1/2 z-[2000] p-2 w-44 origin-bottom"
             style={submenuSurface}
           >
             <p
