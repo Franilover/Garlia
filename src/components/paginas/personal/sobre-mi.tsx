@@ -196,10 +196,6 @@ export default function SobreMi() {
             </div>
 
             <div className="space-y-0">
-              <p
-                className="text-[9px] font-black uppercase tracking-[0.4em] mb-5"
-                style={{ color: "var(--primary)", opacity: 0.28 }}
-              >— Proyecto principal</p>
               <h2
                 className="font-black italic uppercase leading-[0.88]"
                 style={{
