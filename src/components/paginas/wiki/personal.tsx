@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Sword, Package, Star, ShieldCheck, X, Calendar, Tag, Loader2, Users } from "lucide-react";
+import { User, Sword, Cat, Package, Star, ShieldCheck, X, Calendar, Tag, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -498,8 +498,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   };
 
   const tabs = [
-    { id: "items",      label: "Inventario", icon: Package },
-    { id: "criaturas",  label: "Bestiario",  icon: Sword   },
+    { id: "items",      label: "Inventario", icon: Sword },
+    { id: "criaturas",  label: "Bestiario",  icon: Cat   },
     { id: "personajes", label: "Agenda",     icon: User    },
   ] as const;
 
@@ -790,7 +790,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
                             {c.imagen_url
                               ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-contain" />
-                              : <Sword size={20} className="m-auto mt-2.5" style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+                              : <Cat size={20} className="m-auto mt-2.5" style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
                             }
                           </div>
                           <span className="font-serif italic text-[9px] truncate w-full text-center"
@@ -880,8 +880,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
               <div className="px-5 pb-5 space-y-2">
                 {[
-                  { icon: <Package size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
-                  { icon: <Sword size={11} />,   label: "Criaturas",   count: misCriaturas.length },
+                  { icon: <Sword size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
+                  { icon: <Cat size={11} />,   label: "Criaturas",   count: misCriaturas.length },
                   { icon: <User size={11} />,    label: "Amigos", count: misPersonajes.length },
                 ].map(({ icon, label, count }) => (
                   <div key={label} className="flex items-center justify-between">
@@ -1053,7 +1053,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           }}>
                           {perfil.mascota.imagen_url
                             ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
-                            : <Sword size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                            : <Cat size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                         </div>
                         <p className="font-serif italic text-[11px] leading-tight capitalize"
                           style={{ color: "var(--primary)" }}>
@@ -1170,12 +1170,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   <>
                     {inventario.map((item, i) => (
                       <EntidadCard key={`inv-${i}`} imagen={item.items.imagen_url} nombre={item.items.nombre}
-                        sub={item.items.categoria} icono={<Package size={20} />}
+                        sub={item.items.categoria} icono={<Sword size={20} />}
                         onClick={() => setModalEntidad({ tipo: "item_inv", data: item })} />
                     ))}
                     {misItemsDesc.map((d, i) => (
                       <EntidadCard key={`desc-${i}`} imagen={d.imagen_url} nombre={d.nombre ?? "Objeto"}
-                        sub={d.categoria ?? "Item"} icono={<Package size={20} />}
+                        sub={d.categoria ?? "Item"} icono={<Sword size={20} />}
                         onClick={() => setModalEntidad({ tipo: "item", data: d })} />
                     ))}
                     {inventario.length === 0 && misItemsDesc.length === 0 && <EmptyTab label="Sin items registrados aún" />}
@@ -1187,7 +1187,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     ? misCriaturas.map((d, i) => (
                       <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Criatura"}
                         sub={`Visto el ${new Date(d.fecha_descubrimiento).toLocaleDateString("es-ES")}`}
-                        icono={<Sword size={20} />} onClick={() => setModalEntidad({ tipo: "criatura", data: d })} />
+                        icono={<Cat size={20} />} onClick={() => setModalEntidad({ tipo: "criatura", data: d })} />
                     ))
                     : <EmptyTab label="Sin registros en el bestiario" />
                 )}
@@ -1232,7 +1232,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       <p className="font-serif italic text-[11px] truncate transition-colors group-hover:text-[var(--accent)] capitalize"
                         style={{ color: "var(--primary)" }}>{p.username}</p>
                       <div className="flex items-center gap-1.5 mt-0.5 font-serif italic">
-                        {[{ icon: <Package size={7} />, n: p.items_count }, { icon: <Sword size={7} />, n: p.criaturas_count }, { icon: <User size={7} />, n: p.personajes_count }].map(({ icon, n }, i) => (
+                        {[{ icon: <Sword size={7} />, n: p.items_count }, { icon: <Cat size={7} />, n: p.criaturas_count }, { icon: <User size={7} />, n: p.personajes_count }].map(({ icon, n }, i) => (
                           <span key={i} className="flex items-center gap-0.5 text-[8px] font-black tabular-nums"
                             style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>{icon} {n}</span>
                         ))}

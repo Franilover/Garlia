@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Sword, Package, Calendar, X, Tag, Loader2, Users} from "lucide-react";
+  User, Sword,Cat ,Package, Calendar, X, Tag, Loader2, Users} from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 
 interface PerfilData {
@@ -259,8 +259,8 @@ export default function PerfilPublico() {
   const misItemsDesc  = descubrimientos.filter(d => d.tipo === "item");
 
   const tabs = [
-    { id: "items",      label: "Inventario", icon: Package },
-    { id: "criaturas",  label: "Bestiario",  icon: Sword   },
+    { id: "items",      label: "Inventario", icon: Sword },
+    { id: "criaturas",  label: "Bestiario",  icon: Cat   },
     { id: "personajes", label: "Agenda",     icon: User    },
   ] as const;
 
@@ -363,8 +363,8 @@ export default function PerfilPublico() {
 
               <div className="px-5 pb-5 space-y-2">
                 {[
-                  { icon: <Package size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
-                  { icon: <Sword size={11} />,   label: "Bestias",   count: misCriaturas.length },
+                  { icon: <Sword size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length },
+                  { icon: < Cat size={11} />,   label: "Bestias",   count: misCriaturas.length },
                   { icon: <User size={11} />,    label: "Conocidos", count: misPersonajes.length },
                 ].map(({ icon, label, count }) => (
                   <div key={label} className="flex items-center justify-between">
@@ -477,7 +477,7 @@ export default function PerfilPublico() {
                           }}>
                           {perfil.mascota.imagen_url
                             ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
-                            : <Sword size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                            : <Cat size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
                         </div>
                         <p className="font-serif italic text-[11px] leading-tight capitalize"
                           style={{ color: "var(--primary)" }}>
@@ -557,12 +557,12 @@ export default function PerfilPublico() {
                     {inventario.map((item, i) => (
                       <EntidadCard key={`inv-${i}`} imagen={item.items.imagen_url}
                         nombre={item.items.nombre} sub={item.items.categoria}
-                        icono={<Package size={20} />} onClick={() => {}} />
+                        icono={<Sword size={20} />} onClick={() => {}} />
                     ))}
                     {misItemsDesc.map((d, i) => (
                       <EntidadCard key={`desc-${i}`} imagen={d.imagen_url}
                         nombre={d.nombre ?? "Objeto"} sub={d.categoria ?? "Item"}
-                        icono={<Package size={20} />} onClick={() => setModalD(d)} />
+                        icono={<Sword size={20} />} onClick={() => setModalD(d)} />
                     ))}
                     {inventario.length === 0 && misItemsDesc.length === 0 && <EmptyTab label="Sin items aún" />}
                   </>
@@ -572,7 +572,7 @@ export default function PerfilPublico() {
                     ? misCriaturas.map((d, i) => (
                       <EntidadCard key={i} imagen={d.imagen_url}
                         nombre={d.nombre ?? "Criatura"} sub={d.habitat ?? "Criatura"}
-                        icono={<Sword size={20} />} onClick={() => setModalD(d)} />
+                        icono={<Cat size={20} />} onClick={() => setModalD(d)} />
                     ))
                     : <EmptyTab label="Sin criaturas descubiertas" />
                 )}
