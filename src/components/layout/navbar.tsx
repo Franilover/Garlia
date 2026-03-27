@@ -197,7 +197,7 @@ function SideNavItem({
             exit="exit"
             transition={{ duration: 0.15 }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute top-0 left-full ml-2 z-[1002] p-2 w-44"
+            className="absolute top-0 left-full ml-2 z-[1010] p-2 w-44"
             style={submenuSurface}
           >
             {/* Label de sección */}
@@ -242,6 +242,7 @@ function MobileNavItem({
     borderRadius: "var(--radius-btn)",
     background: active ? "var(--primary)" : "transparent",
     color: active ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+    touchAction: "manipulation" as const, 
   };
 
   if (!hasSublinks) {
