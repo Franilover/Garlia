@@ -7,6 +7,7 @@ import {
   ChevronUp, BookOpen, Layers, SlidersHorizontal,
   CheckCircle2, AlertCircle, PanelLeftClose, PanelLeftOpen,
   Columns2, WifiOff, MoreHorizontal, Pencil,
+  Link2, FileText, ExternalLink, Copy, ZoomIn, ZoomOut,
 } from "lucide-react";
 import { cancionesQueries } from "@/lib/api/queries/wiki/canciones";
 import EstudioLayout from "@/components/layout/EstudioLayout";
@@ -26,6 +27,8 @@ type Seccion = {
   orden: number;
 };
 
+type CancionLink = { titulo: string; url: string };
+
 type Cancion = {
   id: string;
   titulo: string;
@@ -36,6 +39,7 @@ type Cancion = {
   estado: "BORRADOR" | "EN PROCESO" | "TERMINADA";
   visible: boolean;
   portada_url?: string;
+  links?: CancionLink[];
   secciones?: Seccion[];
 };
 
@@ -894,6 +898,237 @@ const ModalEditarCancion = ({
   );
 };
 
+// ─── Modal lector de letra (modo lectura limpia) ──────────────────────────────
+const ModalLectorLetras = ({
+  isOpen, onClose, secciones, cancionTitulo,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  secciones: Seccion[];
+  cancionTitulo: string;
+}) => {
+  const [zoom,    setZoom]    = useState(0.6);
+  const [idioma,  setIdioma]  = useState<IdiomaKey>("es");
+
+  const getLetra = (sec: Seccion, lang: IdiomaKey): string =>
+    (lang === "es"     ? sec.letra_es
+   : lang === "en"     ? sec.letra_en
+   : lang === "jp"     ? sec.letra_jp
+   : lang === "romaji" ? sec.letra_romaji
+   : "") || "";
+
+  const handleCopy = () => {
+    const texto = secciones
+      .map(s => { const l = getLetra(s, idioma); return l ? `${s.nombre_seccion}\n\n${l}` : ""; })
+      .filter(Boolean).join("\n\n---\n\n");
+    navigator.clipboard.writeText(texto);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-6">
+      <div className="absolute inset-0 bg-primary/40 backdrop-blur-md" onClick={onClose} />
+      <div className="bg-bg-main w-full max-w-5xl h-full md:h-[90vh] md:rounded-[var(--radius-card)] shadow-2xl relative z-10 border border-primary/10 flex flex-col">
+
+        {/* Header */}
+        <div className="px-6 py-3 bg-white-custom border-b border-primary/10 flex-shrink-0 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <FileText size={13} className="text-primary/50" />
+            <span className="text-primary font-black uppercase text-[10px] tracking-[0.2em] italic truncate max-w-[200px]">
+              {cancionTitulo}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Selector de idioma */}
+            <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
+              {IDIOMAS.map(({ id, label }) => (
+                <button key={id} onClick={() => setIdioma(id)}
+                  className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                    idioma === id ? "bg-primary text-bg-main shadow-md" : "text-primary/40 hover:text-primary"
+                  }`}
+                >{label}</button>
+              ))}
+            </div>
+            {/* Zoom */}
+            <div className="flex items-center gap-1">
+              <button onClick={() => setZoom(z => Math.max(0.4, z - 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm">-</button>
+              <span className="text-[9px] font-black text-primary/50 min-w-[36px] text-center">{Math.round(zoom * 100)}%</span>
+              <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm">+</button>
+            </div>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
+            >
+              <Copy size={11} /> Copiar
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Contenido */}
+        <div className="flex-1 overflow-auto bg-bg-main">
+          <div
+            className="w-full h-fit p-8 md:p-20 origin-top transition-all duration-300"
+            style={{ transform: `scale(${zoom})`, width: `${100 / zoom}%`, marginLeft: `${(100 - 100 / zoom) / 2}%` }}
+          >
+            {secciones.map(sec => {
+              const texto = getLetra(sec, idioma);
+              return texto ? (
+                <div key={sec.id} className="mb-20 last:mb-0 max-w-5xl mx-auto text-center">
+                  <div className="mb-10 flex items-center justify-center gap-8 opacity-20">
+                    <div className="h-px flex-1 max-w-[100px] bg-primary" />
+                    <span className="text-sm font-black uppercase tracking-[0.5em] italic text-primary">{sec.nombre_seccion}</span>
+                    <div className="h-px flex-1 max-w-[100px] bg-primary" />
+                  </div>
+                  <p className="text-[var(--foreground)] text-3xl md:text-5xl font-medium italic font-serif leading-[1.5] whitespace-pre-wrap">{texto}</p>
+                </div>
+              ) : null;
+            })}
+            <div className="h-40" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Panel de links ───────────────────────────────────────────────────────────
+const PanelLinks = ({
+  cancionId, links, onLinksChange,
+}: {
+  cancionId: string;
+  links: CancionLink[];
+  onLinksChange: (links: CancionLink[]) => void;
+}) => {
+  const [open,    setOpen]    = useState(false);
+  const [titulo,  setTitulo]  = useState("");
+  const [url,     setUrl]     = useState("");
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [saving,  setSaving]  = useState(false);
+
+  const saveLinks = async (newLinks: CancionLink[]) => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("canciones").update({ links: newLinks }).eq("id", cancionId);
+      if (error) throw error;
+      onLinksChange(newLinks);
+    } catch (e) { console.error("Links:", e); }
+    setSaving(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!titulo.trim() || !url.trim()) return;
+    const newLink = { titulo: titulo.trim(), url: url.trim() };
+    const updated = [...links];
+    if (editIdx !== null) updated[editIdx] = newLink;
+    else updated.push(newLink);
+    await saveLinks(updated);
+    setTitulo(""); setUrl(""); setEditIdx(null);
+  };
+
+  const handleEdit = (i: number) => {
+    setTitulo(links[i].titulo);
+    setUrl(links[i].url);
+    setEditIdx(i);
+    setOpen(true);
+  };
+
+  const handleDelete = async (i: number) => {
+    if (!confirm(`¿Eliminar "${links[i].titulo}"?`)) return;
+    await saveLinks(links.filter((_, idx) => idx !== i));
+  };
+
+  const handleCancel = () => {
+    setTitulo(""); setUrl(""); setEditIdx(null);
+  };
+
+  return (
+    <div className="border-t border-primary/8 px-8 py-3">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors w-full"
+      >
+        <Link2 size={12} />
+        Enlaces
+        {links.length > 0 && (
+          <span className="bg-primary/10 text-primary/60 rounded-full px-2 py-0.5 text-[8px]">{links.length}</span>
+        )}
+        <ChevronDown size={11} className={`ml-auto transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-3">
+          {/* Lista de links existentes */}
+          {links.length > 0 && (
+            <div className="space-y-1.5">
+              {links.map((link, i) => (
+                <div key={i} className="flex items-center gap-2 group">
+                  <a
+                    href={link.url} target="_blank" rel="noopener noreferrer"
+                    className="flex-1 flex items-center gap-1.5 text-[11px] font-bold text-primary/60 hover:text-primary transition-colors truncate min-w-0"
+                  >
+                    <ExternalLink size={10} className="shrink-0" />
+                    <span className="truncate">{link.titulo}</span>
+                  </a>
+                  <button
+                    onClick={() => handleEdit(i)}
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
+                  ><Pencil size={10} /></button>
+                  <button
+                    onClick={() => handleDelete(i)}
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"
+                  ><Trash2 size={10} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Formulario agregar/editar */}
+          <form onSubmit={handleSubmit} className="space-y-2 pt-1">
+            <div className="flex gap-2">
+              <input
+                value={titulo}
+                onChange={e => setTitulo(e.target.value)}
+                placeholder="Título del enlace…"
+                className="flex-1 bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-[11px] font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/25"
+              />
+              <input
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+                placeholder="https://…"
+                className="flex-1 bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-[11px] font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/25"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={!titulo.trim() || !url.trim() || saving}
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary text-bg-main rounded-xl text-[9px] font-black uppercase tracking-widest disabled:opacity-40 hover:opacity-90 transition-all"
+              >
+                {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                {editIdx !== null ? "Guardar" : "Añadir"}
+              </button>
+              {editIdx !== null && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-3 py-2 rounded-xl border border-primary/15 text-[9px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const { cancion, setCancion, loading, isOffline: editorOffline, reload } = useCancionEditor(cancionId);
   const [idiomaA,    setIdiomaA]    = useState<IdiomaKey>("es");
@@ -901,6 +1136,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const [splitMode,  setSplitMode]  = useState(false);
   const [addingOpen, setAddingOpen] = useState(false);
   const [addingName, setAddingName] = useState("");
+  const [showLector, setShowLector] = useState(false);
 
   const handleSaveField = useCallback(async (id: string, updates: Partial<Seccion>) => {
     await secUpdate(id, updates);
@@ -972,6 +1208,16 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Modal lector */}
+      {showLector && (
+        <ModalLectorLetras
+          isOpen={showLector}
+          onClose={() => setShowLector(false)}
+          secciones={secciones}
+          cancionTitulo={cancion.titulo}
+        />
+      )}
+
       {editorOffline && <BannerOffline color="amber" mensaje="Sin conexión — los cambios se sincronizan al reconectar" />}
 
       <div className="shrink-0 px-8 pt-7 pb-5 border-b border-primary/10 space-y-4">
@@ -999,6 +1245,13 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
               {cancion.visible ? <Eye size={10} /> : <EyeOff size={10} />}
               {cancion.visible ? "Visible" : "Oculta"}
             </span>
+            <button
+              onClick={() => setShowLector(true)}
+              title="Modo lectura"
+              className="p-2 rounded-lg hover:bg-emerald-500/10 text-primary/30 hover:text-emerald-500 transition-all"
+            >
+              <FileText size={13} />
+            </button>
             <button onClick={reload as any} className="p-2 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
               <RefreshCw size={13} />
             </button>
@@ -1089,6 +1342,15 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           </button>
         )}
       </div>
+
+      {/* Panel de links al fondo */}
+      <PanelLinks
+        cancionId={cancionId}
+        links={cancion.links || []}
+        onLinksChange={(newLinks) =>
+          setCancion(prev => prev ? { ...prev, links: newLinks } : prev)
+        }
+      />
     </div>
   );
 };
