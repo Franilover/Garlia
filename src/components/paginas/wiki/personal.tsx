@@ -676,7 +676,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               <div className="flex items-center justify-between px-5 py-4 shrink-0"
                 style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                 <p className="font-serif italic text-[11px]" style={{ color: "var(--primary)" }}>
-                  ⚝ Elegir personaje favorito
+                  Elegir personaje favorito
                 </p>
                 <button onClick={() => setShowPersonajePicker(false)}
                   className="p-1 transition-opacity hover:opacity-100"
@@ -754,7 +754,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               <div className="flex items-center justify-between px-5 py-4 shrink-0"
                 style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                 <p className="font-serif italic text-[11px]" style={{ color: "var(--primary)" }}>
-                  ⚝ Elegir mascota
+                  Elegir mascota
                 </p>
                 <button onClick={() => setShowMascotaPicker(false)}
                   className="p-1 transition-opacity hover:opacity-100"
@@ -819,7 +819,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
           <span className="font-serif italic text-[10px] select-none"
             style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-            ⚝ {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos ⚝
+            {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos 
           </span>
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         </div>
@@ -924,7 +924,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               <div className="flex items-center justify-between px-5 pt-4 pb-2">
                 <p className="font-serif italic text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                  ⚝ Sobre mí
+                  Sobre mí
                 </p>
                 {!editingDesc ? (
                   <button
@@ -988,7 +988,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-serif italic text-[8px]"
                       style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                      ⚝ Personaje Favorito
+                      Personaje Favorito
                     </p>
                     <button onClick={() => setShowPersonajePicker(true)}
                       className="font-serif italic text-[8px] px-1.5 py-0.5"
@@ -1033,7 +1033,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-serif italic text-[8px]"
                       style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                      ⚝ Mascota
+                      Mascota
                     </p>
                     <button onClick={() => setShowMascotaPicker(true)}
                       className="font-serif italic text-[8px] px-1.5 py-0.5"

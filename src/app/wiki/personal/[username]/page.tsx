@@ -309,7 +309,7 @@ export default function PerfilPublico() {
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
           <span className="font-serif italic text-[10px] select-none"
             style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-            ⚝ {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos ⚝
+            {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos 
           </span>
           <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
         </div>
@@ -331,7 +331,7 @@ export default function PerfilPublico() {
 
               <div className="text-center pt-5 pb-2 px-5">
                 <p className="font-serif italic tracking-[0.4em] mb-3 text-[9px]"
-                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>── ⚝ ──</p>
+                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>──  ──</p>
 
                 <div className="flex justify-center mb-3">
                   <div className="overflow-hidden flex items-center justify-center"
@@ -404,7 +404,7 @@ export default function PerfilPublico() {
               <div className="flex items-center justify-between px-5 pt-4 pb-2">
                 <p className="font-serif italic text-[9px]"
                   style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                  ⚝ Sobre {perfil?.username}
+                  Sobre {perfil?.username}
                 </p>
               </div>
               <div className="mx-5 mb-3 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
@@ -432,7 +432,7 @@ export default function PerfilPublico() {
                 <div className="px-4 py-3">
                   <p className="font-serif italic text-[8px] mb-2"
                     style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                    ⚝ Personaje favorito
+                    Personaje favorito
                   </p>
                   <div className="flex items-center gap-2.5">
                     {perfil?.personaje_favorito ? (
@@ -466,7 +466,7 @@ export default function PerfilPublico() {
                   style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                   <p className="font-serif italic text-[8px] mb-2"
                     style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                    ⚝ Mascota
+                    Mascota
                   </p>
                   <div className="flex items-center gap-2.5">
                     {perfil?.mascota ? (
