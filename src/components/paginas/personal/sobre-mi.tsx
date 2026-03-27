@@ -140,10 +140,10 @@ export default function SobreMi() {
 
           <motion.section {...fade(0.24)} className="flex flex-col items-center text-center">
             <div
-              className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.4em] mb-10"
+              className="flex items-center gap-2 text-[18px] font-black uppercase tracking-[0.4em] mb-10"
               style={{ color: "var(--primary)", opacity: 0.3 }}
             >
-              <Palette size={11} strokeWidth={2.5} /> Herramientas
+              <Palette size={20} strokeWidth={2.5} /> Herramientas
             </div>
 
             <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4">
