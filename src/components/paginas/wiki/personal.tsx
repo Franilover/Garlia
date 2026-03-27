@@ -843,7 +843,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
               <div className="text-center pt-5 pb-2 px-5">
                 <p className="font-serif italic tracking-[0.4em] mb-3 text-[9px]"
-                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>── ⚝ ──</p>
+                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>⚝</p>
 
                 <div className="flex justify-center mb-3">
                   <button onClick={() => setShowAvatarPicker(true)}
@@ -877,7 +877,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
               <div className="mx-5 my-3 flex items-center gap-2">
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-                <span className="text-[8px]" style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>◆</span>
+                <span className="text-[24px]" style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>⚝</span>
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
               </div>
 
