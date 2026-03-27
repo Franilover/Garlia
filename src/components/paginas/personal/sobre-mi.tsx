@@ -204,7 +204,7 @@ export default function SobreMi() {
                 style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
               />
               <span
-                className="text-[8px] font-black uppercase tracking-[0.5em]"
+                className="text-[24px] font-black uppercase tracking-[0.5em]"
                 style={{ color: "var(--primary)", opacity: 0.15 }}
               >❁</span>
               <div
