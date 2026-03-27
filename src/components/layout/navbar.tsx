@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -99,6 +99,11 @@ function SideNavItem({
   const currentPath = usePathname();
   const [open, setOpen] = useState(false);
   const hasSublinks = !!subLinks?.length;
+
+  // NUEVO: Cerrar el submenú si la ruta cambia
+  useEffect(() => {
+    setOpen(false);
+  }, [currentPath]);
 
   return (
     <div
@@ -259,7 +264,7 @@ function MobileNavItem({
       <button
         onClick={(e) => {
           e.preventDefault();
-          e.stopPropagation(); // Evita que el clic cierre todo inmediatamente
+          e.stopPropagation();
           onToggle();
         }}
         className="flex items-center gap-1.5 transition-all"
@@ -292,7 +297,7 @@ function MobileNavItem({
             exit={{ opacity: 0, y: 8, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-full mb-2 right-0 z-[2000] p-2 w-44" // z-index subido a 2000
+            className="absolute bottom-full mb-2 right-0 z-[2000] p-2 w-44"
             style={submenuSurface}
           >
             <p
@@ -305,7 +310,6 @@ function MobileNavItem({
               <Link
                 key={sub}
                 href={sub}
-                // Timeout para permitir a Next.js navegar antes de destruir el menú
                 onClick={() => { setTimeout(() => onClose(), 150); }}
                 className="flex items-center gap-2.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
                 style={{
@@ -317,7 +321,6 @@ function MobileNavItem({
                     ? "var(--primary)"
                     : "color-mix(in srgb, var(--primary) 60%, transparent)",
                 }}
-                // onMouseEnter y onMouseLeave eliminados para evitar doble toque en iOS
               >
                 <SubIcon size={13} />
                 {subLabel}
@@ -352,7 +355,13 @@ const Navbar = () => {
     setUserMenuOpen(false);
     setThemeMenuOpen(false);
     setMobileOpenMenu(null);
+    setSidebarExpanded(false); // NUEVO: Fozar colapso del sidebar en escritorio
   };
+
+  // NUEVO: Asegurarse de que cualquier navegación cierre los menús automáticamente
+  useEffect(() => {
+    closeAll();
+  }, [currentPath]);
 
   const isWiki     = currentPath?.startsWith("/wiki") ?? false;
   const isPersonal = currentPath?.startsWith("/personal") ?? false;
@@ -722,7 +731,7 @@ const Navbar = () => {
                 exit={{ opacity: 0, y: 12, scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 onClick={(e) => e.stopPropagation()}
-                className="absolute bottom-full right-4 mb-2 w-56 overflow-hidden z-[2000]" // z-index subido
+                className="absolute bottom-full right-4 mb-2 w-56 overflow-hidden z-[2000]"
                 style={submenuSurface}
               >
                 <ThemeSelector />
@@ -746,7 +755,7 @@ const Navbar = () => {
 
         {/* Bottom bar container elevado */}
         <div
-          className="flex items-center px-4 relative z-[100]" // relative z-[100] añadido para corregir el contexto de apilamiento
+          className="flex items-center px-4 relative z-[100]"
           style={{
             height: "56px",
             background: "color-mix(in srgb, var(--bg-main) 90%, transparent)",
@@ -827,7 +836,7 @@ const Navbar = () => {
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 420, damping: 34 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute bottom-full right-0 mb-2 overflow-hidden z-[2000]" // z-index subido
+                    className="absolute bottom-full right-0 mb-2 overflow-hidden z-[2000]"
                     style={{ width: 180, ...submenuSurface }}
                   >
                     <div className="px-4 py-3" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
@@ -836,7 +845,6 @@ const Navbar = () => {
 
                     <Link
                       href="/wiki/personal"
-                      // Timeout añadido
                       onClick={() => setTimeout(closeAll, 150)}
                       className="flex items-center gap-2.5 px-4 py-3 transition-all"
                       style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
@@ -854,7 +862,6 @@ const Navbar = () => {
                             <Link
                               key={href}
                               href={href}
-                              // Timeout añadido
                               onClick={() => setTimeout(closeAll, 150)}
                               className="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-btn)] transition-all"
                               style={{
