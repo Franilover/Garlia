@@ -257,7 +257,11 @@ function MobileNavItem({
   return (
     <div className="relative">
       <button
-        onClick={onToggle}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation(); // Evita que el clic cierre todo inmediatamente
+          onToggle();
+        }}
         className="flex items-center gap-1.5 transition-all"
         style={{
           ...itemStyle,
@@ -288,7 +292,7 @@ function MobileNavItem({
             exit={{ opacity: 0, y: 8, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-full mb-2 right-0 z-[1002] p-2 w-44"
+            className="absolute bottom-full mb-2 right-0 z-[2000] p-2 w-44" // z-index subido a 2000
             style={submenuSurface}
           >
             <p
@@ -301,7 +305,8 @@ function MobileNavItem({
               <Link
                 key={sub}
                 href={sub}
-                onClick={() => { onClose(); }}
+                // Timeout para permitir a Next.js navegar antes de destruir el menú
+                onClick={() => { setTimeout(() => onClose(), 150); }}
                 className="flex items-center gap-2.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
                 style={{
                   borderRadius: "var(--radius-btn)",
@@ -312,19 +317,7 @@ function MobileNavItem({
                     ? "var(--primary)"
                     : "color-mix(in srgb, var(--primary) 60%, transparent)",
                 }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-                }}
-                onMouseLeave={(e) => {
-                  const isActive = currentPath?.startsWith(sub);
-                  (e.currentTarget as HTMLElement).style.background = isActive
-                    ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                    : "transparent";
-                  (e.currentTarget as HTMLElement).style.color = isActive
-                    ? "var(--primary)"
-                    : "color-mix(in srgb, var(--primary) 60%, transparent)";
-                }}
+                // onMouseEnter y onMouseLeave eliminados para evitar doble toque en iOS
               >
                 <SubIcon size={13} />
                 {subLabel}
@@ -729,7 +722,7 @@ const Navbar = () => {
                 exit={{ opacity: 0, y: 12, scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 onClick={(e) => e.stopPropagation()}
-                className="absolute bottom-full right-4 mb-2 w-56 overflow-hidden z-[1001]"
+                className="absolute bottom-full right-4 mb-2 w-56 overflow-hidden z-[2000]" // z-index subido
                 style={submenuSurface}
               >
                 <ThemeSelector />
@@ -751,9 +744,9 @@ const Navbar = () => {
           )}
         </AnimatePresence>
 
-        {/* Bottom bar */}
+        {/* Bottom bar container elevado */}
         <div
-          className="flex items-center px-4"
+          className="flex items-center px-4 relative z-[100]" // relative z-[100] añadido para corregir el contexto de apilamiento
           style={{
             height: "56px",
             background: "color-mix(in srgb, var(--bg-main) 90%, transparent)",
@@ -834,7 +827,7 @@ const Navbar = () => {
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 420, damping: 34 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute bottom-full right-0 mb-2 overflow-hidden z-[1001]"
+                    className="absolute bottom-full right-0 mb-2 overflow-hidden z-[2000]" // z-index subido
                     style={{ width: 180, ...submenuSurface }}
                   >
                     <div className="px-4 py-3" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
@@ -843,7 +836,8 @@ const Navbar = () => {
 
                     <Link
                       href="/wiki/personal"
-                      onClick={closeAll}
+                      // Timeout añadido
+                      onClick={() => setTimeout(closeAll, 150)}
                       className="flex items-center gap-2.5 px-4 py-3 transition-all"
                       style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
                     >
@@ -860,7 +854,8 @@ const Navbar = () => {
                             <Link
                               key={href}
                               href={href}
-                              onClick={closeAll}
+                              // Timeout añadido
+                              onClick={() => setTimeout(closeAll, 150)}
                               className="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-btn)] transition-all"
                               style={{
                                 background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
