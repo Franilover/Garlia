@@ -842,9 +842,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               }}>
 
               <div className="text-center pt-5 pb-2 px-5">
-                <p className="font-serif italic tracking-[0.4em] mb-3 text-[24px]"
-                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>⚝</p>
-
                 <div className="flex justify-center mb-3">
                   <button onClick={() => setShowAvatarPicker(true)}
                     className="group relative overflow-hidden flex items-center justify-center transition-all"
