@@ -4,7 +4,7 @@ import React, {
   useState, useEffect, useCallback, useRef, useMemo,
 } from "react";
 import {
-  BookOpen, ChevronDown, ChevronRight,
+  BookOpen, ChevronDown, ChevronRight, UserCircle2,
   Loader2, PanelLeftClose, PanelLeftOpen,
   Plus, RefreshCw, Save, Search,
   Trash2, WifiOff, X, Check, CheckCircle2, AlertCircle,
@@ -15,7 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import {
-  useLastOpenedId, useDraftRestore, DraftRestoreBanner,
+  useLastOpenedId, useDraftRestore, DraftRestoreBanner, usePersonajes,
 } from "@/hooks/useEditorShared";
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
 import { db } from "@/lib/api/client/db";
@@ -45,6 +45,7 @@ type Capitulo = {
   orden: number;
   fecha_publicacion: string;
   visibilidad?: "publico" | "programado" | "oculto";
+  personajes_ids?: string[];
   status?: "pending" | "synced";
   deleted?: boolean;
 };
@@ -1328,6 +1329,91 @@ const SelectorVisibilidad = ({
   </div>
 );
 
+// ─── Selector multi-personaje para capítulos ─────────────────────────────────
+const SelectorPersonajesCapitulo = ({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (ids: string[]) => void;
+}) => {
+  const { personajes, loading } = usePersonajes();
+  const [open, setOpen] = useState(false);
+
+  const toggle = (id: string) => {
+    onChange(value.includes(id) ? value.filter(x => x !== id) : [...value, id]);
+  };
+
+  const selected = personajes.filter(p => value.includes(p.id));
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-2">
+        <UserCircle2 size={10} />
+        Personajes que aparecen
+        <span className="text-primary/25 normal-case font-medium">(se desbloquean al terminar de leer)</span>
+      </label>
+
+      {/* Chips de seleccionados */}
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {selected.map(p => (
+            <span
+              key={p.id}
+              className="flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-wide border border-primary/15"
+            >
+              {p.nombre}
+              <button
+                type="button"
+                onClick={() => toggle(p.id)}
+                className="text-primary/40 hover:text-primary ml-0.5 transition-colors"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Botón abrir lista */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-2.5 bg-primary/5 border border-primary/15 rounded-[var(--radius-btn)] text-[11px] font-bold text-primary/50 hover:border-primary/30 hover:text-primary transition-all"
+      >
+        <span>{loading ? "Cargando personajes…" : `${selected.length > 0 ? `${selected.length} seleccionado${selected.length > 1 ? "s" : ""}` : "Añadir personajes…"}`}</span>
+        <ChevronDown size={12} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {/* Lista desplegable */}
+      {open && (
+        <div className="border border-primary/15 rounded-[var(--radius-btn)] overflow-hidden max-h-48 overflow-y-auto bg-bg-main">
+          {personajes.length === 0 ? (
+            <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">Sin personajes</p>
+          ) : (
+            personajes.map(p => {
+              const isSelected = value.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => toggle(p.id)}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5 ${
+                    isSelected ? "text-primary bg-primary/5" : "text-primary/50"
+                  }`}
+                >
+                  <span>{p.nombre}</span>
+                  {isSelected && <Check size={11} className="text-primary shrink-0" />}
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ModalEditarCapitulo = ({
   cap, libro, onSaved, onLibroUpdated, onClose,
 }: {
@@ -1341,6 +1427,7 @@ const ModalEditarCapitulo = ({
   const [fecha,         setFecha]         = useState(toDateInput(cap.fecha_publicacion));
   const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">(libro?.visibilidad ?? "oculto");
   const [fechaLibro,    setFechaLibro]    = useState(libro?.fecha_publicacion ?? "");
+  const [personajesIds, setPersonajesIds] = useState<string[]>(cap.personajes_ids ?? []);
   const [saving,        setSaving]        = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1348,7 +1435,11 @@ const ModalEditarCapitulo = ({
     if (!titulo.trim()) return;
     setSaving(true);
     try {
-      const fields = { titulo_capitulo: titulo.trim().toUpperCase(), fecha_publicacion: fecha };
+      const fields: Partial<Capitulo> = {
+        titulo_capitulo: titulo.trim().toUpperCase(),
+        fecha_publicacion: fecha,
+        personajes_ids: personajesIds,
+      };
       await capUpdateMeta(cap.id, fields);
       // Actualizar visibilidad del libro si cambió
       if (libro && (visibilidad !== libro.visibilidad || fechaLibro !== libro.fecha_publicacion)) {
@@ -1369,16 +1460,20 @@ const ModalEditarCapitulo = ({
         </h3>
         <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16}/></button>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
         <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
         <CampoInput label="Fecha de publicación del capítulo" value={fecha} onChange={setFecha} type="date" />
+        <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
         {libro && (
-          <SelectorVisibilidad
-            value={visibilidad}
-            onChange={setVisibilidad}
-            fechaPublicacion={fechaLibro}
-            onFechaChange={setFechaLibro}
-          />
+          <>
+            <div className="h-px bg-primary/8" />
+            <SelectorVisibilidad
+              value={visibilidad}
+              onChange={setVisibilidad}
+              fechaPublicacion={fechaLibro}
+              onFechaChange={setFechaLibro}
+            />
+          </>
         )}
         <BotonSubmit
           loading={saving}
@@ -1406,6 +1501,7 @@ const ModalNuevoCapitulo = ({
   const [visibilidadCap, setVisibilidadCap] = useState<"publico" | "programado" | "oculto">("programado");
   const [visibilidad,    setVisibilidad]    = useState<"publico" | "programado" | "oculto">(libro?.visibilidad ?? "oculto");
   const [fechaLibro,     setFechaLibro]     = useState(libro?.fecha_publicacion ?? "");
+  const [personajesIds,  setPersonajesIds]  = useState<string[]>([]);
   const [saving,         setSaving]         = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1414,10 +1510,13 @@ const ModalNuevoCapitulo = ({
     setSaving(true);
     try {
       const nuevo = await capCreate(libroId, titulo, ordenSiguiente, fecha);
-      // Actualizar visibilidad del capítulo si no es la default
-      if (visibilidadCap !== nuevo.visibilidad) {
-        await capUpdateMeta(nuevo.id, { visibilidad: visibilidadCap });
-        nuevo.visibilidad = visibilidadCap;
+      // Actualizar visibilidad + personajes si difieren de la default
+      const metaExtra: Partial<Capitulo> = {};
+      if (visibilidadCap !== nuevo.visibilidad) metaExtra.visibilidad = visibilidadCap;
+      if (personajesIds.length > 0) metaExtra.personajes_ids = personajesIds;
+      if (Object.keys(metaExtra).length > 0) {
+        await capUpdateMeta(nuevo.id, metaExtra);
+        Object.assign(nuevo, metaExtra);
       }
       // Actualizar visibilidad del libro si cambió
       if (libro && (visibilidad !== libro.visibilidad || fechaLibro !== libro.fecha_publicacion)) {
@@ -1436,9 +1535,10 @@ const ModalNuevoCapitulo = ({
         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic">Nuevo Capítulo</h3>
         <button onClick={onClose} className="text-primary/30 hover:text-primary"><X size={16}/></button>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
         <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
         <CampoInput label="Fecha de publicación del capítulo" value={fecha} onChange={setFecha} type="date" />
+        <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
         <SelectorVisibilidad
           value={visibilidadCap}
           onChange={setVisibilidadCap}
@@ -1770,7 +1870,7 @@ export default function EstudioCapitulos() {
             onToggleFocus={() => setFocusMode(m => !m)}
           />
         ) : (
-          <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Libros" subtitulo="Expande un libro y selecciona un capítulo" />
+          <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Estudio de Capítulos" subtitulo="Expande un libro y selecciona un capítulo" />
         )}
       </main>
 
