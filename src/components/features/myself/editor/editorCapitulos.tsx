@@ -1770,7 +1770,7 @@ export default function EstudioCapitulos() {
             onToggleFocus={() => setFocusMode(m => !m)}
           />
         ) : (
-          <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Estudio de Capítulos" subtitulo="Expande un libro y selecciona un capítulo" />
+          <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Libros" subtitulo="Expande un libro y selecciona un capítulo" />
         )}
       </main>
 

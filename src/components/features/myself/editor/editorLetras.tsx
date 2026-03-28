@@ -1474,7 +1474,7 @@ export default function EstudioLetras() {
           <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-                <Music size={12} /> Estudio de Letras
+                <Music size={12} /> Canciones
               </h2>
               <div className="flex items-center gap-1">
                 <button onClick={refetch} title="Recargar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
