@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useCallback, useRef, type ReactNode } from "react";
+import React, { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
@@ -102,8 +103,8 @@ export function PanelSlider({
   panels,
   title,
   defaultPanel = 0,
-  showArrows = true,
-  showDots = true,
+  showArrows = false,
+  showDots = false,
   contentClassName = "",
   storageKey,
 }: PanelSliderProps) {
@@ -111,6 +112,16 @@ export function PanelSlider({
     readStoredIndex(storageKey, defaultPanel, panels.length)
   );
   const [direction, setDirection] = useState(0);
+
+  // Reaccionar a cambios en ?panel= desde el navbar (sin reload)
+  const searchParams = useSearchParams();
+  const panelParam = searchParams?.get("panel");
+  useEffect(() => {
+    if (!panelParam) return;
+    const idx = panels.findIndex(p => p.id === panelParam);
+    if (idx !== -1 && idx !== active) goTo(idx);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelParam]);
   const [hoveredPill, setHoveredPill] = useState<number | null>(null);
   const [hoveredArrow, setHoveredArrow] = useState<"left" | "right" | null>(null);
 
