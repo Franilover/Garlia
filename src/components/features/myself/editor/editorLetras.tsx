@@ -15,6 +15,10 @@ import { BannerOffline, EmptyEstudio, ModalBase, CampoInput, BotonSubmit, normal
 import { db } from "@/lib/api/client/db";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
+import {
+  useLastOpenedId, useDraftRestore, DraftRestoreBanner,
+  SelectPersonaje, SelectIdioma,
+} from "@/hooks/useEditorShared";
 
 type Seccion = {
   id: string;
@@ -467,9 +471,12 @@ const SeccionTextarea = ({
   onSave: (id: string, updates: Partial<Seccion>) => Promise<void>;
 }) => {
   const campo = IDIOMAS.find(i => i.id === idioma)!.campo;
-  const [texto, setTexto] = useState(() => (sec[campo] as string) || "");
+  const serverVal = (sec[campo] as string) || "";
+  const [texto, setTexto] = useState(serverVal);
   const [st, setSt]       = useState<ColState>(IDLE_STATE);
   const timer             = useRef<any>(null);
+  const draftKey          = `sec-draft-${sec.id}-${idioma}`;
+  const draft             = useDraftRestore({ key: draftKey, serverValue: serverVal, enabled: !!sec.id });
 
   useEffect(() => {
     clearTimeout(timer.current);
@@ -477,7 +484,7 @@ const SeccionTextarea = ({
       try {
         const local = await dexieSecGet(sec.id);
         const localVal = local?.[campo] as string | undefined;
-        const remoteVal = (sec[campo] as string) || "";
+        const remoteVal = serverVal;
         if (local?.status === "pending" && localVal !== undefined && localVal !== remoteVal) {
           setTexto(localVal);
           setSt({ ...IDLE_STATE, dirty: true, mode: "pending", msg: "Pendiente de sincronizar" });
@@ -486,18 +493,21 @@ const SeccionTextarea = ({
           setSt(IDLE_STATE);
         }
       } catch {
-        setTexto((sec[campo] as string) || "");
+        setTexto(serverVal);
         setSt(IDLE_STATE);
       }
     };
     loadLocal();
-  }, [idioma, sec.id]); 
+  }, [idioma, sec.id]);
 
   const doSave = useCallback(async (val: string) => {
     clearTimeout(timer.current);
     setSt(s => ({ ...s, saving: true, msg: null }));
+    // Siempre guardar borrador local primero (seguro ante caída de red)
+    draft.save(val);
     try {
       await onSave(sec.id, { [campo]: val });
+      draft.clear(); // Limpiar borrador al guardar con éxito
       if (navigator.onLine) {
         setSt({ dirty: false, saving: false, saved: true, mode: "idle", msg: null });
         setTimeout(() => setSt(s => ({ ...s, saved: false })), 2000);
@@ -505,12 +515,15 @@ const SeccionTextarea = ({
         setSt({ dirty: false, saving: false, saved: false, mode: "pending", msg: "Guardado sin conexión" });
       }
     } catch (e: any) {
-      setSt(s => ({ ...s, saving: false, mode: "error", msg: e.message }));
+      // Guardar en Dexie offline queue ya fue hecho por secUpdate
+      setSt(s => ({ ...s, saving: false, mode: "pending", msg: "Sin conexión — guardado localmente" }));
     }
-  }, [sec.id, campo, onSave]);
+  }, [sec.id, campo, onSave, draft]);
 
   const onChange = (val: string) => {
     setTexto(val);
+    // Guardar borrador inmediatamente en cada cambio (sin esperar al debounce)
+    draft.save(val);
     setSt(s => ({ ...s, dirty: true, saved: false, mode: s.mode === "error" ? "idle" : s.mode, msg: null }));
     clearTimeout(timer.current);
     timer.current = setTimeout(() => doSave(val), 1500);
@@ -525,6 +538,11 @@ const SeccionTextarea = ({
 
   return (
     <div className="flex-1 min-w-0 space-y-1.5">
+      <DraftRestoreBanner
+        draft={draft}
+        onRestore={(v) => { setTexto(v); draft.dismiss(); }}
+        label="Borrador local disponible"
+      />
       {st.mode === "pending" && !st.saving && (
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-blue-400">
           <WifiOff size={10} />
@@ -748,10 +766,12 @@ const ModalNuevaCancion = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
-          <CampoInput label="Personaje" value={personaje} onChange={setPersonaje} placeholder="Personaje relacionado…" />
-          <CampoInput label="Cantante" value={cantante} onChange={setCantante} placeholder="Cantante…" />
-          <CampoInput label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" />
-          <CampoInput label="Idioma" value={idioma} onChange={setIdioma} placeholder="ES, JP, EN…" />
+          <SelectPersonaje value={personaje} onChange={setPersonaje} />
+          <div className="grid grid-cols-2 gap-3">
+            <CampoInput label="Cantante" value={cantante} onChange={setCantante} placeholder="Cantante…" />
+            <CampoInput label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" />
+          </div>
+          <SelectIdioma value={idioma} onChange={setIdioma} />
 
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Estado</label>
@@ -852,11 +872,13 @@ const ModalEditarCancion = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <CampoInput label="Título *"    value={titulo}     onChange={setTitulo}     placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
-          <CampoInput label="Personaje"   value={personaje}  onChange={setPersonaje}  placeholder="Personaje…" />
-          <CampoInput label="Cantante"    value={cantante}   onChange={setCantante}   placeholder="Cantante…" />
-          <CampoInput label="Compositor"  value={compositor} onChange={setCompositor} placeholder="Compositor…" />
-          <CampoInput label="Idioma"      value={idioma}     onChange={setIdioma}     placeholder="ES, JP, EN…" />
+          <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
+          <SelectPersonaje value={personaje} onChange={setPersonaje} />
+          <div className="grid grid-cols-2 gap-3">
+            <CampoInput label="Cantante"   value={cantante}   onChange={setCantante}   placeholder="Cantante…" />
+            <CampoInput label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" />
+          </div>
+          <SelectIdioma value={idioma} onChange={setIdioma} />
 
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Estado</label>
@@ -1357,7 +1379,14 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 
 export default function EstudioLetras() {
   const { canciones, setCanciones, loading: loadingLista, isOffline: listaOffline, refetch } = useCanciones();
-  const [selectedId,       setSelectedId]       = useState<string | null>(null);
+  const [lastId, setLastId] = useLastOpenedId("estudio-letras-last-id");
+  const [selectedId, _setSelectedId] = useState<string | null>(lastId);
+
+  // Wrapper: persistir al cambiar
+  const setSelectedId = (id: string | null) => {
+    _setSelectedId(id);
+    setLastId(id);
+  };
   const [busqueda,         setBusqueda]         = useState("");
   const [filtros,          setFiltros]          = useState<Filtros>(FILTROS_VACIOS);
   const [showFiltros,      setShowFiltros]      = useState(false);
