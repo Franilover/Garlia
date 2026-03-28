@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/AuthProvider";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDarkMode } from "@/hooks/features/useDarkMode";
@@ -12,25 +11,36 @@ import {
   LogOut, CircleUser, Flower2,
   Utensils, PenTool, Moon, Sun, Star, Palette, Shirt, Sword,
   BookOpen, Compass, BookText, Music, UserCircle2, Camera,
-  ChevronRight,
+  ChevronRight, Calendar, FileText, Dumbbell, ShoppingCart,
+  UtensilsCrossed, Carrot,
 } from "lucide-react";
 
-// ─── Sub-páginas de Wiki ───────────────────────────────────────────────────────
+// ─── Sublinks ────────────────────────────────────────────────────────────────
 const wikiSubLinks = [
-  { href: "/wiki/personal",   label: "Mi Personaje", icon: UserCircle2 },
-  { href: "/wiki/mapa",       label: "Mapa",         icon: Compass     },
-  { href: "/wiki/libros",     label: "Libros",       icon: BookText    },
-  { href: "/wiki/canciones",  label: "Canciones",    icon: Music       },
+  { href: "/wiki/personal",  label: "Mi Personaje", icon: UserCircle2 },
+  { href: "/wiki/mapa",      label: "Mapa",         icon: Compass     },
+  { href: "/wiki/libros",    label: "Libros",       icon: BookText    },
+  { href: "/wiki/canciones", label: "Canciones",    icon: Music       },
 ];
-
-// ─── Sub-páginas de Personal ───────────────────────────────────────────────────
 const personalSubLinks = [
   { href: "/personal/sobre-mi", label: "Sobre Mí", icon: Star    },
   { href: "/personal/dibujos",  label: "Dibujos",  icon: Palette },
   { href: "/personal/fotos",    label: "Fotos",    icon: Camera  },
 ];
+const escritorioSubLinks = [
+  { href: "/myself/escritorio?panel=agenda",    label: "Agenda",    icon: Calendar  },
+  { href: "/myself/escritorio?panel=ensayos",   label: "Ensayos",   icon: FileText  },
+  { href: "/myself/escritorio?panel=capitulos", label: "Capítulos", icon: BookOpen  },
+  { href: "/myself/escritorio?panel=letras",    label: "Letras",    icon: Music     },
+];
+const saludSubLinks = [
+  { href: "/myself/salud?panel=ejercicios",   label: "Ejercicios",   icon: Dumbbell        },
+  { href: "/myself/salud?panel=recetas",      label: "Recetas",      icon: UtensilsCrossed },
+  { href: "/myself/salud?panel=ingredientes", label: "Ingredientes", icon: Carrot          },
+  { href: "/myself/salud?panel=compras",      label: "Compras",      icon: ShoppingCart    },
+];
 
-// ─── Estilos inline reutilizables ─────────────────────────────────────────────
+// ─── Estilos compartidos ─────────────────────────────────────────────────────
 const navItemBase = {
   height: "44px",
   borderRadius: "var(--radius-btn)",
@@ -44,23 +54,22 @@ const submenuSurface = {
   boxShadow: "var(--shadow-card)",
 } as const;
 
-// ─── Variantes de animación del submenú lateral (desktop) ─────────────────────
 const flyoutVariants = {
-  hidden: { opacity: 0, x: -8, scale: 0.97 },
-  visible: { opacity: 1, x: 0, scale: 1 },
+  hidden:  { opacity: 0, x: -8, scale: 0.97 },
+  visible: { opacity: 1, x: 0,  scale: 1    },
   exit:    { opacity: 0, x: -8, scale: 0.97 },
 };
 
-// ─── Componente de ítem de submenú lateral ─────────────────────────────────────
+// ─── SideSubItem ─────────────────────────────────────────────────────────────
 function SideSubItem({
   href, label, icon: Icon, active, onClick,
 }: {
-  href: string; label: string; icon: React.ElementType; active: boolean; onClick: () => void;
+  href: string; label: string; icon: React.ElementType;
+  active: boolean; onClick: () => void;
 }) {
   return (
     <Link
-      href={href}
-      onClick={onClick}
+      href={href} onClick={onClick}
       className="flex items-center gap-3 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
       style={{
         borderRadius: "var(--radius-btn)",
@@ -72,12 +81,8 @@ function SideSubItem({
         (e.currentTarget as HTMLElement).style.color = "var(--primary)";
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.background = active
-          ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-          : "transparent";
-        (e.currentTarget as HTMLElement).style.color = active
-          ? "var(--primary)"
-          : "color-mix(in srgb, var(--primary) 60%, transparent)";
+        (e.currentTarget as HTMLElement).style.background = active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent";
+        (e.currentTarget as HTMLElement).style.color = active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 60%, transparent)";
       }}
     >
       <Icon size={13} strokeWidth={active ? 2.5 : 2} />
@@ -86,7 +91,7 @@ function SideSubItem({
   );
 }
 
-// ─── Componente de ítem principal del sidebar con flyout ──────────────────────
+// ─── SideNavItem — sidebar desktop con flyout al hover ────────────────────────
 function SideNavItem({
   href, label, icon: Icon, active, fillActive,
   subLinks, sidebarExpanded, onClose,
@@ -100,10 +105,7 @@ function SideNavItem({
   const [open, setOpen] = useState(false);
   const hasSublinks = !!subLinks?.length;
 
-  // NUEVO: Cerrar el submenú si la ruta cambia
-  useEffect(() => {
-    setOpen(false);
-  }, [currentPath]);
+  useEffect(() => { setOpen(false); }, [currentPath]);
 
   return (
     <div
@@ -112,17 +114,12 @@ function SideNavItem({
       onMouseLeave={() => setOpen(false)}
     >
       <Link
-        href={href}
-        onClick={onClose}
+        href={href} onClick={onClose}
         className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
         style={{
           ...navItemBase,
-          background: active
-            ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-            : "transparent",
-          color: active
-            ? "var(--primary)"
-            : "color-mix(in srgb, var(--primary) 40%, transparent)",
+          background: active ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+          color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
           paddingRight: sidebarExpanded ? "12px" : "10px",
         }}
         onMouseEnter={(e) => {
@@ -131,62 +128,27 @@ function SideNavItem({
         }}
         onMouseLeave={(e) => {
           if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
-          (e.currentTarget as HTMLElement).style.color = active
-            ? "var(--primary)"
-            : "color-mix(in srgb, var(--primary) 40%, transparent)";
+          (e.currentTarget as HTMLElement).style.color = active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)";
         }}
       >
-        {/* Indicador activo (collapsed) */}
         {active && !sidebarExpanded && (
-          <span
-            className="absolute left-[3px]"
-            style={{
-              width: "3px",
-              height: "20px",
-              borderRadius: "0 2px 2px 0",
-              background: "var(--primary)",
-            }}
-          />
+          <span className="absolute left-[3px]" style={{ width: "3px", height: "20px", borderRadius: "0 2px 2px 0", background: "var(--primary)" }} />
         )}
-
         <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
-          <Icon
-            size={18}
-            fill={active && fillActive ? "currentColor" : "none"}
-            strokeWidth={active ? 2.5 : 2}
-          />
+          <Icon size={18} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
         </span>
-
         <AnimatePresence>
           {sidebarExpanded && (
-            <motion.span
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -6 }}
-              transition={{ duration: 0.16 }}
-              className="flex-1 text-[11px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
+            <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+              className="flex-1 text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
               {label}
             </motion.span>
           )}
         </AnimatePresence>
-
-        {/* Chevron (solo expanded + sublinks) */}
         <AnimatePresence>
           {sidebarExpanded && hasSublinks && (
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
-            >
-              <ChevronRight
-                size={12}
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                  flexShrink: 0,
-                }}
-              />
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
+              <ChevronRight size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
             </motion.span>
           )}
         </AnimatePresence>
@@ -196,29 +158,20 @@ function SideNavItem({
       <AnimatePresence>
         {open && hasSublinks && (
           <motion.div
-            variants={flyoutVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
+            variants={flyoutVariants} initial="hidden" animate="visible" exit="exit"
             transition={{ duration: 0.15 }}
             onClick={(e) => e.stopPropagation()}
             className="absolute top-0 left-full ml-2 z-[1010] p-2 w-44"
             style={submenuSurface}
           >
-            {/* Label de sección */}
-            <p
-              className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            >
+            <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
               {label}
             </p>
             {subLinks!.map(({ href: sub, label: subLabel, icon: SubIcon }) => (
               <SideSubItem
-                key={sub}
-                href={sub}
-                label={subLabel}
-                icon={SubIcon}
-                active={!!currentPath?.startsWith(sub)}
+                key={sub} href={sub} label={subLabel} icon={SubIcon}
+                active={!!currentPath?.includes(sub.split("?")[0])}
                 onClick={() => { setOpen(false); onClose(); }}
               />
             ))}
@@ -229,7 +182,7 @@ function SideNavItem({
   );
 }
 
-// ─── Ítem del bottom nav móvil con desplegable hacia arriba ───────────────────
+// ─── MobileNavItem — label navega, flecha abre submenú ───────────────────────
 function MobileNavItem({
   href, label, icon: Icon, active, fillActive,
   subLinks, isOpen, onToggle, onClose,
@@ -242,86 +195,104 @@ function MobileNavItem({
   const currentPath = usePathname();
   const hasSublinks = !!subLinks?.length;
 
-  const itemStyle = {
-    padding: "6px 14px",
+  const btnStyle = (isActive: boolean, menuOpen: boolean): React.CSSProperties => ({
     borderRadius: "var(--radius-btn)",
-    background: active ? "var(--primary)" : "transparent",
-    color: active ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-    touchAction: "manipulation" as const, 
-  };
+    background: (isActive || menuOpen) ? "var(--primary)" : "transparent",
+    color: (isActive || menuOpen) ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+    touchAction: "manipulation",
+  });
 
+  // Sin sublinks → link simple
   if (!hasSublinks) {
     return (
-      <Link href={href} onClick={onClose} className="flex items-center gap-1.5 transition-all" style={itemStyle}>
+      <Link href={href} onClick={onClose}
+        className="flex items-center gap-1.5 px-[14px] py-[6px] transition-all"
+        style={btnStyle(active, false)}
+      >
         <Icon size={14} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
         <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
       </Link>
     );
   }
 
+  // Con sublinks → label navega directamente + flecha abre desplegable
   return (
-    <div className="relative">
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onToggle();
-        }}
-        className="flex items-center gap-1.5 transition-all"
+    <div className="relative flex items-stretch">
+
+      {/* Label — navega a la raíz */}
+      <Link
+        href={href} onClick={onClose}
+        className="flex items-center gap-1.5 py-[6px] transition-all"
         style={{
-          ...itemStyle,
-          background: (active || isOpen) ? "var(--primary)" : "transparent",
-          color: (active || isOpen)
-            ? "var(--btn-text)"
-            : "color-mix(in srgb, var(--primary) 40%, transparent)",
+          ...btnStyle(active, isOpen),
+          borderRadius: `var(--radius-btn) 0 0 var(--radius-btn)`,
+          paddingLeft: "12px",
+          paddingRight: "8px",
         }}
       >
         <Icon size={14} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
         <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+      </Link>
+
+      {/* Separador */}
+      <div style={{
+        width: "1px",
+        background: (active || isOpen)
+          ? "color-mix(in srgb, var(--btn-text) 25%, transparent)"
+          : "color-mix(in srgb, var(--primary) 15%, transparent)",
+        alignSelf: "stretch",
+        margin: "4px 0",
+      }} />
+
+      {/* Flecha — abre desplegable */}
+      <button
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
+        className="flex items-center justify-center py-[6px] transition-all"
+        style={{
+          ...btnStyle(active, isOpen),
+          borderRadius: `0 var(--radius-btn) var(--radius-btn) 0`,
+          paddingLeft: "6px",
+          paddingRight: "8px",
+          minWidth: "26px",
+        }}
+      >
         <ChevronRight
           size={10}
           style={{
             transform: isOpen ? "rotate(-90deg)" : "rotate(90deg)",
             transition: "transform 0.2s ease",
-            opacity: 0.6,
+            opacity: 0.8,
           }}
         />
       </button>
 
-{/* Panel hacia arriba */}
+      {/* Panel hacia arriba */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            // 1. Añadimos x: "-50%" para que Framer Motion centre el elemento perfectamente
             initial={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
-            exit={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1,    x: "-50%" }}
+            exit={{ opacity: 0, y: 8, scale: 0.97,    x: "-50%" }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
             onClick={(e) => e.stopPropagation()}
-            // 2. Cambiamos 'right-0' por 'left-1/2' y añadimos 'origin-bottom' para la animación
             className="absolute bottom-full mb-2 left-1/2 z-[2000] p-2 w-44 origin-bottom"
             style={submenuSurface}
           >
-            <p
-              className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            >
+            <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
               {label}
             </p>
             {subLinks!.map(({ href: sub, label: subLabel, icon: SubIcon }) => (
               <Link
-                key={sub}
-                href={sub}
-                onClick={() => { setTimeout(() => onClose(), 150); }}
+                key={sub} href={sub}
+                onClick={() => setTimeout(() => onClose(), 150)}
                 className="flex items-center gap-2.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
                 style={{
                   borderRadius: "var(--radius-btn)",
-                  background: currentPath?.startsWith(sub)
-                    ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                    : "transparent",
-                  color: currentPath?.startsWith(sub)
-                    ? "var(--primary)"
-                    : "color-mix(in srgb, var(--primary) 60%, transparent)",
+                  background: currentPath?.includes(sub.split("?")[0])
+                    ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                  color: currentPath?.includes(sub.split("?")[0])
+                    ? "var(--primary)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
                 }}
               >
                 <SubIcon size={13} />
@@ -335,14 +306,14 @@ function MobileNavItem({
   );
 }
 
-// ─── Navbar principal ──────────────────────────────────────────────────────────
+// ─── Navbar ───────────────────────────────────────────────────────────────────
 const Navbar = () => {
   const currentPath = usePathname();
   const { user, perfil } = useAuth() as { user: any; perfil: any };
-  const [userMenuOpen, setUserMenuOpen]     = useState(false);
-  const [themeMenuOpen, setThemeMenuOpen]   = useState(false);
+  const [userMenuOpen,    setUserMenuOpen]    = useState(false);
+  const [themeMenuOpen,   setThemeMenuOpen]   = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [mobileOpenMenu, setMobileOpenMenu] = useState<string | null>(null);
+  const [mobileOpenMenu,  setMobileOpenMenu]  = useState<string | null>(null);
   const { isDark, toggle } = useDarkMode();
 
   const esFranilover = perfil?.username?.toLowerCase() === "franilover";
@@ -357,42 +328,35 @@ const Navbar = () => {
     setUserMenuOpen(false);
     setThemeMenuOpen(false);
     setMobileOpenMenu(null);
-    setSidebarExpanded(false); // NUEVO: Fozar colapso del sidebar en escritorio
+    setSidebarExpanded(false);
   };
 
-  // NUEVO: Asegurarse de que cualquier navegación cierre los menús automáticamente
-  useEffect(() => {
-    closeAll();
-  }, [currentPath]);
+  useEffect(() => { closeAll(); }, [currentPath]); // eslint-disable-line
 
-  const isWiki     = currentPath?.startsWith("/wiki") ?? false;
-  const isPersonal = currentPath?.startsWith("/personal") ?? false;
+  const isWiki       = currentPath?.startsWith("/wiki")              ?? false;
+  const isPersonal   = currentPath?.startsWith("/personal")          ?? false;
+  const isEscritorio = currentPath?.startsWith("/myself/escritorio") ?? false;
+  const isSalud      = currentPath?.startsWith("/myself/salud")      ?? false;
+  const isRopa       = currentPath?.startsWith("/myself/ropa")       ?? false;
+  const isEnciclop   = currentPath?.includes("/enciclopedia")        ?? false;
 
+  // Links del nav público
   const mainLinks = [
-    {
-      href: "/personal", label: "Personal", icon: Star,
-      active: isPersonal, fillActive: true,
-      subLinks: personalSubLinks,
-    },
-    {
-      href: "/wiki", label: "Wiki", icon: Flower2,
-      active: isWiki, fillActive: false,
-      subLinks: wikiSubLinks,
-    },
+    { href: "/personal", label: "Personal", icon: Star,   active: isPersonal, fillActive: true,  subLinks: personalSubLinks },
+    { href: "/wiki",     label: "Wiki",     icon: Flower2, active: isWiki,     fillActive: false, subLinks: wikiSubLinks     },
   ];
 
+  // Links de Franilover — ahora con subLinks para los flyouts
   const franiLinks = [
-    { href: "/wiki/enciclopedia", label: "Información", icon: BookOpen, key: "/enciclopedia" },
-    { href: "/myself/salud",      label: "Salud",        icon: Utensils, key: "/salud"        },
-    { href: "/myself/escritorio", label: "Escritorio",   icon: PenTool,  key: "/escritorio"   },
-    { href: "/myself/ropa",       label: "Ropa",         icon: Shirt,    key: "/ropa"         },
+    { href: "/wiki/enciclopedia", label: "Información", icon: BookOpen, key: "/enciclopedia", active: isEnciclop,   subLinks: undefined           },
+    { href: "/myself/salud",      label: "Salud",        icon: Utensils, key: "/salud",        active: isSalud,      subLinks: saludSubLinks       },
+    { href: "/myself/escritorio", label: "Escritorio",   icon: PenTool,  key: "/escritorio",   active: isEscritorio, subLinks: escritorioSubLinks  },
+    { href: "/myself/ropa",       label: "Ropa",         icon: Shirt,    key: "/ropa",         active: isRopa,       subLinks: undefined           },
   ];
 
   return (
     <>
-      {/* ══════════════════════════════════════════
-          SIDEBAR DESKTOP
-      ══════════════════════════════════════════ */}
+      {/* ── SIDEBAR DESKTOP ─────────────────────────────────────────────── */}
       <aside
         onMouseEnter={() => setSidebarExpanded(true)}
         onMouseLeave={() => { setSidebarExpanded(false); closeAll(); }}
@@ -406,9 +370,7 @@ const Navbar = () => {
         }}
       >
         {/* Logo */}
-        <Link
-          href="/"
-          onClick={closeAll}
+        <Link href="/" onClick={closeAll}
           className="flex items-center gap-3 px-4 shrink-0 overflow-hidden"
           style={{ height: "68px", color: "var(--primary)" }}
         >
@@ -417,13 +379,8 @@ const Navbar = () => {
           </span>
           <AnimatePresence>
             {sidebarExpanded && (
-              <motion.span
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.18 }}
-                className="text-base font-black italic tracking-tighter whitespace-nowrap"
-              >
+              <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.18 }}
+                className="text-base font-black italic tracking-tighter whitespace-nowrap">
                 FRANI<span style={{ opacity: 0.35 }}>LOVER</span>
               </motion.span>
             )}
@@ -432,69 +389,22 @@ const Navbar = () => {
 
         <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "0 12px" }} />
 
-        {/* Links principales con flyout */}
+        {/* Nav — todos usan SideNavItem con flyout */}
         <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
           {mainLinks.map(({ href, label, icon, active, fillActive, subLinks }) => (
-            <SideNavItem
-              key={href}
-              href={href}
-              label={label}
-              icon={icon}
-              active={active}
-              fillActive={fillActive}
-              subLinks={subLinks}
-              sidebarExpanded={sidebarExpanded}
-              onClose={closeAll}
-            />
+            <SideNavItem key={href} href={href} label={label} icon={icon}
+              active={active} fillActive={fillActive} subLinks={subLinks}
+              sidebarExpanded={sidebarExpanded} onClose={closeAll} />
           ))}
 
-          {/* Links de Franilover */}
           {esFranilover && (
             <>
               <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "6px 4px" }} />
-              {franiLinks.map(({ href, label, icon: Icon, key }) => {
-                const active = !!currentPath?.includes(key);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={closeAll}
-                    className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
-                    style={{
-                      ...navItemBase,
-                      background: active ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-                      color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!active) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
-                      (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
-                      (e.currentTarget as HTMLElement).style.color = active
-                        ? "var(--primary)"
-                        : "color-mix(in srgb, var(--primary) 40%, transparent)";
-                    }}
-                  >
-                    <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
-                      <Icon size={16} strokeWidth={active ? 2.5 : 2} />
-                    </span>
-                    <AnimatePresence>
-                      {sidebarExpanded && (
-                        <motion.span
-                          initial={{ opacity: 0, x: -6 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -6 }}
-                          transition={{ duration: 0.16 }}
-                          className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap"
-                        >
-                          {label}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </Link>
-                );
-              })}
+              {franiLinks.map(({ href, label, icon, active, subLinks }) => (
+                <SideNavItem key={href} href={href} label={label} icon={icon}
+                  active={active} fillActive={false} subLinks={subLinks}
+                  sidebarExpanded={sidebarExpanded} onClose={closeAll} />
+              ))}
             </>
           )}
         </nav>
@@ -503,133 +413,75 @@ const Navbar = () => {
         <div className="flex flex-col gap-1 px-2 pb-4 shrink-0">
           <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "4px 4px 8px" }} />
 
-          {/* Dark mode toggle */}
-          <button
-            onClick={toggle}
+          {/* Dark mode */}
+          <button onClick={toggle}
             className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
             style={{ ...navItemBase, color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
-              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)";
-            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"; }}
           >
             <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
               <AnimatePresence mode="wait" initial={false}>
-                {isDark ? (
-                  <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                    <Sun size={16} />
-                  </motion.span>
-                ) : (
-                  <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                    <Moon size={16} />
-                  </motion.span>
-                )}
+                {isDark
+                  ? <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><Sun size={16} /></motion.span>
+                  : <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><Moon size={16} /></motion.span>
+                }
               </AnimatePresence>
             </span>
             <AnimatePresence>
               {sidebarExpanded && (
-                <motion.span
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -6 }}
-                  transition={{ duration: 0.16 }}
-                  className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap"
-                >
+                <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+                  className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
                   {isDark ? "Modo claro" : "Modo oscuro"}
                 </motion.span>
               )}
             </AnimatePresence>
           </button>
 
-          {/* Theme picker */}
+          {/* Tema */}
           <div className="relative">
             <button
               onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); }}
               className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
-              style={{
-                ...navItemBase,
-                background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-                color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
-              onMouseEnter={(e) => {
-                if (!themeMenuOpen) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
-                (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-              }}
-              onMouseLeave={(e) => {
-                if (!themeMenuOpen) (e.currentTarget as HTMLElement).style.background = "transparent";
-                (e.currentTarget as HTMLElement).style.color = themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)";
-              }}
+              style={{ ...navItemBase, background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              onMouseEnter={(e) => { if (!themeMenuOpen) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
+              onMouseLeave={(e) => { if (!themeMenuOpen) (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)"; }}
             >
-              <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
-                <Palette size={16} />
-              </span>
+              <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><Palette size={16} /></span>
               <AnimatePresence>
                 {sidebarExpanded && (
-                  <motion.span
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -6 }}
-                    transition={{ duration: 0.16 }}
-                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap"
-                  >
-                    Tema
-                  </motion.span>
+                  <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Tema</motion.span>
                 )}
               </AnimatePresence>
             </button>
             <AnimatePresence>
               {themeMenuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, x: -8, scale: 0.97 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: -8, scale: 0.97 }}
-                  transition={{ duration: 0.15 }}
+                <motion.div initial={{ opacity: 0, x: -8, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -8, scale: 0.97 }} transition={{ duration: 0.15 }}
                   onClick={(e) => e.stopPropagation()}
                   className="absolute left-full ml-2 w-56 z-[1001] overflow-hidden"
-                  style={{ ...submenuSurface, bottom: "0", top: "auto" }}
-                >
+                  style={{ ...submenuSurface, bottom: "0", top: "auto" }}>
                   <ThemeSelector />
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* User menu */}
+          {/* Usuario */}
           {user ? (
             <div className="relative">
               <button
                 onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); setThemeMenuOpen(false); }}
                 className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
-                style={{
-                  ...navItemBase,
-                  background: userMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-                  color: userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                }}
-                onMouseEnter={(e) => {
-                  if (!userMenuOpen) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-                }}
-                onMouseLeave={(e) => {
-                  if (!userMenuOpen) (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.color = userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)";
-                }}
+                style={{ ...navItemBase, background: userMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+                onMouseEnter={(e) => { if (!userMenuOpen) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
+                onMouseLeave={(e) => { if (!userMenuOpen) (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
               >
-                <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
-                  <CircleUser size={18} />
-                </span>
+                <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
                 <AnimatePresence>
                   {sidebarExpanded && (
-                    <motion.span
-                      initial={{ opacity: 0, x: -6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -6 }}
-                      transition={{ duration: 0.16 }}
-                      className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap truncate max-w-[110px]"
-                    >
+                    <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+                      className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap truncate max-w-[110px]">
                       {perfil?.username}
                     </motion.span>
                   )}
@@ -637,34 +489,20 @@ const Navbar = () => {
               </button>
               <AnimatePresence>
                 {userMenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -8, scale: 0.97 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: -8, scale: 0.97 }}
-                    transition={{ duration: 0.15 }}
+                  <motion.div initial={{ opacity: 0, x: -8, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -8, scale: 0.97 }} transition={{ duration: 0.15 }}
                     onClick={(e) => e.stopPropagation()}
                     className="absolute left-full ml-2 w-48 p-2 z-[1001]"
-                    style={{ ...submenuSurface, bottom: "0" }}
-                  >
-                    <Link
-                      href="/wiki/personal"
-                      onClick={closeAll}
+                    style={{ ...submenuSurface, bottom: "0" }}>
+                    <Link href="/wiki/personal" onClick={closeAll}
                       className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase transition-all"
                       style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)", borderRadius: "var(--radius-btn)" }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
-                        (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = "transparent";
-                        (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 60%, transparent)";
-                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 60%, transparent)"; }}
                     >
                       <Sword size={14} /> Mi Personaje
                     </Link>
                     <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)", margin: "4px 0" }} />
-                    <button
-                      onClick={handleLogout}
+                    <button onClick={handleLogout}
                       className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase transition-all"
                       style={{ color: "oklch(0.6 0.2 25)", borderRadius: "var(--radius-btn)", background: "transparent" }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "oklch(0.97 0.01 25)"; }}
@@ -677,33 +515,17 @@ const Navbar = () => {
               </AnimatePresence>
             </div>
           ) : (
-            <Link
-              href="/auth/login"
+            <Link href="/auth/login"
               className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
               style={{ ...navItemBase, color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
-                (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-                (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 50%, transparent)";
-              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
             >
-              <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
-                <CircleUser size={18} />
-              </span>
+              <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
               <AnimatePresence>
                 {sidebarExpanded && (
-                  <motion.span
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -6 }}
-                    transition={{ duration: 0.16 }}
-                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap"
-                  >
-                    Entrar
-                  </motion.span>
+                  <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Entrar</motion.span>
                 )}
               </AnimatePresence>
             </Link>
@@ -711,66 +533,44 @@ const Navbar = () => {
         </div>
       </aside>
 
-      {/* ══════════════════════════════════════════
-          BOTTOM NAV MÓVIL
-      ══════════════════════════════════════════ */}
+      {/* ── BOTTOM NAV MÓVIL ─────────────────────────────────────────────── */}
       <div className="md:hidden fixed bottom-0 left-0 w-full z-[1000]">
 
-        {/* Theme panel */}
         <AnimatePresence>
           {themeMenuOpen && (
             <>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]" onClick={closeAll} />
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[90]"
-                onClick={closeAll}
-              />
-              <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.97 }}
+                initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 onClick={(e) => e.stopPropagation()}
                 className="absolute bottom-full right-4 mb-2 w-56 overflow-hidden z-[2000]"
-                style={submenuSurface}
-              >
+                style={submenuSurface}>
                 <ThemeSelector />
               </motion.div>
             </>
           )}
         </AnimatePresence>
 
-        {/* Overlay para cerrar submenús móviles */}
         <AnimatePresence>
           {mobileOpenMenu && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[90]"
-              onClick={closeAll}
-            />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]" onClick={closeAll} />
           )}
         </AnimatePresence>
 
-        {/* Bottom bar container elevado */}
-        <div
-          className="flex items-center px-4 relative z-[100]"
+        {/* Barra */}
+        <div className="flex items-center px-4 relative z-[100]"
           style={{
             height: "56px",
             background: "color-mix(in srgb, var(--bg-main) 90%, transparent)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
+            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
             borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
           <div className="flex-1" />
 
-          {/* Navegación principal con dropdowns */}
-          <div
-            className="flex items-center gap-1 p-1"
+          {/* Nav principal */}
+          <div className="flex items-center gap-1 p-1"
             style={{
               background: "color-mix(in srgb, var(--primary) 5%, transparent)",
               borderRadius: "var(--radius-card)",
@@ -779,13 +579,8 @@ const Navbar = () => {
           >
             {mainLinks.map(({ href, label, icon, active, fillActive, subLinks }) => (
               <MobileNavItem
-                key={href}
-                href={href}
-                label={label}
-                icon={icon}
-                active={active}
-                fillActive={fillActive}
-                subLinks={subLinks}
+                key={href} href={href} label={label} icon={icon}
+                active={active} fillActive={fillActive} subLinks={subLinks}
                 isOpen={mobileOpenMenu === href}
                 onToggle={() => setMobileOpenMenu(mobileOpenMenu === href ? null : href)}
                 onClose={closeAll}
@@ -795,37 +590,21 @@ const Navbar = () => {
 
           {/* Controles derecha */}
           <div className="flex-1 flex items-center justify-end gap-1">
-
-            {/* Theme button */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
+            <motion.button whileTap={{ scale: 0.88 }}
               onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); setMobileOpenMenu(null); }}
               className="flex items-center justify-center transition-all"
-              style={{
-                width: 34, height: 34,
-                borderRadius: "var(--radius-btn)",
-                background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-                color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
+              style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
               <Palette size={16} />
             </motion.button>
 
-            {/* User button */}
             <div className="relative">
-              <motion.button
-                whileTap={{ scale: 0.88 }}
+              <motion.button whileTap={{ scale: 0.88 }}
                 onClick={() => user
                   ? (setUserMenuOpen(!userMenuOpen), setThemeMenuOpen(false), setMobileOpenMenu(null))
-                  : (window.location.href = "/auth/login")
-                }
+                  : (window.location.href = "/auth/login")}
                 className="flex items-center justify-center transition-all"
-                style={{
-                  width: 34, height: 34,
-                  borderRadius: "var(--radius-btn)",
-                  background: userMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-                  color: userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                }}
+                style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", background: userMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 <CircleUser size={16} />
               </motion.button>
@@ -833,9 +612,7 @@ const Navbar = () => {
               <AnimatePresence>
                 {userMenuOpen && user && (
                   <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 420, damping: 34 }}
                     onClick={(e) => e.stopPropagation()}
                     className="absolute bottom-full right-0 mb-2 overflow-hidden z-[2000]"
@@ -844,46 +621,29 @@ const Navbar = () => {
                     <div className="px-4 py-3" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
                       <p className="text-[10px] font-black uppercase tracking-widest text-primary truncate">{perfil?.username}</p>
                     </div>
-
-                    <Link
-                      href="/wiki/personal"
-                      onClick={() => setTimeout(closeAll, 150)}
+                    <Link href="/wiki/personal" onClick={() => setTimeout(closeAll, 150)}
                       className="flex items-center gap-2.5 px-4 py-3 transition-all"
                       style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
                     >
                       <CircleUser size={13} />
                       <span className="text-[10px] font-black uppercase tracking-widest">Mi perfil</span>
                     </Link>
-
                     {esFranilover && (
                       <div className="p-2" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-                        <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Franilover</p>
-                        {franiLinks.map(({ href, icon: Icon, label, key }) => {
-                          const active = !!currentPath?.includes(key);
-                          return (
-                            <Link
-                              key={href}
-                              href={href}
-                              onClick={() => setTimeout(closeAll, 150)}
-                              className="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-btn)] transition-all"
-                              style={{
-                                background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-                                color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                              }}
-                            >
-                              <Icon size={13} />
-                              <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-                            </Link>
-                          );
-                        })}
+                        <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
+                          style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Franilover</p>
+                        {franiLinks.map(({ href, icon: Icon, label, active }) => (
+                          <Link key={href} href={href} onClick={() => setTimeout(closeAll, 150)}
+                            className="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-btn)] transition-all"
+                            style={{ background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+                          >
+                            <Icon size={13} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+                          </Link>
+                        ))}
                       </div>
                     )}
-
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-4 py-3 transition-all"
-                      style={{ color: "oklch(0.55 0.18 25)" }}
-                    >
+                    <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-4 py-3 transition-all" style={{ color: "oklch(0.55 0.18 25)" }}>
                       <LogOut size={13} />
                       <span className="text-[10px] font-black uppercase tracking-widest">Salir</span>
                     </button>
@@ -891,17 +651,14 @@ const Navbar = () => {
                 )}
               </AnimatePresence>
             </div>
-
           </div>
         </div>
       </div>
 
       {(userMenuOpen || themeMenuOpen) && (
-        <div
-          className="fixed inset-0 z-[90]"
+        <div className="fixed inset-0 z-[90]"
           style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
-          onClick={closeAll}
-        />
+          onClick={closeAll} />
       )}
     </>
   );
