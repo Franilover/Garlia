@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
+import React, { useState, useCallback, useRef, useEffect, Suspense, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
@@ -99,7 +99,7 @@ function readStoredIndex(key: string | undefined, fallback: number, max: number)
   }
 }
 
-export function PanelSlider({
+function PanelSliderInner({
   panels,
   title,
   defaultPanel = 0,
@@ -112,8 +112,10 @@ export function PanelSlider({
     readStoredIndex(storageKey, defaultPanel, panels.length)
   );
   const [direction, setDirection] = useState(0);
+  const [hoveredPill, setHoveredPill] = useState<number | null>(null);
+  const [hoveredArrow, setHoveredArrow] = useState<"left" | "right" | null>(null);
 
-  // Reaccionar a cambios en ?panel= desde el navbar (sin reload)
+  // Activar panel desde ?panel= query param (enviado desde el navbar)
   const searchParams = useSearchParams();
   const panelParam = searchParams?.get("panel");
   useEffect(() => {
@@ -122,8 +124,6 @@ export function PanelSlider({
     if (idx !== -1 && idx !== active) goTo(idx);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panelParam]);
-  const [hoveredPill, setHoveredPill] = useState<number | null>(null);
-  const [hoveredArrow, setHoveredArrow] = useState<"left" | "right" | null>(null);
 
   const goTo = useCallback((idx: number) => {
     if (idx === active || idx < 0 || idx >= panels.length) return;
@@ -289,6 +289,15 @@ export function PanelSlider({
       </div>
 
     </div>
+  );
+}
+
+// Wrapper público: aporta el <Suspense> que useSearchParams requiere
+export function PanelSlider(props: PanelSliderProps) {
+  return (
+    <Suspense fallback={null}>
+      <PanelSliderInner {...props} />
+    </Suspense>
   );
 }
 
