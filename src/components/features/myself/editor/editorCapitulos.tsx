@@ -61,10 +61,12 @@ const ESTADO_COLOR: Record<string, string> = {
   PAUSADO:      "bg-primary/10 text-primary/40 border-primary/20",
 };
 
+// Visibilidad unificada para capítulos y libros.
+// "oculto" queda como alias de "borrador" para compatibilidad con datos viejos.
 const VISIBILIDAD_CONFIG = {
-  publico:    { label: "Público",    icon: Globe, color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
-  programado: { label: "Programado", icon: Timer, color: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
-  oculto:     { label: "Oculto",     icon: Lock,  color: "bg-primary/10 text-primary/40 border-primary/20" },
+  publico:    { label: "Público",    icon: Globe, color: "bg-primary/15 text-primary border-primary/30"           },
+  programado: { label: "Programado", icon: Timer, color: "bg-primary/8  text-primary/70 border-primary/20"        },
+  oculto:     { label: "Borrador",   icon: Lock,  color: "bg-primary/5  text-primary/40 border-primary/10"        },
 } as const;
 
 
@@ -507,7 +509,7 @@ const LibroItem = ({
 
   return (
     <div className="mb-1">
-      <div className="flex items-center gap-1 group/libro">
+      <div className="relative flex items-center gap-1 group/libro">
       <button
         onClick={onToggle}
         className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-primary/5 transition-all text-left"
@@ -636,8 +638,8 @@ const ModalChoice = ({
           <CampoInput label="ID de sección" value={target} onChange={setTarget} placeholder="ej: cofre (debe coincidir con [[section|cofre]])" />
         )}
         {snippet && (
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-[var(--radius-btn)] px-3 py-2">
-            <code className="text-[10px] text-blue-600 font-mono break-all">{snippet}</code>
+          <div className="bg-primary/8 border border-primary/20 rounded-[var(--radius-btn)] px-3 py-2">
+            <code className="text-[10px] text-primary/70 font-mono break-all">{snippet}</code>
           </div>
         )}
         <button type="button" onClick={handleInsert} disabled={!snippet}
@@ -709,8 +711,8 @@ const ModalUseItem = ({
           </select>
         </div>
         {snippet && (
-          <div className="bg-rose-500/10 border border-rose-500/20 rounded-[var(--radius-btn)] px-3 py-2">
-            <code className="text-[10px] text-rose-600 font-mono break-all">{snippet}</code>
+          <div className="bg-primary/8 border border-primary/20 rounded-[var(--radius-btn)] px-3 py-2">
+            <code className="text-[10px] text-primary/70 font-mono break-all">{snippet}</code>
           </div>
         )}
         <button type="button" onClick={handleInsert} disabled={!snippet}
@@ -745,7 +747,7 @@ const ModalSection = ({ onInsert, onClose }: { onInsert: (s: string) => void; on
           placeholder={autoId || "ej: cofre"} />
         {snippet && (
           <div className="bg-violet-500/10 border border-violet-500/20 rounded-[var(--radius-btn)] px-3 py-2">
-            <code className="text-[10px] text-violet-600 font-mono">{snippet}</code>
+            <code className="text-[10px] text-primary/70 font-mono">{snippet}</code>
           </div>
         )}
         <button type="button" onClick={handleInsert} disabled={!autoId}
@@ -837,33 +839,33 @@ const SnippetToolbar = ({
   }, [textareaRef, value, onChange]);
 
   const btns = [
-    { key: "drop",    label: "Drop",     icon: <Sword size={11}/>,              color: "text-amber-500  hover:bg-amber-500/10"  },
-    { key: "imagen",  label: "Imagen",   icon: <Image size={11}/>,              color: "text-emerald-500 hover:bg-emerald-500/10"},
-    { key: "choice",  label: "Choice",   icon: <GitMerge size={11}/>,           color: "text-blue-500   hover:bg-blue-500/10"   },
-    { key: "use",     label: "Use Ítem", icon: <MousePointerClick size={11}/>,  color: "text-rose-500   hover:bg-rose-500/10"   },
-    { key: "section", label: "Sección",  icon: <ChevronR size={11}/>,           color: "text-violet-500 hover:bg-violet-500/10" },
-    { key: "sound",   label: "Sonido",   icon: <Music2 size={11}/>,             color: "text-indigo-500 hover:bg-indigo-500/10" },
+    { key: "drop",    label: "Drop",     icon: <Sword size={11}/> },
+    { key: "imagen",  label: "Imagen",   icon: <Image size={11}/> },
+    { key: "choice",  label: "Choice",   icon: <GitMerge size={11}/> },
+    { key: "use",     label: "Use Ítem", icon: <MousePointerClick size={11}/> },
+    { key: "section", label: "Sección",  icon: <ChevronR size={11}/> },
+    { key: "sound",   label: "Sonido",   icon: <Music2 size={11}/> },
   ] as const;
+
+  // Clase base para todos los botones — usa solo colores del tema activo
+  const btnCls = "flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide transition-all text-primary/50 hover:text-primary hover:bg-primary/8 border border-transparent hover:border-primary/10";
 
   return (
     <>
-      <div className="flex items-center gap-1 flex-wrap px-8 py-2 border-b border-primary/5 bg-primary/2">
+      <div className="flex items-center gap-1 flex-wrap px-8 py-2 border-b border-primary/5"
+        style={{ background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
         <span className="text-[8px] font-black uppercase tracking-widest text-primary/20 mr-2">Snippets</span>
         {btns.map(b => (
-          <button key={b.key} onClick={() => setOpenModal(b.key)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide transition-all ${b.color} border border-transparent hover:border-current/20`}
-          >
+          <button key={b.key} onClick={() => setOpenModal(b.key)} className={btnCls}>
             {b.icon} {b.label}
           </button>
         ))}
         {/* Inserción rápida: cita y párrafo */}
         <div className="w-px h-4 bg-primary/10 mx-1" />
-        <button onClick={() => insertAtCursor('[[cita|Texto de la cita — Fuente]]')}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide text-primary/40 hover:bg-primary/8 transition-all border border-transparent hover:border-primary/10">
+        <button onClick={() => insertAtCursor('[[cita|Texto de la cita — Fuente]]')} className={btnCls}>
           « Cita
         </button>
-        <button onClick={() => insertAtCursor('\n\n')}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide text-primary/40 hover:bg-primary/8 transition-all border border-transparent hover:border-primary/10">
+        <button onClick={() => insertAtCursor('\n\n')} className={btnCls}>
           ¶ Párrafo
         </button>
       </div>
@@ -901,7 +903,7 @@ const VisibilidadCapPicker = ({
 
   return (
     <span className="flex items-center gap-1">
-      {(["publico", "programado", "oculto"] as const).map(v => {
+      {(["oculto", "programado", "publico"] as const).map(v => {
         const cfg = VISIBILIDAD_CONFIG[v];
         const Icon = cfg.icon;
         const active = current === v;
@@ -947,7 +949,6 @@ const PanelEditor = ({
   const timer   = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Draft restore — borrador local por capítulo
   const draft = useDraftRestore({
     key: `cap-draft-${capId}`,
     serverValue: cap?.contenido || "",
@@ -982,23 +983,20 @@ const PanelEditor = ({
   const doSave = useCallback(async (val: string) => {
     clearTimeout(timer.current);
     setSaveStatus("saving");
-    // Guardar borrador local inmediatamente antes de intentar remoto
     draft.save(val);
     try {
       await capUpdateContenido(capId, val);
       setCap(prev => prev ? { ...prev, contenido: val } : prev);
-      draft.clear(); // Éxito: limpiar borrador
+      draft.clear();
       setSaveStatus(navigator.onLine ? "saved" : "pending");
       if (navigator.onLine) setTimeout(() => setSaveStatus("idle"), 2500);
-    } catch (e: any) {
-      // capUpdateContenido ya encoló en Dexie/offline queue
+    } catch {
       setSaveStatus("pending");
     }
   }, [capId, setCap, draft]);
 
   const onChange = (val: string) => {
     setContenido(val);
-    // Guardar borrador en cada keystroke (sin esperar debounce)
     draft.save(val);
     setSaveStatus("saving");
     clearTimeout(timer.current);
@@ -1097,7 +1095,6 @@ const PanelEditor = ({
         onRestore={(v) => { setContenido(v); draft.dismiss(); }}
         label="Hay un borrador local de este capítulo"
       />
-
       {isOffline && <BannerOffline color="blue" mensaje="Sin conexión — los cambios se guardan localmente" />}
 
       {saveStatus === "pending" && !isOffline && (
@@ -1283,7 +1280,7 @@ const PanelEditor = ({
 
 // ─── Selector de visibilidad inline ─────────────────────────────────────────
 const SelectorVisibilidad = ({
-  value, onChange, fechaPublicacion, onFechaChange, label = "Visibilidad del Libro",
+  value, onChange, fechaPublicacion, onFechaChange, label = "Visibilidad",
 }: {
   value: "publico" | "programado" | "oculto";
   onChange: (v: "publico" | "programado" | "oculto") => void;
@@ -1296,7 +1293,7 @@ const SelectorVisibilidad = ({
       {label}
     </label>
     <div className="flex gap-2">
-      {(["publico", "programado", "oculto"] as const).map((v) => {
+      {(["oculto", "programado", "publico"] as const).map((v) => {
         const cfg = VISIBILIDAD_CONFIG[v];
         const Icon = cfg.icon;
         const active = value === v;
@@ -1313,15 +1310,15 @@ const SelectorVisibilidad = ({
         );
       })}
     </div>
-    {value === "programado" && onFechaChange && (
+    {value === "programado" && (
       <div className="mt-2">
         <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-          Fecha de publicación del libro
+          Fecha de publicación
         </label>
         <input
           type="date"
           value={fechaPublicacion || ""}
-          onChange={e => onFechaChange(e.target.value)}
+          onChange={e => onFechaChange?.(e.target.value)}
           className="mt-1 w-full bg-primary/5 border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] font-bold text-primary outline-none focus:border-primary/30 transition-colors"
         />
       </div>
@@ -1331,19 +1328,15 @@ const SelectorVisibilidad = ({
 
 // ─── Selector multi-personaje para capítulos ─────────────────────────────────
 const SelectorPersonajesCapitulo = ({
-  value,
-  onChange,
+  value, onChange,
 }: {
   value: string[];
   onChange: (ids: string[]) => void;
 }) => {
   const { personajes, loading } = usePersonajes();
   const [open, setOpen] = useState(false);
-
-  const toggle = (id: string) => {
+  const toggle = (id: string) =>
     onChange(value.includes(id) ? value.filter(x => x !== id) : [...value, id]);
-  };
-
   const selected = personajes.filter(p => value.includes(p.id));
 
   return (
@@ -1351,59 +1344,39 @@ const SelectorPersonajesCapitulo = ({
       <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-2">
         <UserCircle2 size={10} />
         Personajes que aparecen
-        <span className="text-primary/25 normal-case font-medium">(se desbloquean al terminar de leer)</span>
+        <span className="text-primary/25 normal-case font-medium">(se desbloquean al terminar)</span>
       </label>
-
-      {/* Chips de seleccionados */}
       {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
+        <div className="flex flex-wrap gap-1.5">
           {selected.map(p => (
-            <span
-              key={p.id}
-              className="flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-wide border border-primary/15"
-            >
+            <span key={p.id} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border"
+              style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)" }}>
               {p.nombre}
-              <button
-                type="button"
-                onClick={() => toggle(p.id)}
-                className="text-primary/40 hover:text-primary ml-0.5 transition-colors"
-              >
-                ✕
-              </button>
+              <button type="button" onClick={() => toggle(p.id)} className="opacity-50 hover:opacity-100 transition-opacity ml-0.5">✕</button>
             </span>
           ))}
         </div>
       )}
-
-      {/* Botón abrir lista */}
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-2.5 bg-primary/5 border border-primary/15 rounded-[var(--radius-btn)] text-[11px] font-bold text-primary/50 hover:border-primary/30 hover:text-primary transition-all"
-      >
-        <span>{loading ? "Cargando personajes…" : `${selected.length > 0 ? `${selected.length} seleccionado${selected.length > 1 ? "s" : ""}` : "Añadir personajes…"}`}</span>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
+        style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)", color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+        <span>{loading ? "Cargando…" : selected.length > 0 ? `${selected.length} seleccionado${selected.length > 1 ? "s" : ""}` : "Añadir personajes…"}</span>
         <ChevronDown size={12} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
-
-      {/* Lista desplegable */}
       {open && (
-        <div className="border border-primary/15 rounded-[var(--radius-btn)] overflow-hidden max-h-48 overflow-y-auto bg-bg-main">
+        <div className="border rounded-[var(--radius-btn)] overflow-hidden max-h-44 overflow-y-auto"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", background: "var(--bg-main)" }}>
           {personajes.length === 0 ? (
             <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">Sin personajes</p>
           ) : (
             personajes.map(p => {
-              const isSelected = value.includes(p.id);
+              const sel = value.includes(p.id);
               return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => toggle(p.id)}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5 ${
-                    isSelected ? "text-primary bg-primary/5" : "text-primary/50"
-                  }`}
-                >
+                <button key={p.id} type="button" onClick={() => toggle(p.id)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
+                  style={{ color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
                   <span>{p.nombre}</span>
-                  {isSelected && <Check size={11} className="text-primary shrink-0" />}
+                  {sel && <Check size={11} className="shrink-0" style={{ color: "var(--primary)" }} />}
                 </button>
               );
             })
@@ -1415,18 +1388,16 @@ const SelectorPersonajesCapitulo = ({
 };
 
 const ModalEditarCapitulo = ({
-  cap, libro, onSaved, onLibroUpdated, onClose,
+  cap, onSaved, onClose,
 }: {
   cap: Capitulo;
-  libro?: Libro;
   onSaved: (c: Capitulo) => void;
-  onLibroUpdated?: (l: Partial<Libro>) => void;
   onClose: () => void;
 }) => {
   const [titulo,        setTitulo]        = useState(cap.titulo_capitulo);
+  const [orden,         setOrden]         = useState(String(cap.orden));
   const [fecha,         setFecha]         = useState(toDateInput(cap.fecha_publicacion));
-  const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">(libro?.visibilidad ?? "oculto");
-  const [fechaLibro,    setFechaLibro]    = useState(libro?.fecha_publicacion ?? "");
+  const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">(cap.visibilidad ?? "oculto");
   const [personajesIds, setPersonajesIds] = useState<string[]>(cap.personajes_ids ?? []);
   const [saving,        setSaving]        = useState(false);
 
@@ -1437,15 +1408,12 @@ const ModalEditarCapitulo = ({
     try {
       const fields: Partial<Capitulo> = {
         titulo_capitulo: titulo.trim().toUpperCase(),
+        orden: parseInt(orden) || cap.orden,
         fecha_publicacion: fecha,
+        visibilidad,
         personajes_ids: personajesIds,
       };
       await capUpdateMeta(cap.id, fields);
-      // Actualizar visibilidad del libro si cambió
-      if (libro && (visibilidad !== libro.visibilidad || fechaLibro !== libro.fecha_publicacion)) {
-        await libroUpdateVisibilidad(libro.id, visibilidad, visibilidad === "programado" ? fechaLibro : undefined);
-        onLibroUpdated?.({ visibilidad, fecha_publicacion: visibilidad === "programado" ? fechaLibro : undefined });
-      }
       onSaved({ ...cap, ...fields });
       onClose();
     } catch {}
@@ -1462,19 +1430,18 @@ const ModalEditarCapitulo = ({
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
         <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
-        <CampoInput label="Fecha de publicación del capítulo" value={fecha} onChange={setFecha} type="date" />
+        <div className="grid grid-cols-2 gap-3">
+          <CampoInput label="Orden" value={orden} onChange={setOrden} type="number" placeholder="1" />
+          <CampoInput label="Fecha de publicación" value={fecha} onChange={setFecha} type="date" />
+        </div>
+        <SelectorVisibilidad
+          value={visibilidad}
+          onChange={setVisibilidad}
+          fechaPublicacion={fecha}
+          onFechaChange={setFecha}
+          label="Visibilidad del Capítulo"
+        />
         <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
-        {libro && (
-          <>
-            <div className="h-px bg-primary/8" />
-            <SelectorVisibilidad
-              value={visibilidad}
-              onChange={setVisibilidad}
-              fechaPublicacion={fechaLibro}
-              onFechaChange={setFechaLibro}
-            />
-          </>
-        )}
         <BotonSubmit
           loading={saving}
           disabled={!titulo.trim()}
@@ -1487,20 +1454,16 @@ const ModalEditarCapitulo = ({
 };
 
 const ModalNuevoCapitulo = ({
-  libroId, libro, ordenSiguiente, onCreated, onLibroUpdated, onClose,
+  libroId, ordenSiguiente, onCreated, onClose,
 }: {
   libroId: string;
-  libro?: Libro;
   ordenSiguiente: number;
   onCreated: (cap: Capitulo) => void;
-  onLibroUpdated?: (l: Partial<Libro>) => void;
   onClose: () => void;
 }) => {
   const [titulo,         setTitulo]         = useState("");
   const [fecha,          setFecha]          = useState(new Date().toISOString().split("T")[0]);
-  const [visibilidadCap, setVisibilidadCap] = useState<"publico" | "programado" | "oculto">("programado");
-  const [visibilidad,    setVisibilidad]    = useState<"publico" | "programado" | "oculto">(libro?.visibilidad ?? "oculto");
-  const [fechaLibro,     setFechaLibro]     = useState(libro?.fecha_publicacion ?? "");
+  const [visibilidad,    setVisibilidad]    = useState<"publico" | "programado" | "oculto">("oculto");
   const [personajesIds,  setPersonajesIds]  = useState<string[]>([]);
   const [saving,         setSaving]         = useState(false);
 
@@ -1510,18 +1473,13 @@ const ModalNuevoCapitulo = ({
     setSaving(true);
     try {
       const nuevo = await capCreate(libroId, titulo, ordenSiguiente, fecha);
-      // Actualizar visibilidad + personajes si difieren de la default
+      // Aplicar visibilidad y personajes al nuevo capítulo
       const metaExtra: Partial<Capitulo> = {};
-      if (visibilidadCap !== nuevo.visibilidad) metaExtra.visibilidad = visibilidadCap;
+      if (visibilidad !== nuevo.visibilidad) metaExtra.visibilidad = visibilidad;
       if (personajesIds.length > 0) metaExtra.personajes_ids = personajesIds;
       if (Object.keys(metaExtra).length > 0) {
         await capUpdateMeta(nuevo.id, metaExtra);
         Object.assign(nuevo, metaExtra);
-      }
-      // Actualizar visibilidad del libro si cambió
-      if (libro && (visibilidad !== libro.visibilidad || fechaLibro !== libro.fecha_publicacion)) {
-        await libroUpdateVisibilidad(libro.id, visibilidad, visibilidad === "programado" ? fechaLibro : undefined);
-        onLibroUpdated?.({ visibilidad, fecha_publicacion: visibilidad === "programado" ? fechaLibro : undefined });
       }
       onCreated(nuevo);
       onClose();
@@ -1537,25 +1495,15 @@ const ModalNuevoCapitulo = ({
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
         <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
-        <CampoInput label="Fecha de publicación del capítulo" value={fecha} onChange={setFecha} type="date" />
-        <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
+        <CampoInput label="Fecha de publicación" value={fecha} onChange={setFecha} type="date" />
         <SelectorVisibilidad
-          value={visibilidadCap}
-          onChange={setVisibilidadCap}
+          value={visibilidad}
+          onChange={setVisibilidad}
+          fechaPublicacion={fecha}
+          onFechaChange={setFecha}
           label="Visibilidad del Capítulo"
         />
-        {libro && (
-          <>
-            <div className="h-px bg-primary/8" />
-            <SelectorVisibilidad
-              value={visibilidad}
-              onChange={setVisibilidad}
-              fechaPublicacion={fechaLibro}
-              onFechaChange={setFechaLibro}
-              label="Visibilidad del Libro"
-            />
-          </>
-        )}
+        <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
         <BotonSubmit
           loading={saving}
           disabled={!titulo.trim()}
@@ -1665,7 +1613,6 @@ const ModalEditarLibro = ({
 export default function EstudioCapitulos() {
   const { libros, setLibros, loading: loadingLibros, isOffline: listaOffline, refetch } = useLibros();
 
-  // Persistir última canción y capítulo abiertos
   const [lastCapId,   setLastCapId]   = useLastOpenedId("estudio-caps-last-cap");
   const [lastLibroId, setLastLibroId] = useLastOpenedId("estudio-caps-last-libro");
 
@@ -1673,14 +1620,8 @@ export default function EstudioCapitulos() {
   const [selectedLibroId, _setSelectedLibroId]  = useState<string | null>(lastLibroId);
   const [selectedCapId,   _setSelectedCapId]    = useState<string | null>(lastCapId);
 
-  const setSelectedLibroId = (id: string | null) => {
-    _setSelectedLibroId(id);
-    setLastLibroId(id);
-  };
-  const setSelectedCapId = (id: string | null) => {
-    _setSelectedCapId(id);
-    setLastCapId(id);
-  };
+  const setSelectedLibroId = (id: string | null) => { _setSelectedLibroId(id); setLastLibroId(id); };
+  const setSelectedCapId   = (id: string | null) => { _setSelectedCapId(id);   setLastCapId(id); };
   const [sidebarOpen,     setSidebarOpen]       = useState(true);
   const [focusMode,       setFocusMode]         = useState(false);
   const [busqueda,        setBusqueda]          = useState("");
@@ -1691,12 +1632,10 @@ export default function EstudioCapitulos() {
 
   const { capitulos, setCapitulos, reload: reloadCaps } = useCapitulos(selectedLibroId);
 
-  // Auto-expandir el libro del último capítulo abierto
+  // Auto-expandir libro del último cap abierto
   useEffect(() => {
-    if (lastLibroId) {
-      setExpandedLibros(prev => new Set([...prev, lastLibroId]));
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (lastLibroId) setExpandedLibros(new Set([lastLibroId]));
+  }, []); // eslint-disable-line
 
   const librosFiltrados = useMemo(() =>
     libros.filter(l => !busqueda || normalize(l.titulo).includes(normalize(busqueda))),
@@ -1875,21 +1814,14 @@ export default function EstudioCapitulos() {
       </main>
 
       {}
-      {showNuevoCap && selectedLibroId && (() => {
-        const libro = libros.find(l => l.id === selectedLibroId);
-        return (
-          <ModalNuevoCapitulo
-            libroId={selectedLibroId}
-            libro={libro}
-            ordenSiguiente={capitulos.length + 1}
-            onCreated={handleCapCreada}
-            onLibroUpdated={(fields) => {
-              setLibros(prev => prev.map(l => l.id === selectedLibroId ? { ...l, ...fields } : l));
-            }}
-            onClose={() => setShowNuevoCap(false)}
-          />
-        );
-      })()}
+      {showNuevoCap && selectedLibroId && (
+        <ModalNuevoCapitulo
+          libroId={selectedLibroId}
+          ordenSiguiente={capitulos.length + 1}
+          onCreated={handleCapCreada}
+          onClose={() => setShowNuevoCap(false)}
+        />
+      )}
 
       {editandoLibro && (
         <ModalEditarLibro
@@ -1899,20 +1831,13 @@ export default function EstudioCapitulos() {
         />
       )}
 
-      {editandoCap && (() => {
-        const libro = libros.find(l => l.id === selectedLibroId);
-        return (
-          <ModalEditarCapitulo
-            cap={editandoCap}
-            libro={libro}
-            onSaved={handleCapEditada}
-            onLibroUpdated={(fields) => {
-              setLibros(prev => prev.map(l => l.id === selectedLibroId ? { ...l, ...fields } : l));
-            }}
-            onClose={() => setEditandoCap(null)}
-          />
-        );
-      })()}
+      {editandoCap && (
+        <ModalEditarCapitulo
+          cap={editandoCap}
+          onSaved={handleCapEditada}
+          onClose={() => setEditandoCap(null)}
+        />
+      )}
     </div>
   );
 }
