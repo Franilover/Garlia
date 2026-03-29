@@ -1655,6 +1655,7 @@ export default function EstudioCapitulos() {
     setSelectedLibroId(libroId);
     setSelectedCapId(capId);
     setFocusMode(false);
+    setSidebarOpen(false);
   };
 
   const handleCapCreada = (cap: Capitulo) => {

@@ -1556,7 +1556,7 @@ export default function EstudioLetras() {
                       key={c.id}
                       cancion={c}
                       selected={selectedId === c.id}
-                      onClick={() => setSelectedId(c.id)}
+                      onClick={() => { setSelectedId(c.id); setSidebarOpen(false); }}
                       onEdit={setEditandoCancion}
                       onDelete={handleCancionEliminada}
                     />
@@ -1569,7 +1569,7 @@ export default function EstudioLetras() {
                   key={c.id}
                   cancion={c}
                   selected={selectedId === c.id}
-                  onClick={() => setSelectedId(c.id)}
+                  onClick={() => { setSelectedId(c.id); setSidebarOpen(false); }}
                   onEdit={setEditandoCancion}
                   onDelete={handleCancionEliminada}
                 />
