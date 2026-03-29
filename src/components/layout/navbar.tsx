@@ -28,14 +28,14 @@ const personalSubLinks = [
   { href: "/personal/fotos",    label: "Fotos",    icon: Camera  },
 ];
 const escritorioSubLinks = [
-  { href: "/myself/escritorio?panel=agenda",    label: "Agenda",    icon: Calendar  },
-  { href: "/myself/escritorio?panel=ensayos",   label: "Ensayos",   icon: FileText  },
   { href: "/myself/escritorio?panel=capitulos", label: "Capítulos", icon: BookOpen  },
   { href: "/myself/escritorio?panel=letras",    label: "Letras",    icon: Music     },
   { href: "/myself/escritorio?panel=entidades", label: "Entidades",    icon: Cat     },
 
 ];
 const saludSubLinks = [
+  { href: "/myself/salud?panel=agenda",    label: "Agenda",    icon: Calendar  },
+  { href: "/myself/salud?panel=ensayos",   label: "Ensayos",   icon: FileText  },
   { href: "/myself/salud?panel=ejercicios",   label: "Ejercicios",   icon: Dumbbell        },
   { href: "/myself/salud?panel=recetas",      label: "Recetas",      icon: UtensilsCrossed },
   { href: "/myself/salud?panel=ingredientes", label: "Ingredientes", icon: Carrot          },

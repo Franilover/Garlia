@@ -1,12 +1,14 @@
 "use client";
 
-import { Dumbbell, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
+import { Dumbbell, Calendar, FileText, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
 import Secciones from "@/components/layout/Secciones";
 import { PaginaEjercicios } from "@/components/features/myself/salud/ejerciciosComponent";
 import ComprasPage from "@/components/features/myself/salud/compras";
 import { IngredientesPage } from "@/components/features/myself/salud/ingredientes";
 import RecetasPage from "@/components/features/myself/salud/recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";
+import { GestionPersonal } from "@/components/features/tareas/tareas";
+import EnsayosView from "@/components/paginas/myself/ensayos";
 
 export default function SaludPage() {
   return (
@@ -14,6 +16,22 @@ export default function SaludPage() {
       <Secciones
         storageKey="salud-panel-activo"
         panels={[
+          {
+            id: "ensayos",
+            label: "Ensayos",
+            icon: FileText,
+            content: <EnsayosView />,
+          },
+          {
+            id: "agenda",
+            label: "Agenda",
+            icon: Calendar,
+            content: (
+              <main className="max-w-7xl mx-auto p-4 md:p-8 mt-6 pb-32">
+                <GestionPersonal />
+              </main>
+            ),
+          },
           {
             id: "ejercicios",
             label: "Ejercicios",
