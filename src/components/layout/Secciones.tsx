@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect, Suspense, type ReactNode } from "react";
+import React, { useState, useCallback, useEffect, Suspense, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
@@ -134,39 +134,6 @@ function PanelSliderInner({
     }
   }, [active, panels.length, storageKey]);
 
-  
-  const wheelCooldown = useRef(false);
-  const handleWheel = (e: React.WheelEvent) => {
-    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
-    if (Math.abs(e.deltaX) < 30) return;
-    if (wheelCooldown.current) return;
-    wheelCooldown.current = true;
-    setTimeout(() => { wheelCooldown.current = false; }, 600);
-    if (e.deltaX > 0) goTo(active + 1);
-    else              goTo(active - 1);
-  };
-
-  
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null || touchStartY.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dy = e.changedTouches[0].clientY - touchStartY.current;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-      if (dx < 0) goTo(active + 1);
-      else        goTo(active - 1);
-    }
-    touchStartX.current = null;
-    touchStartY.current = null;
-  };
-
   const variants = {
     enter:  (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
     center:              () => ({ x: 0, opacity: 1 }),
@@ -174,14 +141,12 @@ function PanelSliderInner({
   };
 
   return (
-    
-    
     <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100svh-64px)] md:h-svh">
 
-      {}
+      {/* Navegación superior */}
       <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 32px", position: "relative", zIndex: 50 }}>
 
-        {}
+        {/* Píldoras centrales */}
         <div style={pillsWrapperStyle}>
           {panels.map((p, i) => {
             const Icon = p.icon;
@@ -205,7 +170,7 @@ function PanelSliderInner({
           })}
         </div>
 
-        {}
+        {/* Controles de la derecha (flechas y puntos) */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "absolute", right: "32px", top: "50%", transform: "translateY(-50%)" }}>
           {showArrows && (
             <button
@@ -264,12 +229,9 @@ function PanelSliderInner({
         </div>
       </nav>
 
-      {}
+      {/* Contenedor principal de los paneles (Gestos removidos aquí) */}
       <div
         style={{ flex: 1, position: "relative", overflow: "hidden" }}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onWheel={handleWheel}
       >
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
