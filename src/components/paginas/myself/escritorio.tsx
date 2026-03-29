@@ -1,5 +1,5 @@
 "use client";
-import { Calendar, FileText, BookOpen, Music, Users } from "lucide-react";
+import { Calendar, FileText, Cat, BookOpen, Music, Users } from "lucide-react";
 import { Secciones } from "@/components/layout/Secciones";
 import { GestionPersonal } from "@/components/features/tareas/tareas";
 import EnsayosView from "@/components/paginas/myself/ensayos";
@@ -45,7 +45,7 @@ export default function DashboardPage() {
           {
             id: "entidades",
             label: "Wiki",
-            icon: Users,
+            icon: Cat,
             content: <EditorEntidades />,
           },
         ]}

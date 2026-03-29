@@ -12,7 +12,7 @@ import {
   Utensils, PenTool, Moon, Sun, Star, Palette, Shirt, Sword,
   BookOpen, Compass, BookText, Music, UserCircle2, Camera,
   ChevronRight, Calendar, FileText, Dumbbell, ShoppingCart,
-  UtensilsCrossed, Carrot,
+  UtensilsCrossed, Carrot, Cat
 } from "lucide-react";
 
 // ─── Sublinks ────────────────────────────────────────────────────────────────
@@ -32,6 +32,8 @@ const escritorioSubLinks = [
   { href: "/myself/escritorio?panel=ensayos",   label: "Ensayos",   icon: FileText  },
   { href: "/myself/escritorio?panel=capitulos", label: "Capítulos", icon: BookOpen  },
   { href: "/myself/escritorio?panel=letras",    label: "Letras",    icon: Music     },
+  { href: "/myself/escritorio?panel=entidades", label: "Entidades",    icon: Cat     },
+
 ];
 const saludSubLinks = [
   { href: "/myself/salud?panel=ejercicios",   label: "Ejercicios",   icon: Dumbbell        },

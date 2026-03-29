@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Sword,Cat ,Package, Calendar, X, Tag, Loader2, Users} from "lucide-react";
+  User, Sword, Cat ,Package, Calendar, X, Tag, Loader2, Users} from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 
 interface PerfilData {
