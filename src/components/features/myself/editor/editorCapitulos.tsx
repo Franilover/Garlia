@@ -1683,123 +1683,71 @@ export default function EstudioCapitulos() {
     } catch {}
   };
 
-  return (
-    <div className="flex h-screen bg-bg-main overflow-hidden">
-
-      {}
-      {!sidebarOpen && (
-        <div className="shrink-0 w-10 flex flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
+  const sidebarContent = (
+    <>
+      {selectedLibroId && (
+        <div className="px-2 pb-3">
           <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-xl hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
-            title="Abrir panel"
+            onClick={() => setShowNuevoCap(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
           >
-            <PanelLeftOpen size={16}/>
+            <Plus size={12}/> Nuevo Capítulo
           </button>
-          <span
-            className="text-[9px] font-black uppercase text-primary/15 tracking-[0.25em] select-none"
-            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-          >
-            Biblioteca
-          </span>
         </div>
       )}
-
-      {}
-      {sidebarOpen && (
-        <aside className="w-72 shrink-0 flex flex-col border-r border-primary/10 bg-bg-main">
-
-          {}
-          <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-                <BookOpen size={12}/> Estudio de Capítulos
-              </h2>
-              <div className="flex items-center gap-1">
-                <button onClick={refetch} title="Recargar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
-                  <RefreshCw size={12}/>
-                </button>
-                <button onClick={() => setSidebarOpen(false)} title="Cerrar panel" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
-                  <PanelLeftClose size={14}/>
-                </button>
-              </div>
-            </div>
-
-            {}
-            <div className="relative">
-              <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30"/>
-              <input
-                value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
-                placeholder="Buscar libro…"
-                className="w-full bg-primary/5 border border-primary/10 rounded-xl pl-9 pr-9 py-2.5 text-xs font-medium text-primary outline-none focus:border-primary/30 placeholder:text-primary/25 transition-colors"
-              />
-              {busqueda && (
-                <button onClick={() => setBusqueda("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
-                  <X size={12}/>
-                </button>
-              )}
-            </div>
-
-            {}
-            {selectedLibroId && (
-              <button
-                onClick={() => setShowNuevoCap(true)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
-              >
-                <Plus size={12}/> Nuevo Capítulo
-              </button>
-            )}
-          </div>
-
-          {}
-          <div className="flex-1 overflow-y-auto px-3 py-3">
-            {loadingLibros ? (
-              <div className="flex items-center justify-center py-12 text-primary/30">
-                <Loader2 className="animate-spin" size={20}/>
-              </div>
-            ) : librosFiltrados.length === 0 ? (
-              <div className="text-center py-10 text-primary/25">
-                <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
-              </div>
-            ) : (
-              librosFiltrados.map(libro => (
-                <LibroItem
-                  key={libro.id + capRefreshKey}
-                  libro={libro}
-                  selectedCapId={selectedCapId}
-                  onSelectCap={handleSelectCap}
-                  expanded={expandedLibros.has(libro.id)}
-                  onToggle={() => toggleExpanded(libro.id)}
-                  onEditCap={setEditandoCap}
-                  onDeleteCap={handleCapEliminada}
-                  onEditLibro={setEditandoLibro}
-                />
-              ))
-            )}
-          </div>
-
-          {}
-          <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
-            {listaOffline
-              ? <span className="flex items-center gap-1 text-blue-400"><WifiOff size={10}/> Sin conexión</span>
-              : <span className="text-primary/20">{libros.length} libros</span>
-            }
-            {selectedCapId && (
-              <button
-                onClick={() => setFocusMode(m => !m)}
-                className="text-primary/25 hover:text-primary transition-colors"
-                title="Modo foco"
-              >
-                {focusMode ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
-              </button>
-            )}
-          </div>
-        </aside>
+      {loadingLibros ? (
+        <div className="flex items-center justify-center py-12 text-primary/30">
+          <Loader2 className="animate-spin" size={20}/>
+        </div>
+      ) : librosFiltrados.length === 0 ? (
+        <div className="text-center py-10 text-primary/25">
+          <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
+        </div>
+      ) : (
+        librosFiltrados.map(libro => (
+          <LibroItem
+            key={libro.id + capRefreshKey}
+            libro={libro}
+            selectedCapId={selectedCapId}
+            onSelectCap={handleSelectCap}
+            expanded={expandedLibros.has(libro.id)}
+            onToggle={() => toggleExpanded(libro.id)}
+            onEditCap={setEditandoCap}
+            onDeleteCap={handleCapEliminada}
+            onEditLibro={setEditandoLibro}
+          />
+        ))
       )}
+    </>
+  );
 
-      {}
-      <main className="flex-1 flex flex-col min-w-0 min-h-0">
+  return (
+    <>
+      <EstudioLayout
+        titulo="Estudio de Capítulos"
+        icono={<BookOpen size={12}/>}
+        colapsadoLabel="Biblioteca"
+        onRefetch={refetch}
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        busquedaPlaceholder="Buscar libro…"
+        sidebarContent={sidebarContent}
+        isOffline={listaOffline}
+        footerLeft={`${libros.length} libros`}
+        footerRight={
+          selectedCapId ? (
+            <button
+              onClick={() => setFocusMode(m => !m)}
+              className="text-primary/25 hover:text-primary transition-colors"
+              title="Modo foco"
+            >
+              {focusMode ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
+            </button>
+          ) : undefined
+        }
+        sidebarOpen={sidebarOpen}
+        onSidebarOpenChange={setSidebarOpen}
+      >
         {selectedCapId && selectedLibroId ? (
           <PanelEditor
             key={selectedCapId}
@@ -1812,9 +1760,8 @@ export default function EstudioCapitulos() {
         ) : (
           <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Estudio de Capítulos" subtitulo="Expande un libro y selecciona un capítulo" />
         )}
-      </main>
+      </EstudioLayout>
 
-      {}
       {showNuevoCap && selectedLibroId && (
         <ModalNuevoCapitulo
           libroId={selectedLibroId}
@@ -1823,7 +1770,6 @@ export default function EstudioCapitulos() {
           onClose={() => setShowNuevoCap(false)}
         />
       )}
-
       {editandoLibro && (
         <ModalEditarLibro
           libro={editandoLibro}
@@ -1831,7 +1777,6 @@ export default function EstudioCapitulos() {
           onClose={() => setEditandoLibro(null)}
         />
       )}
-
       {editandoCap && (
         <ModalEditarCapitulo
           cap={editandoCap}
@@ -1839,6 +1784,6 @@ export default function EstudioCapitulos() {
           onClose={() => setEditandoCap(null)}
         />
       )}
-    </div>
+    </>
   );
 }

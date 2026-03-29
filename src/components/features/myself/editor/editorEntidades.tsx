@@ -3,12 +3,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search, X, Plus, Trash2, Save, Loader2,
-  RefreshCw, PanelLeftClose, PanelLeftOpen,
-  WifiOff, Users, Bug, Package, ChevronLeft,
-  Pencil, Check, AlertCircle, CheckCircle2,
+  RefreshCw, WifiOff, Users, Bug, Package,
+  AlertCircle, CheckCircle2,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { normalize } from "@/components/templates/EstudioTemplates";
+import EstudioLayout from "@/components/layout/EstudioLayout";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -439,121 +439,6 @@ function ModalNueva({ tab, onCreated, onClose }: {
   );
 }
 
-// ─── Sidebar interior (reutilizable para mobile y desktop) ────────────────────
-
-function SidebarContent({
-  tab, setTab, busqueda, setBusqueda, refetch, setSidebarOpen,
-  loading, isOffline, items, filtrados, selectedId, setSelectedId,
-  setShowNueva, onSelect,
-}: {
-  tab: TabKey; setTab: (t: TabKey) => void;
-  busqueda: string; setBusqueda: (v: string) => void;
-  refetch: () => void; setSidebarOpen: (v: boolean) => void;
-  loading: boolean; isOffline: boolean;
-  items: any[]; filtrados: any[];
-  selectedId: string | null; setSelectedId: (id: string) => void;
-  setShowNueva: (v: boolean) => void;
-  onSelect: (id: string) => void;
-}) {
-  const { Icon } = TAB_CONFIG[tab];
-  return (
-    <>
-      {/* Cabecera */}
-      <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-            <Icon size={12} /> {TAB_CONFIG[tab].label}
-          </h2>
-          <div className="flex items-center gap-1">
-            <button onClick={refetch} title="Recargar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
-              <RefreshCw size={12} />
-            </button>
-            <button onClick={() => setSidebarOpen(false)} title="Cerrar panel" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
-              <PanelLeftClose size={14} />
-            </button>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
-          {(Object.keys(TAB_CONFIG) as TabKey[]).map(k => {
-            const { Icon: TabIcon, label } = TAB_CONFIG[k];
-            return (
-              <button
-                key={k}
-                onClick={() => setTab(k)}
-                className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                  tab === k
-                    ? "bg-primary/15 text-primary border border-primary/20"
-                    : "text-primary/30 hover:text-primary/60"
-                }`}
-              >
-                <TabIcon size={11} /> {label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Búsqueda */}
-        <div className="relative">
-          <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" />
-          <input
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            placeholder={`Buscar ${TAB_CONFIG[tab].label.toLowerCase()}…`}
-            className="w-full bg-input-bg text-input-text border border-primary/15 rounded-xl pl-9 pr-9 py-2.5 text-sm font-medium outline-none focus:border-primary/40 placeholder:text-primary/25 transition-colors"
-          />
-          {busqueda && (
-            <button onClick={() => setBusqueda("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
-              <X size={12} />
-            </button>
-          )}
-        </div>
-
-        {/* Nueva entrada */}
-        <button
-          onClick={() => setShowNueva(true)}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
-        >
-          <Plus size={12} /> Nueva entrada
-        </button>
-      </div>
-
-      {/* Lista */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
-        {loading ? (
-          <div className="flex items-center justify-center py-12 text-primary/30">
-            <Loader2 className="animate-spin" size={24} />
-          </div>
-        ) : filtrados.length === 0 ? (
-          <div className="text-center py-10 text-primary/25">
-            <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
-          </div>
-        ) : (
-          filtrados.map(item => (
-            <EntidadCard
-              key={item.id}
-              item={item}
-              tab={tab}
-              selected={selectedId === item.id}
-              onClick={() => onSelect(item.id)}
-            />
-          ))
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
-        {isOffline
-          ? <span className="flex items-center gap-1 text-amber-400"><WifiOff size={10} /> Sin conexión</span>
-          : <span className="text-primary/20">{items.length} entradas</span>
-        }
-        <span className="text-primary/20">{filtrados.length} mostradas</span>
-      </div>
-    </>
-  );
-}
-
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function EditorEntidades() {
@@ -565,7 +450,6 @@ export default function EditorEntidades() {
 
   const { items, setItems, loading, isOffline, refetch } = useEntidades<any>(tab);
 
-  // Limpiar selección al cambiar de tab
   useEffect(() => { setSelectedId(null); setBusqueda(""); }, [tab]);
 
   const filtrados = useMemo(() =>
@@ -575,102 +459,86 @@ export default function EditorEntidades() {
 
   const selected = useMemo(() => items.find(i => i.id === selectedId) ?? null, [items, selectedId]);
 
-  const handleCreated = (item: any) => {
-    setItems(prev => [item, ...prev]);
-    setSelectedId(item.id);
-  };
-
+  const handleCreated = (item: any) => { setItems(prev => [item, ...prev]); setSelectedId(item.id); };
   const handleSaved   = (item: any) => setItems(prev => prev.map(i => i.id === item.id ? item : i));
   const handleDeleted = (id: string) => { setItems(prev => prev.filter(i => i.id !== id)); setSelectedId(null); };
-
-  // En móvil: al seleccionar un item, cerrar el sidebar
-  const handleSelect = (id: string) => {
-    setSelectedId(id);
-    setSidebarOpen(false);
-  };
+  const handleSelect  = (id: string) => { setSelectedId(id); setSidebarOpen(false); };
 
   const { Icon } = TAB_CONFIG[tab];
 
-  const sidebarProps = {
-    tab, setTab, busqueda, setBusqueda, refetch, setSidebarOpen,
-    loading, isOffline, items, filtrados, selectedId,
-    setSelectedId, setShowNueva, onSelect: handleSelect,
-  };
+  const headerExtra = (
+    <>
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
+        {(Object.keys(TAB_CONFIG) as TabKey[]).map(k => {
+          const { Icon: TabIcon, label } = TAB_CONFIG[k];
+          return (
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                tab === k
+                  ? "bg-primary/15 text-primary border border-primary/20"
+                  : "text-primary/30 hover:text-primary/60"
+              }`}
+            >
+              <TabIcon size={11} /> {label}
+            </button>
+          );
+        })}
+      </div>
+      {/* Nueva entrada */}
+      <button
+        onClick={() => setShowNueva(true)}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
+      >
+        <Plus size={12} /> Nueva entrada
+      </button>
+    </>
+  );
+
+  const sidebarContent = (
+    <div className="space-y-0.5">
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-primary/30">
+          <Loader2 className="animate-spin" size={24} />
+        </div>
+      ) : filtrados.length === 0 ? (
+        <div className="text-center py-10 text-primary/25">
+          <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
+        </div>
+      ) : (
+        filtrados.map(item => (
+          <EntidadCard
+            key={item.id}
+            item={item}
+            tab={tab}
+            selected={selectedId === item.id}
+            onClick={() => handleSelect(item.id)}
+          />
+        ))
+      )}
+    </div>
+  );
 
   return (
-    <div className="relative flex h-screen bg-bg-main overflow-hidden">
-
-      {/* ── MOBILE: overlay de pantalla completa ── */}
-      {sidebarOpen && (
-        <div className="md:hidden absolute inset-0 z-30 bg-bg-main flex flex-col">
-          <SidebarContent {...sidebarProps} />
-        </div>
-      )}
-
-      {/* ── DESKTOP: sidebar colapsado (franja) ── */}
-      {!sidebarOpen && (
-        <div className="hidden md:flex shrink-0 w-10 flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            title="Abrir panel"
-            className="p-2 rounded-xl hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
-          >
-            <PanelLeftOpen size={16} />
-          </button>
-          <span
-            className="text-[9px] font-black uppercase text-primary/15 tracking-[0.25em] select-none"
-            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-          >
-            {TAB_CONFIG[tab].label}
-          </span>
-        </div>
-      )}
-
-      {/* ── DESKTOP: sidebar abierto ── */}
-      {sidebarOpen && (
-        <aside className="hidden md:flex w-72 shrink-0 flex-col border-r border-primary/10 bg-bg-main">
-          <SidebarContent {...sidebarProps} />
-        </aside>
-      )}
-
-      {/* ── Panel principal (siempre ocupa todo el ancho en móvil) ── */}
-      <main className="flex-1 flex flex-col min-w-0 min-h-0 w-full">
-
-        {/* Barra superior — siempre visible en móvil */}
-        <div className="shrink-0 px-4 py-3 border-b border-primary/10 flex items-center gap-3">
-          {/* Botón lista en móvil */}
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="md:hidden p-1.5 rounded-lg hover:bg-primary/10 text-primary/40 hover:text-primary transition-all"
-            title="Ver lista"
-          >
-            <PanelLeftOpen size={16} />
-          </button>
-          {/* Botón lista en desktop cuando está cerrado */}
-          {!sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="hidden md:flex p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
-            >
-              <ChevronLeft size={14} />
-            </button>
-          )}
-          {selected ? (
-            <>
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30 flex items-center gap-1.5 shrink-0">
-                <Icon size={10} /> {TAB_CONFIG[tab].label}
-              </span>
-              <span className="text-primary/15">/</span>
-              <span className="text-[10px] font-bold text-primary/60 truncate">{selected.nombre}</span>
-            </>
-          ) : (
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30 flex items-center gap-1.5">
-              <Icon size={10} /> {TAB_CONFIG[tab].label}
-            </span>
-          )}
-        </div>
-
-        {/* Contenido */}
+    <>
+      <EstudioLayout
+        titulo={TAB_CONFIG[tab].label}
+        icono={<Icon size={12} />}
+        colapsadoLabel={TAB_CONFIG[tab].label}
+        onRefetch={refetch}
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        busquedaPlaceholder={`Buscar ${TAB_CONFIG[tab].label.toLowerCase()}…`}
+        headerExtra={headerExtra}
+        sidebarContent={sidebarContent}
+        isOffline={isOffline}
+        footerLeft={`${items.length} entradas`}
+        footerRight={`${filtrados.length} mostradas`}
+        sidebarOpen={sidebarOpen}
+        onSidebarOpenChange={setSidebarOpen}
+      >
         {selected ? (
           <>
             {tab === "personajes" && (
@@ -690,12 +558,11 @@ export default function EditorEntidades() {
             <p className="text-[10px] tracking-widest">Selecciona una entrada o crea una nueva</p>
           </div>
         )}
-      </main>
+      </EstudioLayout>
 
-      {/* Modal nueva entrada */}
       {showNueva && (
         <ModalNueva tab={tab} onCreated={handleCreated} onClose={() => setShowNueva(false)} />
       )}
-    </div>
+    </>
   );
 }

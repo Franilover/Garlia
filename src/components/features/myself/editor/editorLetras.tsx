@@ -1444,160 +1444,107 @@ export default function EstudioLetras() {
     } catch (e) { console.error(e); }
   };
 
-  return (
-    <div className="flex h-screen bg-bg-main overflow-hidden">
-
-      {}
-      {!sidebarOpen && (
-        <div className="shrink-0 w-10 flex flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            title="Abrir panel"
-            className="p-2 rounded-xl hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
-          >
-            <PanelLeftOpen size={16} />
-          </button>
-          <span
-            className="text-[9px] font-black uppercase text-primary/15 tracking-[0.25em] select-none"
-            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-          >
-            Canciones
-          </span>
+  const sidebarContent = (
+    <div className="space-y-1">
+      {/* Nueva canción + filtros van en headerExtra, la lista va acá */}
+      {loadingLista ? (
+        <div className="flex items-center justify-center py-12 text-primary/30">
+          <Loader2 className="animate-spin" size={20} />
         </div>
-      )}
-
-      {}
-      {sidebarOpen && (
-        <aside className="w-72 shrink-0 flex flex-col border-r border-primary/10 bg-bg-main">
-
-          {}
-          <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-                <Music size={12} /> Canciones
-              </h2>
-              <div className="flex items-center gap-1">
-                <button onClick={refetch} title="Recargar" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
-                  <RefreshCw size={12} />
-                </button>
-                <button onClick={() => setSidebarOpen(false)} title="Cerrar panel" className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
-                  <PanelLeftClose size={14} />
-                </button>
-              </div>
-            </div>
-
-            {}
-            <div className="relative">
-              <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" />
-              <input
-                value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
-                placeholder="Título, cantante, compositor…"
-                className="w-full bg-primary/5 border border-primary/10 rounded-xl pl-9 pr-9 py-2.5 text-xs font-medium text-primary outline-none focus:border-primary/30 placeholder:text-primary/25 transition-colors"
+      ) : filtradas.length === 0 ? (
+        <div className="text-center py-10 text-primary/25">
+          <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
+        </div>
+      ) : usarGrupos ? (
+        grupos.map(({ estado, items }) => (
+          <div key={estado} className="mb-3">
+            <p className={`text-[9px] font-black uppercase tracking-[0.3em] px-4 py-2 ${ESTADO_COLOR[estado].split(" ")[1]}`}>
+              {estado} ({items.length})
+            </p>
+            {items.map(c => (
+              <SidebarItem
+                key={c.id}
+                cancion={c}
+                selected={selectedId === c.id}
+                onClick={() => { setSelectedId(c.id); setSidebarOpen(false); }}
+                onEdit={setEditandoCancion}
+                onDelete={handleCancionEliminada}
               />
-              {busqueda && (
-                <button onClick={() => setBusqueda("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-
-            {}
-            <button
-              onClick={() => setShowNueva(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
-            >
-              <Plus size={12} /> Nueva Canción
-            </button>
-
-            {}
-            <button
-              onClick={() => setShowFiltros(f => !f)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                numFiltros > 0
-                  ? "border-primary/30 bg-primary/10 text-primary"
-                  : "border-primary/10 text-primary/30 hover:text-primary hover:border-primary/20"
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                <SlidersHorizontal size={11} /> Filtros
-                {numFiltros > 0 && (
-                  <span className="bg-primary text-bg-main rounded-full w-4 h-4 text-[8px] flex items-center justify-center">
-                    {numFiltros}
-                  </span>
-                )}
-              </span>
-              <ChevronDown size={11} className={`transition-transform duration-200 ${showFiltros ? "rotate-180" : ""}`} />
-            </button>
-
-            {showFiltros && (
-              <PanelFiltros filtros={filtros} onChange={setFiltros} opciones={opciones} />
-            )}
+            ))}
           </div>
-
-          {}
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
-            {loadingLista ? (
-              <div className="flex items-center justify-center py-12 text-primary/30">
-                <Loader2 className="animate-spin" size={20} />
-              </div>
-            ) : filtradas.length === 0 ? (
-              <div className="text-center py-10 text-primary/25">
-                <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
-              </div>
-            ) : usarGrupos ? (
-              grupos.map(({ estado, items }) => (
-                <div key={estado} className="mb-3">
-                  <p className={`text-[9px] font-black uppercase tracking-[0.3em] px-4 py-2 ${ESTADO_COLOR[estado].split(" ")[1]}`}>
-                    {estado} ({items.length})
-                  </p>
-                  {items.map(c => (
-                    <SidebarItem
-                      key={c.id}
-                      cancion={c}
-                      selected={selectedId === c.id}
-                      onClick={() => { setSelectedId(c.id); setSidebarOpen(false); }}
-                      onEdit={setEditandoCancion}
-                      onDelete={handleCancionEliminada}
-                    />
-                  ))}
-                </div>
-              ))
-            ) : (
-              filtradas.map(c => (
-                <SidebarItem
-                  key={c.id}
-                  cancion={c}
-                  selected={selectedId === c.id}
-                  onClick={() => { setSelectedId(c.id); setSidebarOpen(false); }}
-                  onEdit={setEditandoCancion}
-                  onDelete={handleCancionEliminada}
-                />
-              ))
-            )}
-          </div>
-
-          {}
-          <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
-            {listaOffline
-              ? <span className="flex items-center gap-1 text-amber-400"><WifiOff size={10} /> Sin conexión</span>
-              : <span className="text-primary/20">{canciones.length} canciones</span>
-            }
-            <span className="text-primary/20">{filtradas.length} mostradas</span>
-          </div>
-        </aside>
+        ))
+      ) : (
+        filtradas.map(c => (
+          <SidebarItem
+            key={c.id}
+            cancion={c}
+            selected={selectedId === c.id}
+            onClick={() => { setSelectedId(c.id); setSidebarOpen(false); }}
+            onEdit={setEditandoCancion}
+            onDelete={handleCancionEliminada}
+          />
+        ))
       )}
+    </div>
+  );
 
-      {}
-      <main className="flex-1 flex flex-col min-w-0 min-h-0">
+  const headerExtra = (
+    <>
+      <button
+        onClick={() => setShowNueva(true)}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
+      >
+        <Plus size={12} /> Nueva Canción
+      </button>
+      <button
+        onClick={() => setShowFiltros(f => !f)}
+        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+          numFiltros > 0
+            ? "border-primary/30 bg-primary/10 text-primary"
+            : "border-primary/10 text-primary/30 hover:text-primary hover:border-primary/20"
+        }`}
+      >
+        <span className="flex items-center gap-1.5">
+          <SlidersHorizontal size={11} /> Filtros
+          {numFiltros > 0 && (
+            <span className="bg-primary text-bg-main rounded-full w-4 h-4 text-[8px] flex items-center justify-center">
+              {numFiltros}
+            </span>
+          )}
+        </span>
+        <ChevronDown size={11} className={`transition-transform duration-200 ${showFiltros ? "rotate-180" : ""}`} />
+      </button>
+      {showFiltros && (
+        <PanelFiltros filtros={filtros} onChange={setFiltros} opciones={opciones} />
+      )}
+    </>
+  );
+
+  return (
+    <>
+      <EstudioLayout
+        titulo="Canciones"
+        icono={<Music size={12} />}
+        colapsadoLabel="Canciones"
+        onRefetch={refetch}
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        busquedaPlaceholder="Título, cantante, compositor…"
+        headerExtra={headerExtra}
+        sidebarContent={sidebarContent}
+        isOffline={listaOffline}
+        footerLeft={`${canciones.length} canciones`}
+        footerRight={`${filtradas.length} mostradas`}
+        sidebarOpen={sidebarOpen}
+        onSidebarOpenChange={setSidebarOpen}
+      >
         {selectedId ? (
           <PanelEditor key={selectedId} cancionId={selectedId} />
         ) : (
           <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Estudio de Letras" subtitulo="Selecciona una canción o crea una nueva" />
         )}
-      </main>
+      </EstudioLayout>
 
-      {}
       {showNueva && (
         <ModalNuevaCancion
           onCreated={handleCancionCreada}
@@ -1611,7 +1558,6 @@ export default function EstudioLetras() {
           onClose={() => setEditandoCancion(null)}
         />
       )}
-
-    </div>
+    </>
   );
 }
