@@ -186,7 +186,7 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
       {/* Cabecera con imagen */}
       <div className="relative h-40 bg-primary/5 border-b border-primary/10 shrink-0 overflow-hidden flex items-center justify-center">
         {form.img_url
-          ? <img src={form.img_url} alt={form.nombre} className="h-full w-full object-cover object-top" />
+          ? <img src={form.img_url} alt={form.nombre} className="h-full w-full object-contain" />
           : <Users size={48} strokeWidth={1} className="text-primary/10" />
         }
         <div className="absolute inset-0 bg-linear-to-t from-bg-main/80 to-transparent" />
@@ -257,7 +257,7 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
       <div className="relative h-40 bg-primary/5 border-b border-primary/10 shrink-0 overflow-hidden flex items-center justify-center">
         {form.imagen_url
-          ? <img src={form.imagen_url} alt={form.nombre} className="h-full w-full object-cover object-top" />
+          ? <img src={form.imagen_url} alt={form.nombre} className="h-full w-full object-contain" />
           : <Bug size={48} strokeWidth={1} className="text-primary/10" />
         }
         <div className="absolute inset-0 bg-linear-to-t from-bg-main/80 to-transparent" />
@@ -327,7 +327,7 @@ function EditorItem({ item, onSaved, onDeleted }: {
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
       <div className="relative h-40 bg-primary/5 border-b border-primary/10 shrink-0 overflow-hidden flex items-center justify-center">
         {form.imagen_url
-          ? <img src={form.imagen_url} alt={form.nombre} className="h-full w-full object-cover object-top" />
+          ? <img src={form.imagen_url} alt={form.nombre} className="h-full w-full object-contain" />
           : <Package size={48} strokeWidth={1} className="text-primary/10" />
         }
         <div className="absolute inset-0 bg-linear-to-t from-bg-main/80 to-transparent" />
