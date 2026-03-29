@@ -1682,108 +1682,56 @@ export default function EstudioCapitulos() {
       setCapRefreshKey(k => k + 1);
     } catch {}
   };
-
-  const sidebarContent = (
+const sidebarContent = (
     <>
       {selectedLibroId && (
         <div className="px-2 pb-3">
-          <button
-            onClick={() => setShowNuevoCap(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
-          >
+          <button onClick={() => setShowNuevoCap(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
             <Plus size={12}/> Nuevo Capítulo
           </button>
         </div>
       )}
       {loadingLibros ? (
-        <div className="flex items-center justify-center py-12 text-primary/30">
-          <Loader2 className="animate-spin" size={20}/>
-        </div>
+        <div className="flex items-center justify-center py-12 text-primary/30"><Loader2 className="animate-spin" size={20}/></div>
       ) : librosFiltrados.length === 0 ? (
-        <div className="text-center py-10 text-primary/25">
-          <p className="text-xs font-black uppercase tracking-widest">Sin resultados</p>
-        </div>
-      ) : (
-        librosFiltrados.map(libro => (
-          <LibroItem
-            key={libro.id + capRefreshKey}
-            libro={libro}
-            selectedCapId={selectedCapId}
-            onSelectCap={handleSelectCap}
-            expanded={expandedLibros.has(libro.id)}
-            onToggle={() => toggleExpanded(libro.id)}
-            onEditCap={setEditandoCap}
-            onDeleteCap={handleCapEliminada}
-            onEditLibro={setEditandoLibro}
-          />
-        ))
-      )}
+        <div className="text-center py-10 text-primary/25"><p className="text-xs font-black uppercase tracking-widest">Sin resultados</p></div>
+      ) : librosFiltrados.map(libro => (
+        <LibroItem key={libro.id + capRefreshKey} libro={libro} selectedCapId={selectedCapId}
+          onSelectCap={handleSelectCap} expanded={expandedLibros.has(libro.id)}
+          onToggle={() => toggleExpanded(libro.id)} onEditCap={setEditandoCap}
+          onDeleteCap={handleCapEliminada} onEditLibro={setEditandoLibro} />
+      ))}
     </>
   );
 
   return (
     <>
       <EstudioLayout
-        titulo="Estudio de Capítulos"
-        icono={<BookOpen size={12}/>}
-        colapsadoLabel="Biblioteca"
-        onRefetch={refetch}
-        busqueda={busqueda}
-        onBusquedaChange={setBusqueda}
+        titulo="Estudio de Capítulos" icono={<BookOpen size={12}/>}
+        colapsadoLabel="Biblioteca" onRefetch={refetch}
+        busqueda={busqueda} onBusquedaChange={setBusqueda}
         busquedaPlaceholder="Buscar libro…"
-        sidebarContent={sidebarContent}
-        isOffline={listaOffline}
+        sidebarContent={sidebarContent} isOffline={listaOffline}
         footerLeft={`${libros.length} libros`}
-        footerRight={
-          selectedCapId ? (
-            <button
-              onClick={() => setFocusMode(m => !m)}
-              className="text-primary/25 hover:text-primary transition-colors"
-              title="Modo foco"
-            >
-              {focusMode ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
-            </button>
-          ) : undefined
-        }
-        sidebarOpen={sidebarOpen}
-        onSidebarOpenChange={setSidebarOpen}
+        footerRight={selectedCapId ? (
+          <button onClick={() => setFocusMode(m => !m)} title="Modo foco" className="text-primary/25 hover:text-primary transition-colors">
+            {focusMode ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
+          </button>
+        ) : undefined}
+        sidebarOpen={sidebarOpen} onSidebarOpenChange={setSidebarOpen}
       >
         {selectedCapId && selectedLibroId ? (
-          <PanelEditor
-            key={selectedCapId}
-            capId={selectedCapId}
-            libroId={selectedLibroId}
+          <PanelEditor key={selectedCapId} capId={selectedCapId} libroId={selectedLibroId}
             onCapitulosChange={() => setCapRefreshKey(k => k + 1)}
-            focusMode={focusMode}
-            onToggleFocus={() => setFocusMode(m => !m)}
-          />
+            focusMode={focusMode} onToggleFocus={() => setFocusMode(m => !m)} />
         ) : (
           <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Estudio de Capítulos" subtitulo="Expande un libro y selecciona un capítulo" />
         )}
       </EstudioLayout>
-
-      {showNuevoCap && selectedLibroId && (
-        <ModalNuevoCapitulo
-          libroId={selectedLibroId}
-          ordenSiguiente={capitulos.length + 1}
-          onCreated={handleCapCreada}
-          onClose={() => setShowNuevoCap(false)}
-        />
-      )}
-      {editandoLibro && (
-        <ModalEditarLibro
-          libro={editandoLibro}
-          onSaved={handleLibroEditado}
-          onClose={() => setEditandoLibro(null)}
-        />
-      )}
-      {editandoCap && (
-        <ModalEditarCapitulo
-          cap={editandoCap}
-          onSaved={handleCapEditada}
-          onClose={() => setEditandoCap(null)}
-        />
-      )}
+      {showNuevoCap && selectedLibroId && <ModalNuevoCapitulo libroId={selectedLibroId} ordenSiguiente={capitulos.length + 1} onCreated={handleCapCreada} onClose={() => setShowNuevoCap(false)} />}
+      {editandoLibro && <ModalEditarLibro libro={editandoLibro} onSaved={handleLibroEditado} onClose={() => setEditandoLibro(null)} />}
+      {editandoCap && <ModalEditarCapitulo cap={editandoCap} onSaved={handleCapEditada} onClose={() => setEditandoCap(null)} />}
     </>
   );
 }
