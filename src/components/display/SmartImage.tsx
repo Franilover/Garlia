@@ -4,12 +4,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const SESSION_TS = Date.now();
 
-export const SmartImage = ({ src, alt, className, contain = false, priority = false }) => {
+interface SmartImageProps {
+  src: string;
+  alt?: string;
+  className?: string;
+  contain?: boolean;
+  priority?: boolean;
+  /** Fuerza recarga omitiendo caché del navegador. Usar solo cuando la imagen
+   *  puede cambiar entre sesiones (ej: avatar de perfil). Por defecto false. */
+  cacheBust?: boolean;
+}
+
+export const SmartImage = ({
+  src,
+  alt,
+  className,
+  contain = false,
+  priority = false,
+  cacheBust = false,
+}: SmartImageProps) => {
   const [loaded, setLoaded] = useState(false);
 
-  const srcConBust = src
-    ? `${src}${src.includes('?') ? '&' : '?'}v=${SESSION_TS}`
-    : src;
+  const srcFinal =
+    src && cacheBust
+      ? `${src}${src.includes('?') ? '&' : '?'}v=${SESSION_TS}`
+      : src;
 
   return (
     <div className={`relative overflow-hidden bg-primary/5 ${className}`}>
@@ -31,7 +50,7 @@ export const SmartImage = ({ src, alt, className, contain = false, priority = fa
         className="w-full h-full"
       >
         <img
-          src={srcConBust}
+          src={srcFinal}
           alt={alt || "Imagen de Franilover Art"}
           loading={priority ? "eager" : "lazy"}
           onLoad={() => setLoaded(true)}
@@ -42,4 +61,4 @@ export const SmartImage = ({ src, alt, className, contain = false, priority = fa
       </motion.div>
     </div>
   );
-}
+};

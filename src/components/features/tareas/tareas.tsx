@@ -1,42 +1,19 @@
 "use client";
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { tareasQueries } from "@/lib/api/queries/personal/tareas";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
-import { enqueueOperation } from "@/hooks/data/useOfflineSync";
+import { enqueueOperation, dexiePut, dexieUpdate, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
 
 import { RelojDigital } from "./relojDigital";
 import { ListaTareas } from "./listaTareas";
 import { VistaMes } from "./vistaMes";
 import { VistaSemanal } from "./vistaSemanal";
+import { USERNAME } from "@/lib/config/constants";
 import type { ModoCalendario } from "./types";
-
-async function dexiePut(table: string, data: any) {
-  try {
-    const { db } = await import("@/lib/api/client/db");
-    if (!db) return;
-    await (db as any)[table]?.put(data);
-  } catch {  }
-}
-
-async function dexieUpdate(table: string, id: string, data: any) {
-  try {
-    const { db } = await import("@/lib/api/client/db");
-    if (!db) return;
-    await (db as any)[table]?.update(id, data);
-  } catch {  }
-}
-
-async function dexieDelete(table: string, id: string) {
-  try {
-    const { db } = await import("@/lib/api/client/db");
-    if (!db) return;
-    await (db as any)[table]?.delete(id);
-  } catch {  }
-}
 
 export const GestionPersonal = () => {
   const { data: tareas, setData: setTareas } = useSupabaseData<any>("tareas");
@@ -54,25 +31,22 @@ export const GestionPersonal = () => {
   const [nuevoEvento, setNuevoEvento] = useState("");
   const [tipoEvento, setTipoEvento] = useState("Plan");
 
-  
   const handleAddTarea = async () => {
     if (!nuevaTarea.trim() || isAddingTarea) return;
     setIsAddingTarea(true);
     try {
       if (navigator.onLine) {
-        
         const creada = await tareasQueries.add(nuevaTarea);
         if (creada) {
           setTareas([creada, ...tareas]);
           setNuevaTarea("");
-          dexiePut("tareas", { ...creada, status: "synced" }); 
+          dexiePut("tareas", { ...creada, status: "synced" });
         }
       } else {
-        
         const tempId = `temp_${Date.now()}`;
         const tarea = {
           id: tempId, titulo: nuevaTarea, categoria: "general",
-          username: "franilover", completada: false,
+          username: USERNAME, completada: false,
           created_at: new Date().toISOString(), status: "pending" as const,
         };
         await dexiePut("tareas", tarea);
@@ -84,16 +58,12 @@ export const GestionPersonal = () => {
   };
 
   const handleToggle = async (id: string, completada: boolean) => {
-    
-    
-    setTareas(tareas.map((t: any) => t.id == id ? { ...t, completada: !completada } : t));
+    setTareas(tareas.map((t: any) => t.id === id ? { ...t, completada: !completada } : t));
     try {
       if (navigator.onLine) {
-        
         await tareasQueries.updateStatus(id, !completada);
         dexieUpdate("tareas", id, { completada: !completada, status: "synced" });
       } else {
-        
         await dexieUpdate("tareas", id, { completada: !completada, status: "pending" });
         await enqueueOperation("tareas", "update", id, { completada: !completada });
       }
@@ -101,22 +71,18 @@ export const GestionPersonal = () => {
   };
 
   const handleDelete = async (id: string) => {
-    
-    setTareas(tareas.filter((t: any) => t.id != id));
+    setTareas(tareas.filter((t: any) => t.id !== id));
     try {
       if (navigator.onLine) {
-        
         await tareasQueries.delete(id);
         dexieDelete("tareas", id);
       } else {
-        
         await dexieDelete("tareas", id);
         await enqueueOperation("tareas", "delete", id);
       }
     } catch (err) { console.error(err); }
   };
 
-  
   const handleAddEventoMes = async () => {
     if (!nuevoEvento.trim() || isAddingEvento) return;
     setIsAddingEvento(true);
@@ -134,7 +100,7 @@ export const GestionPersonal = () => {
         const tempId = `temp_${Date.now()}`;
         const evento = {
           id: tempId, titulo: nuevoEvento, tipo: tipoEvento,
-          fecha: fechaISO, username: "franilover", status: "pending" as const,
+          fecha: fechaISO, username: USERNAME, status: "pending" as const,
         };
         await dexiePut("eventos", evento);
         await enqueueOperation("eventos", "upsert", tempId, evento);
@@ -157,7 +123,7 @@ export const GestionPersonal = () => {
         const tempId = `temp_${Date.now()}`;
         const evento = {
           id: tempId, titulo, tipo, fecha: fechaISO,
-          username: "franilover", status: "pending" as const,
+          username: USERNAME, status: "pending" as const,
         };
         await dexiePut("eventos", evento);
         await enqueueOperation("eventos", "upsert", tempId, evento);
@@ -168,7 +134,6 @@ export const GestionPersonal = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-var(--navbar-height,80px))] overflow-hidden">
-
       <section className="lg:col-span-5 flex flex-col gap-4 h-full overflow-hidden">
         <RelojDigital horario={horarioRaw || []} />
         <ListaTareas

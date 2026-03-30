@@ -59,5 +59,5 @@ export const ingredientesQueries = {
       .eq("user_id", user.id);
 
     return { error };
-  }
-};;
+  },
+};

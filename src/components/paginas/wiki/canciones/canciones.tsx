@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { supabase } from "@/lib/api/client/supabase";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, PageHeader } from "@/components/ui";
 import { Music, User, Mic2, PenTool, Globe, ChevronRight, List, LayoutGrid } from "lucide-react";
@@ -113,22 +113,11 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
 );
 
 export default function CancionesPage() {
-  const [canciones, setCanciones] = useState<Cancion[]>([]);
-  const [loading,   setLoading]   = useState(true);
+  const { data: canciones, loading } = useSupabaseData<Cancion>("canciones", {
+    order: { campo: "created_at", asc: false },
+  });
   const [vistaFila, setVistaFila] = useState(false);
   const [busqueda,  setBusqueda]  = useState("");
-
-  useEffect(() => {
-    supabase
-      .from("canciones")
-      .select("id, titulo, personaje, cantante, compositor, idioma, estado, portada_url")
-      .eq("visible", true)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (data) setCanciones(data as Cancion[]);
-        setLoading(false);
-      });
-  }, []);
 
   if (loading) return <Loading text="Afinando instrumentos…" />;
 

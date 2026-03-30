@@ -25,6 +25,38 @@ function cleanPayload(payload: any, exclude: string[] = []): any {
   return clean;
 }
 
+// ─── Helpers de Dexie exportados ─────────────────────────────────────────────
+// Uso: import { dexiePut, dexieUpdate, dexieDelete } from "@/hooks/data/useOfflineSync"
+
+export async function dexiePut(table: string, data: any): Promise<void> {
+  try {
+    if (!db) return;
+    await (db as any)[table]?.put(data);
+  } catch (e) {
+    console.warn(`[Dexie] put failed on '${table}':`, e);
+  }
+}
+
+export async function dexieUpdate(table: string, id: string | number, data: any): Promise<void> {
+  try {
+    if (!db) return;
+    await (db as any)[table]?.update(id, data);
+  } catch (e) {
+    console.warn(`[Dexie] update failed on '${table}':`, e);
+  }
+}
+
+export async function dexieDelete(table: string, id: string | number): Promise<void> {
+  try {
+    if (!db) return;
+    await (db as any)[table]?.delete(id);
+  } catch (e) {
+    console.warn(`[Dexie] delete failed on '${table}':`, e);
+  }
+}
+
+// ─── Sync engine ─────────────────────────────────────────────────────────────
+
 export function useOfflineSync() {
   const isSyncing = useRef(false);
 
@@ -41,7 +73,6 @@ export function useOfflineSync() {
       for (const op of queue) {
         const config = SYNC_TABLES[op.table];
         if (!config) {
-          
           await db.offline_queue.delete(op.id!);
           continue;
         }
@@ -55,16 +86,13 @@ export function useOfflineSync() {
               .delete()
               .eq("id", op.recordId));
 
-            
             if (!error) {
               try { await (db as any)[op.table]?.delete(op.recordId); } catch {}
             }
-
           } else if (op.operation === "upsert") {
             ({ error } = await supabase
               .from(config.supabaseTable)
               .upsert(cleanPayload(op.payload, config.excludeFields)));
-
           } else if (op.operation === "update") {
             ({ error } = await supabase
               .from(config.supabaseTable)
@@ -74,7 +102,6 @@ export function useOfflineSync() {
 
           if (error) throw error;
 
-          
           try {
             const table = (db as any)[op.table];
             if (table && op.operation !== "delete") {
@@ -101,7 +128,6 @@ export function useOfflineSync() {
   };
 
   useEffect(() => {
-    
     syncAll();
     window.addEventListener("online", syncAll);
     return () => window.removeEventListener("online", syncAll);

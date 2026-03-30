@@ -86,13 +86,13 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
   }, [isNew, setEditMode]);
 
   const agregarVariante = () => {
-    const nueva: Variante = {
-      id: Date.now(),
+    const nueva = {
+      id: String(Date.now()),   // id temporal, Supabase asigna el real al guardar
       tipo: "Nueva Variante",
       descripcion_variante: "",
       imagen_url: "",
-      criatura_id: data?.id || null,
-    };
+      criatura_id: data?.id ? String(data.id) : "",
+    } as Variante;
     setVariantes([...variantes, nueva]);
   };
 

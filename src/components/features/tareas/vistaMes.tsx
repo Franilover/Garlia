@@ -4,32 +4,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Bookmark, BookOpen, Plus } from "lucide-react";
 import { BtnIcon } from "@/components/ui";
-import { MESES } from "./types";
-
-const EventoBadge = ({ item, compact = false }: { item: any; compact?: boolean }) => {
-  const colores: Record<string, string> = {
-    "Plan":              "bg-primary/10 text-primary border-primary/15",
-    "Lanzamiento Libro": "bg-amber-50 text-amber-700 border-amber-200",
-    "Reunión":           "bg-blue-50 text-blue-700 border-blue-200",
-    "Personal":          "bg-emerald-50 text-emerald-700 border-emerald-200",
-    "default":           "bg-primary/8 text-primary/70 border-primary/10",
-  };
-  const color = colores[item.tipo] ?? colores["default"];
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={cn(
-        "rounded-[var(--radius-btn)] border px-2 py-1 flex items-center gap-1.5 cursor-default select-none",
-        color,
-        compact ? "text-[9px]" : "text-[10px]"
-      )}
-    >
-      {item.esCapitulo && <BookOpen size={9} className="shrink-0" />}
-      <span className="font-black uppercase tracking-tight truncate">{item.titulo}</span>
-    </motion.div>
-  );
-};
+import { MESES, TIPOS_EVENTO, EventoBadge } from "./types";
 
 interface Props {
   eventos: any[];
@@ -147,6 +122,13 @@ export const VistaMes = ({
           </span>
         </div>
         <div className="flex gap-2">
+          <select
+            value={tipoEvento}
+            onChange={e => setTipoEvento(e.target.value)}
+            className="bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-black text-primary outline-none focus:border-primary/30 cursor-pointer"
+          >
+            {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
           <input
             type="text"
             value={nuevoEvento}

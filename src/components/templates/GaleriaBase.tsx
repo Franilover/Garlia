@@ -3,16 +3,16 @@ import { useState } from "react";
 import { LayoutGrid, AlignJustify, Search, X, ArrowUpNarrowWide, ArrowDownNarrowWide, WifiOff } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { GalleryGrid } from "@/components/layout/gallery";
-import DetalleMaestro from "@/components/display/detalles";
+import DetalleMaestro from "@/components/display/DetalleMaestro/DetalleMaestro";
 import FiltrosMaestros from "@/components/layout/Filtros";
 import PageHeader from "@/components/layout/PageHeader";
 import { LoadingState, EmptyState } from "@/components/feedback/StateComponents";
 import { AdminAddButton } from "@/components/forms/AdminAddButton";
-import { useOfflineData } from "@/hooks/data/useOfflineData";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useFiltrosGenericos } from "@/hooks/features/useFiltros";
 import { useAdminItem } from "@/hooks/features/useAdminItem";
-import { TABLAS_CONFIG, getMensaje } from "@/lib/config/constants";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
+import { TABLAS_CONFIG, getMensaje } from "@/lib/config/constants";
 
 interface EntidadPageBaseProps {
   tabla: string;
@@ -54,14 +54,14 @@ export default function EntidadPageBase({
   plantillaNueva,
   permitirOrden = false,
 }: EntidadPageBaseProps) {
+  // Una sola llamada a useIsAdmin — se pasa a los hooks que la necesitan
+  const isAdmin = useIsAdmin();
 
-  const isAdminSession = useIsAdmin();
-
-  const { data, setData, loading, isOffline } = useOfflineData(
-    isAdminSession !== undefined ? tabla : "__skip__",
+  const { data, setData, loading, isOffline } = useSupabaseData(
+    isAdmin !== undefined ? tabla : "__skip__",
     {
       order: TABLAS_CONFIG[tabla]?.orden || { campo: "nombre", asc: true },
-      isAdmin: isAdminSession,
+      isAdmin,
     }
   );
 
@@ -71,7 +71,6 @@ export default function EntidadPageBase({
   const {
     selected,
     isCreating,
-    isAdmin,
     handleUpdate,
     handleSelect,
     handleAddNew,
@@ -107,11 +106,7 @@ export default function EntidadPageBase({
   const vistaFila = permitirVistaFila && !vistaGrid;
 
   return (
-    
-    
     <main className="min-h-svh bg-bg-main pb-20 overflow-x-hidden">
-
-      {}
       <AnimatePresence>
         {isOffline && (
           <motion.div
@@ -240,14 +235,12 @@ export default function EntidadPageBase({
                     <button
                       onClick={() => setVistaGrid(true)}
                       className={`p-2 rounded-full transition-all ${vistaGrid ? "bg-primary text-white shadow-md" : "text-primary/40 hover:text-primary"}`}
-                      title="Vista cuadrícula"
                     >
                       <LayoutGrid size={14} />
                     </button>
                     <button
                       onClick={() => setVistaGrid(false)}
                       className={`p-2 rounded-full transition-all ${!vistaGrid ? "bg-primary text-white shadow-md" : "text-primary/40 hover:text-primary"}`}
-                      title="Vista fila"
                     >
                       <AlignJustify size={14} />
                     </button>

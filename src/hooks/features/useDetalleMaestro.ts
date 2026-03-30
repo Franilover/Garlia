@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db, CriaturaVariante } from "@/lib/api/client/db";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 
 export interface Relacion {
@@ -10,19 +11,13 @@ export interface Relacion {
   personaje: string;
 }
 
-export interface Variante {
-  id?: number;
-  tipo: string;
-  descripcion?: string;
-  descripcion_variante?: string;
-  imagen_url?: string;
-  criatura_id?: number;
-}
+// Alias exportado para no romper imports existentes en DetalleMaestro.tsx
+export type Variante = CriaturaVariante;
 
 export function useDetalleMaestro(
   data: any,
-  tabla: string,                      
-  onUpdate?: (record: any) => void    
+  tabla: string,
+  onUpdate?: (record: any) => void
 ) {
   const isAdmin = useIsAdmin();
   const [editMode, setEditMode] = useState(false);
@@ -31,18 +26,14 @@ export function useDetalleMaestro(
   const [variantes, setVariantes] = useState<Variante[]>([]);
   const [varianteActiva, setVarianteActiva] = useState<Variante | null>(null);
 
-  
   const [editFields, setEditFields] = useState<Record<string, any>>({});
   const [editCanciones, setEditCanciones] = useState<number[]>([]);
   const [editRelaciones, setEditRelaciones] = useState<Relacion[]>([]);
 
   const prevIdRef = useRef<number | string | null>(null);
 
-  
-  
   const campoTexto = tabla === "personajes" ? "sobre" : "descripcion";
 
-  
   const editNombre: string = editFields["nombre"] ?? "";
   const setEditNombre = (v: string) =>
     setEditFields((prev) => ({ ...prev, nombre: v }));
@@ -51,14 +42,11 @@ export function useDetalleMaestro(
   const setEditDescripcion = (v: string) =>
     setEditFields((prev) => ({ ...prev, [campoTexto]: v }));
 
-  
   useEffect(() => {
     if (!data) return;
     if (prevIdRef.current === data.id) return;
 
-    
     setEditFields({ ...data });
-
     setEditRelaciones(data.relaciones || []);
     setVarianteActiva(null);
 
@@ -70,7 +58,6 @@ export function useDetalleMaestro(
       : [];
     setEditCanciones(idsIniciales);
 
-    
     if (tabla === "criaturas" && data.id) {
       fetchVariantes(data.id);
     } else {
@@ -81,6 +68,21 @@ export function useDetalleMaestro(
   }, [data, tabla]);
 
   const fetchVariantes = async (id: any) => {
+    // Intentar desde Dexie primero (funciona offline)
+    try {
+      if (db) {
+        const local = await db.criatura_variantes
+          .where("criatura_id")
+          .equals(id)
+          .toArray();
+        if (local.length > 0) {
+          setVariantes(local);
+        }
+      }
+    } catch {}
+
+    // Si hay conexión, refrescar desde Supabase y actualizar caché
+    if (!navigator.onLine) return;
     try {
       const { data: vars, error } = await supabase
         .from("criatura_variantes")
@@ -88,12 +90,15 @@ export function useDetalleMaestro(
         .eq("criatura_id", id);
       if (error) throw error;
       setVariantes(vars || []);
+      // Actualizar Dexie con los datos frescos
+      if (db && vars?.length) {
+        await db.criatura_variantes.bulkPut(vars);
+      }
     } catch (err) {
       console.error("Error fetching variantes:", err);
     }
   };
 
-  
   const handleSave = async () => {
     if (!editNombre.trim()) {
       alert("El nombre es obligatorio.");
@@ -102,21 +107,17 @@ export function useDetalleMaestro(
 
     setSaving(true);
     try {
-      
-      
       const payload: Record<string, any> = {
         ...editFields,
         nombre: editNombre,
         [campoTexto]: editDescripcion,
       };
 
-      
       delete payload.id;
-      delete payload.canciones;   
-      delete payload.relaciones;  
-      delete payload.variantes;   
+      delete payload.canciones;
+      delete payload.relaciones;
+      delete payload.variantes;
 
-      
       if (tabla === "personajes") {
         delete payload.descripcion;
       } else {
@@ -126,7 +127,6 @@ export function useDetalleMaestro(
       let finalId = data?.id;
 
       if (!finalId) {
-        
         const { data: newRecord, error: insError } = await supabase
           .from(tabla)
           .insert([payload])
@@ -135,7 +135,6 @@ export function useDetalleMaestro(
         if (insError) throw insError;
         finalId = newRecord.id;
 
-        
         if (tabla === "criaturas" && variantes.length > 0) {
           const { error: varError } = await supabase
             .from("criatura_variantes")
@@ -143,10 +142,8 @@ export function useDetalleMaestro(
           if (varError) throw varError;
         }
 
-        
         if (onUpdate) onUpdate({ ...newRecord });
       } else {
-        
         const { data: updRecord, error: updError } = await supabase
           .from(tabla)
           .update(payload)
@@ -155,7 +152,6 @@ export function useDetalleMaestro(
           .single();
         if (updError) throw updError;
 
-        
         if (tabla === "criaturas" && variantes.length > 0) {
           const { error: varError } = await supabase
             .from("criatura_variantes")
@@ -180,22 +176,20 @@ export function useDetalleMaestro(
     }
   };
 
-  
   const handleDelete = async (onDeleted?: () => void) => {
     if (!data?.id) return;
-    const confirmar = window.confirm(`¿Borrar "${editNombre}" de forma permanente? Esta acción no se puede deshacer.`);
+    const confirmar = window.confirm(
+      `¿Borrar "${editNombre}" de forma permanente? Esta acción no se puede deshacer.`
+    );
     if (!confirmar) return;
 
     setSaving(true);
     try {
-      
       if (tabla === "criaturas") {
         await supabase.from("criatura_variantes").delete().eq("criatura_id", data.id);
       }
-
       const { error } = await supabase.from(tabla).delete().eq("id", data.id);
       if (error) throw error;
-
       if (onDeleted) onDeleted();
     } catch (err: any) {
       console.error("Error al borrar:", err);
