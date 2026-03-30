@@ -115,7 +115,6 @@ function PanelSliderInner({
   const [hoveredPill, setHoveredPill] = useState<number | null>(null);
   const [hoveredArrow, setHoveredArrow] = useState<"left" | "right" | null>(null);
 
-  // Activar panel desde ?panel= query param (enviado desde el navbar)
   const searchParams = useSearchParams();
   const panelParam = searchParams?.get("panel");
   useEffect(() => {
@@ -142,11 +141,7 @@ function PanelSliderInner({
 
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100svh-64px)] md:h-svh">
-
-      {/* Navegación superior */}
       <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 32px", position: "relative", zIndex: 50 }}>
-
-        {/* Píldoras centrales */}
         <div style={pillsWrapperStyle}>
           {panels.map((p, i) => {
             const Icon = p.icon;
@@ -170,7 +165,6 @@ function PanelSliderInner({
           })}
         </div>
 
-        {/* Controles de la derecha (flechas y puntos) */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "absolute", right: "32px", top: "50%", transform: "translateY(-50%)" }}>
           {showArrows && (
             <button
@@ -229,10 +223,7 @@ function PanelSliderInner({
         </div>
       </nav>
 
-      {/* Contenedor principal de los paneles (Gestos removidos aquí) */}
-      <div
-        style={{ flex: 1, position: "relative", overflow: "hidden" }}
-      >
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={active}
@@ -249,12 +240,11 @@ function PanelSliderInner({
           </motion.div>
         </AnimatePresence>
       </div>
-
     </div>
   );
 }
 
-// Wrapper público: aporta el <Suspense> que useSearchParams requiere
+// Wrapper público con Suspense requerido por useSearchParams
 export function PanelSlider(props: PanelSliderProps) {
   return (
     <Suspense fallback={null}>
@@ -263,5 +253,6 @@ export function PanelSlider(props: PanelSliderProps) {
   );
 }
 
+// Alias Secciones para compatibilidad con imports existentes
+export { PanelSlider as Secciones };
 export default PanelSlider;
-export { default as Secciones } from "@/components/layout/Secciones";

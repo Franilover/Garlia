@@ -4,32 +4,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Calendar, BookOpen, Bookmark, Plus } from "lucide-react";
 import { BtnIcon } from "@/components/ui";
-import { VistaOpcion, Evento, DIAS_SEMANA_CORTO, DIAS_SEMANA_LETRA, MESES, VISTAS, addDays, isSameDay, toUTCDate } from "./types";
-
-const EventoBadge = ({ item, compact = false }: { item: Evento; compact?: boolean }) => {
-  const colores: Record<string, string> = {
-    "Plan":              "bg-primary/10 text-primary border-primary/15",
-    "Lanzamiento Libro": "bg-amber-50 text-amber-700 border-amber-200",
-    "Reunión":           "bg-blue-50 text-blue-700 border-blue-200",
-    "Personal":          "bg-emerald-50 text-emerald-700 border-emerald-200",
-    "default":           "bg-primary/8 text-primary/70 border-primary/10",
-  };
-  const color = colores[item.tipo] ?? colores["default"];
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={cn(
-        "rounded-[var(--radius-btn)] border px-2 py-1 flex items-center gap-1.5 cursor-default select-none",
-        color,
-        compact ? "text-[9px]" : "text-[10px]"
-      )}
-    >
-      {item.esCapitulo && <BookOpen size={9} className="shrink-0" />}
-      <span className="font-black uppercase tracking-tight truncate">{item.titulo}</span>
-    </motion.div>
-  );
-};
+import {
+  VistaOpcion, Evento, EventoBadge,
+  DIAS_SEMANA_CORTO, DIAS_SEMANA_LETRA, MESES, VISTAS, TIPOS_EVENTO,
+  addDays, isSameDay, toUTCDate,
+} from "./types";
 
 const ColumniaDia = ({
   fecha, eventos, esHoy, seleccionado, onClick, compact,
@@ -154,7 +133,6 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
 
   return (
     <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-5 shadow-xl shadow-primary/5 flex flex-col gap-3 flex-1 overflow-hidden">
-      {}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-center gap-3 flex-1">
           <button onClick={irAHoy} className="text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary hover:text-white transition-all">
@@ -185,7 +163,6 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </div>
       </div>
 
-      {}
       <AnimatePresence mode="wait">
         <motion.div
           key={`${vista}-${fechaBase.toISOString()}`}
@@ -208,7 +185,6 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </motion.div>
       </AnimatePresence>
 
-      {}
       <div className="bg-primary/5 rounded-[var(--radius-btn)] p-3 border border-primary/10 shrink-0">
         <div className="flex items-center gap-2 mb-2">
           <Calendar size={14} className="text-primary/40" />
@@ -222,7 +198,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
             onChange={e => setTipoEvento(e.target.value)}
             className="bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-black text-primary outline-none focus:border-primary/30 cursor-pointer"
           >
-            {["Plan", "Reunión", "Personal"].map(t => <option key={t} value={t}>{t}</option>)}
+            {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <input
             type="text"
@@ -237,7 +213,6 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           </BtnIcon>
         </div>
 
-        {}
         <div className="space-y-1.5 max-h-24 overflow-y-auto">
           {eventosDiaSeleccionado.length === 0 ? (
             <p className="text-[9px] font-bold text-primary/20 italic px-1">"Sin eventos para este día."</p>

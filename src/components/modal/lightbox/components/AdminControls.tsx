@@ -12,11 +12,19 @@ export const AdminControls = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
+    const checkAdmin = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setIsAdmin(!!session);
+      if (!session?.user) return;
+
+      const { data: perfil } = await supabase
+        .from("perfiles")
+        .select("rol")
+        .eq("id", session.user.id)
+        .single();
+
+      setIsAdmin(perfil?.rol === "admin");
     };
-    checkUser();
+    checkAdmin();
   }, []);
 
   useEffect(() => {
@@ -46,8 +54,8 @@ export const AdminControls = () => {
     <div className="flex items-center gap-3">
       {editMode ? (
         <>
-          <input 
-            value={nuevoTitulo} 
+          <input
+            value={nuevoTitulo}
             onChange={(e) => setNuevoTitulo(e.target.value)}
             className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-[10px] uppercase font-black"
           />

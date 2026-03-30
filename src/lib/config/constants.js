@@ -1,10 +1,10 @@
+export const USERNAME = "franilover";
 
 export const CATEGORIAS = {
   FOTOS: ['todos', 'yo', 'amigos', 'animales', 'paisajes'],
   DIBUJOS: ['todos', 'fanart', 'original', 'bocetos'],
-  ITEMS: ['TODOS', 'ARMA', 'ACCESORIO', 'CONSUMIBLE'] 
+  ITEMS: ['TODOS', 'ARMA', 'ACCESORIO', 'CONSUMIBLE']
 };
-
 
 export const MENSAJES = {
   LOADING: {
@@ -12,15 +12,14 @@ export const MENSAJES = {
     criaturas: "Sincronizando Archivos...",
     dibujos: "Desplegando Arte...",
     fotos: "Cargando Memorias...",
-    items: "Abriendo AlmacÃ©n..."
+    items: "Abriendo Almacén..."
   },
   EMPTY: {
-    default: "No hay registros en esta secciÃ³n",
-    fotos: "No hay fotos en esta categorÃ­a",
-    items: "No hay objetos en esta secciÃ³n"
+    default: "No hay registros en esta sección",
+    fotos: "No hay fotos en esta categoría",
+    items: "No hay objetos en esta sección"
   }
 };
-
 
 export const TABLAS_CONFIG = {
   personajes: {
@@ -40,6 +39,5 @@ export const TABLAS_CONFIG = {
 export function getMensaje(tipo, seccion) {
   const grupo = MENSAJES[tipo];
   if (!grupo) return "Cargando...";
-  
   return grupo[seccion] || grupo.default || "Cargando...";
 }
