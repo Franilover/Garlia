@@ -1,13 +1,12 @@
-"use client";
-
 import React, { useState } from "react";
 import EntidadPageBase from "@/components/templates/GaleriaBase";
 import { GalleryItem } from "@/components/layout/gallery";
 import { LightboxProvider, LightboxVisual, useLightbox } from "@/components/modal/lightbox";
 import { supabase } from "@/lib/api/client/supabase";
-import { Loader2 } from "lucide-react";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { Btn, Badge, Modal, InputLine } from "@/components/ui";
+import { useToast } from "@/hooks/ui/useToast";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 
 const CATEGORIAS_DIBUJO = ["fanart", "original", "bocetos"];
 
@@ -23,11 +22,12 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
   const [titulo, setTitulo]       = useState("");
   const [categoria, setCategoria] = useState(CATEGORIAS_DIBUJO[0]);
   const [loading, setLoading]     = useState(false);
+  const { toasts, toast, dismiss } = useToast();
 
   const handleImageSelect = (selectedUrl: string) => { setUrl(selectedUrl); setStep("meta"); };
 
   const handleSave = async () => {
-    if (!titulo.trim()) return alert("Ponle un título al menos");
+    if (!titulo.trim()) { toast.warning("Ponle un título al menos"); return; }
     setLoading(true);
     try {
       const { error } = await supabase.from("dibujos").insert([{
@@ -36,12 +36,13 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
       if (error) throw error;
       onSuccess();
       onClose();
-    } catch { alert("Error al guardar"); }
+    } catch { toast.error("Error al guardar"); }
     finally { setLoading(false); }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Añadir a la Galería" subtitle="Paso 1: Selecciona la obra" maxWidth="max-w-lg">
+    <>
+      <Modal open={open} onClose={onClose} title="Añadir a la Galería" subtitle="Paso 1: Selecciona la obra" maxWidth="max-w-lg">
       {step === "pick" ? (
         <SimpleImagePicker onSelect={handleImageSelect} onClose={onClose} />
       ) : (
@@ -70,6 +71,8 @@ function AddDrawingModal({ open, onClose, onSuccess }: AddDrawingModalProps) {
         </div>
       )}
     </Modal>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+    </>
   );
 }
 
