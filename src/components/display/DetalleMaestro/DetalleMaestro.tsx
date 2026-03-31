@@ -7,7 +7,7 @@ import {
 import { useDetalleMaestro, type Variante } from "@/hooks/features/useDetalleMaestro";
 import { useToast } from "@/hooks/ui/useToast";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { ToastContainer } from "@/components/ui/TostContainer";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 import { SelectorVariantes } from "./SelectorVariantes";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";

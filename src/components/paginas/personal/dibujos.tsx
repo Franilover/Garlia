@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import EntidadPageBase from "@/components/templates/GaleriaBase";
 import { GalleryItem } from "@/components/layout/gallery";
