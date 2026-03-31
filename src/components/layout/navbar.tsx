@@ -5,8 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/providers/AuthProvider";
 import { supabase } from "@/lib/api/client/supabase";
-import { useTheme } from "@/providers/ThemeProvider";
-import { ThemeSelector } from "@/providers/ThemeProvider";
+import { useTheme, ThemeSelector, ACCENT_OPTIONS } from "@/providers/ThemeProvider";
 import {
   LogOut, CircleUser, Flower2,
   Utensils, PenTool, Moon, Sun, Star, Palette, Shirt, Sword,
@@ -316,7 +315,7 @@ const Navbar = () => {
   const [themeMenuOpen,   setThemeMenuOpen]   = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mobileOpenMenu,  setMobileOpenMenu]  = useState<string | null>(null);
-  const { dark, toggleDark } = useTheme();
+  const { dark, toggleDark, accent, setAccent } = useTheme();
   const isDark = dark === "dark";
   const toggle = toggleDark;
 
@@ -459,6 +458,35 @@ const Navbar = () => {
                 )}
               </AnimatePresence>
             </button>
+
+            {/* Píldoras de color — visibles cuando el sidebar está expandido */}
+            <AnimatePresence>
+              {sidebarExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="flex gap-1.5 px-2 py-2 overflow-hidden"
+                >
+                  {ACCENT_OPTIONS.map(a => (
+                    <button
+                      key={a.id}
+                      title={a.label}
+                      onClick={() => setAccent(a.id)}
+                      className="transition-all"
+                      style={{
+                        width: 18, height: 18,
+                        borderRadius: "50%",
+                        backgroundColor: a.hex,
+                        border: accent === a.id ? "2px solid var(--foreground)" : "2px solid transparent",
+                        opacity: accent === a.id ? 1 : 0.55,
+                        transform: accent === a.id ? "scale(1.2)" : "scale(1)",
+                      }}
+                    />
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <AnimatePresence>
               {themeMenuOpen && (
                 <motion.div initial={{ opacity: 0, x: -8, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -8, scale: 0.97 }} transition={{ duration: 0.15 }}
