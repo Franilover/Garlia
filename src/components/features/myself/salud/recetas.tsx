@@ -7,6 +7,8 @@ import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/types/personal/rec
 import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import { Btn, BtnIcon, Badge, Modal, InputLine, Textarea, Loading, EmptyState, BackBtn, Divider, PageHeader } from "@/components/ui";
+import { useToast } from "@/hooks/ui/useToast";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 import {
   Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
   Plus, X, ArrowLeft, Trash2, Activity, Save, ChevronLeft, Minus, Carrot,
@@ -301,6 +303,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const [nuevoPaso, setNuevoPaso]   = useState("");
   const [formData, setFormData]     = useState(INITIAL_FORM);
   const [pendingIng, setPendingIng] = useState<PendingIng | null>(null);
+  const { toasts, toast, dismiss }  = useToast();
 
   const { data: dbIngredientes } = useSupabaseData<Ingrediente>("ingredientes");
 
@@ -349,7 +352,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.ingredientes.length === 0) {
-      alert("Añade al menos un ingrediente de la despensa");
+      toast.warning("Añade al menos un ingrediente de la despensa");
       return;
     }
     setIsSaving(true);
@@ -365,7 +368,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
       } as NuevaReceta);
       onSuccess();
     } catch (err) {
-      alert(`Error: ${err}`);
+      toast.error(`Error: ${err}`);
     } finally {
       setIsSaving(false);
     }
@@ -607,6 +610,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
         </form>
       </motion.div>
     </div>
+    <ToastContainer toasts={toasts} onDismiss={dismiss} />
   );
 }
 

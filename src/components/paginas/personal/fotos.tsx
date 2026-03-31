@@ -7,6 +7,8 @@ import { LightboxProvider, LightboxVisual, useLightbox } from "@/components/moda
 import { supabase } from "@/lib/api/client/supabase";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { Btn, Modal, InputLine } from "@/components/ui";
+import { useToast } from "@/hooks/ui/useToast";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 
 interface AddFotoModalProps {
   open: boolean;
@@ -19,6 +21,7 @@ function AddFotoModal({ open, onClose, onSuccess }: AddFotoModalProps) {
   const [url, setUrl]     = useState("");
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(false);
+  const { toasts, toast, dismiss } = useToast();
 
   const handleImageSelect = (selectedUrl: string) => { setUrl(selectedUrl); setStep("meta"); };
 
@@ -29,12 +32,13 @@ function AddFotoModal({ open, onClose, onSuccess }: AddFotoModalProps) {
       if (error) throw error;
       onSuccess();
       onClose();
-    } catch { alert("Error al guardar"); }
+    } catch { toast.error("Error al guardar"); }
     finally { setLoading(false); }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Añadir al Diario" maxWidth="max-w-lg">
+    <>
+      <Modal open={open} onClose={onClose} title="Añadir al Diario" maxWidth="max-w-lg">
       {step === "pick" ? (
         <div className="space-y-4">
           <p className="text-[11px] text-primary/40 uppercase font-bold tracking-tighter text-center">Selecciona la foto</p>
@@ -59,6 +63,8 @@ function AddFotoModal({ open, onClose, onSuccess }: AddFotoModalProps) {
         </div>
       )}
     </Modal>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+    </>
   );
 }
 

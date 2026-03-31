@@ -113,4 +113,4 @@ export default function Drawings() {
       <DrawingsContent />
     </LightboxProvider>
   );
-}
+} 

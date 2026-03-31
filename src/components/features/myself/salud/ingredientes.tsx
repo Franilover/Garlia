@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Btn, BtnIcon, Badge, Modal, InputLine, Textarea, Loading, EmptyState, BackBtn, Divider, PageHeader } from "@/components/ui";
+import { useToast } from "@/hooks/ui/useToast";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 
 const CATEGORIAS = [
   { label: "Proteínas",     emoji: "🥩" },
@@ -81,6 +83,7 @@ export const IngredientesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving]       = useState(false);
   const [formData, setFormData]       = useState(INITIAL_FORM);
+  const { toasts, toast, dismiss }    = useToast();
 
   const { data: ingredientes, loading: hookLoading, refetch, addRow, updateRow, deleteRow } =
     useSupabaseData<Ingrediente>("ingredientes");
@@ -166,7 +169,7 @@ export const IngredientesPage = () => {
       if (result.error) {
         console.error("Error al guardar ingrediente:", result.error);
         const msg = typeof result.error === "string" ? result.error : (result.error as any)?.message ?? JSON.stringify(result.error);
-        alert(`Error al guardar: ${msg}`);
+        toast.error(`Error al guardar: ${msg}`);
       } else {
         setIsModalOpen(false);
         setFormData(INITIAL_FORM);
@@ -178,7 +181,7 @@ export const IngredientesPage = () => {
         }
       }
     } catch (err) {
-      alert(`Error inesperado: ${err}`);
+      toast.error(`Error inesperado: ${err}`);
     } finally {
       setIsSaving(false);
     }
@@ -613,6 +616,7 @@ export const IngredientesPage = () => {
           </div>
         )}
       </AnimatePresence>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 import React, { useState } from "react";
-import { Palette, Heart, Monitor, Droplets, Music } from "lucide-react";
+import { Palette, Monitor, Droplets, Music } from "lucide-react";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/ui/useToast";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 
 const fade = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
@@ -19,6 +21,7 @@ export default function SobreMi() {
   const FORMSPREE_ID = "xvzpjdgr";
   const [enviado, setEnviado] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { toasts, toast, dismiss } = useToast();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,8 +33,8 @@ export default function SobreMi() {
         method: "POST", body: data, headers: { Accept: "application/json" },
       });
       if (res.ok) { setEnviado(true); form.reset(); }
-      else alert("Hubo un error al enviar el mensaje.");
-    } catch { alert("Error de conexión."); }
+      else toast.error("Hubo un error al enviar el mensaje.");
+    } catch { toast.error("Error de conexión."); }
     finally { setLoading(false); }
   };
 
@@ -230,6 +233,7 @@ export default function SobreMi() {
 
         </div>
       </main>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 }

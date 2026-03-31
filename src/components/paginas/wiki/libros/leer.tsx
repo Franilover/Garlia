@@ -10,6 +10,9 @@ import {
   Music2, Sword, MousePointerClick, Loader2
 } from "lucide-react";
 import { DropWord } from "@/components/ui/DropWord";
+import { useToast } from "@/hooks/ui/useToast";
+import { useConfirm } from "@/components/ui/ConfirmModal";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { librosQueries, Capitulo } from "@/lib/api/queries/wiki/libros";
@@ -224,27 +227,34 @@ function ChoiceButton({ label, onSelect }: { label: string; onSelect: () => void
 }
 
 function UseWord({ word, itemId, targetSuccess, targetFail, onNavigate }: { word: string; itemId: string; targetSuccess: string; targetFail?: string; onNavigate: (capId: string) => void }) {
+  const { toasts, toast, dismiss } = useToast();
+  const { confirm, ConfirmModal } = useConfirm();
+
   const handleUse = async () => {
-    // AQUÍ VA TU LÓGICA REAL PARA VERIFICAR SI FRANILOVER TIENE EL ITEM.
-    // Simulando por ahora:
-    const confirmar = confirm(`¿Quieres usar "${word}" (ID: ${itemId})?`);
-    if (confirmar) {
-      // Si tiene el item, lo consumes en DB y navegas:
+    const ok = await confirm({
+      title: `Usar objeto`,
+      message: `¿Quieres usar "${word}"?`,
+      confirmLabel: "Usar",
+    });
+    if (ok) {
       onNavigate(targetSuccess);
     } else {
-      // Si no lo tiene o cancela, navega al fallo (si existe) o da un aviso.
       if (targetFail) {
         onNavigate(targetFail);
       } else {
-        alert("No tienes el objeto necesario o decidiste no usarlo.");
+        toast.warning("No tienes el objeto necesario o decidiste no usarlo.");
       }
     }
   };
 
   return (
-    <button onClick={handleUse} className="relative inline font-serif cursor-pointer group text-amber-600 hover:text-amber-700 font-bold transition-colors">
-      <span style={{ borderBottom: "2px dotted currentColor" }}>{word}</span>
-    </button>
+    <>
+      <button onClick={handleUse} className="relative inline font-serif cursor-pointer group text-amber-600 hover:text-amber-700 font-bold transition-colors">
+        <span style={{ borderBottom: "2px dotted currentColor" }}>{word}</span>
+      </button>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+      <ConfirmModal />
+    </>
   );
 }
 
