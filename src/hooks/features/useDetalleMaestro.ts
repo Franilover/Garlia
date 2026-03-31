@@ -14,11 +14,34 @@ export interface Relacion {
 // Alias exportado para no romper imports existentes en DetalleMaestro.tsx
 export type Variante = CriaturaVariante;
 
+interface DetalleMaestroOptions {
+  onUpdate?: (record: any) => void;
+  /** Reemplaza alert() nativo. Ej: (msg) => toast.error(msg) */
+  showError?: (message: string) => void;
+  /** Reemplaza window.confirm() nativo. Ej: (msg) => confirm({ message: msg, danger: true }) */
+  requestConfirm?: (message: string) => Promise<boolean>;
+}
+
 export function useDetalleMaestro(
   data: any,
   tabla: string,
-  onUpdate?: (record: any) => void
+  onUpdateOrOptions?: ((record: any) => void) | DetalleMaestroOptions
 ) {
+  // Soporte para la firma legacy useDetalleMaestro(data, tabla, onUpdate)
+  // y la nueva useDetalleMaestro(data, tabla, { onUpdate, showError, requestConfirm })
+  const options: DetalleMaestroOptions =
+    typeof onUpdateOrOptions === "function"
+      ? { onUpdate: onUpdateOrOptions }
+      : (onUpdateOrOptions ?? {});
+
+  const { onUpdate, showError, requestConfirm } = options;
+
+  const alertError = (msg: string) =>
+    showError ? showError(msg) : alert(msg);
+
+  const confirmAction = (msg: string): Promise<boolean> =>
+    requestConfirm ? requestConfirm(msg) : Promise.resolve(window.confirm(msg));
+
   const isAdmin = useIsAdmin();
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -68,20 +91,16 @@ export function useDetalleMaestro(
   }, [data, tabla]);
 
   const fetchVariantes = async (id: any) => {
-    // Intentar desde Dexie primero (funciona offline)
     try {
       if (db) {
         const local = await db.criatura_variantes
           .where("criatura_id")
           .equals(id)
           .toArray();
-        if (local.length > 0) {
-          setVariantes(local);
-        }
+        if (local.length > 0) setVariantes(local);
       }
     } catch {}
 
-    // Si hay conexión, refrescar desde Supabase y actualizar caché
     if (!navigator.onLine) return;
     try {
       const { data: vars, error } = await supabase
@@ -90,10 +109,7 @@ export function useDetalleMaestro(
         .eq("criatura_id", id);
       if (error) throw error;
       setVariantes(vars || []);
-      // Actualizar Dexie con los datos frescos
-      if (db && vars?.length) {
-        await db.criatura_variantes.bulkPut(vars);
-      }
+      if (db && vars?.length) await db.criatura_variantes.bulkPut(vars);
     } catch (err) {
       console.error("Error fetching variantes:", err);
     }
@@ -101,7 +117,7 @@ export function useDetalleMaestro(
 
   const handleSave = async () => {
     if (!editNombre.trim()) {
-      alert("El nombre es obligatorio.");
+      alertError("El nombre es obligatorio.");
       return false;
     }
 
@@ -169,7 +185,7 @@ export function useDetalleMaestro(
       return true;
     } catch (err: any) {
       console.error("Error al guardar:", err);
-      alert("Error: " + err.message);
+      alertError("Error al guardar: " + err.message);
       return false;
     } finally {
       setSaving(false);
@@ -178,10 +194,11 @@ export function useDetalleMaestro(
 
   const handleDelete = async (onDeleted?: () => void) => {
     if (!data?.id) return;
-    const confirmar = window.confirm(
+
+    const ok = await confirmAction(
       `¿Borrar "${editNombre}" de forma permanente? Esta acción no se puede deshacer.`
     );
-    if (!confirmar) return;
+    if (!ok) return;
 
     setSaving(true);
     try {
@@ -193,7 +210,7 @@ export function useDetalleMaestro(
       if (onDeleted) onDeleted();
     } catch (err: any) {
       console.error("Error al borrar:", err);
-      alert("Error al borrar: " + err.message);
+      alertError("Error al borrar: " + err.message);
     } finally {
       setSaving(false);
     }

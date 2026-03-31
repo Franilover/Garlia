@@ -1,7 +1,6 @@
 "use client";
 import { supabase } from "@/lib/api/client/supabase";
-
-const USERNAME = "franilover"; 
+import { USERNAME } from "@/lib/config/constants";
 
 export const tareasQueries = {
   getAll: async () => {
@@ -15,12 +14,7 @@ export const tareasQueries = {
   add: async (titulo: string, categoria: string = "general") => {
     const { data, error } = await supabase
       .from("tareas")
-      .insert([{ 
-        titulo, 
-        categoria, 
-        username: USERNAME, 
-        completada: false 
-      }])
+      .insert([{ titulo, categoria, username: USERNAME, completada: false }])
       .select();
     if (error) throw error;
     return data[0];
@@ -42,5 +36,5 @@ export const tareasQueries = {
       .eq("id", id)
       .eq("username", USERNAME);
     if (error) throw error;
-  }
+  },
 };

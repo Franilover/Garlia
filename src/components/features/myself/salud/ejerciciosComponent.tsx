@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { rutinasQueries, ejerciciosQueries } from "@/lib/api/queries/personal/ejercicios";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Dumbbell, Play, Check, X, Plus, ChevronDown, Flame, Star } from "lucide-react";
 import { Btn, BtnIcon, Badge, Loading, EmptyState } from "@/components/ui";
 
@@ -316,15 +317,12 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
 };
 
 export const PaginaEjercicios = () => {
-  const [rutinas, setRutinas]           = useState<Rutina[]>([]);
-  const [cargando, setCargando]         = useState(true);
+  const { data: rutinas, loading: cargando, refetch } = useSupabaseData<Rutina>("rutinas");
   const [rutinaActiva, setRutinaActiva] = useState<Rutina | null>(null);
   const [expandida, setExpandida]       = useState<string | null>(null);
   const [filtroTag, setFiltroTag]       = useState("Todas");
   const [creando, setCreando]           = useState(false);
   const [guardando, setGuardando]       = useState(false);
-
-  useEffect(() => { rutinasQueries.getAll().then(setRutinas).catch(console.error).finally(() => setCargando(false)); }, []);
 
   const rutinasFiltradas = useMemo(() => filtroTag === "Todas" ? rutinas : rutinas.filter(r => r.tag === filtroTag), [rutinas, filtroTag]);
 
@@ -334,13 +332,14 @@ export const PaginaEjercicios = () => {
     try {
       const rutinaCreada = await rutinasQueries.add(datos);
       await ejerciciosQueries.reemplazar(rutinaCreada.id, ejercicios.map((e, i) => ({ ...e, orden: i })));
-      setRutinas(await rutinasQueries.getAll()); setCreando(false);
+      refetch();
+      setCreando(false);
     } catch (err) { console.error(err); }
     finally { setGuardando(false); }
   };
 
   const handleEliminar = async (id: string) => {
-    try { await rutinasQueries.delete(id); setRutinas(p => p.filter(r => r.id !== id)); }
+    try { await rutinasQueries.delete(id); refetch(); }
     catch (err) { console.error(err); }
   };
 

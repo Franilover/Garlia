@@ -5,6 +5,9 @@ import {
   X, Edit3, Save, Plus, CheckCircle2, Trash2, Camera,
 } from "lucide-react";
 import { useDetalleMaestro, type Variante } from "@/hooks/features/useDetalleMaestro";
+import { useToast } from "@/hooks/ui/useToast";
+import { useConfirm } from "@/components/ui/ConfirmModal";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 import { SeccionMusica, SelectorMusicaAdmin } from "./SeccionMusica";
 import { SelectorVariantes } from "./SelectorVariantes";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
@@ -52,6 +55,9 @@ export default function DetalleMaestro({
 }
 
 function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelete, isNew, mostrarMusica }: any) {
+  const { toasts, toast, dismiss } = useToast();
+  const { confirm, ConfirmModal } = useConfirm();
+
   const {
     isAdmin, editMode, setEditMode, saving, handleSave, handleDelete,
     variantes, setVariantes,
@@ -60,7 +66,11 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
     editNombre, setEditNombre,
     editDescripcion, setEditDescripcion,
     editCanciones, setEditCanciones,
-  } = useDetalleMaestro(data, tabla, onUpdate);   
+  } = useDetalleMaestro(data, tabla, {
+    onUpdate,
+    showError: toast.error,
+    requestConfirm: (msg) => confirm({ message: msg, danger: true }),
+  });
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -127,6 +137,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
     "/placeholder.png";
 
   return (
+    <>
     <div className="w-full max-w-[96%] xl:max-w-screen-2xl mx-auto relative pt-10 px-4 pb-32 space-y-8">
       <AnimatePresence>
         {showSuccess && (
@@ -385,5 +396,9 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
         </motion.div>
       )}
     </div>
+
+    <ToastContainer toasts={toasts} onDismiss={dismiss} />
+    <ConfirmModal />
+    </>
   );
 }

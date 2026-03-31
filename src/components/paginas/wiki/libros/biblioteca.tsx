@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { Book, Globe, Lock, Timer } from "lucide-react";
+import { Book, Lock, Timer } from "lucide-react";
 import { motion } from "framer-motion";
-import { librosQueries } from "@/lib/api/queries/wiki/libros";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, PageHeader } from "@/components/ui";
 
@@ -19,17 +19,10 @@ interface Libro {
 }
 
 const Biblioteca = () => {
-  const [libros, setLibros]   = useState<Libro[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    librosQueries
-      .getAll({ isAdmin: false })
-      .then(({ data }) => {
-        if (data) setLibros(data as Libro[]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: libros, loading } = useSupabaseData<Libro>("libros", {
+    isAdmin: false,
+    order: { campo: "created_at", asc: false },
+  });
 
   if (loading && libros.length === 0) return <Loading text="Abriendo archivos..." />;
 

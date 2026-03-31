@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/providers/AuthProvider";
 import { supabase } from "@/lib/api/client/supabase";
-import { useDarkMode } from "@/hooks/features/useDarkMode";
+import { useTheme } from "@/providers/ThemeProvider";
 import { ThemeSelector } from "@/providers/ThemeProvider";
 import {
   LogOut, CircleUser, Flower2,
@@ -316,7 +316,9 @@ const Navbar = () => {
   const [themeMenuOpen,   setThemeMenuOpen]   = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mobileOpenMenu,  setMobileOpenMenu]  = useState<string | null>(null);
-  const { isDark, toggle } = useDarkMode();
+  const { dark, toggleDark } = useTheme();
+  const isDark = dark === "dark";
+  const toggle = toggleDark;
 
   const esFranilover = perfil?.username?.toLowerCase() === "franilover";
 

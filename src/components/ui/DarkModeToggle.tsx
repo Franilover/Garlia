@@ -1,16 +1,15 @@
-
-
 "use client";
-import { useDarkMode } from "@/hooks/features/useDarkMode";
+import { useTheme } from "@/providers/ThemeProvider";
 import { Moon, Sun } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function DarkModeToggle() {
-  const { isDark, toggle } = useDarkMode();
+  const { dark, toggleDark } = useTheme();
+  const isDark = dark === "dark";
 
   return (
     <motion.button
-      onClick={toggle}
+      onClick={toggleDark}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.9 }}
       aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
