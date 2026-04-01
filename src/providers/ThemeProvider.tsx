@@ -410,7 +410,7 @@ export function ThemeSelector() {
 
       {/* Pride flags */}
       <div className="flex flex-col gap-2">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">🏳️‍🌈 Banderas</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Bordes</p>
         <div className="flex gap-2 flex-wrap">
           {ACCENT_OPTIONS.filter(a => a.pride).map(a => (
             <button
