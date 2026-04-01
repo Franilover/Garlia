@@ -431,14 +431,6 @@ const Navbar = () => {
                 }
               </AnimatePresence>
             </span>
-            <AnimatePresence>
-              {sidebarExpanded && (
-                <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
-                  className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
-                  {isDark ? "Modo claro" : "Modo oscuro"}
-                </motion.span>
-              )}
-            </AnimatePresence>
           </button>
 
           {/* Tema */}
