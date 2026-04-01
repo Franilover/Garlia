@@ -424,13 +424,15 @@ const Navbar = () => {
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"; }}
           >
             <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
-              <AnimatePresence mode="wait" initial={false}>
-                {isDark
-                  ? <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><Sun size={16} /></motion.span>
-                  : <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><Moon size={16} /></motion.span>
-                }
-              </AnimatePresence>
             </span>
+            <AnimatePresence>
+              {sidebarExpanded && (
+                <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+                  className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
+                  {isDark ? "Modo claro" : "Modo oscuro"}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </button>
 
           {/* Tema */}
