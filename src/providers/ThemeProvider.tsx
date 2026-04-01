@@ -371,7 +371,7 @@ export function ThemeSelector() {
 
       {/* Selector de tema */}
       <div className="flex flex-col gap-2">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Tema</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Diseño</p>
         {THEMES.map(t => (
           <button
             key={t.id}
