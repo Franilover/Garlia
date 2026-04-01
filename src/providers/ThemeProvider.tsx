@@ -1,10 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-/**
- * Tipos de configuración visual.
- */
-export type ThemeName   = "default" | "pixel" | "scribble" | "mlm";
+export type ThemeName   = "default" | "pixel" | "scribble";
 export type DarkMode    = "light" | "dark";
 export type AccentColor = "purple" | "yellow" | "blue" | "red" | "green";
 
@@ -19,153 +16,206 @@ interface ThemeCtx {
 
 const ThemeContext = createContext<ThemeCtx | null>(null);
 
-// ─── Paletas de acento (colores estándar) ──────────────────────────────────
-// Se han restaurado TODAS las variables necesarias (--white-custom, --input-bg, --input-text)
-// para evitar que los inputs o modales pierdan su color en Tailwind.
+// ─── Paletas de color por acento ─────────────────────────────────────────────
+// Cada acento define primary, accent y bg-main para light y dark.
+// El resto de variables (bg-menu, foreground, etc.) se derivan del primary.
+
 const ACCENT_PALETTES: Record<AccentColor, {
   light: Record<string, string>;
   dark:  Record<string, string>;
 }> = {
   purple: {
     light: {
-      "--primary":      "#67556d",
-      "--accent":       "#be97d1",
-      "--bg-main":      "#e4d7e6",
-      "--bg-menu":      "#67556d",
-      "--foreground":   "#3a2e3d",
-      "--white-custom": "#ffffff",
-      "--input-bg":     "#ffffff",
-      "--input-text":   "#3a2e3d",
+      "--primary":    "#67556d",
+      "--accent":     "#be97d1",
+      "--bg-main":    "#e4d7e6",
+      "--bg-menu":    "#67556d",
+      "--foreground": "#3a2e3d",
+      "--white-custom":"#ffffff",
+      "--input-bg":   "#ffffff",
+      "--input-text": "#3a2e3d",
+      "--btn-text":   "#ffffff",
     },
     dark: {
-      "--primary":      "#be97d1",
-      "--accent":       "#67556d",
-      "--bg-main":      "#1a161c",
-      "--bg-menu":      "#2a242e",
-      "--foreground":   "#e4d7e6",
-      "--white-custom": "#2a242e",
-      "--input-bg":     "#352e3a",
-      "--input-text":   "#e4d7e6",
-    }
+      "--primary":    "#b89ec8",
+      "--accent":     "#9d70b5",
+      "--bg-main":    "#1c1720",
+      "--bg-menu":    "#251e2c",
+      "--foreground": "#e8daf2",
+      "--white-custom":"#28202f",
+      "--input-bg":   "#32273c",
+      "--input-text": "#e8daf2",
+      "--btn-text":   "#1c1720",
+    },
   },
   yellow: {
-    light: { 
-      "--primary": "#856404", "--accent": "#ffc107", "--bg-main": "#fff3cd", "--bg-menu": "#856404", "--foreground": "#3d2e02",
-      "--white-custom": "#ffffff", "--input-bg": "#ffffff", "--input-text": "#3d2e02"
+    light: {
+      "--primary":    "#7a6530",
+      "--accent":     "#e8c84a",
+      "--bg-main":    "#f5edcd",
+      "--bg-menu":    "#7a6530",
+      "--foreground": "#3d300f",
+      "--white-custom":"#fffef5",
+      "--input-bg":   "#fffef5",
+      "--input-text": "#3d300f",
+      "--btn-text":   "#fffef5",
     },
-    dark:  { 
-      "--primary": "#ffc107", "--accent": "#856404", "--bg-main": "#1a1401", "--bg-menu": "#2b2102", "--foreground": "#fff3cd",
-      "--white-custom": "#2b2102", "--input-bg": "#3d2f03", "--input-text": "#fff3cd"
-    }
+    dark: {
+      "--primary":    "#d4aa45",
+      "--accent":     "#f0c93a",
+      "--bg-main":    "#1a1608",
+      "--bg-menu":    "#231e0a",
+      "--foreground": "#f5e9c0",
+      "--white-custom":"#26200e",
+      "--input-bg":   "#302810",
+      "--input-text": "#f5e9c0",
+      "--btn-text":   "#1a1608",
+    },
   },
   blue: {
-    light: { 
-      "--primary": "#004085", "--accent": "#007bff", "--bg-main": "#cce5ff", "--bg-menu": "#004085", "--foreground": "#002752",
-      "--white-custom": "#ffffff", "--input-bg": "#ffffff", "--input-text": "#002752"
+    light: {
+      "--primary":    "#2d5580",
+      "--accent":     "#5ba3e0",
+      "--bg-main":    "#d6e8f5",
+      "--bg-menu":    "#2d5580",
+      "--foreground": "#0d2540",
+      "--white-custom":"#f0f7fd",
+      "--input-bg":   "#f0f7fd",
+      "--input-text": "#0d2540",
+      "--btn-text":   "#f0f7fd",
     },
-    dark:  { 
-      "--primary": "#74b9ff", "--accent": "#004085", "--bg-main": "#010b1a", "--bg-menu": "#021a35", "--foreground": "#cce5ff",
-      "--white-custom": "#021a35", "--input-bg": "#03254c", "--input-text": "#cce5ff"
-    }
+    dark: {
+      "--primary":    "#6aaad4",
+      "--accent":     "#4488cc",
+      "--bg-main":    "#080f1a",
+      "--bg-menu":    "#0d1826",
+      "--foreground": "#d0e8f8",
+      "--white-custom":"#101c2e",
+      "--input-bg":   "#162438",
+      "--input-text": "#d0e8f8",
+      "--btn-text":   "#080f1a",
+    },
   },
   red: {
-    light: { 
-      "--primary": "#721c24", "--accent": "#dc3545", "--bg-main": "#f8d7da", "--bg-menu": "#721c24", "--foreground": "#491217",
-      "--white-custom": "#ffffff", "--input-bg": "#ffffff", "--input-text": "#491217"
+    light: {
+      "--primary":    "#8b3030",
+      "--accent":     "#d96060",
+      "--bg-main":    "#f5d8d8",
+      "--bg-menu":    "#8b3030",
+      "--foreground": "#3d0f0f",
+      "--white-custom":"#fff5f5",
+      "--input-bg":   "#fff5f5",
+      "--input-text": "#3d0f0f",
+      "--btn-text":   "#fff5f5",
     },
-    dark:  { 
-      "--primary": "#ff7675", "--accent": "#721c24", "--bg-main": "#1a0608", "--bg-menu": "#310c0f", "--foreground": "#f8d7da",
-      "--white-custom": "#310c0f", "--input-bg": "#491217", "--input-text": "#f8d7da"
-    }
+    dark: {
+      "--primary":    "#c87070",
+      "--accent":     "#b04444",
+      "--bg-main":    "#1a0808",
+      "--bg-menu":    "#260e0e",
+      "--foreground": "#f5d8d8",
+      "--white-custom":"#2e1010",
+      "--input-bg":   "#3c1414",
+      "--input-text": "#f5d8d8",
+      "--btn-text":   "#1a0808",
+    },
   },
   green: {
-    light: { 
-      "--primary": "#155724", "--accent": "#28a745", "--bg-main": "#d4edda", "--bg-menu": "#155724", "--foreground": "#0b2e13",
-      "--white-custom": "#ffffff", "--input-bg": "#ffffff", "--input-text": "#0b2e13"
+    light: {
+      "--primary":    "#2d6b45",
+      "--accent":     "#5ab87a",
+      "--bg-main":    "#d4eddc",
+      "--bg-menu":    "#2d6b45",
+      "--foreground": "#0d2d1a",
+      "--white-custom":"#f0faf3",
+      "--input-bg":   "#f0faf3",
+      "--input-text": "#0d2d1a",
+      "--btn-text":   "#f0faf3",
     },
-    dark:  { 
-      "--primary": "#55efc4", "--accent": "#155724", "--bg-main": "#051408", "--bg-menu": "#0b2e13", "--foreground": "#d4edda",
-      "--white-custom": "#0b2e13", "--input-bg": "#124b1f", "--input-text": "#d4edda"
-    }
-  }
-};
-
-// ─── Paleta especial para el tema MLM ──────────────────────────────────────
-// Incluye fallbacks (colores de respaldo hex) por si las variables CSS no cargan
-const MLM_PALETTE = {
-  light: {
-    "--primary":      "var(--mlm-green-dark, #2d4a22)",
-    "--accent":       "var(--mlm-purple, #7b4b94)",
-    "--bg-main":      "#f4fcf4",
-    "--bg-menu":      "var(--mlm-green-dark, #2d4a22)",
-    "--foreground":   "#0b2e13",
-    "--white-custom": "#ffffff",
-    "--input-bg":     "#ffffff",
-    "--input-text":   "#0b2e13",
+    dark: {
+      "--primary":    "#68b887",
+      "--accent":     "#3d9960",
+      "--bg-main":    "#08140d",
+      "--bg-menu":    "#0d1f13",
+      "--foreground": "#c8ecd6",
+      "--white-custom":"#102016",
+      "--input-bg":   "#142a1c",
+      "--input-text": "#c8ecd6",
+      "--btn-text":   "#08140d",
+    },
   },
-  dark: {
-    "--primary":      "var(--mlm-green-light, #a3c995)",
-    "--accent":       "var(--mlm-purple-dark, #4a2b5e)",
-    "--bg-main":      "#0a0d0a",
-    "--bg-menu":      "var(--mlm-green-dark, #152410)",
-    "--foreground":   "#d4edda",
-    "--white-custom": "#111c0d",
-    "--input-bg":     "#152410",
-    "--input-text":   "#d4edda",
-  }
 };
 
+// ─── Metadatos de UI para cada acento ────────────────────────────────────────
 export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string }[] = [
-  { id: "purple", label: "Lavanda", hex: "#67556d" },
-  { id: "yellow", label: "Miel",    hex: "#856404" },
-  { id: "blue",   label: "Océano",  hex: "#004085" },
-  { id: "red",    label: "Cereza",  hex: "#721c24" },
-  { id: "green",  label: "Bosque",  hex: "#155724" },
+  { id: "purple", label: "Lila",   hex: "#9d70b5" },
+  { id: "yellow", label: "Dorado", hex: "#e8c84a" },
+  { id: "blue",   label: "Azul",   hex: "#5ba3e0" },
+  { id: "red",    label: "Rojo",   hex: "#d96060" },
+  { id: "green",  label: "Verde",  hex: "#5ab87a" },
 ];
 
 const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
-  { id: "default",  label: "Modern",   emoji: "✨" },
-  { id: "pixel",    label: "Pixel",    emoji: "👾" },
-  { id: "scribble", label: "Boceto",   emoji: "✏️" },
-  { id: "mlm",      label: "MLM",      emoji: "🌿" }, 
+  { id: "default",  label: "Minimalista", emoji: "🪻" },
+  { id: "pixel",    label: "Retro",       emoji: "👾" },
+  { id: "scribble", label: "Antiguo",     emoji: "✏️" },
 ];
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme]   = useState<ThemeName>("default");
-  const [dark, setDark]     = useState<DarkMode>("light");
-  const [accent, setAccent] = useState<AccentColor>("purple");
+// ─── Aplicar paleta al DOM ────────────────────────────────────────────────────
+function applyAccentPalette(accent: AccentColor, dark: DarkMode) {
+  const palette = ACCENT_PALETTES[accent][dark];
+  const root = document.documentElement;
+  Object.entries(palette).forEach(([key, val]) => {
+    root.style.setProperty(key, val);
+  });
+}
 
+// ─── Provider ────────────────────────────────────────────────────────────────
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme,  setThemeState]  = useState<ThemeName>("scribble");
+  const [dark,   setDarkState]   = useState<DarkMode>("dark");
+  const [accent, setAccentState] = useState<AccentColor>("purple");
+
+  // Cargar preferencias guardadas
   useEffect(() => {
-    const savedT = localStorage.getItem("app-theme") as ThemeName;
-    const savedD = localStorage.getItem("app-dark")  as DarkMode;
-    const savedA = localStorage.getItem("app-accent") as AccentColor;
-    if (savedT) setTheme(savedT);
-    if (savedD) setDark(savedD);
-    if (savedA) setAccent(savedA);
+    try {
+      const savedTheme  = localStorage.getItem("app-theme")  as ThemeName   | null;
+      const savedDark   = localStorage.getItem("theme")       as DarkMode    | null;
+      const savedAccent = localStorage.getItem("app-accent")  as AccentColor | null;
+      if (savedTheme)  setThemeState(savedTheme);
+      if (savedDark)   setDarkState(savedDark);
+      if (savedAccent) setAccentState(savedAccent);
+    } catch {}
   }, []);
 
+  // Aplicar tema (data-theme)
   useEffect(() => {
-    const root = window.document.documentElement;
+    document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("app-theme", theme);
-    localStorage.setItem("app-dark",  dark);
-    localStorage.setItem("app-accent", accent);
+  }, [theme]);
 
-    root.classList.remove("light", "dark");
-    root.classList.add(dark);
-    root.setAttribute("data-theme", theme);
-
-    // Selección inteligente de la paleta según el tema y el modo oscuro
-    const activePalette = theme === "mlm" ? MLM_PALETTE[dark] : ACCENT_PALETTES[accent][dark];
-    
-    if (activePalette) {
-      Object.entries(activePalette).forEach(([key, val]) => {
-        root.style.setProperty(key, val);
-      });
+  // Aplicar dark mode
+  useEffect(() => {
+    if (dark === "dark") {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
     }
+    // Re-aplicar paleta cuando cambia el modo
+    applyAccentPalette(accent, dark);
+  }, [dark, accent]);
 
-  }, [theme, dark, accent]);
+  // Aplicar paleta de acento
+  useEffect(() => {
+    applyAccentPalette(accent, dark);
+    localStorage.setItem("app-accent", accent);
+  }, [accent, dark]);
 
-  const toggleDark = () => setDark(prev => prev === "light" ? "dark" : "light");
+  const setTheme  = (t: ThemeName)   => setThemeState(t);
+  const setAccent = (a: AccentColor) => setAccentState(a);
+  const toggleDark = () => setDarkState(d => d === "dark" ? "light" : "dark");
 
   return (
     <ThemeContext.Provider value={{ theme, dark, accent, setTheme, toggleDark, setAccent }}>
@@ -174,26 +224,31 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) throw new Error("useTheme must be used within ThemeProvider");
-  return context;
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error("useTheme debe usarse dentro de <ThemeProvider>");
+  return ctx;
 }
 
-export const ThemeSelector = () => {
-  const { theme, setTheme, dark, toggleDark, accent, setAccent } = useTheme();
+// ─── ThemeSelector — panel del sidebar ───────────────────────────────────────
+export function ThemeSelector() {
+  const { theme, setTheme, toggleDark, dark, accent, setAccent } = useTheme();
 
   return (
-    <div className="flex flex-col gap-6 p-1">
-      <div className="grid grid-cols-2 gap-2">
+    <div className="flex flex-col gap-4 p-4">
+
+      {/* Selector de tema */}
+      <div className="flex flex-col gap-2">
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Tema</p>
         {THEMES.map(t => (
           <button
             key={t.id}
             onClick={() => setTheme(t.id)}
-            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all ${
-              theme === t.id 
-                ? "bg-primary text-white border-primary shadow-md scale-[1.02]" 
-                : "bg-bg-main text-primary/70 border-primary/10 hover:border-primary/30"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left ${
+              theme === t.id
+                ? "bg-primary text-white border-primary"
+                : "bg-bg-main border-primary/15 text-primary/60 hover:border-primary/40 hover:text-primary"
             }`}
           >
             <span className="text-lg leading-none">{t.emoji}</span>
@@ -202,35 +257,37 @@ export const ThemeSelector = () => {
         ))}
       </div>
 
-      {/* Selector de color solo visible si NO estamos en el tema especial MLM */}
-      {theme !== "mlm" && (
-        <div className="flex flex-col gap-2">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Color de Acento</p>
-          <div className="flex gap-2 flex-wrap">
-            {ACCENT_OPTIONS.map(a => (
-              <button
-                key={a.id}
-                onClick={() => setAccent(a.id)}
-                title={a.label}
-                className={`w-8 h-8 rounded-full border-2 transition-all ${
-                  accent === a.id ? "scale-110 border-white shadow-lg" : "border-transparent opacity-70 hover:opacity-100 hover:scale-105"
-                }`}
-                style={{ backgroundColor: a.hex }}
-              />
-            ))}
-          </div>
+      {/* Selector de color */}
+      <div className="flex flex-col gap-2">
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Color</p>
+        <div className="flex gap-2 flex-wrap">
+          {ACCENT_OPTIONS.map(a => (
+            <button
+              key={a.id}
+              onClick={() => setAccent(a.id)}
+              title={a.label}
+              className={`w-8 h-8 rounded-full border-2 transition-all ${
+                accent === a.id
+                  ? "scale-110 border-white shadow-lg"
+                  : "border-transparent hover:scale-105 opacity-70 hover:opacity-100"
+              }`}
+              style={{ backgroundColor: a.hex }}
+            />
+          ))}
         </div>
-      )}
+      </div>
 
+      {/* Toggle dark */}
       <button
         onClick={toggleDark}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-primary/15 bg-bg-main text-primary/60 hover:text-primary transition-all"
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-primary/15 bg-bg-main text-primary/60 hover:border-primary/40 hover:text-primary transition-all"
       >
         <span className="text-lg leading-none">{dark === "dark" ? "☀️" : "🌙"}</span>
-        <p className="text-[11px] font-black uppercase tracking-widest">
-          Modo {dark === "dark" ? "Claro" : "Oscuro"}
+        <p className="text-[11px] font-black uppercase tracking-wide">
+          {dark === "dark" ? "Modo claro" : "Modo oscuro"}
         </p>
       </button>
+
     </div>
   );
-};
+}

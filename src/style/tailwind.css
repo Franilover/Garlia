@@ -15,11 +15,6 @@
   --color-text-on-card: var(--text-on-card);
   --color-input-bg: var(--input-bg);
   --color-input-text: var(--input-text);
-  --color-mlm-green-dark: var(--mlm-green-dark);
-  --color-mlm-green-light: var(--mlm-green-light);
-  --color-mlm-purple: var(--mlm-purple);
-  --color-mlm-purple-dark: var(--mlm-purple-dark);
-
   --animate-terminal-flicker: flicker 0.15s infinite;
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
@@ -200,53 +195,10 @@
   --input-bg: #2e2010;
   --input-text: #ede0c8;
 }
-
-[data-theme="mlm"] {
-  --primary: #078d70;       
-  --accent: #98e8c1;        
-  --bg-main: #f0fdfa;       
-  --bg-menu: #078d70;
-  --white-custom: #ffffff;
-  --foreground: #053939;    
-  --btn-text: #ffffff;
-  --menu-text: #ffffff;
-  --text-on-card: #053939;
-  --input-bg: #ffffff;
-  --input-text: #053939;
-  
-  --radius-card: 1.5rem;
-  --radius-btn: 0.5rem;
-  --radius-input: 0.5rem;
-  --shadow-card: 0 4px 20px -5px rgba(7, 141, 112, 0.2);
-  --border-width: 1px;
-  --font-display: 'Montserrat', sans-serif;
-  font-size: 14px;
-
-  --mlm-green-dark: #078d70;
-  --mlm-green-light: #98e8c1;
-  --mlm-purple: #7bade2;
-  --mlm-purple-dark: #3e1a78;
-}
-
-[data-theme="mlm"].dark {
-  --primary: #26ceaa;       
-  --accent: #7bade2;        
-  --bg-main: #0a1211;       
-  --bg-menu: #14211f;
-  --white-custom: #1a2c29;  
-  --foreground: #d1fae5;    
-  --btn-text: #0a1211;
-  --menu-text: #d1fae5;
-  --text-on-card: #d1fae5;
-  --input-bg: #223834;
-  --input-text: #d1fae5;
-  --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-}
-
 /* FUERZA BRUTA DE FUENTES POR TEMA */
 [data-theme="default"], [data-theme="default"] * { font-family: 'Montserrat', sans-serif !important; }
 [data-theme="pixel"], [data-theme="pixel"] * { font-family: "Pixelify Sans", sans-serif !important; }
-[data-theme="mlm"], [data-theme="mlm"] * { font-family: 'Montserrat', sans-serif !important; }
+
 
 /* SCRIBBLE: dos fuentes — Lora para cuerpo, Caveat para títulos */
 [data-theme="scribble"], [data-theme="scribble"] * {
