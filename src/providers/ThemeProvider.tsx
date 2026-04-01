@@ -281,9 +281,9 @@ export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string; prid
   // Pride flags
   { id: "trans",     label: "Trans",      hex: "#5bbcd4", pride: true, gradient: "linear-gradient(180deg, #5bcefa 0%, #5bcefa 20%, #f5a9b8 20%, #f5a9b8 40%, #ffffff 40%, #ffffff 60%, #f5a9b8 60%, #f5a9b8 80%, #5bcefa 80%)" },
   { id: "lesbian",   label: "Lésbica",    hex: "#b3306a", pride: true, gradient: "linear-gradient(180deg, #d62900 0%, #d62900 20%, #ff9b55 20%, #ff9b55 40%, #ffffff 40%, #ffffff 60%, #d461a6 60%, #d461a6 80%, #a50062 80%)" },
-  { id: "gay",       label: "Gay",        hex: "#7e3fa8", pride: true, gradient: "linear-gradient(180deg, #e40303 0%, #e40303 16.6%, #ff8c00 16.6%, #ff8c00 33.2%, #ffed00 33.2%, #ffed00 50%, #008026 50%, #008026 66.6%, #004dff 66.6%, #004dff 83.2%, #750787 83.2%)" },
-  { id: "aromantic", label: "Aromantic",  hex: "#3d7a44", pride: true, gradient: "linear-gradient(180deg, #3da542 0%, #3da542 20%, #a8d379 20%, #a8d379 40%, #ffffff 40%, #ffffff 60%, #a9a9a9 60%, #a9a9a9 80%, #000000 80%)" },
-  { id: "mlm",       label: "Gay Masc",   hex: "#2d6899", pride: true, gradient: "linear-gradient(180deg, #078d70 0%, #078d70 20%, #98e8c1 20%, #98e8c1 40%, #ffffff 40%, #ffffff 60%, #7bade2 60%, #7bade2 80%, #3d1a8e 80%)" },
+  { id: "gay",       label: "Queer",        hex: "#7e3fa8", pride: true, gradient: "linear-gradient(180deg, #e40303 0%, #e40303 16.6%, #ff8c00 16.6%, #ff8c00 33.2%, #ffed00 33.2%, #ffed00 50%, #008026 50%, #008026 66.6%, #004dff 66.6%, #004dff 83.2%, #750787 83.2%)" },
+  { id: "aromantic", label: "Aromantica",  hex: "#3d7a44", pride: true, gradient: "linear-gradient(180deg, #3da542 0%, #3da542 20%, #a8d379 20%, #a8d379 40%, #ffffff 40%, #ffffff 60%, #a9a9a9 60%, #a9a9a9 80%, #000000 80%)" },
+  { id: "mlm",       label: "Gay",   hex: "#2d6899", pride: true, gradient: "linear-gradient(180deg, #078d70 0%, #078d70 20%, #98e8c1 20%, #98e8c1 40%, #ffffff 40%, #ffffff 60%, #7bade2 60%, #7bade2 80%, #3d1a8e 80%)" },
 ];
 
 const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
@@ -308,6 +308,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [accent, setAccentState] = useState<AccentColor>("purple");
 
   // Cargar preferencias guardadas
+// Cargar preferencias guardadas
   useEffect(() => {
     try {
       const savedTheme  = localStorage.getItem("app-theme")  as ThemeName   | null;
@@ -338,12 +339,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyAccentPalette(accent, dark);
   }, [dark, accent]);
 
-  // Aplicar paleta de acento
+  // 🔴 AQUÍ ESTÁ EL CAMBIO CLAVE: Aplicar paleta Y atributo data-accent
   useEffect(() => {
     applyAccentPalette(accent, dark);
     localStorage.setItem("app-accent", accent);
+    // Le decimos al HTML entero qué acento está activo para que el CSS reaccione
+    document.documentElement.setAttribute("data-accent", accent);
   }, [accent, dark]);
-
+  
   const setTheme  = (t: ThemeName)   => setThemeState(t);
   const setAccent = (a: AccentColor) => setAccentState(a);
   const toggleDark = () => setDarkState(d => d === "dark" ? "light" : "dark");

@@ -454,3 +454,39 @@
     border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
   }
 }
+
+
+[data-accent="trans"] .card-main,
+[data-accent="lesbian"] .card-main,
+[data-accent="gay"] .card-main,
+[data-accent="aromantic"] .card-main,
+[data-accent="mlm"] .card-main {
+  border-color: transparent !important;
+  background-clip: padding-box, border-box;
+  background-origin: padding-box, border-box;
+  /* El primer background es el fondo interno, el segundo es el degradado del borde */
+  background-image: 
+    linear-gradient(var(--bg-main), var(--bg-main)), 
+    var(--pride-gradient);
+}
+
+/* Definición de los degradados exactos por bandera */
+[data-accent="trans"] {
+  --pride-gradient: linear-gradient(to right, #5BCEFA, #F5A9B8, #FFFFFF, #F5A9B8, #5BCEFA);
+}
+
+[data-accent="lesbian"] {
+  --pride-gradient: linear-gradient(to right, #D52D00, #FF9A56, #FFFFFF, #D362A4, #A30262);
+}
+
+[data-accent="gay"] {
+  --pride-gradient: linear-gradient(to right, #078975, #31947a, #98e8c1, #ffffff, #7bade2, #5049cc, #3d1a78);
+}
+
+[data-accent="aromantic"] {
+  --pride-gradient: linear-gradient(to right, #3DA542, #A7D379, #FFFFFF, #A9A9A9, #000000);
+}
+
+[data-accent="mlm"] {
+  --pride-gradient: linear-gradient(to right, #078D70, #26CEAA, #98E8C1, #FFFFFF, #7BADE2, #5049CC, #3D1A78);
+}
