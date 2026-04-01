@@ -19,6 +19,7 @@ import {
   useLastOpenedId, useDraftRestore, DraftRestoreBanner,
   SelectPersonaje, SelectIdioma,
 } from "@/hooks/useEditorShared";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 type Seccion = {
   id: string;
@@ -372,6 +373,7 @@ const SidebarItem = ({
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { confirm, ConfirmModal } = useConfirm();
 
   
   useEffect(() => {
@@ -437,10 +439,11 @@ const SidebarItem = ({
             </button>
             <div className="h-px bg-primary/8 mx-2 my-1" />
             <button
-              onClick={e => {
+              onClick={async e => {
                 e.stopPropagation();
                 setMenuOpen(false);
-                if (confirm(`¿Eliminar "${cancion.titulo}"?`)) onDelete(cancion.id);
+                const ok = await confirm({ message: `¿Eliminar "${cancion.titulo}"?`, danger: true });
+                if (ok) onDelete(cancion.id);
               }}
               className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-red-400/70 hover:bg-red-500/8 hover:text-red-400 transition-all flex items-center gap-2"
             >
@@ -449,6 +452,7 @@ const SidebarItem = ({
           </div>
         )}
       </div>
+      <ConfirmModal />
     </div>
   );
 };
@@ -592,6 +596,7 @@ const SeccionEditor = ({
 }) => {
   const [nombre, setNombre]     = useState(sec.nombre_seccion);
   const [expanded, setExpanded] = useState(true);
+  const { confirm, ConfirmModal } = useConfirm();
 
   return (
     <div className="border border-primary/10 rounded-xl bg-bg-main/50 hover:border-primary/20 transition-all">
@@ -607,7 +612,10 @@ const SeccionEditor = ({
         <div className="flex items-center gap-0.5 shrink-0">
           <button onClick={onMoveUp}   disabled={isFirst} className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary disabled:opacity-20 transition-all"><ChevronUp   size={12} /></button>
           <button onClick={onMoveDown} disabled={isLast}  className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary disabled:opacity-20 transition-all"><ChevronDown size={12} /></button>
-          <button onClick={() => { if (confirm(`¿Eliminar sección "${nombre}"?`)) onDelete(sec.id); }} className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"><Trash2 size={12} /></button>
+          <button onClick={async () => {
+            const ok = await confirm({ message: `¿Eliminar sección "${nombre}"?`, danger: true });
+            if (ok) onDelete(sec.id);
+          }} className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"><Trash2 size={12} /></button>
           <button onClick={() => setExpanded(e => !e)} className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary transition-all">
             {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
@@ -624,6 +632,7 @@ const SeccionEditor = ({
           )}
         </div>
       )}
+      <ConfirmModal />
     </div>
   );
 };
@@ -1030,6 +1039,7 @@ const PanelLinks = ({
   const [url,     setUrl]     = useState("");
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [saving,  setSaving]  = useState(false);
+  const { confirm, ConfirmModal } = useConfirm();
 
   const saveLinks = async (newLinks: CancionLink[]) => {
     setSaving(true);
@@ -1060,7 +1070,8 @@ const PanelLinks = ({
   };
 
   const handleDelete = async (i: number) => {
-    if (!confirm(`¿Eliminar "${links[i].titulo}"?`)) return;
+    const ok = await confirm({ message: `¿Eliminar "${links[i].titulo}"?`, danger: true });
+    if (!ok) return;
     await saveLinks(links.filter((_, idx) => idx !== i));
   };
 
@@ -1147,6 +1158,7 @@ const PanelLinks = ({
           </form>
         </div>
       )}
+      <ConfirmModal />
     </div>
   );
 };

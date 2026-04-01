@@ -9,6 +9,7 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import EstudioLayout from "@/components/layout/EstudioLayout";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -155,6 +156,7 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
 }) {
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
+  const { confirm, ConfirmModal } = useConfirm();
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
@@ -176,13 +178,15 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
   };
 
   const del = async () => {
-    if (!confirm(`¿Eliminar a "${form.nombre}"?`)) return;
+    const ok = await confirm({ message: `¿Eliminar a "${form.nombre}"?`, danger: true });
+    if (!ok) return;
     await supabase.from("personajes").delete().eq("id", form.id);
     onDeleted(form.id);
   };
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+      <ConfirmModal />
       {/* Cabecera con imagen */}
       <div className="relative h-40 bg-primary/5 border-b border-primary/10 shrink-0 overflow-hidden flex items-center justify-center">
         {form.img_url
@@ -227,6 +231,7 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
 }) {
   const [form,   setForm]   = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
+  const { confirm, ConfirmModal } = useConfirm();
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
@@ -248,13 +253,15 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
   };
 
   const del = async () => {
-    if (!confirm(`¿Eliminar a "${form.nombre}"?`)) return;
+    const ok = await confirm({ message: `¿Eliminar a "${form.nombre}"?`, danger: true });
+    if (!ok) return;
     await supabase.from("criaturas").delete().eq("id", form.id);
     onDeleted(form.id);
   };
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+      <ConfirmModal />
       <div className="relative h-40 bg-primary/5 border-b border-primary/10 shrink-0 overflow-hidden flex items-center justify-center">
         {form.imagen_url
           ? <img src={form.imagen_url} alt={form.nombre} className="h-full w-full object-contain" />
@@ -297,6 +304,7 @@ function EditorItem({ item, onSaved, onDeleted }: {
 }) {
   const [form,   setForm]   = useState<Item>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
+  const { confirm, ConfirmModal } = useConfirm();
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
@@ -318,13 +326,15 @@ function EditorItem({ item, onSaved, onDeleted }: {
   };
 
   const del = async () => {
-    if (!confirm(`¿Eliminar "${form.nombre}"?`)) return;
+    const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
+    if (!ok) return;
     await supabase.from("items").delete().eq("id", form.id);
     onDeleted(form.id);
   };
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+      <ConfirmModal />
       <div className="relative h-40 bg-primary/5 border-b border-primary/10 shrink-0 overflow-hidden flex items-center justify-center">
         {form.imagen_url
           ? <img src={form.imagen_url} alt={form.nombre} className="h-full w-full object-contain" />

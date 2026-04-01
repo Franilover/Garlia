@@ -25,6 +25,7 @@ import { BannerOffline, EmptyEstudio, ModalBase, SaveIndicator, CampoInput, Boto
 import { SoundPicker } from "@/components/forms/SoundPicker";
 import { EntidadPicker } from "@/components/forms/EntidadPicker";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 type Libro = {
   id: string;
@@ -415,6 +416,7 @@ const CapituloItem = ({
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { confirm, ConfirmModal } = useConfirm();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -477,10 +479,11 @@ const CapituloItem = ({
             </button>
             <div className="h-px bg-primary/8 mx-2 my-1" />
             <button
-              onClick={e => {
+              onClick={async e => {
                 e.stopPropagation();
                 setMenuOpen(false);
-                if (confirm(`¿Eliminar "${cap.titulo_capitulo}"?`)) onDelete(cap.id);
+                const ok = await confirm({ message: `¿Eliminar "${cap.titulo_capitulo}"?`, danger: true });
+                if (ok) onDelete(cap.id);
               }}
               className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-red-400/70 hover:bg-red-500/8 hover:text-red-400 transition-all flex items-center gap-2"
             >
@@ -489,6 +492,7 @@ const CapituloItem = ({
           </div>
         )}
       </div>
+      <ConfirmModal />
     </div>
   );
 };
@@ -948,6 +952,7 @@ const PanelEditor = ({
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
   const timer   = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { confirm, ConfirmModal } = useConfirm();
 
   const draft = useDraftRestore({
     key: `cap-draft-${capId}`,
@@ -1028,7 +1033,12 @@ const PanelEditor = ({
   };
 
   const handleDelete = async () => {
-    if (!confirm(`¿Eliminar permanentemente "${cap?.titulo_capitulo}"?`)) return;
+    const ok = await confirm({
+      message: `¿Eliminar permanentemente "${cap?.titulo_capitulo}"?`,
+      danger: true,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     try {
       await capDelete(capId);
       onCapitulosChange();
@@ -1274,6 +1284,7 @@ const PanelEditor = ({
           <span className="text-[9px] font-black uppercase text-primary/20 tracking-widest">Ctrl+S para guardar</span>
         </div>
       )}
+      <ConfirmModal />
     </div>
   );
 };
