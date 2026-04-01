@@ -230,9 +230,53 @@
 }
 
 /* =========================================
-   EFECTOS CRT — PIXEL DARK
-   CAMBIO: opacidad reducida en scanlines para que no sofoqen
+   BANDERAS / PRIDE ACCENTS
+   Efectos sutiles aplicados cuando el acento
+   es una bandera de orgullo.
    ========================================= */
+
+/* Borde arcoíris animado en el sidebar cuando accent = gay */
+:root[style*="--primary: #7e3fa8"] .card-main,
+:root[style*="--primary: #c07ae0"] .card-main {
+  border-image: linear-gradient(180deg, #e40303, #ff8c00, #ffed00, #008026, #004dff, #750787) 1;
+  border-width: 1px;
+}
+
+/* Trans: borde bicolor sutil */
+:root[style*="--primary: #5bbcd4"] .btn-brand,
+:root[style*="--primary: #7dd4e8"] .btn-brand {
+  background: linear-gradient(90deg, var(--primary) 70%, #f4a7b9 100%);
+}
+
+/* Lesbian: borde gradiente naranja-rosa */
+:root[style*="--primary: #b3306a"] .btn-brand,
+:root[style*="--primary: #e0608a"] .btn-brand {
+  background: linear-gradient(90deg, #d62900 0%, #b3306a 50%, #a50062 100%);
+}
+
+/* Aromantic: tono verde natural en botones */
+:root[style*="--primary: #3d7a44"] .btn-brand,
+:root[style*="--primary: #70b878"] .btn-brand {
+  background: linear-gradient(90deg, var(--primary) 60%, var(--accent) 100%);
+}
+
+/* MLM: gradiente azul-verde */
+:root[style*="--primary: #2d6899"] .btn-brand,
+:root[style*="--primary: #5aaad8"] .btn-brand {
+  background: linear-gradient(90deg, #3d1a8e 0%, var(--primary) 50%, #4db885 100%);
+}
+
+/* Indicador de bandera activa en sidebar — pequeño arcoíris en el logo */
+.pride-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
 [data-theme="pixel"].dark body::before {
   content: " ";
   display: block;

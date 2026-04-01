@@ -476,7 +476,8 @@ const Navbar = () => {
                       style={{
                         width: 18, height: 18,
                         borderRadius: "50%",
-                        backgroundColor: a.hex,
+                        background: (a as any).gradient || a.hex,
+                        backgroundSize: "100% 100%",
                         border: accent === a.id ? "2px solid var(--foreground)" : "2px solid transparent",
                         opacity: accent === a.id ? 1 : 0.55,
                         transform: accent === a.id ? "scale(1.2)" : "scale(1)",
