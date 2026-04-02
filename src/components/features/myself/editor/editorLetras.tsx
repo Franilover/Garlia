@@ -1192,32 +1192,29 @@ const ModalLectorLetras = ({
                 />
               </div>
 
-              {/* Modo edición */}
               <button
                 onClick={() => karaoke.setModoEdit(m => !m)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
                   karaoke.modoEdit
-                    ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                    ? "bg-accent/20 border-accent text-accent" 
                     : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30"
                 }`}
               >
                 <Clock size={11} /> {karaoke.modoEdit ? "Vinculando" : "Vincular"}
               </button>
 
-              {/* Borrar todo */}
               <button
                 onClick={karaoke.borrarTodo}
-                className="p-2 rounded-xl border border-primary/15 text-primary/30 hover:text-red-400 hover:border-red-400/30 transition-all"
+                className="p-2 rounded-xl border border-primary/15 text-primary/30 hover:text-accent hover:border-accent/30 transition-all"
                 title="Borrar todos los tiempos"
               >
                 <Trash2 size={12} />
               </button>
-            </div>
-
-            {/* Instrucción contextual */}
+            </div> 
+            
             {karaoke.modoEdit && (
               <div className="px-6 pb-2">
-                <p className="text-[9px] font-black uppercase tracking-widest text-amber-400/80 flex items-center gap-1.5">
+                <p className="text-[9px] font-black uppercase tracking-widest text-accent flex items-center gap-1.5">
                   <Dot size={12} className="animate-pulse" />
                   Haz clic en una línea para marcar su tiempo — o clic derecho para borrar
                 </p>
