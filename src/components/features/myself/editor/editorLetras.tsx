@@ -8,6 +8,7 @@ import {
   CheckCircle2, AlertCircle, PanelLeftClose, PanelLeftOpen,
   Columns2, WifiOff, MoreHorizontal, Pencil,
   Link2, FileText, ExternalLink, Copy, ZoomIn, ZoomOut,
+  Play, Pause, Clock, SkipBack, Timer, Dot,
 } from "lucide-react";
 import { cancionesQueries } from "@/lib/api/queries/wiki/canciones";
 import EstudioLayout from "@/components/layout/EstudioLayout";
@@ -929,17 +930,146 @@ const ModalEditarCancion = ({
   );
 };
 
+// ─── Tipos y hook de vinculación por tiempo (Karaoke) ────────────────────────
+
+type LineaConTiempo = {
+  seccionId: string;
+  lineaIdx:  number;
+  texto:     string;
+  tiempo:    number | null; // segundos desde inicio
+};
+
+type KaraokeTimings = Record<string, Record<number, number>>; // seccionId → lineaIdx → segundos
+
+function buildLineas(secciones: Seccion[], idioma: IdiomaKey): LineaConTiempo[] {
+  const getLetra = (s: Seccion): string =>
+    (idioma === "es" ? s.letra_es : idioma === "en" ? s.letra_en : idioma === "jp" ? s.letra_jp : s.letra_romaji) || "";
+
+  const lineas: LineaConTiempo[] = [];
+  for (const sec of secciones) {
+    const texto = getLetra(sec);
+    if (!texto.trim()) continue;
+    texto.split("\n").forEach((linea, idx) => {
+      lineas.push({ seccionId: sec.id, lineaIdx: idx, texto: linea, tiempo: null });
+    });
+  }
+  return lineas;
+}
+
+function useKaraoke(cancionId: string, idioma: IdiomaKey) {
+  const storageKey = `karaoke-${cancionId}-${idioma}`;
+  const [timings, setTimings] = useState<KaraokeTimings>(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch { return {}; }
+  });
+  const [elapsed,  setElapsed]  = useState(0);
+  const [playing,  setPlaying]  = useState(false);
+  const [modoEdit, setModoEdit] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startRef    = useRef<number>(0); // Date.now() cuando empezó
+  const baseRef     = useRef<number>(0); // elapsed en el momento de reanudar
+
+  // Recargar timings si cambia idioma o canción
+  useEffect(() => {
+    try { setTimings(JSON.parse(localStorage.getItem(storageKey) || "{}")); } catch { setTimings({}); }
+    setElapsed(0); setPlaying(false);
+  }, [storageKey]);
+
+  // Tick
+  useEffect(() => {
+    if (playing) {
+      startRef.current = Date.now();
+      intervalRef.current = setInterval(() => {
+        setElapsed(baseRef.current + (Date.now() - startRef.current) / 1000);
+      }, 50);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      baseRef.current = elapsed;
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [playing]); // eslint-disable-line
+
+  const toggle = () => setPlaying(p => !p);
+
+  const reset = () => {
+    setPlaying(false);
+    baseRef.current = 0;
+    setElapsed(0);
+  };
+
+  const seekTo = (s: number) => {
+    baseRef.current = s;
+    startRef.current = Date.now();
+    setElapsed(s);
+  };
+
+  const marcarLinea = (seccionId: string, lineaIdx: number) => {
+    setTimings(prev => {
+      const next = {
+        ...prev,
+        [seccionId]: { ...(prev[seccionId] || {}), [lineaIdx]: Math.round(elapsed * 10) / 10 },
+      };
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const borrarLinea = (seccionId: string, lineaIdx: number) => {
+    setTimings(prev => {
+      const next = { ...prev };
+      if (next[seccionId]) {
+        const sec = { ...next[seccionId] };
+        delete sec[lineaIdx];
+        next[seccionId] = sec;
+      }
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const borrarTodo = () => {
+    localStorage.removeItem(storageKey);
+    setTimings({});
+  };
+
+  const getTiempo = (seccionId: string, lineaIdx: number): number | null =>
+    timings[seccionId]?.[lineaIdx] ?? null;
+
+  // Índice de línea activa: la última con tiempo <= elapsed
+  const getLineaActiva = (lineas: LineaConTiempo[]): number => {
+    let activa = -1;
+    for (let i = 0; i < lineas.length; i++) {
+      const t = getTiempo(lineas[i].seccionId, lineas[i].lineaIdx);
+      if (t !== null && t <= elapsed) activa = i;
+    }
+    return activa;
+  };
+
+  return { timings, elapsed, playing, modoEdit, setModoEdit, toggle, reset, seekTo, marcarLinea, borrarLinea, borrarTodo, getTiempo, getLineaActiva };
+}
+
+function fmtTime(s: number): string {
+  const m = Math.floor(s / 60);
+  const ss = Math.floor(s % 60);
+  const ms = Math.floor((s % 1) * 10);
+  return `${m}:${ss.toString().padStart(2, "0")}.${ms}`;
+}
+
 // ─── Modal lector de letra (modo lectura limpia) ──────────────────────────────
 const ModalLectorLetras = ({
-  isOpen, onClose, secciones, cancionTitulo,
+  isOpen, onClose, secciones, cancionTitulo, cancionId,
 }: {
   isOpen: boolean;
   onClose: () => void;
   secciones: Seccion[];
   cancionTitulo: string;
+  cancionId: string;
 }) => {
-  const [zoom,    setZoom]    = useState(0.6);
-  const [idioma,  setIdioma]  = useState<IdiomaKey>("es");
+  const [zoom,       setZoom]       = useState(0.6);
+  const [idioma,     setIdioma]     = useState<IdiomaKey>("es");
+  const [modoKaraoke, setModoKaraoke] = useState(false);
+  const activaRef = useRef<HTMLDivElement>(null);
+
+  const karaoke = useKaraoke(cancionId, idioma);
 
   const getLetra = (sec: Seccion, lang: IdiomaKey): string =>
     (lang === "es"     ? sec.letra_es
@@ -954,6 +1084,17 @@ const ModalLectorLetras = ({
       .filter(Boolean).join("\n\n---\n\n");
     navigator.clipboard.writeText(texto);
   };
+
+  // Líneas planas para el modo karaoke
+  const lineas = useMemo(() => buildLineas(secciones, idioma), [secciones, idioma]);
+  const lineaActiva = karaoke.getLineaActiva(lineas);
+
+  // Auto-scroll a línea activa
+  useEffect(() => {
+    if (modoKaraoke && activaRef.current) {
+      activaRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [lineaActiva, modoKaraoke]);
 
   if (!isOpen) return null;
 
@@ -970,28 +1111,41 @@ const ModalLectorLetras = ({
               {cancionTitulo}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Selector de idioma */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Idioma */}
             <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
               {IDIOMAS.map(({ id, label }) => (
-                <button key={id} onClick={() => setIdioma(id)}
+                <button key={id} onClick={() => { setIdioma(id); karaoke.reset(); }}
                   className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
                     idioma === id ? "bg-primary text-bg-main shadow-md" : "text-primary/40 hover:text-primary"
                   }`}
                 >{label}</button>
               ))}
             </div>
-            {/* Zoom */}
-            <div className="flex items-center gap-1">
-              <button onClick={() => setZoom(z => Math.max(0.4, z - 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm">-</button>
-              <span className="text-[9px] font-black text-primary/50 min-w-[36px] text-center">{Math.round(zoom * 100)}%</span>
-              <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm">+</button>
-            </div>
-            <button
-              onClick={handleCopy}
+            {/* Zoom (solo lectura normal) */}
+            {!modoKaraoke && (
+              <div className="flex items-center gap-1">
+                <button onClick={() => setZoom(z => Math.max(0.4, z - 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm">-</button>
+                <span className="text-[9px] font-black text-primary/50 min-w-[36px] text-center">{Math.round(zoom * 100)}%</span>
+                <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm">+</button>
+              </div>
+            )}
+            {/* Copiar */}
+            <button onClick={handleCopy}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
             >
               <Copy size={11} /> Copiar
+            </button>
+            {/* Toggle modo karaoke */}
+            <button
+              onClick={() => { setModoKaraoke(m => !m); karaoke.reset(); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                modoKaraoke
+                  ? "bg-primary text-bg-main border-primary"
+                  : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30"
+              }`}
+            >
+              <Timer size={11} /> Karaoke
             </button>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">
               <X size={16} />
@@ -999,27 +1153,180 @@ const ModalLectorLetras = ({
           </div>
         </div>
 
+        {/* Barra de karaoke */}
+        {modoKaraoke && (
+          <div className="flex-shrink-0 border-b border-primary/10 bg-white-custom">
+            {/* Controles principales */}
+            <div className="px-6 py-3 flex items-center gap-3 flex-wrap">
+              <button
+                onClick={karaoke.toggle}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-bg-main text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all"
+              >
+                {karaoke.playing ? <Pause size={13} /> : <Play size={13} />}
+                {karaoke.playing ? "Pausar" : "Play"}
+              </button>
+              <button
+                onClick={karaoke.reset}
+                className="p-2 rounded-xl border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
+                title="Reiniciar"
+              >
+                <SkipBack size={13} />
+              </button>
+
+              {/* Tiempo */}
+              <span className="font-mono text-sm font-black text-primary tracking-widest min-w-[80px]">
+                {fmtTime(karaoke.elapsed)}
+              </span>
+
+              {/* Barra de progreso manual */}
+              <div className="flex-1 min-w-[80px]">
+                <input
+                  type="range"
+                  min={0}
+                  max={600}
+                  step={0.1}
+                  value={Math.min(karaoke.elapsed, 600)}
+                  onChange={e => karaoke.seekTo(parseFloat(e.target.value))}
+                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                  style={{ accentColor: "var(--primary)" }}
+                />
+              </div>
+
+              {/* Modo edición */}
+              <button
+                onClick={() => karaoke.setModoEdit(m => !m)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                  karaoke.modoEdit
+                    ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                    : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30"
+                }`}
+              >
+                <Clock size={11} /> {karaoke.modoEdit ? "Vinculando" : "Vincular"}
+              </button>
+
+              {/* Borrar todo */}
+              <button
+                onClick={karaoke.borrarTodo}
+                className="p-2 rounded-xl border border-primary/15 text-primary/30 hover:text-red-400 hover:border-red-400/30 transition-all"
+                title="Borrar todos los tiempos"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+
+            {/* Instrucción contextual */}
+            {karaoke.modoEdit && (
+              <div className="px-6 pb-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-amber-400/80 flex items-center gap-1.5">
+                  <Dot size={12} className="animate-pulse" />
+                  Haz clic en una línea para marcar su tiempo — o clic derecho para borrar
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Contenido */}
         <div className="flex-1 overflow-auto bg-bg-main">
-          <div
-            className="w-full h-fit p-8 md:p-20 origin-top transition-all duration-300"
-            style={{ transform: `scale(${zoom})`, width: `${100 / zoom}%`, marginLeft: `${(100 - 100 / zoom) / 2}%` }}
-          >
-            {secciones.map(sec => {
-              const texto = getLetra(sec, idioma);
-              return texto ? (
-                <div key={sec.id} className="mb-20 last:mb-0 max-w-5xl mx-auto text-center">
-                  <div className="mb-10 flex items-center justify-center gap-8 opacity-20">
-                    <div className="h-px flex-1 max-w-[100px] bg-primary" />
-                    <span className="text-sm font-black uppercase tracking-[0.5em] italic text-primary">{sec.nombre_seccion}</span>
-                    <div className="h-px flex-1 max-w-[100px] bg-primary" />
+          {modoKaraoke ? (
+            /* ── Vista Karaoke ── */
+            <div className="max-w-3xl mx-auto py-12 px-8 space-y-0">
+              {secciones.map(sec => {
+                const texto = getLetra(sec, idioma);
+                if (!texto.trim()) return null;
+                const lineasSec = texto.split("\n");
+                return (
+                  <div key={sec.id} className="mb-10">
+                    {/* Nombre de sección */}
+                    <div className="flex items-center gap-4 mb-4 opacity-30">
+                      <div className="h-px flex-1 bg-primary" />
+                      <span className="text-[9px] font-black uppercase tracking-[0.4em] text-primary">{sec.nombre_seccion}</span>
+                      <div className="h-px flex-1 bg-primary" />
+                    </div>
+
+                    {lineasSec.map((linea, lineaIdx) => {
+                      const tiempo = karaoke.getTiempo(sec.id, lineaIdx);
+                      // Índice global de esta línea
+                      const globalIdx = lineas.findIndex(l => l.seccionId === sec.id && l.lineaIdx === lineaIdx);
+                      const isActiva = globalIdx === lineaActiva;
+                      const isPasada = globalIdx < lineaActiva;
+
+                      return (
+                        <div
+                          key={lineaIdx}
+                          ref={isActiva ? activaRef : undefined}
+                          onClick={() => karaoke.modoEdit && linea.trim() && karaoke.marcarLinea(sec.id, lineaIdx)}
+                          onContextMenu={e => { e.preventDefault(); if (karaoke.modoEdit) karaoke.borrarLinea(sec.id, lineaIdx); }}
+                          className={`group relative flex items-baseline gap-3 py-1.5 px-3 rounded-xl transition-all duration-300 ${
+                            !linea.trim()
+                              ? "h-3 pointer-events-none"
+                              : karaoke.modoEdit
+                                ? "cursor-pointer hover:bg-primary/10"
+                                : ""
+                          }`}
+                        >
+                          {/* Tiempo asignado */}
+                          <span className={`shrink-0 font-mono text-[9px] font-black tracking-widest transition-all min-w-[48px] ${
+                            tiempo !== null
+                              ? isActiva
+                                ? "text-primary"
+                                : isPasada
+                                  ? "text-primary/25"
+                                  : "text-primary/40"
+                              : karaoke.modoEdit && linea.trim()
+                                ? "text-primary/20 group-hover:text-primary/50"
+                                : "text-transparent"
+                          }`}>
+                            {tiempo !== null ? fmtTime(tiempo) : karaoke.modoEdit ? "──:──" : ""}
+                          </span>
+
+                          {/* Texto de la línea */}
+                          <span className={`text-2xl md:text-3xl font-medium italic font-serif leading-relaxed transition-all duration-300 ${
+                            !linea.trim()
+                              ? ""
+                              : isActiva
+                                ? "text-primary scale-[1.03] origin-left font-bold"
+                                : isPasada
+                                  ? "text-primary/30"
+                                  : "text-primary/60"
+                          }`}>
+                            {linea || " "}
+                          </span>
+
+                          {/* Indicador de línea activa */}
+                          {isActiva && linea.trim() && (
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  <p className="text-[var(--foreground)] text-3xl md:text-5xl font-medium italic font-serif leading-[1.5] whitespace-pre-wrap">{texto}</p>
-                </div>
-              ) : null;
-            })}
-            <div className="h-40" />
-          </div>
+                );
+              })}
+              <div className="h-40" />
+            </div>
+          ) : (
+            /* ── Vista Lectura Normal ── */
+            <div
+              className="w-full h-fit p-8 md:p-20 origin-top transition-all duration-300"
+              style={{ transform: `scale(${zoom})`, width: `${100 / zoom}%`, marginLeft: `${(100 - 100 / zoom) / 2}%` }}
+            >
+              {secciones.map(sec => {
+                const texto = getLetra(sec, idioma);
+                return texto ? (
+                  <div key={sec.id} className="mb-20 last:mb-0 max-w-5xl mx-auto text-center">
+                    <div className="mb-10 flex items-center justify-center gap-8 opacity-20">
+                      <div className="h-px flex-1 max-w-[100px] bg-primary" />
+                      <span className="text-sm font-black uppercase tracking-[0.5em] italic text-primary">{sec.nombre_seccion}</span>
+                      <div className="h-px flex-1 max-w-[100px] bg-primary" />
+                    </div>
+                    <p className="text-[var(--foreground)] text-3xl md:text-5xl font-medium italic font-serif leading-[1.5] whitespace-pre-wrap">{texto}</p>
+                  </div>
+                ) : null;
+              })}
+              <div className="h-40" />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1249,6 +1556,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           onClose={() => setShowLector(false)}
           secciones={secciones}
           cancionTitulo={cancion.titulo}
+          cancionId={cancionId}
         />
       )}
 
