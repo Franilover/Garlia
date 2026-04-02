@@ -157,9 +157,9 @@ export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string }[] =
 ];
 
 const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
-  { id: "default",  label: "Minimalista", emoji: "🪻" },
-  { id: "pixel",    label: "Retro",       emoji: "👾" },
-  { id: "scribble", label: "Antiguo",     emoji: "✏️" },
+  { id: "default",  label: "Minimalista", emoji: "" },
+  { id: "pixel",    label: "Retro",       emoji: "" },
+  { id: "scribble", label: "Antiguo",     emoji: "" },
 ];
 
 // ─── Aplicar paleta al DOM ────────────────────────────────────────────────────
