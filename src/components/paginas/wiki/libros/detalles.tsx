@@ -43,6 +43,7 @@ export default function LibroDetalle() {
       supabase.from("libros").select("*").eq("id", id).single(),
       supabase.from("capitulos")
         .select("*").eq("libro_id", id)
+        .eq("visibilidad", "publico")
         .lte("fecha_publicacion", hoy)
         .not("titulo_capitulo", "like", "[Ruta]%")
         .order("orden", { ascending: true }),

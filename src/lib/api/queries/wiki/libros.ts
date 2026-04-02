@@ -38,8 +38,15 @@ export const librosQueries = {
 
     if (capError) throw capError;
     if (!capitulo) return { data: null, error: "Capítulo no encontrado" };
-    if (!isAdmin && capitulo.fecha_publicacion > hoy) {
-      return { data: null, error: "Este capítulo aún no ha sido revelado." };
+
+    // Bloquear si no es admin y el capítulo está oculto o su fecha es futura
+    if (!isAdmin) {
+      if (capitulo.visibilidad === "oculto") {
+        return { data: null, error: "Este capítulo aún no ha sido revelado." };
+      }
+      if (capitulo.fecha_publicacion > hoy) {
+        return { data: null, error: "Este capítulo aún no ha sido revelado." };
+      }
     }
 
     let navQuery = supabase
@@ -48,7 +55,10 @@ export const librosQueries = {
       .eq("libro_id", libroId);
 
     if (!isAdmin) {
-      navQuery = navQuery.lte("fecha_publicacion", hoy);
+      // Solo mostrar en la navegación capítulos públicos ya publicados
+      navQuery = navQuery
+        .eq("visibilidad", "publico")
+        .lte("fecha_publicacion", hoy);
     }
 
     const { data: navegacion } = await navQuery.order("orden", { ascending: true });
