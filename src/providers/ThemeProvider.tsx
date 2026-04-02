@@ -4,17 +4,14 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 export type ThemeName   = "default" | "pixel" | "scribble";
 export type DarkMode    = "light" | "dark";
 export type AccentColor  = "purple" | "yellow" | "blue" | "red" | "green";
-export type PrideBorder  = "none" | "trans" | "lesbian" | "gay" | "aromantic" | "mlm";
 
 interface ThemeCtx {
   theme:      ThemeName;
   dark:       DarkMode;
   accent:     AccentColor;
-  pride:      PrideBorder;
   setTheme:   (t: ThemeName)    => void;
   toggleDark: ()                => void;
   setAccent:  (a: AccentColor)  => void;
-  setPride:   (p: PrideBorder)  => void;
 }
 
 const ThemeContext = createContext<ThemeCtx | null>(null);
@@ -150,16 +147,6 @@ const ACCENT_PALETTES: Record<AccentColor, {
   // ── fin paletas ──
 };
 
-// ─── Gradientes de borde por bandera ─────────────────────────────────────────
-export const PRIDE_GRADIENTS: Record<PrideBorder, string | null> = {
-  none:      null,
-  trans:     "linear-gradient(180deg, #5bcefa 0%, #5bcefa 20%, #f5a9b8 20%, #f5a9b8 40%, #ffffff 40%, #ffffff 60%, #f5a9b8 60%, #f5a9b8 80%, #5bcefa 80%)",
-  lesbian:   "linear-gradient(180deg, #d62900 0%, #d62900 20%, #ff9b55 20%, #ff9b55 40%, #ffffff 40%, #ffffff 60%, #d461a6 60%, #d461a6 80%, #a50062 80%)",
-  gay:       "linear-gradient(180deg, #e40303 0%, #e40303 16.6%, #ff8c00 16.6%, #ff8c00 33.2%, #ffed00 33.2%, #ffed00 50%, #008026 50%, #008026 66.6%, #004dff 66.6%, #004dff 83.2%, #750787 83.2%)",
-  aromantic: "linear-gradient(180deg, #3da542 0%, #3da542 20%, #a8d379 20%, #a8d379 40%, #ffffff 40%, #ffffff 60%, #a9a9a9 60%, #a9a9a9 80%, #000000 80%)",
-  mlm:       "linear-gradient(180deg, #078d70 0%, #078d70 20%, #98e8c1 20%, #98e8c1 40%, #ffffff 40%, #ffffff 60%, #7bade2 60%, #7bade2 80%, #3d1a8e 80%)",
-};
-
 // ─── Metadatos de UI para cada acento ────────────────────────────────────────
 export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string }[] = [
   { id: "purple", label: "Lila",   hex: "#9d70b5" },
@@ -167,16 +154,6 @@ export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string }[] =
   { id: "blue",   label: "Azul",   hex: "#5ba3e0" },
   { id: "red",    label: "Rojo",   hex: "#d96060" },
   { id: "green",  label: "Verde",  hex: "#5ab87a" },
-];
-
-// ─── Metadatos de UI para cada borde pride ───────────────────────────────────
-export const PRIDE_OPTIONS: { id: PrideBorder; label: string; gradient: string | null }[] = [
-  { id: "none",      label: "Sin borde",  gradient: null },
-  { id: "trans",     label: "Trans",      gradient: PRIDE_GRADIENTS.trans     },
-  { id: "lesbian",   label: "Lésbica",    gradient: PRIDE_GRADIENTS.lesbian   },
-  { id: "gay",       label: "Queer",      gradient: PRIDE_GRADIENTS.gay       },
-  { id: "aromantic", label: "Aromantic",  gradient: PRIDE_GRADIENTS.aromantic },
-  { id: "mlm",       label: "Gay Masc",   gradient: PRIDE_GRADIENTS.mlm       },
 ];
 
 const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
@@ -194,17 +171,11 @@ function applyAccentPalette(accent: AccentColor, dark: DarkMode) {
   });
 }
 
-// ─── Aplicar borde pride al DOM vía data-pride ────────────────────────────────
-function applyPrideBorder(pride: PrideBorder) {
-  document.documentElement.setAttribute("data-pride", pride);
-}
-
 // ─── Provider ────────────────────────────────────────────────────────────────
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme,       setThemeState]  = useState<ThemeName>("scribble");
-  const [dark,        setDarkState]   = useState<DarkMode>("dark");
-  const [accent,      setAccentState] = useState<AccentColor>("purple");
-  const [pride,       setPrideState]  = useState<PrideBorder>("none");
+  const [theme,  setThemeState]  = useState<ThemeName>("scribble");
+  const [dark,   setDarkState]   = useState<DarkMode>("dark");
+  const [accent, setAccentState] = useState<AccentColor>("purple");
 
   // Cargar preferencias guardadas
   useEffect(() => {
@@ -212,11 +183,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const savedTheme  = localStorage.getItem("app-theme")  as ThemeName   | null;
       const savedDark   = localStorage.getItem("theme")       as DarkMode    | null;
       const savedAccent = localStorage.getItem("app-accent")  as AccentColor | null;
-      const savedPride  = localStorage.getItem("app-pride")   as PrideBorder | null;
       if (savedTheme)  setThemeState(savedTheme);
       if (savedDark)   setDarkState(savedDark);
       if (savedAccent) setAccentState(savedAccent);
-      if (savedPride)  setPrideState(savedPride);
     } catch {}
   }, []);
 
@@ -245,19 +214,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.setAttribute("data-accent", accent);
   }, [accent, dark]);
 
-  // Aplicar borde pride
-  useEffect(() => {
-    applyPrideBorder(pride);
-    localStorage.setItem("app-pride", pride);
-  }, [pride]);
-
   const setTheme   = (t: ThemeName)   => setThemeState(t);
   const setAccent  = (a: AccentColor) => setAccentState(a);
-  const setPride   = (p: PrideBorder) => setPrideState(p);
   const toggleDark = () => setDarkState(d => d === "dark" ? "light" : "dark");
 
   return (
-    <ThemeContext.Provider value={{ theme, dark, accent, pride, setTheme, toggleDark, setAccent, setPride }}>
+    <ThemeContext.Provider value={{ theme, dark, accent, setTheme, toggleDark, setAccent }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -272,7 +234,7 @@ export function useTheme() {
 
 // ─── ThemeSelector — panel del sidebar ───────────────────────────────────────
 export function ThemeSelector() {
-  const { theme, setTheme, toggleDark, dark, accent, setAccent, pride, setPride } = useTheme();
+  const { theme, setTheme, toggleDark, dark, accent, setAccent } = useTheme();
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -312,40 +274,6 @@ export function ThemeSelector() {
               }`}
               style={{ backgroundColor: a.hex }}
             />
-          ))}
-        </div>
-      </div>
-
-      {/* Selector de borde pride */}
-      <div className="flex flex-col gap-2">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">🏳️‍🌈 Bordes</p>
-        <div className="flex gap-2 flex-wrap">
-          {PRIDE_OPTIONS.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setPride(p.id)}
-              title={p.label}
-              className={`w-8 h-8 rounded-full border-2 transition-all flex items-center justify-center ${
-                pride === p.id
-                  ? "scale-110 border-white shadow-lg"
-                  : "border-transparent hover:scale-105 opacity-70 hover:opacity-100"
-              }`}
-              style={
-                p.id === "none"
-                  ? {
-                      background: "transparent",
-                      border: `2px solid ${pride === "none" ? "white" : "color-mix(in srgb, var(--primary) 30%, transparent)"}`,
-                    }
-                  : {
-                      background: p.gradient || undefined,
-                      backgroundSize: "100% 100%",
-                    }
-              }
-            >
-              {p.id === "none" && (
-                <span style={{ fontSize: "10px", color: "var(--primary)", fontWeight: 900 }}>✕</span>
-              )}
-            </button>
           ))}
         </div>
       </div>

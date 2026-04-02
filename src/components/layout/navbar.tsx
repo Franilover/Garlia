@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/providers/AuthProvider";
 import { supabase } from "@/lib/api/client/supabase";
-import { useTheme, ThemeSelector, ACCENT_OPTIONS, PRIDE_OPTIONS } from "@/providers/ThemeProvider";
+import { useTheme, ThemeSelector, ACCENT_OPTIONS } from "@/providers/ThemeProvider";
 import {
   LogOut, CircleUser, Flower2,
   Utensils, PenTool, Moon, Sun, Star, Palette, Shirt, Sword,
@@ -315,7 +315,7 @@ const Navbar = () => {
   const [themeMenuOpen,   setThemeMenuOpen]   = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mobileOpenMenu,  setMobileOpenMenu]  = useState<string | null>(null);
-  const { dark, toggleDark, accent, setAccent, pride, setPride } = useTheme();
+  const { dark, toggleDark, accent, setAccent } = useTheme();
   const isDark = dark === "dark";
   const toggle = toggleDark;
 
@@ -459,55 +459,24 @@ const Navbar = () => {
                 <motion.div
                   initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.18 }}
-                  className="flex flex-col gap-1.5 px-2 py-2 overflow-hidden"
+                  className="flex gap-1.5 px-2 py-2 overflow-hidden flex-wrap"
                 >
-                  {/* Pastillas de color */}
-                  <div className="flex gap-1.5 flex-wrap">
-                    {ACCENT_OPTIONS.map(a => (
-                      <button
-                        key={a.id}
-                        title={a.label}
-                        onClick={() => setAccent(a.id)}
-                        className="transition-all"
-                        style={{
-                          width: 18, height: 18,
-                          borderRadius: "50%",
-                          backgroundColor: a.hex,
-                          border: accent === a.id ? "2px solid var(--foreground)" : "2px solid transparent",
-                          opacity: accent === a.id ? 1 : 0.55,
-                          transform: accent === a.id ? "scale(1.2)" : "scale(1)",
-                        }}
-                      />
-                    ))}
-                  </div>
-                  {/* Pastillas de borde pride */}
-                  <div className="flex gap-1.5 flex-wrap">
-                    {PRIDE_OPTIONS.map(p => (
-                      <button
-                        key={p.id}
-                        title={p.label}
-                        onClick={() => setPride(p.id)}
-                        className="transition-all flex items-center justify-center"
-                        style={{
-                          width: 18, height: 18,
-                          borderRadius: "50%",
-                          background: p.gradient || "transparent",
-                          backgroundSize: "100% 100%",
-                          border: pride === p.id
-                            ? "2px solid var(--foreground)"
-                            : p.id === "none"
-                              ? "2px solid color-mix(in srgb, var(--primary) 30%, transparent)"
-                              : "2px solid transparent",
-                          opacity: pride === p.id ? 1 : 0.55,
-                          transform: pride === p.id ? "scale(1.2)" : "scale(1)",
-                        }}
-                      >
-                        {p.id === "none" && (
-                          <span style={{ fontSize: "8px", color: "var(--primary)", fontWeight: 900, lineHeight: 1 }}>✕</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                  {ACCENT_OPTIONS.map(a => (
+                    <button
+                      key={a.id}
+                      title={a.label}
+                      onClick={() => setAccent(a.id)}
+                      className="transition-all"
+                      style={{
+                        width: 18, height: 18,
+                        borderRadius: "50%",
+                        backgroundColor: a.hex,
+                        border: accent === a.id ? "2px solid var(--foreground)" : "2px solid transparent",
+                        opacity: accent === a.id ? 1 : 0.55,
+                        transform: accent === a.id ? "scale(1.2)" : "scale(1)",
+                      }}
+                    />
+                  ))}
                 </motion.div>
               )}
             </AnimatePresence>
