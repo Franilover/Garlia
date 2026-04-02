@@ -230,52 +230,80 @@
 }
 
 /* =========================================
-   BANDERAS / PRIDE ACCENTS
-   Efectos sutiles aplicados cuando el acento
-   es una bandera de orgullo.
+   BORDES PRIDE — via [data-pride] en <html>
+   Solo afectan bordes. Nunca colores del tema.
+   Compatibles con cualquier data-theme, .dark
+   y data-accent. Técnica: pseudo-elemento con
+   mask para bordes gradiente + border-radius.
    ========================================= */
 
-/* Borde arcoíris animado en el sidebar cuando accent = gay */
-:root[style*="--primary: #7e3fa8"] .card-main,
-:root[style*="--primary: #c07ae0"] .card-main {
-  border-image: linear-gradient(180deg, #e40303, #ff8c00, #ffed00, #008026, #004dff, #750787) 1;
-  border-width: 1px;
+[data-pride="trans"]     { --pride-gradient: linear-gradient(90deg, #5bcefa, #f5a9b8, #ffffff, #f5a9b8, #5bcefa); }
+[data-pride="lesbian"]   { --pride-gradient: linear-gradient(90deg, #d62900, #ff9b55, #ffffff, #d461a6, #a50062); }
+[data-pride="gay"]       { --pride-gradient: linear-gradient(90deg, #e40303, #ff8c00, #ffed00, #008026, #004dff, #750787); }
+[data-pride="aromantic"] { --pride-gradient: linear-gradient(90deg, #3da542, #a8d379, #ffffff, #a9a9a9, #000000); }
+[data-pride="mlm"]       { --pride-gradient: linear-gradient(90deg, #078d70, #98e8c1, #ffffff, #7bade2, #3d1a8e); }
+[data-pride="none"]      { --pride-gradient: none; }
+
+/* .card-main */
+:not([data-pride="none"]) .card-main { position: relative; }
+:not([data-pride="none"]) .card-main::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: var(--pride-gradient);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
 }
 
-/* Trans: borde bicolor sutil */
-:root[style*="--primary: #5bbcd4"] .btn-brand,
-:root[style*="--primary: #7dd4e8"] .btn-brand {
-  background: linear-gradient(90deg, var(--primary) 70%, #f4a7b9 100%);
+/* .btn-brand */
+:not([data-pride="none"]) .btn-brand { position: relative; }
+:not([data-pride="none"]) .btn-brand::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: var(--pride-gradient);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
 }
 
-/* Lesbian: borde gradiente naranja-rosa */
-:root[style*="--primary: #b3306a"] .btn-brand,
-:root[style*="--primary: #e0608a"] .btn-brand {
-  background: linear-gradient(90deg, #d62900 0%, #b3306a 50%, #a50062 100%);
+/* .input-brand — técnica con background-clip */
+:not([data-pride="none"]) .input-brand {
+  border: 1.5px solid transparent !important;
+  background-image: var(--pride-gradient), linear-gradient(var(--input-bg, #fff), var(--input-bg, #fff));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
 }
 
-/* Aromantic: tono verde natural en botones */
-:root[style*="--primary: #3d7a44"] .btn-brand,
-:root[style*="--primary: #70b878"] .btn-brand {
-  background: linear-gradient(90deg, var(--primary) 60%, var(--accent) 100%);
+/* .char-card-base */
+:not([data-pride="none"]) .char-card-base { position: relative; }
+:not([data-pride="none"]) .char-card-base::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 2px;
+  background: var(--pride-gradient);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
 }
 
-/* MLM: gradiente azul-verde */
-:root[style*="--primary: #2d6899"] .btn-brand,
-:root[style*="--primary: #5aaad8"] .btn-brand {
-  background: linear-gradient(90deg, #3d1a8e 0%, var(--primary) 50%, #4db885 100%);
-}
-
-/* Indicador de bandera activa en sidebar — pequeño arcoíris en el logo */
-.pride-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  margin-left: 4px;
-  vertical-align: middle;
-}
+/* Limpiar cuando pride = none */
+[data-pride="none"] .card-main::before,
+[data-pride="none"] .btn-brand::before,
+[data-pride="none"] .char-card-base::before { display: none; }
 
 [data-theme="pixel"].dark body::before {
   content: " ";
