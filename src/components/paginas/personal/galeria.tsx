@@ -53,12 +53,18 @@ interface GaleriaItem {
 
 type Draft = Omit<GaleriaItem, "id" | "titulo" | "descripcion" | "orden" | "creado_en" | "url_imagen">;
 
-const TEXT_SIZES: Record<number, { label: string; titleCls: string; descCls: string }> = {
-  1: { label: "XS", titleCls: "text-lg",  descCls: "text-xs"   },
-  2: { label: "S",  titleCls: "text-2xl", descCls: "text-sm"   },
-  3: { label: "M",  titleCls: "text-4xl", descCls: "text-base" },
-  4: { label: "L",  titleCls: "text-6xl", descCls: "text-lg"   },
-  5: { label: "XL", titleCls: "text-8xl", descCls: "text-xl"   },
+const TEXT_SIZES: Record<number, {
+  label:    string;
+  titleCls: string;   // para texto FUERA del canvas (bottom/left/right)
+  descCls:  string;
+  titleCqw: string;   // para texto superpuesto (overlay) — proporcional al canvas
+  descCqw:  string;
+}> = {
+  1: { label: "XS", titleCls: "text-lg",  descCls: "text-xs",   titleCqw: "2.5cqw", descCqw: "1.4cqw" },
+  2: { label: "S",  titleCls: "text-2xl", descCls: "text-sm",   titleCqw: "3.8cqw", descCqw: "2cqw"   },
+  3: { label: "M",  titleCls: "text-4xl", descCls: "text-base", titleCqw: "5.5cqw", descCqw: "2.8cqw" },
+  4: { label: "L",  titleCls: "text-6xl", descCls: "text-lg",   titleCqw: "8cqw",   descCqw: "4cqw"   },
+  5: { label: "XL", titleCls: "text-8xl", descCls: "text-xl",   titleCqw: "12cqw",  descCqw: "5.5cqw" },
 };
 
 function draftFromItem(item: GaleriaItem): Draft {
@@ -113,7 +119,12 @@ function FixedCanvas({
   return (
     <div
       className={`relative w-full overflow-hidden ${className}`}
-      style={{ paddingBottom: `${CANVAS_RATIO * 100}%`, backgroundColor: bg, ...style }}
+      style={{
+        paddingBottom: `${CANVAS_RATIO * 100}%`,
+        backgroundColor: bg,
+        containerType: "inline-size",
+        ...style,
+      }}
     >
       <div className="absolute inset-0">
         {children}
@@ -271,14 +282,24 @@ function CanvasEditorModal({
                 }}
               >
                 {titulo && (
-                  <h2 className={`font-black italic uppercase leading-tight ${sz.titleCls}`}
-                    style={{ color: draft.text_color, letterSpacing: "-0.025em" }}>
+                  <h2 className="font-black italic uppercase leading-tight"
+                    style={{
+                      color: draft.text_color,
+                      letterSpacing: "-0.025em",
+                      fontSize: sz.titleCqw,
+                      lineHeight: 1.1,
+                    }}>
                     {titulo}
                   </h2>
                 )}
                 {descripcion && (
-                  <p className={`font-light leading-relaxed mt-1 ${sz.descCls}`}
-                    style={{ color: draft.text_color, opacity: 0.85 }}>
+                  <p className="font-light leading-relaxed"
+                    style={{
+                      color: draft.text_color,
+                      opacity: 0.85,
+                      fontSize: sz.descCqw,
+                      marginTop: "0.5em",
+                    }}>
                     {descripcion}
                   </p>
                 )}
@@ -493,7 +514,12 @@ const FixedCanvasInner = React.forwardRef<HTMLDivElement, {
   <div
     ref={ref}
     className={`relative w-full overflow-hidden ${className}`}
-    style={{ paddingBottom: `${CANVAS_RATIO * 100}%`, backgroundColor: bg, ...style }}
+    style={{
+      paddingBottom: `${CANVAS_RATIO * 100}%`,
+      backgroundColor: bg,
+      containerType: "inline-size",
+      ...style,
+    }}
   >
     <div className="absolute inset-0">{children}</div>
   </div>
@@ -647,7 +673,7 @@ function GaleriaSection({
             </div>
           </div>
         ) : pos === "overlay" ? (
-          // ── Layout overlay ──
+          // ── Layout overlay — texto con cqw para ser proporcional al canvas ──
           <FixedCanvas bg={item.bg_color}>
             <img src={item.url_imagen} alt={item.titulo || "Obra"} style={imgStyle} draggable={false} />
             {(item.titulo || item.descripcion) && (
@@ -660,14 +686,28 @@ function GaleriaSection({
                   borderRadius: 6,
                 }}>
                 {item.titulo && (
-                  <h2 className={`font-black italic uppercase leading-tight ${sz.titleCls}`}
-                    style={{ color: item.text_color ?? "white", letterSpacing: "-0.025em" }}>
+                  <h2
+                    className="font-black italic uppercase leading-tight"
+                    style={{
+                      color: item.text_color ?? "white",
+                      letterSpacing: "-0.025em",
+                      fontSize: sz.titleCqw,
+                      lineHeight: 1.1,
+                    }}
+                  >
                     {item.titulo}
                   </h2>
                 )}
                 {item.descripcion && (
-                  <p className={`font-light leading-relaxed mt-1 ${sz.descCls}`}
-                    style={{ color: item.text_color ?? "white", opacity: 0.85 }}>
+                  <p
+                    className="font-light leading-relaxed"
+                    style={{
+                      color: item.text_color ?? "white",
+                      opacity: 0.85,
+                      fontSize: sz.descCqw,
+                      marginTop: "0.5em",
+                    }}
+                  >
                     {item.descripcion}
                   </p>
                 )}
