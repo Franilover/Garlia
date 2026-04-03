@@ -412,25 +412,6 @@ const Navbar = () => {
         <div className="flex flex-col gap-1 px-2 pb-4 shrink-0">
           <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "4px 4px 8px" }} />
 
-          {/* Dark mode */}
-          <button onClick={toggle}
-            className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
-            style={{ ...navItemBase, color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)"; }}
-          >
-            <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
-            </span>
-            <AnimatePresence>
-              {sidebarExpanded && (
-                <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
-                  className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
-                  {isDark ? "Modo claro" : "Modo oscuro"}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </button>
-
           {/* Tema */}
           <div className="relative">
             <button
@@ -449,40 +430,43 @@ const Navbar = () => {
               </AnimatePresence>
             </button>
 
-            {/* Píldoras de color — visibles cuando el sidebar está expandido */}
-            <AnimatePresence>
-              {sidebarExpanded && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.18 }}
-                  className="flex gap-1.5 px-2 py-2 overflow-hidden flex-wrap"
-                >
-                  {ACCENT_OPTIONS.map(a => (
-                    <button
-                      key={a.id}
-                      title={a.label}
-                      onClick={() => setAccent(a.id)}
-                      className="transition-all"
-                      style={{
-                        width: 18, height: 18,
-                        borderRadius: "50%",
-                        backgroundColor: a.hex,
-                        border: accent === a.id ? "2px solid var(--foreground)" : "2px solid transparent",
-                        opacity: accent === a.id ? 1 : 0.55,
-                        transform: accent === a.id ? "scale(1.2)" : "scale(1)",
-                      }}
-                    />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             <AnimatePresence>
               {themeMenuOpen && (
                 <motion.div initial={{ opacity: 0, x: -8, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -8, scale: 0.97 }} transition={{ duration: 0.15 }}
                   onClick={(e) => e.stopPropagation()}
                   className="absolute left-full ml-2 w-56 z-[1001] overflow-hidden"
                   style={{ ...submenuSurface, bottom: "0", top: "auto" }}>
+                  {/* Toggle dark/light */}
+                  <button
+                    onClick={toggle}
+                    className="flex items-center gap-2.5 w-full px-4 py-3 transition-all"
+                    style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 60%, transparent)"; }}
+                  >
+                    {isDark ? <Sun size={13} /> : <Moon size={13} />}
+                    <span className="text-[10px] font-black uppercase tracking-widest">{isDark ? "Modo claro" : "Modo oscuro"}</span>
+                  </button>
+                  {/* Píldoras de color */}
+                  <div className="flex gap-1.5 px-4 py-3 flex-wrap" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                    <p className="w-full text-[8px] font-black uppercase tracking-widest pb-1.5" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Color</p>
+                    {ACCENT_OPTIONS.map(a => (
+                      <button
+                        key={a.id}
+                        title={a.label}
+                        onClick={() => setAccent(a.id)}
+                        className="transition-all"
+                        style={{
+                          width: 18, height: 18,
+                          borderRadius: "50%",
+                          backgroundColor: a.hex,
+                          border: accent === a.id ? "2px solid var(--foreground)" : "2px solid transparent",
+                          opacity: accent === a.id ? 1 : 0.55,
+                          transform: accent === a.id ? "scale(1.2)" : "scale(1)",
+                        }}
+                      />
+                    ))}
+                  </div>
                   <ThemeSelector />
                 </motion.div>
               )}
