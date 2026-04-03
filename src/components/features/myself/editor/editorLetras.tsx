@@ -31,6 +31,11 @@ type Seccion = {
   letra_jp?: string;
   letra_romaji?: string;
   orden: number;
+  // Timings guardados en Supabase por idioma
+  timings_es?:     Record<string, number> | null;
+  timings_en?:     Record<string, number> | null;
+  timings_jp?:     Record<string, number> | null;
+  timings_romaji?: Record<string, number> | null;
 };
 
 type CancionLink = { titulo: string; url: string };
@@ -47,6 +52,7 @@ type Cancion = {
   portada_url?: string;
   links?: CancionLink[];
   secciones?: Seccion[];
+  duracion_segundos?: number | null;
 };
 
 type IdiomaKey = "es" | "en" | "jp" | "romaji";
@@ -839,16 +845,35 @@ const ModalEditarCancion = ({
   const [idioma,     setIdioma]     = useState(cancion.idioma     || "");
   const [estado,     setEstado]     = useState<Cancion["estado"]>(cancion.estado);
   const [visible,    setVisible]    = useState(cancion.visible);
+  const [duracionStr, setDuracionStr] = useState(() => {
+    const d = cancion.duracion_segundos;
+    if (!d) return "";
+    const m = Math.floor(d / 60);
+    const s = d % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  });
   const [saving,     setSaving]     = useState(false);
   const [error,      setError]      = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Parsear mm:ss → segundos
+  const parseDuracion = (str: string): number | null => {
+    if (!str.trim()) return null;
+    const parts = str.split(":");
+    if (parts.length === 2) {
+      const m = parseInt(parts[0]);
+      const s = parseInt(parts[1]);
+      if (!isNaN(m) && !isNaN(s)) return m * 60 + s;
+    }
+    const plain = parseInt(str);
+    return isNaN(plain) ? null : plain;
+  };
+
+  const handleSave = async () => {
     if (!titulo.trim()) return;
     setSaving(true);
     setError("");
     try {
-      const updates = {
+      const updates: any = {
         titulo: titulo.trim().toUpperCase(),
         personaje:  personaje.trim()  || null,
         cantante:   cantante.trim()   || null,
@@ -856,6 +881,7 @@ const ModalEditarCancion = ({
         idioma:     idioma.trim()     || null,
         estado,
         visible,
+        duracion_segundos: parseDuracion(duracionStr),
       };
       const { data, error: err } = await supabase
         .from("canciones")
@@ -874,58 +900,86 @@ const ModalEditarCancion = ({
 
   return (
     <ModalBase onClose={onClose}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
-            <Pencil size={12} /> Editar Canción
-          </h3>
-          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+      <div className="flex items-center justify-between">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+          <Pencil size={12} /> Editar Canción
+        </h3>
+        <button type="button" onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+      </div>
+
+      <div className="space-y-4 mt-4">
+        <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
+        <SelectPersonaje value={personaje} onChange={setPersonaje} />
+        <div className="grid grid-cols-2 gap-3">
+          <CampoInput label="Cantante"   value={cantante}   onChange={setCantante}   placeholder="Cantante…" />
+          <CampoInput label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" />
+        </div>
+        <SelectIdioma value={idioma} onChange={setIdioma} />
+
+        {/* Duración para karaoke */}
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Duración (mm:ss)</label>
+          <input
+            type="text"
+            value={duracionStr}
+            onChange={e => setDuracionStr(e.target.value)}
+            placeholder="3:42"
+            className="w-full bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-[11px] font-bold text-primary outline-none focus:border-primary/30 transition-colors placeholder:text-primary/20"
+          />
+          <p className="text-[8px] text-primary/25 font-bold uppercase tracking-widest">
+            Usado para el slider del karaoke · formato min:seg
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
-          <SelectPersonaje value={personaje} onChange={setPersonaje} />
-          <div className="grid grid-cols-2 gap-3">
-            <CampoInput label="Cantante"   value={cantante}   onChange={setCantante}   placeholder="Cantante…" />
-            <CampoInput label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" />
+        {/* Estado */}
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Estado</label>
+          <div className="flex gap-2">
+            {ESTADOS.map(e => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => setEstado(e)}
+                className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                  estado === e ? "bg-primary text-bg-main border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary"
+                }`}
+              >
+                {e === "EN PROCESO" ? "WIP" : e}
+              </button>
+            ))}
           </div>
-          <SelectIdioma value={idioma} onChange={setIdioma} />
+        </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Estado</label>
-            <div className="flex gap-2">
-              {ESTADOS.map(e => (
-                <button
-                  key={e} type="button"
-                  onClick={() => setEstado(e)}
-                  className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
-                    estado === e ? "bg-primary text-bg-main border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30"
-                  }`}
-                >
-                  {e === "EN PROCESO" ? "WIP" : e}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Visibilidad */}
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Visibilidad</label>
+          <button
+            type="button"
+            onClick={() => setVisible(v => !v)}
+            className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border flex items-center justify-center gap-2 transition-all ${
+              visible
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary"
+            }`}
+          >
+            {visible ? <><Eye size={12} /> Visible para lectores</> : <><EyeOff size={12} /> Oculta</>}
+          </button>
+        </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Visibilidad</label>
-            <button
-              type="button"
-              onClick={() => setVisible(v => !v)}
-              className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border flex items-center justify-center gap-2 transition-all ${
-                visible
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                  : "border-primary/15 text-primary/40 hover:border-primary/30"
-              }`}
-            >
-              {visible ? <><Eye size={12} /> Visible para lectores</> : <><EyeOff size={12} /> Oculta</>}
-            </button>
-          </div>
+        {error && <p className="text-[9px] font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
 
-          {error && <p className="text-[9px] font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
-
-          <BotonSubmit loading={saving} disabled={!titulo.trim()} labelLoading={<><Loader2 size={13} className="animate-spin" />Guardando…</>} labelNormal={<><Check size={13} />Guardar Cambios</>} />
-        </form>
+        <button
+          type="button"
+          disabled={saving || !titulo.trim()}
+          onClick={handleSave}
+          className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+        >
+          {saving
+            ? <><Loader2 size={13} className="animate-spin" />Guardando…</>
+            : <><Check size={13} />Guardar Cambios</>
+          }
+        </button>
+      </div>
     </ModalBase>
   );
 };
@@ -956,23 +1010,49 @@ function buildLineas(secciones: Seccion[], idioma: IdiomaKey): LineaConTiempo[] 
   return lineas;
 }
 
-function useKaraoke(cancionId: string, idioma: IdiomaKey) {
+function useKaraoke(cancionId: string, idioma: IdiomaKey, secciones: Seccion[]) {
   const storageKey = `karaoke-${cancionId}-${idioma}`;
+
+  // Inicializar desde secciones de Supabase (campo timings_<idioma>)
+  const timingsFromSupabase = (): KaraokeTimings => {
+    const col = `timings_${idioma}` as keyof Seccion;
+    const result: KaraokeTimings = {};
+    for (const sec of secciones) {
+      const t = sec[col] as Record<string, number> | null | undefined;
+      if (t && Object.keys(t).length > 0) {
+        // Supabase guarda keys como strings, convertir a number
+        result[sec.id] = Object.fromEntries(
+          Object.entries(t).map(([k, v]) => [Number(k), v])
+        );
+      }
+    }
+    return result;
+  };
+
   const [timings, setTimings] = useState<KaraokeTimings>(() => {
+    // Priorizar Supabase, fallback a localStorage
+    const fromSupa = timingsFromSupabase();
+    if (Object.keys(fromSupa).length > 0) return fromSupa;
     try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch { return {}; }
   });
   const [elapsed,  setElapsed]  = useState(0);
   const [playing,  setPlaying]  = useState(false);
   const [modoEdit, setModoEdit] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startRef    = useRef<number>(0); // Date.now() cuando empezó
-  const baseRef     = useRef<number>(0); // elapsed en el momento de reanudar
+  const startRef    = useRef<number>(0);
+  const baseRef     = useRef<number>(0);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Recargar timings si cambia idioma o canción
+  // Recargar cuando cambia idioma o canción
   useEffect(() => {
-    try { setTimings(JSON.parse(localStorage.getItem(storageKey) || "{}")); } catch { setTimings({}); }
+    const fromSupa = timingsFromSupabase();
+    if (Object.keys(fromSupa).length > 0) {
+      setTimings(fromSupa);
+    } else {
+      try { setTimings(JSON.parse(localStorage.getItem(storageKey) || "{}")); } catch { setTimings({}); }
+    }
     setElapsed(0); setPlaying(false);
-  }, [storageKey]);
+  }, [storageKey]); // eslint-disable-line
 
   // Tick
   useEffect(() => {
@@ -988,27 +1068,29 @@ function useKaraoke(cancionId: string, idioma: IdiomaKey) {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [playing]); // eslint-disable-line
 
+  // Guardar timings de una sección en Supabase (debounced 1s)
+  const saveSeccionTimings = (seccionId: string, secTimings: Record<number, number>) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      const col = `timings_${idioma}`;
+      // Convertir keys number a string para JSONB
+      const data = Object.fromEntries(
+        Object.entries(secTimings).map(([k, v]) => [String(k), v])
+      );
+      await supabase.from("secciones_cancion").update({ [col]: data }).eq("id", seccionId);
+    }, 1000);
+  };
+
   const toggle = () => setPlaying(p => !p);
-
-  const reset = () => {
-    setPlaying(false);
-    baseRef.current = 0;
-    setElapsed(0);
-  };
-
-  const seekTo = (s: number) => {
-    baseRef.current = s;
-    startRef.current = Date.now();
-    setElapsed(s);
-  };
+  const reset  = () => { setPlaying(false); baseRef.current = 0; setElapsed(0); };
+  const seekTo = (s: number) => { baseRef.current = s; startRef.current = Date.now(); setElapsed(s); };
 
   const marcarLinea = (seccionId: string, lineaIdx: number) => {
     setTimings(prev => {
-      const next = {
-        ...prev,
-        [seccionId]: { ...(prev[seccionId] || {}), [lineaIdx]: Math.round(elapsed * 10) / 10 },
-      };
+      const secTimings = { ...(prev[seccionId] || {}), [lineaIdx]: Math.round(elapsed * 10) / 10 };
+      const next = { ...prev, [seccionId]: secTimings };
       localStorage.setItem(storageKey, JSON.stringify(next));
+      saveSeccionTimings(seccionId, secTimings);
       return next;
     });
   };
@@ -1020,15 +1102,21 @@ function useKaraoke(cancionId: string, idioma: IdiomaKey) {
         const sec = { ...next[seccionId] };
         delete sec[lineaIdx];
         next[seccionId] = sec;
+        saveSeccionTimings(seccionId, sec);
       }
       localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
   };
 
-  const borrarTodo = () => {
+  const borrarTodo = async () => {
     localStorage.removeItem(storageKey);
     setTimings({});
+    // Limpiar en Supabase para todas las secciones
+    const col = `timings_${idioma}`;
+    for (const sec of secciones) {
+      await supabase.from("secciones_cancion").update({ [col]: null }).eq("id", sec.id);
+    }
   };
 
   const getTiempo = (seccionId: string, lineaIdx: number): number | null =>
@@ -1041,6 +1129,7 @@ function useKaraoke(cancionId: string, idioma: IdiomaKey) {
       const t = getTiempo(lineas[i].seccionId, lineas[i].lineaIdx);
       if (t !== null && t <= elapsed) activa = i;
     }
+    return activa;
     return activa;
   };
 
@@ -1056,20 +1145,22 @@ function fmtTime(s: number): string {
 
 // ─── Modal lector de letra (modo lectura limpia) ──────────────────────────────
 const ModalLectorLetras = ({
-  isOpen, onClose, secciones, cancionTitulo, cancionId,
+  isOpen, onClose, secciones, cancionTitulo, cancionId, duracion,
 }: {
   isOpen: boolean;
   onClose: () => void;
   secciones: Seccion[];
   cancionTitulo: string;
   cancionId: string;
+  duracion?: number | null;
 }) => {
   const [zoom,       setZoom]       = useState(0.6);
   const [idioma,     setIdioma]     = useState<IdiomaKey>("es");
   const [modoKaraoke, setModoKaraoke] = useState(false);
   const activaRef = useRef<HTMLDivElement>(null);
 
-  const karaoke = useKaraoke(cancionId, idioma);
+  const karaoke = useKaraoke(cancionId, idioma, secciones);
+  const sliderMax = duracion ?? 600;
 
   const getLetra = (sec: Seccion, lang: IdiomaKey): string =>
     (lang === "es"     ? sec.letra_es
@@ -1183,9 +1274,9 @@ const ModalLectorLetras = ({
                 <input
                   type="range"
                   min={0}
-                  max={600}
+                  max={sliderMax}
                   step={0.1}
-                  value={Math.min(karaoke.elapsed, 600)}
+                  value={Math.min(karaoke.elapsed, sliderMax)}
                   onChange={e => karaoke.seekTo(parseFloat(e.target.value))}
                   className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                   style={{ accentColor: "var(--primary)" }}
@@ -1252,28 +1343,40 @@ const ModalLectorLetras = ({
                         <div
                           key={lineaIdx}
                           ref={isActiva ? activaRef : undefined}
-                          onClick={() => karaoke.modoEdit && linea.trim() && karaoke.marcarLinea(sec.id, lineaIdx)}
+                          onClick={() => {
+                            if (!linea.trim()) return;
+                            if (karaoke.modoEdit) {
+                              karaoke.marcarLinea(sec.id, lineaIdx);
+                            } else if (tiempo !== null) {
+                              // Click en línea con tiempo → seek a ese punto
+                              karaoke.seekTo(tiempo);
+                            }
+                          }}
                           onContextMenu={e => { e.preventDefault(); if (karaoke.modoEdit) karaoke.borrarLinea(sec.id, lineaIdx); }}
                           className={`group relative flex items-baseline gap-3 py-1.5 px-3 rounded-xl transition-all duration-300 ${
                             !linea.trim()
                               ? "h-3 pointer-events-none"
                               : karaoke.modoEdit
                                 ? "cursor-pointer hover:bg-primary/10"
-                                : ""
+                                : tiempo !== null
+                                  ? "cursor-pointer hover:bg-primary/8"
+                                  : ""
                           }`}
                         >
-                          {/* Tiempo asignado */}
-                          <span className={`shrink-0 font-mono text-[9px] font-black tracking-widest transition-all min-w-[48px] ${
-                            tiempo !== null
-                              ? isActiva
-                                ? "text-primary"
-                                : isPasada
-                                  ? "text-primary/25"
-                                  : "text-primary/40"
-                              : karaoke.modoEdit && linea.trim()
-                                ? "text-primary/20 group-hover:text-primary/50"
-                                : "text-transparent"
-                          }`}>
+                          {/* Tiempo asignado — cliclable fuera de modo edición */}
+                          <span
+                            className={`shrink-0 font-mono text-[9px] font-black tracking-widest transition-all min-w-[48px] ${
+                              tiempo !== null
+                                ? isActiva
+                                  ? "text-primary"
+                                  : isPasada
+                                    ? "text-primary/25"
+                                    : "text-primary/40"
+                                : karaoke.modoEdit && linea.trim()
+                                  ? "text-primary/20 group-hover:text-primary/50"
+                                  : "text-transparent"
+                            }`}
+                          >
                             {tiempo !== null ? fmtTime(tiempo) : karaoke.modoEdit ? "──:──" : ""}
                           </span>
 
@@ -1554,6 +1657,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           secciones={secciones}
           cancionTitulo={cancion.titulo}
           cancionId={cancionId}
+          duracion={cancion.duracion_segundos}
         />
       )}
 
