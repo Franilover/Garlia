@@ -23,8 +23,7 @@ const wikiSubLinks = [
 ];
 const personalSubLinks = [
   { href: "/personal/sobre-mi", label: "Sobre Mí", icon: Star    },
-  { href: "/personal/dibujos",  label: "Dibujos",  icon: Palette },
-  { href: "/personal/fotos",    label: "Fotos",    icon: Camera  },
+  { href: "/personal/galeria",  label: "Galeria",  icon: Palette },
 ];
 const escritorioSubLinks = [
   { href: "/myself/escritorio?panel=capitulos", label: "Capítulos", icon: BookOpen  },
