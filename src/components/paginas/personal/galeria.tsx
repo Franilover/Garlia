@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
@@ -8,7 +8,7 @@ import {
   Plus, X, Save, Loader2, Pencil, Trash2,
   ChevronUp, ChevronDown, ImageIcon, Type,
   AlignLeft, AlignRight, AlignCenterHorizontal,
-  Maximize2, RotateCcw, Image as ImageLucide,
+  RotateCcw, Image as ImageLucide,
 } from "lucide-react";
 
 // ─── SQL para ejecutar en Supabase ────────────────────────────────────────────
@@ -122,63 +122,6 @@ function FixedCanvas({
   );
 }
 
-// ─── useDrag — sin re-renders durante el drag ─────────────────────────────────
-// Usa refs internamente para evitar que cada pixel de movimiento cause
-// un re-render de React (lo que podría disparar efectos secundarios).
-// Solo actualiza el estado al SOLTAR el mouse (mouseup/touchend).
-// ESTO PREVIENE cualquier PATCH accidental mientras se arrastra.
-
-function useDrag(
-  onCommit: (xPct: number, yPct: number) => void,
-  containerRef: React.RefObject<HTMLDivElement>,
-) {
-  const posRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-
-  // Para actualizar la UI durante el drag sin disparar re-renders de estado,
-  // el llamante puede pasar un ref de elemento que se mueve directamente en el DOM.
-  const start = useCallback((
-    e: React.MouseEvent | React.TouchEvent,
-    onDragMove?: (x: number, y: number) => void, // callback visual (solo DOM, no estado)
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const calc = (ev: MouseEvent | TouchEvent) => {
-      if (!containerRef.current) return null;
-      const rect = containerRef.current.getBoundingClientRect();
-      const clientX = "touches" in ev ? ev.touches[0].clientX : (ev as MouseEvent).clientX;
-      const clientY = "touches" in ev ? ev.touches[0].clientY : (ev as MouseEvent).clientY;
-      return {
-        x: Math.round(Math.max(0, Math.min(100, (clientX - rect.left) / rect.width  * 100)) * 10) / 10,
-        y: Math.round(Math.max(0, Math.min(100, (clientY - rect.top)  / rect.height * 100)) * 10) / 10,
-      };
-    };
-
-    const move = (ev: MouseEvent | TouchEvent) => {
-      const pos = calc(ev);
-      if (!pos) return;
-      posRef.current = pos;
-      onDragMove?.(pos.x, pos.y); // Mueve el DOM directamente, sin setState
-    };
-
-    const stop = () => {
-      // Solo aquí se hace el setState (y potencialmente el guardado):
-      onCommit(posRef.current.x, posRef.current.y);
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup",   stop);
-      window.removeEventListener("touchmove", move as any);
-      window.removeEventListener("touchend",  stop);
-    };
-
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup",   stop);
-    window.addEventListener("touchmove", move as any, { passive: false });
-    window.addEventListener("touchend",  stop);
-  }, [onCommit, containerRef]);
-
-  return start;
-}
-
 // ─── ColorRow ─────────────────────────────────────────────────────────────────
 
 function ColorRow({
@@ -251,38 +194,29 @@ function CanvasEditorModal({
   const [tab,         setTab]         = useState<"img" | "txt">("img");
   const [isDirty,     setIsDirty]     = useState(false);
 
-  const canvasRef  = useRef<HTMLDivElement>(null!);
-  const imgHandleRef  = useRef<HTMLDivElement>(null!);
-  const txtHandleRef  = useRef<HTMLDivElement>(null!);
-  const draftRef   = useRef<Draft>(draft); // ref espejo para no perder valores en callbacks
-
   const set = useCallback((patch: Partial<Draft>) => {
-    setDraft(prev => {
-      const next = { ...prev, ...patch };
-      draftRef.current = next;
-      return next;
-    });
+    setDraft(prev => ({ ...prev, ...patch }));
     setIsDirty(true);
   }, []);
-
-  // Drag imagen — mueve el handle directamente en DOM, confirma al soltar
-  const startImgDrag = useDrag(
-    (x, y) => set({ img_x: x, img_y: y }),
-    canvasRef,
-  );
-
-  // Drag texto — igual
-  const startTxtDrag = useDrag(
-    (x, y) => set({ text_x: x, text_y: y }),
-    canvasRef,
-  );
 
   const sz        = TEXT_SIZES[draft.text_size] ?? TEXT_SIZES[2];
   const isOverlay = draft.text_position === "overlay";
 
+  // Clamp antes de enviar — evita 400 por valores fuera de rango o tipos inesperados
+  const toSave = (): Draft => ({
+    ...draft,
+    img_x:     Math.round(Math.max(0, Math.min(100, draft.img_x))    * 10) / 10,
+    img_y:     Math.round(Math.max(0, Math.min(100, draft.img_y))    * 10) / 10,
+    img_width: Math.round(Math.max(5, Math.min(100, draft.img_width))),
+    img_scale: Math.round(Math.max(0.1, Math.min(3, draft.img_scale)) * 100) / 100,
+    text_x:    Math.round(Math.max(0, Math.min(100, draft.text_x))   * 10) / 10,
+    text_y:    Math.round(Math.max(0, Math.min(100, draft.text_y))   * 10) / 10,
+    text_size: Math.max(1, Math.min(5, draft.text_size)),
+  });
+
   const handleSave = async () => {
     setSaving(true);
-    await onSave({ ...draft, titulo, descripcion });
+    await onSave({ ...toSave(), titulo, descripcion });
     setSaving(false);
     setIsDirty(false);
   };
@@ -300,22 +234,15 @@ function CanvasEditorModal({
   return (
     <div className="fixed inset-0 z-[300] flex flex-col md:flex-row" style={{ background: "#0a0a0a" }}>
 
-      {/* ── CANVAS (preview live) ─────────────────────────────────────────── */}
+      {/* ── PREVIEW (solo visual) ─────────────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center p-4 md:p-8 overflow-hidden">
-        {/* Contenedor con ratio fijo — mismo sistema de coordenadas que la vista pública */}
-        <div className="relative w-full max-h-full" style={{ maxWidth: `calc((100vh - 120px) / ${CANVAS_RATIO})` }}>
+        <div className="relative w-full" style={{ maxWidth: `calc((100vh - 120px) / ${CANVAS_RATIO})` }}>
           <FixedCanvasInner
-            ref={canvasRef}
+            ref={null as any}
             bg={draft.bg_color}
-            style={{
-              cursor: tab === "img" ? "crosshair"
-                    : isOverlay     ? "crosshair"
-                    : "default",
-              borderRadius: 4,
-              boxShadow: "0 0 0 1px rgba(255,255,255,0.1), 0 24px 80px rgba(0,0,0,0.6)",
-            }}
+            style={{ borderRadius: 4, boxShadow: "0 0 0 1px rgba(255,255,255,0.1), 0 24px 80px rgba(0,0,0,0.6)" }}
           >
-            {/* Imagen */}
+            {/* Imagen — preview en tiempo real */}
             <img
               src={item.url_imagen}
               alt={titulo || "Obra"}
@@ -330,43 +257,17 @@ function CanvasEditorModal({
               }}
             />
 
-            {/* Handle de imagen — arrastrable */}
-            <div
-              ref={imgHandleRef}
-              onMouseDown={e => startImgDrag(e as any)}
-              onTouchStart={e => startImgDrag(e as any)}
-              className="absolute z-10 flex items-center justify-center rounded-full"
-              style={{
-                left: `${draft.img_x}%`, top: `${draft.img_y}%`,
-                transform: "translate(-50%,-50%)",
-                width: 34, height: 34,
-                background: tab === "img" ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.06)",
-                border: tab === "img" ? "2px solid rgba(255,255,255,0.75)" : "2px solid rgba(255,255,255,0.2)",
-                backdropFilter: "blur(4px)",
-                cursor: "grab",
-                transition: "background 0.2s, border 0.2s",
-              }}
-            >
-              <Maximize2 size={12} color="white" />
-            </div>
-
-            {/* Texto overlay — arrastrable */}
+            {/* Texto superpuesto — preview */}
             {isOverlay && (titulo || descripcion) && (
               <div
-                ref={txtHandleRef}
-                onMouseDown={tab === "txt" ? (e => startTxtDrag(e as any)) : undefined}
-                onTouchStart={tab === "txt" ? (e => startTxtDrag(e as any)) : undefined}
-                className="absolute z-20 max-w-[72%]"
+                className="absolute z-20 max-w-[72%] pointer-events-none"
                 style={{
                   left: `${draft.text_x}%`, top: `${draft.text_y}%`,
                   transform: "translate(-50%,-50%)",
                   background: draft.text_bg_color === "transparent" ? "transparent" : draft.text_bg_color,
                   padding: draft.text_bg_color !== "transparent" ? "10px 18px" : "0",
                   borderRadius: 6,
-                  border: tab === "txt"
-                    ? "2px dashed rgba(255,255,255,0.5)"
-                    : "2px solid transparent",
-                  cursor: tab === "txt" ? "grab" : "default",
+                  outline: "1px dashed rgba(255,255,255,0.3)",
                 }}
               >
                 {titulo && (
@@ -384,7 +285,7 @@ function CanvasEditorModal({
               </div>
             )}
 
-            {/* Preview texto no-overlay */}
+            {/* Badge de posición texto no-overlay */}
             {!isOverlay && (titulo || descripcion) && (
               <div className="absolute bottom-3 left-3 pointer-events-none">
                 <div className="px-2.5 py-1 rounded text-white text-[9px] font-black uppercase tracking-widest"
@@ -394,22 +295,11 @@ function CanvasEditorModal({
               </div>
             )}
 
-            {/* Indicador de instrucción */}
-            <div className="absolute top-2 left-2 pointer-events-none z-30">
-              <span className="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded"
-                style={{ background: "rgba(0,0,0,0.65)", color: "rgba(255,255,255,0.5)", backdropFilter: "blur(4px)" }}>
-                {tab === "img"
-                  ? "Arrastra la cruceta para mover la imagen"
-                  : isOverlay ? "Arrastra el texto en el canvas"
-                  : "Ajusta la posición del texto en el panel →"}
-              </span>
-            </div>
-
-            {/* Indicador de cambios sin guardar */}
+            {/* Badge cambios sin guardar */}
             {isDirty && (
-              <div className="absolute top-2 right-2 pointer-events-none z-30">
+              <div className="absolute top-2 right-2 pointer-events-none">
                 <span className="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded"
-                  style={{ background: "rgba(255,180,0,0.85)", color: "#000", backdropFilter: "blur(4px)" }}>
+                  style={{ background: "rgba(255,180,0,0.9)", color: "#000" }}>
                   Sin guardar
                 </span>
               </div>
@@ -457,14 +347,14 @@ function CanvasEditorModal({
           {tab === "img" && (
             <>
               <section className="space-y-2">
-                <p className="label-section">Fondo de sección</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Fondo de sección</p>
                 <ColorRow label="Color" value={draft.bg_color} onChange={v => set({ bg_color: v })} />
               </section>
 
               <hr style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
 
               <section className="space-y-2.5">
-                <p className="label-section">Posición imagen <span className="opacity-40">(o arrastra la cruceta)</span></p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Posición imagen</p>
                 <Slider label="Horizontal" value={draft.img_x} min={0} max={100} step={0.5}
                   onChange={v => set({ img_x: v })} />
                 <Slider label="Vertical"   value={draft.img_y} min={0} max={100} step={0.5}
@@ -474,7 +364,7 @@ function CanvasEditorModal({
               <hr style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
 
               <section className="space-y-2.5">
-                <p className="label-section">Tamaño imagen</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Tamaño imagen</p>
                 <Slider label="Ancho" value={draft.img_width} min={10} max={100}
                   onChange={v => set({ img_width: v })} />
                 <Slider label="Escala" value={Math.round(draft.img_scale * 100)} min={20} max={300}
@@ -492,7 +382,7 @@ function CanvasEditorModal({
           {tab === "txt" && (
             <>
               <section className="space-y-2">
-                <p className="label-section">Contenido</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Contenido</p>
                 <input value={titulo} onChange={e => { setTitulo(e.target.value); setIsDirty(true); }}
                   placeholder="Título…"
                   className="w-full bg-bg-main border border-primary/15 rounded-xl px-3 py-2.5 text-sm font-black uppercase tracking-wide text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20" />
@@ -504,13 +394,13 @@ function CanvasEditorModal({
               <hr style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
 
               <section className="space-y-2">
-                <p className="label-section">Posición del texto</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Posición del texto</p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {([
                     { value: "bottom",  Icon: AlignCenterHorizontal, label: "Abajo"       },
                     { value: "left",    Icon: AlignLeft,              label: "Izquierda"   },
                     { value: "right",   Icon: AlignRight,             label: "Derecha"     },
-                    { value: "overlay", Icon: Maximize2,              label: "Superpuesto" },
+                    { value: "overlay", Icon: Type,    label: "Superpuesto" },
                   ] as { value: TextPosition; Icon: React.ElementType; label: string }[]).map(opt => {
                     const active = draft.text_position === opt.value;
                     return (
@@ -531,7 +421,7 @@ function CanvasEditorModal({
                 {isOverlay && (
                   <div className="space-y-2 pt-1">
                     <p className="text-[8px] text-primary/30 font-black uppercase tracking-widest">
-                      Arrastra en el canvas o usa los sliders
+                      Usa los sliders para posicionar
                     </p>
                     <Slider label="Horizontal" value={draft.text_x} min={0} max={100} step={0.5}
                       onChange={v => set({ text_x: v })} />
@@ -544,7 +434,7 @@ function CanvasEditorModal({
               <hr style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
 
               <section className="space-y-2.5">
-                <p className="label-section">Colores del texto</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Colores del texto</p>
                 <ColorRow label="Texto" value={draft.text_color}    onChange={v => set({ text_color: v })} />
                 <ColorRow label="Fondo" value={draft.text_bg_color} onChange={v => set({ text_bg_color: v })} allowTransparent />
               </section>
@@ -552,7 +442,7 @@ function CanvasEditorModal({
               <hr style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
 
               <section className="space-y-2">
-                <p className="label-section">Tamaño del texto</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Tamaño del texto</p>
                 <div className="flex gap-1.5">
                   {([1,2,3,4,5] as const).map(s => (
                     <button key={s} onClick={() => set({ text_size: s })}
@@ -583,7 +473,7 @@ function CanvasEditorModal({
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
             style={{ background: "var(--primary)", color: "var(--btn-text)", opacity: saving ? 0.7 : 1 }}>
             {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-            {saving ? "Guardando en Supabase…" : "Guardar cambios"}
+            {saving ? "Guardando…" : "Guardar cambios"}
           </button>
           <button onClick={handleCancel}
             className="w-full py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary/35 hover:text-primary transition-colors">
@@ -595,7 +485,7 @@ function CanvasEditorModal({
   );
 }
 
-// ─── FixedCanvas con forwardRef (necesario para canvasRef en el editor) ───────
+// ─── FixedCanvas con forwardRef ──────────────────────────────────────────────
 
 const FixedCanvasInner = React.forwardRef<HTMLDivElement, {
   bg: string; children: React.ReactNode; className?: string; style?: React.CSSProperties;
@@ -733,20 +623,23 @@ function GaleriaSection({
         className="w-full"
       >
         {isSide ? (
-          // ── Layout lateral ──
-          <div className={`flex flex-col md:flex-row min-h-[50vh] ${pos === "right" ? "md:flex-row-reverse" : ""}`}>
-            <div className="relative flex-none w-full md:w-[55%]">
-              {/* Canvas 16:9 fijo dentro de la columna de imagen */}
+          // ── Layout lateral — flex stretch hace que ambas columnas tengan la misma altura ──
+          <div className={`flex flex-col md:flex-row items-stretch ${pos === "right" ? "md:flex-row-reverse" : ""}`}>
+            {/* Columna imagen: usa FixedCanvas (16:9) */}
+            <div className="flex-none w-full md:w-[55%]">
               <FixedCanvas bg={item.bg_color}>
                 <img src={item.url_imagen} alt={item.titulo || "Obra"} style={imgStyle} draggable={false} />
                 <AdminBar />
               </FixedCanvas>
             </div>
-            <div className="flex-1 flex flex-col justify-center border-t md:border-t-0"
+            {/* Columna texto: misma altura gracias a items-stretch + self-stretch */}
+            <div
+              className="flex-1 self-stretch flex flex-col justify-center border-t md:border-t-0"
               style={{
                 borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
                 [pos === "right" ? "borderRight" : "borderLeft"]: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-              } as any}>
+              } as any}
+            >
               <TextBlock item={item} side />
               <div className="px-10 pb-10">
                 <div className="h-px w-16" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
