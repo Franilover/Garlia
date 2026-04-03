@@ -447,26 +447,6 @@ const Navbar = () => {
                     {isDark ? <Sun size={13} /> : <Moon size={13} />}
                     <span className="text-[10px] font-black uppercase tracking-widest">{isDark ? "Modo claro" : "Modo oscuro"}</span>
                   </button>
-                  {/* Píldoras de color */}
-                  <div className="flex gap-1.5 px-4 py-3 flex-wrap" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-                    <p className="w-full text-[8px] font-black uppercase tracking-widest pb-1.5" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Color</p>
-                    {ACCENT_OPTIONS.map(a => (
-                      <button
-                        key={a.id}
-                        title={a.label}
-                        onClick={() => setAccent(a.id)}
-                        className="transition-all"
-                        style={{
-                          width: 18, height: 18,
-                          borderRadius: "50%",
-                          backgroundColor: a.hex,
-                          border: accent === a.id ? "2px solid var(--foreground)" : "2px solid transparent",
-                          opacity: accent === a.id ? 1 : 0.55,
-                          transform: accent === a.id ? "scale(1.2)" : "scale(1)",
-                        }}
-                      />
-                    ))}
-                  </div>
                   <ThemeSelector />
                 </motion.div>
               )}
