@@ -18,7 +18,8 @@ import {
 //   add column if not exists text_y        numeric default 85,
 //   add column if not exists text_size     integer default 2,
 //   add column if not exists text_bg_color text    default 'transparent',
-//   add column if not exists text_color    text    default '#1a1a1a';
+//   add column if not exists text_color    text    default '#1a1a1a',
+//   add column if not exists img_col_width integer default 55;
 
 // ─── SISTEMA DE COORDENADAS ───────────────────────────────────────────────────
 // Usamos un canvas con aspect-ratio fijo (16:9).
@@ -37,14 +38,15 @@ interface GaleriaItem {
   descripcion:   string | null;
   url_imagen:    string;
   bg_color:      string;
-  img_x:         number;   // % dentro del canvas 16:9
+  img_x:         number;
   img_y:         number;
   img_scale:     number;
-  img_width:     number;   // % del ancho del canvas
+  img_width:     number;
+  img_col_width: number;   // % del ancho total que ocupa la columna imagen (solo left/right, 20–80)
   text_position: TextPosition;
-  text_x:        number;   // % dentro del canvas (solo overlay)
+  text_x:        number;
   text_y:        number;
-  text_size:     number;   // 1–5
+  text_size:     number;
   text_bg_color: string;
   text_color:    string;
   orden:         number;
@@ -74,6 +76,7 @@ function draftFromItem(item: GaleriaItem): Draft {
     img_y:         item.img_y         ?? 50,
     img_scale:     item.img_scale     ?? 1,
     img_width:     item.img_width     ?? 60,
+    img_col_width: item.img_col_width ?? 55,
     text_position: item.text_position ?? "bottom",
     text_x:        item.text_x        ?? 50,
     text_y:        item.text_y        ?? 85,
@@ -216,13 +219,14 @@ function CanvasEditorModal({
   // Clamp antes de enviar — evita 400 por valores fuera de rango o tipos inesperados
   const toSave = (): Draft => ({
     ...draft,
-    img_x:     Math.round(Math.max(0, Math.min(100, draft.img_x))    * 10) / 10,
-    img_y:     Math.round(Math.max(0, Math.min(100, draft.img_y))    * 10) / 10,
-    img_width: Math.round(Math.max(5, Math.min(100, draft.img_width))),
-    img_scale: Math.round(Math.max(0.1, Math.min(3, draft.img_scale)) * 100) / 100,
-    text_x:    Math.round(Math.max(0, Math.min(100, draft.text_x))   * 10) / 10,
-    text_y:    Math.round(Math.max(0, Math.min(100, draft.text_y))   * 10) / 10,
-    text_size: Math.max(1, Math.min(5, draft.text_size)),
+    img_x:         Math.round(Math.max(0, Math.min(100, draft.img_x))    * 10) / 10,
+    img_y:         Math.round(Math.max(0, Math.min(100, draft.img_y))    * 10) / 10,
+    img_width:     Math.round(Math.max(5, Math.min(100, draft.img_width))),
+    img_scale:     Math.round(Math.max(0.1, Math.min(3, draft.img_scale)) * 100) / 100,
+    img_col_width: Math.round(Math.max(20, Math.min(80, draft.img_col_width))),
+    text_x:        Math.round(Math.max(0, Math.min(100, draft.text_x))   * 10) / 10,
+    text_y:        Math.round(Math.max(0, Math.min(100, draft.text_y))   * 10) / 10,
+    text_size:     Math.max(1, Math.min(5, draft.text_size)),
   });
 
   const handleSave = async () => {
@@ -450,6 +454,26 @@ function CanvasEditorModal({
                       onChange={v => set({ text_y: v })} />
                   </div>
                 )}
+
+                {/* Ancho de columnas — solo en left/right */}
+                {(draft.text_position === "left" || draft.text_position === "right") && (
+                  <div className="space-y-2 pt-1">
+                    <p className="text-[8px] text-primary/30 font-black uppercase tracking-widest">
+                      Ancho relativo de columnas
+                    </p>
+                    <Slider
+                      label="Imagen"
+                      value={draft.img_col_width}
+                      min={20} max={80}
+                      onChange={v => set({ img_col_width: v })}
+                    />
+                    <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest"
+                      style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                      <span>Imagen: {draft.img_col_width}%</span>
+                      <span>Texto: {100 - draft.img_col_width}%</span>
+                    </div>
+                  </div>
+                )}
               </section>
 
               <hr style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
@@ -649,10 +673,13 @@ function GaleriaSection({
         className="w-full"
       >
         {isSide ? (
-          // ── Layout lateral — flex stretch hace que ambas columnas tengan la misma altura ──
+          // ── Layout lateral — img_col_width controla el ancho de la columna imagen ──
           <div className={`flex flex-col md:flex-row items-stretch ${pos === "right" ? "md:flex-row-reverse" : ""}`}>
-            {/* Columna imagen: usa FixedCanvas (16:9) */}
-            <div className="flex-none w-full md:w-[55%]">
+            {/* Inyectamos el ancho exacto para desktop via style tag — en mobile siempre es 100% */}
+            <style>{`@media(min-width:768px){.gc-img-${item.id}{width:${item.img_col_width ?? 55}%}}`}</style>
+
+            {/* Columna imagen */}
+            <div className={`gc-img-${item.id} flex-none w-full`}>
               <FixedCanvas bg={item.bg_color}>
                 <img src={item.url_imagen} alt={item.titulo || "Obra"} style={imgStyle} draggable={false} />
                 <AdminBar />
@@ -748,7 +775,7 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
       titulo:        titulo.trim()      || null,
       descripcion:   descripcion.trim() || null,
       bg_color:      "#111111",
-      img_x: 50, img_y: 50, img_scale: 1, img_width: 60,
+      img_x: 50, img_y: 50, img_scale: 1, img_width: 60, img_col_width: 55,
       text_position: "bottom",
       text_x: 50, text_y: 85, text_size: 2,
       text_bg_color: "transparent", text_color: "#ffffff",
