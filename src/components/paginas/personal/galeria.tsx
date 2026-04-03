@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
@@ -8,9 +8,12 @@ import {
   Plus, X, Save, Loader2, Pencil, Trash2, Move,
   ZoomIn, ZoomOut, AlignCenter, ChevronUp, ChevronDown,
   Check, Palette, ImageIcon, Type,
+  AlignLeft, AlignRight, AlignCenterHorizontal,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
+
+type TextPosition = "bottom" | "left" | "right";
 
 interface GaleriaItem {
   id: number;
@@ -18,15 +21,16 @@ interface GaleriaItem {
   descripcion: string | null;
   url_imagen: string;
   bg_color: string;
-  img_x: number;       // % horizontal (0–100)
-  img_y: number;       // % vertical   (0–100)
-  img_scale: number;   // multiplicador (0.3–2)
-  img_width: number;   // % del ancho del contenedor (20–100)
+  img_x: number;
+  img_y: number;
+  img_scale: number;
+  img_width: number;
+  text_position: TextPosition;
   orden: number;
   creado_en: string;
 }
 
-type DraftLayout = Pick<GaleriaItem, "img_x" | "img_y" | "img_scale" | "img_width" | "bg_color">;
+type DraftLayout = Pick<GaleriaItem, "img_x" | "img_y" | "img_scale" | "img_width" | "bg_color" | "text_position">;
 
 // ─── Paleta de colores de fondo ───────────────────────────────────────────────
 
@@ -44,15 +48,6 @@ const BG_PRESETS = [
   { label: "Pergamino",    value: "#ede0c8" },
   { label: "Pizarra",      value: "#2d3748" },
 ];
-
-// ─── Utilidades ──────────────────────────────────────────────────────────────
-
-function isLight(hex: string): boolean {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
-}
 
 // ─── Hook de datos ────────────────────────────────────────────────────────────
 
@@ -93,9 +88,6 @@ function CanvasEditor({
   onCancel: () => void;
   saving: boolean;
 }) {
-  const light = isLight(draft.bg_color);
-  const textColor = light ? "#1a1a1a" : "#f5f5f5";
-
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -227,6 +219,38 @@ function CanvasEditor({
           </div>
         </div>
 
+        {/* Posición del texto */}
+        <div className="space-y-2">
+          <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40 flex items-center gap-1.5">
+            <Type size={9} /> Texto
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {([
+              { value: "left",   icon: AlignLeft,               label: "Izquierda" },
+              { value: "bottom", icon: AlignCenterHorizontal,   label: "Abajo" },
+              { value: "right",  icon: AlignRight,              label: "Derecha" },
+            ] as { value: TextPosition; icon: React.ElementType; label: string }[]).map(opt => {
+              const Icon = opt.icon;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => onChange({ text_position: opt.value })}
+                  title={opt.label}
+                  className="flex flex-col items-center gap-1 py-2.5 rounded-xl border text-[8px] font-black uppercase tracking-wide transition-all"
+                  style={{
+                    background: draft.text_position === opt.value ? "var(--primary)" : "transparent",
+                    color: draft.text_position === opt.value ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                    borderColor: draft.text_position === opt.value ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                  }}
+                >
+                  <Icon size={14} />
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Guardar */}
         <button
           onClick={onSave}
@@ -336,16 +360,16 @@ function GaleriaSection({
   const [editingText,   setEditingText]   = useState(false);
   const [savingLayout,  setSavingLayout]  = useState(false);
   const [draft, setDraft] = useState<DraftLayout>({
-    img_x:     item.img_x,
-    img_y:     item.img_y,
-    img_scale: item.img_scale,
-    img_width: item.img_width,
-    bg_color:  item.bg_color,
+    img_x:         item.img_x,
+    img_y:         item.img_y,
+    img_scale:     item.img_scale,
+    img_width:     item.img_width,
+    bg_color:      item.bg_color,
+    text_position: item.text_position ?? "bottom",
   });
 
-  const light    = isLight(item.bg_color);
-  const textOnBg = light ? "rgba(0,0,0,0.75)" : "rgba(255,255,255,0.75)";
-  const textOnBgStrong = light ? "rgba(0,0,0,0.9)" : "rgba(255,255,255,0.92)";
+  const pos   = item.text_position ?? "bottom";
+  const isSide = pos === "left" || pos === "right";
 
   const handleSaveLayout = async () => {
     setSavingLayout(true);
@@ -359,7 +383,8 @@ function GaleriaSection({
     setEditingText(false);
   };
 
-  const imgStyle: React.CSSProperties = {
+  // Estilos de imagen — en modo lateral usa layout de flex, no absolute
+  const imgStyleBottom: React.CSSProperties = {
     position:  "absolute",
     left:      `${draft.img_x}%`,
     top:       `${draft.img_y}%`,
@@ -373,6 +398,58 @@ function GaleriaSection({
     pointerEvents: editingCanvas ? "none" : "auto",
   };
 
+  // Bloque de texto (reutilizado en ambos modos)
+  const TextBlock = ({ side }: { side?: boolean }) => (
+    <div className={side ? "flex flex-col justify-center py-12 px-10" : "max-w-3xl mx-auto px-6 md:px-0 py-10 md:py-14"}>
+      {item.titulo && (
+        <h2
+          className="font-black italic uppercase leading-tight mb-4"
+          style={{
+            color: "var(--primary)",
+            fontSize: "clamp(1.5rem, 3.5vw, 3rem)",
+            letterSpacing: "-0.025em",
+          }}
+        >
+          {item.titulo}
+        </h2>
+      )}
+      {item.descripcion && (
+        <p
+          className="text-base md:text-lg font-light leading-relaxed"
+          style={{ color: "var(--foreground)", opacity: 0.7, maxWidth: "45ch" }}
+        >
+          {item.descripcion}
+        </p>
+      )}
+      {isAdmin && !item.titulo && !item.descripcion && (
+        <p className="text-[10px] font-black uppercase tracking-widest text-primary/20 italic">
+          Sin título ni descripción
+        </p>
+      )}
+      {isAdmin && !editingText && (
+        <button
+          onClick={() => setEditingText(true)}
+          className="mt-6 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors"
+        >
+          <Type size={10} /> {item.titulo || item.descripcion ? "Editar texto" : "Añadir texto"}
+        </button>
+      )}
+      <AnimatePresence>
+        {editingText && (
+          <TextEditor
+            item={item}
+            onSave={handleSaveText}
+            onCancel={() => setEditingText(false)}
+          />
+        )}
+      </AnimatePresence>
+      {!side && (
+        <div className="mt-12 md:mt-16 h-px w-24"
+          style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
+      )}
+    </div>
+  );
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 40 }}
@@ -381,138 +458,148 @@ function GaleriaSection({
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
       className="w-full"
     >
-      {/* Área de imagen — canvas */}
-      <div
-        className="relative w-full overflow-hidden"
-        style={{
-          backgroundColor: item.bg_color,
-          minHeight: "70vh",
-          aspectRatio: "auto",
-        }}
-      >
-        {/* Imagen posicionada */}
-        <div className="relative w-full" style={{ minHeight: "70vh" }}>
-          <img
-            src={item.url_imagen}
-            alt={item.titulo || "Obra"}
-            style={imgStyle}
-            draggable={false}
-          />
-        </div>
-
-        {/* Editor de canvas (modo admin) */}
-        <AnimatePresence>
-          {editingCanvas && (
-            <CanvasEditor
-              item={item}
-              draft={draft}
-              onChange={d => setDraft(prev => ({ ...prev, ...d }))}
-              onSave={handleSaveLayout}
-              onCancel={() => { setDraft({ img_x: item.img_x, img_y: item.img_y, img_scale: item.img_scale, img_width: item.img_width, bg_color: item.bg_color }); setEditingCanvas(false); }}
-              saving={savingLayout}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Barra de controles admin */}
-        {isAdmin && !editingCanvas && (
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-            <button
-              onClick={onMoveUp} disabled={isFirst}
-              className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-sm transition-all disabled:opacity-30"
-              style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}
-            >
-              <ChevronUp size={13} />
-            </button>
-            <button
-              onClick={onMoveDown} disabled={isLast}
-              className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-sm transition-all disabled:opacity-30"
-              style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}
-            >
-              <ChevronDown size={13} />
-            </button>
-            <button
-              onClick={() => setEditingCanvas(true)}
-              className="flex items-center gap-1.5 px-3 h-7 rounded-lg backdrop-blur-sm text-[9px] font-black uppercase tracking-widest transition-all"
-              style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}
-            >
-              <Pencil size={10} /> Canvas
-            </button>
-            <button
-              onClick={async () => {
-                if (confirm("¿Eliminar esta obra?")) await onDelete(item.id);
+      {isSide ? (
+        /* ── Layout lateral (left / right) ── */
+        <div
+          className={`flex flex-col md:flex-row min-h-[70vh] ${pos === "right" ? "md:flex-row-reverse" : ""}`}
+        >
+          {/* Imagen — toma 55% en desktop */}
+          <div
+            className="relative flex-none w-full md:w-[55%] overflow-hidden"
+            style={{ backgroundColor: item.bg_color, minHeight: "55vw", maxHeight: "90vh" }}
+          >
+            <img
+              src={item.url_imagen}
+              alt={item.titulo || "Obra"}
+              style={{
+                position: "absolute",
+                left: `${item.img_x}%`,
+                top: `${item.img_y}%`,
+                transform: `translate(-50%, -50%) scale(${item.img_scale})`,
+                width: `${item.img_width}%`,
+                maxWidth: "none",
+                objectFit: "contain",
+                transformOrigin: "center center",
+                transition: "all 0.4s ease",
+                userSelect: "none",
               }}
-              className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-sm transition-all hover:bg-red-500"
-              style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}
-            >
-              <Trash2 size={11} />
-            </button>
-          </div>
-        )}
-      </div>
+              draggable={false}
+            />
 
-      {/* Área de texto */}
-      <div
-        className="max-w-3xl mx-auto px-6 md:px-0 py-10 md:py-14"
-      >
-        {/* Título */}
-        {item.titulo && (
-          <h2
-            className="font-black italic uppercase leading-tight mb-4"
+            {/* Editor de canvas */}
+            <AnimatePresence>
+              {editingCanvas && (
+                <CanvasEditor
+                  item={item}
+                  draft={draft}
+                  onChange={d => setDraft(prev => ({ ...prev, ...d }))}
+                  onSave={handleSaveLayout}
+                  onCancel={() => { setDraft({ img_x: item.img_x, img_y: item.img_y, img_scale: item.img_scale, img_width: item.img_width, bg_color: item.bg_color, text_position: item.text_position ?? "bottom" }); setEditingCanvas(false); }}
+                  saving={savingLayout}
+                />
+              )}
+            </AnimatePresence>
+
+            {/* Controles admin */}
+            {isAdmin && !editingCanvas && (
+              <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                <button onClick={onMoveUp} disabled={isFirst}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-sm transition-all disabled:opacity-30"
+                  style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}>
+                  <ChevronUp size={13} />
+                </button>
+                <button onClick={onMoveDown} disabled={isLast}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-sm transition-all disabled:opacity-30"
+                  style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}>
+                  <ChevronDown size={13} />
+                </button>
+                <button onClick={() => setEditingCanvas(true)}
+                  className="flex items-center gap-1.5 px-3 h-7 rounded-lg backdrop-blur-sm text-[9px] font-black uppercase tracking-widest transition-all"
+                  style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}>
+                  <Pencil size={10} /> Canvas
+                </button>
+                <button onClick={async () => { if (confirm("¿Eliminar esta obra?")) await onDelete(item.id); }}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-sm transition-all hover:bg-red-500"
+                  style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}>
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Texto — toma 45% en desktop */}
+          <div
+            className="flex-1 flex flex-col justify-center border-t md:border-t-0"
             style={{
-              color: "var(--primary)",
-              fontSize: "clamp(1.8rem, 5vw, 3.5rem)",
-              letterSpacing: "-0.025em",
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderLeft: pos === "right" ? "none" : `1px solid color-mix(in srgb, var(--primary) 8%, transparent)`,
+              borderRight: pos === "right" ? `1px solid color-mix(in srgb, var(--primary) 8%, transparent)` : "none",
             }}
           >
-            {item.titulo}
-          </h2>
-        )}
-
-        {/* Descripción */}
-        {item.descripcion && (
-          <p
-            className="text-base md:text-lg font-light leading-relaxed"
-            style={{ color: "var(--foreground)", opacity: 0.7, maxWidth: "55ch" }}
+            <TextBlock side />
+            <div className="px-10 pb-10">
+              <div className="h-px w-16" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ── Layout vertical (bottom) ── */
+        <>
+          <div
+            className="relative w-full overflow-hidden"
+            style={{ backgroundColor: item.bg_color, minHeight: "70vh" }}
           >
-            {item.descripcion}
-          </p>
-        )}
+            <div className="relative w-full" style={{ minHeight: "70vh" }}>
+              <img
+                src={item.url_imagen}
+                alt={item.titulo || "Obra"}
+                style={imgStyleBottom}
+                draggable={false}
+              />
+            </div>
 
-        {/* Sin texto — placeholder para admin */}
-        {isAdmin && !item.titulo && !item.descripcion && (
-          <p className="text-[10px] font-black uppercase tracking-widest text-primary/20 italic">
-            Sin título ni descripción — añade texto con el botón de abajo
-          </p>
-        )}
+            <AnimatePresence>
+              {editingCanvas && (
+                <CanvasEditor
+                  item={item}
+                  draft={draft}
+                  onChange={d => setDraft(prev => ({ ...prev, ...d }))}
+                  onSave={handleSaveLayout}
+                  onCancel={() => { setDraft({ img_x: item.img_x, img_y: item.img_y, img_scale: item.img_scale, img_width: item.img_width, bg_color: item.bg_color, text_position: item.text_position ?? "bottom" }); setEditingCanvas(false); }}
+                  saving={savingLayout}
+                />
+              )}
+            </AnimatePresence>
 
-        {/* Botón editar texto (admin) */}
-        {isAdmin && !editingText && (
-          <button
-            onClick={() => setEditingText(true)}
-            className="mt-6 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors"
-          >
-            <Type size={10} /> {item.titulo || item.descripcion ? "Editar texto" : "Añadir texto"}
-          </button>
-        )}
+            {isAdmin && !editingCanvas && (
+              <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                <button onClick={onMoveUp} disabled={isFirst}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-sm transition-all disabled:opacity-30"
+                  style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}>
+                  <ChevronUp size={13} />
+                </button>
+                <button onClick={onMoveDown} disabled={isLast}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-sm transition-all disabled:opacity-30"
+                  style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}>
+                  <ChevronDown size={13} />
+                </button>
+                <button onClick={() => setEditingCanvas(true)}
+                  className="flex items-center gap-1.5 px-3 h-7 rounded-lg backdrop-blur-sm text-[9px] font-black uppercase tracking-widest transition-all"
+                  style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}>
+                  <Pencil size={10} /> Canvas
+                </button>
+                <button onClick={async () => { if (confirm("¿Eliminar esta obra?")) await onDelete(item.id); }}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-sm transition-all hover:bg-red-500"
+                  style={{ background: "color-mix(in srgb, var(--primary) 80%, transparent)", color: "var(--btn-text)" }}>
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            )}
+          </div>
 
-        {/* Editor de texto */}
-        <AnimatePresence>
-          {editingText && (
-            <TextEditor
-              item={item}
-              onSave={handleSaveText}
-              onCancel={() => setEditingText(false)}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Separador */}
-        <div
-          className="mt-12 md:mt-16 h-px w-24"
-          style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
-        />
-      </div>
+          <TextBlock />
+        </>
+      )}
     </motion.article>
   );
 }
@@ -539,15 +626,16 @@ function AddModal({
   const handleSave = async () => {
     setSaving(true);
     const { error } = await supabase.from("galeria").insert([{
-      url_imagen:  url,
-      titulo:      titulo.trim() || null,
-      descripcion: descripcion.trim() || null,
-      bg_color:    "#ffffff",
-      img_x:       50,
-      img_y:       50,
-      img_scale:   1,
-      img_width:   60,
-      orden:       nextOrden,
+      url_imagen:     url,
+      titulo:         titulo.trim() || null,
+      descripcion:    descripcion.trim() || null,
+      bg_color:       "#ffffff",
+      img_x:          50,
+      img_y:          50,
+      img_scale:      1,
+      img_width:      60,
+      text_position:  "bottom",
+      orden:          nextOrden,
     }]);
     setSaving(false);
     if (!error) { onSuccess(); onClose(); }
