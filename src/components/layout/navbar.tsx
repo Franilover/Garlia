@@ -339,9 +339,7 @@ const Navbar = () => {
   const isWiki       = currentPath?.startsWith("/wiki")              ?? false;
   const isPersonal   = currentPath?.startsWith("/personal")          ?? false;
   const isEscritorio = currentPath?.startsWith("/myself/escritorio") ?? false;
-  const isSalud      = currentPath?.startsWith("/myself/salud")      ?? false;
-  const isRopa       = currentPath?.startsWith("/myself/ropa")       ?? false;
-  const isEnciclop   = currentPath?.includes("/enciclopedia")        ?? false;
+  const isSalud      = currentPath?.startsWith("/myself/salud")      ?? false;;
 
   // Links del nav público
   const mainLinks = [
@@ -351,10 +349,8 @@ const Navbar = () => {
 
   // Links de Franilover — ahora con subLinks para los flyouts
   const franiLinks = [
-    { href: "/wiki/enciclopedia", label: "Información", icon: BookOpen, key: "/enciclopedia", active: isEnciclop,   subLinks: undefined           },
     { href: "/myself/salud",      label: "Salud",        icon: Utensils, key: "/salud",        active: isSalud,      subLinks: saludSubLinks       },
     { href: "/myself/escritorio", label: "Escritorio",   icon: PenTool,  key: "/escritorio",   active: isEscritorio, subLinks: escritorioSubLinks  },
-    { href: "/myself/ropa",       label: "Ropa",         icon: Shirt,    key: "/ropa",         active: isRopa,       subLinks: undefined           },
   ];
 
   return (
