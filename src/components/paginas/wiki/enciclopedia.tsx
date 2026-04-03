@@ -3,7 +3,6 @@
 import { User, Sword, Panda } from "lucide-react";
 import Secciones from "@/components/layout/Secciones";
 import Personajes from "@/components/features/wiki/info/personajes";
-import PureGridItems from "@/components/features/wiki/info/items";
 import Criaturas from "@/components/features/wiki/info/criaturas";
 
 export default function WikiPage() {
@@ -22,12 +21,6 @@ export default function WikiPage() {
           label: "Criaturas",
           icon: Panda,
           content: <Criaturas />,
-        },
-        {
-          id: "items",
-          label: "Items",
-          icon: Sword,
-          content: <PureGridItems />,
         },
       ]}
     />
