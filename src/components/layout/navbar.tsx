@@ -345,13 +345,13 @@ const Navbar = () => {
   // Links del nav público
   const mainLinks = [
     { href: "/personal", label: "Personal", icon: Star,   active: isPersonal, fillActive: true,  subLinks: personalSubLinks },
-    { href: "/wiki",     label: "Wiki",     icon: Flower2, active: isWiki,     fillActive: false, subLinks: wikiSubLinks     },
+    { href: "/wiki",     label: "Jardin",     icon: Flower2, active: isWiki,     fillActive: false, subLinks: wikiSubLinks     },
   ];
 
   // Links de Franilover — ahora con subLinks para los flyouts
   const franiLinks = [
-    { href: "/myself/salud",      label: "Salud",        icon: Utensils, key: "/salud",        active: isSalud,      subLinks: saludSubLinks       },
-    { href: "/myself/escritorio", label: "Escritorio",   icon: PenTool,  key: "/escritorio",   active: isEscritorio, subLinks: escritorioSubLinks  },
+    { href: "/myself/salud",      label: "Vida",        icon: Utensils, key: "/salud",        active: isSalud,      subLinks: saludSubLinks       },
+    { href: "/myself/escritorio", label: "Arte",   icon: PenTool,  key: "/escritorio",   active: isEscritorio, subLinks: escritorioSubLinks  },
   ];
 
   return (
