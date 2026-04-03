@@ -39,6 +39,7 @@ const saludSubLinks = [
   { href: "/myself/salud?panel=recetas",      label: "Recetas",      icon: UtensilsCrossed },
   { href: "/myself/salud?panel=ingredientes", label: "Ingredientes", icon: Carrot          },
   { href: "/myself/salud?panel=compras",      label: "Compras",      icon: ShoppingCart    },
+  { href: "/myself/salud?panel=ropa",      label: "Ropa",      icon: ShoppingCart    },
 ];
 
 // ─── Estilos compartidos ─────────────────────────────────────────────────────
