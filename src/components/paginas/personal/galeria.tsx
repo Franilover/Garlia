@@ -781,7 +781,7 @@ export default function GaleriaPage() {
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             className="font-black italic uppercase leading-[0.85]"
             style={{ color: "var(--primary)", fontSize: "clamp(3rem, 11vw, 8rem)", letterSpacing: "-0.03em" }}>
-            Galería (Experimental)
+            Galería (beta)
           </motion.h1>
         </div>
         <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
