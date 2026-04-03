@@ -2,9 +2,13 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ChevronLeft, Loader2, Menu, X, PenTool } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
 import { useAuth } from "@/providers/AuthProvider";
 import { db } from "@/lib/api/client/db";
+import { useToast } from "@/hooks/ui/useToast";
+import { ToastContainer } from "@/components/ui/ToastContainer";
+import { useConfirm } from "@/components/ui/ConfirmModal";
 
 import Sidebar from "../../features/ensayos/sidebar";
 import Editor from "../../features/ensayos/editor";
@@ -69,6 +73,9 @@ async function readZoteroFile(handle: FileSystemFileHandle): Promise<ZoteroSourc
 
 export default function Ensayos() {
   const { user } = useAuth() as { user: any };
+  const router = useRouter();
+  const { toasts, toast, dismiss } = useToast();
+  const { confirm, ConfirmModal } = useConfirm();
   const [loading, setLoading]           = useState(false);
   const [editMode, setEditMode]         = useState(true);
   const [sidebarOpen, setSidebarOpen]   = useState(false);
@@ -163,7 +170,7 @@ export default function Ensayos() {
           setSources(parsed);
           setZoteroConnected(true);
           localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
-        } catch { alert("Error al leer el archivo Zotero"); }
+        } catch { toast.error("Error al leer el archivo Zotero"); }
       };
       input.click();
       return;
@@ -274,7 +281,8 @@ export default function Ensayos() {
   };
 
   const eliminarEnsayo = async (id: string) => {
-    if (!confirm("¿Eliminar esta nota?")) return;
+    const ok = await confirm({ message: "¿Eliminar esta nota?", danger: true, confirmLabel: "Eliminar" });
+    if (!ok) return;
     await supabase.from("ensayos").delete().eq("id", id);
     setEnsayos(prev => prev.filter(e => e.id !== id));
     if (ensayoActivoId === id) setEnsayoActivo(null);
@@ -313,7 +321,7 @@ export default function Ensayos() {
       >
         {}
         <div className="shrink-0 z-10 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-2.5 flex items-center justify-between bg-bg-main/80">
-          <button onClick={() => window.history.back()}
+          <button onClick={() => router.back()}
             className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-colors"
           >
             <ChevronLeft size={13} /> Grafos
@@ -376,6 +384,8 @@ export default function Ensayos() {
           <NewNoteModal onConfirm={crearEnsayo} onClose={() => setShowNewNoteModal(false)} />
         )}
       </AnimatePresence>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
+      <ConfirmModal />
     </>
   );
 }
