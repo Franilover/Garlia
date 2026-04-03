@@ -420,20 +420,6 @@ export default function MapaInteractivo() {
                     </div>
                   )}
                 </div>
-
-                <div className="mt-8 flex flex-col gap-3">
-                  {puntoSeleccionado && (
-                    <button
-                      onClick={() => setPuntoSeleccionado(null)}
-                      className="w-full bg-bg-main text-primary text-[10px] font-black uppercase py-3 border border-primary/10 hover:bg-white-custom transition-all" style={{borderRadius:"var(--radius-btn)"}}
-                    >
-                      Volver al Reino
-                    </button>
-                  )}
-                  <button className="w-full bg-primary text-btn-text text-[11px] font-black uppercase py-5 px-8 flex items-center justify-center gap-3 hover:bg-primary/80 transition-all shadow-lg shadow-primary/20" style={{borderRadius:"var(--radius-btn)"}}>
-                    {puntoSeleccionado ? "Ver Lore del Punto" : "Ver personajes de este Reino"} <ChevronRight size={16} />
-                  </button>
-                </div>
               </>
             )}
           </motion.div>
