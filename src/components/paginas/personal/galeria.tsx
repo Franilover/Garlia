@@ -13,17 +13,6 @@ import {
   Maximize2, RotateCcw, Image as ImageLucide,
 } from "lucide-react";
 
-// ─── SQL (ejecutar en Supabase) ───────────────────────────────────────────────
-// alter table galeria
-//   add column if not exists text_position text    default 'bottom',
-//   add column if not exists text_x        numeric default 50,
-//   add column if not exists text_y        numeric default 85,
-//   add column if not exists text_size     integer default 2,
-//   add column if not exists text_bg_color text    default 'transparent',
-//   add column if not exists text_color    text    default '#1a1a1a';
-
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-
 type TextPosition = "bottom" | "left" | "right" | "overlay";
 
 interface GaleriaItem {
@@ -792,7 +781,7 @@ export default function GaleriaPage() {
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             className="font-black italic uppercase leading-[0.85]"
             style={{ color: "var(--primary)", fontSize: "clamp(3rem, 11vw, 8rem)", letterSpacing: "-0.03em" }}>
-            Galería
+            Galería (Experimental)
           </motion.h1>
         </div>
         <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
