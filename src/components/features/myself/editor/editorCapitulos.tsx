@@ -152,14 +152,14 @@ async function capUpdateMeta(id: string, fields: Partial<Capitulo>): Promise<voi
   }
 }
 
-async function capCreate(libroId: string, titulo: string, orden: number, fecha: string): Promise<Capitulo> {
-  const base = {
+async function capCreate(libroId: string, titulo: string, orden: number, visibilidad: "publico" | "programado" | "oculto" = "oculto", fecha?: string): Promise<Capitulo> {
+  const base: any = {
     libro_id: libroId,
     titulo_capitulo: titulo.toUpperCase(),
     contenido: "",
     orden,
-    fecha_publicacion: fecha,
-    visibilidad: (new Date(fecha) > new Date() ? "programado" : "publico") as "publico" | "programado" | "oculto",
+    visibilidad,
+    fecha_publicacion: visibilidad === "programado" ? (fecha ?? null) : null,
   };
   if (!navigator.onLine) {
     const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -947,6 +947,7 @@ const PanelEditor = ({
   const [titulo,        setTitulo]        = useState("");
   const [editingFecha,  setEditingFecha]  = useState(false);
   const [fecha,         setFecha]         = useState("");
+  const [capVisibilidad, setCapVisibilidad] = useState<"publico" | "programado" | "oculto">("oculto");
   const [savingMeta,    setSavingMeta]    = useState(false);
   const [previewOpen,   setPreviewOpen]   = useState(false);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
@@ -965,6 +966,7 @@ const PanelEditor = ({
     setContenido(cap.contenido || "");
     setTitulo(cap.titulo_capitulo || "");
     setFecha(toDateInput(cap.fecha_publicacion));
+    setCapVisibilidad(cap.visibilidad ?? "oculto");
     if (cap.status === "pending") setSaveStatus("pending");
     else setSaveStatus("idle");
   }, [cap?.id]);
@@ -1189,43 +1191,61 @@ const PanelEditor = ({
                 <Hash size={9}/> Cap. {cap.orden}
               </span>
 
-              {}
-              {editingFecha ? (
-                <span className="flex items-center gap-1.5">
-                  <Calendar size={9}/>
-                  <input
-                    autoFocus
-                    type="date"
-                    value={fecha}
-                    onChange={e => setFecha(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter") handleSaveFecha();
-                      if (e.key === "Escape") { setEditingFecha(false); setFecha(toDateInput(cap.fecha_publicacion)); }
-                    }}
-                    className="bg-primary/5 border border-primary/20 rounded-lg px-2 py-0.5 text-[9px] font-bold text-primary outline-none focus:border-primary/40 transition-colors"
-                  />
-                  <button onClick={handleSaveFecha} disabled={savingMeta} className="p-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40">
-                    {savingMeta ? <Loader2 size={10} className="animate-spin"/> : <Check size={10}/>}
+              {/* Fecha: solo visible cuando visibilidad = programado */}
+              {capVisibilidad === "programado" && (
+                editingFecha ? (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar size={9}/>
+                    <input
+                      autoFocus
+                      type="date"
+                      value={fecha}
+                      onChange={e => setFecha(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") handleSaveFecha();
+                        if (e.key === "Escape") { setEditingFecha(false); setFecha(toDateInput(cap.fecha_publicacion)); }
+                      }}
+                      className="bg-primary/5 border border-primary/20 rounded-lg px-2 py-0.5 text-[9px] font-bold text-primary outline-none focus:border-primary/40 transition-colors"
+                    />
+                    <button onClick={handleSaveFecha} disabled={savingMeta} className="p-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40">
+                      {savingMeta ? <Loader2 size={10} className="animate-spin"/> : <Check size={10}/>}
+                    </button>
+                    <button onClick={() => { setEditingFecha(false); setFecha(toDateInput(cap.fecha_publicacion)); }} className="p-1 rounded hover:bg-primary/5 text-primary/30 hover:text-primary transition-all">
+                      <X size={10}/>
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setEditingFecha(true)}
+                    className="flex items-center gap-1 hover:text-primary transition-colors group/fecha"
+                    title="Editar fecha de publicación"
+                  >
+                    <Calendar size={9}/>
+                    {fecha
+                      ? new Date(fecha) > new Date()
+                        ? `Programado · ${new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}`
+                        : new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })
+                      : "Sin fecha"
+                    }
+                    <Pencil size={8} className="opacity-0 group-hover/fecha:opacity-60 transition-opacity ml-0.5"/>
                   </button>
-                  <button onClick={() => { setEditingFecha(false); setFecha(toDateInput(cap.fecha_publicacion)); }} className="p-1 rounded hover:bg-primary/5 text-primary/30 hover:text-primary transition-all">
-                    <X size={10}/>
-                  </button>
-                </span>
-              ) : (
-                <button
-                  onClick={() => setEditingFecha(true)}
-                  className="flex items-center gap-1 hover:text-primary transition-colors group/fecha"
-                  title="Editar fecha"
-                >
-                  <Calendar size={9}/>
-                  {new Date(cap.fecha_publicacion) > new Date() ? "Programado · " : ""}
-                  {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
-                  <Pencil size={8} className="opacity-0 group-hover/fecha:opacity-60 transition-opacity ml-0.5"/>
-                </button>
+                )
               )}
 
               {/* Visibilidad del capítulo */}
-              <VisibilidadCapPicker capId={capId} current={cap.visibilidad ?? "programado"} onChanged={(v) => setCap(prev => prev ? { ...prev, visibilidad: v } : prev)} />
+              <VisibilidadCapPicker
+                capId={capId}
+                current={capVisibilidad}
+                onChanged={(v) => {
+                  setCapVisibilidad(v);
+                  setCap(prev => prev ? { ...prev, visibilidad: v } : prev);
+                  // Si no es programado, limpiar la fecha
+                  if (v !== "programado") {
+                    setFecha("");
+                    capUpdateMeta(capId, { fecha_publicacion: null as any });
+                  }
+                }}
+              />
             </div>
 
             <div className="flex items-center gap-4">
@@ -1420,7 +1440,8 @@ const ModalEditarCapitulo = ({
       const fields: Partial<Capitulo> = {
         titulo_capitulo: titulo.trim().toUpperCase(),
         orden: parseInt(orden) || cap.orden,
-        fecha_publicacion: fecha,
+        // Fecha solo se guarda si es programado
+        fecha_publicacion: visibilidad === "programado" ? fecha : null as any,
         visibilidad,
         personajes_ids: personajesIds,
       };
@@ -1441,13 +1462,13 @@ const ModalEditarCapitulo = ({
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
         <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
-        <div className="grid grid-cols-2 gap-3">
-          <CampoInput label="Orden" value={orden} onChange={setOrden} type="number" placeholder="1" />
-          <CampoInput label="Fecha de publicación" value={fecha} onChange={setFecha} type="date" />
-        </div>
+        <CampoInput label="Orden" value={orden} onChange={setOrden} type="number" placeholder="1" />
         <SelectorVisibilidad
           value={visibilidad}
-          onChange={setVisibilidad}
+          onChange={(v) => {
+            setVisibilidad(v);
+            if (v !== "programado") setFecha("");
+          }}
           fechaPublicacion={fecha}
           onFechaChange={setFecha}
           label="Visibilidad del Capítulo"
@@ -1472,25 +1493,22 @@ const ModalNuevoCapitulo = ({
   onCreated: (cap: Capitulo) => void;
   onClose: () => void;
 }) => {
-  const [titulo,         setTitulo]         = useState("");
-  const [fecha,          setFecha]          = useState(new Date().toISOString().split("T")[0]);
-  const [visibilidad,    setVisibilidad]    = useState<"publico" | "programado" | "oculto">("oculto");
-  const [personajesIds,  setPersonajesIds]  = useState<string[]>([]);
-  const [saving,         setSaving]         = useState(false);
+  const [titulo,        setTitulo]        = useState("");
+  const [fecha,         setFecha]         = useState("");
+  const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">("oculto");
+  const [personajesIds, setPersonajesIds] = useState<string[]>([]);
+  const [saving,        setSaving]        = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titulo.trim()) return;
     setSaving(true);
     try {
-      const nuevo = await capCreate(libroId, titulo, ordenSiguiente, fecha);
-      // Aplicar visibilidad y personajes al nuevo capítulo
-      const metaExtra: Partial<Capitulo> = {};
-      if (visibilidad !== nuevo.visibilidad) metaExtra.visibilidad = visibilidad;
-      if (personajesIds.length > 0) metaExtra.personajes_ids = personajesIds;
-      if (Object.keys(metaExtra).length > 0) {
-        await capUpdateMeta(nuevo.id, metaExtra);
-        Object.assign(nuevo, metaExtra);
+      const nuevo = await capCreate(libroId, titulo, ordenSiguiente, visibilidad, fecha || undefined);
+      // Aplicar personajes si hay
+      if (personajesIds.length > 0) {
+        await capUpdateMeta(nuevo.id, { personajes_ids: personajesIds });
+        Object.assign(nuevo, { personajes_ids: personajesIds });
       }
       onCreated(nuevo);
       onClose();
@@ -1506,10 +1524,12 @@ const ModalNuevoCapitulo = ({
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
         <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="NOMBRE DEL CAPÍTULO…" autoFocus />
-        <CampoInput label="Fecha de publicación" value={fecha} onChange={setFecha} type="date" />
         <SelectorVisibilidad
           value={visibilidad}
-          onChange={setVisibilidad}
+          onChange={(v) => {
+            setVisibilidad(v);
+            if (v !== "programado") setFecha("");
+          }}
           fechaPublicacion={fecha}
           onFechaChange={setFecha}
           label="Visibilidad del Capítulo"
