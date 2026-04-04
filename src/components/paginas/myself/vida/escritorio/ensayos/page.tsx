@@ -14,7 +14,7 @@ import Sidebar from "@/components/paginas/myself/vida/ensayos/sidebar";
 import Editor from "@/components/paginas/myself/vida/ensayos/editor";
 import EmptyState from "@/components/paginas/myself/vida/ensayos/emptyState";
 import NewNoteModal from "@/components/paginas/myself/vida/ensayos/newNoteModal";
-import { TagPanel } from "@/components/paginas/myself/vida/ensayos/tagPanel";
+import { TagPanel } from "@/components/paginas/myself/vida/escritorio/ensayos/tagPanel";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 
 export interface ZoteroSource {
