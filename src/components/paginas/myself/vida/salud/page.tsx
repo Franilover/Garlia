@@ -2,14 +2,14 @@
 
 import { Dumbbell, Calendar, FileText, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
 import Secciones from "@/components/layout/Secciones";
-import { PaginaEjercicios } from "@/components/paginas/myself/vida//ejerciciosComponent";
-import ComprasPage from "@/components/paginas/myself/vida//compras";
-import ArmarioPage from "@/components/paginas/myself/vida/ropa";
+import { PaginaEjercicios } from "@/components/paginas/myself/vida/salud/ejerciciosComponent";
+import ComprasPage from "@/components/paginas/myself/vida/salud/compras";
+import ArmarioPage from "@/components/paginas/myself/vida/salud/ropa";
 import { IngredientesPage } from "@/components/paginas/myself/vida/salud/ingredientes";
-import RecetasPage from "@/components/paginas/myself/vida//recetas";
+import RecetasPage from "@/components/paginas/myself/vida/salud/recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import { GestionPersonal } from "@/components/paginas/myself/vida/escritorio/tareas/tareas";
-import EnsayosView from "@/components/paginas/myself/vida/ensayos";
+import EnsayosView from "@/components/paginas/myself/vida/ensayos/page";
 
 export default function SaludPage() {
   return (
