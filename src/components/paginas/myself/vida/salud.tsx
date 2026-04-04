@@ -2,13 +2,13 @@
 
 import { Dumbbell, Calendar, FileText, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
 import Secciones from "@/components/layout/Secciones";
-import { PaginaEjercicios } from "@/components/features/myself/salud/ejerciciosComponent";
-import ComprasPage from "@/components/features/myself/salud/compras";
+import { PaginaEjercicios } from "@/components/paginas/myself/vida/salud/ejerciciosComponent";
+import ComprasPage from "@/components/paginas/myself/vida/salud/compras";
 import ArmarioPage from "@/components/paginas/myself/vida/ropa";
-import { IngredientesPage } from "@/components/features/myself/salud/ingredientes";
-import RecetasPage from "@/components/features/myself/salud/recetas";
+import { IngredientesPage } from "@/components/paginas/myself/vida/salud/ingredientes";
+import RecetasPage from "@/components/paginas/myself/vida/salud/recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";
-import { GestionPersonal } from "@/components/features/tareas/tareas";
+import { GestionPersonal } from "@/components/paginas/myself/vida/tareas/tareas";
 import EnsayosView from "@/components/paginas/myself/ensayos";
 
 export default function SaludPage() {
