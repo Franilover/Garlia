@@ -26,9 +26,9 @@ const personalSubLinks = [
   { href: "/personal/galeria",  label: "Galeria",  icon: Palette },
 ];
 const escritorioSubLinks = [
-  { href: "/myself/escritorio?panel=capitulos", label: "Capítulos", icon: BookOpen  },
-  { href: "/myself/escritorio?panel=letras",    label: "Letras",    icon: Music     },
-  { href: "/myself/escritorio?panel=entidades", label: "Entidades",    icon: Cat     },
+  { href: "/myself/jardin?panel=capitulos", label: "Capítulos", icon: BookOpen  },
+  { href: "/myself/jardin?panel=letras",    label: "Letras",    icon: Music     },
+  { href: "/myself/jardin?panel=entidades", label: "Entidades",    icon: Cat     },
 
 ];
 const saludSubLinks = [
