@@ -10,11 +10,11 @@ import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 
-import Sidebar from "@/components/features/ensayos/sidebar";
-import Editor from "@/components/features/ensayos/editor";
-import EmptyState from "@/components/features/ensayos/emptyState";
-import NewNoteModal from "@/components/features/ensayos/newNoteModal";
-import { TagPanel } from "@/components/features/ensayos/tagPanel";
+import Sidebar from "@/components/paginas/myself/vida/ensayos/sidebar";
+import Editor from "@/components/paginas/myself/vida/ensayos/editor";
+import EmptyState from "@/components/paginas/myself/vida/ensayos/emptyState";
+import NewNoteModal from "@/components/paginas/myself/vida/ensayos/newNoteModal";
+import { TagPanel } from "@/components/paginas/myself/vida/ensayos/tagPanel";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 
 export interface ZoteroSource {
