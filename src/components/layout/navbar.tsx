@@ -34,13 +34,13 @@ const jardinSubLinks = [
 const escritorioSubLinks = [
   { href: "/myself/escritorio?panel=agenda",    label: "Agenda",    icon: Calendar  },
   { href: "/myself/escritorio?panel=ensayos",   label: "Ensayos",   icon: FileText  },
-  { href: "/myself/escritorio?panel=ejercicios",   label: "Ejercicios",   icon: Dumbbell     },
   { href: "/myself/escritorio?panel=ropa",      label: "Ropa",      icon: ShoppingCart    },
 ];
 
 const saludSubLinks = [
   { href: "/myself/salud?panel=recetas",      label: "Recetas",      icon: UtensilsCrossed },
   { href: "/myself/salud?panel=ingredientes", label: "Ingredientes", icon: Carrot          },
+  { href: "/myself/salud?panel=ejercicios",   label: "Ejercicios",   icon: Dumbbell     },
   { href: "/myself/salud?panel=compras",      label: "Compras",      icon: ShoppingCart    },
 ];
 
