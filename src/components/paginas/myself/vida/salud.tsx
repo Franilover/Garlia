@@ -9,7 +9,7 @@ import { IngredientesPage } from "@/components/paginas/myself/vida//ingredientes
 import RecetasPage from "@/components/paginas/myself/vida//recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import { GestionPersonal } from "@/components/paginas/myself/vida/tareas/tareas";
-import EnsayosView from "@/components/paginas/myself/ensayos";
+import EnsayosView from "@/components/paginas/myself/vida/ensayos";
 
 export default function SaludPage() {
   return (
