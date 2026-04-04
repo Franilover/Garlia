@@ -355,8 +355,8 @@ const Navbar = () => {
   // Links de Franilover — ahora con subLinks para los flyouts
   const franiLinks = [
     { href: "/myself/salud",      label: "Vida",        icon: Utensils, key: "/salud",        active: isSalud,      subLinks: saludSubLinks       },
-    { href: "/myself/jardin", label: "Arte",   icon: PenTool,  key: "/jardin",   active: isJardin, subLinks: jardinSubLinks  },
     { href: "/myself/escritorio", label: "Escritorio",   icon: PenTool,  key: "/escritorio",   active: isEscritorio, subLinks: escritorioSubLinks  },
+    { href: "/myself/jardin", label: "Arte",   icon: PenTool,  key: "/jardin",   active: isJardin, subLinks: jardinSubLinks  },
   ];
 
   return (
