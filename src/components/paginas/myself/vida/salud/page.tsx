@@ -4,12 +4,12 @@ import { Dumbbell, Calendar, FileText, ShoppingCart, UtensilsCrossed, Carrot } f
 import Secciones from "@/components/layout/Secciones";
 import { PaginaEjercicios } from "@/components/paginas/myself/vida/salud/ejerciciosComponent";
 import ComprasPage from "@/components/paginas/myself/vida/salud/compras";
-import ArmarioPage from "@/components/paginas/myself/vida/salud/ropa";
+import ArmarioPage from "@/components/paginas/myself/vida/ropa";
 import { IngredientesPage } from "@/components/paginas/myself/vida/salud/ingredientes";
 import RecetasPage from "@/components/paginas/myself/vida/salud/recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import { GestionPersonal } from "@/components/paginas/myself/vida/escritorio/tareas/tareas";
-import EnsayosView from "@/components/paginas/myself/vida/ensayos/page";
+import EnsayosView from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
 export default function SaludPage() {
   return (
