@@ -32,19 +32,16 @@ const jardinSubLinks = [
 ];
 
 const escritorioSubLinks = [
-  { href: "/myself/jardin?panel=capitulos", label: "Capítulos", icon: BookOpen  },
-  { href: "/myself/jardin?panel=letras",    label: "Letras",    icon: Music     },
-  { href: "/myself/jardin?panel=entidades", label: "Entidades",    icon: Cat     },
+  { href: "/myself/escritorio?panel=agenda",    label: "Agenda",    icon: Calendar  },
+  { href: "/myself/escritorio?panel=ensayos",   label: "Ensayos",   icon: FileText  },
+  { href: "/myself/escritorio?panel=ejercicios",   label: "Ejercicios",   icon: Dumbbell     },
+  { href: "/myself/escritorio?panel=ropa",      label: "Ropa",      icon: ShoppingCart    },
 ];
 
 const saludSubLinks = [
-  { href: "/myself/salud?panel=agenda",    label: "Agenda",    icon: Calendar  },
-  { href: "/myself/salud?panel=ensayos",   label: "Ensayos",   icon: FileText  },
-  { href: "/myself/salud?panel=ejercicios",   label: "Ejercicios",   icon: Dumbbell        },
   { href: "/myself/salud?panel=recetas",      label: "Recetas",      icon: UtensilsCrossed },
   { href: "/myself/salud?panel=ingredientes", label: "Ingredientes", icon: Carrot          },
   { href: "/myself/salud?panel=compras",      label: "Compras",      icon: ShoppingCart    },
-  { href: "/myself/salud?panel=ropa",      label: "Ropa",      icon: ShoppingCart    },
 ];
 
 // ─── Estilos compartidos ─────────────────────────────────────────────────────
