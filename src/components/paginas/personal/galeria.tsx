@@ -19,7 +19,8 @@ import {
 //   add column if not exists text_size     integer default 2,
 //   add column if not exists text_bg_color text    default 'transparent',
 //   add column if not exists text_color    text    default '#1a1a1a',
-//   add column if not exists img_col_width integer default 55;
+//   add column if not exists img_col_width integer default 55,
+//   add column if not exists text_width    integer default 40;
 
 // ─── SISTEMA DE COORDENADAS ───────────────────────────────────────────────────
 // Usamos un canvas con aspect-ratio fijo (16:9).
@@ -46,6 +47,7 @@ interface GaleriaItem {
   text_position: TextPosition;
   text_x:        number;
   text_y:        number;
+  text_width:    number;   // % del ancho del canvas que ocupa el bloque de texto overlay (10–90)
   text_size:     number;
   text_bg_color: string;
   text_color:    string;
@@ -80,6 +82,7 @@ function draftFromItem(item: GaleriaItem): Draft {
     text_position: item.text_position ?? "bottom",
     text_x:        item.text_x        ?? 50,
     text_y:        item.text_y        ?? 85,
+    text_width:    item.text_width    ?? 40,
     text_size:     item.text_size     ?? 2,
     text_bg_color: item.text_bg_color ?? "transparent",
     text_color:    item.text_color    ?? "#1a1a1a",
@@ -226,6 +229,7 @@ function CanvasEditorModal({
     img_col_width: Math.round(Math.max(20, Math.min(80, draft.img_col_width))),
     text_x:        Math.round(Math.max(0, Math.min(100, draft.text_x))   * 10) / 10,
     text_y:        Math.round(Math.max(0, Math.min(100, draft.text_y))   * 10) / 10,
+    text_width:    Math.round(Math.max(10, Math.min(90, draft.text_width))),
     text_size:     Math.max(1, Math.min(5, draft.text_size)),
   });
 
@@ -275,35 +279,28 @@ function CanvasEditorModal({
             {/* Texto superpuesto — preview */}
             {isOverlay && (titulo || descripcion) && (
               <div
-                className="absolute z-20 max-w-[72%] pointer-events-none"
+                className="absolute z-20 pointer-events-none overflow-hidden"
                 style={{
-                  left: `${draft.text_x}%`, top: `${draft.text_y}%`,
+                  left:      `${draft.text_x}%`,
+                  top:       `${draft.text_y}%`,
                   transform: "translate(-50%,-50%)",
+                  width:     `${draft.text_width}%`,   /* ancho fijo — no cambia con la posición */
                   background: draft.text_bg_color === "transparent" ? "transparent" : draft.text_bg_color,
-                  padding: draft.text_bg_color !== "transparent" ? "10px 18px" : "0",
+                  padding:    draft.text_bg_color !== "transparent" ? "10px 18px" : "0",
                   borderRadius: 6,
-                  outline: "1px dashed rgba(255,255,255,0.3)",
+                  outline:    "1px dashed rgba(255,255,255,0.3)",
+                  boxSizing:  "border-box",
                 }}
               >
                 {titulo && (
                   <h2 className="font-black italic uppercase leading-tight"
-                    style={{
-                      color: draft.text_color,
-                      letterSpacing: "-0.025em",
-                      fontSize: sz.titleCqw,
-                      lineHeight: 1.1,
-                    }}>
+                    style={{ color: draft.text_color, letterSpacing: "-0.025em", fontSize: sz.titleCqw, lineHeight: 1.1 }}>
                     {titulo}
                   </h2>
                 )}
                 {descripcion && (
                   <p className="font-light leading-relaxed"
-                    style={{
-                      color: draft.text_color,
-                      opacity: 0.85,
-                      fontSize: sz.descCqw,
-                      marginTop: "0.5em",
-                    }}>
+                    style={{ color: draft.text_color, opacity: 0.85, fontSize: sz.descCqw, marginTop: "0.5em" }}>
                     {descripcion}
                   </p>
                 )}
@@ -442,16 +439,18 @@ function CanvasEditorModal({
                   })}
                 </div>
 
-                {/* Posición XY — solo en overlay */}
+                {/* Posición y tamaño — solo en overlay */}
                 {isOverlay && (
                   <div className="space-y-2 pt-1">
                     <p className="text-[8px] text-primary/30 font-black uppercase tracking-widest">
-                      Usa los sliders para posicionar
+                      Posición y tamaño del bloque
                     </p>
                     <Slider label="Horizontal" value={draft.text_x} min={0} max={100} step={0.5}
                       onChange={v => set({ text_x: v })} />
                     <Slider label="Vertical"   value={draft.text_y} min={0} max={100} step={0.5}
                       onChange={v => set({ text_y: v })} />
+                    <Slider label="Ancho"      value={draft.text_width} min={10} max={90}
+                      onChange={v => set({ text_width: v })} />
                   </div>
                 )}
 
@@ -704,23 +703,21 @@ function GaleriaSection({
           <FixedCanvas bg={item.bg_color}>
             <img src={item.url_imagen} alt={item.titulo || "Obra"} style={imgStyle} draggable={false} />
             {(item.titulo || item.descripcion) && (
-              <div className="absolute z-10 max-w-[72%]"
+              <div className="absolute z-10 overflow-hidden"
                 style={{
-                  left: `${item.text_x ?? 50}%`, top: `${item.text_y ?? 85}%`,
+                  left:      `${item.text_x ?? 50}%`,
+                  top:       `${item.text_y ?? 85}%`,
                   transform: "translate(-50%,-50%)",
+                  width:     `${item.text_width ?? 40}%`,   /* ancho fijo — nunca cambia con la posición */
                   background: item.text_bg_color === "transparent" ? "transparent" : item.text_bg_color,
-                  padding: item.text_bg_color !== "transparent" ? "10px 18px" : "0",
+                  padding:    item.text_bg_color !== "transparent" ? "10px 18px" : "0",
                   borderRadius: 6,
+                  boxSizing: "border-box",
                 }}>
                 {item.titulo && (
                   <h2
                     className="font-black italic uppercase leading-tight"
-                    style={{
-                      color: item.text_color ?? "white",
-                      letterSpacing: "-0.025em",
-                      fontSize: sz.titleCqw,
-                      lineHeight: 1.1,
-                    }}
+                    style={{ color: item.text_color ?? "white", letterSpacing: "-0.025em", fontSize: sz.titleCqw, lineHeight: 1.1 }}
                   >
                     {item.titulo}
                   </h2>
@@ -728,12 +725,7 @@ function GaleriaSection({
                 {item.descripcion && (
                   <p
                     className="font-light leading-relaxed"
-                    style={{
-                      color: item.text_color ?? "white",
-                      opacity: 0.85,
-                      fontSize: sz.descCqw,
-                      marginTop: "0.5em",
-                    }}
+                    style={{ color: item.text_color ?? "white", opacity: 0.85, fontSize: sz.descCqw, marginTop: "0.5em" }}
                   >
                     {item.descripcion}
                   </p>
@@ -777,7 +769,7 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
       bg_color:      "#111111",
       img_x: 50, img_y: 50, img_scale: 1, img_width: 60, img_col_width: 55,
       text_position: "bottom",
-      text_x: 50, text_y: 85, text_size: 2,
+      text_x: 50, text_y: 85, text_width: 40, text_size: 2,
       text_bg_color: "transparent", text_color: "#ffffff",
       orden: nextOrden,
     }]);
