@@ -2,11 +2,11 @@
 
 import { Dumbbell, Calendar, FileText, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
 import Secciones from "@/components/layout/Secciones";
-import { PaginaEjercicios } from "@/components/paginas/myself/vida/salud/ejerciciosComponent";
-import ComprasPage from "@/components/paginas/myself/vida/salud/compras";
+import { PaginaEjercicios } from "@/components/paginas/myself/vida//ejerciciosComponent";
+import ComprasPage from "@/components/paginas/myself/vida//compras";
 import ArmarioPage from "@/components/paginas/myself/vida/ropa";
-import { IngredientesPage } from "@/components/paginas/myself/vida/salud/ingredientes";
-import RecetasPage from "@/components/paginas/myself/vida/salud/recetas";
+import { IngredientesPage } from "@/components/paginas/myself/vida//ingredientes";
+import RecetasPage from "@/components/paginas/myself/vida//recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import { GestionPersonal } from "@/components/paginas/myself/vida/tareas/tareas";
 import EnsayosView from "@/components/paginas/myself/ensayos";
