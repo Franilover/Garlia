@@ -25,12 +25,18 @@ const personalSubLinks = [
   { href: "/personal/sobre-mi", label: "Sobre Mí", icon: Star    },
   { href: "/personal/galeria",  label: "Galeria",  icon: Palette },
 ];
+const jardinSubLinks = [
+  { href: "/myself/jardin?panel=capitulos", label: "Capítulos", icon: BookOpen  },
+  { href: "/myself/jardin?panel=letras",    label: "Letras",    icon: Music     },
+  { href: "/myself/jardin?panel=entidades", label: "Entidades",    icon: Cat     },
+];
+
 const escritorioSubLinks = [
   { href: "/myself/jardin?panel=capitulos", label: "Capítulos", icon: BookOpen  },
   { href: "/myself/jardin?panel=letras",    label: "Letras",    icon: Music     },
   { href: "/myself/jardin?panel=entidades", label: "Entidades",    icon: Cat     },
-
 ];
+
 const saludSubLinks = [
   { href: "/myself/salud?panel=agenda",    label: "Agenda",    icon: Calendar  },
   { href: "/myself/salud?panel=ensayos",   label: "Ensayos",   icon: FileText  },
@@ -338,9 +344,11 @@ const Navbar = () => {
 
   const isWiki       = currentPath?.startsWith("/wiki")              ?? false;
   const isPersonal   = currentPath?.startsWith("/personal")          ?? false;
-  const isEscritorio = currentPath?.startsWith("/myself/escritorio") ?? false;
+  const isJardin = currentPath?.startsWith("/myself/jardin") ?? false;
   const isSalud      = currentPath?.startsWith("/myself/salud")      ?? false;;
-
+  const isEscritorio      = currentPath?.startsWith("/myself/escritorio")      ?? false;;
+    
+    
   // Links del nav público
   const mainLinks = [
     { href: "/personal", label: "Personal", icon: Star,   active: isPersonal, fillActive: true,  subLinks: personalSubLinks },
@@ -350,7 +358,9 @@ const Navbar = () => {
   // Links de Franilover — ahora con subLinks para los flyouts
   const franiLinks = [
     { href: "/myself/salud",      label: "Vida",        icon: Utensils, key: "/salud",        active: isSalud,      subLinks: saludSubLinks       },
-    { href: "/myself/escritorio", label: "Arte",   icon: PenTool,  key: "/escritorio",   active: isEscritorio, subLinks: escritorioSubLinks  },
+    { href: "/myself/jardin", label: "Arte",   icon: PenTool,  key: "/jardin",   active: isJardin, subLinks: jardinSubLinks  },
+    { href: "/myself/escritorio", label: "e",   icon: PenTool,  key: "/jardin",   active: isJardin, subLinks: escritorioSubLinks  },
+    
   ];
 
   return (
