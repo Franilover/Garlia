@@ -356,7 +356,7 @@ const Navbar = () => {
   const franiLinks = [
     { href: "/myself/salud",      label: "Salud",        icon: Utensils, key: "/salud",        active: isSalud,      subLinks: saludSubLinks       },
     { href: "/myself/escritorio", label: "Escritorio",   icon: PenTool,  key: "/escritorio",   active: isEscritorio, subLinks: escritorioSubLinks  },
-    { href: "/myself/jardin", label: "Arte",   icon: PenTool,  key: "/jardin",   active: isJardin, subLinks: jardinSubLinks  },
+    { href: "/myself/jardin", label: "Arte",   icon: Cat,  key: "/jardin",   active: isJardin, subLinks: jardinSubLinks  },
 
   ];
 
