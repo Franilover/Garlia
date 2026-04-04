@@ -305,7 +305,7 @@ export default function MapaInteractivo() {
             <div className="mb-5 flex items-center gap-2">
               <div className="h-px w-8 bg-primary/30" />
               <span className="text-[10px] font-black text-primary/40 uppercase tracking-[0.2em]">
-                {editMode ? "Editando Información" : puntoSeleccionado ? "Lugar Hallado" : "Explorando Territorio"}
+                {editMode ? "Editando Información" : puntoSeleccionado ? "Lugar Hallado" : "Explorando Reino"}
               </span>
             </div>
 
