@@ -11,7 +11,7 @@ interface Capitulo {
   id: string;
   titulo_capitulo: string;
   orden: number;
-  fecha_publicacion: string;
+  fecha_publicacion: string | null;
   libro_id: string;
 }
 
@@ -38,13 +38,11 @@ export default function LibroDetalle() {
 
   useEffect(() => {
     if (!id) return;
-    const hoy = new Date().toISOString().split("T")[0];
     Promise.all([
       supabase.from("libros").select("*").eq("id", id).single(),
       supabase.from("capitulos")
         .select("*").eq("libro_id", id)
         .eq("visibilidad", "publico")
-        .lte("fecha_publicacion", hoy)
         .not("titulo_capitulo", "like", "[Ruta]%")
         .order("orden", { ascending: true }),
     ]).then(([libroRes, capsRes]) => {
@@ -118,10 +116,11 @@ export default function LibroDetalle() {
                             <span className="text-primary font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform">
                               {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
                             </span>
-                            <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
-                              {new Date(cap.fecha_publicacion) > new Date() ? "Programado: " : "Publicado: "}
-                              {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
-                            </span>
+                            {cap.fecha_publicacion && (
+                              <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
+                                Publicado: {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
+                              </span>
+                            )}
                           </div>
                           <Play size={14} fill="currentColor" className="text-primary" />
                         </button>
