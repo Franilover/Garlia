@@ -5,10 +5,10 @@ import Secciones from "@/components/layout/Secciones";
 import { PaginaEjercicios } from "@/components/paginas/myself/vida//ejerciciosComponent";
 import ComprasPage from "@/components/paginas/myself/vida//compras";
 import ArmarioPage from "@/components/paginas/myself/vida/ropa";
-import { IngredientesPage } from "@/components/paginas/myself/vida//ingredientes";
+import { IngredientesPage } from "@/components/paginas/myself/vida/salud/ingredientes";
 import RecetasPage from "@/components/paginas/myself/vida//recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";
-import { GestionPersonal } from "@/components/paginas/myself/vida/tareas/tareas";
+import { GestionPersonal } from "@/components/paginas/myself/vida/escritorio/tareas/tareas";
 import EnsayosView from "@/components/paginas/myself/vida/ensayos";
 
 export default function SaludPage() {
