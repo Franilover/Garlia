@@ -1010,7 +1010,7 @@ function buildLineas(secciones: Seccion[], idioma: IdiomaKey): LineaConTiempo[] 
   return lineas;
 }
 
-function useKaraoke(cancionId: string, idioma: IdiomaKey, secciones: Seccion[]) {
+function useKaraoke(cancionId: string, idioma: IdiomaKey, secciones: Seccion[], duracion?: number | null) {
   const storageKey = `karaoke-${cancionId}-${idioma}`;
 
   // Inicializar desde secciones de Supabase (campo timings_<idioma>)
@@ -1059,14 +1059,22 @@ function useKaraoke(cancionId: string, idioma: IdiomaKey, secciones: Seccion[]) 
     if (playing) {
       startRef.current = Date.now();
       intervalRef.current = setInterval(() => {
-        setElapsed(baseRef.current + (Date.now() - startRef.current) / 1000);
+        const next = baseRef.current + (Date.now() - startRef.current) / 1000;
+        // Detener automáticamente al llegar al final
+        if (duracion && next >= duracion) {
+          setElapsed(duracion);
+          baseRef.current = duracion;
+          setPlaying(false);
+          return;
+        }
+        setElapsed(next);
       }, 50);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
       baseRef.current = elapsed;
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [playing]); // eslint-disable-line
+  }, [playing, duracion]); // eslint-disable-line
 
   // Guardar timings de una sección en Supabase (debounced 1s)
   const saveSeccionTimings = (seccionId: string, secTimings: Record<number, number>) => {
@@ -1083,7 +1091,12 @@ function useKaraoke(cancionId: string, idioma: IdiomaKey, secciones: Seccion[]) 
 
   const toggle = () => setPlaying(p => !p);
   const reset  = () => { setPlaying(false); baseRef.current = 0; setElapsed(0); };
-  const seekTo = (s: number) => { baseRef.current = s; startRef.current = Date.now(); setElapsed(s); };
+  const seekTo = (s: number) => {
+    const clamped = duracion ? Math.min(s, duracion) : s;
+    baseRef.current = clamped;
+    startRef.current = Date.now();
+    setElapsed(clamped);
+  };
 
   const marcarLinea = (seccionId: string, lineaIdx: number) => {
     setTimings(prev => {
@@ -1159,7 +1172,7 @@ const ModalLectorLetras = ({
   const [modoKaraoke, setModoKaraoke] = useState(false);
   const activaRef = useRef<HTMLDivElement>(null);
 
-  const karaoke = useKaraoke(cancionId, idioma, secciones);
+  const karaoke = useKaraoke(cancionId, idioma, secciones, duracion);
   const sliderMax = duracion ?? 600;
 
   const getLetra = (sec: Seccion, lang: IdiomaKey): string =>
