@@ -4,7 +4,7 @@ import { Dumbbell, Calendar, FileText, ShoppingCart, UtensilsCrossed, Carrot } f
 import Secciones from "@/components/layout/Secciones";
 import { PaginaEjercicios } from "@/components/features/myself/salud/ejerciciosComponent";
 import ComprasPage from "@/components/features/myself/salud/compras";
-import ArmarioPage from "@/components/paginas/myself/ropa";
+import ArmarioPage from "@/components/paginas/myself/vida/ropa";
 import { IngredientesPage } from "@/components/features/myself/salud/ingredientes";
 import RecetasPage from "@/components/features/myself/salud/recetas";
 import { AdminOnly } from "@/components/forms/AdminOnly";

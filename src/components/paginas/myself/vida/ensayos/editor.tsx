@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { TagPanel } from "./tagPanel";
-import { ZoteroSource } from "../../paginas/myself/ensayos";
+import { ZoteroSource } from "@/components/paginas/myself/vida/ensayos";
 
 interface EditorProps {
   ensayo: any;
