@@ -15,18 +15,8 @@ interface Cancion {
   cantante?: string;
   compositor?: string;
   idioma?: string;
-  estado: string;
   portada_url?: string;
 }
-
-const getEstadoColor = (estado: string) => {
-  const map: Record<string, string> = {
-    TERMINADA:    "bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/30",
-    "EN PROCESO": "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30",
-    BORRADOR:     "bg-primary/10 text-primary/60 border-primary/20",
-  };
-  return map[estado] || map["BORRADOR"];
-};
 
 const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }) => (
   <motion.div
@@ -99,9 +89,6 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <span className={`hidden sm:block px-3 py-1 rounded-full border font-black text-[8px] uppercase tracking-widest ${getEstadoColor(cancion.estado)}`}>
-            {cancion.estado}
-          </span>
           <ChevronRight size={16} className="text-primary/30 group-hover:text-primary transition-colors" />
         </div>
       </div>
