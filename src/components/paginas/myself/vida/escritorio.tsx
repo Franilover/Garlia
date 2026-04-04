@@ -2,9 +2,9 @@
 import { Cat, BookOpen, Music, Users } from "lucide-react";
 import { Secciones } from "@/components/layout/Secciones";
 import { AdminOnly } from "@/components/forms/AdminOnly";
-import EstudioCapitulos from "@/components/features/myself/editor/editorCapitulos";
-import EstudioLetras    from "@/components/features/myself/editor/editorLetras";
-import EditorEntidades  from "@/components/features/myself/editor/editorEntidades";
+import EstudioCapitulos from "@/components/paginas/myself/jardin/editorCapitulos";
+import EstudioLetras    from "@/components/paginas/myself/jardin/editorLetras";
+import EditorEntidades  from "@/components/paginas/myself/jardin/editorEntidades";
 
 export default function DashboardPage() {
   return (
