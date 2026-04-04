@@ -125,47 +125,6 @@ const FullLyricsModal = ({
   );
 };
 
-// ─── Selector de idioma ────────────────────────────────────────────────────────
-const LanguageToggler = ({
-  idiomasActivos, onToggle,
-}: {
-  idiomasActivos: IdiomaId[];
-  onToggle: (id: IdiomaId) => void;
-}) => (
-  <div className="p-6 bg-primary rounded-[var(--radius-card)] shadow-xl shadow-primary/20">
-    <h4
-      className="font-black uppercase text-[8px] tracking-[0.2em] mb-4 text-center italic"
-      style={{ color: "color-mix(in srgb, var(--btn-text) 40%, transparent)" }}
-    >
-      Vista Comparativa
-    </h4>
-    <div className="grid grid-cols-2 gap-2">
-      {IDIOMAS.map(l => (
-        <motion.button
-          key={l.id}
-          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-          onClick={() => onToggle(l.id)}
-          className={`py-2 rounded-[var(--radius-btn)] font-black text-[9px] uppercase border transition-all ${
-            idiomasActivos.includes(l.id)
-              ? "bg-white-custom border-white-custom"
-              : "bg-transparent"
-          }`}
-          style={
-            idiomasActivos.includes(l.id)
-              ? { color: "var(--primary)" }
-              : { color: "color-mix(in srgb, var(--btn-text) 50%, transparent)", borderColor: "color-mix(in srgb, var(--btn-text) 15%, transparent)" }
-          }
-        >
-          {l.label}
-        </motion.button>
-      ))}
-    </div>
-    <p className="text-[7px] text-center mt-3 font-bold uppercase tracking-widest"
-      style={{ color: "color-mix(in srgb, var(--btn-text) 25%, transparent)" }}>
-      Máx. 2 idiomas
-    </p>
-  </div>
-);
 
 // ─── Sección de links (solo lectura) ─────────────────────────────────────────
 const LinkSection = ({ links }: { links?: { titulo: string; url: string }[] }) => {
@@ -265,8 +224,6 @@ export default function CancionDetallesPage() {
               <h4 className="font-black uppercase text-[9px] tracking-[0.2em] text-primary">{cancion.estado}</h4>
             </motion.div>
           )}
-
-          <LanguageToggler idiomasActivos={idiomasActivos} onToggle={toggleIdioma} />
 
           {cancion?.personaje && (
             <motion.div
