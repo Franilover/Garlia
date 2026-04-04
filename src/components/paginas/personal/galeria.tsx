@@ -838,12 +838,37 @@ export default function GaleriaPage() {
   const { items, setItems, loading, reload } = useGaleria();
   const [showAdd, setShowAdd] = useState(false);
 
+  // Columnas base (siempre existen) vs extras (requieren migración SQL)
+  const BASE_COLS = new Set([
+    "titulo", "descripcion", "url_imagen", "bg_color",
+    "img_x", "img_y", "img_scale", "img_width",
+    "text_position", "text_x", "text_y", "text_size",
+    "text_bg_color", "text_color", "orden",
+  ]);
+
   const handleUpdate = useCallback(async (id: number, updates: Partial<GaleriaItem>) => {
-    // Esta función SOLO se llama desde GaleriaSection.handleSave,
-    // que SOLO se llama desde el botón "Guardar cambios" del editor.
-    // NUNCA se llama durante el drag.
+    // Intento 1: enviar todo
     const { error } = await supabase.from("galeria").update(updates).eq("id", id);
-    if (!error) setItems(prev => prev.map(it => it.id === id ? { ...it, ...updates } : it));
+
+    if (!error) {
+      setItems(prev => prev.map(it => it.id === id ? { ...it, ...updates } : it));
+      return;
+    }
+
+    // Intento 2: si falla por columnas desconocidas (400), enviamos solo las columnas base
+    const safeUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([k]) => BASE_COLS.has(k))
+    ) as Partial<GaleriaItem>;
+
+    const { error: error2 } = await supabase.from("galeria").update(safeUpdates).eq("id", id);
+    if (!error2) {
+      setItems(prev => prev.map(it => it.id === id ? { ...it, ...safeUpdates } : it));
+      console.warn(
+        "[Galería] Columnas extra no encontradas. Ejecuta en Supabase;"
+      );
+    } else {
+      console.error("[Galería] Error al guardar:", error2.message);
+    }
   }, [setItems]);
 
   const handleDelete = useCallback(async (id: number) => {
