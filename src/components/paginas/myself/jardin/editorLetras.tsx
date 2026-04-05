@@ -21,6 +21,7 @@ import {
   SelectPersonaje, SelectIdioma,
 } from "@/hooks/useEditorShared";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { Chip } from "@/components/ui/Chip";
 
 type Seccion = {
   id: string;
@@ -333,21 +334,6 @@ async function secReorder(secciones: { id: string; orden: number }[]): Promise<v
     }
   }
 }
-
-const Chip = ({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
-  <button
-    onClick={onClick}
-    className={`text-[9px] font-black uppercase px-2.5 py-1.5 rounded-full border transition-all whitespace-nowrap ${
-      active
-        ? "bg-primary text-bg-main border-primary"
-        : "border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary"
-    }`}
-  >
-    {children}
-  </button>
-);
 
 const IdiomaTab = ({
   value, onChange, exclude,

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Btn, BtnIcon, Badge, Modal, InputLine, Textarea, Loading, EmptyState, BackBtn, Divider, PageHeader } from "@/components/ui";
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
+import { SectionTitle, FieldInput, MacroBadge } from "@/components/paginas/myself/vida/salud/ui/SaludUi";
 
 const CATEGORIAS = [
   { label: "Proteínas",     emoji: "🥩" },
@@ -31,50 +32,6 @@ const INITIAL_FORM = {
   precio: 0,
 };
 
-function MacroBadge({ label, value, unit, scaled }: { label: string; value: number; unit: string; scaled?: number }) {
-  const showing = scaled !== undefined ? scaled : value;
-  const changed = scaled !== undefined && Math.abs(scaled - value) > 0.01;
-  return (
-    <div className="flex flex-col items-center gap-0.5 py-2">
-      <span className="text-[8px] font-black uppercase tracking-widest text-primary/40">{label}</span>
-      <span className={`text-[13px] font-black leading-none transition-colors ${changed ? "text-accent" : "text-primary"}`}>
-        {showing}<span className="text-[9px] font-semibold text-primary/30 ml-0.5">{unit}</span>
-      </span>
-    </div>
-  );
-}
-
-function FieldInput({
-  label, type = "text", value, onChange, placeholder, required, min, step,
-}: {
-  label: string; type?: string; value: string | number;
-  onChange: (v: string) => void; placeholder?: string;
-  required?: boolean; min?: string; step?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">
-        {label}{required && <span className="text-accent ml-0.5">*</span>}
-      </label>
-      <input
-        required={required}
-        type={type}
-        min={min}
-        step={step}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="input-brand text-[11px] font-bold"
-      />
-    </div>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">{children}</p>
-  );
-}
 
 export const IngredientesPage = () => {
   const [filter, setFilter]           = useState("");
