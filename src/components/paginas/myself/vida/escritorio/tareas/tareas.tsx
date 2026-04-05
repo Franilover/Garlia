@@ -31,6 +31,8 @@ export const GestionPersonal = () => {
   const [nuevoEvento, setNuevoEvento] = useState("");
   const [tipoEvento, setTipoEvento] = useState("Plan");
 
+  // ── CRUD tareas ─────────────────────────────────────────────────────────────
+
   const handleAddTarea = async () => {
     if (!nuevaTarea.trim() || isAddingTarea) return;
     setIsAddingTarea(true);
@@ -83,6 +85,8 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); }
   };
 
+  // ── CRUD eventos ─────────────────────────────────────────────────────────────
+
   const handleAddEventoMes = async () => {
     if (!nuevoEvento.trim() || isAddingEvento) return;
     setIsAddingEvento(true);
@@ -132,9 +136,17 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); } finally { setIsAddingEvento(false); }
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────────
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-var(--navbar-height,80px))] overflow-hidden">
-      <section className="lg:col-span-5 flex flex-col gap-4 h-full overflow-hidden">
+    /*
+      Móvil  : columna única, scroll libre (no overflow-hidden)
+      Desktop: dos columnas fijas a la altura de la pantalla, scroll interno
+    */
+    <div className="flex flex-col lg:grid lg:grid-cols-12 lg:h-[calc(100vh-var(--navbar-height,80px))] gap-4 pb-6 lg:pb-0 lg:overflow-hidden">
+
+      {/* ── Columna izquierda: reloj + tareas ──────────────────────────────── */}
+      <section className="lg:col-span-5 flex flex-col gap-4 lg:h-full lg:overflow-hidden">
         <RelojDigital horario={horarioRaw || []} />
         <ListaTareas
           tareas={tareas}
@@ -147,55 +159,79 @@ export const GestionPersonal = () => {
         />
       </section>
 
-      <section className="lg:col-span-7 flex flex-col gap-4 h-full overflow-hidden">
-        <div className="flex items-center gap-1 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] p-1 self-end shadow-sm">
+      {/* ── Columna derecha: selector + calendario ─────────────────────────── */}
+      <section className="lg:col-span-7 flex flex-col gap-3 lg:h-full lg:overflow-hidden">
+
+        {/* Selector mes / semana — compacto en móvil */}
+        <div className="flex items-center gap-1 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] p-1 self-start lg:self-end shadow-sm shrink-0">
           <button
             onClick={() => setModoCalendario("mes")}
             className={cn(
-              "flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-[var(--radius-btn)] transition-all",
-              modoCalendario === "mes" ? "bg-primary text-white shadow-md shadow-primary/20" : "text-primary/40 hover:text-primary"
+              "flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-[var(--radius-btn)] transition-all",
+              modoCalendario === "mes"
+                ? "bg-primary text-white shadow-md shadow-primary/20"
+                : "text-primary/40 hover:text-primary"
             )}
           >
-            <CalendarIcon size={12} /> Mes
+            <CalendarIcon size={11} /> Mes
           </button>
           <button
             onClick={() => setModoCalendario("semana")}
             className={cn(
-              "flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-[var(--radius-btn)] transition-all",
-              modoCalendario === "semana" ? "bg-primary text-white shadow-md shadow-primary/20" : "text-primary/40 hover:text-primary"
+              "flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-[var(--radius-btn)] transition-all",
+              modoCalendario === "semana"
+                ? "bg-primary text-white shadow-md shadow-primary/20"
+                : "text-primary/40 hover:text-primary"
             )}
           >
-            <Clock size={12} /> Semana
+            <Clock size={11} /> Semana
           </button>
         </div>
 
-        <AnimatePresence mode="wait">
-          {modoCalendario === "mes" ? (
-            <motion.div key="mes" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-              <VistaMes
-                eventos={eventos}
-                capitulosRaw={capitulosRaw as any[] || []}
-                diaSeleccionado={diaSeleccionado}
-                setDiaSeleccionado={setDiaSeleccionado}
-                nuevoEvento={nuevoEvento}
-                setNuevoEvento={setNuevoEvento}
-                tipoEvento={tipoEvento}
-                setTipoEvento={setTipoEvento}
-                isAddingEvento={isAddingEvento}
-                handleAddEvento={handleAddEventoMes}
-              />
-            </motion.div>
-          ) : (
-            <motion.div key="semana" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-              <VistaSemanal
-                eventos={eventos}
-                capitulosRaw={capitulosRaw as any[] || []}
-                isAddingEvento={isAddingEvento}
-                onAddEvento={handleAddEventoSemanal}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Vista activa — ocupa el espacio restante en desktop, altura auto en móvil */}
+        <div className="flex-1 lg:min-h-0 flex flex-col">
+          <AnimatePresence mode="wait">
+            {modoCalendario === "mes" ? (
+              <motion.div
+                key="mes"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="flex-1 flex flex-col lg:min-h-0"
+              >
+                <VistaMes
+                  eventos={eventos}
+                  capitulosRaw={capitulosRaw as any[] || []}
+                  diaSeleccionado={diaSeleccionado}
+                  setDiaSeleccionado={setDiaSeleccionado}
+                  nuevoEvento={nuevoEvento}
+                  setNuevoEvento={setNuevoEvento}
+                  tipoEvento={tipoEvento}
+                  setTipoEvento={setTipoEvento}
+                  isAddingEvento={isAddingEvento}
+                  handleAddEvento={handleAddEventoMes}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="semana"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="flex-1 flex flex-col lg:min-h-0"
+              >
+                <VistaSemanal
+                  eventos={eventos}
+                  capitulosRaw={capitulosRaw as any[] || []}
+                  isAddingEvento={isAddingEvento}
+                  onAddEvento={handleAddEventoSemanal}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </section>
     </div>
   );
