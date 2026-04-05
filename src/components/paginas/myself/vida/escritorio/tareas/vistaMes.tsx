@@ -65,7 +65,7 @@ export const VistaMes = ({
   }, [eventos, capitulosRaw, diaSeleccionado, mesActual, añoActual]);
 
   return (
-    <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-4 shadow-xl shadow-primary/5 flex flex-col gap-3 lg:flex-1 lg:overflow-hidden">
+    <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-4 shadow-xl shadow-primary/5 flex flex-col gap-3 lg:h-full lg:overflow-hidden">
 
       {/* ── Cabecera mes ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between shrink-0">
@@ -184,11 +184,13 @@ export const VistaMes = ({
       </div>
 
       {/* ── Lista de eventos del día ──────────────────────────────────────── */}
-      <div className="flex flex-col gap-2 lg:flex-1 lg:overflow-y-auto lg:min-h-0">
-        <h3 className="text-[9px] font-black uppercase tracking-widest text-primary/30 px-1 shrink-0">
+      {/* flex-1 + min-h-0 en desktop para que ocupe el espacio restante y haga scroll */}
+      <div className="flex flex-col min-h-0 lg:flex-1">
+        <h3 className="text-[9px] font-black uppercase tracking-widest text-primary/30 px-1 mb-2 shrink-0">
           Eventos del día {diaSeleccionado}
         </h3>
-        <div className="space-y-2">
+        {/* El scroll va aquí, no en el padre */}
+        <div className="flex flex-col gap-2 overflow-y-auto min-h-0 lg:flex-1">
           {itemsCombinadosDelDia.length > 0 ? (
             itemsCombinadosDelDia.map((item: any) => (
               <motion.div
@@ -196,7 +198,7 @@ export const VistaMes = ({
                 animate={{ opacity: 1, x: 0 }}
                 key={item.id}
                 className={cn(
-                  "flex items-center gap-3 p-3 rounded-[var(--radius-card)] border transition-all",
+                  "flex items-center gap-3 p-3 rounded-[var(--radius-card)] border transition-all shrink-0",
                   item.esCapitulo
                     ? "bg-primary/10 border-primary/20"
                     : "bg-primary/5 border-primary/10"
