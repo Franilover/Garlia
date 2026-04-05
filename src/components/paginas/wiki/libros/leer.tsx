@@ -7,7 +7,7 @@ import { Btn } from "@/components/ui";
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
 
 // Subcomponentes extraídos
-import { CapituloLista, CapituloScrollItem } from "./leer/type";
+import { CapituloLista, CapituloScrollItem } from "./leer/types";
 import { LectorSkeleton }      from "./leer/ui/LectorSkeleton";
 import { IndexPanel }          from "./leer/ui/IndexPanel";
 import { CapituloScrollBlock } from "./leer/CapituloScrollBlock";
