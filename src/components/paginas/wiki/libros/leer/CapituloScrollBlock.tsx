@@ -2,7 +2,7 @@
 import React from "react";
 import { AlignLeft, Clock } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import { CapituloScrollItem } from "./types";
+import { CapituloScrollItem } from "./type";
 import { ContenidoInteractivo } from "./segmentos/ContenidoInteractivo";
 import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast, FinCapituloSeparador } from "./ui/PersonajesYSeparador";
 

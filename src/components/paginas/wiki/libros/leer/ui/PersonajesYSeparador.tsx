@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, Sword } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
-import { CapituloScrollItem } from "../types";
+import { CapituloScrollItem } from "../type";
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 

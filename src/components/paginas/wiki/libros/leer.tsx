@@ -7,7 +7,7 @@ import { Btn } from "@/components/ui";
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
 
 // Subcomponentes extraídos
-import { CapituloLista, CapituloScrollItem } from "./leer/types";
+import { CapituloLista, CapituloScrollItem } from "./leer/type";
 import { LectorSkeleton }      from "./leer/ui/LectorSkeleton";
 import { IndexPanel }          from "./leer/ui/IndexPanel";
 import { CapituloScrollBlock } from "./leer/CapituloScrollBlock";
@@ -49,14 +49,25 @@ export default function Lector() {
           setError(queryRes.error || "No se pudo cargar el capítulo");
           return;
         }
-        const lista = queryRes.data.listaCapitulos;
-        setListaCapitulos(lista);
+        const listaRaw = queryRes.data.listaCapitulos;
+
         const { data: contenidos } = await supabase
           .from("capitulos")
           .select("id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids, libros(titulo)")
-          .in("id", lista.map(c => c.id))
+          .in("id", listaRaw.map(c => c.id))
+          .eq("visibilidad", "publico")
+          .not("titulo_capitulo", "like", "[Ruta]%")
           .order("orden", { ascending: true });
-        setCapitulos((contenidos as CapituloScrollItem[]) ?? []);
+
+        const capsValidas = (contenidos as CapituloScrollItem[]) ?? [];
+
+        // Filtra listaCapitulos para que coincida exactamente con los que pasaron
+        // los filtros de visibilidad y ruta — así el índice lateral tampoco los muestra
+        const idsValidos = new Set(capsValidas.map(c => c.id));
+        const listaFiltrada = listaRaw.filter(c => idsValidos.has(c.id));
+
+        setListaCapitulos(listaFiltrada);
+        setCapitulos(capsValidas);
       })
       .catch((err) => { console.error("Error crítico en Lector:", err); setError("Error al abrir el pergamino"); })
       .finally(() => setLoading(false));

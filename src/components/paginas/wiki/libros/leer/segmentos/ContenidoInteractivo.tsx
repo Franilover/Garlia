@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { DropWord } from "@/components/ui/DropWord";
-import { Segment, SectionMap, parseContenido, parseSections } from "../types";
+import { Segment, SectionMap, parseContenido, parseSections } from "../type";
 import { CitaVisual }   from "./CitaVisual";
 import { ImgInline }    from "./ImgInline";
 import { FloatWord }    from "./FloatWord";

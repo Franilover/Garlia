@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { BookOpen, ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { CapituloLista } from "../types";
+import { CapituloLista } from "../type";
 
 export function ChapterSelector({ lista, capIdActual, onSelect }: {
   lista: CapituloLista[];
