@@ -2,22 +2,24 @@
 
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Trash2, Save, X, Loader2, Shirt, ZoomIn, Plus, Image as ImageIcon, Pencil, SlidersHorizontal, Check
+import {
+  Trash2, Save, X, Loader2, ZoomIn, Plus, Image as ImageIcon,
+  Pencil, SlidersHorizontal, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 
-type Categoria = "Superior" | "Inferior" | "Calzado" | "Accesorios" | "Outfit";
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type Temporada = "Primavera" | "Verano" | "Otoño" | "Invierno";
 type Vibra     = "Casual" | "Formal" | "Sport" | "Noche" | "Aesthetic";
 type Color     = "Negro" | "Blanco" | "Gris" | "Rosa" | "Rojo" | "Azul" | "Verde" | "Beige" | "Marrón" | "Lila";
 
-interface Prenda {
+interface Outfit {
   id: string;
   nombre: string;
-  categoria: Categoria;
+  descripcion?: string;
   imagen_url: string;
   temporadas?: Temporada[];
   vibras?: Vibra[];
@@ -26,17 +28,18 @@ interface Prenda {
 
 interface FormData {
   nombre: string;
-  categoria: Categoria;
+  descripcion: string;
   imagen_url: string;
   temporadas: Temporada[];
   vibras: Vibra[];
   colores: Color[];
 }
 
-const CATEGORIAS: Categoria[]  = ["Superior", "Inferior", "Calzado", "Accesorios", "Outfit"];
-const TEMPORADAS: Temporada[]  = ["Primavera", "Verano", "Otoño", "Invierno"];
-const VIBRAS: Vibra[]          = ["Casual", "Formal", "Sport", "Noche", "Aesthetic"];
-const COLORES: Color[]         = ["Negro", "Blanco", "Gris", "Rosa", "Rojo", "Azul", "Verde", "Beige", "Marrón", "Lila"];
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const TEMPORADAS: Temporada[] = ["Primavera", "Verano", "Otoño", "Invierno"];
+const VIBRAS: Vibra[]         = ["Casual", "Formal", "Sport", "Noche", "Aesthetic"];
+const COLORES: Color[]        = ["Negro", "Blanco", "Gris", "Rosa", "Rojo", "Azul", "Verde", "Beige", "Marrón", "Lila"];
 
 const COLOR_DOT: Record<Color, string> = {
   Negro: "#1a1a1a", Blanco: "#f5f5f5", Gris: "#9ca3af", Rosa: "#f9a8d4",
@@ -45,13 +48,17 @@ const COLOR_DOT: Record<Color, string> = {
 };
 
 const EMPTY_FORM: FormData = {
-  nombre: "", categoria: "Superior", imagen_url: "",
+  nombre: "", descripcion: "", imagen_url: "",
   temporadas: [], vibras: [], colores: [],
 };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toggleArr<T>(arr: T[], val: T): T[] {
   return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
 }
+
+// ─── ChipGroup ────────────────────────────────────────────────────────────────
 
 function ChipGroup<T extends string>({
   options, selected, onToggle, colorDot,
@@ -88,7 +95,9 @@ function ChipGroup<T extends string>({
   );
 }
 
-interface PrendaFormProps {
+// ─── OutfitForm ───────────────────────────────────────────────────────────────
+
+interface OutfitFormProps {
   initial: FormData;
   onSave: (data: FormData) => Promise<void>;
   onClose: () => void;
@@ -97,8 +106,8 @@ interface PrendaFormProps {
   icon: React.ReactNode;
 }
 
-function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFormProps) {
-  const [form, setForm]         = useState<FormData>(initial);
+function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFormProps) {
+  const [form, setForm]             = useState<FormData>(initial);
   const [showPicker, setShowPicker] = useState(false);
 
   const set = <K extends keyof FormData>(k: K, v: FormData[K]) =>
@@ -106,18 +115,23 @@ function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFor
 
   return (
     <>
+      {/* Header */}
       <div className="flex items-center justify-between p-5 border-b border-primary/10">
         <div className="flex items-center gap-2">
           {icon}
           <h3 className="text-xs font-black uppercase tracking-widest text-on-surface">{title}</h3>
         </div>
-        <button onClick={onClose} className="p-1.5 text-muted-on-surface hover:text-on-surface transition-colors" style={{ borderRadius: "9999px" }}>
+        <button
+          onClick={onClose}
+          className="p-1.5 text-muted-on-surface hover:text-on-surface transition-colors"
+          style={{ borderRadius: "9999px" }}
+        >
           <X size={16} />
         </button>
       </div>
 
       <div className="p-5 flex flex-col gap-4 overflow-y-auto" style={{ maxHeight: "80vh" }}>
-        {}
+        {/* Image picker */}
         {!showPicker ? (
           <button
             onClick={() => setShowPicker(true)}
@@ -130,7 +144,7 @@ function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFor
             {form.imagen_url ? (
               <>
                 <img src={form.imagen_url} className="w-full h-full object-cover" alt="preview" />
-                <div className="absolute inset-0 bg-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <ImageIcon size={16} className="text-white" />
                   <span className="text-[10px] font-black uppercase text-white tracking-widest">Cambiar foto</span>
                 </div>
@@ -159,53 +173,53 @@ function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFor
 
         {!showPicker && (
           <>
-            {}
+            {/* Nombre */}
             <input
               type="text"
-              placeholder="NOMBRE..."
+              placeholder="NOMBRE DEL OUTFIT..."
               value={form.nombre}
               onChange={(e) => set("nombre", e.target.value.toUpperCase())}
               className="input-brand text-[10px] font-black"
             />
 
-            {}
-            <div>
-              <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Categoría</p>
-              <div className="flex flex-wrap gap-1.5">
-                {CATEGORIAS.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => set("categoria", cat)}
-                    className={cn(
-                      "px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all border",
-                      form.categoria === cat
-                        ? "bg-primary text-btn-text border-primary"
-                        : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
-                    )}
-                    style={{ borderRadius: "var(--radius-btn)" }}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Descripción */}
+            <textarea
+              placeholder="Descripción o notas (opcional)..."
+              value={form.descripcion}
+              onChange={(e) => set("descripcion", e.target.value)}
+              rows={2}
+              className="input-brand text-[10px] resize-none"
+            />
 
-            {}
+            {/* Temporada */}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Temporada</p>
-              <ChipGroup options={TEMPORADAS} selected={form.temporadas} onToggle={(v) => set("temporadas", toggleArr(form.temporadas, v))} />
+              <ChipGroup
+                options={TEMPORADAS}
+                selected={form.temporadas}
+                onToggle={(v) => set("temporadas", toggleArr(form.temporadas, v))}
+              />
             </div>
 
-            {}
+            {/* Vibra */}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Vibra</p>
-              <ChipGroup options={VIBRAS} selected={form.vibras} onToggle={(v) => set("vibras", toggleArr(form.vibras, v))} />
+              <ChipGroup
+                options={VIBRAS}
+                selected={form.vibras}
+                onToggle={(v) => set("vibras", toggleArr(form.vibras, v))}
+              />
             </div>
 
-            {}
+            {/* Colores */}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Colores</p>
-              <ChipGroup options={COLORES} selected={form.colores} onToggle={(v) => set("colores", toggleArr(form.colores, v))} colorDot={COLOR_DOT} />
+              <ChipGroup
+                options={COLORES}
+                selected={form.colores}
+                onToggle={(v) => set("colores", toggleArr(form.colores, v))}
+                colorDot={COLOR_DOT}
+              />
             </div>
 
             <button
@@ -214,7 +228,7 @@ function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFor
               className="btn-brand w-full text-[10px] uppercase tracking-widest"
             >
               {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-              Guardar
+              Guardar outfit
             </button>
           </>
         )}
@@ -223,73 +237,73 @@ function PrendaForm({ initial, onSave, onClose, saving, title, icon }: PrendaFor
   );
 }
 
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function ArmarioPage() {
-  const { 
-    data: prendas = [], 
+  const {
+    data: outfits = [],
     loading,
-    addRow: addPrenda,
-    updateRow: updatePrenda,
-    deleteRow: deletePrenda,
-    refetch: refetchPrendas,
-  } = useSupabaseData<Prenda>("ropa", {
-    order: { campo: "created_at", asc: false }
+    addRow: addOutfit,
+    updateRow: updateOutfit,
+    deleteRow: deleteOutfit,
+    refetch: refetchOutfits,
+  } = useSupabaseData<Outfit>("ropa", {
+    order: { campo: "created_at", asc: false },
   });
 
-  
-  const [lightbox, setLightbox]           = useState<Prenda | null>(null);
-  const [showNueva, setShowNueva]         = useState(false);
-  const [editando, setEditando]           = useState<Prenda | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<Prenda | null>(null);
-  const [savingPrenda, setSavingPrenda]   = useState(false);
+  const [lightbox, setLightbox]           = useState<Outfit | null>(null);
+  const [showNuevo, setShowNuevo]         = useState(false);
+  const [editando, setEditando]           = useState<Outfit | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Outfit | null>(null);
+  const [savingOutfit, setSavingOutfit]   = useState(false);
   const [deletingId, setDeletingId]       = useState<string | null>(null);
 
-  
-  const [filtroCategoria, setFiltroCategoria] = useState<Categoria | null>(null);
+  // Filtros
   const [filtroTemporada, setFiltroTemporada] = useState<Temporada | null>(null);
   const [filtroVibra, setFiltroVibra]         = useState<Vibra | null>(null);
   const [filtroColor, setFiltroColor]         = useState<Color | null>(null);
   const [showFiltros, setShowFiltros]         = useState(false);
 
-  const hayFiltros = filtroCategoria || filtroTemporada || filtroVibra || filtroColor;
+  const hayFiltros = filtroTemporada || filtroVibra || filtroColor;
 
-  const prendasFiltradas = useMemo(() => {
-    return prendas.filter((p: Prenda) => {
-      if (filtroCategoria && p.categoria !== filtroCategoria) return false;
-      if (filtroTemporada && !p.temporadas?.includes(filtroTemporada)) return false;
-      if (filtroVibra     && !p.vibras?.includes(filtroVibra))         return false;
-      if (filtroColor     && !p.colores?.includes(filtroColor))        return false;
+  const outfitsFiltrados = useMemo(() => {
+    return outfits.filter((o: Outfit) => {
+      if (filtroTemporada && !o.temporadas?.includes(filtroTemporada)) return false;
+      if (filtroVibra     && !o.vibras?.includes(filtroVibra))         return false;
+      if (filtroColor     && !o.colores?.includes(filtroColor))        return false;
       return true;
     });
-  }, [prendas, filtroCategoria, filtroTemporada, filtroVibra, filtroColor]);
+  }, [outfits, filtroTemporada, filtroVibra, filtroColor]);
 
   const limpiarFiltros = () => {
-    setFiltroCategoria(null); setFiltroTemporada(null);
-    setFiltroVibra(null); setFiltroColor(null);
+    setFiltroTemporada(null);
+    setFiltroVibra(null);
+    setFiltroColor(null);
   };
 
-  
-  const guardarNueva = async (data: FormData) => {
-    setSavingPrenda(true);
-    const { error } = await addPrenda(data);
-    if (!error) { setShowNueva(false); await refetchPrendas(); }
-    setSavingPrenda(false);
+  // CRUD
+  const guardarNuevo = async (data: FormData) => {
+    setSavingOutfit(true);
+    const { error } = await addOutfit(data);
+    if (!error) { setShowNuevo(false); await refetchOutfits(); }
+    setSavingOutfit(false);
   };
 
   const guardarEdicion = async (data: FormData) => {
     if (!editando) return;
-    setSavingPrenda(true);
-    const { error } = await updatePrenda(editando.id, data);
-    if (!error) { setEditando(null); await refetchPrendas(); }
-    setSavingPrenda(false);
+    setSavingOutfit(true);
+    const { error } = await updateOutfit(editando.id, data);
+    if (!error) { setEditando(null); await refetchOutfits(); }
+    setSavingOutfit(false);
   };
 
   const confirmarBorrado = async () => {
     if (!confirmDelete) return;
     setDeletingId(confirmDelete.id);
-    await deletePrenda(confirmDelete.id);
+    await deleteOutfit(confirmDelete.id);
     setConfirmDelete(null);
     setDeletingId(null);
-    await refetchPrendas();
+    await refetchOutfits();
   };
 
   if (loading) return (
@@ -298,7 +312,8 @@ export default function ArmarioPage() {
     </div>
   );
 
-  
+  // ─── Modal wrapper ─────────────────────────────────────────────────────────
+
   const Modal = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -319,60 +334,85 @@ export default function ArmarioPage() {
     </motion.div>
   );
 
+  // ─── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-bg-main">
 
-      {}
+      {/* Modal: nuevo outfit */}
       <AnimatePresence>
-        {showNueva && (
-          <Modal onClose={() => setShowNueva(false)}>
-            <PrendaForm title="Nueva Prenda" icon={<Plus size={16} className="text-primary" />}
-              initial={EMPTY_FORM} onSave={guardarNueva} onClose={() => setShowNueva(false)} saving={savingPrenda} />
+        {showNuevo && (
+          <Modal onClose={() => setShowNuevo(false)}>
+            <OutfitForm
+              title="Nuevo Outfit"
+              icon={<Sparkles size={16} className="text-primary" />}
+              initial={EMPTY_FORM}
+              onSave={guardarNuevo}
+              onClose={() => setShowNuevo(false)}
+              saving={savingOutfit}
+            />
           </Modal>
         )}
       </AnimatePresence>
 
-      {}
+      {/* Modal: editar */}
       <AnimatePresence>
         {editando && (
           <Modal onClose={() => setEditando(null)}>
-            <PrendaForm title="Editar Prenda" icon={<Pencil size={16} className="text-primary" />}
+            <OutfitForm
+              title="Editar Outfit"
+              icon={<Pencil size={16} className="text-primary" />}
               initial={{
-                nombre: editando.nombre, categoria: editando.categoria, imagen_url: editando.imagen_url,
-                temporadas: editando.temporadas ?? [], vibras: editando.vibras ?? [], colores: editando.colores ?? [],
+                nombre: editando.nombre,
+                descripcion: editando.descripcion ?? "",
+                imagen_url: editando.imagen_url,
+                temporadas: editando.temporadas ?? [],
+                vibras: editando.vibras ?? [],
+                colores: editando.colores ?? [],
               }}
-              onSave={guardarEdicion} onClose={() => setEditando(null)} saving={savingPrenda} />
+              onSave={guardarEdicion}
+              onClose={() => setEditando(null)}
+              saving={savingOutfit}
+            />
           </Modal>
         )}
       </AnimatePresence>
 
-      {}
+      {/* Modal: confirmar borrado */}
       <AnimatePresence>
         {confirmDelete && (
           <Modal onClose={() => setConfirmDelete(null)}>
             <div className="p-6 flex flex-col gap-5">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-50 rounded-full"><Trash2 size={18} className="text-red-400" /></div>
+                <div className="p-2 rounded-full" style={{ background: "color-mix(in srgb, #ef4444 10%, transparent)" }}>
+                  <Trash2 size={18} className="text-red-400" />
+                </div>
                 <div>
-                  <p className="text-xs font-black uppercase text-on-surface">¿Borrar?</p>
+                  <p className="text-xs font-black uppercase text-on-surface">¿Borrar este outfit?</p>
                   <p className="text-[9px] text-muted-on-surface mt-0.5 uppercase tracking-widest">{confirmDelete.nombre}</p>
                 </div>
               </div>
               {confirmDelete.imagen_url && (
                 <div className="w-full aspect-video overflow-hidden bg-primary/5 opacity-50" style={{ borderRadius: "var(--radius-btn)" }}>
-                  <img src={confirmDelete.imagen_url} className="w-full h-full object-cover" />
+                  <img src={confirmDelete.imagen_url} className="w-full h-full object-cover" alt="" />
                 </div>
               )}
               <div className="flex gap-3">
-                <button onClick={() => setConfirmDelete(null)}
+                <button
+                  onClick={() => setConfirmDelete(null)}
                   className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors border border-primary/10"
-                  style={{ borderRadius: "var(--radius-btn)" }}>
+                  style={{ borderRadius: "var(--radius-btn)" }}
+                >
                   Cancelar
                 </button>
-                <button onClick={confirmarBorrado} disabled={!!deletingId}
+                <button
+                  onClick={confirmarBorrado}
+                  disabled={!!deletingId}
                   className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ borderRadius: "var(--radius-btn)" }}>
-                  {deletingId ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Borrar
+                  style={{ borderRadius: "var(--radius-btn)" }}
+                >
+                  {deletingId ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  Borrar
                 </button>
               </div>
             </div>
@@ -380,41 +420,49 @@ export default function ArmarioPage() {
         )}
       </AnimatePresence>
 
-      {}
+      {/* Modal: lightbox */}
       <AnimatePresence>
         {lightbox && (
           <Modal onClose={() => setLightbox(null)}>
-            {}
+            {/* Acciones flotantes */}
             <div className="absolute top-4 left-4 z-10 flex gap-2">
-              <button onClick={() => { setEditando(lightbox); setLightbox(null); }}
+              <button
+                onClick={() => { setEditando(lightbox); setLightbox(null); }}
                 className="modal-surface p-2 shadow-md text-muted-on-surface hover:text-primary transition-colors"
-                style={{ borderRadius: "9999px" }}>
+                style={{ borderRadius: "9999px" }}
+              >
                 <Pencil size={14} />
               </button>
-              <button onClick={() => { setConfirmDelete(lightbox); setLightbox(null); }}
+              <button
+                onClick={() => { setConfirmDelete(lightbox); setLightbox(null); }}
                 className="modal-surface p-2 shadow-md text-muted-on-surface hover:text-red-500 transition-colors"
-                style={{ borderRadius: "9999px" }}>
+                style={{ borderRadius: "9999px" }}
+              >
                 <Trash2 size={14} />
               </button>
             </div>
-            <button onClick={() => setLightbox(null)}
+            <button
+              onClick={() => setLightbox(null)}
               className="absolute top-4 right-4 z-10 modal-surface p-2 shadow-md text-muted-on-surface hover:text-on-surface transition-colors"
-              style={{ borderRadius: "9999px" }}>
+              style={{ borderRadius: "9999px" }}
+            >
               <X size={16} />
             </button>
 
-            <div className="aspect-3/4 w-full bg-primary/5 overflow-hidden flex items-center justify-center">
+            {/* Imagen */}
+            <div className="aspect-[3/4] w-full bg-primary/5 overflow-hidden flex items-center justify-center">
               {lightbox.imagen_url
                 ? <img src={lightbox.imagen_url} alt={lightbox.nombre} className="w-full h-full object-cover" />
-                : <Shirt className="text-primary/20" size={64} />
+                : <Sparkles className="text-primary/20" size={64} />
               }
             </div>
 
+            {/* Info */}
             <div className="p-5 border-t border-primary/10">
               <p className="text-xs font-black uppercase text-on-surface">{lightbox.nombre}</p>
-              <p className="text-[9px] text-muted-on-surface uppercase tracking-widest mt-0.5">{lightbox.categoria}</p>
-
-              {}
+              {lightbox.descripcion && (
+                <p className="text-[9px] text-muted-on-surface mt-1 leading-relaxed">{lightbox.descripcion}</p>
+              )}
               <div className="flex flex-wrap gap-1 mt-3">
                 {lightbox.temporadas?.map(t => (
                   <span key={t} className="px-2 py-0.5 text-[7px] font-black uppercase tracking-widest bg-primary/10 text-primary" style={{ borderRadius: "var(--radius-btn)" }}>{t}</span>
@@ -433,20 +481,26 @@ export default function ArmarioPage() {
         )}
       </AnimatePresence>
 
-      {}
-      <div className="sticky top-0 z-40 backdrop-blur-md" style={{ background: "color-mix(in srgb, var(--bg-main) 90%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+      {/* ─── Sticky header ──────────────────────────────────────────────────── */}
+      <div
+        className="sticky top-0 z-40 backdrop-blur-md"
+        style={{
+          background: "color-mix(in srgb, var(--bg-main) 90%, transparent)",
+          borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black uppercase tracking-tighter text-primary italic leading-none">
-              Armario
+              Outfits
             </h1>
             <p className="text-muted-on-surface text-[9px] font-black uppercase tracking-widest mt-0.5">
-              {prendasFiltradas.length} {prendasFiltradas.length !== prendas.length ? `de ${prendas.length}` : ""} prendas
+              {outfitsFiltrados.length}
+              {outfitsFiltrados.length !== outfits.length ? ` de ${outfits.length}` : ""} looks
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            {}
             <button
               onClick={() => setShowFiltros(!showFiltros)}
               className={cn(
@@ -461,19 +515,22 @@ export default function ArmarioPage() {
               Filtros
               {hayFiltros && (
                 <span className="bg-btn-text/20 text-btn-text px-1 rounded-full text-[7px]">
-                  {[filtroCategoria, filtroTemporada, filtroVibra, filtroColor].filter(Boolean).length}
+                  {[filtroTemporada, filtroVibra, filtroColor].filter(Boolean).length}
                 </span>
               )}
             </button>
 
-            <button onClick={() => setShowNueva(true)} className="btn-brand flex items-center gap-2 text-[10px] uppercase tracking-widest">
+            <button
+              onClick={() => setShowNuevo(true)}
+              className="btn-brand flex items-center gap-2 text-[10px] uppercase tracking-widest"
+            >
               <Plus size={14} />
-              <span className="hidden sm:inline">Nueva</span>
+              <span className="hidden sm:inline">Nuevo</span>
             </button>
           </div>
         </div>
 
-        {}
+        {/* Panel de filtros */}
         <AnimatePresence>
           {showFiltros && (
             <motion.div
@@ -485,72 +542,66 @@ export default function ArmarioPage() {
             >
               <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-4">
 
-                {}
-                <div className="flex items-start gap-4 flex-wrap">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Categoría</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {CATEGORIAS.map(cat => (
-                      <button key={cat}
-                        onClick={() => setFiltroCategoria(filtroCategoria === cat ? null : cat)}
-                        className={cn(
-                          "px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all border",
-                          filtroCategoria === cat ? "bg-primary text-btn-text border-primary" : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
-                        )}
-                        style={{ borderRadius: "var(--radius-btn)" }}>
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {}
+                {/* Temporada */}
                 <div className="flex items-start gap-4 flex-wrap">
                   <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Temporada</p>
                   <div className="flex flex-wrap gap-1.5">
                     {TEMPORADAS.map(t => (
-                      <button key={t}
+                      <button
+                        key={t}
                         onClick={() => setFiltroTemporada(filtroTemporada === t ? null : t)}
                         className={cn(
                           "px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all border",
-                          filtroTemporada === t ? "bg-primary text-btn-text border-primary" : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
+                          filtroTemporada === t
+                            ? "bg-primary text-btn-text border-primary"
+                            : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
                         )}
-                        style={{ borderRadius: "var(--radius-btn)" }}>
+                        style={{ borderRadius: "var(--radius-btn)" }}
+                      >
                         {t}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {}
+                {/* Vibra */}
                 <div className="flex items-start gap-4 flex-wrap">
                   <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Vibra</p>
                   <div className="flex flex-wrap gap-1.5">
                     {VIBRAS.map(v => (
-                      <button key={v}
+                      <button
+                        key={v}
                         onClick={() => setFiltroVibra(filtroVibra === v ? null : v)}
                         className={cn(
                           "px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all border",
-                          filtroVibra === v ? "bg-primary text-btn-text border-primary" : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
+                          filtroVibra === v
+                            ? "bg-primary text-btn-text border-primary"
+                            : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
                         )}
-                        style={{ borderRadius: "var(--radius-btn)" }}>
+                        style={{ borderRadius: "var(--radius-btn)" }}
+                      >
                         {v}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {}
+                {/* Color */}
                 <div className="flex items-start gap-4 flex-wrap">
                   <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Color</p>
                   <div className="flex flex-wrap gap-1.5">
                     {COLORES.map(c => (
-                      <button key={c}
+                      <button
+                        key={c}
                         onClick={() => setFiltroColor(filtroColor === c ? null : c)}
                         className={cn(
                           "flex items-center gap-1.5 px-2.5 py-1 text-[8px] font-black uppercase tracking-widest transition-all border",
-                          filtroColor === c ? "bg-primary text-btn-text border-primary" : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
+                          filtroColor === c
+                            ? "bg-primary text-btn-text border-primary"
+                            : "bg-primary/5 text-muted-on-surface border-primary/10 hover:border-primary/30"
                         )}
-                        style={{ borderRadius: "var(--radius-btn)" }}>
+                        style={{ borderRadius: "var(--radius-btn)" }}
+                      >
                         <span className="w-2 h-2 rounded-full shrink-0 border border-black/10" style={{ background: COLOR_DOT[c] }} />
                         {c}
                       </button>
@@ -558,9 +609,12 @@ export default function ArmarioPage() {
                   </div>
                 </div>
 
-                {}
+                {/* Limpiar */}
                 {hayFiltros && (
-                  <button onClick={limpiarFiltros} className="self-start text-[8px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors underline underline-offset-2">
+                  <button
+                    onClick={limpiarFiltros}
+                    className="self-start text-[8px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors underline underline-offset-2"
+                  >
                     Limpiar filtros
                   </button>
                 )}
@@ -570,28 +624,31 @@ export default function ArmarioPage() {
         </AnimatePresence>
       </div>
 
-      {}
+      {/* ─── Grid principal ─────────────────────────────────────────────────── */}
       <main className="max-w-7xl mx-auto p-6 md:p-10">
 
-        {}
+        {/* Chips de filtros activos */}
         {hayFiltros && (
           <div className="flex flex-wrap gap-2 mb-6">
             {[
-              filtroCategoria && { label: filtroCategoria, clear: () => setFiltroCategoria(null) },
               filtroTemporada && { label: filtroTemporada, clear: () => setFiltroTemporada(null) },
               filtroVibra     && { label: filtroVibra,     clear: () => setFiltroVibra(null) },
               filtroColor     && { label: filtroColor,     clear: () => setFiltroColor(null) },
             ].filter(Boolean).map((f: any, i) => (
-              <button key={i} onClick={f.clear}
+              <button
+                key={i}
+                onClick={f.clear}
                 className="flex items-center gap-1.5 px-3 py-1 bg-primary text-btn-text text-[8px] font-black uppercase tracking-widest"
-                style={{ borderRadius: "var(--radius-btn)" }}>
+                style={{ borderRadius: "var(--radius-btn)" }}
+              >
                 {f.label} <X size={10} />
               </button>
             ))}
           </div>
         )}
 
-        {prendasFiltradas.length === 0 ? (
+        {/* Empty state */}
+        {outfitsFiltrados.length === 0 ? (
           <div
             className="flex flex-col items-center justify-center p-20 border-2 border-dashed border-primary/10"
             style={{ borderRadius: "var(--radius-card)" }}
@@ -604,80 +661,108 @@ export default function ArmarioPage() {
               </>
             ) : (
               <>
-                <Plus className="text-primary/20 mb-4" size={48} />
-                <p className="text-[10px] font-black uppercase text-muted-on-surface">Añade tu primera prenda</p>
+                <Sparkles className="text-primary/20 mb-4" size={48} />
+                <p className="text-[10px] font-black uppercase text-muted-on-surface">Añade tu primer outfit</p>
               </>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {prendasFiltradas.map((prenda: Prenda) => (
-              <div key={prenda.id} className="relative group/card">
+          /* Grid de outfits — 2 cols en móvil, 3 en md, 4 en xl */
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+            {outfitsFiltrados.map((outfit: Outfit) => (
+              <div key={outfit.id} className="relative group/card">
                 <motion.button
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setLightbox(prenda)}
-                  className="card-main w-full relative aspect-3/4 border-2 border-primary/10 hover:border-primary/30 overflow-hidden group p-0 transition-all"
+                  onClick={() => setLightbox(outfit)}
+                  className="card-main w-full relative overflow-hidden group p-0 transition-all border-primary/10 hover:border-primary/30"
+                  style={{ aspectRatio: "3/4" }}
                 >
+                  {/* Imagen */}
                   <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
-                    {prenda.imagen_url
-                      ? <img src={prenda.imagen_url} alt={prenda.nombre} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                      : <Shirt className="text-primary/10" size={32} />
+                    {outfit.imagen_url
+                      ? <img
+                          src={outfit.imagen_url}
+                          alt={outfit.nombre}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      : <Sparkles className="text-primary/10" size={32} />
                     }
                   </div>
 
-                  {}
-                  <div className="absolute inset-0 bg-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="modal-surface p-3 rounded-full shadow-lg">
                       <ZoomIn size={18} className="text-primary" />
                     </div>
                   </div>
 
-                  {}
-                  {prenda.colores && prenda.colores.length > 0 && (
+                  {/* Dots de color */}
+                  {outfit.colores && outfit.colores.length > 0 && (
                     <div className="absolute top-2 right-2 flex gap-0.5">
-                      {prenda.colores.slice(0, 4).map(c => (
-                        <span key={c} className="w-2.5 h-2.5 rounded-full border border-white/40 shadow" style={{ background: COLOR_DOT[c] }} />
+                      {outfit.colores.slice(0, 4).map(c => (
+                        <span
+                          key={c}
+                          className="w-2.5 h-2.5 rounded-full border border-white/40 shadow"
+                          style={{ background: COLOR_DOT[c] }}
+                        />
                       ))}
                     </div>
                   )}
 
-                  {}
-                  <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-foreground/80 to-transparent">
-                    <p className="text-[9px] font-black text-white uppercase truncate">{prenda.nombre}</p>
-                    <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{prenda.categoria}</p>
-                    {}
-                    {prenda.vibras && prenda.vibras.length > 0 && (
+                  {/* Caption — usa var(--white-custom) en vez de from-foreground/80 para no romper en dark */}
+                  <div
+                    className="absolute inset-x-0 bottom-0 p-3"
+                    style={{
+                      background: "linear-gradient(to top, color-mix(in srgb, var(--bg-main) 85%, transparent) 0%, transparent 100%)",
+                    }}
+                  >
+                    <p className="text-[9px] font-black text-foreground uppercase truncate">{outfit.nombre}</p>
+                    {outfit.vibras && outfit.vibras.length > 0 && (
                       <div className="flex gap-1 mt-1 flex-wrap">
-                        {prenda.vibras.slice(0, 2).map(v => (
-                          <span key={v} className="px-1.5 py-0.5 text-[6px] font-black uppercase bg-white/15 text-white/70" style={{ borderRadius: "var(--radius-btn)" }}>{v}</span>
+                        {outfit.vibras.slice(0, 2).map(v => (
+                          <span
+                            key={v}
+                            className="px-1.5 py-0.5 text-[6px] font-black uppercase"
+                            style={{
+                              borderRadius: "var(--radius-btn)",
+                              background: "color-mix(in srgb, var(--primary) 20%, transparent)",
+                              color: "var(--foreground)",
+                            }}
+                          >
+                            {v}
+                          </span>
                         ))}
                       </div>
                     )}
                   </div>
                 </motion.button>
 
-                {}
+                {/* Botones editar/borrar */}
                 <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all">
-                  <button onClick={() => setEditando(prenda)}
+                  <button
+                    onClick={() => setEditando(outfit)}
                     className="modal-surface p-1.5 shadow-md text-muted-on-surface hover:text-primary transition-colors"
-                    style={{ borderRadius: "var(--radius-btn)" }}>
+                    style={{ borderRadius: "var(--radius-btn)" }}
+                  >
                     <Pencil size={12} />
                   </button>
-                  <button onClick={() => setConfirmDelete(prenda)}
+                  <button
+                    onClick={() => setConfirmDelete(outfit)}
                     className="modal-surface p-1.5 shadow-md text-muted-on-surface hover:text-red-500 transition-colors"
-                    style={{ borderRadius: "var(--radius-btn)" }}>
+                    style={{ borderRadius: "var(--radius-btn)" }}
+                  >
                     <Trash2 size={12} />
                   </button>
                 </div>
               </div>
             ))}
 
-            {}
+            {/* Botón añadir */}
             <motion.button
               whileTap={{ scale: 0.98 }}
-              onClick={() => setShowNueva(true)}
-              className="relative aspect-3/4 border-2 border-dashed border-primary/10 hover:border-primary/30 transition-all flex flex-col items-center justify-center gap-3 text-muted-on-surface hover:text-primary"
-              style={{ borderRadius: "var(--radius-card)" }}
+              onClick={() => setShowNuevo(true)}
+              className="relative border-2 border-dashed border-primary/10 hover:border-primary/30 transition-all flex flex-col items-center justify-center gap-3 text-muted-on-surface hover:text-primary"
+              style={{ aspectRatio: "3/4", borderRadius: "var(--radius-card)" }}
             >
               <Plus size={24} className="opacity-30" />
               <p className="text-[9px] font-black uppercase tracking-widest opacity-30">Añadir</p>
