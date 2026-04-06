@@ -451,7 +451,7 @@ export default function MapaInteractivo() {
                       <div className="flex items-center gap-2 mb-3">
                         <div className="h-px flex-1 bg-primary/10" />
                         <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
-                          <Users size={9} /> Habitantes
+                          Habitantes
                         </span>
                         <div className="h-px flex-1 bg-primary/10" />
                       </div>
