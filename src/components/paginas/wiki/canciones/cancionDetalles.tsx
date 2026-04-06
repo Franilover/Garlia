@@ -73,6 +73,7 @@ export default function CancionDetallesPage() {
         secciones={secciones}
         idiomaActivo={idiomasActivos}
       />
+      <br />
       <div className={`mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4 transition-all duration-500 ${idiomasActivos.length > 1 ? "max-w-7xl" : "max-w-5xl"}`}>
 
         {/* ── Sidebar ── */}
