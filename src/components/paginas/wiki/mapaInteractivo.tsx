@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Loader2, ChevronRight, ArrowLeft, House, Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, MapPin, Loader2, ChevronRight, ArrowLeft, House, Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, Users, UserX } from "lucide-react";
 import QuickPinchZoom, { make3dTransformValue } from "react-quick-pinch-zoom";
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
@@ -66,6 +66,9 @@ export default function MapaInteractivo() {
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const mapRef = useRef(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
+  // ── Personajes del reino seleccionado y desbloqueados por el usuario ──────
+  const [personajesReino,       setPersonajesReino]       = useState<any[]>([]);
+  const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<Set<string>>(new Set());
 
   const showToast = (message: string, type: ToastType) => setToast({ message, type });
 
@@ -84,15 +87,36 @@ export default function MapaInteractivo() {
       setLoading(false);
     }
     fetchReinos();
+
+    // Cargar personajes desbloqueados del usuario actual
+    async function fetchDesbloqueados() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("descubrimientos_personajes")
+        .select("personaje_id")
+        .eq("perfil_id", user.id);
+      if (data) setPersonajesDesbloqueados(new Set(data.map((r: any) => r.personaje_id)));
+    }
+    fetchDesbloqueados();
   }, []);
 
   const handleReinoClick = async (reino) => {
     if (editMode) { setReinoSeleccionado(reino); return; }
     setCargandoImagen(true);
     setReinoSeleccionado(reino);
-    const { data, error } = await supabase.from("reino_detalles").select("*").eq("reino_id", reino.id);
-    if (error) console.error(error);
-    else setDetallesReino(data);
+    setPersonajesReino([]); // limpiar mientras carga
+
+    const [detallesRes, personajesRes] = await Promise.all([
+      supabase.from("reino_detalles").select("*").eq("reino_id", reino.id),
+      supabase.from("personajes").select("id, nombre, img_url, especie").eq("reino", reino.nombre),
+    ]);
+
+    if (detallesRes.error) console.error(detallesRes.error);
+    else setDetallesReino(detallesRes.data);
+
+    if (!personajesRes.error) setPersonajesReino(personajesRes.data ?? []);
+
     setVistaActual("reino");
   };
 
@@ -173,6 +197,7 @@ export default function MapaInteractivo() {
     setReinoSeleccionado(null);
     setPuntoSeleccionado(null);
     setDetallesReino([]);
+    setPersonajesReino([]);
     setEditMode(false);
   };
 
@@ -416,6 +441,99 @@ export default function MapaInteractivo() {
                       <div className="text-center p-4 border border-primary/10" style={{borderRadius:"var(--radius-btn)"}}>
                         <span className="block text-[8px] font-bold uppercase opacity-40">Orden</span>
                         <span className="text-[10px] font-black text-primary">Nivel {reinoSeleccionado.orden}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Habitantes del reino ── */}
+                  {!puntoSeleccionado && personajesReino.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-px flex-1 bg-primary/10" />
+                        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+                          <Users size={9} /> Habitantes
+                        </span>
+                        <div className="h-px flex-1 bg-primary/10" />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        {personajesReino.map(p => {
+                          const desbloqueado = personajesDesbloqueados.has(p.id);
+                          return (
+                            <div
+                              key={p.id}
+                              className="flex items-center gap-3 p-2.5 transition-all"
+                              style={{
+                                borderRadius: "var(--radius-btn)",
+                                background: desbloqueado
+                                  ? "color-mix(in srgb, var(--primary) 5%, transparent)"
+                                  : "color-mix(in srgb, var(--primary) 2%, transparent)",
+                                border: `1px solid color-mix(in srgb, var(--primary) ${desbloqueado ? "12%" : "6%"}, transparent)`,
+                                opacity: desbloqueado ? 1 : 0.55,
+                              }}
+                            >
+                              {/* Avatar */}
+                              <div
+                                className="shrink-0 w-9 h-9 overflow-hidden flex items-center justify-center"
+                                style={{
+                                  borderRadius: "var(--radius-btn)",
+                                  background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                  border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+                                  filter: desbloqueado ? "none" : "grayscale(100%) blur(2px)",
+                                }}
+                              >
+                                {desbloqueado && p.img_url ? (
+                                  <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                                ) : (
+                                  <UserX size={14} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                                )}
+                              </div>
+
+                              {/* Nombre y especie */}
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className="text-[11px] font-black uppercase leading-tight"
+                                  style={{
+                                    color: desbloqueado ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                                    textDecoration: desbloqueado ? "none" : "line-through",
+                                    textDecorationColor: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                                  }}
+                                >
+                                  {desbloqueado ? p.nombre : "???"}
+                                </p>
+                                {p.especie && (
+                                  <p className="text-[9px] font-medium mt-0.5"
+                                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                                    {desbloqueado ? p.especie : "Desconocido"}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Badge estado */}
+                              {desbloqueado ? (
+                                <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide"
+                                  style={{
+                                    borderRadius: "var(--radius-btn)",
+                                    background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                    color: "var(--primary)",
+                                    border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                                  }}>
+                                  Conocido
+                                </span>
+                              ) : (
+                                <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide"
+                                  style={{
+                                    borderRadius: "var(--radius-btn)",
+                                    background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                                    color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                                    border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                                  }}>
+                                  ???
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
