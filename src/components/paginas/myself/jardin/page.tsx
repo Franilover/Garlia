@@ -1,10 +1,11 @@
 "use client";
-import { Cat, BookOpen, Music, Users } from "lucide-react";
+import { Cat, BookOpen, Music, Map } from "lucide-react"; 
 import { Secciones } from "@/components/layout/Secciones";
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import EstudioCapitulos from "@/components/paginas/myself/jardin/editorCapitulos";
 import EstudioLetras    from "@/components/paginas/myself/jardin/editorLetras";
 import EditorEntidades  from "@/components/paginas/myself/jardin/editorEntidades";
+import EstudioReinos    from "@/components/paginas/myself/jardin/editorReinos"; 
 
 export default function DashboardPage() {
   return (
@@ -29,6 +30,13 @@ export default function DashboardPage() {
             label: "Wiki",
             icon: Cat,
             content: <EditorEntidades />,
+          },
+          {
+            // NUEVO PANEL AÑADIDO
+            id: "reinos",
+            label: "Mapas",
+            icon: Map,
+            content: <EstudioReinos />,
           },
         ]}
       />
