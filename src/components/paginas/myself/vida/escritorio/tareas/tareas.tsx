@@ -198,7 +198,7 @@ export const GestionPersonal = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
-                className="flex-1 flex flex-col min-h-0"
+                className="flex-1 flex flex-col lg:min-h-0"
               >
                 <VistaMes
                   eventos={eventos}
@@ -220,7 +220,7 @@ export const GestionPersonal = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
-                className="flex-1 flex flex-col min-h-0"
+                className="flex-1 flex flex-col lg:min-h-0"
               >
                 <VistaSemanal
                   eventos={eventos}
