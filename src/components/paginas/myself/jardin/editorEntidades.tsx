@@ -211,22 +211,23 @@ function EntidadCard({ item, tab, selected, onClick }: {
 
 function SelectorImagen({ label, value, onChange, aspect, placeholder }: {
   label: string; value: string; onChange: (url: string) => void;
-  aspect: "square" | "portrait" | "landscape" | "video"; placeholder?: React.ReactNode;
+  aspect: "square" | "portrait" | "landscape" | "video" | "full"; placeholder?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const aspectCls =
     aspect === "square"    ? "aspect-square" :
     aspect === "portrait"  ? "aspect-[3/4]"  :
     aspect === "landscape" ? "h-[100px]"     :
-    "aspect-video"; // video
+    aspect === "full"      ? "h-full"        :
+    "aspect-video";
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">{label}</label>
+    <div className={`flex flex-col gap-1.5 ${aspect === "full" ? "h-full" : ""}`}>
+      {label && <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 shrink-0">{label}</label>}
 
       <div
         onClick={() => setOpen(true)}
-        className={`relative ${aspectCls} rounded-xl overflow-hidden border border-primary/15 bg-primary/4 cursor-pointer group`}
+        className={`relative ${aspectCls} ${aspect === "full" ? "flex-1" : ""} rounded-none overflow-hidden border-0 bg-primary/4 cursor-pointer group`}
       >
         {value ? (
           <>
@@ -499,12 +500,14 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+    <div className="flex-1 flex min-h-0 overflow-hidden">
       <ConfirmModal />
 
-      {/* ── Hero: cara (cuadrada) + cuerpo (landscape compacto) ── */}
-      <div className="shrink-0 flex gap-3 p-5 pb-3">
-        <div style={{ width: 100, flexShrink: 0 }}>
+      {/* ── Columna izquierda: cara + campos + caps ── */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+
+        {/* Cara cuadrada pequeña */}
+        <div className="shrink-0 p-5 pb-3" style={{ width: 140 }}>
           <SelectorImagen
             label="Cara"
             value={form.img_url ?? ""}
@@ -513,45 +516,52 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
             placeholder={<UserCircle2 size={22} className="opacity-25" />}
           />
         </div>
-        <div className="flex-1 min-w-0">
+
+        {/* Campos */}
+        <div className="p-5 pt-2 space-y-5">
+          <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del personaje" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <SelectorTexto
+              label="Especie / Raza"
+              value={form.especie ?? ""}
+              onChange={v => setForm(f => ({ ...f, especie: v }))}
+              opciones={especies}
+              placeholder="Humano, elfo, demonio…"
+            />
+            <SelectorTexto
+              label="Reino / Facción"
+              value={form.reino ?? ""}
+              onChange={v => setForm(f => ({ ...f, reino: v }))}
+              opciones={reinos}
+              placeholder="Reino, grupo, nación…"
+            />
+          </div>
+
+          <CampoArea label="Sobre el personaje" value={form.sobre ?? ""} onChange={field("sobre")} rows={6} placeholder="Biografía, personalidad, historia…" />
+
+          <div className="h-px bg-primary/8" />
+          <BloqueCapsNarrados personajeId={form.id} />
+        </div>
+
+        <BarraAcciones status={status} onSave={save} onDelete={del} />
+      </div>
+
+      {/* ── Columna derecha: imagen de cuerpo full-height ── */}
+      <div className="w-44 shrink-0 border-l border-primary/10 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0">
           <SelectorImagen
-            label="Cuerpo completo"
+            label=""
             value={form.img_cuerpo_url ?? ""}
             onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-            aspect="landscape"
-            placeholder={<Maximize2 size={18} className="opacity-25" />}
+            aspect="full"
+            placeholder={<Maximize2 size={20} className="opacity-20" />}
           />
         </div>
-      </div>
-
-      {/* ── Campos ── */}
-      <div className="p-5 pt-2 space-y-5">
-        <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del personaje" />
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SelectorTexto
-            label="Especie / Raza"
-            value={form.especie ?? ""}
-            onChange={v => setForm(f => ({ ...f, especie: v }))}
-            opciones={especies}
-            placeholder="Humano, elfo, demonio…"
-          />
-          <SelectorTexto
-            label="Reino / Facción"
-            value={form.reino ?? ""}
-            onChange={v => setForm(f => ({ ...f, reino: v }))}
-            opciones={reinos}
-            placeholder="Reino, grupo, nación…"
-          />
+        <div className="shrink-0 px-2 py-1.5 border-t border-primary/8">
+          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 block text-center">Cuerpo</span>
         </div>
-
-        <CampoArea label="Sobre el personaje" value={form.sobre ?? ""} onChange={field("sobre")} rows={6} placeholder="Biografía, personalidad, historia…" />
-
-        <div className="h-px bg-primary/8" />
-        <BloqueCapsNarrados personajeId={form.id} />
       </div>
-
-      <BarraAcciones status={status} onSave={save} onDelete={del} />
     </div>
   );
 }
@@ -598,14 +608,14 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
       <ConfirmModal />
 
-      {/* Imagen principal — portrait */}
+      {/* Imagen principal — compacta */}
       <div className="shrink-0 p-5 pb-3">
         <SelectorImagen
           label="Ilustración"
           value={form.imagen_url ?? ""}
           onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-          aspect="portrait"
-          placeholder={<Bug size={28} className="opacity-20" />}
+          aspect="landscape"
+          placeholder={<Bug size={20} className="opacity-20" />}
         />
       </div>
 
@@ -676,8 +686,8 @@ function EditorItem({ item, onSaved, onDeleted }: {
           label="Imagen"
           value={form.imagen_url ?? ""}
           onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-          aspect="square"
-          placeholder={<Package size={28} className="opacity-20" />}
+          aspect="landscape"
+          placeholder={<Package size={20} className="opacity-20" />}
         />
       </div>
 
@@ -719,6 +729,65 @@ function useReinoDetalles(reinoId: string | null) {
   }, [reinoId, load]);
 
   return { detalles, setDetalles, loading };
+}
+
+// ─── Hook personajes del reino ────────────────────────────────────────────────
+
+function usePersonajesDelReino(reinoNombre: string | null | undefined) {
+  const [personajes, setPersonajes] = useState<Personaje[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!reinoNombre) { setPersonajes([]); return; }
+    setLoading(true);
+    supabase
+      .from("personajes")
+      .select("id, nombre, img_url, especie, reino")
+      .ilike("reino", `%${reinoNombre}%`)
+      .order("nombre")
+      .then(({ data }) => { setPersonajes(data || []); setLoading(false); });
+  }, [reinoNombre]);
+
+  return { personajes, loading };
+}
+
+// ─── Panel personajes del reino ───────────────────────────────────────────────
+
+function PanelPersonajesReino({ reinoNombre }: { reinoNombre: string }) {
+  const { personajes, loading } = usePersonajesDelReino(reinoNombre);
+
+  return (
+    <div className="w-52 shrink-0 border-l border-primary/10 flex flex-col min-h-0 overflow-hidden">
+      <div className="shrink-0 px-3 py-2.5 border-b border-primary/8 flex items-center gap-2"
+        style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+        <Users size={11} className="text-primary/40" />
+        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Personajes</span>
+        {!loading && personajes.length > 0 && (
+          <span className="ml-auto text-[9px] font-black text-primary/30 bg-primary/8 px-1.5 py-0.5 rounded-full">{personajes.length}</span>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-0.5">
+        {loading ? (
+          <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+        ) : personajes.length === 0 ? (
+          <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-8 italic">Sin personajes</p>
+        ) : personajes.map(p => (
+          <div key={p.id} className="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-primary/5 transition-colors">
+            <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+              {p.img_url
+                ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                : <UserCircle2 size={13} className="text-primary/20" />
+              }
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-bold text-primary/80 truncate">{p.nombre}</p>
+              {p.especie && <p className="text-[9px] text-primary/35 truncate">{p.especie}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ─── DetalleEditor (punto del mapa) ──────────────────────────────────────────
@@ -848,74 +917,81 @@ function EditorReino({ item, onSaved, onDeleted }: {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+    <div className="flex-1 flex min-h-0 overflow-hidden">
       <ConfirmModal />
 
-      {/* Mapa — aspect-video compacto */}
-      <div className="shrink-0 p-5 pb-3">
-        <SelectorImagen
-          label="Imagen del mapa"
-          value={form.mapa_url ?? ""}
-          onChange={url => setForm(f => ({ ...f, mapa_url: url }))}
-          aspect="video"
-          placeholder={<Map size={24} className="opacity-20" />}
-        />
-      </div>
+      {/* Contenido del reino */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
 
-      <div className="p-5 pt-2 space-y-5">
-        <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Coord X (%)</label>
-            <input type="number" step="0.01" value={form.coord_x || 0} onChange={e => setForm(f => ({ ...f, coord_x: parseFloat(e.target.value) }))} className={INPUT_CLS} />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Coord Y (%)</label>
-            <input type="number" step="0.01" value={form.coord_y || 0} onChange={e => setForm(f => ({ ...f, coord_y: parseFloat(e.target.value) }))} className={INPUT_CLS} />
-          </div>
+        {/* Mapa — aspect-video compacto */}
+        <div className="shrink-0 p-5 pb-3">
+          <SelectorImagen
+            label="Imagen del mapa"
+            value={form.mapa_url ?? ""}
+            onChange={url => setForm(f => ({ ...f, mapa_url: url }))}
+            aspect="video"
+            placeholder={<Map size={24} className="opacity-20" />}
+          />
         </div>
 
-        <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
+        <div className="p-5 pt-2 space-y-5">
+          <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
 
-        {/* Puntos de interés */}
-        <div className="h-px bg-primary/8" />
-        <div>
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/50 flex items-center gap-2 mb-3">
-            <MapPin size={12} /> Puntos de Interés
-            <span className="text-[9px] text-primary/30 bg-primary/8 px-2 py-0.5 rounded-full ml-1">{detalles.length}</span>
-          </h3>
-          {detalles.map(det => (
-            <DetalleEditor
-              key={det.id} detalle={det}
-              onSaved={updated => setDetalles(prev => prev.map(d => d.id === updated.id ? updated : d))}
-              onDeleted={id => setDetalles(prev => prev.filter(d => d.id !== id))}
-            />
-          ))}
-          {detalles.length === 0 && !addingPoint && (
-            <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-5 border border-dashed border-primary/15 rounded-xl mb-2 italic">Sin puntos registrados</p>
-          )}
-          {addingPoint ? (
-            <div className="flex gap-2 p-3 bg-primary/5 rounded-xl border border-primary/15 mt-2">
-              <input
-                autoFocus value={newPointName}
-                onChange={e => setNewPointName(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") handleAddPoint(); if (e.key === "Escape") setAddingPoint(false); }}
-                className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
-                placeholder="NOMBRE DEL LUGAR..."
-              />
-              <button onClick={handleAddPoint} disabled={!newPointName.trim()} className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40"><Check size={13} /></button>
-              <button onClick={() => setAddingPoint(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all"><X size={13} /></button>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Coord X (%)</label>
+              <input type="number" step="0.01" value={form.coord_x || 0} onChange={e => setForm(f => ({ ...f, coord_x: parseFloat(e.target.value) }))} className={INPUT_CLS} />
             </div>
-          ) : (
-            <button onClick={() => setAddingPoint(true)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest mt-2">
-              <Plus size={11} /> Añadir Punto de Interés
-            </button>
-          )}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Coord Y (%)</label>
+              <input type="number" step="0.01" value={form.coord_y || 0} onChange={e => setForm(f => ({ ...f, coord_y: parseFloat(e.target.value) }))} className={INPUT_CLS} />
+            </div>
+          </div>
+
+          <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
+
+          {/* Puntos de interés */}
+          <div className="h-px bg-primary/8" />
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/50 flex items-center gap-2 mb-3">
+              <MapPin size={12} /> Puntos de Interés
+              <span className="text-[9px] text-primary/30 bg-primary/8 px-2 py-0.5 rounded-full ml-1">{detalles.length}</span>
+            </h3>
+            {detalles.map(det => (
+              <DetalleEditor
+                key={det.id} detalle={det}
+                onSaved={updated => setDetalles(prev => prev.map(d => d.id === updated.id ? updated : d))}
+                onDeleted={id => setDetalles(prev => prev.filter(d => d.id !== id))}
+              />
+            ))}
+            {detalles.length === 0 && !addingPoint && (
+              <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-5 border border-dashed border-primary/15 rounded-xl mb-2 italic">Sin puntos registrados</p>
+            )}
+            {addingPoint ? (
+              <div className="flex gap-2 p-3 bg-primary/5 rounded-xl border border-primary/15 mt-2">
+                <input
+                  autoFocus value={newPointName}
+                  onChange={e => setNewPointName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") handleAddPoint(); if (e.key === "Escape") setAddingPoint(false); }}
+                  className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
+                  placeholder="NOMBRE DEL LUGAR..."
+                />
+                <button onClick={handleAddPoint} disabled={!newPointName.trim()} className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40"><Check size={13} /></button>
+                <button onClick={() => setAddingPoint(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all"><X size={13} /></button>
+              </div>
+            ) : (
+              <button onClick={() => setAddingPoint(true)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest mt-2">
+                <Plus size={11} /> Añadir Punto de Interés
+              </button>
+            )}
+          </div>
         </div>
+
+        <BarraAcciones status={status} onSave={save} onDelete={del} />
       </div>
 
-      <BarraAcciones status={status} onSave={save} onDelete={del} />
+      {/* Panel de personajes del reino */}
+      <PanelPersonajesReino reinoNombre={form.nombre} />
     </div>
   );
 }
@@ -999,15 +1075,15 @@ export default function EditorEntidades() {
     <>
       <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
         {(Object.keys(TAB_CONFIG) as TabKey[]).map(k => {
-          const { emoji, label } = TAB_CONFIG[k];
+          const { Icon: TabIcon, label } = TAB_CONFIG[k];
           return (
             <button key={k} onClick={() => setTab(k)}
               title={label}
-              className={`flex-1 flex items-center justify-center py-2 rounded-lg text-base transition-all ${
-                tab === k ? "bg-primary/15 border border-primary/20" : "opacity-30 hover:opacity-60"
+              className={`flex-1 flex items-center justify-center py-2 rounded-lg transition-all ${
+                tab === k ? "bg-primary/15 text-primary border border-primary/20" : "text-primary/25 hover:text-primary/60"
               }`}
             >
-              {emoji}
+              <TabIcon size={13} />
             </button>
           );
         })}
