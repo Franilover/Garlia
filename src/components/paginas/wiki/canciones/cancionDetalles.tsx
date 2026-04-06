@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Btn, BtnIcon, Loading, BackBtn } from "@/components/ui";
 import {
-  FullLyricsModal, LanguageToggler, LinkSection,
+  FullLyricsModal, LinkSection,
   IDIOMAS, getLetra,
   type Seccion, type IdiomaId,
 } from "@/components/paginas/wiki/canciones/CancionComponents";
@@ -96,7 +96,7 @@ export default function CancionDetallesPage() {
             </motion.div>
           )}
 
-          <LanguageToggler idiomasActivos={idiomasActivos} onToggle={toggleIdioma} />
+          {/* <LanguageToggler idiomasActivos={idiomasActivos} onToggle={toggleIdioma} /> */}
 
           {cancion?.personaje && (
             <motion.div
