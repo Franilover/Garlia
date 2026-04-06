@@ -79,7 +79,6 @@ export const FullLyricsModal = ({
                     <span className="text-[9px] font-black text-primary/50 min-w-[38px] text-center">{Math.round(zoom * 100)}%</span>
                     <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold">+</button>
                   </div>
-                  <Btn variant="ghost" size="sm" icon={<Copy size={12} />} onClick={handleCopy}>Copiar</Btn>
                   <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all">✕</button>
                 </div>
               </div>
