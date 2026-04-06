@@ -101,10 +101,10 @@ export const VistaMes = ({
           ))}
         </div>
 
-        {/* Celdas — usan padding-bottom: 100% para ser cuadradas sin fijar altura */}
+        {/* Celdas — altura fija para no depender del ancho del contenedor */}
         <div className="grid grid-cols-7 gap-1">
           {Array.from({ length: primerDiaSemana }).map((_, i) => (
-            <div key={`empty-${i}`} className="aspect-square" />
+            <div key={`empty-${i}`} className="h-8" />
           ))}
           {Array.from({ length: diasEnMes }).map((_, i) => {
             const dia = i + 1;
@@ -122,7 +122,7 @@ export const VistaMes = ({
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.95 }}
                 className={cn(
-                  "aspect-square rounded-[var(--radius-btn)] border flex flex-col items-center justify-center relative transition-all text-xs font-black",
+                  "h-8 rounded-[var(--radius-btn)] border flex flex-col items-center justify-center relative transition-all text-xs font-black",
                   estaSeleccionado
                     ? "bg-primary text-btn-text border-primary shadow-lg shadow-primary/30"
                     : esHoy

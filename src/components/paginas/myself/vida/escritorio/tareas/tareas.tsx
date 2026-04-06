@@ -189,7 +189,7 @@ export const GestionPersonal = () => {
         </div>
 
         {/* Vista activa — ocupa el espacio restante en desktop, altura auto en móvil */}
-        <div className="flex-1 lg:min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col">
           <AnimatePresence mode="wait">
             {modoCalendario === "mes" ? (
               <motion.div
@@ -198,7 +198,7 @@ export const GestionPersonal = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
-                className="flex-1 flex flex-col lg:min-h-0"
+                className="flex-1 flex flex-col min-h-0"
               >
                 <VistaMes
                   eventos={eventos}
@@ -220,7 +220,7 @@ export const GestionPersonal = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
-                className="flex-1 flex flex-col lg:min-h-0"
+                className="flex-1 flex flex-col min-h-0"
               >
                 <VistaSemanal
                   eventos={eventos}
