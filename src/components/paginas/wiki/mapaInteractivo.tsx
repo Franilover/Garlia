@@ -432,18 +432,7 @@ export default function MapaInteractivo() {
                       "{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}"
                     </p>
                   </div>
-                  {!puntoSeleccionado && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 border border-primary/10" style={{borderRadius:"var(--radius-btn)"}}>
-                        <span className="block text-[8px] font-bold uppercase opacity-40">Ubicación</span>
-                        <span className="text-[10px] font-black text-primary">{reinoSeleccionado.coord_x} / {reinoSeleccionado.coord_y}</span>
-                      </div>
-                      <div className="text-center p-4 border border-primary/10" style={{borderRadius:"var(--radius-btn)"}}>
-                        <span className="block text-[8px] font-bold uppercase opacity-40">Orden</span>
-                        <span className="text-[10px] font-black text-primary">Nivel {reinoSeleccionado.orden}</span>
-                      </div>
-                    </div>
-                  )}
+
 
                   {/* ── Habitantes del reino ── */}
                   {!puntoSeleccionado && personajesReino.length > 0 && (
