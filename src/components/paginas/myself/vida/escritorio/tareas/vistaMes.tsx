@@ -65,7 +65,7 @@ export const VistaMes = ({
   }, [eventos, capitulosRaw, diaSeleccionado, mesActual, añoActual]);
 
   return (
-    <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-4 shadow-xl shadow-primary/5 flex flex-col gap-3 lg:h-full lg:overflow-hidden">
+    <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-4 shadow-xl shadow-primary/5 flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
 
       {/* ── Cabecera mes ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between shrink-0">
@@ -184,13 +184,11 @@ export const VistaMes = ({
       </div>
 
       {/* ── Lista de eventos del día ──────────────────────────────────────── */}
-      {/* flex-1 + min-h-0 en desktop para que ocupe el espacio restante y haga scroll */}
-      <div className="flex flex-col min-h-0 lg:flex-1">
+      <div className="flex flex-col flex-1 min-h-0">
         <h3 className="text-[9px] font-black uppercase tracking-widest text-primary/30 px-1 mb-2 shrink-0">
           Eventos del día {diaSeleccionado}
         </h3>
-        {/* El scroll va aquí, no en el padre */}
-        <div className="flex flex-col gap-2 overflow-y-auto min-h-0 lg:flex-1">
+        <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-0">
           {itemsCombinadosDelDia.length > 0 ? (
             itemsCombinadosDelDia.map((item: any) => (
               <motion.div
