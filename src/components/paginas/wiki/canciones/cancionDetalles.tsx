@@ -94,8 +94,6 @@ export default function CancionDetallesPage() {
             </motion.div>
           )}
 
-          {/* <LanguageToggler idiomasActivos={idiomasActivos} onToggle={toggleIdioma} /> */}
-
           {cancion?.personaje && (
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}

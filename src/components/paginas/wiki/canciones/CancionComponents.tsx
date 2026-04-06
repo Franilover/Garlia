@@ -69,9 +69,6 @@ export const FullLyricsModal = ({
                 <div className="flex items-center gap-3">
                   <FileText size={13} className="text-primary/50" />
                   <span className="text-primary font-black uppercase text-[10px] tracking-[0.2em] italic">Lectura</span>
-                  <span className="text-primary/30 text-[9px] font-bold uppercase tracking-widest">
-                    · {IDIOMAS.find(i => i.id === lang)?.nombre}
-                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
