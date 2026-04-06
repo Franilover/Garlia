@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Plus, Trash2, Save, Loader2,
-  Users, Bug, Package,
+  Users, Bug, Package, Map, MapPin, Check, RefreshCw,
   AlertCircle, CheckCircle2,
   BookOpen, Mic2, ChevronDown, Image as ImageIcon, X,
   UserCircle2, Maximize2,
@@ -19,8 +19,8 @@ import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 type Personaje = {
   id: string;
   nombre: string;
-  img_url?: string;            // cara (cuadrada)
-  img_cuerpo_url?: string;     // cuerpo completo (portrait) — NUEVO
+  img_url?: string;
+  img_cuerpo_url?: string;
   sobre?: string;
   reino?: string;
   especie?: string;
@@ -44,6 +44,24 @@ type Item = {
   categoria?: string;
 };
 
+type Reino = {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  mapa_url?: string;
+  coord_x?: number;
+  coord_y?: number;
+};
+
+type ReinoDetalle = {
+  id: string;
+  reino_id: string;
+  nombre: string;
+  descripcion?: string;
+  coord_x?: number;
+  coord_y?: number;
+};
+
 type CapituloNarrado = {
   id: string;
   titulo_capitulo: string;
@@ -52,15 +70,16 @@ type CapituloNarrado = {
   libro_titulo?: string;
 };
 
-type TabKey = "personajes" | "criaturas" | "items";
+type TabKey = "personajes" | "criaturas" | "items" | "reinos";
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const TAB_CONFIG: Record<TabKey, { label: string; tabla: string; Icon: React.ElementType }> = {
-  personajes: { label: "Personajes", tabla: "personajes", Icon: Users   },
-  criaturas:  { label: "Criaturas",  tabla: "criaturas",  Icon: Bug     },
-  items:      { label: "Items",      tabla: "items",      Icon: Package },
+const TAB_CONFIG: Record<TabKey, { emoji: string; label: string; tabla: string; Icon: React.ElementType }> = {
+  personajes: { emoji: "🧑", label: "Personajes", tabla: "personajes", Icon: Users   },
+  criaturas:  { emoji: "🐛", label: "Criaturas",  tabla: "criaturas",  Icon: Bug     },
+  items:      { emoji: "📦", label: "Items",      tabla: "items",      Icon: Package },
+  reinos:     { emoji: "🗺️", label: "Mapas",      tabla: "reinos",     Icon: Map     },
 };
 
 const INPUT_CLS = "w-full bg-input-bg text-input-text border border-primary/15 rounded-xl px-3 py-2.5 text-xs font-medium outline-none focus:border-primary/40 placeholder:text-primary/25 transition-colors";
@@ -192,9 +211,14 @@ function EntidadCard({ item, tab, selected, onClick }: {
 
 function SelectorImagen({ label, value, onChange, aspect, placeholder }: {
   label: string; value: string; onChange: (url: string) => void;
-  aspect: "square" | "portrait"; placeholder?: React.ReactNode;
+  aspect: "square" | "portrait" | "landscape" | "video"; placeholder?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const aspectCls =
+    aspect === "square"    ? "aspect-square" :
+    aspect === "portrait"  ? "aspect-[3/4]"  :
+    aspect === "landscape" ? "h-[100px]"     :
+    "aspect-video"; // video
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -202,7 +226,7 @@ function SelectorImagen({ label, value, onChange, aspect, placeholder }: {
 
       <div
         onClick={() => setOpen(true)}
-        className={`relative ${aspect === "square" ? "aspect-square" : "aspect-[3/4]"} rounded-xl overflow-hidden border border-primary/15 bg-primary/4 cursor-pointer group`}
+        className={`relative ${aspectCls} rounded-xl overflow-hidden border border-primary/15 bg-primary/4 cursor-pointer group`}
       >
         {value ? (
           <>
@@ -478,26 +502,24 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
       <ConfirmModal />
 
-      {/* ── Hero: cara (cuadrada) + cuerpo (portrait) ── */}
+      {/* ── Hero: cara (cuadrada) + cuerpo (landscape compacto) ── */}
       <div className="shrink-0 flex gap-3 p-5 pb-3">
-        {/* Cara — cuadrada, fija 144px */}
-        <div style={{ width: 144, flexShrink: 0 }}>
+        <div style={{ width: 100, flexShrink: 0 }}>
           <SelectorImagen
             label="Cara"
             value={form.img_url ?? ""}
             onChange={url => setForm(f => ({ ...f, img_url: url }))}
             aspect="square"
-            placeholder={<UserCircle2 size={28} className="opacity-25" />}
+            placeholder={<UserCircle2 size={22} className="opacity-25" />}
           />
         </div>
-        {/* Cuerpo completo — portrait, ocupa el resto */}
         <div className="flex-1 min-w-0">
           <SelectorImagen
             label="Cuerpo completo"
             value={form.img_cuerpo_url ?? ""}
             onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-            aspect="portrait"
-            placeholder={<Maximize2 size={24} className="opacity-25" />}
+            aspect="landscape"
+            placeholder={<Maximize2 size={18} className="opacity-25" />}
           />
         </div>
       </div>
@@ -678,6 +700,226 @@ function EditorItem({ item, onSaved, onDeleted }: {
   );
 }
 
+// ─── Hook detalles de reino ───────────────────────────────────────────────────
+
+function useReinoDetalles(reinoId: string | null) {
+  const [detalles, setDetalles] = useState<ReinoDetalle[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async (id: string) => {
+    setLoading(true);
+    const { data } = await supabase.from("reino_detalles").select("*").eq("reino_id", id).order("nombre");
+    setDetalles(data || []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (reinoId) load(reinoId);
+    else setDetalles([]);
+  }, [reinoId, load]);
+
+  return { detalles, setDetalles, loading };
+}
+
+// ─── DetalleEditor (punto del mapa) ──────────────────────────────────────────
+
+function DetalleEditor({ detalle, onSaved, onDeleted }: {
+  detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void;
+}) {
+  const [form, setForm] = useState(detalle);
+  const [expanded, setExpanded] = useState(false);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const { confirm, ConfirmModal } = useConfirm();
+
+  const handleSave = async () => {
+    setStatus("saving");
+    try {
+      const { error } = await supabase.from("reino_detalles").update(form).eq("id", form.id);
+      if (error) throw error;
+      setStatus("saved");
+      onSaved(form);
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch { setStatus("error"); }
+  };
+
+  const handleDelete = async () => {
+    const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
+    if (!ok) return;
+    await supabase.from("reino_detalles").delete().eq("id", form.id);
+    onDeleted(form.id);
+  };
+
+  return (
+    <div className="border border-primary/10 rounded-xl bg-bg-main/50 hover:border-primary/20 transition-all overflow-hidden mb-2">
+      <ConfirmModal />
+      <div className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer select-none" onClick={() => setExpanded(!expanded)}>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <MapPin size={12} className="text-primary/40 shrink-0" />
+          <span className="text-[11px] font-black uppercase text-primary tracking-widest truncate">{form.nombre}</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[9px] font-bold text-primary/30 bg-primary/5 px-1.5 py-0.5 rounded-lg border border-primary/10">
+            {form.coord_x || 0},{form.coord_y || 0}
+          </span>
+          <ChevronDown size={13} className={`text-primary/40 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        </div>
+      </div>
+      {expanded && (
+        <div className="p-3 pt-0 border-t border-primary/5 space-y-3 bg-primary/3">
+          <div className="mt-3">
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Nombre</label>
+            <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} className={INPUT_CLS + " mt-1"} />
+          </div>
+          <div>
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción</label>
+            <textarea value={form.descripcion || ""} onChange={e => setForm({ ...form, descripcion: e.target.value })} rows={2} className={INPUT_CLS + " mt-1 resize-none"} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">X (%)</label>
+              <input type="number" step="0.01" value={form.coord_x || 0} onChange={e => setForm({ ...form, coord_x: parseFloat(e.target.value) })} className={INPUT_CLS + " mt-1"} />
+            </div>
+            <div>
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Y (%)</label>
+              <input type="number" step="0.01" value={form.coord_y || 0} onChange={e => setForm({ ...form, coord_y: parseFloat(e.target.value) })} className={INPUT_CLS + " mt-1"} />
+            </div>
+          </div>
+          <div className="flex items-center justify-between pt-1">
+            <button onClick={handleDelete} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all">
+              <Trash2 size={10} /> Eliminar
+            </button>
+            <div className="flex items-center gap-2">
+              <SaveIndicator status={status} />
+              <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all">
+                <Check size={10} /> Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── EditorReino ──────────────────────────────────────────────────────────────
+
+function EditorReino({ item, onSaved, onDeleted }: {
+  item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void;
+}) {
+  const [form, setForm] = useState<Reino>(item);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const [addingPoint, setAddingPoint] = useState(false);
+  const [newPointName, setNewPointName] = useState("");
+  const { detalles, setDetalles } = useReinoDetalles(item.id);
+  const { confirm, ConfirmModal } = useConfirm();
+
+  useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
+
+  const save = async () => {
+    setStatus("saving");
+    try {
+      const { error } = await supabase.from("reinos").update({
+        nombre: form.nombre, descripcion: form.descripcion,
+        mapa_url: form.mapa_url, coord_x: form.coord_x, coord_y: form.coord_y,
+      }).eq("id", form.id);
+      if (error) throw error;
+      setStatus("saved");
+      onSaved(form);
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch { setStatus("error"); }
+  };
+
+  const del = async () => {
+    const ok = await confirm({ message: `¿Eliminar el reino "${form.nombre}" y todos sus puntos?`, danger: true });
+    if (!ok) return;
+    await supabase.from("reinos").delete().eq("id", form.id);
+    onDeleted(form.id);
+  };
+
+  const handleAddPoint = async () => {
+    if (!newPointName.trim()) return;
+    const newPoint = { reino_id: form.id, nombre: newPointName.trim(), coord_x: 50, coord_y: 50 };
+    const { data, error } = await supabase.from("reino_detalles").insert([newPoint]).select().single();
+    if (!error && data) {
+      setDetalles(prev => [...prev, data]);
+      setAddingPoint(false);
+      setNewPointName("");
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+      <ConfirmModal />
+
+      {/* Mapa — aspect-video compacto */}
+      <div className="shrink-0 p-5 pb-3">
+        <SelectorImagen
+          label="Imagen del mapa"
+          value={form.mapa_url ?? ""}
+          onChange={url => setForm(f => ({ ...f, mapa_url: url }))}
+          aspect="video"
+          placeholder={<Map size={24} className="opacity-20" />}
+        />
+      </div>
+
+      <div className="p-5 pt-2 space-y-5">
+        <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Coord X (%)</label>
+            <input type="number" step="0.01" value={form.coord_x || 0} onChange={e => setForm(f => ({ ...f, coord_x: parseFloat(e.target.value) }))} className={INPUT_CLS} />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Coord Y (%)</label>
+            <input type="number" step="0.01" value={form.coord_y || 0} onChange={e => setForm(f => ({ ...f, coord_y: parseFloat(e.target.value) }))} className={INPUT_CLS} />
+          </div>
+        </div>
+
+        <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
+
+        {/* Puntos de interés */}
+        <div className="h-px bg-primary/8" />
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/50 flex items-center gap-2 mb-3">
+            <MapPin size={12} /> Puntos de Interés
+            <span className="text-[9px] text-primary/30 bg-primary/8 px-2 py-0.5 rounded-full ml-1">{detalles.length}</span>
+          </h3>
+          {detalles.map(det => (
+            <DetalleEditor
+              key={det.id} detalle={det}
+              onSaved={updated => setDetalles(prev => prev.map(d => d.id === updated.id ? updated : d))}
+              onDeleted={id => setDetalles(prev => prev.filter(d => d.id !== id))}
+            />
+          ))}
+          {detalles.length === 0 && !addingPoint && (
+            <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-5 border border-dashed border-primary/15 rounded-xl mb-2 italic">Sin puntos registrados</p>
+          )}
+          {addingPoint ? (
+            <div className="flex gap-2 p-3 bg-primary/5 rounded-xl border border-primary/15 mt-2">
+              <input
+                autoFocus value={newPointName}
+                onChange={e => setNewPointName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") handleAddPoint(); if (e.key === "Escape") setAddingPoint(false); }}
+                className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
+                placeholder="NOMBRE DEL LUGAR..."
+              />
+              <button onClick={handleAddPoint} disabled={!newPointName.trim()} className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40"><Check size={13} /></button>
+              <button onClick={() => setAddingPoint(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all"><X size={13} /></button>
+            </div>
+          ) : (
+            <button onClick={() => setAddingPoint(true)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest mt-2">
+              <Plus size={11} /> Añadir Punto de Interés
+            </button>
+          )}
+        </div>
+      </div>
+
+      <BarraAcciones status={status} onSave={save} onDelete={del} />
+    </div>
+  );
+}
+
 // ─── Modal nueva entidad ──────────────────────────────────────────────────────
 
 function ModalNueva({ tab, onCreated, onClose }: {
@@ -757,14 +999,15 @@ export default function EditorEntidades() {
     <>
       <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
         {(Object.keys(TAB_CONFIG) as TabKey[]).map(k => {
-          const { Icon: TabIcon, label } = TAB_CONFIG[k];
+          const { emoji, label } = TAB_CONFIG[k];
           return (
             <button key={k} onClick={() => setTab(k)}
-              className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                tab === k ? "bg-primary/15 text-primary border border-primary/20" : "text-primary/30 hover:text-primary/60"
+              title={label}
+              className={`flex-1 flex items-center justify-center py-2 rounded-lg text-base transition-all ${
+                tab === k ? "bg-primary/15 border border-primary/20" : "opacity-30 hover:opacity-60"
               }`}
             >
-              <TabIcon size={11} /> {label}
+              {emoji}
             </button>
           );
         })}
@@ -811,6 +1054,7 @@ export default function EditorEntidades() {
             {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} />}
             {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} />}
             {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} />}
+            {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} />}
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-foreground/20">
