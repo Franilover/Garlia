@@ -10,6 +10,7 @@ import {
   Trash2, WifiOff, X, Check, CheckCircle2, AlertCircle,
   Eye, EyeOff, Maximize2, Minimize2, Clock, Hash,
   AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal, Globe, Lock, Timer, Zap,
+  Mic2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
@@ -47,6 +48,8 @@ type Capitulo = {
   fecha_publicacion: string;
   visibilidad?: "publico" | "programado" | "oculto";
   personajes_ids?: string[];
+  // ── NUEVO: personaje que narra/protagoniza el capítulo ──
+  narrador_id?: string | null;
   status?: "pending" | "synced";
   deleted?: boolean;
 };
@@ -62,8 +65,6 @@ const ESTADO_COLOR: Record<string, string> = {
   PAUSADO:      "bg-primary/10 text-primary/40 border-primary/20",
 };
 
-// Visibilidad unificada para capítulos y libros.
-// "oculto" queda como alias de "borrador" para compatibilidad con datos viejos.
 const VISIBILIDAD_CONFIG = {
   publico:    { label: "Público",    icon: Globe, color: "bg-primary/15 text-primary border-primary/30"           },
   programado: { label: "Programado", icon: Timer, color: "bg-primary/8  text-primary/70 border-primary/20"        },
@@ -152,7 +153,12 @@ async function capUpdateMeta(id: string, fields: Partial<Capitulo>): Promise<voi
   }
 }
 
-async function capCreate(libroId: string, titulo: string, orden: number, visibilidad: "publico" | "programado" | "oculto" = "oculto", fecha?: string): Promise<Capitulo> {
+async function capCreate(
+  libroId: string, titulo: string, orden: number,
+  visibilidad: "publico" | "programado" | "oculto" = "oculto",
+  fecha?: string,
+  narradorId?: string | null,
+): Promise<Capitulo> {
   const base: any = {
     libro_id: libroId,
     titulo_capitulo: titulo.toUpperCase(),
@@ -160,6 +166,7 @@ async function capCreate(libroId: string, titulo: string, orden: number, visibil
     orden,
     visibilidad,
     fecha_publicacion: visibilidad === "programado" ? (fecha ?? null) : null,
+    narrador_id: narradorId ?? null,
   };
   if (!navigator.onLine) {
     const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -205,7 +212,6 @@ async function libroUpdateMeta(id: string, fields: Partial<Libro>): Promise<void
   if (error) throw error;
 }
 
-
 async function libroUpdateVisibilidad(id: string, visibilidad: string, fechaPublicacion?: string): Promise<void> {
   const fields: any = { visibilidad };
   if (fechaPublicacion !== undefined) fields.fecha_publicacion = fechaPublicacion || null;
@@ -220,7 +226,6 @@ function useLibros() {
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async () => {
-    
     const local = await dexieLibrosRead();
     if (local.length > 0) {
       setLibros(local);
@@ -240,7 +245,7 @@ function useLibros() {
       const result = await Promise.race([fetchPromise, timeout]);
 
       if (result === "timeout") {
-        setIsOffline(local.length === 0); 
+        setIsOffline(local.length === 0);
         setLoading(false);
         return;
       }
@@ -274,7 +279,6 @@ function useCapitulos(libroId: string | null) {
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async (id: string) => {
-    
     const local = await dexieCapRead(id);
     if (local.length > 0) {
       setCapitulos(local);
@@ -334,7 +338,6 @@ function useCapituloEditor(capId: string | null) {
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async (id: string) => {
-    
     const local = await dexieCapGet(id);
     if (local) {
       setCap(local);
@@ -356,7 +359,7 @@ function useCapituloEditor(capId: string | null) {
       const result = await Promise.race([fetchPromise, timeout]);
 
       if (result === "timeout") {
-        setIsOffline(!local); 
+        setIsOffline(!local);
         setLoading(false);
         return;
       }
@@ -364,7 +367,6 @@ function useCapituloEditor(capId: string | null) {
       const { data, error } = result as any;
       if (error) throw error;
 
-      
       if (local?.status === "pending" && local.contenido !== data.contenido) {
         setCap({ ...data, contenido: local.contenido, status: "pending" });
       } else {
@@ -619,6 +621,130 @@ const VisibilidadCapPicker = ({
   );
 };
 
+// ─── NUEVO: Selector de narrador/protagonista (single-select) ────────────────
+const SelectorNarrador = ({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (id: string | null) => void;
+}) => {
+  const { personajes, loading } = usePersonajes();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Cerrar al hacer click fuera
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const selected = personajes.find(p => p.id === value) ?? null;
+
+  return (
+    <div className="space-y-1.5" ref={ref}>
+      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-2">
+        <Mic2 size={10} />
+        Narrador / Protagonista del capítulo
+      </label>
+
+      {/* Botón principal */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          color: selected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+        }}
+      >
+        <span className="flex items-center gap-2">
+          {selected ? (
+            <>
+              {(selected as any).img_url && (
+                <img
+                  src={(selected as any).img_url}
+                  className="w-5 h-5 rounded-full object-cover border border-primary/20"
+                  alt=""
+                />
+              )}
+              <span className="font-black uppercase">{selected.nombre}</span>
+            </>
+          ) : (
+            loading ? "Cargando…" : "Sin narrador asignado"
+          )}
+        </span>
+        <ChevronDown size={12} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div
+          className="border rounded-[var(--radius-btn)] overflow-hidden"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+            background: "var(--bg-main)",
+          }}
+        >
+          {/* Opción: ninguno */}
+          <button
+            type="button"
+            onClick={() => { onChange(null); setOpen(false); }}
+            className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
+            style={{ color: !value ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+          >
+            <span className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                <X size={9} className="opacity-50" />
+              </span>
+              Ninguno
+            </span>
+            {!value && <Check size={11} style={{ color: "var(--primary)" }} />}
+          </button>
+
+          <div className="h-px mx-3" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+
+          {/* Lista de personajes */}
+          <div className="max-h-48 overflow-y-auto">
+            {personajes.length === 0 ? (
+              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">Sin personajes</p>
+            ) : personajes.map(p => {
+              const sel = value === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { onChange(p.id); setOpen(false); }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
+                  style={{ color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+                >
+                  <span className="flex items-center gap-2">
+                    {(p as any).img_url ? (
+                      <img src={(p as any).img_url} className="w-5 h-5 rounded-full object-cover border border-primary/15" alt="" />
+                    ) : (
+                      <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                        <UserCircle2 size={10} className="opacity-40" />
+                      </span>
+                    )}
+                    {p.nombre}
+                  </span>
+                  {sel && <Check size={11} style={{ color: "var(--primary)" }} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── PanelEditor ─────────────────────────────────────────────────────────────
 
 const PanelEditor = ({
   capId, libroId, onCapitulosChange, focusMode, onToggleFocus,
@@ -660,14 +786,13 @@ const PanelEditor = ({
     else setSaveStatus("idle");
   }, [cap?.id]);
 
-  // Cargar lista de caps del libro para snippet de choice/use
   useEffect(() => {
     if (!libroId) return;
     supabase.from("capitulos").select("id, orden, titulo_capitulo")
       .eq("libro_id", libroId).order("orden").then(({ data }) => {
         setListaSnippetCaps((data ?? []) as {id:string;orden:number;titulo_capitulo:string}[]);
       });
-  }, [libroId]); 
+  }, [libroId]);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -743,6 +868,9 @@ const PanelEditor = ({
   );
   if (!cap) return null;
 
+  // Narrador del capítulo (para mostrar en la cabecera)
+  const narradorLabel = cap.narrador_id ? null : null; // se resuelve en ModalEditar, aquí solo mostramos el id si existe
+
   const palabras = wordCount(contenido);
 
   return (
@@ -757,7 +885,6 @@ const PanelEditor = ({
               className="absolute inset-0 bg-bg-main"
             />
             <div className="relative z-10 flex flex-col h-full">
-              {/* Header preview */}
               <div className="flex items-center justify-between px-6 py-3 bg-white-custom/80 backdrop-blur-md border-b border-primary/10 shrink-0">
                 <div className="flex items-center gap-3">
                   <Eye size={14} className="text-emerald-500" />
@@ -769,15 +896,11 @@ const PanelEditor = ({
                   <span className="text-[9px] font-bold text-primary/25 uppercase tracking-widest">
                     Los drops y sounds funcionan en tiempo real
                   </span>
-                  <button
-                    onClick={() => setPreviewOpen(false)}
-                    className="p-1.5 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
-                  >
+                  <button onClick={() => setPreviewOpen(false)} className="p-1.5 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all">
                     <X size={16}/>
                   </button>
                 </div>
               </div>
-              {/* Contenido renderizado via iframe — 100% real, con drops y sounds */}
               <div className="flex-1 overflow-hidden">
                 <iframe
                   key={previewOpen ? "open" : "closed"}
@@ -805,11 +928,10 @@ const PanelEditor = ({
         </div>
       )}
 
-      {}
       {!focusMode && (
         <div className="shrink-0 px-8 pt-6 pb-4 border-b border-primary/8 space-y-4">
 
-          {}
+          {/* Título */}
           <div className="flex items-start gap-3">
             {editingTitle ? (
               <div className="flex-1 flex items-center gap-2">
@@ -844,21 +966,14 @@ const PanelEditor = ({
               </div>
             )}
 
-            {}
+            {/* Acciones */}
             <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => doSave(contenido)}
-                disabled={saveStatus === "saving"}
-                className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30"
-                title="Guardar (Ctrl+S)"
-              >
+              <button onClick={() => doSave(contenido)} disabled={saveStatus === "saving"}
+                className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30" title="Guardar (Ctrl+S)">
                 <Save size={14}/>
               </button>
-              <button
-                onClick={() => setPreviewOpen(true)}
-                className="p-2 rounded-lg hover:bg-emerald-500/10 text-primary/30 hover:text-emerald-500 transition-all"
-                title="Vista previa del lector"
-              >
+              <button onClick={() => setPreviewOpen(true)}
+                className="p-2 rounded-lg hover:bg-emerald-500/10 text-primary/30 hover:text-emerald-500 transition-all" title="Vista previa">
                 <Eye size={14}/>
               </button>
               <button onClick={onToggleFocus} className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all" title="Modo foco">
@@ -873,23 +988,23 @@ const PanelEditor = ({
             </div>
           </div>
 
-          {}
+          {/* Meta row */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3 text-[9px] font-black uppercase text-primary/30 tracking-widest flex-wrap">
               <span className="flex items-center gap-1">
                 <Hash size={9}/> Cap. {cap.orden}
               </span>
 
-              {/* Fecha: solo visible cuando visibilidad = programado */}
+              {/* Narrador pill — visible si está asignado */}
+              {cap.narrador_id && (
+                <NarradorPill narradorId={cap.narrador_id} />
+              )}
+
               {capVisibilidad === "programado" && (
                 editingFecha ? (
                   <span className="flex items-center gap-1.5">
                     <Calendar size={9}/>
-                    <input
-                      autoFocus
-                      type="date"
-                      value={fecha}
-                      onChange={e => setFecha(e.target.value)}
+                    <input autoFocus type="date" value={fecha} onChange={e => setFecha(e.target.value)}
                       onKeyDown={e => {
                         if (e.key === "Enter") handleSaveFecha();
                         if (e.key === "Escape") { setEditingFecha(false); setFecha(toDateInput(cap.fecha_publicacion)); }
@@ -904,11 +1019,7 @@ const PanelEditor = ({
                     </button>
                   </span>
                 ) : (
-                  <button
-                    onClick={() => setEditingFecha(true)}
-                    className="flex items-center gap-1 hover:text-primary transition-colors group/fecha"
-                    title="Editar fecha de publicación"
-                  >
+                  <button onClick={() => setEditingFecha(true)} className="flex items-center gap-1 hover:text-primary transition-colors group/fecha" title="Editar fecha">
                     <Calendar size={9}/>
                     {fecha
                       ? new Date(fecha) > new Date()
@@ -921,14 +1032,12 @@ const PanelEditor = ({
                 )
               )}
 
-              {/* Visibilidad del capítulo */}
               <VisibilidadCapPicker
                 capId={capId}
                 current={capVisibilidad}
                 onChanged={(v) => {
                   setCapVisibilidad(v);
                   setCap(prev => prev ? { ...prev, visibilidad: v } : prev);
-                  // Si no es programado, limpiar la fecha
                   if (v !== "programado") {
                     setFecha("");
                     capUpdateMeta(capId, { fecha_publicacion: null as any });
@@ -945,7 +1054,6 @@ const PanelEditor = ({
         </div>
       )}
 
-      {}
       {focusMode && (
         <div className="shrink-0 flex items-center justify-between px-8 py-3 border-b border-primary/5">
           <span className="text-xs font-black uppercase italic tracking-tight text-primary/40 truncate max-w-xs">
@@ -970,7 +1078,6 @@ const PanelEditor = ({
         />
       )}
 
-      {}
       <div className={`flex-1 overflow-y-auto ${focusMode ? "px-16 py-12 max-w-3xl mx-auto w-full" : "px-8 py-6"}`}>
         <textarea
           ref={textareaRef}
@@ -986,7 +1093,6 @@ const PanelEditor = ({
         />
       </div>
 
-      {}
       {!focusMode && (
         <div className="shrink-0 px-8 py-3 border-t border-primary/5 flex items-center justify-between">
           <EstadisticasEscritura texto={contenido}/>
@@ -998,7 +1104,26 @@ const PanelEditor = ({
   );
 };
 
-// ─── Selector de visibilidad inline ─────────────────────────────────────────
+// ─── Pill del narrador en la barra del editor ─────────────────────────────────
+const NarradorPill = ({ narradorId }: { narradorId: string }) => {
+  const { personajes } = usePersonajes();
+  const p = personajes.find(x => x.id === narradorId);
+  if (!p) return null;
+  return (
+    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wide"
+      style={{
+        background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+        borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
+        color: "var(--accent)",
+      }}
+    >
+      <Mic2 size={8} />
+      {p.nombre}
+    </span>
+  );
+};
+
+// ─── SelectorVisibilidad ─────────────────────────────────────────────────────
 const SelectorVisibilidad = ({
   value, onChange, fechaPublicacion, onFechaChange, label = "Visibilidad",
 }: {
@@ -1032,9 +1157,7 @@ const SelectorVisibilidad = ({
     </div>
     {value === "programado" && (
       <div className="mt-2">
-        <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-          Fecha de publicación
-        </label>
+        <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Fecha de publicación</label>
         <input
           type="date"
           value={fechaPublicacion || ""}
@@ -1046,7 +1169,7 @@ const SelectorVisibilidad = ({
   </div>
 );
 
-// ─── Selector multi-personaje para capítulos ─────────────────────────────────
+// ─── Selector multi-personaje (aparecen en el capítulo) ──────────────────────
 const SelectorPersonajesCapitulo = ({
   value, onChange,
 }: {
@@ -1107,6 +1230,7 @@ const SelectorPersonajesCapitulo = ({
   );
 };
 
+// ─── ModalEditarCapitulo ─────────────────────────────────────────────────────
 const ModalEditarCapitulo = ({
   cap, onSaved, onClose,
 }: {
@@ -1119,6 +1243,7 @@ const ModalEditarCapitulo = ({
   const [fecha,         setFecha]         = useState(toDateInput(cap.fecha_publicacion));
   const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">(cap.visibilidad ?? "oculto");
   const [personajesIds, setPersonajesIds] = useState<string[]>(cap.personajes_ids ?? []);
+  const [narradorId,    setNarradorId]    = useState<string | null>(cap.narrador_id ?? null);
   const [saving,        setSaving]        = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1129,10 +1254,10 @@ const ModalEditarCapitulo = ({
       const fields: Partial<Capitulo> = {
         titulo_capitulo: titulo.trim().toUpperCase(),
         orden: parseInt(orden) || cap.orden,
-        // Fecha solo se guarda si es programado
         fecha_publicacion: visibilidad === "programado" ? fecha : null as any,
         visibilidad,
         personajes_ids: personajesIds,
+        narrador_id: narradorId,
       };
       await capUpdateMeta(cap.id, fields);
       onSaved({ ...cap, ...fields });
@@ -1162,6 +1287,8 @@ const ModalEditarCapitulo = ({
           onFechaChange={setFecha}
           label="Visibilidad del Capítulo"
         />
+        {/* Narrador primero — es el campo más característico */}
+        <SelectorNarrador value={narradorId} onChange={setNarradorId} />
         <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
         <BotonSubmit
           loading={saving}
@@ -1174,6 +1301,7 @@ const ModalEditarCapitulo = ({
   );
 };
 
+// ─── ModalNuevoCapitulo ───────────────────────────────────────────────────────
 const ModalNuevoCapitulo = ({
   libroId, ordenSiguiente, onCreated, onClose,
 }: {
@@ -1186,6 +1314,7 @@ const ModalNuevoCapitulo = ({
   const [fecha,         setFecha]         = useState("");
   const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">("oculto");
   const [personajesIds, setPersonajesIds] = useState<string[]>([]);
+  const [narradorId,    setNarradorId]    = useState<string | null>(null);
   const [saving,        setSaving]        = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1193,8 +1322,7 @@ const ModalNuevoCapitulo = ({
     if (!titulo.trim()) return;
     setSaving(true);
     try {
-      const nuevo = await capCreate(libroId, titulo, ordenSiguiente, visibilidad, fecha || undefined);
-      // Aplicar personajes si hay
+      const nuevo = await capCreate(libroId, titulo, ordenSiguiente, visibilidad, fecha || undefined, narradorId);
       if (personajesIds.length > 0) {
         await capUpdateMeta(nuevo.id, { personajes_ids: personajesIds });
         Object.assign(nuevo, { personajes_ids: personajesIds });
@@ -1223,6 +1351,7 @@ const ModalNuevoCapitulo = ({
           onFechaChange={setFecha}
           label="Visibilidad del Capítulo"
         />
+        <SelectorNarrador value={narradorId} onChange={setNarradorId} />
         <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
         <BotonSubmit
           loading={saving}
@@ -1235,7 +1364,7 @@ const ModalNuevoCapitulo = ({
   );
 };
 
-// ─── Modal para editar metadatos del libro ────────────────────────────────────
+// ─── ModalEditarLibro ─────────────────────────────────────────────────────────
 const ModalEditarLibro = ({
   libro, onSaved, onClose,
 }: {
@@ -1352,7 +1481,6 @@ export default function EstudioCapitulos() {
 
   const { capitulos, setCapitulos, reload: reloadCaps } = useCapitulos(selectedLibroId);
 
-  // Auto-expandir libro del último cap abierto
   useEffect(() => {
     if (lastLibroId) setExpandedLibros(new Set([lastLibroId]));
   }, []); // eslint-disable-line
@@ -1402,7 +1530,8 @@ export default function EstudioCapitulos() {
       setCapRefreshKey(k => k + 1);
     } catch {}
   };
-const sidebarContent = (
+
+  const sidebarContent = (
     <>
       {selectedLibroId && (
         <div className="px-2 pb-3">
