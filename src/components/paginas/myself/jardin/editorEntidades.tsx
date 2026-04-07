@@ -952,39 +952,74 @@ function EditorReino({ item, onSaved, onDeleted }: {
 
           {/* Puntos de interés */}
           <div className="h-px bg-primary/8" />
-          <div>
+          <div className="space-y-4">
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/50 flex items-center gap-2 mb-3">
               <MapPin size={12} /> Puntos de Interés
-              <span className="text-[9px] text-primary/30 bg-primary/8 px-2 py-0.5 rounded-full ml-1">{detalles.length}</span>
+              <span className="text-[9px] text-primary/30 bg-primary/8 px-2 py-0.5 rounded-full ml-1">
+                {detalles.length}
+              </span>
             </h3>
-            {detalles.map(det => (
-              <DetalleEditor
-                key={det.id} detalle={det}
-                onSaved={updated => setDetalles(prev => prev.map(d => d.id === updated.id ? updated : d))}
-                onDeleted={id => setDetalles(prev => prev.filter(d => d.id !== id))}
-              />
-            ))}
+
+            {/* Contenedor Grid para las columnas de dos en dos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {detalles.map((det) => (
+                <DetalleEditor
+                  key={det.id}
+                  detalle={det}
+                  onSaved={(updated) =>
+                    setDetalles((prev) =>
+                      prev.map((d) => (d.id === updated.id ? updated : d))
+                    )
+                  }
+                  onDeleted={(id) =>
+                    setDetalles((prev) => prev.filter((d) => d.id !== id))
+                  }
+                />
+              ))}
+            </div>
+
             {detalles.length === 0 && !addingPoint && (
-              <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-5 border border-dashed border-primary/15 rounded-xl mb-2 italic">Sin puntos registrados</p>
+              <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-5 border border-dashed border-primary/15 rounded-xl italic">
+                Sin puntos registrados
+              </p>
             )}
+
             {addingPoint ? (
               <div className="flex gap-2 p-3 bg-primary/5 rounded-xl border border-primary/15 mt-2">
                 <input
-                  autoFocus value={newPointName}
-                  onChange={e => setNewPointName(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") handleAddPoint(); if (e.key === "Escape") setAddingPoint(false); }}
+                  autoFocus
+                  value={newPointName}
+                  onChange={(e) => setNewPointName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddPoint();
+                    if (e.key === "Escape") setAddingPoint(false);
+                  }}
                   className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
                   placeholder="NOMBRE DEL LUGAR..."
                 />
-                <button onClick={handleAddPoint} disabled={!newPointName.trim()} className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40"><Check size={13} /></button>
-                <button onClick={() => setAddingPoint(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all"><X size={13} /></button>
+                <button
+                  onClick={handleAddPoint}
+                  disabled={!newPointName.trim()}
+                  className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40"
+                >
+                  <Check size={13} />
+                </button>
+                <button
+                  onClick={() => setAddingPoint(false)}
+                  className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all"
+                >
+                  <X size={13} />
+                </button>
               </div>
             ) : (
-              <button onClick={() => setAddingPoint(true)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest mt-2">
+              <button
+                onClick={() => setAddingPoint(true)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest mt-2"
+              >
                 <Plus size={11} /> Añadir Punto de Interés
               </button>
             )}
-          </div>
+          </div> 
         </div>
 
         <BarraAcciones status={status} onSave={save} onDelete={del} />
