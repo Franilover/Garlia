@@ -949,8 +949,6 @@ function EditorReino({ item, onSaved, onDeleted }: {
           </div>
 
           <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
-
-          {/* Puntos de interés */}
           <div className="h-px bg-primary/8" />
           <div className="space-y-4">
             <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/50 flex items-center gap-2 mb-3">
@@ -977,7 +975,7 @@ function EditorReino({ item, onSaved, onDeleted }: {
                 />
               ))}
             </div>
-
+            
             {detalles.length === 0 && !addingPoint && (
               <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-5 border border-dashed border-primary/15 rounded-xl italic">
                 Sin puntos registrados
@@ -1019,7 +1017,7 @@ function EditorReino({ item, onSaved, onDeleted }: {
                 <Plus size={11} /> Añadir Punto de Interés
               </button>
             )}
-          </div> 
+          </div>           
         </div>
 
         <BarraAcciones status={status} onSave={save} onDelete={del} />
