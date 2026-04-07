@@ -846,11 +846,11 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
           {/* DESCRIPCIÓN DEL PUNTO MÁS GRANDE */}
           <div>
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción del lugar</label>
-            <textarea 
-              value={form.descripcion || ""} 
-              onChange={e => setForm({ ...form, descripcion: e.target.value })} 
-              placeholder="¿Qué hay en este lugar? Detalles, secretos o notas..."
-              className={INPUT_CLS + " mt-1 resize-y min-h-[120px] py-3 leading-relaxed"} 
+            <textarea
+              value={form.descripcion ?? ""}
+              onChange={(e) => setForm(f => ({ ...f, descripcion: e.target.value }))}
+              className="w-full bg-input-bg text-input-text border border-primary/10 rounded-xl px-4 py-3 text-sm min-h-[400px] resize-y"
+              placeholder="Escribe el lore aquí..."
             />
           </div>
 
