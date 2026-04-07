@@ -789,8 +789,7 @@ function PanelPersonajesReino({ reinoNombre }: { reinoNombre: string }) {
     </div>
   );
 }
-
-// ─── DetalleEditor (punto del mapa) ──────────────────────────────────────────
+// ─── DetalleEditor (punto del mapa) MODIFICADO ──────────────────────────
 
 function DetalleEditor({ detalle, onSaved, onDeleted }: {
   detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void;
@@ -834,15 +833,27 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
         </div>
       </div>
       {expanded && (
-        <div className="p-3 pt-0 border-t border-primary/5 space-y-3 bg-primary/3">
+        <div className="p-3 pt-0 border-t border-primary/5 space-y-4 bg-primary/3">
           <div className="mt-3">
-            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Nombre</label>
-            <input value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} className={INPUT_CLS + " mt-1"} />
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Nombre del punto</label>
+            <input 
+              value={form.nombre} 
+              onChange={e => setForm({ ...form, nombre: e.target.value })} 
+              className={INPUT_CLS + " mt-1"} 
+            />
           </div>
+
+          {/* DESCRIPCIÓN DEL PUNTO MÁS GRANDE */}
           <div>
-            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción</label>
-            <textarea value={form.descripcion || ""} onChange={e => setForm({ ...form, descripcion: e.target.value })} rows={2} className={INPUT_CLS + " mt-1 resize-none"} />
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción del lugar</label>
+            <textarea 
+              value={form.descripcion || ""} 
+              onChange={e => setForm({ ...form, descripcion: e.target.value })} 
+              placeholder="¿Qué hay en este lugar? Detalles, secretos o notas..."
+              className={INPUT_CLS + " mt-1 resize-y min-h-[120px] py-3 leading-relaxed"} 
+            />
           </div>
+
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">X (%)</label>
@@ -853,7 +864,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
               <input type="number" step="0.01" value={form.coord_y || 0} onChange={e => setForm({ ...form, coord_y: parseFloat(e.target.value) })} className={INPUT_CLS + " mt-1"} />
             </div>
           </div>
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center justify-between pt-2">
             <button onClick={handleDelete} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all">
               <Trash2 size={10} /> Eliminar
             </button>
