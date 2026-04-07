@@ -795,7 +795,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
   detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void;
 }) {
   const [form, setForm] = useState(detalle);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
 
