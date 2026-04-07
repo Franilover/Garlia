@@ -25,39 +25,27 @@ const personalSubLinks = [
   { href: "/personal/sobre-mi", label: "Sobre Mí", icon: Star    },
   { href: "/personal/galeria",  label: "Galeria",  icon: Palette },
 ];
-
-// Grupo anidado: un item con sub-secciones que cada una tiene sus propios sublinks
-const personalMyselfGroups = [
-  {
-    href: "/myself/escritorio",
-    label: "Escritorio",
-    icon: PenTool,
-    subLinks: escritorioSubLinks,
-  },
-  {
-    href: "/myself/salud",
-    label: "Salud",
-    icon: Utensils,
-    subLinks: saludSubLinks,
-  },
-];
 const jardinSubLinks = [
   { href: "/myself/jardin?panel=capitulos", label: "Capítulos", icon: BookOpen  },
   { href: "/myself/jardin?panel=letras",    label: "Letras",    icon: Music     },
-  { href: "/myself/jardin?panel=entidades", label: "Entidades",    icon: Cat     },
+  { href: "/myself/jardin?panel=entidades", label: "Entidades", icon: Cat       },
 ];
-
 const escritorioSubLinks = [
-  { href: "/myself/escritorio?panel=agenda",    label: "Agenda",    icon: Calendar  },
-  { href: "/myself/escritorio?panel=ensayos",   label: "Ensayos",   icon: FileText  },
-  { href: "/myself/escritorio?panel=ropa",      label: "Ropa",      icon: ShoppingCart    },
+  { href: "/myself/escritorio?panel=agenda",  label: "Agenda",  icon: Calendar     },
+  { href: "/myself/escritorio?panel=ensayos", label: "Ensayos", icon: FileText     },
+  { href: "/myself/escritorio?panel=ropa",    label: "Ropa",    icon: ShoppingCart },
 ];
-
 const saludSubLinks = [
   { href: "/myself/salud?panel=recetas",      label: "Recetas",      icon: UtensilsCrossed },
   { href: "/myself/salud?panel=ingredientes", label: "Ingredientes", icon: Carrot          },
-  { href: "/myself/salud?panel=ejercicios",   label: "Ejercicios",   icon: Dumbbell     },
+  { href: "/myself/salud?panel=ejercicios",   label: "Ejercicios",   icon: Dumbbell        },
   { href: "/myself/salud?panel=compras",      label: "Compras",      icon: ShoppingCart    },
+];
+
+// Grupo anidado: escritorio + salud bajo un mismo item "Personal"
+const personalMyselfGroups = [
+  { href: "/myself/escritorio", label: "Escritorio", icon: PenTool,  subLinks: escritorioSubLinks },
+  { href: "/myself/salud",      label: "Salud",      icon: Utensils, subLinks: saludSubLinks      },
 ];
 
 // ─── Estilos compartidos ─────────────────────────────────────────────────────
