@@ -3,6 +3,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from "lucide-react";
 import type { ToastType } from "@/hooks/ui/useToast";
+import { Text } from "@/components/ui/Tiopgrafia";
 
 interface Toast {
   id: number;

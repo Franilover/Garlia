@@ -2,6 +2,7 @@
 import React from "react";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Text } from "@/components/ui/Tiopgrafia";
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
@@ -105,14 +106,13 @@ export function PageHeader({ title, subtitle, icon, action }: PageHeaderProps) {
       className="flex items-end justify-between mb-10"
     >
       <div>
-        <h1 className="text-4xl font-black text-primary italic tracking-tighter flex items-center gap-3 leading-none">
-          {icon}
-          {title}
-        </h1>
+        <Text variant="xl" as="h1" className="text-primary flex items-center gap-3 leading-none">
+          {icon} {title}
+        </Text>
         {subtitle && (
-          <p className="text-primary/40 text-[10px] font-black uppercase tracking-widest mt-2 italic">
+          <Text variant="cap" className="mt-2">
             {subtitle}
-          </p>
+          </Text>
         )}
       </div>
       {action && <div>{action}</div>}

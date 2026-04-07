@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, WifiOff } from "lucide-react";
+import { TEXT_VARIANTS } from "@/components/ui/Tiopgrafia";
+import { cn } from "@/lib/utils"
 
 export function normalize(s: string): string {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -130,7 +132,7 @@ export function SaveIndicator({ status }: SaveIndicatorProps) {
   const { label, icon, cls } = map[status];
   if (!label) return null;
   return (
-    <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest ${cls}`}>
+    <span className={cn(TEXT_VARIANTS.xs, "flex items-center gap-1.5", cls)}>
       {icon}{label}
     </span>
   );

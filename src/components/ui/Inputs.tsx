@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { FieldWrapper } from "@/components/ui/Tiopgrafia";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -7,14 +8,9 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export function Input({ label, className = "", ...props }: InputProps) {
   return (
-    <div className="space-y-1.5">
-      {label && (
-        <label className="text-[9px] font-black text-primary/40 uppercase tracking-widest block">
-          {label}
-        </label>
-      )}
+    <FieldWrapper label={label}>
       <input {...props} className={["input-brand", className].join(" ")} />
-    </div>
+    </FieldWrapper>
   );
 }
 
