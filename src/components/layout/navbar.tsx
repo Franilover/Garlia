@@ -11,7 +11,7 @@ import {
   Utensils, PenTool, Moon, Sun, Star, Palette, Shirt, Sword,
   BookOpen, Compass, BookText, Music, UserCircle2, Camera,
   ChevronRight, Calendar, FileText, Dumbbell, ShoppingCart,
-  UtensilsCrossed, Carrot, Cat
+  UtensilsCrossed, Carrot, Cat, House,
 } from "lucide-react";
 
 // ─── Sublinks ────────────────────────────────────────────────────────────────
@@ -24,6 +24,22 @@ const wikiSubLinks = [
 const personalSubLinks = [
   { href: "/personal/sobre-mi", label: "Sobre Mí", icon: Star    },
   { href: "/personal/galeria",  label: "Galeria",  icon: Palette },
+];
+
+// Grupo anidado: un item con sub-secciones que cada una tiene sus propios sublinks
+const personalMyselfGroups = [
+  {
+    href: "/myself/escritorio",
+    label: "Escritorio",
+    icon: PenTool,
+    subLinks: escritorioSubLinks,
+  },
+  {
+    href: "/myself/salud",
+    label: "Salud",
+    icon: Utensils,
+    subLinks: saludSubLinks,
+  },
 ];
 const jardinSubLinks = [
   { href: "/myself/jardin?panel=capitulos", label: "Capítulos", icon: BookOpen  },
@@ -310,6 +326,280 @@ function MobileNavItem({
   );
 }
 
+// ─── SideNavItemNested — flyout con grupos que tienen sus propios sublinks ────
+function SideNavItemNested({
+  label, icon: Icon, active, groups, sidebarExpanded, onClose,
+}: {
+  label: string; icon: React.ElementType; active: boolean;
+  groups: { href: string; label: string; icon: React.ElementType; subLinks: { href: string; label: string; icon: React.ElementType }[] }[];
+  sidebarExpanded: boolean; onClose: () => void;
+}) {
+  const currentPath = usePathname();
+  const [open, setOpen] = useState(false);
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
+
+  useEffect(() => { setOpen(false); setHoveredGroup(null); }, [currentPath]);
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => { setOpen(false); setHoveredGroup(null); }}
+    >
+      {/* Botón principal — no navega, solo abre el flyout */}
+      <div
+        className="flex items-center gap-3 transition-all duration-200 overflow-hidden cursor-default"
+        style={{
+          ...navItemBase,
+          background: active ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+          color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+          paddingRight: sidebarExpanded ? "12px" : "10px",
+        }}
+      >
+        {active && !sidebarExpanded && (
+          <span className="absolute left-[3px]" style={{ width: "3px", height: "20px", borderRadius: "0 2px 2px 0", background: "var(--primary)" }} />
+        )}
+        <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
+          <Icon size={18} strokeWidth={active ? 2.5 : 2} />
+        </span>
+        <AnimatePresence>
+          {sidebarExpanded && (
+            <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+              className="flex-1 text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
+              {label}
+            </motion.span>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {sidebarExpanded && (
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
+              <ChevronRight size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Flyout nivel 1 — lista de grupos */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            variants={flyoutVariants} initial="hidden" animate="visible" exit="exit"
+            transition={{ duration: 0.15 }}
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-0 left-full ml-2 z-[1010] p-2 w-44"
+            style={submenuSurface}
+          >
+            <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+              {label}
+            </p>
+            {groups.map((group) => {
+              const groupActive = !!currentPath?.startsWith(group.href);
+              return (
+                <div
+                  key={group.href}
+                  className="relative"
+                  onMouseEnter={() => setHoveredGroup(group.href)}
+                  onMouseLeave={() => setHoveredGroup(null)}
+                >
+                  <Link
+                    href={group.href}
+                    onClick={() => { setOpen(false); setHoveredGroup(null); onClose(); }}
+                    className="flex items-center gap-3 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all justify-between"
+                    style={{
+                      borderRadius: "var(--radius-btn)",
+                      background: groupActive || hoveredGroup === group.href
+                        ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                      color: groupActive || hoveredGroup === group.href
+                        ? "var(--primary)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
+                    }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <group.icon size={13} strokeWidth={groupActive ? 2.5 : 2} />
+                      {group.label}
+                    </span>
+                    <ChevronRight size={10} style={{ opacity: 0.4 }} />
+                  </Link>
+
+                  {/* Flyout nivel 2 — sublinks del grupo */}
+                  <AnimatePresence>
+                    {hoveredGroup === group.href && (
+                      <motion.div
+                        variants={flyoutVariants} initial="hidden" animate="visible" exit="exit"
+                        transition={{ duration: 0.12 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-0 left-full ml-2 z-[1020] p-2 w-44"
+                        style={submenuSurface}
+                      >
+                        <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
+                          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                          {group.label}
+                        </p>
+                        {group.subLinks.map(({ href: sub, label: subLabel, icon: SubIcon }) => (
+                          <SideSubItem
+                            key={sub} href={sub} label={subLabel} icon={SubIcon}
+                            active={!!currentPath?.includes(sub.split("?")[0])}
+                            onClick={() => { setOpen(false); setHoveredGroup(null); onClose(); }}
+                          />
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── MobileNavItemNested — dos niveles en móvil ───────────────────────────────
+function MobileNavItemNested({
+  label, icon: Icon, active, groups, isOpen, onToggle, onClose,
+}: {
+  label: string; icon: React.ElementType; active: boolean;
+  groups: { href: string; label: string; icon: React.ElementType; subLinks: { href: string; label: string; icon: React.ElementType }[] }[];
+  isOpen: boolean; onToggle: () => void; onClose: () => void;
+}) {
+  const currentPath = usePathname();
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+
+  const btnStyle = (isActive: boolean, menuOpen: boolean): React.CSSProperties => ({
+    borderRadius: "var(--radius-btn)",
+    background: (isActive || menuOpen) ? "var(--primary)" : "transparent",
+    color: (isActive || menuOpen) ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+    touchAction: "manipulation",
+  });
+
+  return (
+    <div className="relative flex items-stretch">
+      {/* Label — no navega */}
+      <div
+        className="flex items-center gap-1.5 py-[6px] transition-all cursor-default"
+        style={{
+          ...btnStyle(active, isOpen),
+          borderRadius: `var(--radius-btn) 0 0 var(--radius-btn)`,
+          paddingLeft: "12px",
+          paddingRight: "8px",
+        }}
+      >
+        <Icon size={14} strokeWidth={active ? 2.5 : 2} />
+        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+      </div>
+
+      {/* Separador */}
+      <div style={{
+        width: "1px",
+        background: (active || isOpen)
+          ? "color-mix(in srgb, var(--btn-text) 25%, transparent)"
+          : "color-mix(in srgb, var(--primary) 15%, transparent)",
+        alignSelf: "stretch",
+        margin: "4px 0",
+      }} />
+
+      {/* Flecha */}
+      <button
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); setOpenGroup(null); }}
+        className="flex items-center justify-center py-[6px] transition-all"
+        style={{
+          ...btnStyle(active, isOpen),
+          borderRadius: `0 var(--radius-btn) var(--radius-btn) 0`,
+          paddingLeft: "6px",
+          paddingRight: "8px",
+          minWidth: "26px",
+        }}
+      >
+        <ChevronRight size={10} style={{ transform: isOpen ? "rotate(-90deg)" : "rotate(90deg)", transition: "transform 0.2s ease", opacity: 0.8 }} />
+      </button>
+
+      {/* Panel nivel 1 — grupos */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1,    x: "-50%" }}
+            exit={{ opacity: 0, y: 8, scale: 0.97,    x: "-50%" }}
+            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+            onClick={(e) => e.stopPropagation()}
+            className="absolute bottom-full mb-2 left-1/2 z-[2000] p-2 w-48 origin-bottom"
+            style={submenuSurface}
+          >
+            <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+              {label}
+            </p>
+            {groups.map((group) => {
+              const groupActive = !!currentPath?.startsWith(group.href);
+              const groupOpen = openGroup === group.href;
+              return (
+                <div key={group.href}>
+                  <div className="flex items-stretch">
+                    <Link
+                      href={group.href}
+                      onClick={() => { setTimeout(onClose, 150); }}
+                      className="flex-1 flex items-center gap-2.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+                      style={{
+                        borderRadius: groupOpen ? `var(--radius-btn) 0 0 var(--radius-btn)` : "var(--radius-btn)",
+                        background: groupActive || groupOpen ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                        color: groupActive || groupOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
+                      }}
+                    >
+                      <group.icon size={13} />
+                      {group.label}
+                    </Link>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenGroup(groupOpen ? null : group.href); }}
+                      className="px-2 transition-all"
+                      style={{
+                        borderRadius: `0 var(--radius-btn) var(--radius-btn) 0`,
+                        background: groupOpen ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                        color: groupOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                      }}
+                    >
+                      <ChevronRight size={10} style={{ transform: groupOpen ? "rotate(-90deg)" : "rotate(90deg)", transition: "transform 0.2s" }} />
+                    </button>
+                  </div>
+
+                  {/* Nivel 2 inline */}
+                  <AnimatePresence>
+                    {groupOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="overflow-hidden pl-3 mb-1"
+                      >
+                        {group.subLinks.map(({ href: sub, label: subLabel, icon: SubIcon }) => (
+                          <Link
+                            key={sub} href={sub}
+                            onClick={() => setTimeout(onClose, 150)}
+                            className="flex items-center gap-2.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all"
+                            style={{
+                              borderRadius: "var(--radius-btn)",
+                              background: currentPath?.includes(sub.split("?")[0]) ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+                              color: currentPath?.includes(sub.split("?")[0]) ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                            }}
+                          >
+                            <SubIcon size={12} />
+                            {subLabel}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 const Navbar = () => {
   const currentPath = usePathname();
@@ -352,12 +642,9 @@ const Navbar = () => {
     { href: "/wiki",     label: "Jardin",     icon: Flower2, active: isWiki,     fillActive: false, subLinks: wikiSubLinks     },
   ];
 
-  // Links de Franilover — ahora con subLinks para los flyouts
+  // Links de Franilover
   const franiLinks = [
-    { href: "/myself/salud",      label: "Salud",        icon: Utensils, key: "/salud",        active: isSalud,      subLinks: saludSubLinks       },
-    { href: "/myself/escritorio", label: "Escritorio",   icon: PenTool,  key: "/escritorio",   active: isEscritorio, subLinks: escritorioSubLinks  },
-    { href: "/myself/jardin", label: "Arte",   icon: Cat,  key: "/jardin",   active: isJardin, subLinks: jardinSubLinks  },
-
+    { href: "/myself/jardin", label: "Arte", icon: Cat, active: isJardin, subLinks: jardinSubLinks },
   ];
 
   return (
@@ -406,6 +693,14 @@ const Navbar = () => {
           {esFranilover && (
             <>
               <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "6px 4px" }} />
+              <SideNavItemNested
+                label="Personal"
+                icon={House}
+                active={isSalud || isEscritorio}
+                groups={personalMyselfGroups}
+                sidebarExpanded={sidebarExpanded}
+                onClose={closeAll}
+              />
               {franiLinks.map(({ href, label, icon, active, subLinks }) => (
                 <SideNavItem key={href} href={href} label={label} icon={icon}
                   active={active} fillActive={false} subLinks={subLinks}
@@ -579,6 +874,28 @@ const Navbar = () => {
                 onClose={closeAll}
               />
             ))}
+            {esFranilover && (
+              <>
+                <MobileNavItemNested
+                  label="Personal"
+                  icon={House}
+                  active={isSalud || isEscritorio}
+                  groups={personalMyselfGroups}
+                  isOpen={mobileOpenMenu === "__personal__"}
+                  onToggle={() => setMobileOpenMenu(mobileOpenMenu === "__personal__" ? null : "__personal__")}
+                  onClose={closeAll}
+                />
+                {franiLinks.map(({ href, label, icon, active, subLinks }) => (
+                  <MobileNavItem
+                    key={href} href={href} label={label} icon={icon}
+                    active={active} fillActive={false} subLinks={subLinks}
+                    isOpen={mobileOpenMenu === href}
+                    onToggle={() => setMobileOpenMenu(mobileOpenMenu === href ? null : href)}
+                    onClose={closeAll}
+                  />
+                ))}
+              </>
+            )}
           </div>
 
           {/* Controles derecha */}
@@ -625,6 +942,35 @@ const Navbar = () => {
                       <div className="p-2" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
                         <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
                           style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Franilover</p>
+
+                        {/* Personal — grupos anidados inline */}
+                        <div className="px-2 py-1.5">
+                          <p className="text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 mb-1"
+                            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                            <House size={11} /> Personal
+                          </p>
+                          {personalMyselfGroups.map(group => (
+                            <div key={group.href} className="mb-1">
+                              <Link href={group.href} onClick={() => setTimeout(closeAll, 150)}
+                                className="flex items-center gap-2 px-2 py-1.5 rounded-[var(--radius-btn)] transition-all text-[10px] font-black uppercase tracking-widest"
+                                style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                              >
+                                <group.icon size={12} /> {group.label}
+                              </Link>
+                              <div className="pl-4 space-y-0.5">
+                                {group.subLinks.map(({ href: sub, label: subLabel, icon: SubIcon }) => (
+                                  <Link key={sub} href={sub} onClick={() => setTimeout(closeAll, 150)}
+                                    className="flex items-center gap-2 px-2 py-1 rounded-[var(--radius-btn)] transition-all text-[9px] font-black uppercase tracking-widest"
+                                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                                  >
+                                    <SubIcon size={11} /> {subLabel}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
                         {franiLinks.map(({ href, icon: Icon, label, active }) => (
                           <Link key={href} href={href} onClick={() => setTimeout(closeAll, 150)}
                             className="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-btn)] transition-all"
