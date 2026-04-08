@@ -33,18 +33,42 @@ const QUERIES_MAP: Record<string, any> = {
 };
 
 const DEXIE_TABLES = new Set([
-  "personajes", "criaturas", "items", "libros", "canciones",
+  // Wiki / mundo
+  "personajes", "criaturas", "criatura_variantes", "items",
+  "libros", "canciones", "reinos", "relaciones",
+  // Escritura
+  "secciones_cancion", "capitulos",
+  // Personal
   "tareas", "eventos", "recetas", "ingredientes",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
   "compras", "notas", "rutinas", "ejercicios_rutina",
-  "secciones_cancion",
-  "capitulos",
+  // Nota: reproductor_handles NO está aquí — guarda FileSystemDirectoryHandle
+  // que no es serializable a JSON y se maneja aparte con db directamente.
 ]);
 
 const OFFLINE_WRITABLE = new Set([
-  "notas", "tareas", "eventos", "rutinas", "ejercicios_rutina",
-  "secciones_cancion",
-  "capitulos",
+  // Escritura creativa
+  "notas", "secciones_cancion", "capitulos",
+  // Agenda
+  "tareas", "eventos",
+  // Ejercicio
+  "rutinas", "ejercicios_rutina",
+  // Cocina
+  "recetas", "ingredientes", "compras",
+  // Ropa
+  "ropa", "ropa_outfits",
+  // Galería / multimedia (id numérico autoincremental — solo update/delete offline,
+  // los creates se bloquean sin conexión porque el id lo asigna Supabase)
+  "diario_fotos", "dibujos",
+  // Wiki (solo update/delete — creates de entidades requieren conexión)
+  "personajes", "criaturas", "criatura_variantes", "items", "reinos", "relaciones",
+]);
+
+// Tablas cuyo id es numérico autoincremental (++id en Dexie / serial en Supabase).
+// Para estas, addRow offline está bloqueado: el id definitivo lo asigna Supabase.
+// updateRow y deleteRow sí funcionan offline porque el id ya existe.
+const NUMERIC_ID_TABLES = new Set([
+  "diario_fotos", "dibujos",
 ]);
 
 // Timeout más generoso para conexiones lentas (12s en lugar de 5s)
@@ -94,8 +118,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const isMounted       = useRef(true);
   const retryCount      = useRef(0);
   const pollingRef      = useRef<NodeJS.Timeout | null>(null);
-  const lastFetchRef    = useRef<number>(0);       // timestamp del último fetch exitoso
-  const lastVisibleRef  = useRef<number>(Date.now()); // timestamp de la última vez visible
+  const lastFetchRef    = useRef<number>(0);
+  const lastVisibleRef  = useRef<number>(Date.now());
   const optionsKey      = JSON.stringify(opciones);
 
   // ─── Fetch principal ────────────────────────────────────────────────────────
@@ -154,7 +178,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         if (isMounted.current) {
           if (!hasLocalData) setLoading(false);
           setIsOffline(true);
-          // Reintentar en 8s si no hay datos locales
           if (!hasLocalData) {
             setTimeout(() => fetchData(true), 8_000);
           }
@@ -187,7 +210,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
           if (isNetworkError && retryCount.current < 5) {
             retryCount.current++;
-            // Backoff exponencial: 2s, 4s, 8s, 16s, 32s
             const delay = Math.min(2000 * Math.pow(2, retryCount.current - 1), 32_000);
             setTimeout(() => fetchData(true), delay);
             return;
@@ -203,6 +225,12 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   // ─── CRUD ───────────────────────────────────────────────────────────────────
 
   const addRow = useCallback(async (newData: any) => {
+    // Tablas con id numérico autoincremental no pueden crearse offline:
+    // el id lo asigna Supabase y no hay forma de predecirlo localmente.
+    if (!navigator.onLine && NUMERIC_ID_TABLES.has(tabla)) {
+      return { data: null, error: "Esta tabla requiere conexión para crear registros." };
+    }
+
     if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
       const row = { ...newData, status: "pending" };
       await writeToDexie(tabla, [row]);
@@ -218,7 +246,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       if (created?.id) writeToDexie(tabla, [{ ...created, status: "synced" }]);
       return { data: created, error: res?.error || null };
     } catch (err: any) {
-      if (OFFLINE_WRITABLE.has(tabla)) {
+      if (OFFLINE_WRITABLE.has(tabla) && !NUMERIC_ID_TABLES.has(tabla)) {
         const row = { ...newData, status: "pending" };
         await writeToDexie(tabla, [row]);
         await enqueueOperation(tabla, "upsert", newData.id, row);
@@ -291,7 +319,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     isMounted.current = true;
     fetchData();
 
-    // Canal realtime con nombre estable (sin random) para evitar canales huérfanos
     const channelName = `rt-${tabla}`;
     const channel = supabase
       .channel(channelName)
@@ -300,46 +327,37 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          // Canal activo → limpiar polling si lo había
           if (pollingRef.current) {
             clearInterval(pollingRef.current);
             pollingRef.current = null;
           }
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          // Canal caído → polling cada 30s como fallback
           if (!pollingRef.current) {
             pollingRef.current = setInterval(() => fetchData(true), 30_000);
           }
         }
       });
 
-    // Reconexión al volver online
     const handleOnline = () => {
       retryCount.current = 0;
       fetchData(true);
-      // Forzar reconexión del WebSocket de Supabase
       supabase.realtime.connect();
     };
 
-    // ⭐ CLAVE: reconectar al volver de otra pestaña/escritorio/monitor
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        const now      = Date.now();
+        const now                  = Date.now();
         const timeSinceLastFetch   = now - lastFetchRef.current;
         const timeSinceHidden      = now - lastVisibleRef.current;
 
-        // Solo revalidar si estuvo oculto más de 30s Y pasaron más de 30s desde el último fetch
         if (timeSinceHidden > REVALIDATE_THROTTLE_MS || timeSinceLastFetch > REVALIDATE_THROTTLE_MS) {
           retryCount.current = 0;
-          // Reconectar el WebSocket primero
           supabase.realtime.connect();
-          // Luego revalidar datos
           setTimeout(() => fetchData(true), 500);
         }
         lastVisibleRef.current = now;
       } else {
-        // Registrar cuándo se ocultó
         lastVisibleRef.current = Date.now();
       }
     };

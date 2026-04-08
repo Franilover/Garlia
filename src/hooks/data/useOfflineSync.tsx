@@ -8,13 +8,35 @@ const SYNC_TABLES: Record<string, {
   supabaseTable: string;
   excludeFields?: string[];
 }> = {
+  // Escritura creativa
   notas:             { supabaseTable: "ensayos",           excludeFields: ["status", "deleted"] },
-  tareas:            { supabaseTable: "tareas",             excludeFields: ["status", "deleted"] },
-  eventos:           { supabaseTable: "eventos",            excludeFields: ["status", "deleted"] },
-  rutinas:           { supabaseTable: "rutinas",            excludeFields: ["status", "deleted"] },
-  ejercicios_rutina: { supabaseTable: "ejercicios_rutina",  excludeFields: ["status", "deleted"] },
-  secciones_cancion: { supabaseTable: "secciones_cancion",  excludeFields: ["status", "deleted"] },
-  capitulos:         { supabaseTable: "capitulos",          excludeFields: ["status", "deleted"] },
+  secciones_cancion: { supabaseTable: "secciones_cancion", excludeFields: ["status", "deleted"] },
+  capitulos:         { supabaseTable: "capitulos",         excludeFields: ["status", "deleted"] },
+  // Agenda
+  tareas:            { supabaseTable: "tareas",            excludeFields: ["status", "deleted"] },
+  eventos:           { supabaseTable: "eventos",           excludeFields: ["status", "deleted"] },
+  // Ejercicio
+  rutinas:           { supabaseTable: "rutinas",           excludeFields: ["status", "deleted"] },
+  ejercicios_rutina: { supabaseTable: "ejercicios_rutina", excludeFields: ["status", "deleted"] },
+  // Cocina
+  recetas:           { supabaseTable: "recetas",           excludeFields: ["status", "deleted"] },
+  ingredientes:      { supabaseTable: "ingredientes",      excludeFields: ["status", "deleted"] },
+  compras:           { supabaseTable: "compras",           excludeFields: ["status", "deleted"] },
+  // Ropa
+  ropa:              { supabaseTable: "ropa",              excludeFields: ["status", "deleted"] },
+  ropa_outfits:      { supabaseTable: "ropa_outfits",      excludeFields: ["status", "deleted"] },
+  // Galería / multimedia
+  // Nota: diario_fotos y dibujos tienen id numérico (++id).
+  // Solo se sincronizan updates y deletes — los creates requieren conexión.
+  diario_fotos:      { supabaseTable: "diario_fotos",      excludeFields: ["status", "deleted"] },
+  dibujos:           { supabaseTable: "dibujos",           excludeFields: ["status", "deleted"] },
+  // Wiki (updates/deletes offline; creates requieren conexión)
+  personajes:        { supabaseTable: "personajes",        excludeFields: ["status", "deleted"] },
+  criaturas:         { supabaseTable: "criaturas",         excludeFields: ["status", "deleted"] },
+  criatura_variantes:{ supabaseTable: "criatura_variantes",excludeFields: ["status", "deleted"] },
+  items:             { supabaseTable: "items",             excludeFields: ["status", "deleted"] },
+  reinos:            { supabaseTable: "reinos",            excludeFields: ["status", "deleted"] },
+  relaciones:        { supabaseTable: "relaciones",        excludeFields: ["status", "deleted"] },
 };
 
 const MAX_RETRIES = 3;
