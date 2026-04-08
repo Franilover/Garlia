@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, Suspense, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
@@ -116,7 +116,10 @@ function PanelSliderInner({
   const [hoveredArrow, setHoveredArrow] = useState<"left" | "right" | null>(null);
 
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const panelParam = searchParams?.get("panel");
+
   useEffect(() => {
     if (!panelParam) return;
     const idx = panels.findIndex(p => p.id === panelParam);
@@ -131,7 +134,10 @@ function PanelSliderInner({
     if (storageKey) {
       try { localStorage.setItem(storageKey, String(idx)); } catch {}
     }
-  }, [active, panels.length, storageKey]);
+    const params = new URLSearchParams(window.location.search);
+    params.set("panel", panels[idx].id);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [active, panels, storageKey, router, pathname]);
 
   const variants = {
     enter:  (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
