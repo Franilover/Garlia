@@ -257,7 +257,7 @@ export default function SobreMi() {
               {[
                 {
                   label: "Instagram",
-                  handle: "dos perfiles",
+                  handle: "Perfiles",
                   href: null,
                   icon: <Instagram size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
                 },
