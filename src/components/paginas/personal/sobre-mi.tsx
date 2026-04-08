@@ -245,20 +245,20 @@ export default function SobreMi() {
               {[
                 {
                   label: "Instagram",
-                  handle: "@tu_usuario",
-                  href: "https://instagram.com/tu_usuario",
+                  handle: "@franilover",
+                  href: "https://instagram.com/franivlover",
                   icon: <Instagram size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
                 },
                 {
                   label: "YouTube",
-                  handle: "@tu_canal",
-                  href: "https://youtube.com/@tu_canal",
+                  handle: "@franilover",
+                  href: "https://youtube.com/@franilover",
                   icon: <Youtube size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
                 },
                 {
                   label: "TikTok",
-                  handle: "@tu_usuario",
-                  href: "https://tiktok.com/@tu_usuario",
+                  handle: "@franilover",
+                  href: "https://tiktok.com/@franilover",
                   icon: (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65 }}>
                       <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
@@ -267,8 +267,8 @@ export default function SobreMi() {
                 },
                 {
                   label: "Minecraft",
-                  handle: "ip del servidor",
-                  href: "https://tu-servidor.net",
+                  handle: "####",
+                  href: "https://GoS.net",
                   icon: (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65 }}>
                       <rect x="2" y="2" width="9" height="9" rx="1" />
