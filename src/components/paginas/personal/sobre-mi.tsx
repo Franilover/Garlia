@@ -356,8 +356,8 @@ export default function SobreMi() {
                           }}
                         >
                           {[
-                            { label: "Arte", handle: "@franilover", href: "https://www.instagram.com/franilover/" },
-                            { label: "Personal", handle: "@tu_personal", href: "https://www.instagram.com/tu_personal/" },
+                            { label: "Arte", handle: "@franilover", href: "https://www.instagram.com/franiloverart/" },
+                            { label: "Personal", handle: "@franiloverart", href: "https://www.instagram.com/franilover/" },
                           ].map((profile) => (
                             <a
                               key={profile.label}
