@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Palette, Monitor, Droplets, Music } from "lucide-react";
+import { Palette, Monitor, Droplets, Music, Instagram, Youtube } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
@@ -228,6 +228,102 @@ export default function SobreMi() {
                 estan basados en ciertos periodos historicos todo lo contado en estas historias es ficticio.  
               </p>
             </motion.div>
+
+          </motion.section>
+
+          {/* Redes Sociales */}
+          <motion.section {...fade(0.36)} className="flex flex-col items-center text-center space-y-10">
+
+            <div
+              className="flex items-center gap-2 text-[18px] font-black uppercase tracking-[0.4em]"
+              style={{ color: "var(--primary)", opacity: 0.3 }}
+            >
+              Encuéntrame en
+            </div>
+
+            <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                {
+                  label: "Instagram",
+                  handle: "@tu_usuario",
+                  href: "https://instagram.com/tu_usuario",
+                  icon: <Instagram size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
+                },
+                {
+                  label: "YouTube",
+                  handle: "@tu_canal",
+                  href: "https://youtube.com/@tu_canal",
+                  icon: <Youtube size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
+                },
+                {
+                  label: "TikTok",
+                  handle: "@tu_usuario",
+                  href: "https://tiktok.com/@tu_usuario",
+                  icon: (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65 }}>
+                      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: "Minecraft",
+                  handle: "ip del servidor",
+                  href: "https://tu-servidor.net",
+                  icon: (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65 }}>
+                      <rect x="2" y="2" width="9" height="9" rx="1" />
+                      <rect x="13" y="2" width="9" height="9" rx="1" />
+                      <rect x="2" y="13" width="9" height="9" rx="1" />
+                      <rect x="13" y="13" width="9" height="9" rx="1" />
+                    </svg>
+                  ),
+                },
+              ].map((social, i) => (
+                <motion.a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  {...fade(0.38 + i * 0.06)}
+                  whileHover={{ y: -4 }}
+                  transition={{ duration: 0.22 }}
+                  className="group relative flex flex-col items-center gap-3 p-6 overflow-hidden cursor-pointer no-underline"
+                  style={{
+                    background: "var(--white-custom)",
+                    borderRadius: "var(--radius-card)",
+                    border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    boxShadow: "var(--shadow-card)",
+                  }}
+                >
+                  <div
+                    className="w-10 h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                    style={{
+                      borderRadius: "var(--radius-btn)",
+                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      color: "var(--primary)",
+                    }}
+                  >
+                    {social.icon}
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <p
+                      className="font-black text-sm leading-snug"
+                      style={{ color: "var(--primary)", letterSpacing: "-0.01em" }}
+                    >{social.label}</p>
+                    <p
+                      className="text-[11px] font-medium"
+                      style={{ color: "var(--primary)", opacity: 0.35 }}
+                    >{social.handle}</p>
+                  </div>
+
+                  <div
+                    className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 ease-out rounded-full"
+                    style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                  />
+                </motion.a>
+              ))}
+            </div>
 
           </motion.section>
 
