@@ -970,122 +970,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
   );
 }
 
-// ─── MapaGlobalReinos — panel lateral con mapa global de todos los reinos ─────
 
-function MapaGlobalReinos({ reinos, onReinoMoved }: {
-  reinos: Reino[];
-  onReinoMoved: (id: string, x: number, y: number) => void;
-}) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!selectedId) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = parseFloat(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
-    const y = parseFloat(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
-    onReinoMoved(selectedId, x, y);
-    setSelectedId(null);
-  };
-
-  const handleMarkerClick = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    setSelectedId(prev => prev === id ? null : id);
-  };
-
-  return (
-    <div className="w-64 shrink-0 border-l border-primary/10 flex flex-col min-h-0 overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 px-3 py-2.5 border-b border-primary/8 flex items-center gap-2"
-        style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-        <Map size={11} className="text-primary/40" />
-        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Mapa Global</span>
-        {selectedId && (
-          <span className="ml-auto text-[8px] font-black text-yellow-600 bg-yellow-400/20 border border-yellow-400/30 px-1.5 py-0.5 rounded-md">
-            mover
-          </span>
-        )}
-      </div>
-
-      {/* Mapa */}
-      <div className="flex-1 overflow-y-auto min-h-0 p-2 flex flex-col gap-2">
-        <div
-          className={`relative w-full overflow-hidden rounded-xl border select-none ${
-            selectedId ? "cursor-crosshair border-primary/40" : "cursor-default border-primary/15"
-          }`}
-          style={{ aspectRatio: "1 / 1" }}
-          onClick={handleMapClick}
-        >
-          <img
-            src="/dibujos/reinos/mapa.png"
-            alt="Mapa global"
-            className="w-full h-full object-cover pointer-events-none"
-            draggable={false}
-          />
-
-          {reinos.map(r => {
-            const x = r.coord_x ?? 0;
-            const y = r.coord_y ?? 0;
-            const isSelected = selectedId === r.id;
-            return (
-              <div
-                key={r.id}
-                className="absolute z-10 flex flex-col items-center"
-                style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -100%)" }}
-              >
-                <div className={`mb-0.5 text-[7px] font-black uppercase px-1 py-px rounded whitespace-nowrap shadow transition-all ${
-                  isSelected ? "bg-primary text-btn-text scale-110" : "bg-bg-main/90 text-primary border border-primary/20"
-                }`}>
-                  {r.nombre}
-                </div>
-                <button
-                  onClick={e => handleMarkerClick(e, r.id)}
-                  className={`w-2.5 h-2.5 rounded-full border-2 border-white shadow transition-all ${
-                    isSelected ? "bg-yellow-400 scale-125 ring-2 ring-yellow-400/50" : "bg-primary hover:scale-110"
-                  }`}
-                />
-                <div className={`w-px h-1.5 ${isSelected ? "bg-yellow-400" : "bg-primary/50"}`} />
-              </div>
-            );
-          })}
-
-          {selectedId && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
-        </div>
-
-        {selectedId ? (
-          <button
-            onClick={() => setSelectedId(null)}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-primary/20 text-[9px] font-black uppercase tracking-widest text-primary/50 hover:text-primary transition-all"
-          >
-            <X size={9} /> Cancelar
-          </button>
-        ) : (
-          <p className="text-[8px] font-bold text-primary/25 text-center uppercase tracking-widest">
-            Clickeá un reino para moverlo
-          </p>
-        )}
-
-        {/* Lista de reinos */}
-        <div className="space-y-0.5 mt-1">
-          {reinos.map(r => (
-            <button
-              key={r.id}
-              onClick={e => handleMarkerClick(e, r.id)}
-              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all ${
-                selectedId === r.id
-                  ? "bg-primary/15 border border-primary/30 text-primary"
-                  : "hover:bg-primary/5 border border-transparent text-primary/60 hover:text-primary"
-              }`}
-            >
-              <MapPin size={10} className="shrink-0" />
-              <span className="text-[10px] font-black uppercase tracking-widest truncate">{r.nombre}</span>
-              <span className="ml-auto text-[8px] text-primary/30 shrink-0">{(r.coord_x ?? 0).toFixed(0)},{(r.coord_y ?? 0).toFixed(0)}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── EditorReino ──────────────────────────────────────────────────────────────
 
@@ -1309,12 +1194,6 @@ export default function EditorEntidades() {
   const handleDeleted = (id: string) => { setItems(prev => prev.filter(i => i.id !== id)); setSelectedId(null); };
   const handleSelect  = (id: string) => { setSelectedId(id); setSidebarOpen(false); };
 
-  // Mover un reino desde el mapa global y persistir
-  const handleReinoMoved = async (id: string, x: number, y: number) => {
-    setItems(prev => prev.map(r => r.id === id ? { ...r, coord_x: x, coord_y: y } : r));
-    await supabase.from("reinos").update({ coord_x: x, coord_y: y }).eq("id", id);
-  };
-
   const { Icon } = TAB_CONFIG[tab];
 
   const headerExtra = (
@@ -1385,14 +1264,6 @@ export default function EditorEntidades() {
               <p className="text-xs font-black uppercase tracking-[0.3em]">Editor de {TAB_CONFIG[tab].label}</p>
               <p className="text-[10px] tracking-widest">Selecciona una entrada o crea una nueva</p>
             </div>
-          )}
-
-          {/* Panel lateral fijo: mapa global de reinos */}
-          {tab === "reinos" && (
-            <MapaGlobalReinos
-              reinos={items as Reino[]}
-              onReinoMoved={handleReinoMoved}
-            />
           )}
         </div>
       </EstudioLayout>
