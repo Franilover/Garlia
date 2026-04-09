@@ -791,15 +791,24 @@ const Navbar = () => {
             ))}
             {esFranilover && (
               <>
-                <MobileNavItemNested
-                  label="Personal"
-                  icon={House}
-                  active={isSalud || isEscritorio}
-                  groups={personalMyselfGroups}
-                  isOpen={mobileOpenMenu === "__personal__"}
-                  onToggle={() => setMobileOpenMenu(mobileOpenMenu === "__personal__" ? null : "__personal__")}
-                  onClose={closeAll}
-                />
+                {personalMyselfGroups.map(({ href, icon: GroupIcon }) => {
+                  const isActive = currentPath?.startsWith(href) ?? false;
+                  return (
+                    <Link
+                      key={href} href={href} onClick={closeAll}
+                      className="flex items-center justify-center transition-all"
+                      style={{
+                        borderRadius: "var(--radius-btn)",
+                        background: isActive ? "var(--primary)" : "transparent",
+                        color: isActive ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                        width: 36, height: 36,
+                        touchAction: "manipulation",
+                      }}
+                    >
+                      <GroupIcon size={16} strokeWidth={isActive ? 2.5 : 2} />
+                    </Link>
+                  );
+                })}
                 {franiLinks.map(({ href, label, icon, active }) => (
                   <MobileNavItem
                     key={href} href={href} label={label} icon={icon}
