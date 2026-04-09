@@ -626,13 +626,13 @@ const Navbar = () => {
     
   // Links del nav público
   const mainLinks = [
-    { href: "/personal", label: "Personal", icon: Star,   active: isPersonal, fillActive: true,  subLinks: personalSubLinks },
-    { href: "/wiki",     label: "Jardin",     icon: Flower2, active: isWiki,     fillActive: false, subLinks: wikiSubLinks     },
+    { href: "/personal", label: "Personal", icon: Star,   active: isPersonal, fillActive: true  },
+    { href: "/wiki",     label: "Jardin",   icon: Flower2, active: isWiki,     fillActive: false },
   ];
 
   // Links de Franilover
   const franiLinks = [
-    { href: "/myself/jardin", label: "Arte", icon: Cat, active: isJardin, subLinks: jardinSubLinks },
+    { href: "/myself/jardin", label: "Arte", icon: Cat, active: isJardin },
   ];
 
   return (
@@ -672,9 +672,9 @@ const Navbar = () => {
 
         {/* Nav — todos usan SideNavItem con flyout */}
         <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
-          {mainLinks.map(({ href, label, icon, active, fillActive, subLinks }) => (
+          {mainLinks.map(({ href, label, icon, active, fillActive }) => (
             <SideNavItem key={href} href={href} label={label} icon={icon}
-              active={active} fillActive={fillActive} subLinks={subLinks}
+              active={active} fillActive={fillActive}
               sidebarExpanded={sidebarExpanded} onClose={closeAll} />
           ))}
 
@@ -689,9 +689,9 @@ const Navbar = () => {
                 sidebarExpanded={sidebarExpanded}
                 onClose={closeAll}
               />
-              {franiLinks.map(({ href, label, icon, active, subLinks }) => (
+              {franiLinks.map(({ href, label, icon, active }) => (
                 <SideNavItem key={href} href={href} label={label} icon={icon}
-                  active={active} fillActive={false} subLinks={subLinks}
+                  active={active} fillActive={false}
                   sidebarExpanded={sidebarExpanded} onClose={closeAll} />
               ))}
             </>
@@ -853,10 +853,10 @@ const Navbar = () => {
               border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            {mainLinks.map(({ href, label, icon, active, fillActive, subLinks }) => (
+            {mainLinks.map(({ href, label, icon, active, fillActive }) => (
               <MobileNavItem
                 key={href} href={href} label={label} icon={icon}
-                active={active} fillActive={fillActive} subLinks={subLinks}
+                active={active} fillActive={fillActive}
                 isOpen={mobileOpenMenu === href}
                 onToggle={() => setMobileOpenMenu(mobileOpenMenu === href ? null : href)}
                 onClose={closeAll}
@@ -873,10 +873,10 @@ const Navbar = () => {
                   onToggle={() => setMobileOpenMenu(mobileOpenMenu === "__personal__" ? null : "__personal__")}
                   onClose={closeAll}
                 />
-                {franiLinks.map(({ href, label, icon, active, subLinks }) => (
+                {franiLinks.map(({ href, label, icon, active }) => (
                   <MobileNavItem
                     key={href} href={href} label={label} icon={icon}
-                    active={active} fillActive={false} subLinks={subLinks}
+                    active={active} fillActive={false}
                     isOpen={mobileOpenMenu === href}
                     onToggle={() => setMobileOpenMenu(mobileOpenMenu === href ? null : href)}
                     onClose={closeAll}
