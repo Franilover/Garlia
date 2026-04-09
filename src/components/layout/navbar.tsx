@@ -843,10 +843,8 @@ const Navbar = () => {
             borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
-          <div className="flex-1" />
-
-          {/* Nav principal */}
-          <div className="flex items-center gap-1 p-1"
+          {/* Nav principal — centrado absolutamente para no empujar los controles */}
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 p-1"
             style={{
               background: "color-mix(in srgb, var(--primary) 5%, transparent)",
               borderRadius: "var(--radius-card)",
@@ -887,7 +885,7 @@ const Navbar = () => {
           </div>
 
           {/* Controles derecha */}
-          <div className="flex-1 flex items-center justify-end gap-1">
+          <div className="ml-auto flex items-center gap-1">
             <motion.button whileTap={{ scale: 0.88 }}
               onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); setMobileOpenMenu(null); }}
               className="flex items-center justify-center transition-all"
