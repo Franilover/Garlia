@@ -62,6 +62,7 @@ export default function MapaInteractivo() {
   const [cargandoImagen, setCargandoImagen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [modifiedDetalles, setModifiedDetalles] = useState<Set<string>>(new Set());
   const [isUploadingImg, setIsUploadingImg] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const mapRef = useRef(null);
@@ -126,8 +127,10 @@ export default function MapaInteractivo() {
     const x = parseFloat(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
     const y = parseFloat(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
     if (puntoSeleccionado) {
-      setPuntoSeleccionado({ ...puntoSeleccionado, coord_x: x, coord_y: y });
+      const updated = { ...puntoSeleccionado, coord_x: x, coord_y: y };
+      setPuntoSeleccionado(updated);
       setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, coord_x: x, coord_y: y } : p));
+      setModifiedDetalles(prev => new Set(prev).add(puntoSeleccionado.id));
     } else if (reinoSeleccionado && vistaActual === "global") {
       setReinoSeleccionado({ ...reinoSeleccionado, coord_x: x, coord_y: y });
       setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? { ...r, coord_x: x, coord_y: y } : r));
@@ -162,16 +165,21 @@ export default function MapaInteractivo() {
   const handleSaveChanges = async () => {
     setIsSaving(true);
     try {
-      if (puntoSeleccionado) {
-        const { error } = await supabase.from("reino_detalles").update({
-          nombre: puntoSeleccionado.nombre,
-          descripcion: puntoSeleccionado.descripcion,
-          coord_x: puntoSeleccionado.coord_x,
-          coord_y: puntoSeleccionado.coord_y,
-        }).eq("id", puntoSeleccionado.id);
-        if (error) throw error;
-        setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? puntoSeleccionado : p));
-      } else if (reinoSeleccionado) {
+      if (vistaActual === "reino" && modifiedDetalles.size > 0) {
+        // Guardar todos los puntos modificados en paralelo
+        const toSave = detallesReino.filter(p => modifiedDetalles.has(p.id));
+        await Promise.all(
+          toSave.map(p =>
+            supabase.from("reino_detalles").update({
+              nombre: p.nombre,
+              descripcion: p.descripcion,
+              coord_x: p.coord_x,
+              coord_y: p.coord_y,
+            }).eq("id", p.id)
+          )
+        );
+        setModifiedDetalles(new Set());
+      } else if (reinoSeleccionado && vistaActual === "global") {
         const { error } = await supabase.from("reinos").update({
           nombre: reinoSeleccionado.nombre,
           descripcion: reinoSeleccionado.descripcion,
@@ -198,6 +206,7 @@ export default function MapaInteractivo() {
     setPuntoSeleccionado(null);
     setDetallesReino([]);
     setPersonajesReino([]);
+    setModifiedDetalles(new Set());
     setEditMode(false);
   };
 
@@ -252,6 +261,9 @@ export default function MapaInteractivo() {
               className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2" style={{borderRadius:"var(--radius-btn)"}}
             >
               <Move size={12} /> Clickeá el mapa para mover el marcador
+              {modifiedDetalles.size > 1 && (
+                <span className="bg-yellow-900/20 px-1.5 py-0.5 rounded-full text-[9px]">{modifiedDetalles.size} pendientes</span>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
