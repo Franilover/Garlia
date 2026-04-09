@@ -210,68 +210,27 @@ function MobileNavItem({
     touchAction: "manipulation",
   });
 
-  // Sin sublinks → link simple
+  // Sin sublinks → icono simple
   if (!hasSublinks) {
     return (
       <Link href={href} onClick={onClose}
-        className="flex items-center gap-1.5 px-[14px] py-[6px] transition-all"
-        style={btnStyle(active, false)}
+        className="flex items-center justify-center transition-all"
+        style={{ ...btnStyle(active, false), width: 36, height: 36 }}
       >
-        <Icon size={14} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
-        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+        <Icon size={16} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
       </Link>
     );
   }
 
-  // Con sublinks → label navega directamente + flecha abre desplegable
+  // Con sublinks → icono que abre desplegable al tocar
   return (
     <div className="relative flex items-stretch">
-
-      {/* Label — navega a la raíz */}
-      <Link
-        href={href} onClick={onClose}
-        className="flex items-center gap-1.5 py-[6px] transition-all"
-        style={{
-          ...btnStyle(active, isOpen),
-          borderRadius: `var(--radius-btn) 0 0 var(--radius-btn)`,
-          paddingLeft: "12px",
-          paddingRight: "8px",
-        }}
-      >
-        <Icon size={14} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
-        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-      </Link>
-
-      {/* Separador */}
-      <div style={{
-        width: "1px",
-        background: (active || isOpen)
-          ? "color-mix(in srgb, var(--btn-text) 25%, transparent)"
-          : "color-mix(in srgb, var(--primary) 15%, transparent)",
-        alignSelf: "stretch",
-        margin: "4px 0",
-      }} />
-
-      {/* Flecha — abre desplegable */}
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
-        className="flex items-center justify-center py-[6px] transition-all"
-        style={{
-          ...btnStyle(active, isOpen),
-          borderRadius: `0 var(--radius-btn) var(--radius-btn) 0`,
-          paddingLeft: "6px",
-          paddingRight: "8px",
-          minWidth: "26px",
-        }}
+        className="flex items-center justify-center transition-all"
+        style={{ ...btnStyle(active, isOpen), width: 36, height: 36 }}
       >
-        <ChevronRight
-          size={10}
-          style={{
-            transform: isOpen ? "rotate(-90deg)" : "rotate(90deg)",
-            transition: "transform 0.2s ease",
-            opacity: 0.8,
-          }}
-        />
+        <Icon size={16} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
       </button>
 
       {/* Panel hacia arriba */}
@@ -463,43 +422,13 @@ function MobileNavItemNested({
 
   return (
     <div className="relative flex items-stretch">
-      {/* Label — no navega */}
-      <div
-        className="flex items-center gap-1.5 py-[6px] transition-all cursor-default"
-        style={{
-          ...btnStyle(active, isOpen),
-          borderRadius: `var(--radius-btn) 0 0 var(--radius-btn)`,
-          paddingLeft: "12px",
-          paddingRight: "8px",
-        }}
-      >
-        <Icon size={14} strokeWidth={active ? 2.5 : 2} />
-        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-      </div>
-
-      {/* Separador */}
-      <div style={{
-        width: "1px",
-        background: (active || isOpen)
-          ? "color-mix(in srgb, var(--btn-text) 25%, transparent)"
-          : "color-mix(in srgb, var(--primary) 15%, transparent)",
-        alignSelf: "stretch",
-        margin: "4px 0",
-      }} />
-
-      {/* Flecha */}
+      {/* Icono — abre el panel al tocar */}
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); setOpenGroup(null); }}
-        className="flex items-center justify-center py-[6px] transition-all"
-        style={{
-          ...btnStyle(active, isOpen),
-          borderRadius: `0 var(--radius-btn) var(--radius-btn) 0`,
-          paddingLeft: "6px",
-          paddingRight: "8px",
-          minWidth: "26px",
-        }}
+        className="flex items-center justify-center transition-all"
+        style={{ ...btnStyle(active, isOpen), width: 36, height: 36 }}
       >
-        <ChevronRight size={10} style={{ transform: isOpen ? "rotate(-90deg)" : "rotate(90deg)", transition: "transform 0.2s ease", opacity: 0.8 }} />
+        <Icon size={16} strokeWidth={active ? 2.5 : 2} />
       </button>
 
       {/* Panel nivel 1 — grupos */}
