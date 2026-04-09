@@ -789,10 +789,87 @@ function PanelPersonajesReino({ reinoNombre }: { reinoNombre: string }) {
     </div>
   );
 }
+// ─── MiniMapaPicker ───────────────────────────────────────────────────────────
+
+function MiniMapaPicker({ mapaUrl, coordX, coordY, onCoordChange, label }: {
+  mapaUrl: string;
+  coordX: number;
+  coordY: number;
+  onCoordChange: (x: number, y: number) => void;
+  label?: string;
+}) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [placing, setPlacing] = useState(false);
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!placing) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = parseFloat(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
+    const y = parseFloat(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
+    onCoordChange(x, y);
+    setPlacing(false);
+  };
+
+  if (!mapaUrl) return (
+    <div className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-primary/15 text-primary/25">
+      <Map size={13} />
+      <span className="text-[9px] font-black uppercase tracking-widest">Sin imagen de mapa</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-1.5">
+      {label && <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">{label}</label>}
+      <div
+        ref={mapRef}
+        className={`relative w-full overflow-hidden rounded-xl border border-primary/15 select-none ${placing ? "cursor-crosshair" : "cursor-default"}`}
+        style={{ aspectRatio: "16/9" }}
+        onClick={handleClick}
+      >
+        <img src={mapaUrl} alt="Mapa" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+        {/* Marcador actual */}
+        {coordX > 0 && coordY > 0 && (
+          <div
+            className="absolute z-10 flex flex-col items-center"
+            style={{ top: `${coordY}%`, left: `${coordX}%`, transform: "translate(-50%, -50%)" }}
+          >
+            <div className="w-3 h-3 bg-primary rounded-full border-2 border-white shadow-lg ring-2 ring-primary/40" />
+          </div>
+        )}
+        {/* Overlay modo colocar */}
+        {placing && (
+          <div className="absolute inset-0 bg-primary/10 flex items-center justify-center pointer-events-none">
+            <span className="bg-primary text-btn-text text-[9px] font-black uppercase px-3 py-1.5 rounded-lg shadow-lg tracking-widest">
+              Clickeá para colocar
+            </span>
+          </div>
+        )}
+        {/* Coords badge */}
+        {coordX > 0 && coordY > 0 && !placing && (
+          <div className="absolute top-1.5 right-1.5 bg-bg-main/80 backdrop-blur-sm text-primary text-[8px] font-black px-1.5 py-0.5 rounded-lg border border-primary/15">
+            {coordX}, {coordY}
+          </div>
+        )}
+      </div>
+      <button
+        onClick={() => setPlacing(p => !p)}
+        className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
+          placing
+            ? "bg-primary/10 border-primary/30 text-primary"
+            : "border-dashed border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5"
+        }`}
+      >
+        <MapPin size={10} />
+        {placing ? "Cancelar" : "Colocar en mapa"}
+      </button>
+    </div>
+  );
+}
+
 // ─── DetalleEditor (punto del mapa) MODIFICADO ──────────────────────────
 
-function DetalleEditor({ detalle, onSaved, onDeleted }: {
-  detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void;
+function DetalleEditor({ detalle, mapaUrl, onSaved, onDeleted }: {
+  detalle: ReinoDetalle; mapaUrl?: string; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void;
 }) {
   const [form, setForm] = useState(detalle);
   const [expanded, setExpanded] = useState(true);
@@ -854,16 +931,14 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">X (%)</label>
-              <input type="number" step="0.01" value={form.coord_x || 0} onChange={e => setForm({ ...form, coord_x: parseFloat(e.target.value) })} className={INPUT_CLS + " mt-1"} />
-            </div>
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Y (%)</label>
-              <input type="number" step="0.01" value={form.coord_y || 0} onChange={e => setForm({ ...form, coord_y: parseFloat(e.target.value) })} className={INPUT_CLS + " mt-1"} />
-            </div>
-          </div>
+          <MiniMapaPicker
+            mapaUrl={mapaUrl ?? ""}
+            coordX={form.coord_x ?? 0}
+            coordY={form.coord_y ?? 0}
+            onCoordChange={(x, y) => setForm(f => ({ ...f, coord_x: x, coord_y: y }))}
+            label="Posición en el mapa"
+          />
+
           <div className="flex items-center justify-between pt-2">
             <button onClick={handleDelete} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all">
               <Trash2 size={10} /> Eliminar
@@ -948,16 +1023,13 @@ function EditorReino({ item, onSaved, onDeleted }: {
         <div className="p-5 pt-2 space-y-5">
           <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Coord X (%)</label>
-              <input type="number" step="0.01" value={form.coord_x || 0} onChange={e => setForm(f => ({ ...f, coord_x: parseFloat(e.target.value) }))} className={INPUT_CLS} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Coord Y (%)</label>
-              <input type="number" step="0.01" value={form.coord_y || 0} onChange={e => setForm(f => ({ ...f, coord_y: parseFloat(e.target.value) }))} className={INPUT_CLS} />
-            </div>
-          </div>
+          <MiniMapaPicker
+            mapaUrl="/dibujos/reinos/mapa.png"
+            coordX={form.coord_x ?? 0}
+            coordY={form.coord_y ?? 0}
+            onCoordChange={(x, y) => setForm(f => ({ ...f, coord_x: x, coord_y: y }))}
+            label="Posición en el mapa global"
+          />
 
           <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
           <div className="h-px bg-primary/8" />
@@ -975,6 +1047,7 @@ function EditorReino({ item, onSaved, onDeleted }: {
                 <DetalleEditor
                   key={det.id}
                   detalle={det}
+                  mapaUrl={form.mapa_url}
                   onSaved={(updated) =>
                     setDetalles((prev) =>
                       prev.map((d) => (d.id === updated.id ? updated : d))
