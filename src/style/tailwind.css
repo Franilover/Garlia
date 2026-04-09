@@ -301,6 +301,12 @@
     z-index: 10;
   }
 
+  /* El ::after decorativo NO debe aplicar a bloques del editor (tags, toolbar, stats) */
+  [data-theme="scribble"] .card-main.no-inner-border::after,
+  [data-theme="scribble"] .editor-block::after {
+    display: none;
+  }
+
   /* CAMBIO: pixel dark — cards con borde visible en tono verde apagado */
   [data-theme="pixel"].dark .card-main {
     border: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
@@ -339,7 +345,8 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent);
   }
 
-  [data-theme="scribble"] .relative:has(input[type="text"])::after {
+  /* Borde decorativo en inputs scribble — solo en sidebar/filtros, no en el editor */
+  [data-theme="scribble"] aside .relative:has(input[type="text"])::after {
     content: "";
     position: absolute;
     inset: 4px;

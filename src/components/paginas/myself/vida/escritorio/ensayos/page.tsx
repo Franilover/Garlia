@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { ChevronLeft, Loader2, Menu, X, PenTool } from "lucide-react";
+import { Loader2, Menu, X, PenTool } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
@@ -320,12 +320,7 @@ export default function Ensayos() {
         sidebarContent={<Sidebar {...sidebarProps} embedded />}
       >
         {}
-        <div className="shrink-0 z-10 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-2.5 flex items-center justify-between bg-bg-main/80">
-          <button onClick={() => router.back()}
-            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-colors"
-          >
-            <ChevronLeft size={13} /> Grafos
-          </button>
+        <div className="shrink-0 z-10 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-2.5 flex items-center justify-center bg-bg-main/80">
           <AnimatePresence mode="wait">
             {saveStatus !== "idle" && (
               <motion.span key={saveStatus} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -336,9 +331,6 @@ export default function Ensayos() {
               </motion.span>
             )}
           </AnimatePresence>
-          <span className="font-mono text-[9px] uppercase tracking-[0.35em] text-primary/20">
-            Knowledge Base
-          </span>
         </div>
 
         {}
