@@ -789,92 +789,117 @@ function PanelPersonajesReino({ reinoNombre }: { reinoNombre: string }) {
     </div>
   );
 }
-// ─── MiniMapaPicker ───────────────────────────────────────────────────────────
+// ─── MapaPuntosReino — mapa interactivo de puntos de un reino ─────────────────
 
-function MiniMapaPicker({ mapaUrl, coordX, coordY, onCoordChange, label }: {
+function MapaPuntosReino({ mapaUrl, detalles, onDetallesChange }: {
   mapaUrl: string;
-  coordX: number;
-  coordY: number;
-  onCoordChange: (x: number, y: number) => void;
-  label?: string;
+  detalles: ReinoDetalle[];
+  onDetallesChange: (detalles: ReinoDetalle[]) => void;
 }) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [placing, setPlacing] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!placing) return;
+  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!selectedId) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = parseFloat(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
     const y = parseFloat(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
-    onCoordChange(x, y);
-    setPlacing(false);
+    onDetallesChange(detalles.map(d => d.id === selectedId ? { ...d, coord_x: x, coord_y: y } : d));
+    setSelectedId(null);
+  };
+
+  const handleMarkerClick = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setSelectedId(prev => prev === id ? null : id);
   };
 
   if (!mapaUrl) return (
-    <div className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-primary/15 text-primary/25">
-      <Map size={13} />
-      <span className="text-[9px] font-black uppercase tracking-widest">Sin imagen de mapa</span>
+    <div className="flex flex-col items-center justify-center gap-2 h-40 rounded-xl border border-dashed border-primary/15 text-primary/25">
+      <Map size={20} />
+      <span className="text-[9px] font-black uppercase tracking-widest">Sin imagen de mapa del reino</span>
     </div>
   );
 
   return (
     <div className="space-y-1.5">
-      {label && <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">{label}</label>}
+      <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
+        <MapPin size={9} /> Puntos en el mapa
+        {selectedId && (
+          <span className="ml-auto text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg">
+            clickeá el mapa para mover
+          </span>
+        )}
+      </label>
       <div
-        ref={mapRef}
-        className={`relative w-full overflow-hidden rounded-xl border border-primary/15 select-none ${placing ? "cursor-crosshair" : "cursor-default"}`}
+        className={`relative w-full overflow-hidden rounded-xl border select-none ${
+          selectedId ? "cursor-crosshair border-primary/40" : "cursor-default border-primary/15"
+        }`}
         style={{ aspectRatio: "16/9" }}
-        onClick={handleClick}
+        onClick={handleMapClick}
       >
         <img src={mapaUrl} alt="Mapa" className="w-full h-full object-cover pointer-events-none" draggable={false} />
-        {/* Marcador actual */}
-        {coordX > 0 && coordY > 0 && (
-          <div
-            className="absolute z-10 flex flex-col items-center"
-            style={{ top: `${coordY}%`, left: `${coordX}%`, transform: "translate(-50%, -50%)" }}
-          >
-            <div className="w-3 h-3 bg-primary rounded-full border-2 border-white shadow-lg ring-2 ring-primary/40" />
-          </div>
-        )}
-        {/* Overlay modo colocar */}
-        {placing && (
-          <div className="absolute inset-0 bg-primary/10 flex items-center justify-center pointer-events-none">
-            <span className="bg-primary text-btn-text text-[9px] font-black uppercase px-3 py-1.5 rounded-lg shadow-lg tracking-widest">
-              Clickeá para colocar
-            </span>
-          </div>
-        )}
-        {/* Coords badge */}
-        {coordX > 0 && coordY > 0 && !placing && (
-          <div className="absolute top-1.5 right-1.5 bg-bg-main/80 backdrop-blur-sm text-primary text-[8px] font-black px-1.5 py-0.5 rounded-lg border border-primary/15">
-            {coordX}, {coordY}
-          </div>
+
+        {detalles.map(d => {
+          const x = d.coord_x ?? 0;
+          const y = d.coord_y ?? 0;
+          const isSelected = selectedId === d.id;
+          return (
+            <div
+              key={d.id}
+              className="absolute z-10 flex flex-col items-center"
+              style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -100%)" }}
+            >
+              {/* Nombre debajo del pin */}
+              <div
+                className={`mb-1 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md whitespace-nowrap shadow-md transition-all ${
+                  isSelected
+                    ? "bg-primary text-btn-text scale-110"
+                    : "bg-bg-main/90 text-primary border border-primary/20"
+                }`}
+              >
+                {d.nombre}
+              </div>
+              <button
+                onClick={e => handleMarkerClick(e, d.id)}
+                className={`w-3 h-3 rounded-full border-2 border-white shadow-md transition-all ${
+                  isSelected ? "bg-yellow-400 scale-125 ring-2 ring-yellow-400/50" : "bg-primary hover:scale-110"
+                }`}
+              />
+              {/* línea vertical */}
+              <div className={`w-px h-2 ${isSelected ? "bg-yellow-400" : "bg-primary/50"}`} />
+            </div>
+          );
+        })}
+
+        {selectedId && (
+          <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
         )}
       </div>
-      <button
-        onClick={() => setPlacing(p => !p)}
-        className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
-          placing
-            ? "bg-primary/10 border-primary/30 text-primary"
-            : "border-dashed border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5"
-        }`}
-      >
-        <MapPin size={10} />
-        {placing ? "Cancelar" : "Colocar en mapa"}
-      </button>
+      {selectedId && (
+        <button
+          onClick={() => setSelectedId(null)}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl border border-primary/20 text-[9px] font-black uppercase tracking-widest text-primary/50 hover:text-primary transition-all"
+        >
+          <X size={9} /> Cancelar selección
+        </button>
+      )}
     </div>
   );
 }
 
-// ─── DetalleEditor (punto del mapa) MODIFICADO ──────────────────────────
+// ─── DetalleEditor ────────────────────────────────────────────────────────────
 
-function DetalleEditor({ detalle, mapaUrl, onSaved, onDeleted }: {
-  detalle: ReinoDetalle; mapaUrl?: string; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void;
+function DetalleEditor({ detalle, onSaved, onDeleted }: {
+  detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void;
 }) {
   const [form, setForm] = useState(detalle);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
+
+  // Sync coords when parent updates them (from map interaction)
+  useEffect(() => {
+    setForm(f => ({ ...f, coord_x: detalle.coord_x, coord_y: detalle.coord_y }));
+  }, [detalle.coord_x, detalle.coord_y]);
 
   const handleSave = async () => {
     setStatus("saving");
@@ -895,7 +920,7 @@ function DetalleEditor({ detalle, mapaUrl, onSaved, onDeleted }: {
   };
 
   return (
-    <div className="border border-primary/10 rounded-xl bg-bg-main/50 hover:border-primary/20 transition-all overflow-hidden mb-2">
+    <div className="border border-primary/10 rounded-xl bg-bg-main/50 hover:border-primary/20 transition-all overflow-hidden">
       <ConfirmModal />
       <div className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer select-none" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -904,42 +929,31 @@ function DetalleEditor({ detalle, mapaUrl, onSaved, onDeleted }: {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[9px] font-bold text-primary/30 bg-primary/5 px-1.5 py-0.5 rounded-lg border border-primary/10">
-            {form.coord_x || 0},{form.coord_y || 0}
+            {(form.coord_x ?? 0).toFixed(1)},{(form.coord_y ?? 0).toFixed(1)}
           </span>
           <ChevronDown size={13} className={`text-primary/40 transition-transform ${expanded ? "rotate-180" : ""}`} />
         </div>
       </div>
       {expanded && (
-        <div className="p-3 pt-0 border-t border-primary/5 space-y-4 bg-primary/3">
+        <div className="p-3 pt-0 border-t border-primary/5 space-y-3 bg-primary/3">
           <div className="mt-3">
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Nombre del punto</label>
-            <input 
-              value={form.nombre} 
-              onChange={e => setForm({ ...form, nombre: e.target.value })} 
-              className={INPUT_CLS + " mt-1"} 
+            <input
+              value={form.nombre}
+              onChange={e => setForm({ ...form, nombre: e.target.value })}
+              className={INPUT_CLS + " mt-1"}
             />
           </div>
-
-          {/* DESCRIPCIÓN DEL PUNTO MÁS GRANDE */}
           <div>
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción del lugar</label>
             <textarea
               value={form.descripcion ?? ""}
-              onChange={(e) => setForm(f => ({ ...f, descripcion: e.target.value }))}
-              className="w-full bg-input-bg text-input-text border border-primary/10 rounded-xl px-4 py-3 text-sm min-h-[400px] resize-y"
+              onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+              className="w-full bg-input-bg text-input-text border border-primary/10 rounded-xl px-4 py-3 text-sm min-h-[180px] resize-y mt-1"
               placeholder="Escribe el lore aquí..."
             />
           </div>
-
-          <MiniMapaPicker
-            mapaUrl={mapaUrl ?? ""}
-            coordX={form.coord_x ?? 0}
-            coordY={form.coord_y ?? 0}
-            onCoordChange={(x, y) => setForm(f => ({ ...f, coord_x: x, coord_y: y }))}
-            label="Posición en el mapa"
-          />
-
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between pt-1">
             <button onClick={handleDelete} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all">
               <Trash2 size={10} /> Eliminar
             </button>
@@ -952,6 +966,123 @@ function DetalleEditor({ detalle, mapaUrl, onSaved, onDeleted }: {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── MapaGlobalReinos — panel lateral con mapa global de todos los reinos ─────
+
+function MapaGlobalReinos({ reinos, onReinoMoved }: {
+  reinos: Reino[];
+  onReinoMoved: (id: string, x: number, y: number) => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!selectedId) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = parseFloat(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
+    const y = parseFloat(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
+    onReinoMoved(selectedId, x, y);
+    setSelectedId(null);
+  };
+
+  const handleMarkerClick = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setSelectedId(prev => prev === id ? null : id);
+  };
+
+  return (
+    <div className="w-64 shrink-0 border-l border-primary/10 flex flex-col min-h-0 overflow-hidden">
+      {/* Header */}
+      <div className="shrink-0 px-3 py-2.5 border-b border-primary/8 flex items-center gap-2"
+        style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+        <Map size={11} className="text-primary/40" />
+        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Mapa Global</span>
+        {selectedId && (
+          <span className="ml-auto text-[8px] font-black text-yellow-600 bg-yellow-400/20 border border-yellow-400/30 px-1.5 py-0.5 rounded-md">
+            mover
+          </span>
+        )}
+      </div>
+
+      {/* Mapa */}
+      <div className="flex-1 overflow-y-auto min-h-0 p-2 flex flex-col gap-2">
+        <div
+          className={`relative w-full overflow-hidden rounded-xl border select-none ${
+            selectedId ? "cursor-crosshair border-primary/40" : "cursor-default border-primary/15"
+          }`}
+          style={{ aspectRatio: "1 / 1" }}
+          onClick={handleMapClick}
+        >
+          <img
+            src="/dibujos/reinos/mapa.png"
+            alt="Mapa global"
+            className="w-full h-full object-cover pointer-events-none"
+            draggable={false}
+          />
+
+          {reinos.map(r => {
+            const x = r.coord_x ?? 0;
+            const y = r.coord_y ?? 0;
+            const isSelected = selectedId === r.id;
+            return (
+              <div
+                key={r.id}
+                className="absolute z-10 flex flex-col items-center"
+                style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -100%)" }}
+              >
+                <div className={`mb-0.5 text-[7px] font-black uppercase px-1 py-px rounded whitespace-nowrap shadow transition-all ${
+                  isSelected ? "bg-primary text-btn-text scale-110" : "bg-bg-main/90 text-primary border border-primary/20"
+                }`}>
+                  {r.nombre}
+                </div>
+                <button
+                  onClick={e => handleMarkerClick(e, r.id)}
+                  className={`w-2.5 h-2.5 rounded-full border-2 border-white shadow transition-all ${
+                    isSelected ? "bg-yellow-400 scale-125 ring-2 ring-yellow-400/50" : "bg-primary hover:scale-110"
+                  }`}
+                />
+                <div className={`w-px h-1.5 ${isSelected ? "bg-yellow-400" : "bg-primary/50"}`} />
+              </div>
+            );
+          })}
+
+          {selectedId && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
+        </div>
+
+        {selectedId ? (
+          <button
+            onClick={() => setSelectedId(null)}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-primary/20 text-[9px] font-black uppercase tracking-widest text-primary/50 hover:text-primary transition-all"
+          >
+            <X size={9} /> Cancelar
+          </button>
+        ) : (
+          <p className="text-[8px] font-bold text-primary/25 text-center uppercase tracking-widest">
+            Clickeá un reino para moverlo
+          </p>
+        )}
+
+        {/* Lista de reinos */}
+        <div className="space-y-0.5 mt-1">
+          {reinos.map(r => (
+            <button
+              key={r.id}
+              onClick={e => handleMarkerClick(e, r.id)}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all ${
+                selectedId === r.id
+                  ? "bg-primary/15 border border-primary/30 text-primary"
+                  : "hover:bg-primary/5 border border-transparent text-primary/60 hover:text-primary"
+              }`}
+            >
+              <MapPin size={10} className="shrink-0" />
+              <span className="text-[10px] font-black uppercase tracking-widest truncate">{r.nombre}</span>
+              <span className="ml-auto text-[8px] text-primary/30 shrink-0">{(r.coord_x ?? 0).toFixed(0)},{(r.coord_y ?? 0).toFixed(0)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1002,17 +1133,28 @@ function EditorReino({ item, onSaved, onDeleted }: {
     }
   };
 
+  // Guardar coords de todos los puntos movidos en el mapa
+  const handleDetallesMapChange = async (updated: ReinoDetalle[]) => {
+    setDetalles(updated);
+    // Persistir todos en paralelo
+    await Promise.all(
+      updated.map(d =>
+        supabase.from("reino_detalles").update({ coord_x: d.coord_x, coord_y: d.coord_y }).eq("id", d.id)
+      )
+    );
+  };
+
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
       <ConfirmModal />
 
-      {/* Contenido del reino */}
+      {/* Columna principal */}
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
 
-        {/* Mapa — aspect-video compacto */}
+        {/* Selector imagen del mapa */}
         <div className="shrink-0 p-5 pb-3">
           <SelectorImagen
-            label="Imagen del mapa"
+            label="Imagen del mapa del reino"
             value={form.mapa_url ?? ""}
             onChange={url => setForm(f => ({ ...f, mapa_url: url }))}
             aspect="video"
@@ -1022,44 +1164,35 @@ function EditorReino({ item, onSaved, onDeleted }: {
 
         <div className="p-5 pt-2 space-y-5">
           <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
+          <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
 
-          <MiniMapaPicker
-            mapaUrl="/dibujos/reinos/mapa.png"
-            coordX={form.coord_x ?? 0}
-            coordY={form.coord_y ?? 0}
-            onCoordChange={(x, y) => setForm(f => ({ ...f, coord_x: x, coord_y: y }))}
-            label="Posición en el mapa global"
+          <div className="h-px bg-primary/8" />
+
+          {/* Mapa del reino con todos los puntos */}
+          <MapaPuntosReino
+            mapaUrl={form.mapa_url ?? ""}
+            detalles={detalles}
+            onDetallesChange={handleDetallesMapChange}
           />
 
-          <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
-          <div className="h-px bg-primary/8" />
-          <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/50 flex items-center gap-2 mb-3">
+          {/* Lista de puntos para editar nombre/descripción */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary/50 flex items-center gap-2">
               <MapPin size={12} /> Puntos de Interés
-              <span className="text-[9px] text-primary/30 bg-primary/8 px-2 py-0.5 rounded-full ml-1">
-                {detalles.length}
-              </span>
+              <span className="text-[9px] text-primary/30 bg-primary/8 px-2 py-0.5 rounded-full ml-1">{detalles.length}</span>
             </h3>
 
-            {/* Contenedor Grid para las columnas de dos en dos */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {detalles.map((det) => (
+            <div className="space-y-2">
+              {detalles.map(det => (
                 <DetalleEditor
                   key={det.id}
                   detalle={det}
-                  mapaUrl={form.mapa_url}
-                  onSaved={(updated) =>
-                    setDetalles((prev) =>
-                      prev.map((d) => (d.id === updated.id ? updated : d))
-                    )
-                  }
-                  onDeleted={(id) =>
-                    setDetalles((prev) => prev.filter((d) => d.id !== id))
-                  }
+                  onSaved={updated => setDetalles(prev => prev.map(d => d.id === updated.id ? updated : d))}
+                  onDeleted={id => setDetalles(prev => prev.filter(d => d.id !== id))}
                 />
               ))}
             </div>
-            
+
             {detalles.length === 0 && !addingPoint && (
               <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-5 border border-dashed border-primary/15 rounded-xl italic">
                 Sin puntos registrados
@@ -1067,41 +1200,31 @@ function EditorReino({ item, onSaved, onDeleted }: {
             )}
 
             {addingPoint ? (
-              <div className="flex gap-2 p-3 bg-primary/5 rounded-xl border border-primary/15 mt-2">
+              <div className="flex gap-2 p-3 bg-primary/5 rounded-xl border border-primary/15">
                 <input
                   autoFocus
                   value={newPointName}
-                  onChange={(e) => setNewPointName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddPoint();
-                    if (e.key === "Escape") setAddingPoint(false);
-                  }}
+                  onChange={e => setNewPointName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") handleAddPoint(); if (e.key === "Escape") setAddingPoint(false); }}
                   className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
                   placeholder="NOMBRE DEL LUGAR..."
                 />
-                <button
-                  onClick={handleAddPoint}
-                  disabled={!newPointName.trim()}
-                  className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40"
-                >
+                <button onClick={handleAddPoint} disabled={!newPointName.trim()} className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40">
                   <Check size={13} />
                 </button>
-                <button
-                  onClick={() => setAddingPoint(false)}
-                  className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all"
-                >
+                <button onClick={() => setAddingPoint(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all">
                   <X size={13} />
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setAddingPoint(true)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest mt-2"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest"
               >
                 <Plus size={11} /> Añadir Punto de Interés
               </button>
             )}
-          </div>           
+          </div>
         </div>
 
         <BarraAcciones status={status} onSave={save} onDelete={del} />
@@ -1186,6 +1309,12 @@ export default function EditorEntidades() {
   const handleDeleted = (id: string) => { setItems(prev => prev.filter(i => i.id !== id)); setSelectedId(null); };
   const handleSelect  = (id: string) => { setSelectedId(id); setSidebarOpen(false); };
 
+  // Mover un reino desde el mapa global y persistir
+  const handleReinoMoved = async (id: string, x: number, y: number) => {
+    setItems(prev => prev.map(r => r.id === id ? { ...r, coord_x: x, coord_y: y } : r));
+    await supabase.from("reinos").update({ coord_x: x, coord_y: y }).eq("id", id);
+  };
+
   const { Icon } = TAB_CONFIG[tab];
 
   const headerExtra = (
@@ -1242,20 +1371,30 @@ export default function EditorEntidades() {
         sidebarOpen={sidebarOpen}
         onSidebarOpenChange={setSidebarOpen}
       >
-        {selected ? (
-          <>
-            {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} />}
-            {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} />}
-            {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} />}
-            {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} />}
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-foreground/20">
-            <Icon size={52} strokeWidth={1} />
-            <p className="text-xs font-black uppercase tracking-[0.3em]">Editor de {TAB_CONFIG[tab].label}</p>
-            <p className="text-[10px] tracking-widest">Selecciona una entrada o crea una nueva</p>
-          </div>
-        )}
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          {selected ? (
+            <>
+              {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} />}
+              {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} />}
+              {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} />}
+              {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} />}
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-foreground/20">
+              <Icon size={52} strokeWidth={1} />
+              <p className="text-xs font-black uppercase tracking-[0.3em]">Editor de {TAB_CONFIG[tab].label}</p>
+              <p className="text-[10px] tracking-widest">Selecciona una entrada o crea una nueva</p>
+            </div>
+          )}
+
+          {/* Panel lateral fijo: mapa global de reinos */}
+          {tab === "reinos" && (
+            <MapaGlobalReinos
+              reinos={items as Reino[]}
+              onReinoMoved={handleReinoMoved}
+            />
+          )}
+        </div>
       </EstudioLayout>
 
       {showNueva && <ModalNueva tab={tab} onCreated={handleCreated} onClose={() => setShowNueva(false)} />}
