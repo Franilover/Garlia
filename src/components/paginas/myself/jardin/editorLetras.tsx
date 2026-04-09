@@ -198,7 +198,7 @@ function useCancionEditor(id: string | null) {
       } else {
         setLoading(true);
       }
-    } catch { setLoading(true); }
+    } catch { /* si Dexie falla, continuar hacia fetch o corte offline */ }
 
     if (!navigator.onLine) {
       setIsOffline(true);
