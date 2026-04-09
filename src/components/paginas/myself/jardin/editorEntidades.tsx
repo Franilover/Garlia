@@ -519,9 +519,9 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
 
         {/* Campos */}
         <div className="p-5 pt-2 space-y-5">
-          <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del personaje" />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* 3 columnas en desktop: nombre / especie / reino */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del personaje" />
             <SelectorTexto
               label="Especie / Raza"
               value={form.especie ?? ""}
@@ -604,38 +604,54 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
     onDeleted(form.id);
   };
 
+  const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesDeEspecie(form.nombre);
+
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+    <div className="flex-1 flex min-h-0 overflow-hidden">
       <ConfirmModal />
 
-      {/* Imagen principal — compacta */}
-      <div className="shrink-0 p-5 pb-3">
-        <SelectorImagen
-          label="Ilustración"
-          value={form.imagen_url ?? ""}
-          onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-          aspect="landscape"
-          placeholder={<Bug size={20} className="opacity-20" />}
-        />
-      </div>
-
-      <div className="p-5 pt-2 space-y-5">
-        <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre de la criatura" />
-        <SelectorTexto
-          label="Hábitat"
-          value={form.habitat ?? ""}
-          onChange={v => setForm(f => ({ ...f, habitat: v }))}
-          opciones={habitats}
-          placeholder="Bosque, océano, volcán…"
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <CampoArea label="Descripción"  value={form.descripcion  ?? ""} onChange={field("descripcion")}  rows={5} placeholder="Aspecto, comportamiento…" />
-          <CampoArea label="Pensamiento"  value={form.pensamiento  ?? ""} onChange={field("pensamiento")}  rows={5} placeholder="¿Cómo piensa?" />
+      {/* Columna principal */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+        {/* Imagen principal — compacta */}
+        <div className="shrink-0 p-5 pb-3">
+          <SelectorImagen
+            label="Ilustración"
+            value={form.imagen_url ?? ""}
+            onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+            aspect="landscape"
+            placeholder={<Bug size={20} className="opacity-20" />}
+          />
         </div>
-        <CampoArea label="Alma" value={form.alma ?? ""} onChange={field("alma")} rows={3} placeholder="Naturaleza espiritual…" />
+
+        <div className="p-5 pt-2 space-y-5">
+          {/* 2 columnas: nombre + hábitat */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre de la criatura" />
+            <SelectorTexto
+              label="Hábitat"
+              value={form.habitat ?? ""}
+              onChange={v => setForm(f => ({ ...f, habitat: v }))}
+              opciones={habitats}
+              placeholder="Bosque, océano, volcán…"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <CampoArea label="Descripción"  value={form.descripcion  ?? ""} onChange={field("descripcion")}  rows={5} placeholder="Aspecto, comportamiento…" />
+            <CampoArea label="Pensamiento"  value={form.pensamiento  ?? ""} onChange={field("pensamiento")}  rows={5} placeholder="¿Cómo piensa?" />
+          </div>
+          <CampoArea label="Alma" value={form.alma ?? ""} onChange={field("alma")} rows={3} placeholder="Naturaleza espiritual…" />
+        </div>
+
+        <BarraAcciones status={status} onSave={save} onDelete={del} />
       </div>
 
-      <BarraAcciones status={status} onSave={save} onDelete={del} />
+      {/* Panel de personajes de esta especie */}
+      <PanelPersonajes
+        personajes={personajes}
+        loading={loadingPersonajes}
+        setPersonajes={setPersonajes}
+        titulo="De esta especie"
+      />
     </div>
   );
 }
@@ -742,52 +758,257 @@ function usePersonajesDelReino(reinoNombre: string | null | undefined) {
     setLoading(true);
     supabase
       .from("personajes")
-      .select("id, nombre, img_url, especie, reino")
+      .select("id, nombre, img_url, img_cuerpo_url, especie, reino, sobre")
       .ilike("reino", `%${reinoNombre}%`)
       .order("nombre")
       .then(({ data }) => { setPersonajes(data || []); setLoading(false); });
   }, [reinoNombre]);
 
-  return { personajes, loading };
+  return { personajes, setPersonajes, loading };
 }
 
-// ─── Panel personajes del reino ───────────────────────────────────────────────
+// ─── Hook personajes de una especie ──────────────────────────────────────────
 
-function PanelPersonajesReino({ reinoNombre }: { reinoNombre: string }) {
-  const { personajes, loading } = usePersonajesDelReino(reinoNombre);
+function usePersonajesDeEspecie(especieNombre: string | null | undefined) {
+  const [personajes, setPersonajes] = useState<Personaje[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!especieNombre?.trim()) { setPersonajes([]); return; }
+    setLoading(true);
+    supabase
+      .from("personajes")
+      .select("id, nombre, img_url, img_cuerpo_url, especie, reino, sobre")
+      .ilike("especie", `%${especieNombre}%`)
+      .order("nombre")
+      .then(({ data }) => { setPersonajes(data || []); setLoading(false); });
+  }, [especieNombre]);
+
+  return { personajes, setPersonajes, loading };
+}
+
+// ─── Mini editor de personaje (para overlay del panel) ───────────────────────
+
+function MiniEditorPersonaje({ personaje, onSaved, onClose }: {
+  personaje: Personaje; onSaved: (p: Personaje) => void; onClose: () => void;
+}) {
+  const [form,   setForm]   = useState<Personaje>(personaje);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const reinos   = useUniqueValues("personajes", "reino");
+  const especies = useUniqueValues("personajes", "especie");
+
+  const field = (k: keyof Personaje) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const save = async () => {
+    setStatus("saving");
+    try {
+      const { error } = await supabase.from("personajes").update({
+        nombre: form.nombre, img_url: form.img_url || null,
+        img_cuerpo_url: form.img_cuerpo_url || null,
+        sobre: form.sobre, reino: form.reino, especie: form.especie,
+      }).eq("id", form.id);
+      if (error) throw error;
+      setStatus("saved");
+      onSaved(form);
+      setTimeout(() => { setStatus("idle"); }, 2000);
+    } catch { setStatus("error"); }
+  };
 
   return (
-    <div className="w-52 shrink-0 border-l border-primary/10 flex flex-col min-h-0 overflow-hidden">
-      <div className="shrink-0 px-3 py-2.5 border-b border-primary/8 flex items-center gap-2"
+    <div className="flex flex-col h-full min-h-0">
+      {/* Header */}
+      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-primary/10"
         style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-        <Users size={11} className="text-primary/40" />
-        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Personajes</span>
-        {!loading && personajes.length > 0 && (
-          <span className="ml-auto text-[9px] font-black text-primary/30 bg-primary/8 px-1.5 py-0.5 rounded-full">{personajes.length}</span>
-        )}
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center shrink-0">
+            {form.img_url
+              ? <img src={form.img_url} alt={form.nombre} className="w-full h-full object-cover" />
+              : <UserCircle2 size={13} className="text-primary/25" />}
+          </div>
+          <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary truncate">{form.nombre}</span>
+        </div>
+        <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors p-1">
+          <X size={16} />
+        </button>
       </div>
-      <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-0.5">
-        {loading ? (
-          <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-        ) : personajes.length === 0 ? (
-          <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-8 italic">Sin personajes</p>
-        ) : personajes.map(p => (
-          <div key={p.id} className="flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-primary/5 transition-colors">
-            <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-              {p.img_url
-                ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                : <UserCircle2 size={13} className="text-primary/20" />
-              }
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex min-h-0">
+          {/* Imagen de cara */}
+          <div className="shrink-0 p-4 pb-2" style={{ width: 120 }}>
+            <SelectorImagen label="Cara" value={form.img_url ?? ""} onChange={url => setForm(f => ({ ...f, img_url: url }))}
+              aspect="square" placeholder={<UserCircle2 size={20} className="opacity-25" />} />
+          </div>
+          {/* Imagen de cuerpo */}
+          <div className="shrink-0 border-l border-primary/8 flex flex-col" style={{ width: 80 }}>
+            <div className="flex-1 min-h-0">
+              <SelectorImagen label="" value={form.img_cuerpo_url ?? ""} onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
+                aspect="full" placeholder={<Maximize2 size={16} className="opacity-20" />} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-bold text-primary/80 truncate">{p.nombre}</p>
-              {p.especie && <p className="text-[9px] text-primary/35 truncate">{p.especie}</p>}
+            <div className="shrink-0 px-1 py-1 border-t border-primary/8 text-center">
+              <span className="text-[7px] font-black uppercase tracking-widest text-primary/20">Cuerpo</span>
             </div>
           </div>
-        ))}
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* 3 columnas: nombre / especie / reino */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre" />
+            <SelectorTexto label="Especie / Raza" value={form.especie ?? ""}
+              onChange={v => setForm(f => ({ ...f, especie: v }))} opciones={especies} placeholder="Especie…" />
+            <SelectorTexto label="Reino / Facción" value={form.reino ?? ""}
+              onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino…" />
+          </div>
+          <CampoArea label="Sobre el personaje" value={form.sobre ?? ""} onChange={field("sobre")} rows={5}
+            placeholder="Biografía, personalidad, historia…" />
+        </div>
+      </div>
+
+      {/* Barra sticky */}
+      <div className="shrink-0 sticky bottom-0 px-4 py-3 flex items-center justify-end gap-2 border-t border-primary/8"
+        style={{ background: "color-mix(in srgb, var(--bg-main) 95%, transparent)", backdropFilter: "blur(8px)" }}>
+        <SaveIndicator status={status} />
+        <button onClick={save}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+          <Save size={11} /> Guardar
+        </button>
       </div>
     </div>
   );
+}
+
+// ─── Panel personajes compartido (reino y especie) ────────────────────────────
+
+function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "Personajes" }: {
+  personajes: Personaje[];
+  loading: boolean;
+  setPersonajes: React.Dispatch<React.SetStateAction<Personaje[]>>;
+  titulo?: string;
+}) {
+  const [editando, setEditando] = useState<Personaje | null>(null);
+  const [panelAbierto, setPanelAbierto] = useState(false);
+
+  const handleSaved = (updated: Personaje) => {
+    setPersonajes(prev => prev.map(p => p.id === updated.id ? updated : p));
+    setEditando(updated);
+  };
+
+  // En móvil: botón flotante que abre overlay fullscreen
+  // En desktop: panel lateral fijo
+  return (
+    <>
+      {/* ── Botón móvil ── */}
+      <button
+        onClick={() => setPanelAbierto(true)}
+        className="md:hidden fixed bottom-20 right-4 z-30 flex items-center gap-2 px-3 py-2.5 rounded-xl shadow-xl border border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10"
+        style={{ background: "color-mix(in srgb, var(--white-custom) 95%, transparent)", backdropFilter: "blur(10px)" }}
+      >
+        <Users size={13} />
+        {titulo}
+        {!loading && personajes.length > 0 && (
+          <span className="bg-primary/15 text-primary px-1.5 py-0.5 rounded-full text-[9px]">{personajes.length}</span>
+        )}
+      </button>
+
+      {/* ── Overlay móvil ── */}
+      {panelAbierto && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col"
+          style={{ background: "var(--bg-main)" }}>
+          {/* Si hay personaje seleccionado para editar */}
+          {editando ? (
+            <MiniEditorPersonaje
+              personaje={editando}
+              onSaved={handleSaved}
+              onClose={() => setEditando(null)}
+            />
+          ) : (
+            <>
+              <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-primary/10"
+                style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                <div className="flex items-center gap-2">
+                  <Users size={13} className="text-primary/50" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">{titulo}</span>
+                  {!loading && personajes.length > 0 && (
+                    <span className="text-[9px] font-black text-primary/30 bg-primary/8 px-1.5 py-0.5 rounded-full">{personajes.length}</span>
+                  )}
+                </div>
+                <button onClick={() => setPanelAbierto(false)} className="text-primary/30 hover:text-primary transition-colors p-1">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3 space-y-1">
+                {loading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 size={20} className="animate-spin text-primary/20" /></div>
+                ) : personajes.length === 0 ? (
+                  <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-12 italic">Sin personajes</p>
+                ) : personajes.map(p => (
+                  <button key={p.id} onClick={() => setEditando(p)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-primary/8 border border-transparent hover:border-primary/10 transition-all">
+                    <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                      {p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={16} className="text-primary/20" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-primary/80 truncate">{p.nombre}</p>
+                      <p className="text-[10px] text-primary/35 truncate">{[p.especie, p.reino].filter(Boolean).join(" · ")}</p>
+                    </div>
+                    <ChevronDown size={13} className="-rotate-90 text-primary/25" />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Panel desktop lateral ── */}
+      <div className="hidden md:flex w-52 shrink-0 border-l border-primary/10 flex-col min-h-0 overflow-hidden">
+        <div className="shrink-0 px-3 py-2.5 border-b border-primary/8 flex items-center gap-2"
+          style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+          <Users size={11} className="text-primary/40" />
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{titulo}</span>
+          {!loading && personajes.length > 0 && (
+            <span className="ml-auto text-[9px] font-black text-primary/30 bg-primary/8 px-1.5 py-0.5 rounded-full">{personajes.length}</span>
+          )}
+        </div>
+
+        {/* Lista o editor */}
+        {editando ? (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <MiniEditorPersonaje personaje={editando} onSaved={handleSaved} onClose={() => setEditando(null)} />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-0.5">
+            {loading ? (
+              <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+            ) : personajes.length === 0 ? (
+              <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-8 italic">Sin personajes</p>
+            ) : personajes.map(p => (
+              <button key={p.id} onClick={() => setEditando(p)}
+                className="w-full flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-primary/8 border border-transparent hover:border-primary/10 transition-colors text-left">
+                <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                  {p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={13} className="text-primary/20" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-primary/80 truncate">{p.nombre}</p>
+                  {p.especie && <p className="text-[9px] text-primary/35 truncate">{p.especie}</p>}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ─── PanelPersonajesReino (wrapper para EditorReino) ─────────────────────────
+
+function PanelPersonajesReino({ reinoNombre }: { reinoNombre: string }) {
+  const { personajes, setPersonajes, loading } = usePersonajesDelReino(reinoNombre);
+  return <PanelPersonajes personajes={personajes} loading={loading} setPersonajes={setPersonajes} titulo="Personajes" />;
 }
 // ─── MapaPuntosReino — mapa interactivo de puntos de un reino ─────────────────
 
@@ -1048,7 +1269,10 @@ function EditorReino({ item, onSaved, onDeleted }: {
         </div>
 
         <div className="p-5 pt-2 space-y-5">
-          <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
+            <div /> {/* espacio reservado para futuros campos */}
+          </div>
           <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
 
           <div className="h-px bg-primary/8" />
