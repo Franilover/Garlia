@@ -574,7 +574,7 @@ const SeccionTextarea = ({
 
 const SeccionEditor = ({
   sec, idiomaA, idiomaB, splitMode,
-  onSaveField, onSaveNombre, onDelete, onMoveUp, onMoveDown,
+  onSaveField, onSaveNombre, onDelete, onDuplicate, onMoveUp, onMoveDown,
   isFirst, isLast,
 }: {
   sec: Seccion;
@@ -584,49 +584,50 @@ const SeccionEditor = ({
   onSaveField: (id: string, updates: Partial<Seccion>) => Promise<void>;
   onSaveNombre: (id: string, nombre: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onDuplicate: (sec: Seccion) => Promise<void>;
   onMoveUp: () => void;
   onMoveDown: () => void;
   isFirst: boolean;
   isLast: boolean;
 }) => {
-  const [nombre, setNombre]     = useState(sec.nombre_seccion);
-  const [expanded, setExpanded] = useState(true);
+  const [nombre, setNombre] = useState(sec.nombre_seccion);
   const { confirm, ConfirmModal } = useConfirm();
 
   return (
-    <div className="border border-primary/10 rounded-xl bg-bg-main/50 hover:border-primary/20 transition-all">
-      <div className="flex items-center gap-2 px-4 py-2.5">
+    <div>
+      <div className="flex items-center gap-2 px-4 py-2">
         <GripVertical size={13} className="text-primary/15 shrink-0" />
         <input
           value={nombre}
           onChange={e => setNombre(e.target.value)}
           onBlur={() => nombre !== sec.nombre_seccion && onSaveNombre(sec.id, nombre)}
-          className="flex-1 bg-transparent text-[11px] font-black uppercase text-primary outline-none tracking-widest placeholder:text-primary/20 min-w-0"
+          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+          className="flex-1 bg-transparent text-[11px] font-black uppercase text-primary outline-none tracking-widest placeholder:text-primary/20 min-w-0 hover:bg-primary/5 focus:bg-primary/8 rounded-lg px-2 py-0.5 -mx-2 transition-colors"
           placeholder="NOMBRE DE SECCIÓN…"
         />
         <div className="flex items-center gap-0.5 shrink-0">
-          <button onClick={onMoveUp}   disabled={isFirst} className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary disabled:opacity-20 transition-all"><ChevronUp   size={12} /></button>
-          <button onClick={onMoveDown} disabled={isLast}  className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary disabled:opacity-20 transition-all"><ChevronDown size={12} /></button>
+          <button onClick={onMoveUp}   disabled={isFirst} className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary disabled:opacity-20 transition-all"><ChevronUp   size={12} /></button>
+          <button onClick={onMoveDown} disabled={isLast}  className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary disabled:opacity-20 transition-all"><ChevronDown size={12} /></button>
+          <button
+            onClick={() => onDuplicate(sec)}
+            title="Duplicar sección"
+            className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary transition-all"
+          ><Copy size={12} /></button>
           <button onClick={async () => {
             const ok = await confirm({ message: `¿Eliminar sección "${nombre}"?`, danger: true });
             if (ok) onDelete(sec.id);
           }} className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"><Trash2 size={12} /></button>
-          <button onClick={() => setExpanded(e => !e)} className="p-1 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary transition-all">
-            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
         </div>
       </div>
-      {expanded && (
-        <div className={`px-4 pb-4 ${splitMode ? "flex gap-3" : ""}`}>
-          <SeccionTextarea sec={sec} idioma={idiomaA} onSave={onSaveField} />
-          {splitMode && (
-            <>
-              <div className="w-px bg-primary/10 shrink-0 self-stretch" />
-              <SeccionTextarea sec={sec} idioma={idiomaB} onSave={onSaveField} />
-            </>
-          )}
-        </div>
-      )}
+      <div className={`px-4 pb-4 ${splitMode ? "flex gap-3" : ""}`}>
+        <SeccionTextarea sec={sec} idioma={idiomaA} onSave={onSaveField} />
+        {splitMode && (
+          <>
+            <div className="w-px bg-primary/10 shrink-0 self-stretch" />
+            <SeccionTextarea sec={sec} idioma={idiomaB} onSave={onSaveField} />
+          </>
+        )}
+      </div>
       <ConfirmModal />
     </div>
   );
@@ -1866,6 +1867,26 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
     setAddingOpen(false);
   };
 
+  const handleDuplicate = useCallback(async (sec: Seccion) => {
+    const secciones = cancion?.secciones || [];
+    const idx = secciones.findIndex(s => s.id === sec.id);
+    const insertAt = idx + 1;
+    const tmpSecs = [...secciones];
+    const nueva = await secCreate({
+      cancion_id: cancionId,
+      nombre_seccion: sec.nombre_seccion + " (2)",
+      letra_es: sec.letra_es || "",
+      letra_en: sec.letra_en,
+      letra_jp: sec.letra_jp,
+      letra_romaji: sec.letra_romaji,
+      orden: insertAt,
+    });
+    tmpSecs.splice(insertAt, 0, nueva);
+    const reordenadas = tmpSecs.map((s, i) => ({ ...s, orden: i }));
+    setCancion(prev => prev ? { ...prev, secciones: reordenadas } : prev);
+    await secReorder(reordenadas.map(s => ({ id: s.id, orden: s.orden })));
+  }, [cancion, cancionId, setCancion]);
+
   const handleMove = async (index: number, dir: "up" | "down") => {
     const secs = [...(cancion?.secciones || [])];
     const target = dir === "up" ? index - 1 : index + 1;
@@ -2003,23 +2024,30 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-8 py-5 space-y-2.5">
-        {secciones.map((sec, i) => (
-          <SeccionEditor
-            key={sec.id}
-            sec={sec}
-            idiomaA={idiomaA}
-            idiomaB={idiomaB}
-            splitMode={splitMode}
-            onSaveField={handleSaveField}
-            onSaveNombre={handleSaveNombre}
-            onDelete={handleDelete}
-            onMoveUp={() => handleMove(i, "up")}
-            onMoveDown={() => handleMove(i, "down")}
-            isFirst={i === 0}
-            isLast={i === secciones.length - 1}
-          />
-        ))}
+      <div className="flex-1 overflow-y-auto px-8 py-5 space-y-4">
+        {secciones.length > 0 && (
+          <div className="border border-primary/10 rounded-xl bg-bg-main/50 overflow-hidden">
+            {secciones.map((sec, i) => (
+              <React.Fragment key={sec.id}>
+                {i > 0 && <div className="h-px bg-primary/8 mx-4" />}
+                <SeccionEditor
+                  sec={sec}
+                  idiomaA={idiomaA}
+                  idiomaB={idiomaB}
+                  splitMode={splitMode}
+                  onSaveField={handleSaveField}
+                  onSaveNombre={handleSaveNombre}
+                  onDelete={handleDelete}
+                  onDuplicate={handleDuplicate}
+                  onMoveUp={() => handleMove(i, "up")}
+                  onMoveDown={() => handleMove(i, "down")}
+                  isFirst={i === 0}
+                  isLast={i === secciones.length - 1}
+                />
+              </React.Fragment>
+            ))}
+          </div>
+        )}
 
         {secciones.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-primary/25">
