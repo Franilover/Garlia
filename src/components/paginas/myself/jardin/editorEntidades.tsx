@@ -24,6 +24,7 @@ type Personaje = {
   sobre?: string;
   reino?: string;
   especie?: string;
+  notas_creador?: string;
 };
 
 type Criatura = {
@@ -480,12 +481,13 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
     setStatus("saving");
     try {
       const { error } = await supabase.from("personajes").update({
-        nombre:         form.nombre,
-        img_url:        form.img_url        || null,
-        img_cuerpo_url: form.img_cuerpo_url || null,
-        sobre:          form.sobre,
-        reino:          form.reino,
-        especie:        form.especie,
+        nombre:          form.nombre,
+        img_url:         form.img_url        || null,
+        img_cuerpo_url:  form.img_cuerpo_url || null,
+        sobre:           form.sobre,
+        reino:           form.reino,
+        especie:         form.especie,
+        notas_creador:   form.notas_creador  || null,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
@@ -541,6 +543,25 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
           </div>
 
           <CampoArea label="Sobre el personaje" value={form.sobre ?? ""} onChange={field("sobre")} rows={6} placeholder="Biografía, personalidad, historia…" />
+
+          {/* Notas de creador — solo visibles para ti */}
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5"
+              style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+              <span>🔒</span> Notas de creador
+            </label>
+            <textarea
+              value={form.notas_creador ?? ""}
+              onChange={field("notas_creador")}
+              rows={4}
+              placeholder="Ideas, pendientes, inspiración, spoilers… solo para ti."
+              className={`${INPUT_CLS} resize-none`}
+              style={{
+                borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
+                background:  "color-mix(in srgb, var(--accent) 4%, var(--input-bg))",
+              }}
+            />
+          </div>
 
           <div className="h-px bg-primary/8" />
           <BloqueCapsNarrados personajeId={form.id} />
