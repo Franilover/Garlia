@@ -65,6 +65,7 @@ type Filtros = {
   idioma: string;
   cantante: string;
   compositor: string;
+  personaje: string;
 };
 
 const IDIOMAS: { id: IdiomaKey; label: string; nombre: string; campo: keyof Seccion }[] = [
@@ -83,7 +84,7 @@ const ESTADO_COLOR: Record<string, string> = {
 };
 
 const FILTROS_VACIOS: Filtros = {
-  estado: "", visible: "", idioma: "", cantante: "", compositor: "",
+  estado: "", visible: "", idioma: "", cantante: "", compositor: "", personaje: "",
 };
 
 const TABLA_SEC = "secciones_cancion";
@@ -636,7 +637,7 @@ const PanelFiltros = ({
 }: {
   filtros: Filtros;
   onChange: (f: Filtros) => void;
-  opciones: { idiomas: string[]; cantantes: string[]; compositores: string[] };
+  opciones: { idiomas: string[]; cantantes: string[]; compositores: string[]; personajes: string[] };
 }) => {
   const toggle = (k: keyof Filtros, v: string) =>
     onChange({ ...filtros, [k]: (filtros[k] === v ? "" : v) as any });
@@ -660,6 +661,18 @@ const PanelFiltros = ({
           <Chip active={filtros.visible === "false"} onClick={() => toggle("visible", "false")}>Oculta</Chip>
         </div>
       </div>
+      {opciones.personajes.length > 0 && (
+        <div>
+          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Personaje</p>
+          <div className="flex gap-1 flex-wrap">
+            {opciones.personajes.map(p => (
+              <Chip key={p} active={filtros.personaje === p} onClick={() => toggle("personaje", p)}>
+                {p}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      )}
       {opciones.idiomas.length > 0 && (
         <div>
           <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Idioma</p>
@@ -1967,6 +1980,7 @@ export default function EstudioLetras() {
     idiomas:      unique(canciones.map(c => c.idioma     || "")),
     cantantes:    unique(canciones.map(c => c.cantante   || "")),
     compositores: unique(canciones.map(c => c.compositor || "")),
+    personajes:   unique(canciones.map(c => c.personaje  || "")),
   }), [canciones]);
 
   const filtradas = useMemo(() => canciones.filter(c => {
@@ -1984,6 +1998,7 @@ export default function EstudioLetras() {
     if (filtros.idioma     && c.idioma      !== filtros.idioma)        return false;
     if (filtros.cantante   && c.cantante    !== filtros.cantante)      return false;
     if (filtros.compositor && c.compositor  !== filtros.compositor)    return false;
+    if (filtros.personaje  && c.personaje   !== filtros.personaje)     return false;
     return true;
   }), [canciones, busqueda, filtros]);
 
