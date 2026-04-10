@@ -1,5 +1,12 @@
 import { supabase } from '@/lib/api/client/supabase';
 
+export interface EscenaMV {
+  id: string;
+  timestamp_seg: number;  // segundos desde el inicio
+  descripcion: string;
+  tipo: "escena" | "camara" | "efecto" | "transicion" | "personaje";
+}
+
 interface Seccion {
   id: string; 
   cancion_id: string; 
@@ -26,6 +33,9 @@ interface Cancion {
   created_at: string;
   updated_at: string;
   secciones?: Seccion[];
+  // Nuevos campos
+  info_cancion?: string | null;
+  guion_mv?: EscenaMV[] | null;
 }
 
 export const cancionesQueries = {
@@ -35,7 +45,6 @@ export const cancionesQueries = {
       .from('canciones')
       .select('*')
       .order('created_at', { ascending: false });
-    
     
     if (!options?.isAdmin) {
       query = query.eq('visible', true);
@@ -51,7 +60,6 @@ export const cancionesQueries = {
     return data as Cancion[];
   },
 
-  
   getById: async (id: string) => {
     const { data, error } = await supabase
       .from('canciones')
@@ -64,7 +72,6 @@ export const cancionesQueries = {
 
     if (error) throw error;
 
-    
     if (data && data.secciones) {
       data.secciones.sort((a: Seccion, b: Seccion) => a.orden - b.orden);
     }
@@ -72,7 +79,6 @@ export const cancionesQueries = {
     return data as Cancion;
   },
 
-  
   create: async (cancion: Omit<Cancion, 'id' | 'created_at' | 'updated_at' | 'secciones'>) => {
     const { data, error } = await supabase
       .from('canciones')
@@ -84,7 +90,6 @@ export const cancionesQueries = {
     return data as Cancion;
   },
 
-  
   update: async (id: string, datos: Partial<Omit<Cancion, 'id' | 'created_at' | 'secciones'>>) => {
     const { data, error } = await supabase
       .from('canciones')
@@ -100,7 +105,6 @@ export const cancionesQueries = {
     return data as Cancion;
   },
 
-  
   delete: async (id: string) => {
     const { error } = await supabase
       .from('canciones')
@@ -111,7 +115,6 @@ export const cancionesQueries = {
     return true;
   },
 
-  
   getByPersonaje: async (personaje: string, options?: { isAdmin?: boolean }) => {
     let query = supabase
       .from('canciones')
@@ -119,7 +122,6 @@ export const cancionesQueries = {
       .eq('personaje', personaje)
       .order('titulo', { ascending: true });
 
-    
     if (!options?.isAdmin) {
       query = query.eq('visible', true);
     }
@@ -130,7 +132,32 @@ export const cancionesQueries = {
     return data as Cancion[];
   },
 
-  
+  // Guardar info de la canción
+  updateInfo: async (id: string, info_cancion: string | null) => {
+    const { data, error } = await supabase
+      .from('canciones')
+      .update({ info_cancion, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('id, info_cancion')
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Guardar guion MV completo
+  updateGuionMV: async (id: string, guion_mv: EscenaMV[]) => {
+    const { data, error } = await supabase
+      .from('canciones')
+      .update({ guion_mv, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('id, guion_mv')
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   secciones: {
     getByCancionId: async (cancionId: string) => {
       const { data, error } = await supabase
