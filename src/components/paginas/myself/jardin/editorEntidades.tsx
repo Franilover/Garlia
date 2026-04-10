@@ -1387,16 +1387,46 @@ function ModalNueva({ tab, onCreated, onClose }: {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
+const STORAGE_KEY = "editorEntidades:session";
+
+function readSession(): { tab: TabKey; selectedId: string | null } {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { tab: "personajes", selectedId: null };
+    const parsed = JSON.parse(raw);
+    const tab = (Object.keys(TAB_CONFIG) as TabKey[]).includes(parsed.tab)
+      ? parsed.tab as TabKey
+      : "personajes";
+    return { tab, selectedId: parsed.selectedId ?? null };
+  } catch {
+    return { tab: "personajes", selectedId: null };
+  }
+}
+
 export default function EditorEntidades() {
-  const [tab,         setTab]         = useState<TabKey>("personajes");
+  const session = useRef(readSession());
+
+  const [tab,         setTab]         = useState<TabKey>(session.current.tab);
   const [busqueda,    setBusqueda]    = useState("");
-  const [selectedId,  setSelectedId]  = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedId,  setSelectedId]  = useState<string | null>(session.current.selectedId);
+  const [sidebarOpen, setSidebarOpen] = useState(!session.current.selectedId);
   const [showNueva,   setShowNueva]   = useState(false);
 
   const { items, setItems, loading, isOffline, refetch } = useEntidades<any>(tab);
 
-  useEffect(() => { setSelectedId(null); setBusqueda(""); }, [tab]);
+  // Persistir tab y selectedId cada vez que cambian
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, selectedId }));
+    } catch {}
+  }, [tab, selectedId]);
+
+  const isFirstMount = useRef(true);
+  useEffect(() => {
+    if (isFirstMount.current) { isFirstMount.current = false; return; }
+    setSelectedId(null);
+    setBusqueda("");
+  }, [tab]);
 
   const filtrados = useMemo(() =>
     items.filter(i => !busqueda || normalize(i.nombre).includes(normalize(busqueda))),
@@ -1407,7 +1437,11 @@ export default function EditorEntidades() {
 
   const handleCreated = (item: any) => { setItems(prev => [item, ...prev]); setSelectedId(item.id); };
   const handleSaved   = (item: any) => setItems(prev => prev.map(i => i.id === item.id ? item : i));
-  const handleDeleted = (id: string) => { setItems(prev => prev.filter(i => i.id !== id)); setSelectedId(null); };
+  const handleDeleted = (id: string) => {
+    setItems(prev => prev.filter(i => i.id !== id));
+    setSelectedId(null);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, selectedId: null })); } catch {}
+  };
   const handleSelect  = (id: string) => { setSelectedId(id); setSidebarOpen(false); };
 
   const { Icon } = TAB_CONFIG[tab];
