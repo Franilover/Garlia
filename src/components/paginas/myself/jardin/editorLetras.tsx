@@ -664,12 +664,16 @@ const PanelFiltros = ({
       {opciones.personajes.length > 0 && (
         <div>
           <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Personaje</p>
-          <div className="flex gap-1 flex-wrap">
-            {opciones.personajes.map(p => (
-              <Chip key={p} active={filtros.personaje === p} onClick={() => toggle("personaje", p)}>
-                {p}
-              </Chip>
-            ))}
+          <div className="relative">
+            <select
+              value={filtros.personaje}
+              onChange={e => onChange({ ...filtros, personaje: e.target.value })}
+              className="w-full appearance-none bg-bg-main border border-primary/15 rounded-xl px-3 py-2 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors cursor-pointer pr-7"
+            >
+              <option value="">Todos</option>
+              {opciones.personajes.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
           </div>
         </div>
       )}
@@ -723,6 +727,110 @@ const PanelFiltros = ({
           ✕ Limpiar filtros
         </button>
       )}
+    </div>
+  );
+};
+
+// ─── InputConSugerencias ─────────────────────────────────────────────────────
+// Input que muestra sugerencias filtradas mientras escribís.
+// Si el valor escrito coincide exactamente con uno → lo selecciona.
+// Si no → lo crea como valor nuevo al confirmar.
+
+function useValoresUnicos(tabla: string, columna: string) {
+  const [valores, setValores] = useState<string[]>([]);
+  useEffect(() => {
+    supabase.from(tabla).select(columna).not(columna, "is", null)
+      .then(({ data }) => {
+        if (!data) return;
+        const uniq = [...new Set(
+          data.map((r: any) => r[columna]).filter(Boolean).map((v: string) => v.trim())
+        )].sort() as string[];
+        setValores(uniq);
+      });
+  }, [tabla, columna]);
+  return valores;
+}
+
+const InputConSugerencias = ({
+  label, value, onChange, placeholder, tabla, columna,
+}: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; tabla: string; columna: string;
+}) => {
+  const sugerencias = useValoresUnicos(tabla, columna);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const filtradas = useMemo(
+    () => sugerencias.filter(s => s.toLowerCase().includes(value.toLowerCase().trim())),
+    [sugerencias, value]
+  );
+
+  const esNuevo = value.trim() && !sugerencias.includes(value.trim());
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  return (
+    <div className="space-y-1.5" ref={ref}>
+      <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">{label}</label>
+      <div className="relative">
+        <input
+          value={value}
+          onChange={e => { onChange(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder}
+          className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-2.5 text-sm font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20"
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={() => { onChange(""); setOpen(false); }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/20 hover:text-primary/60 transition-colors"
+          >
+            <X size={13} />
+          </button>
+        )}
+
+        {open && (filtradas.length > 0 || esNuevo) && (
+          <div
+            className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl border border-primary/15 shadow-xl overflow-hidden max-h-48 overflow-y-auto"
+            style={{ background: "var(--white-custom)" }}
+          >
+            {filtradas.map(s => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => { onChange(s); setOpen(false); }}
+                className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-primary/8 transition-colors flex items-center justify-between ${
+                  value === s ? "text-primary" : "text-primary/70"
+                }`}
+              >
+                <span>{s}</span>
+                {value === s && <Check size={11} className="text-primary shrink-0" />}
+              </button>
+            ))}
+            {esNuevo && (
+              <>
+                {filtradas.length > 0 && <div className="h-px bg-primary/8 mx-3" />}
+                <button
+                  type="button"
+                  onClick={() => { onChange(value.trim()); setOpen(false); }}
+                  className="w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-primary/8 transition-colors flex items-center gap-2 text-primary/50"
+                >
+                  <Plus size={11} /> Usar «{value.trim()}»
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -784,8 +892,8 @@ const ModalNuevaCancion = ({
           <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
           <SelectPersonaje value={personaje} onChange={setPersonaje} />
           <div className="grid grid-cols-2 gap-3">
-            <CampoInput label="Cantante" value={cantante} onChange={setCantante} placeholder="Cantante…" />
-            <CampoInput label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" />
+            <InputConSugerencias label="Cantante"   value={cantante}   onChange={setCantante}   placeholder="Cantante…"   tabla="canciones" columna="cantante" />
+            <InputConSugerencias label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" tabla="canciones" columna="compositor" />
           </div>
           <SelectIdioma value={idioma} onChange={setIdioma} />
 
@@ -911,8 +1019,8 @@ const ModalEditarCancion = ({
         <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
         <SelectPersonaje value={personaje} onChange={setPersonaje} />
         <div className="grid grid-cols-2 gap-3">
-          <CampoInput label="Cantante"   value={cantante}   onChange={setCantante}   placeholder="Cantante…" />
-          <CampoInput label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" />
+          <InputConSugerencias label="Cantante"   value={cantante}   onChange={setCantante}   placeholder="Cantante…"   tabla="canciones" columna="cantante" />
+          <InputConSugerencias label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" tabla="canciones" columna="compositor" />
         </div>
         <SelectIdioma value={idioma} onChange={setIdioma} />
 
