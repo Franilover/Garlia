@@ -217,9 +217,11 @@ function SelectorImagen({ label, value, onChange, aspect, placeholder }: {
   const aspectCls =
     aspect === "square"    ? "aspect-square" :
     aspect === "portrait"  ? "aspect-[3/4]"  :
-    aspect === "landscape" ? "h-[100px]"     :
+    aspect === "landscape" ? "aspect-video"  :
     aspect === "full"      ? "h-full"        :
     "aspect-video";
+
+  const fitCls = aspect === "landscape" ? "object-contain" : "object-cover";
 
   return (
     <div className={`flex flex-col gap-1.5 ${aspect === "full" ? "h-full" : ""}`}>
@@ -231,7 +233,7 @@ function SelectorImagen({ label, value, onChange, aspect, placeholder }: {
       >
         {value ? (
           <>
-            <img src={value} alt={label} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+            <img src={value} alt={label} className={`w-full h-full ${fitCls} transition-transform duration-300 group-hover:scale-105`} />
             {/* Overlay hover */}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
               <ImageIcon size={18} className="text-white" />
@@ -607,7 +609,7 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesDeEspecie(form.nombre);
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden">
+    <div className="flex-1 flex min-h-0 overflow-hidden relative">
       <ConfirmModal />
 
       {/* Columna principal */}
@@ -817,7 +819,7 @@ function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: "var(--bg-main)" }}>
+    <div className="absolute inset-0 z-[60] flex flex-col" style={{ background: "var(--bg-main)" }}>
       <ConfirmModal />
 
       {/* Barra superior con botón volver */}
@@ -1241,7 +1243,7 @@ function EditorReino({ item, onSaved, onDeleted }: {
   };
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden">
+    <div className="flex-1 flex min-h-0 overflow-hidden relative">
       <ConfirmModal />
 
       {/* Columna principal */}
