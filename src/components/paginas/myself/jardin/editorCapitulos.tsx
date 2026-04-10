@@ -891,23 +891,39 @@ const PanelEditor = ({
                   <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 italic">
                     Vista previa — {cap?.titulo_capitulo}
                   </span>
+                  {cap?.visibilidad !== "publico" && (
+                    <span className="flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 tracking-wide">
+                      <Lock size={8} />
+                      {VISIBILIDAD_CONFIG[cap?.visibilidad ?? "oculto"]?.label}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold text-primary/25 uppercase tracking-widest">
-                    Los drops y sounds funcionan en tiempo real
-                  </span>
+                  <a
+                    href={`/wiki/libros/${libroId}/leer/${capId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[9px] font-bold text-primary/25 uppercase tracking-widest hover:text-primary/50 transition-colors flex items-center gap-1"
+                  >
+                    Abrir página pública ↗
+                  </a>
                   <button onClick={() => setPreviewOpen(false)} className="p-1.5 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all">
                     <X size={16}/>
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-hidden">
-                <iframe
-                  key={previewOpen ? "open" : "closed"}
-                  src={`/wiki/libros/${libroId}/leer/${capId}#cap-${capId}`}
-                  className="w-full h-full border-0"
-                  title="Vista previa del capítulo"
-                />
+              <div className="flex-1 overflow-y-auto">
+                <div className="max-w-2xl mx-auto px-8 py-12">
+                  <h1 className="text-3xl font-black uppercase italic tracking-tight text-primary mb-8 leading-tight">
+                    {cap?.titulo_capitulo}
+                  </h1>
+                  <div
+                    className="prose prose-invert max-w-none text-primary/80 leading-relaxed whitespace-pre-wrap font-serif text-base"
+                    style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                  >
+                    {contenido || <span className="text-primary/25 italic">Sin contenido aún…</span>}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
