@@ -1278,6 +1278,17 @@ function useKaraoke(cancionId: string, idioma: IdiomaKey, secciones: Seccion[], 
   const getTiempo = (seccionId: string, lineaIdx: number): number | null =>
     timings[seccionId]?.[lineaIdx] ?? null;
 
+  // Establecer un tiempo concreto sin depender del elapsed actual
+  const setTiempo = (seccionId: string, lineaIdx: number, seg: number) => {
+    setTimings(prev => {
+      const secTimings = { ...(prev[seccionId] || {}), [lineaIdx]: seg };
+      const next = { ...prev, [seccionId]: secTimings };
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      saveSeccionTimings(seccionId, secTimings);
+      return next;
+    });
+  };
+
   const getLineaActiva = (lineas: LineaConTiempo[]): number => {
     let activa = -1;
     for (let i = 0; i < lineas.length; i++) {
@@ -1287,7 +1298,7 @@ function useKaraoke(cancionId: string, idioma: IdiomaKey, secciones: Seccion[], 
     return activa;
   };
 
-  return { timings, elapsed, playing, modoEdit, setModoEdit, toggle, reset, seekTo, marcarLinea, borrarLinea, borrarTodo, getTiempo, getLineaActiva };
+  return { timings, elapsed, playing, modoEdit, setModoEdit, toggle, reset, seekTo, marcarLinea, borrarLinea, borrarTodo, getTiempo, setTiempo, getLineaActiva };
 }
 
 function fmtTime(s: number): string {
@@ -1423,17 +1434,9 @@ const ModalLectorLetras = ({
     else { const plain = parseFloat(str); if (!isNaN(plain)) seg = plain; }
 
     if (seg !== null) {
-      const col = `timings_${idioma}`;
       const roundedSeg = Math.round(seg * 10) / 10;
-      supabase.from("secciones_cancion")
-        .select(`timings_${idioma}`)
-        .eq("id", seccionId)
-        .single()
-        .then(({ data }) => {
-          const existing = (data as any)?.[`timings_${idioma}`] ?? {};
-          const updated = { ...existing, [String(lineaIdx)]: roundedSeg };
-          supabase.from("secciones_cancion").update({ [col]: updated }).eq("id", seccionId);
-        });
+      // Actualizar state local + Supabase directamente (sin depender del elapsed actual)
+      karaoke.setTiempo(seccionId, lineaIdx, roundedSeg);
     }
     setEditandoTiempo(null);
   };
