@@ -1162,7 +1162,13 @@ function buildLineas(secciones: Seccion[], idioma: IdiomaKey): LineaConTiempo[] 
   return lineas;
 }
 
-function useKaraoke(cancionId: string, idioma: IdiomaKey, secciones: Seccion[], duracion?: number | null) {
+function useKaraoke(
+  cancionId: string,
+  idioma: IdiomaKey,
+  secciones: Seccion[],
+  duracion?: number | null,
+  onSeccionTimingsChange?: (seccionId: string, col: string, timings: Record<string, number>) => void,
+) {
   const storageKey = `karaoke-${cancionId}-${idioma}`;
 
   const timingsFromSupabase = (): KaraokeTimings => {
@@ -1230,7 +1236,19 @@ function useKaraoke(cancionId: string, idioma: IdiomaKey, secciones: Seccion[], 
         Object.entries(secTimings).map(([k, v]) => [String(k), v])
       );
       await supabase.from("secciones_cancion").update({ [col]: data }).eq("id", seccionId);
+      onSeccionTimingsChange?.(seccionId, col, data);
     }, 1000);
+  };
+
+  // Guardar inmediatamente sin debounce (usado al editar tiempo a mano)
+  const saveSeccionTimingsNow = async (seccionId: string, secTimings: Record<number, number>) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    const col = `timings_${idioma}`;
+    const data = Object.fromEntries(
+      Object.entries(secTimings).map(([k, v]) => [String(k), v])
+    );
+    await supabase.from("secciones_cancion").update({ [col]: data }).eq("id", seccionId);
+    onSeccionTimingsChange?.(seccionId, col, data);
   };
 
   const toggle = () => setPlaying(p => !p);
@@ -1284,7 +1302,7 @@ function useKaraoke(cancionId: string, idioma: IdiomaKey, secciones: Seccion[], 
       const secTimings = { ...(prev[seccionId] || {}), [lineaIdx]: seg };
       const next = { ...prev, [seccionId]: secTimings };
       localStorage.setItem(storageKey, JSON.stringify(next));
-      saveSeccionTimings(seccionId, secTimings);
+      saveSeccionTimingsNow(seccionId, secTimings);
       return next;
     });
   };
@@ -1365,7 +1383,7 @@ function parseLrc(texto: string, secciones: Seccion[], idioma: IdiomaKey): Recor
 // ── ModalLectorLetras ─────────────────────────────────────────────────────────
 
 const ModalLectorLetras = ({
-  isOpen, onClose, secciones, cancionTitulo, cancionId, duracion,
+  isOpen, onClose, secciones, cancionTitulo, cancionId, duracion, onSeccionTimingsChange,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -1373,6 +1391,7 @@ const ModalLectorLetras = ({
   cancionTitulo: string;
   cancionId: string;
   duracion?: number | null;
+  onSeccionTimingsChange?: (seccionId: string, col: string, timings: Record<string, number>) => void;
 }) => {
   const [idioma,      setIdioma]      = useState<IdiomaKey>("es");
   const [modoKaraoke, setModoKaraoke] = useState(true);
@@ -1382,7 +1401,7 @@ const ModalLectorLetras = ({
   const activaRef   = useRef<HTMLDivElement>(null);
   const lrcInputRef = useRef<HTMLInputElement>(null);
 
-  const karaoke   = useKaraoke(cancionId, idioma, secciones, duracion);
+  const karaoke   = useKaraoke(cancionId, idioma, secciones, duracion, onSeccionTimingsChange);
   const sliderMax = duracion ?? 600;
 
   const getLetra = (sec: Seccion, lang: IdiomaKey): string =>
@@ -1413,6 +1432,7 @@ const ModalLectorLetras = ({
     for (const [secId, timings] of Object.entries(parsed)) {
       const data = Object.fromEntries(Object.entries(timings).map(([k, v]) => [String(k), v]));
       await supabase.from("secciones_cancion").update({ [col]: data }).eq("id", secId);
+      onSeccionTimingsChange?.(secId, col, data);
     }
     setIdioma(prev => { setTimeout(() => setIdioma(prev), 50); return prev === "es" ? "en" : "es"; });
     if (lrcInputRef.current) lrcInputRef.current.value = "";
@@ -2365,6 +2385,21 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           cancionTitulo={cancion.titulo}
           cancionId={cancionId}
           duracion={cancion.duracion_segundos}
+          onSeccionTimingsChange={(seccionId, col, timings) => {
+            // col es "timings_es", "timings_en", etc.
+            const idiomaKey = col.replace("timings_", "") as IdiomaKey;
+            const timingField = `timings_${idiomaKey}` as keyof Seccion;
+            // Convertir keys string → number para el state local
+            const timingsNum = Object.fromEntries(
+              Object.entries(timings).map(([k, v]) => [k, v])
+            );
+            setCancion(prev => prev ? {
+              ...prev,
+              secciones: prev.secciones?.map(s =>
+                s.id === seccionId ? { ...s, [timingField]: timingsNum } : s
+              ),
+            } : prev);
+          }}
         />
       )}
 
