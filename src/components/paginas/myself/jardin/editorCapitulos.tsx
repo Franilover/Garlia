@@ -835,6 +835,7 @@ const PanelEditor = ({
   const timer            = useRef<any>(null);
   const textareaRef      = useRef<HTMLTextAreaElement>(null);
   const scrollRef        = useRef<HTMLDivElement>(null);
+  const caretMirrorRef   = useRef<HTMLDivElement>(null);
   const { confirm, ConfirmModal } = useConfirm();
 
   const draft = useDraftRestore({
@@ -861,15 +862,57 @@ const PanelEditor = ({
       });
   }, [libroId]);
 
+  // ── Auto-height ────────────────────────────────────────────────────────────
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
-    // Correr en rAF para que no interfiera con el cálculo de scroll en onChange
-    requestAnimationFrame(() => {
-      ta.style.height = "auto";
-      ta.style.height = `${ta.scrollHeight}px`;
-    });
+    ta.style.height = "auto";
+    ta.style.height = `${ta.scrollHeight}px`;
   }, [contenido]);
+
+  // ── Centrar cursor verticalmente usando un div espejo ──────────────────────
+  const centerCursor = useCallback(() => {
+    const ta        = textareaRef.current;
+    const container = scrollRef.current;
+    const mirror    = caretMirrorRef.current;
+    if (!ta || !container || !mirror) return;
+
+    const cs = getComputedStyle(ta);
+    mirror.style.cssText = `
+      position: absolute;
+      visibility: hidden;
+      pointer-events: none;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      width: ${ta.clientWidth}px;
+      font: ${cs.font};
+      line-height: ${cs.lineHeight};
+      padding: ${cs.padding};
+      border: ${cs.border};
+      box-sizing: ${cs.boxSizing};
+      top: 0;
+      left: 0;
+    `;
+
+    const textBefore = ta.value.slice(0, ta.selectionStart ?? ta.value.length);
+    mirror.innerHTML =
+      textBefore
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/\n/g, "<br>") +
+      '<span id="caret-pos">\u200b</span>';
+
+    const caretSpan = mirror.querySelector("#caret-pos") as HTMLElement | null;
+    if (!caretSpan) return;
+
+    const mirrorRect = mirror.getBoundingClientRect();
+    const caretRect  = caretSpan.getBoundingClientRect();
+    const caretTop   = caretRect.top - mirrorRect.top;
+
+    const targetScroll = ta.offsetTop + caretTop - container.clientHeight / 2;
+    container.scrollTop = Math.max(0, targetScroll);
+  }, []);
 
   const doSave = useCallback(async (val: string) => {
     clearTimeout(timer.current);
@@ -887,29 +930,13 @@ const PanelEditor = ({
   }, [capId, setCap, draft]);
 
   const onChange = (val: string) => {
-    // ── Centrar cursor ANTES de que el auto-height cambie el layout ───────
-    const ta        = textareaRef.current;
-    const container = scrollRef.current;
-    if (ta && container) {
-      const lineHeight  = parseFloat(getComputedStyle(ta).lineHeight) || 30;
-      const paddingTop  = parseFloat(getComputedStyle(ta).paddingTop)  || 0;
-      const textBefore  = ta.value.slice(0, ta.selectionStart ?? ta.value.length);
-      const currentLine = textBefore.split("\n").length - 1; // 0-based
-
-      // Posición del cursor relativa al top del scroll container
-      const taRect        = ta.getBoundingClientRect();
-      const contRect      = container.getBoundingClientRect();
-      const cursorClientY = taRect.top - contRect.top + paddingTop + currentLine * lineHeight + lineHeight / 2;
-      const targetScroll  = container.scrollTop + cursorClientY - container.clientHeight / 2;
-
-      container.scrollTop = Math.max(0, targetScroll);
-    }
-
     setContenido(val);
     draft.save(val);
     setSaveStatus("saving");
     clearTimeout(timer.current);
     timer.current = setTimeout(() => doSave(val), 2000);
+    // Centrar cursor después del re-render (cuando el auto-height ya corrió)
+    requestAnimationFrame(() => centerCursor());
   };
 
   const handleSaveTitle = async () => {
@@ -1186,7 +1213,9 @@ const PanelEditor = ({
         />
       )}
 
-      <div ref={scrollRef} className={`flex-1 overflow-y-auto ${focusMode ? "px-16 py-12 max-w-3xl mx-auto w-full" : "px-8 py-6"}`}>
+      <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-16 py-12 max-w-3xl mx-auto w-full" : "px-8 py-6"}`}>
+        {/* Div espejo para calcular posición exacta del cursor (word-wrap real) */}
+        <div ref={caretMirrorRef} aria-hidden="true" />
         <textarea
           ref={textareaRef}
           value={contenido}
