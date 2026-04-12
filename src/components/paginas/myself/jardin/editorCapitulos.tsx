@@ -864,8 +864,11 @@ const PanelEditor = ({
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
-    ta.style.height = "auto";
-    ta.style.height = `${ta.scrollHeight}px`;
+    // Correr en rAF para que no interfiera con el cálculo de scroll en onChange
+    requestAnimationFrame(() => {
+      ta.style.height = "auto";
+      ta.style.height = `${ta.scrollHeight}px`;
+    });
   }, [contenido]);
 
   const doSave = useCallback(async (val: string) => {
@@ -884,28 +887,29 @@ const PanelEditor = ({
   }, [capId, setCap, draft]);
 
   const onChange = (val: string) => {
+    // ── Centrar cursor ANTES de que el auto-height cambie el layout ───────
+    const ta        = textareaRef.current;
+    const container = scrollRef.current;
+    if (ta && container) {
+      const lineHeight  = parseFloat(getComputedStyle(ta).lineHeight) || 30;
+      const paddingTop  = parseFloat(getComputedStyle(ta).paddingTop)  || 0;
+      const textBefore  = ta.value.slice(0, ta.selectionStart ?? ta.value.length);
+      const currentLine = textBefore.split("\n").length - 1; // 0-based
+
+      // Posición del cursor relativa al top del scroll container
+      const taRect        = ta.getBoundingClientRect();
+      const contRect      = container.getBoundingClientRect();
+      const cursorClientY = taRect.top - contRect.top + paddingTop + currentLine * lineHeight + lineHeight / 2;
+      const targetScroll  = container.scrollTop + cursorClientY - container.clientHeight / 2;
+
+      container.scrollTop = Math.max(0, targetScroll);
+    }
+
     setContenido(val);
     draft.save(val);
     setSaveStatus("saving");
     clearTimeout(timer.current);
     timer.current = setTimeout(() => doSave(val), 2000);
-    // ── Centrar el cursor exacto en el eje Y ──────────────────────────────
-    requestAnimationFrame(() => {
-      const ta        = textareaRef.current;
-      const container = scrollRef.current;
-      if (!ta || !container) return;
-
-      const lineHeight   = parseFloat(getComputedStyle(ta).lineHeight) || 30;
-      const textBefore   = ta.value.slice(0, ta.selectionStart ?? ta.value.length);
-      const currentLine  = textBefore.split("\n").length - 1;          // 0-based
-      const paddingTop   = parseFloat(getComputedStyle(ta).paddingTop) || 0;
-
-      // posición Y del cursor dentro del scroll container
-      const cursorAbsY   = ta.offsetTop + paddingTop + currentLine * lineHeight + lineHeight / 2;
-      const targetScroll = cursorAbsY - container.clientHeight / 2;
-
-      container.scrollTop = Math.max(0, targetScroll);
-    });
   };
 
   const handleSaveTitle = async () => {
