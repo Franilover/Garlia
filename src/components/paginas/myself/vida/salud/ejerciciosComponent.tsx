@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { rutinasQueries, ejerciciosQueries } from "@/lib/api/queries/personal/ejercicios";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Dumbbell, Play, Check, X, Plus, ChevronDown, Flame, Star } from "lucide-react";
 import { Btn, BtnIcon, Badge, Loading, EmptyState } from "@/components/ui";
 
@@ -74,8 +73,8 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
   const [corriendo, setCorriendo]       = useState(false);
   const [completados, setCompletados]   = useState<string[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const ejercicio = rutina.ejercicios[ejercicioIdx];
-  const esUltimoEjercicio = ejercicioIdx === rutina.ejercicios.length - 1;
+  const ejercicio = (rutina.ejercicios ?? [])[ejercicioIdx];
+  const esUltimoEjercicio = ejercicioIdx === (rutina.ejercicios ?? []).length - 1;
   const esUltimaSerie = serieActual === ejercicio?.series;
 
   useEffect(() => { if (fase !== "descanso") return; setSegundos(ejercicio.descanso); setCorriendo(true); }, [fase, ejercicioIdx, serieActual]);
@@ -109,7 +108,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] italic">Completado</span>
         <h2 className="text-5xl font-black text-btn-text italic tracking-tighter text-center">{rutina.nombre}</h2>
         <p className="text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] text-sm font-bold uppercase tracking-widest">
-          {rutina.ejercicios.length} ejercicios · {rutina.ejercicios.reduce((a, e) => a + e.series, 0)} series
+          {rutina.ejercicios.length} ejercicios · {(rutina.ejercicios ?? []).reduce((a, e) => a + e.series, 0)} series
         </p>
         <Btn onClick={onCerrar} size="lg" className="mt-8 bg-white-custom text-primary hover:bg-white-custom/90 shadow-2xl">Terminar</Btn>
       </motion.div>
@@ -129,12 +128,12 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
       </div>
       <div className="px-6 mb-6">
         <div className="flex gap-1.5">
-          {rutina.ejercicios.map((_, i) => (
+          {(rutina.ejercicios ?? []).map((_, i) => (
             <div key={i} className={cn("h-1 flex-1 rounded-full transition-all duration-500", i < ejercicioIdx ? "bg-white-custom" : i === ejercicioIdx ? "bg-btn-text/60" : "bg-btn-text/15")} />
           ))}
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">Ejercicio {ejercicioIdx + 1} de {rutina.ejercicios.length}</span>
+          <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">Ejercicio {ejercicioIdx + 1} de {(rutina.ejercicios ?? []).length}</span>
           <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">Serie {serieActual} de {ejercicio.series}</span>
         </div>
       </div>
@@ -204,7 +203,8 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
 const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
   rutina: Rutina; onIniciar: () => void; onEliminar: () => void; expandida: boolean; onToggle: () => void;
 }) => {
-  const totalSeries = rutina.ejercicios.reduce((a, e) => a + e.series, 0);
+  const ejercicios  = rutina.ejercicios ?? [];
+  const totalSeries = ejercicios.reduce((a, e) => a + e.series, 0);
   const tagColor = TAG_COLORES[rutina.tag] ?? "bg-primary/10 text-primary border-primary/20";
   return (
     <div className={cn("bg-white-custom border border-primary/10 rounded-[28px] overflow-hidden shadow-lg shadow-primary/5 transition-all", expandida && "shadow-xl shadow-primary/10")}>
@@ -222,7 +222,7 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
           </motion.div>
         </div>
         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-primary/5">
-          <div className="flex items-center gap-1.5"><Dumbbell size={12} className="text-primary/30" /><span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{rutina.ejercicios.length} ejercicios</span></div>
+          <div className="flex items-center gap-1.5"><Dumbbell size={12} className="text-primary/30" /><span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{ejercicios.length} ejercicios</span></div>
           <div className="flex items-center gap-1.5"><Flame size={12} className="text-primary/30" /><span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{totalSeries} series</span></div>
           <div className="ml-auto flex items-center gap-2">
             <BtnIcon variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEliminar(); }} className="text-accent hover:text-primary hover:bg-accent/10 border-none"><X size={14} /></BtnIcon>
@@ -235,7 +235,7 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
             <div className="px-5 pb-5 border-t border-primary/5">
               <div className="pt-4 space-y-2">
-                {rutina.ejercicios.map((ej, i) => (
+                {ejercicios.map((ej, i) => (
                   <motion.div key={ej.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                     className="flex items-center gap-3 p-3 bg-primary/3 rounded-[var(--radius-btn)] border border-primary/5">
                     <div className="w-6 h-6 rounded-[var(--radius-btn)] bg-primary/10 flex items-center justify-center shrink-0"><span className="text-[8px] font-black text-primary">{i + 1}</span></div>
@@ -317,7 +317,37 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
 };
 
 export const PaginaEjercicios = () => {
-  const { data: rutinas, loading: cargando, refetch } = useSupabaseData<Rutina>("rutinas");
+  const [rutinas, setRutinas]   = useState<Rutina[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  const fetchRutinas = useCallback(async () => {
+    setCargando(true);
+    try {
+      const { supabase } = await import("@/lib/api/client/supabase");
+      const { data, error } = await supabase
+        .from("rutinas")
+        .select("*, ejercicios(*)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setRutinas(
+        (data ?? []).map((r: any) => ({
+          ...r,
+          ejercicios: (r.ejercicios ?? []).sort(
+            (a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0)
+          ),
+        }))
+      );
+    } catch (err) {
+      console.error("[PaginaEjercicios] fetch:", err);
+      setRutinas([]);
+    } finally {
+      setCargando(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchRutinas(); }, [fetchRutinas]);
+
+  const refetch = fetchRutinas;
   const [rutinaActiva, setRutinaActiva] = useState<Rutina | null>(null);
   const [expandida, setExpandida]       = useState<string | null>(null);
   const [filtroTag, setFiltroTag]       = useState("Todas");
