@@ -832,8 +832,9 @@ const PanelEditor = ({
   const [savingMeta,    setSavingMeta]    = useState(false);
   const [previewOpen,   setPreviewOpen]   = useState(false);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
-  const timer   = useRef<any>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const timer            = useRef<any>(null);
+  const textareaRef      = useRef<HTMLTextAreaElement>(null);
+  const scrollRef        = useRef<HTMLDivElement>(null);
   const { confirm, ConfirmModal } = useConfirm();
 
   const draft = useDraftRestore({
@@ -888,9 +889,22 @@ const PanelEditor = ({
     setSaveStatus("saving");
     clearTimeout(timer.current);
     timer.current = setTimeout(() => doSave(val), 2000);
-    // ── Centrar el cursor en el eje Y mientras se escribe ─────────────────
+    // ── Centrar el cursor exacto en el eje Y ──────────────────────────────
     requestAnimationFrame(() => {
-      textareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      const ta        = textareaRef.current;
+      const container = scrollRef.current;
+      if (!ta || !container) return;
+
+      const lineHeight   = parseFloat(getComputedStyle(ta).lineHeight) || 30;
+      const textBefore   = ta.value.slice(0, ta.selectionStart ?? ta.value.length);
+      const currentLine  = textBefore.split("\n").length - 1;          // 0-based
+      const paddingTop   = parseFloat(getComputedStyle(ta).paddingTop) || 0;
+
+      // posición Y del cursor dentro del scroll container
+      const cursorAbsY   = ta.offsetTop + paddingTop + currentLine * lineHeight + lineHeight / 2;
+      const targetScroll = cursorAbsY - container.clientHeight / 2;
+
+      container.scrollTop = Math.max(0, targetScroll);
     });
   };
 
@@ -1168,7 +1182,7 @@ const PanelEditor = ({
         />
       )}
 
-      <div className={`flex-1 overflow-y-auto ${focusMode ? "px-16 py-12 max-w-3xl mx-auto w-full" : "px-8 py-6"}`}>
+      <div ref={scrollRef} className={`flex-1 overflow-y-auto ${focusMode ? "px-16 py-12 max-w-3xl mx-auto w-full" : "px-8 py-6"}`}>
         <textarea
           ref={textareaRef}
           value={contenido}
