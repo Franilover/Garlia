@@ -137,7 +137,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
           setPomTerminado(true);
           reproducirSonidoFin();
           enviarNotificacion(
-            "¡Pomodoro terminado! 🍅",
+            "¡Pomodoro terminado!",
             tareaRef.current
               ? `Sesión de "${tareaRef.current.titulo}" completada`
               : "Sesión completada"
