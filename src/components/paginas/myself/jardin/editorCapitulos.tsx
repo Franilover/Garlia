@@ -744,6 +744,72 @@ const SelectorNarrador = ({
   );
 };
 
+// ─── Snippets de diálogo ─────────────────────────────────────────────────────
+
+type DialogSnippet = {
+  label: string;
+  title: string;
+  insert: string | ((sel: string) => string);
+};
+
+const DIALOG_SNIPPETS: DialogSnippet[] = [
+  { label: "—",        title: "Guión de diálogo",          insert: "— " },
+  { label: "— … —",   title: "Acotación entre guiones",   insert: (sel) => `— ${sel || "…"} —` },
+  { label: "«»",       title: "Comillas angulares",        insert: (sel) => `«${sel || "…"}»` },
+  { label: "—diálogo", title: "Línea de diálogo completa", insert: (sel) => `— ${sel || ""}` },
+  { label: "…",        title: "Puntos suspensivos",        insert: "…" },
+  { label: "–",        title: "Guión corto (en-dash)",    insert: "–" },
+];
+
+function insertAtCursor(
+  ta: HTMLTextAreaElement,
+  value: string,
+  onChange: (v: string) => void,
+  snippet: DialogSnippet,
+) {
+  const start = ta.selectionStart ?? 0;
+  const end   = ta.selectionEnd ?? 0;
+  const sel   = value.slice(start, end);
+  const ins   = typeof snippet.insert === "function" ? snippet.insert(sel) : snippet.insert;
+  const next  = value.slice(0, start) + ins + value.slice(end);
+  onChange(next);
+  // Restore cursor after react re-render
+  requestAnimationFrame(() => {
+    ta.focus();
+    const pos = start + ins.length;
+    ta.setSelectionRange(pos, pos);
+  });
+}
+
+const DialogSnippets = ({
+  textareaRef,
+  value,
+  onChange,
+}: {
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  value: string;
+  onChange: (v: string) => void;
+}) => (
+  <div className="shrink-0 flex items-center gap-1 px-8 py-1.5 border-b border-primary/5 flex-wrap">
+    <span className="text-[8px] font-black uppercase tracking-widest text-primary/20 mr-1">Diálogo</span>
+    {DIALOG_SNIPPETS.map((s) => (
+      <button
+        key={s.label}
+        title={s.title}
+        type="button"
+        onMouseDown={(e) => {
+          // prevent textarea losing focus
+          e.preventDefault();
+          if (textareaRef.current) insertAtCursor(textareaRef.current, value, onChange, s);
+        }}
+        className="px-2.5 py-1 rounded-lg border border-primary/10 text-[11px] font-mono text-primary/50 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all select-none"
+      >
+        {s.label}
+      </button>
+    ))}
+  </div>
+);
+
 // ─── PanelEditor ─────────────────────────────────────────────────────────────
 
 const PanelEditor = ({
@@ -799,6 +865,24 @@ const PanelEditor = ({
     if (!ta) return;
     ta.style.height = "auto";
     ta.style.height = `${ta.scrollHeight}px`;
+  }, [contenido]);
+
+  // ── Centrado vertical del cursor mientras se escribe ──────────────────────
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const scrollContainer = ta.closest(".overflow-y-auto") as HTMLElement | null;
+    if (!scrollContainer) return;
+
+    // Calculamos la posición del cursor en el textarea
+    const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 28;
+    const text = ta.value.substring(0, ta.selectionStart ?? ta.value.length);
+    const lines = text.split("\n").length;
+    const cursorY = (lines - 1) * lineHeight + ta.offsetTop;
+
+    const containerHeight = scrollContainer.clientHeight;
+    const targetScroll = cursorY - containerHeight / 2 + lineHeight / 2;
+    scrollContainer.scrollTo({ top: Math.max(0, targetScroll), behavior: "smooth" });
   }, [contenido]);
 
   const doSave = useCallback(async (val: string) => {
@@ -1083,6 +1167,10 @@ const PanelEditor = ({
             </button>
           </div>
         </div>
+      )}
+
+      {!focusMode && (
+        <DialogSnippets textareaRef={textareaRef} value={contenido} onChange={onChange} />
       )}
 
       {!focusMode && (
