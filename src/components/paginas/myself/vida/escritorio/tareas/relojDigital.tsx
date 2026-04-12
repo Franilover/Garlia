@@ -291,33 +291,48 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
-            style={{ backgroundColor: "var(--primary)" }}
+            style={{ backgroundColor: "var(--bg-menu)", color: "var(--menu-text)" }}
           >
+            {/* Botón salir */}
             <button
               onClick={() => setPomPantallaCompleta(false)}
-              className="absolute top-6 right-6 text-white/40 hover:text-white text-[9px] font-black uppercase tracking-widest border border-white/15 hover:border-white/40 px-4 py-2 rounded-[var(--radius-btn)] transition-all"
+              className="absolute top-6 right-6 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-[var(--radius-btn)] transition-all"
+              style={{
+                color: "color-mix(in srgb, var(--menu-text) 40%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--menu-text) 15%, transparent)",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = "var(--menu-text)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 40%, transparent)")}
             >
               ✕ Salir
             </button>
 
-            <span className="absolute top-6 left-6 text-white/20 text-sm font-black tabular-nums tracking-tighter italic">
+            {/* Hora actual */}
+            <span
+              className="absolute top-6 left-6 text-sm font-black tabular-nums tracking-tighter italic"
+              style={{ color: "color-mix(in srgb, var(--menu-text) 20%, transparent)" }}
+            >
               {formatoHora}
             </span>
 
+            {/* Círculo temporizador */}
             <div
               className="relative cursor-pointer mb-8"
               style={{ width: "min(70vw, 400px)", height: "min(70vw, 400px)" }}
               onClick={togglePomodoro}
             >
               <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
-                <circle cx="100" cy="100" r="88" fill="none" stroke="white" strokeWidth="6" opacity="0.1" />
+                <circle
+                  cx="100" cy="100" r="88" fill="none"
+                  stroke="var(--menu-text)" strokeWidth="6" opacity="0.1"
+                />
                 <motion.circle
                   cx="100" cy="100" r="88"
-                  fill="none" stroke="white" strokeWidth="6"
+                  fill="none" stroke="var(--menu-text)" strokeWidth="6"
                   strokeLinecap="round"
                   strokeDasharray={2 * Math.PI * 88}
                   strokeDashoffset={2 * Math.PI * 88 * (1 - pct)}
-                  opacity={pomTerminado ? 0 : 0.9}
+                  opacity={pomTerminado ? 0 : 0.85}
                   style={{ transition: "stroke-dashoffset 1s linear" }}
                 />
                 {pomTerminado && (
@@ -327,18 +342,26 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                 {pomTerminado ? (
                   <>
-                    <span className="text-4xl font-black text-emerald-300 uppercase tracking-tight">¡Listo!</span>
-                    <span className="text-white/40 text-xs font-black uppercase tracking-widest">Sesión completada</span>
+                    <span className="text-4xl font-black text-emerald-400 uppercase tracking-tight">¡Listo!</span>
+                    <span
+                      className="text-xs font-black uppercase tracking-widest"
+                      style={{ color: "color-mix(in srgb, var(--menu-text) 40%, transparent)" }}
+                    >
+                      Sesión completada
+                    </span>
                   </>
                 ) : (
                   <>
                     <span
-                      className="font-black tabular-nums text-white tracking-tighter leading-none italic"
-                      style={{ fontSize: "min(18vw, 100px)" }}
+                      className="font-black tabular-nums tracking-tighter leading-none italic"
+                      style={{ fontSize: "min(18vw, 100px)", color: "var(--menu-text)" }}
                     >
                       {minDisplay}:{secDisplay}
                     </span>
-                    <span className="text-white/30 text-xs font-black uppercase tracking-[0.3em]">
+                    <span
+                      className="text-xs font-black uppercase tracking-[0.3em]"
+                      style={{ color: "color-mix(in srgb, var(--menu-text) 35%, transparent)" }}
+                    >
                       {pomActivo ? "concentrado" : "en pausa"}
                     </span>
                   </>
@@ -346,51 +369,71 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
               </div>
             </div>
 
+            {/* Actividad programada */}
             {actividadActual && (
-              <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em] italic mb-6">
+              <p
+                className="text-[10px] font-black uppercase tracking-[0.3em] italic mb-6"
+                style={{ color: "color-mix(in srgb, var(--menu-text) 25%, transparent)" }}
+              >
                 {actividadActual.actividad}
               </p>
             )}
 
+            {/* Botones iniciar / pausar / reset */}
             <div className="flex items-center gap-3 mb-6">
               <button
                 onClick={togglePomodoro}
-                className={cn(
-                  "font-black uppercase tracking-widest px-8 py-3 rounded-[var(--radius-btn)] transition-all text-sm",
-                  pomActivo
-                    ? "bg-white-custom/10 text-white border border-white/20 hover:bg-white-custom/20"
-                    : "bg-white-custom text-primary shadow-2xl hover:scale-105 active:scale-95"
-                )}
+                className="font-black uppercase tracking-widest px-8 py-3 rounded-[var(--radius-btn)] transition-all text-sm hover:scale-105 active:scale-95"
+                style={pomActivo ? {
+                  background: "color-mix(in srgb, var(--menu-text) 10%, transparent)",
+                  color: "var(--menu-text)",
+                  border: "1px solid color-mix(in srgb, var(--menu-text) 20%, transparent)",
+                } : {
+                  background: "var(--primary)",
+                  color: "var(--btn-text)",
+                  boxShadow: "0 8px 30px color-mix(in srgb, var(--primary) 40%, transparent)",
+                }}
               >
                 {pomTerminado ? "Reiniciar" : pomActivo ? "Pausar" : "Iniciar"}
               </button>
               {(pomActivo || pomSegundos !== pomMinutos * 60) && !pomTerminado && (
                 <button
                   onClick={resetPomodoro}
-                  className="text-white/30 hover:text-white text-[9px] font-black uppercase tracking-widest border border-white/10 hover:border-white/30 px-4 py-3 rounded-[var(--radius-btn)] transition-all"
+                  className="text-[9px] font-black uppercase tracking-widest px-4 py-3 rounded-[var(--radius-btn)] transition-all"
+                  style={{
+                    color: "color-mix(in srgb, var(--menu-text) 30%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--menu-text) 10%, transparent)",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "var(--menu-text)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 30%, transparent)")}
                 >
                   Reset
                 </button>
               )}
             </div>
 
+            {/* Selector de tiempo */}
             <div className="flex flex-wrap justify-center gap-2 max-w-xs">
               {OPCIONES_POMODORO.map(op => (
                 <button
                   key={op.valor}
                   onClick={() => seleccionarTiempo(op.valor)}
-                  className={cn(
-                    "text-[9px] font-black uppercase tracking-wide px-3 py-2 rounded-[var(--radius-btn)] transition-all",
-                    pomMinutos === op.valor
-                      ? "bg-white-custom/20 text-white border border-white/30"
-                      : "text-white/25 hover:text-white hover:bg-white-custom/10 border border-transparent"
-                  )}
+                  className="text-[9px] font-black uppercase tracking-wide px-3 py-2 rounded-[var(--radius-btn)] transition-all"
+                  style={pomMinutos === op.valor ? {
+                    background: "color-mix(in srgb, var(--menu-text) 12%, transparent)",
+                    color: "var(--menu-text)",
+                    border: "1px solid color-mix(in srgb, var(--menu-text) 25%, transparent)",
+                  } : {
+                    color: "color-mix(in srgb, var(--menu-text) 30%, transparent)",
+                    border: "1px solid transparent",
+                  }}
                 >
                   {op.label}
                 </button>
               ))}
             </div>
 
+            {/* Input personalizado */}
             <div className="flex items-center gap-2 mt-4">
               <input
                 type="number" min="1" max="180"
@@ -398,11 +441,21 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
                 onChange={e => setPomPersonalizado(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && aplicarPersonalizado()}
                 placeholder="Min..."
-                className="bg-white-custom/10 border border-white/15 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-bold text-white placeholder:text-white/20 outline-none focus:border-white/40 w-24 text-center"
+                className="rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-bold outline-none w-24 text-center"
+                style={{
+                  background: "color-mix(in srgb, var(--menu-text) 8%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--menu-text) 15%, transparent)",
+                  color: "var(--menu-text)",
+                }}
               />
               <button
                 onClick={aplicarPersonalizado}
-                className="bg-white-custom/10 hover:bg-white-custom/20 text-white px-3 py-2 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border border-white/15 hover:border-white/30 transition-all"
+                className="px-3 py-2 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide transition-all"
+                style={{
+                  background: "color-mix(in srgb, var(--menu-text) 10%, transparent)",
+                  color: "var(--menu-text)",
+                  border: "1px solid color-mix(in srgb, var(--menu-text) 15%, transparent)",
+                }}
               >
                 OK
               </button>
