@@ -147,7 +147,7 @@ export const GestionPersonal = () => {
 
       {/* ── Columna izquierda: reloj + tareas ──────────────────────────────── */}
       <section className="lg:col-span-5 flex flex-col gap-4 lg:h-full lg:overflow-hidden">
-        <RelojDigital horario={horarioRaw || []} />
+        <RelojDigital horario={horarioRaw || []} tareas={tareas || []} />
         <ListaTareas
           tareas={tareas}
           nuevaTarea={nuevaTarea}

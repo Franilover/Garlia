@@ -1,14 +1,17 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, ChevronLeft } from "lucide-react";
+import { Clock, ChevronLeft, X, ChevronUp, ChevronDown, CheckSquare, Circle } from "lucide-react";
 
-const OPCIONES_POMODORO = [
-  { label: "5 min",  valor: 5 },
-  { label: "15 min", valor: 15 },
-  { label: "25 min", valor: 25 },
-  { label: "45 min", valor: 45 },
-  { label: "60 min", valor: 60 },
+// ── Presets ──────────────────────────────────────────────────────────────────
+const PRESETS = [
+  { label: "5m",   min: 5,  h: 0 },
+  { label: "15m",  min: 15, h: 0 },
+  { label: "25m",  min: 25, h: 0 },
+  { label: "45m",  min: 45, h: 0 },
+  { label: "1h",   min: 0,  h: 1 },
+  { label: "1h30", min: 30, h: 1 },
+  { label: "2h",   min: 0,  h: 2 },
 ];
 
 const reproducirSonidoFin = () => {
@@ -18,10 +21,8 @@ const reproducirSonidoFin = () => {
     notas.forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = "sine";
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq; osc.type = "sine";
       gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.18);
       gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + i * 0.18 + 0.05);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.4);
@@ -31,23 +32,74 @@ const reproducirSonidoFin = () => {
   } catch (e) { console.warn("Audio no disponible", e); }
 };
 
-export const RelojDigital = ({ horario }: { horario: any[] }) => {
+// ── Spinner numérico con flechas ─────────────────────────────────────────────
+const NumSpinner = ({
+  value, min, max, onChange, label, disabled,
+}: {
+  value: number; min: number; max: number;
+  onChange: (v: number) => void; label: string; disabled?: boolean;
+}) => {
+  const inc = () => !disabled && onChange(value >= max ? min : value + 1);
+  const dec = () => !disabled && onChange(value <= min ? max : value - 1);
+  const btnStyle = {
+    color: "color-mix(in srgb, var(--menu-text) 40%, transparent)",
+    transition: "color 0.15s",
+  };
+  return (
+    <div className="flex flex-col items-center gap-1 select-none">
+      <span className="text-[8px] font-black uppercase tracking-widest mb-0.5"
+        style={{ color: "color-mix(in srgb, var(--menu-text) 30%, transparent)" }}>
+        {label}
+      </span>
+      <button onClick={inc} style={btnStyle}
+        onMouseEnter={e => (e.currentTarget.style.color = "var(--menu-text)")}
+        onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 40%, transparent)")}
+        disabled={disabled}
+      >
+        <ChevronUp size={18} />
+      </button>
+      <span className="text-4xl font-black tabular-nums tracking-tighter w-14 text-center"
+        style={{ color: "var(--menu-text)" }}>
+        {String(value).padStart(2, "0")}
+      </span>
+      <button onClick={dec} style={btnStyle}
+        onMouseEnter={e => (e.currentTarget.style.color = "var(--menu-text)")}
+        onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 40%, transparent)")}
+        disabled={disabled}
+      >
+        <ChevronDown size={18} />
+      </button>
+    </div>
+  );
+};
+
+// ── Props ─────────────────────────────────────────────────────────────────────
+interface Props {
+  horario: any[];
+  tareas?: any[];
+}
+
+export const RelojDigital = ({ horario, tareas = [] }: Props) => {
   const [hora, setHora] = useState(new Date());
-  
-  const [pomMinutos, setPomMinutos] = useState(25);
-  const [pomPersonalizado, setPomPersonalizado] = useState("");
+
+  // Temporizador — ahora en horas + minutos
+  const [pomHoras, setPomHoras]       = useState(0);
+  const [pomMins, setPomMins]         = useState(25);
   const [pomSegundos, setPomSegundos] = useState(25 * 60);
-  const [pomActivo, setPomActivo] = useState(false);
+  const [pomActivo, setPomActivo]     = useState(false);
   const [pomTerminado, setPomTerminado] = useState(false);
   const [pomPantallaCompleta, setPomPantallaCompleta] = useState(false);
 
-  
+  // Tarea seleccionada para el pomodoro
+  const [tareaSeleccionada, setTareaSeleccionada] = useState<any | null>(null);
+
+  const totalSegundosConfig = pomHoras * 3600 + pomMins * 60;
+
   useEffect(() => {
-    const timer = setInterval(() => setHora(new Date()), 1000);
-    return () => clearInterval(timer);
+    const t = setInterval(() => setHora(new Date()), 1000);
+    return () => clearInterval(t);
   }, []);
 
-  
   useEffect(() => {
     if (!pomActivo) return;
     const interval = setInterval(() => {
@@ -70,34 +122,40 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
   });
 
   const actividadActual = useMemo(() => {
-    if (!horario || horario.length === 0) return null;
+    if (!horario?.length) return null;
     const diaActual = hora.getDay();
-    const ahoraStr = hora.toLocaleTimeString("es-CL", { hour12: false });
-    return horario.find((item) =>
+    const ahoraStr  = hora.toLocaleTimeString("es-CL", { hour12: false });
+    return horario.find(item =>
       item.dias_semana?.includes(diaActual) &&
       ahoraStr >= item.hora_inicio &&
       ahoraStr <= item.hora_fin
     );
   }, [hora, horario]);
 
-  const seleccionarTiempo = (min: number) => {
-    setPomMinutos(min);
-    setPomSegundos(min * 60);
-    setPomActivo(false);
+  const seleccionarPreset = (h: number, m: number) => {
+    if (pomActivo) return;
+    setPomHoras(h); setPomMins(m);
+    setPomSegundos(h * 3600 + m * 60);
     setPomTerminado(false);
   };
 
-  const aplicarPersonalizado = () => {
-    const val = parseInt(pomPersonalizado);
-    if (!isNaN(val) && val > 0 && val <= 180) {
-      seleccionarTiempo(val);
-      setPomPersonalizado("");
-    }
+  const cambiarHoras = (h: number) => {
+    if (pomActivo) return;
+    setPomHoras(h);
+    setPomSegundos(h * 3600 + pomMins * 60);
+    setPomTerminado(false);
+  };
+
+  const cambiarMins = (m: number) => {
+    if (pomActivo) return;
+    setPomMins(m);
+    setPomSegundos(pomHoras * 3600 + m * 60);
+    setPomTerminado(false);
   };
 
   const togglePomodoro = () => {
     if (pomTerminado) {
-      setPomSegundos(pomMinutos * 60);
+      setPomSegundos(totalSegundosConfig);
       setPomTerminado(false);
     }
     setPomActivo(prev => !prev);
@@ -106,18 +164,29 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
   const resetPomodoro = () => {
     setPomActivo(false);
     setPomTerminado(false);
-    setPomSegundos(pomMinutos * 60);
+    setPomSegundos(totalSegundosConfig);
   };
 
-  const pct = 1 - pomSegundos / (pomMinutos * 60);
-  const r = 36;
-  const circ = 2 * Math.PI * r;
-  const minDisplay = Math.floor(pomSegundos / 60).toString().padStart(2, "0");
+  // Display del temporizador corriendo
+  const hDisplay   = Math.floor(pomSegundos / 3600);
+  const minDisplay = Math.floor((pomSegundos % 3600) / 60).toString().padStart(2, "0");
   const secDisplay = (pomSegundos % 60).toString().padStart(2, "0");
+  const timerStr   = hDisplay > 0
+    ? `${hDisplay}:${minDisplay}:${secDisplay}`
+    : `${minDisplay}:${secDisplay}`;
+
+  const pct = totalSegundosConfig > 0 ? 1 - pomSegundos / totalSegundosConfig : 0;
+
+  // Tareas pendientes
+  const tareasPendientes = tareas.filter((t: any) => !t.completada);
+
+  const styMuted = { color: "color-mix(in srgb, var(--menu-text) 30%, transparent)" };
+  const styBorder = { border: "1px solid color-mix(in srgb, var(--menu-text) 12%, transparent)" };
 
   return (
     <div className="relative z-10 shrink-0">
-      {/* ── Tarjeta reloj — abre pomodoro directo ── */}
+
+      {/* ── Tarjeta reloj ──────────────────────────────────────────────── */}
       <motion.div
         layout
         onClick={() => setPomPantallaCompleta(true)}
@@ -143,183 +212,244 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
         </div>
       </motion.div>
 
-      {}
+      {/* ── Overlay pantalla completa ───────────────────────────────────── */}
       <AnimatePresence>
         {pomPantallaCompleta && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[9999] overflow-hidden"
             style={{ backgroundColor: "var(--bg-menu)", color: "var(--menu-text)" }}
           >
-            {/* Botón salir */}
-            <button
-              onClick={() => setPomPantallaCompleta(false)}
-              className="absolute top-6 right-6 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-[var(--radius-btn)] transition-all"
-              style={{
-                color: "color-mix(in srgb, var(--menu-text) 40%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--menu-text) 15%, transparent)",
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = "var(--menu-text)")}
-              onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 40%, transparent)")}
+            {/* ── Barra superior ── */}
+            <div className="flex items-center justify-between px-6 py-4 shrink-0"
+              style={{ borderBottom: "1px solid color-mix(in srgb, var(--menu-text) 8%, transparent)" }}
             >
-              ✕ Salir
-            </button>
-
-            {/* Hora actual */}
-            <span
-              className="absolute top-6 left-6 text-sm font-black tabular-nums tracking-tighter italic"
-              style={{ color: "color-mix(in srgb, var(--menu-text) 20%, transparent)" }}
-            >
-              {formatoHora}
-            </span>
-
-            {/* Círculo temporizador */}
-            <div
-              className="relative cursor-pointer mb-8"
-              style={{ width: "min(70vw, 400px)", height: "min(70vw, 400px)" }}
-              onClick={togglePomodoro}
-            >
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
-                <circle
-                  cx="100" cy="100" r="88" fill="none"
-                  stroke="var(--menu-text)" strokeWidth="6" opacity="0.1"
-                />
-                <motion.circle
-                  cx="100" cy="100" r="88"
-                  fill="none" stroke="var(--menu-text)" strokeWidth="6"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 88}
-                  strokeDashoffset={2 * Math.PI * 88 * (1 - pct)}
-                  opacity={pomTerminado ? 0 : 0.85}
-                  style={{ transition: "stroke-dashoffset 1s linear" }}
-                />
-                {pomTerminado && (
-                  <circle cx="100" cy="100" r="88" fill="none" stroke="#34d399" strokeWidth="6" opacity="0.9" />
-                )}
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                {pomTerminado ? (
-                  <>
-                    <span className="text-4xl font-black text-emerald-400 uppercase tracking-tight">¡Listo!</span>
-                    <span
-                      className="text-xs font-black uppercase tracking-widest"
-                      style={{ color: "color-mix(in srgb, var(--menu-text) 40%, transparent)" }}
-                    >
-                      Sesión completada
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span
-                      className="font-black tabular-nums tracking-tighter leading-none italic"
-                      style={{ fontSize: "min(18vw, 100px)", color: "var(--menu-text)" }}
-                    >
-                      {minDisplay}:{secDisplay}
-                    </span>
-                    <span
-                      className="text-xs font-black uppercase tracking-[0.3em]"
-                      style={{ color: "color-mix(in srgb, var(--menu-text) 35%, transparent)" }}
-                    >
-                      {pomActivo ? "concentrado" : "en pausa"}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Actividad programada */}
-            {actividadActual && (
-              <p
-                className="text-[10px] font-black uppercase tracking-[0.3em] italic mb-6"
-                style={{ color: "color-mix(in srgb, var(--menu-text) 25%, transparent)" }}
-              >
-                {actividadActual.actividad}
-              </p>
-            )}
-
-            {/* Botones iniciar / pausar / reset */}
-            <div className="flex items-center gap-3 mb-6">
-              <button
-                onClick={togglePomodoro}
-                className="font-black uppercase tracking-widest px-8 py-3 rounded-[var(--radius-btn)] transition-all text-sm hover:scale-105 active:scale-95"
-                style={pomActivo ? {
-                  background: "color-mix(in srgb, var(--menu-text) 10%, transparent)",
-                  color: "var(--menu-text)",
-                  border: "1px solid color-mix(in srgb, var(--menu-text) 20%, transparent)",
-                } : {
-                  background: "var(--primary)",
-                  color: "var(--btn-text)",
-                  boxShadow: "0 8px 30px color-mix(in srgb, var(--primary) 40%, transparent)",
-                }}
-              >
-                {pomTerminado ? "Reiniciar" : pomActivo ? "Pausar" : "Iniciar"}
-              </button>
-              {(pomActivo || pomSegundos !== pomMinutos * 60) && !pomTerminado && (
-                <button
-                  onClick={resetPomodoro}
-                  className="text-[9px] font-black uppercase tracking-widest px-4 py-3 rounded-[var(--radius-btn)] transition-all"
-                  style={{
-                    color: "color-mix(in srgb, var(--menu-text) 30%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--menu-text) 10%, transparent)",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "var(--menu-text)")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 30%, transparent)")}
-                >
-                  Reset
-                </button>
+              <span className="text-sm font-black tabular-nums tracking-tighter italic" style={styMuted}>
+                {formatoHora}
+              </span>
+              {tareaSeleccionada && (
+                <span className="text-[10px] font-black uppercase tracking-widest truncate max-w-xs px-4"
+                  style={{ color: "var(--menu-text)" }}>
+                  ▶ {tareaSeleccionada.titulo}
+                </span>
               )}
-            </div>
-
-            {/* Selector de tiempo */}
-            <div className="flex flex-wrap justify-center gap-2 max-w-xs">
-              {OPCIONES_POMODORO.map(op => (
-                <button
-                  key={op.valor}
-                  onClick={() => seleccionarTiempo(op.valor)}
-                  className="text-[9px] font-black uppercase tracking-wide px-3 py-2 rounded-[var(--radius-btn)] transition-all"
-                  style={pomMinutos === op.valor ? {
-                    background: "color-mix(in srgb, var(--menu-text) 12%, transparent)",
-                    color: "var(--menu-text)",
-                    border: "1px solid color-mix(in srgb, var(--menu-text) 25%, transparent)",
-                  } : {
-                    color: "color-mix(in srgb, var(--menu-text) 30%, transparent)",
-                    border: "1px solid transparent",
-                  }}
-                >
-                  {op.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Input personalizado */}
-            <div className="flex items-center gap-2 mt-4">
-              <input
-                type="number" min="1" max="180"
-                value={pomPersonalizado}
-                onChange={e => setPomPersonalizado(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && aplicarPersonalizado()}
-                placeholder="Min..."
-                className="rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-bold outline-none w-24 text-center"
-                style={{
-                  background: "color-mix(in srgb, var(--menu-text) 8%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--menu-text) 15%, transparent)",
-                  color: "var(--menu-text)",
-                }}
-              />
+              {/* X para cerrar — siempre visible en la barra */}
               <button
-                onClick={aplicarPersonalizado}
-                className="px-3 py-2 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide transition-all"
-                style={{
-                  background: "color-mix(in srgb, var(--menu-text) 10%, transparent)",
-                  color: "var(--menu-text)",
-                  border: "1px solid color-mix(in srgb, var(--menu-text) 15%, transparent)",
+                onClick={() => setPomPantallaCompleta(false)}
+                className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-[var(--radius-btn)] transition-all"
+                style={styBorder}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "color-mix(in srgb, var(--menu-text) 10%, transparent)";
+                  e.currentTarget.style.color = "var(--menu-text)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 50%, transparent)";
                 }}
               >
-                OK
+                <X size={14} /> Salir
               </button>
+            </div>
+
+            {/* ── Contenido principal: dos columnas ── */}
+            <div className="flex h-[calc(100%-57px)]">
+
+              {/* ── Columna izquierda: temporizador ── */}
+              <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8">
+
+                {/* Círculo */}
+                <div
+                  className="relative cursor-pointer"
+                  style={{ width: "min(45vw, 320px)", height: "min(45vw, 320px)" }}
+                  onClick={togglePomodoro}
+                >
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
+                    <circle cx="100" cy="100" r="88" fill="none"
+                      stroke="var(--menu-text)" strokeWidth="5" opacity="0.08" />
+                    <motion.circle
+                      cx="100" cy="100" r="88" fill="none"
+                      stroke="var(--menu-text)" strokeWidth="5"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 88}
+                      strokeDashoffset={2 * Math.PI * 88 * (1 - pct)}
+                      opacity={pomTerminado ? 0 : 0.85}
+                      style={{ transition: "stroke-dashoffset 1s linear" }}
+                    />
+                    {pomTerminado && (
+                      <circle cx="100" cy="100" r="88" fill="none"
+                        stroke="#34d399" strokeWidth="5" opacity="0.9" />
+                    )}
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                    {pomTerminado ? (
+                      <>
+                        <span className="text-3xl font-black text-emerald-400 uppercase tracking-tight">¡Listo!</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest" style={styMuted}>
+                          Sesión completada
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-black tabular-nums tracking-tighter leading-none italic"
+                          style={{ fontSize: "min(12vw, 72px)", color: "var(--menu-text)" }}>
+                          {timerStr}
+                        </span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em]" style={styMuted}>
+                          {pomActivo ? "concentrado" : "en pausa"}
+                        </span>
+                        {tareaSeleccionada && (
+                          <span className="text-[9px] font-black uppercase tracking-tight mt-1 px-3 py-1 rounded-full"
+                            style={{
+                              background: "color-mix(in srgb, var(--menu-text) 8%, transparent)",
+                              color: "color-mix(in srgb, var(--menu-text) 60%, transparent)",
+                              maxWidth: "80%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>
+                            {tareaSeleccionada.titulo}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Selector de tiempo: spinners H + M */}
+                <div className="flex items-end gap-3">
+                  <NumSpinner value={pomHoras} min={0} max={9}
+                    onChange={cambiarHoras} label="Horas" disabled={pomActivo} />
+                  <span className="text-3xl font-black mb-3" style={styMuted}>:</span>
+                  <NumSpinner value={pomMins} min={0} max={59}
+                    onChange={cambiarMins} label="Minutos" disabled={pomActivo} />
+                </div>
+
+                {/* Presets */}
+                <div className="flex flex-wrap justify-center gap-1.5 max-w-xs">
+                  {PRESETS.map(p => {
+                    const activo = pomHoras === p.h && pomMins === p.min;
+                    return (
+                      <button key={p.label}
+                        onClick={() => seleccionarPreset(p.h, p.min)}
+                        disabled={pomActivo}
+                        className="text-[9px] font-black uppercase tracking-wide px-3 py-1.5 rounded-[var(--radius-btn)] transition-all disabled:opacity-40"
+                        style={activo ? {
+                          background: "color-mix(in srgb, var(--menu-text) 14%, transparent)",
+                          color: "var(--menu-text)",
+                          border: "1px solid color-mix(in srgb, var(--menu-text) 28%, transparent)",
+                        } : {
+                          color: "color-mix(in srgb, var(--menu-text) 35%, transparent)",
+                          border: "1px solid transparent",
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Botones acción */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={togglePomodoro}
+                    disabled={totalSegundosConfig === 0 && !pomActivo}
+                    className="font-black uppercase tracking-widest px-10 py-3 rounded-[var(--radius-btn)] transition-all text-sm hover:scale-105 active:scale-95 disabled:opacity-30"
+                    style={pomActivo ? {
+                      background: "color-mix(in srgb, var(--menu-text) 10%, transparent)",
+                      color: "var(--menu-text)",
+                      border: "1px solid color-mix(in srgb, var(--menu-text) 20%, transparent)",
+                    } : {
+                      background: "var(--primary)",
+                      color: "var(--btn-text)",
+                      boxShadow: "0 8px 30px color-mix(in srgb, var(--primary) 35%, transparent)",
+                    }}
+                  >
+                    {pomTerminado ? "Reiniciar" : pomActivo ? "Pausar" : "Iniciar"}
+                  </button>
+                  {(pomActivo || pomSegundos !== totalSegundosConfig) && !pomTerminado && (
+                    <button
+                      onClick={resetPomodoro}
+                      className="text-[9px] font-black uppercase tracking-widest px-4 py-3 rounded-[var(--radius-btn)] transition-all"
+                      style={{
+                        color: "color-mix(in srgb, var(--menu-text) 30%, transparent)",
+                        border: "1px solid color-mix(in srgb, var(--menu-text) 10%, transparent)",
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.color = "var(--menu-text)")}
+                      onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--menu-text) 30%, transparent)")}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Divisor ── */}
+              <div className="w-px shrink-0 my-8"
+                style={{ background: "color-mix(in srgb, var(--menu-text) 8%, transparent)" }} />
+
+              {/* ── Columna derecha: lista de tareas ── */}
+              <div className="w-72 xl:w-80 flex flex-col px-6 py-6 gap-4 overflow-hidden">
+                <div className="flex items-center gap-2 shrink-0">
+                  <CheckSquare size={14} style={styMuted} />
+                  <span className="text-[9px] font-black uppercase tracking-widest" style={styMuted}>
+                    Enfocar en tarea
+                  </span>
+                </div>
+
+                {/* Sin tarea seleccionada */}
+                {!tareaSeleccionada ? (
+                  <p className="text-[9px] italic" style={{ color: "color-mix(in srgb, var(--menu-text) 20%, transparent)" }}>
+                    Selecciona una tarea para dedicarle este pomodoro.
+                  </p>
+                ) : (
+                  <div className="flex items-start gap-2 p-3 rounded-[var(--radius-btn)]"
+                    style={{
+                      background: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
+                    }}>
+                    <span className="text-[10px] font-black uppercase tracking-tight flex-1"
+                      style={{ color: "var(--menu-text)" }}>
+                      {tareaSeleccionada.titulo}
+                    </span>
+                    <button onClick={() => setTareaSeleccionada(null)}>
+                      <X size={12} style={styMuted} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Lista */}
+                <div className="flex flex-col gap-1.5 overflow-y-auto flex-1 min-h-0">
+                  {tareasPendientes.length === 0 ? (
+                    <p className="text-[9px] italic" style={{ color: "color-mix(in srgb, var(--menu-text) 20%, transparent)" }}>
+                      Sin tareas pendientes.
+                    </p>
+                  ) : tareasPendientes.map((t: any) => {
+                    const seleccionada = tareaSeleccionada?.id === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setTareaSeleccionada(seleccionada ? null : t)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-btn)] text-left transition-all"
+                        style={seleccionada ? {
+                          background: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                          border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+                        } : {
+                          background: "color-mix(in srgb, var(--menu-text) 4%, transparent)",
+                          border: "1px solid color-mix(in srgb, var(--menu-text) 8%, transparent)",
+                        }}
+                        onMouseEnter={e => !seleccionada && (e.currentTarget.style.background = "color-mix(in srgb, var(--menu-text) 8%, transparent)")}
+                        onMouseLeave={e => !seleccionada && (e.currentTarget.style.background = "color-mix(in srgb, var(--menu-text) 4%, transparent)")}
+                      >
+                        <Circle size={10} style={{ color: seleccionada ? "var(--primary)" : "color-mix(in srgb, var(--menu-text) 25%, transparent)", flexShrink: 0 }} />
+                        <span className="text-[10px] font-bold uppercase tracking-tight truncate"
+                          style={{ color: seleccionada ? "var(--menu-text)" : "color-mix(in srgb, var(--menu-text) 55%, transparent)" }}>
+                          {t.titulo}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
