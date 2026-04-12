@@ -867,24 +867,6 @@ const PanelEditor = ({
     ta.style.height = `${ta.scrollHeight}px`;
   }, [contenido]);
 
-  // ── Centrado vertical del cursor mientras se escribe ──────────────────────
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const scrollContainer = ta.closest(".overflow-y-auto") as HTMLElement | null;
-    if (!scrollContainer) return;
-
-    // Calculamos la posición del cursor en el textarea
-    const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 28;
-    const text = ta.value.substring(0, ta.selectionStart ?? ta.value.length);
-    const lines = text.split("\n").length;
-    const cursorY = (lines - 1) * lineHeight + ta.offsetTop;
-
-    const containerHeight = scrollContainer.clientHeight;
-    const targetScroll = cursorY - containerHeight / 2 + lineHeight / 2;
-    scrollContainer.scrollTo({ top: Math.max(0, targetScroll), behavior: "smooth" });
-  }, [contenido]);
-
   const doSave = useCallback(async (val: string) => {
     clearTimeout(timer.current);
     setSaveStatus("saving");
@@ -906,6 +888,10 @@ const PanelEditor = ({
     setSaveStatus("saving");
     clearTimeout(timer.current);
     timer.current = setTimeout(() => doSave(val), 2000);
+    // ── Centrar el cursor en el eje Y mientras se escribe ─────────────────
+    requestAnimationFrame(() => {
+      textareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
   };
 
   const handleSaveTitle = async () => {
