@@ -290,7 +290,7 @@ export const RelojDigital = ({ horario }: { horario: any[] }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-primary overflow-hidden"
             style={{ backgroundColor: "hsl(var(--primary))" }}
           >
             <button
