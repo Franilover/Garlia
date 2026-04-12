@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, ChevronLeft, X, ChevronUp, ChevronDown, CheckSquare, Circle } from "lucide-react";
 
@@ -30,6 +30,24 @@ const reproducirSonidoFin = () => {
       osc.stop(ctx.currentTime + i * 0.18 + 0.4);
     });
   } catch (e) { console.warn("Audio no disponible", e); }
+};
+
+// ── Notificaciones ────────────────────────────────────────────────────────────
+const pedirPermisoNotificaciones = async () => {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
+};
+
+const enviarNotificacion = (titulo: string, cuerpo?: string) => {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  new Notification(titulo, {
+    body: cuerpo,
+    icon: "/icon-192.png", // ajusta al ícono de tu PWA si tienes uno
+    silent: true,          // el sonido ya lo maneja Web Audio
+  });
 };
 
 // ── Spinner numérico con flechas ─────────────────────────────────────────────
@@ -93,7 +111,16 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
   // Tarea seleccionada para el pomodoro
   const [tareaSeleccionada, setTareaSeleccionada] = useState<any | null>(null);
 
+  // Ref para acceder a tareaSeleccionada dentro de closures del timer
+  const tareaRef = useRef(tareaSeleccionada);
+  useEffect(() => { tareaRef.current = tareaSeleccionada; }, [tareaSeleccionada]);
+
   const totalSegundosConfig = pomHoras * 3600 + pomMins * 60;
+
+  // Pedir permiso de notificaciones al montar
+  useEffect(() => {
+    pedirPermisoNotificaciones();
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setHora(new Date()), 1000);
@@ -109,6 +136,12 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
           setPomActivo(false);
           setPomTerminado(true);
           reproducirSonidoFin();
+          enviarNotificacion(
+            "¡Pomodoro terminado! 🍅",
+            tareaRef.current
+              ? `Sesión de "${tareaRef.current.titulo}" completada`
+              : "Sesión completada"
+          );
           return 0;
         }
         return prev - 1;
