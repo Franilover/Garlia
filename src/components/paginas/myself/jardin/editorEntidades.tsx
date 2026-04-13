@@ -1248,22 +1248,30 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
     }
   }, [detalle.coord_x, detalle.coord_y]);
 
-  const handleSave = async () => {
+  const saveDetalle = async (data: ReinoDetalle) => {
     setStatus("saving");
-    console.log("🔍 handleSave form.oculto:", form.oculto, "| form completo:", form);
     try {
       const { error } = await supabase.from("reino_detalles").update({
-        nombre: form.nombre,
-        descripcion: form.descripcion,
-        coord_x: form.coord_x,
-        coord_y: form.coord_y,
-        oculto: form.oculto ?? false,
-      }).eq("id", form.id);
+        nombre: data.nombre,
+        descripcion: data.descripcion,
+        coord_x: data.coord_x,
+        coord_y: data.coord_y,
+        oculto: data.oculto ?? false,
+      }).eq("id", data.id);
       if (error) throw error;
       setStatus("saved");
-      onSaved(form);
+      onSaved(data);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
+  };
+
+  const handleSave = () => saveDetalle(form);
+
+  const toggleOculto = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const nuevo = { ...form, oculto: !form.oculto };
+    setForm(nuevo);
+    await saveDetalle(nuevo);
   };
 
   const handleDelete = async () => {
@@ -1289,7 +1297,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
         <div className="flex items-center gap-2 shrink-0">
           {/* Toggle visibilidad */}
           <button
-            onClick={e => { e.stopPropagation(); setForm(f => ({ ...f, oculto: !f.oculto })); }}
+            onClick={toggleOculto}
             title={form.oculto ? "Mostrar en mapa" : "Ocultar del mapa"}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
               form.oculto
@@ -1335,12 +1343,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
               </div>
             </div>
             <button
-              onClick={async () => {
-                const nuevo = { ...form, oculto: !form.oculto };
-                setForm(nuevo);
-                await supabase.from("reino_detalles").update({ oculto: nuevo.oculto }).eq("id", form.id);
-                onSaved(nuevo);
-              }}
+              onClick={toggleOculto}
               className={`relative w-10 h-5 rounded-full transition-all border ${
                 form.oculto
                   ? "bg-orange-400/20 border-orange-400/40"
