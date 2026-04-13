@@ -5,7 +5,7 @@ import { X, MapPin, Loader2, ChevronRight, ArrowLeft, House, Save, Edit3, ImageP
 import QuickPinchZoom, { make3dTransformValue } from "react-quick-pinch-zoom";
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
-import { ModalDetalle } from "@/components/wiki/personal/PersonalComponents";
+import { ModalDetalle } from "@/components/paginas/wiki/personal/PersonalComponents";
 
 type EntidadModal =
   | { tipo: "personaje"; data: any }
@@ -642,4 +642,4 @@ export default function MapaInteractivo() {
       </AnimatePresence>
     </div>
   );
-}
+} 
