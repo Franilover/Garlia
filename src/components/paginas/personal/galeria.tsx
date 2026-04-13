@@ -833,8 +833,8 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function GaleriaPage() {
-  const { user }  = useAuth() as { user: any };
-  const isAdmin   = !!user;
+  const { perfil } = useAuth() as any;
+  const isAdmin    = perfil?.rol === "admin";
   const { items, setItems, loading, reload } = useGaleria();
   const [showAdd, setShowAdd] = useState(false);
 
