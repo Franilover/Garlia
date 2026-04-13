@@ -357,8 +357,11 @@ export default function MapaInteractivo() {
                     type="text"
                     value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
                     onChange={(e) => {
-                      if (puntoSeleccionado) setPuntoSeleccionado({ ...puntoSeleccionado, nombre: e.target.value });
-                      else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
+                      if (puntoSeleccionado) {
+                        setPuntoSeleccionado({ ...puntoSeleccionado, nombre: e.target.value });
+                        setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, nombre: e.target.value } : p));
+                        setModifiedDetalles(prev => new Set(prev).add(puntoSeleccionado.id));
+                      } else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
                     }}
                     className="input-brand p-4! text-primary font-black uppercase text-xl! outline-none"
                   />
@@ -370,8 +373,11 @@ export default function MapaInteractivo() {
                   <textarea
                     value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
                     onChange={(e) => {
-                      if (puntoSeleccionado) setPuntoSeleccionado({ ...puntoSeleccionado, descripcion: e.target.value });
-                      else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
+                      if (puntoSeleccionado) {
+                        setPuntoSeleccionado({ ...puntoSeleccionado, descripcion: e.target.value });
+                        setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, descripcion: e.target.value } : p));
+                        setModifiedDetalles(prev => new Set(prev).add(puntoSeleccionado.id));
+                      } else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
                     }}
                     className="input-brand p-4! text-sm! italic leading-relaxed! h-36 resize-none outline-none"
                   />
@@ -412,6 +418,35 @@ export default function MapaInteractivo() {
                     >
                       <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${
                         reinoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-primary/50"
+                      }`} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Toggle visibilidad punto */}
+                {puntoSeleccionado && (
+                  <div className="flex items-center justify-between px-3 py-2.5 border border-primary/10 bg-primary/3" style={{borderRadius:"var(--radius-btn)"}}>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Visibilidad en el mapa</p>
+                      <p className="text-[9px] text-primary/35 mt-0.5">
+                        {puntoSeleccionado.oculto ? "Este punto no aparece para usuarios" : "Este punto es visible en el mapa"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const nuevoOculto = !puntoSeleccionado.oculto;
+                        setPuntoSeleccionado(p => ({ ...p, oculto: nuevoOculto }));
+                        setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, oculto: nuevoOculto } : p));
+                        setModifiedDetalles(prev => new Set(prev).add(puntoSeleccionado.id));
+                      }}
+                      className={`relative w-10 h-5 rounded-full transition-all border ${
+                        puntoSeleccionado.oculto
+                          ? "bg-orange-400/20 border-orange-400/40"
+                          : "bg-primary/15 border-primary/20"
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${
+                        puntoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-primary/50"
                       }`} />
                     </button>
                   </div>

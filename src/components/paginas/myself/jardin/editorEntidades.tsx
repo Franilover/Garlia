@@ -1236,8 +1236,16 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
   const { confirm, ConfirmModal } = useConfirm();
 
   // Sync coords when parent updates them (from map interaction)
+  // Solo actualizamos coords, nunca pisamos nombre/descripcion/oculto editados por el usuario
+  const prevCoords = useRef({ x: detalle.coord_x, y: detalle.coord_y });
   useEffect(() => {
-    setForm(f => ({ ...f, coord_x: detalle.coord_x, coord_y: detalle.coord_y }));
+    if (
+      detalle.coord_x !== prevCoords.current.x ||
+      detalle.coord_y !== prevCoords.current.y
+    ) {
+      prevCoords.current = { x: detalle.coord_x, y: detalle.coord_y };
+      setForm(f => ({ ...f, coord_x: detalle.coord_x, coord_y: detalle.coord_y }));
+    }
   }, [detalle.coord_x, detalle.coord_y]);
 
   const handleSave = async () => {
