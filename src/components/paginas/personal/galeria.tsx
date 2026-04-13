@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
@@ -160,44 +160,53 @@ function ColorRow({
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 w-14 shrink-0">{label}</span>
-      <input type="color"
-        value={value === "transparent" ? "#000000" : value}
-        onChange={e => onChange(e.target.value)}
-        className="w-8 h-8 rounded-lg border border-primary/20 cursor-pointer p-0.5 bg-transparent shrink-0" />
-      {hasEyeDropper && (
-        <button
-          onClick={pickFromScreen}
-          title="Cuentagotas — selecciona un color de la pantalla"
-          className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all shrink-0 hover:opacity-80"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-            color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 w-14 shrink-0">{label}</span>
+        <input type="color"
+          value={value === "transparent" ? "#000000" : value}
+          onChange={e => onChange(e.target.value)}
+          title={!hasEyeDropper ? "Firefox: usa el cuentagotas dentro del selector de color" : undefined}
+          className="w-8 h-8 rounded-lg border border-primary/20 cursor-pointer p-0.5 bg-transparent shrink-0" />
+        {hasEyeDropper && (
+          <button
+            onClick={pickFromScreen}
+            title="Cuentagotas — selecciona un color de la pantalla"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all shrink-0 hover:opacity-80"
+            style={{
+              borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m2 22 1-1h3l9-9"/>
+              <path d="M3 21v-3l9-9"/>
+              <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8"/>
+            </svg>
+          </button>
+        )}
+        <input type="text" value={value}
+          onChange={e => {
+            const v = e.target.value;
+            if (v === "transparent" || /^#[0-9a-fA-F]{0,6}$/.test(v)) onChange(v);
           }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m2 22 1-1h3l9-9"/>
-            <path d="M3 21v-3l9-9"/>
-            <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8"/>
-          </svg>
-        </button>
-      )}
-      <input type="text" value={value}
-        onChange={e => {
-          const v = e.target.value;
-          if (v === "transparent" || /^#[0-9a-fA-F]{0,6}$/.test(v)) onChange(v);
-        }}
-        className="flex-1 text-[10px] font-mono bg-bg-main border border-primary/15 rounded-lg px-2 py-1.5 text-primary outline-none focus:border-primary/40 min-w-0" />
-      {allowTransparent && (
-        <button onClick={() => onChange("transparent")} title="Sin fondo"
-          className="text-[9px] font-black px-2 py-1.5 rounded-lg border transition-all shrink-0"
-          style={{
-            borderColor: value === "transparent" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
-            color:       value === "transparent" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
-            background:  value === "transparent" ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-          }}>∅</button>
+          className="flex-1 text-[10px] font-mono bg-bg-main border border-primary/15 rounded-lg px-2 py-1.5 text-primary outline-none focus:border-primary/40 min-w-0" />
+        {allowTransparent && (
+          <button onClick={() => onChange("transparent")} title="Sin fondo"
+            className="text-[9px] font-black px-2 py-1.5 rounded-lg border transition-all shrink-0"
+            style={{
+              borderColor: value === "transparent" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
+              color:       value === "transparent" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+              background:  value === "transparent" ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+            }}>∅</button>
+        )}
+      </div>
+      {!hasEyeDropper && (
+        <p className="text-[8px] font-black uppercase tracking-widest pl-16"
+          style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+          Firefox: cuentagotas dentro del selector ↑
+        </p>
       )}
     </div>
   );
@@ -621,57 +630,205 @@ function TextBlock({ item, side = false }: { item: GaleriaItem; side?: boolean }
 }
 
 // ─── ImageLightbox ────────────────────────────────────────────────────────────
-// Aparece solo en móvil al hacer click en la imagen; muestra la imagen grande
-// con el bg_color del ítem detrás. En desktop la imagen ya ocupa suficiente espacio.
+// Aparece al hacer click en la imagen. Soporta:
+//   · Pinch-to-zoom nativo con dos dedos
+//   · Doble tap para zoom 2× / reset
+//   · Arrastrar para desplazar cuando el zoom > 1
+//   · Tap en fondo para cerrar (solo si no se está arrastrando)
+//   · Escape en teclado para cerrar
 
 function ImageLightbox({
   src, alt, bgColor, onClose,
 }: {
   src: string; alt: string; bgColor: string; onClose: () => void;
 }) {
-  // Cierra con Escape en teclado
+  const imgRef    = useRef<HTMLImageElement>(null);
+  const scaleRef  = useRef(1);
+  const offsetRef = useRef({ x: 0, y: 0 });
+
+  // Estado de render (evita re-renders en cada frame de touch)
+  const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const [visible,   setVisible]   = useState(false);
+
+  // Entrada animada
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  // Cierra con Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  return (
-    <AnimatePresence>
-      <motion.div
-        key="lightbox"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[400] flex items-center justify-center"
-        style={{ backgroundColor: bgColor }}
-        onClick={onClose}
-      >
-        {/* Botón cerrar */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full transition-all"
-          style={{ background: "rgba(0,0,0,0.45)", color: "white", backdropFilter: "blur(6px)" }}
-        >
-          <X size={16} />
-        </button>
+  // ── Touch helpers ──────────────────────────────────────────────────────────
+  const touchState = useRef({
+    lastTap:     0,
+    startDist:   0,
+    startScale:  1,
+    startX:      0,
+    startY:      0,
+    startOffX:   0,
+    startOffY:   0,
+    moved:       false,
+  });
 
-        {/* Imagen */}
-        <motion.img
-          src={src}
-          alt={alt}
-          initial={{ scale: 0.88, opacity: 0 }}
-          animate={{ scale: 1,    opacity: 1 }}
-          exit={{    scale: 0.88, opacity: 0 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          onClick={e => e.stopPropagation()}
-          className="max-w-[92vw] max-h-[85vh] object-contain select-none"
-          draggable={false}
-          style={{ filter: "drop-shadow(0 8px 40px rgba(0,0,0,0.5))" }}
-        />
-      </motion.div>
-    </AnimatePresence>
+  const applyTransform = useCallback((scale: number, x: number, y: number) => {
+    scaleRef.current  = scale;
+    offsetRef.current = { x, y };
+    setTransform({ scale, x, y });
+  }, []);
+
+  const clampOffset = (scale: number, x: number, y: number) => {
+    if (!imgRef.current) return { x, y };
+    const el   = imgRef.current;
+    const maxX = Math.max(0, (el.offsetWidth  * (scale - 1)) / 2);
+    const maxY = Math.max(0, (el.offsetHeight * (scale - 1)) / 2);
+    return { x: Math.max(-maxX, Math.min(maxX, x)), y: Math.max(-maxY, Math.min(maxY, y)) };
+  };
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const ts = touchState.current;
+    if (e.touches.length === 1) {
+      // Registrar inicio de drag / posible doble tap
+      const t = e.touches[0];
+      ts.startX    = t.clientX - offsetRef.current.x;
+      ts.startY    = t.clientY - offsetRef.current.y;
+      ts.startOffX = offsetRef.current.x;
+      ts.startOffY = offsetRef.current.y;
+      ts.moved     = false;
+    } else if (e.touches.length === 2) {
+      // Inicio de pinch
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      ts.startDist  = Math.hypot(dx, dy);
+      ts.startScale = scaleRef.current;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault(); // evita scroll de página mientras hacemos zoom
+    const ts = touchState.current;
+    if (e.touches.length === 2) {
+      // Pinch zoom
+      const dx    = e.touches[0].clientX - e.touches[1].clientX;
+      const dy    = e.touches[0].clientY - e.touches[1].clientY;
+      const dist  = Math.hypot(dx, dy);
+      const scale = Math.max(1, Math.min(5, ts.startScale * (dist / ts.startDist)));
+      const clamped = clampOffset(scale, offsetRef.current.x, offsetRef.current.y);
+      applyTransform(scale, clamped.x, clamped.y);
+    } else if (e.touches.length === 1 && scaleRef.current > 1) {
+      // Arrastrar imagen cuando está zoomada
+      const t  = e.touches[0];
+      const x  = t.clientX - ts.startX;
+      const y  = t.clientY - ts.startY;
+      ts.moved = true;
+      const clamped = clampOffset(scaleRef.current, x, y);
+      applyTransform(scaleRef.current, clamped.x, clamped.y);
+    }
+  }, [applyTransform]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const ts  = touchState.current;
+    const now = Date.now();
+
+    // Doble tap — solo con un dedo y sin haber arrastrado
+    if (e.changedTouches.length === 1 && !ts.moved) {
+      if (now - ts.lastTap < 300) {
+        // Segundo tap: toggle zoom 1× ↔ 2.5×
+        if (scaleRef.current > 1) {
+          applyTransform(1, 0, 0);
+        } else {
+          const t  = e.changedTouches[0];
+          const el = imgRef.current;
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            const cx   = t.clientX - rect.left - rect.width  / 2;
+            const cy   = t.clientY - rect.top  - rect.height / 2;
+            const s    = 2.5;
+            const clamped = clampOffset(s, -cx * (s - 1), -cy * (s - 1));
+            applyTransform(s, clamped.x, clamped.y);
+          }
+        }
+        ts.lastTap = 0;
+        return;
+      }
+      ts.lastTap = now;
+    }
+
+    // Si el zoom volvió a 1, resetear offset
+    if (scaleRef.current <= 1) applyTransform(1, 0, 0);
+  }, [applyTransform]);
+
+  const handleBgClick = () => {
+    // Solo cerrar si no se está arrastrando ni zoomando
+    if (!touchState.current.moved && scaleRef.current <= 1) onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[400] flex items-center justify-center overflow-hidden"
+      style={{
+        backgroundColor: bgColor,
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.2s ease",
+      }}
+      onClick={handleBgClick}
+    >
+      {/* Botón cerrar */}
+      <button
+        onClick={e => { e.stopPropagation(); onClose(); }}
+        className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full transition-all"
+        style={{ background: "rgba(0,0,0,0.45)", color: "white", backdropFilter: "blur(6px)" }}
+      >
+        <X size={16} />
+      </button>
+
+      {/* Hint zoom — solo visible al inicio */}
+      {transform.scale === 1 && (
+        <div
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
+          style={{
+            background: "rgba(0,0,0,0.4)",
+            color: "rgba(255,255,255,0.7)",
+            backdropFilter: "blur(6px)",
+            borderRadius: 20,
+            padding: "5px 14px",
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Pellizca para zoom · Doble tap para ampliar
+        </div>
+      )}
+
+      {/* Imagen con transform de zoom/pan */}
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        onClick={e => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        draggable={false}
+        className="max-w-[92vw] max-h-[85vh] object-contain select-none"
+        style={{
+          filter: "drop-shadow(0 8px 40px rgba(0,0,0,0.5))",
+          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+          transition: transform.scale === 1 ? "transform 0.3s ease" : "none",
+          transformOrigin: "center",
+          touchAction: "none", // clave: desactiva el scroll nativo para que funcionen nuestros handlers
+          cursor: transform.scale > 1 ? "grab" : "default",
+          opacity: visible ? 1 : 0,
+          transitionProperty: transform.scale === 1 ? "transform, opacity" : "opacity",
+        }}
+      />
+    </div>
   );
 }
 
