@@ -146,6 +146,19 @@ function ColorRow({
 }: {
   label: string; value: string; onChange: (v: string) => void; allowTransparent?: boolean;
 }) {
+  const hasEyeDropper = typeof window !== "undefined" && "EyeDropper" in window;
+
+  const pickFromScreen = async () => {
+    try {
+      // @ts-ignore — EyeDropper API no tiene tipos en TS por defecto
+      const eyeDropper = new (window as any).EyeDropper();
+      const result = await eyeDropper.open();
+      onChange(result.sRGBHex);
+    } catch {
+      // Usuario canceló el cuentagotas — no hacer nada
+    }
+  };
+
   return (
     <div className="flex items-center gap-2">
       <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 w-14 shrink-0">{label}</span>
@@ -153,6 +166,24 @@ function ColorRow({
         value={value === "transparent" ? "#000000" : value}
         onChange={e => onChange(e.target.value)}
         className="w-8 h-8 rounded-lg border border-primary/20 cursor-pointer p-0.5 bg-transparent shrink-0" />
+      {hasEyeDropper && (
+        <button
+          onClick={pickFromScreen}
+          title="Cuentagotas — selecciona un color de la pantalla"
+          className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all shrink-0 hover:opacity-80"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m2 22 1-1h3l9-9"/>
+            <path d="M3 21v-3l9-9"/>
+            <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8"/>
+          </svg>
+        </button>
+      )}
       <input type="text" value={value}
         onChange={e => {
           const v = e.target.value;
@@ -589,6 +620,61 @@ function TextBlock({ item, side = false }: { item: GaleriaItem; side?: boolean }
   );
 }
 
+// ─── ImageLightbox ────────────────────────────────────────────────────────────
+// Aparece solo en móvil al hacer click en la imagen; muestra la imagen grande
+// con el bg_color del ítem detrás. En desktop la imagen ya ocupa suficiente espacio.
+
+function ImageLightbox({
+  src, alt, bgColor, onClose,
+}: {
+  src: string; alt: string; bgColor: string; onClose: () => void;
+}) {
+  // Cierra con Escape en teclado
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        key="lightbox"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-[400] flex items-center justify-center"
+        style={{ backgroundColor: bgColor }}
+        onClick={onClose}
+      >
+        {/* Botón cerrar */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full transition-all"
+          style={{ background: "rgba(0,0,0,0.45)", color: "white", backdropFilter: "blur(6px)" }}
+        >
+          <X size={16} />
+        </button>
+
+        {/* Imagen */}
+        <motion.img
+          src={src}
+          alt={alt}
+          initial={{ scale: 0.88, opacity: 0 }}
+          animate={{ scale: 1,    opacity: 1 }}
+          exit={{    scale: 0.88, opacity: 0 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          onClick={e => e.stopPropagation()}
+          className="max-w-[92vw] max-h-[85vh] object-contain select-none"
+          draggable={false}
+          style={{ filter: "drop-shadow(0 8px 40px rgba(0,0,0,0.5))" }}
+        />
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 // ─── GaleriaSection ───────────────────────────────────────────────────────────
 
 function GaleriaSection({
@@ -604,7 +690,8 @@ function GaleriaSection({
   onMoveUp:   () => void;
   onMoveDown: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing,  setEditing]  = useState(false);
+  const [lightbox, setLightbox] = useState(false);
 
   // handleSave es la ÚNICA función que llama a Supabase (via onUpdate)
   // Se ejecuta solo cuando el usuario pulsa "Guardar cambios" en el editor
@@ -665,6 +752,16 @@ function GaleriaSection({
         )}
       </AnimatePresence>
 
+      {/* Lightbox — solo activo en móvil al hacer click en la imagen */}
+      {lightbox && (
+        <ImageLightbox
+          src={item.url_imagen}
+          alt={item.titulo || "Obra"}
+          bgColor={item.bg_color}
+          onClose={() => setLightbox(false)}
+        />
+      )}
+
       <motion.article
         initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
@@ -681,6 +778,11 @@ function GaleriaSection({
             <div className={`gc-img-${item.id} flex-none w-full`}>
               <FixedCanvas bg={item.bg_color}>
                 <img src={item.url_imagen} alt={item.titulo || "Obra"} style={imgStyle} draggable={false} />
+                {/* Click en móvil abre lightbox */}
+                <div
+                  className="absolute inset-0 md:hidden cursor-zoom-in"
+                  onClick={() => setLightbox(true)}
+                />
                 <AdminBar />
               </FixedCanvas>
             </div>
@@ -702,6 +804,11 @@ function GaleriaSection({
           // ── Layout overlay — texto con cqw para ser proporcional al canvas ──
           <FixedCanvas bg={item.bg_color}>
             <img src={item.url_imagen} alt={item.titulo || "Obra"} style={imgStyle} draggable={false} />
+            {/* Click en móvil abre lightbox */}
+            <div
+              className="absolute inset-0 md:hidden cursor-zoom-in"
+              onClick={() => setLightbox(true)}
+            />
             {(item.titulo || item.descripcion) && (
               <div className="absolute z-10 overflow-hidden"
                 style={{
@@ -739,6 +846,11 @@ function GaleriaSection({
           <>
             <FixedCanvas bg={item.bg_color}>
               <img src={item.url_imagen} alt={item.titulo || "Obra"} style={imgStyle} draggable={false} />
+              {/* Click en móvil abre lightbox */}
+              <div
+                className="absolute inset-0 md:hidden cursor-zoom-in"
+                onClick={() => setLightbox(true)}
+              />
               <AdminBar />
             </FixedCanvas>
             <TextBlock item={item} />
