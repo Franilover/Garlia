@@ -215,6 +215,9 @@ function EntidadCard({ item, tab, selected, onClick }: {
         {tab === "criaturas" && item.habitat && <p className="text-[10px] text-primary/35 truncate">{item.habitat}</p>}
         {tab === "items" && item.categoria && <p className="text-[10px] text-primary/35 truncate">{item.categoria}</p>}
       </div>
+      {tab === "reinos" && item.oculto && (
+        <EyeOff size={9} className="shrink-0 text-orange-400/60" />
+      )}
     </button>
   );
 }
@@ -1500,6 +1503,7 @@ function EditorReino({ item, onSaved, onDeleted }: {
       const { error } = await supabase.from("reinos").update({
         nombre: form.nombre, descripcion: form.descripcion,
         mapa_url: form.mapa_url, coord_x: form.coord_x, coord_y: form.coord_y,
+        oculto: form.oculto ?? false,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
@@ -1561,6 +1565,33 @@ function EditorReino({ item, onSaved, onDeleted }: {
             <div /> {/* espacio reservado para futuros campos */}
           </div>
           <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
+
+          {/* Toggle visibilidad del reino */}
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-primary/8 bg-primary/3">
+            <div className="flex items-center gap-2">
+              {form.oculto ? <EyeOff size={13} className="text-orange-400" /> : <Eye size={13} className="text-primary/40" />}
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Visibilidad en el mapa</p>
+                <p className="text-[9px] text-primary/35">
+                  {form.oculto ? "Este reino no aparece en el mapa interactivo" : "Este reino es visible en el mapa"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
+              className={`relative w-10 h-5 rounded-full transition-all border ${
+                form.oculto
+                  ? "bg-orange-400/20 border-orange-400/40"
+                  : "bg-primary/15 border-primary/20"
+              }`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${
+                form.oculto
+                  ? "left-5 bg-orange-400"
+                  : "left-0.5 bg-primary/50"
+              }`} />
+            </button>
+          </div>
 
           <div className="h-px bg-primary/8" />
 
