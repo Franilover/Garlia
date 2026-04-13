@@ -142,71 +142,67 @@ function FixedCanvas({
 // ─── ColorRow ─────────────────────────────────────────────────────────────────
 
 function ColorRow({
-  label, value, onChange, allowTransparent = false,
+  label, value, onChange, allowTransparent = false, onEyedropper,
 }: {
-  label: string; value: string; onChange: (v: string) => void; allowTransparent?: boolean;
+  label:            string;
+  value:            string;
+  onChange:         (v: string) => void;
+  allowTransparent?: boolean;
+  onEyedropper?:    () => void;   // si se pasa, aparece el botón cuentagotas
 }) {
-  const hasEyeDropper = typeof window !== "undefined" && "EyeDropper" in window;
+  const hasNativeEyeDropper = typeof window !== "undefined" && "EyeDropper" in window;
 
-  const pickFromScreen = async () => {
+  const pickNative = async () => {
     try {
-      // @ts-ignore — EyeDropper API no tiene tipos en TS por defecto
       const eyeDropper = new (window as any).EyeDropper();
       const result = await eyeDropper.open();
       onChange(result.sRGBHex);
-    } catch {
-      // Usuario canceló el cuentagotas — no hacer nada
-    }
+    } catch { /* cancelado */ }
   };
 
+  // Botón cuentagotas: nativo si disponible, personalizado si no
+  const eyedropperBtn = (
+    <button
+      onClick={hasNativeEyeDropper ? pickNative : onEyedropper}
+      title="Cuentagotas — extrae un color del canvas"
+      className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all shrink-0 hover:opacity-80"
+      style={{
+        borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+        color:       "color-mix(in srgb, var(--primary) 55%, transparent)",
+        background:  "color-mix(in srgb, var(--primary) 4%, transparent)",
+      }}
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m2 22 1-1h3l9-9"/>
+        <path d="M3 21v-3l9-9"/>
+        <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8"/>
+      </svg>
+    </button>
+  );
+
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 w-14 shrink-0">{label}</span>
-        <input type="color"
-          value={value === "transparent" ? "#000000" : value}
-          onChange={e => onChange(e.target.value)}
-          title={!hasEyeDropper ? "Firefox: usa el cuentagotas dentro del selector de color" : undefined}
-          className="w-8 h-8 rounded-lg border border-primary/20 cursor-pointer p-0.5 bg-transparent shrink-0" />
-        {hasEyeDropper && (
-          <button
-            onClick={pickFromScreen}
-            title="Cuentagotas — selecciona un color de la pantalla"
-            className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all shrink-0 hover:opacity-80"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m2 22 1-1h3l9-9"/>
-              <path d="M3 21v-3l9-9"/>
-              <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8"/>
-            </svg>
-          </button>
-        )}
-        <input type="text" value={value}
-          onChange={e => {
-            const v = e.target.value;
-            if (v === "transparent" || /^#[0-9a-fA-F]{0,6}$/.test(v)) onChange(v);
-          }}
-          className="flex-1 text-[10px] font-mono bg-bg-main border border-primary/15 rounded-lg px-2 py-1.5 text-primary outline-none focus:border-primary/40 min-w-0" />
-        {allowTransparent && (
-          <button onClick={() => onChange("transparent")} title="Sin fondo"
-            className="text-[9px] font-black px-2 py-1.5 rounded-lg border transition-all shrink-0"
-            style={{
-              borderColor: value === "transparent" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
-              color:       value === "transparent" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
-              background:  value === "transparent" ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-            }}>∅</button>
-        )}
-      </div>
-      {!hasEyeDropper && (
-        <p className="text-[8px] font-black uppercase tracking-widest pl-16"
-          style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-          Firefox: cuentagotas dentro del selector ↑
-        </p>
+    <div className="flex items-center gap-2">
+      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 w-14 shrink-0">{label}</span>
+      <input type="color"
+        value={value === "transparent" ? "#000000" : value}
+        onChange={e => onChange(e.target.value)}
+        className="w-8 h-8 rounded-lg border border-primary/20 cursor-pointer p-0.5 bg-transparent shrink-0" />
+      {/* Cuentagotas: siempre visible (nativo en Chrome, manual en Firefox) */}
+      {eyedropperBtn}
+      <input type="text" value={value}
+        onChange={e => {
+          const v = e.target.value;
+          if (v === "transparent" || /^#[0-9a-fA-F]{0,6}$/.test(v)) onChange(v);
+        }}
+        className="flex-1 text-[10px] font-mono bg-bg-main border border-primary/15 rounded-lg px-2 py-1.5 text-primary outline-none focus:border-primary/40 min-w-0" />
+      {allowTransparent && (
+        <button onClick={() => onChange("transparent")} title="Sin fondo"
+          className="text-[9px] font-black px-2 py-1.5 rounded-lg border transition-all shrink-0"
+          style={{
+            borderColor: value === "transparent" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
+            color:       value === "transparent" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+            background:  value === "transparent" ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+          }}>∅</button>
       )}
     </div>
   );
@@ -251,6 +247,102 @@ function CanvasEditorModal({
   const [tab,         setTab]         = useState<"img" | "txt">("img");
   const [isDirty,     setIsDirty]     = useState(false);
 
+  // ── Cuentagotas manual (Firefox y cualquier navegador) ───────────────────
+  // eyedropperTarget: qué campo de color recibirá el color extraído
+  type ColorField = "bg_color" | "text_color" | "text_bg_color";
+  const [eyedropperTarget, setEyedropperTarget] = useState<ColorField | null>(null);
+  const previewImgRef = useRef<HTMLImageElement>(null);
+  const previewBgRef  = useRef<HTMLDivElement>(null);
+
+  // Cuando está activo el cuentagotas, al mover el ratón sobre el preview
+  // se muestra un preview en tiempo real del color bajo el cursor
+  const [eyedropperHoverColor, setEyedropperHoverColor] = useState<string | null>(null);
+
+  const pickColorFromEvent = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!eyedropperTarget) return;
+
+    const container = e.currentTarget;
+    const rect      = container.getBoundingClientRect();
+    const relX      = (e.clientX - rect.left) / rect.width;
+    const relY      = (e.clientY - rect.top)  / rect.height;
+
+    // Creamos un canvas temporal del tamaño del contenedor
+    const cw = Math.round(rect.width);
+    const ch = Math.round(rect.height);
+    const offscreen = document.createElement("canvas");
+    offscreen.width  = cw;
+    offscreen.height = ch;
+    const ctx = offscreen.getContext("2d");
+    if (!ctx) return;
+
+    // 1. Fondo sólido
+    ctx.fillStyle = draft.bg_color;
+    ctx.fillRect(0, 0, cw, ch);
+
+    // 2. Imagen encima (si cargó y no tiene problemas CORS)
+    const img = previewImgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      try {
+        // Replicamos el posicionamiento CSS del preview
+        const iw = (draft.img_width / 100) * cw;
+        const ih = iw * (img.naturalHeight / img.naturalWidth);
+        const cx = (draft.img_x / 100) * cw - iw / 2;
+        const cy = (draft.img_y / 100) * ch - ih / 2;
+        ctx.save();
+        ctx.translate(cx + iw / 2, cy + ih / 2);
+        ctx.scale(draft.img_scale, draft.img_scale);
+        ctx.drawImage(img, -iw / 2, -ih / 2, iw, ih);
+        ctx.restore();
+      } catch {
+        // CORS bloqueó el drawImage — solo usamos el bg_color
+      }
+    }
+
+    const px = Math.round(relX * cw);
+    const py = Math.round(relY * ch);
+    const [r, g, b] = ctx.getImageData(px, py, 1, 1).data;
+    const hex = "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+
+    set({ [eyedropperTarget]: hex } as any);
+    setEyedropperTarget(null);
+    setEyedropperHoverColor(null);
+  }, [eyedropperTarget, draft]);
+
+  const hoverColorFromEvent = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!eyedropperTarget) return;
+    const container = e.currentTarget;
+    const rect      = container.getBoundingClientRect();
+    const relX      = (e.clientX - rect.left) / rect.width;
+    const relY      = (e.clientY - rect.top)  / rect.height;
+    const cw = Math.round(rect.width);
+    const ch = Math.round(rect.height);
+    const offscreen = document.createElement("canvas");
+    offscreen.width  = cw;
+    offscreen.height = ch;
+    const ctx = offscreen.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = draft.bg_color;
+    ctx.fillRect(0, 0, cw, ch);
+    const img = previewImgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      try {
+        const iw = (draft.img_width / 100) * cw;
+        const ih = iw * (img.naturalHeight / img.naturalWidth);
+        const cx = (draft.img_x / 100) * cw - iw / 2;
+        const cy = (draft.img_y / 100) * ch - ih / 2;
+        ctx.save();
+        ctx.translate(cx + iw / 2, cy + ih / 2);
+        ctx.scale(draft.img_scale, draft.img_scale);
+        ctx.drawImage(img, -iw / 2, -ih / 2, iw, ih);
+        ctx.restore();
+      } catch { /* CORS */ }
+    }
+    const px = Math.round(relX * cw);
+    const py = Math.round(relY * ch);
+    const [r, g, b] = ctx.getImageData(px, py, 1, 1).data;
+    setEyedropperHoverColor("#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join(""));
+  }, [eyedropperTarget, draft]);
+
   const set = useCallback((patch: Partial<Draft>) => {
     setDraft(prev => ({ ...prev, ...patch }));
     setIsDirty(true);
@@ -285,6 +377,14 @@ function CanvasEditorModal({
     onCancel();
   };
 
+  // Cancelar cuentagotas con Escape
+  useEffect(() => {
+    if (!eyedropperTarget) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setEyedropperTarget(null); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [eyedropperTarget]);
+
   const TABS = [
     { id: "img" as const, label: "Imagen", Icon: ImageLucide },
     { id: "txt" as const, label: "Texto",  Icon: Type        },
@@ -297,14 +397,16 @@ function CanvasEditorModal({
       <div className="flex-1 flex items-center justify-center p-4 md:p-8 overflow-hidden">
         <div className="relative w-full" style={{ maxWidth: `calc((100vh - 120px) / ${CANVAS_RATIO})` }}>
           <FixedCanvasInner
-            ref={null as any}
+            ref={previewBgRef as any}
             bg={draft.bg_color}
             style={{ borderRadius: 4, boxShadow: "0 0 0 1px rgba(255,255,255,0.1), 0 24px 80px rgba(0,0,0,0.6)" }}
           >
             {/* Imagen — preview en tiempo real */}
             <img
+              ref={previewImgRef}
               src={item.url_imagen}
               alt={titulo || "Obra"}
+              crossOrigin="anonymous"
               draggable={false}
               style={{
                 position: "absolute",
@@ -366,6 +468,40 @@ function CanvasEditorModal({
                 </span>
               </div>
             )}
+
+            {/* ── Overlay del cuentagotas manual ── */}
+            {eyedropperTarget && (
+              <div
+                className="absolute inset-0 z-30"
+                style={{ cursor: "crosshair" }}
+                onClick={pickColorFromEvent}
+                onMouseMove={hoverColorFromEvent}
+                onMouseLeave={() => setEyedropperHoverColor(null)}
+              >
+                {/* Instrucción */}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-none"
+                  style={{
+                    background: "rgba(0,0,0,0.65)", color: "white",
+                    backdropFilter: "blur(6px)", borderRadius: 20,
+                    padding: "4px 12px", fontSize: 10, fontWeight: 700,
+                    letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap",
+                  }}>
+                  Click para extraer color · Esc para cancelar
+                </div>
+                {/* Preview del color bajo el cursor */}
+                {eyedropperHoverColor && (
+                  <div className="absolute bottom-3 left-3 flex items-center gap-2 pointer-events-none"
+                    style={{
+                      background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)",
+                      borderRadius: 10, padding: "4px 10px 4px 6px",
+                    }}>
+                    <div className="w-5 h-5 rounded-md border border-white/20 shrink-0"
+                      style={{ background: eyedropperHoverColor }} />
+                    <span className="text-white text-[10px] font-mono">{eyedropperHoverColor}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </FixedCanvasInner>
         </div>
       </div>
@@ -410,7 +546,8 @@ function CanvasEditorModal({
             <>
               <section className="space-y-2">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Fondo de sección</p>
-                <ColorRow label="Color" value={draft.bg_color} onChange={v => set({ bg_color: v })} />
+                <ColorRow label="Color" value={draft.bg_color} onChange={v => set({ bg_color: v })}
+                  onEyedropper={() => setEyedropperTarget("bg_color")} />
               </section>
 
               <hr style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
@@ -519,8 +656,10 @@ function CanvasEditorModal({
 
               <section className="space-y-2.5">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Colores del texto</p>
-                <ColorRow label="Texto" value={draft.text_color}    onChange={v => set({ text_color: v })} />
-                <ColorRow label="Fondo" value={draft.text_bg_color} onChange={v => set({ text_bg_color: v })} allowTransparent />
+                <ColorRow label="Texto" value={draft.text_color}    onChange={v => set({ text_color: v })}
+                  onEyedropper={() => setEyedropperTarget("text_color")} />
+                <ColorRow label="Fondo" value={draft.text_bg_color} onChange={v => set({ text_bg_color: v })} allowTransparent
+                  onEyedropper={() => setEyedropperTarget("text_bg_color")} />
               </section>
 
               <hr style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
