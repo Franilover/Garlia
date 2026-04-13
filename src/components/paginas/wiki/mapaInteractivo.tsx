@@ -5,6 +5,13 @@ import { X, MapPin, Loader2, ChevronRight, ArrowLeft, House, Save, Edit3, ImageP
 import QuickPinchZoom, { make3dTransformValue } from "react-quick-pinch-zoom";
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from '@/hooks/auth/useIsAdmin';
+import { ModalDetalle } from "@/components/wiki/personal/PersonalComponents";
+
+type EntidadModal =
+  | { tipo: "personaje"; data: any }
+  | { tipo: "criatura";  data: any }
+  | { tipo: "item";      data: any }
+  | { tipo: "item_inv";  data: any };
 
 type ToastType = "success" | "error";
 
@@ -75,6 +82,8 @@ export default function MapaInteractivo() {
   // ── Personajes del reino seleccionado y desbloqueados por el usuario ──────
   const [personajesReino,       setPersonajesReino]       = useState<any[]>([]);
   const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<Set<string>>(new Set());
+  // ── Modal de detalle de personaje (igual que en Personal) ─────────────────
+  const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
 
   const showToast = (message: string, type: ToastType) => setToast({ message, type });
 
@@ -115,7 +124,8 @@ export default function MapaInteractivo() {
 
     const [detallesRes, personajesRes] = await Promise.all([
       supabase.from("reino_detalles").select("*").eq("reino_id", reino.id),
-      supabase.from("personajes").select("id, nombre, img_url, especie").eq("reino", reino.nombre),
+      // Traer también el campo "sobre" para poder mostrarlo en el modal
+      supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
     ]);
 
     if (detallesRes.error) console.error(detallesRes.error);
@@ -124,6 +134,24 @@ export default function MapaInteractivo() {
     if (!personajesRes.error) setPersonajesReino(personajesRes.data ?? []);
 
     setVistaActual("reino");
+  };
+
+  // ── Abrir modal con la info del personaje desbloqueado ────────────────────
+  const handlePersonajeClick = (p: any) => {
+    setModalEntidad({
+      tipo: "personaje",
+      data: {
+        tipo: "personaje",
+        entidad_id: p.id,
+        nombre: p.nombre,
+        imagen_url: p.img_url,
+        descripcion: p.sobre,
+        reino: p.reino,
+        especie: p.especie,
+        // fecha_descubrimiento no es necesario para el modal, pero la interfaz lo pide opcional
+        fecha_descubrimiento: "",
+      },
+    });
   };
 
   const handleMapClick = (e) => {
@@ -226,6 +254,11 @@ export default function MapaInteractivo() {
 
   return (
     <div className="flex flex-col md:flex-row w-full bg-bg-main overflow-hidden">
+
+      {/* ── Modal de detalle de personaje ── */}
+      {modalEntidad && (
+        <ModalDetalle entidad={modalEntidad} onClose={() => setModalEntidad(null)} />
+      )}
 
       {}
       <AnimatePresence>
@@ -520,9 +553,11 @@ export default function MapaInteractivo() {
                         {personajesReino.map(p => {
                           const desbloqueado = personajesDesbloqueados.has(p.id);
                           return (
-                            <div
+                            <button
                               key={p.id}
-                              className="flex items-center gap-3 p-2.5 transition-all"
+                              // Solo los desbloqueados abren el modal; los bloqueados no tienen acción
+                              onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
+                              className="flex items-center gap-3 p-2.5 w-full text-left transition-all"
                               style={{
                                 borderRadius: "var(--radius-btn)",
                                 background: desbloqueado
@@ -530,6 +565,7 @@ export default function MapaInteractivo() {
                                   : "color-mix(in srgb, var(--primary) 2%, transparent)",
                                 border: `1px solid color-mix(in srgb, var(--primary) ${desbloqueado ? "12%" : "6%"}, transparent)`,
                                 opacity: desbloqueado ? 1 : 0.55,
+                                cursor: desbloqueado ? "pointer" : "default",
                               }}
                             >
                               {/* Avatar */}
@@ -571,7 +607,7 @@ export default function MapaInteractivo() {
 
                               {/* Badge estado */}
                               {desbloqueado ? (
-                                <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide"
+                                <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide flex items-center gap-1"
                                   style={{
                                     borderRadius: "var(--radius-btn)",
                                     background: "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -579,6 +615,7 @@ export default function MapaInteractivo() {
                                     border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
                                   }}>
                                   Conocido
+                                  <ChevronRight size={8} />
                                 </span>
                               ) : (
                                 <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide"
@@ -591,7 +628,7 @@ export default function MapaInteractivo() {
                                   ???
                                 </span>
                               )}
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
