@@ -1334,12 +1334,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
               </div>
             </div>
             <button
-              onClick={async () => {
-                const nuevo = { ...form, oculto: !form.oculto };
-                setForm(nuevo);
-                await supabase.from("reino_detalles").update({ oculto: nuevo.oculto }).eq("id", form.id);
-                onSaved(nuevo);
-              }}
+              onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
               className={`relative w-10 h-5 rounded-full transition-all border ${
                 form.oculto
                   ? "bg-orange-400/20 border-orange-400/40"
