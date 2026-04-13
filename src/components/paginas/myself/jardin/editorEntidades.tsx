@@ -61,6 +61,7 @@ type Reino = {
   mapa_url?: string;
   coord_x?: number;
   coord_y?: number;
+  oculto?: boolean;
 };
 
 type ReinoDetalle = {
