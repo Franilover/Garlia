@@ -146,7 +146,7 @@ function PanelSliderInner({
   };
 
   return (
-    <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100svh-64px)] md:h-svh">
+    <div style={{ width: "100%", display: "flex", flexDirection: "column" }} className="h-[calc(100svh-56px)] md:h-svh">
       <nav style={{ ...navStyle, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 32px", position: "relative", zIndex: 50 }}>
         <div style={pillsWrapperStyle}>
           {panels.map((p, i) => {

@@ -60,7 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <DataProvider>
             <ThemeProvider>
               <LightboxProvider>
-                <div className="flex-grow md:pl-[68px]">
+                <div className="flex-grow pb-[56px] md:pb-0 md:pl-[68px]">
                   <AppLogic>
                     {children}
                   </AppLogic>
