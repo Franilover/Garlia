@@ -24,10 +24,10 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   );
 }
 
-const Marker = ({ x, y, info, onClick, tipo, editMode }: any) => (
+const Marker = ({ x, y, info, onClick, tipo, editMode, oculto }: any) => (
   <div
     className="absolute z-20 flex flex-col items-center"
-    style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -50%)" }}
+    style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -50%)", opacity: oculto ? 0.45 : 1 }}
   >
     <div className="mb-1 bg-primary text-btn-text text-[9px] font-black uppercase px-2 py-0.5 shadow-lg whitespace-nowrap pointer-events-none" style={{borderRadius:"var(--radius-btn)",border:"1px solid color-mix(in srgb, var(--btn-text) 20%, transparent)"}}>
       {info}
@@ -38,6 +38,11 @@ const Marker = ({ x, y, info, onClick, tipo, editMode }: any) => (
     >
       {editMode && (
         <div className="absolute -top-1 -right-1 z-10 w-3 h-3 bg-yellow-400 rounded-full" style={{border:"1px solid color-mix(in srgb, var(--btn-text) 80%, transparent)"}} />
+      )}
+      {editMode && oculto && (
+        <div className="absolute -bottom-1 -left-1 z-10 w-3 h-3 bg-orange-400 rounded-full flex items-center justify-center" style={{border:"1px solid color-mix(in srgb, var(--btn-text) 80%, transparent)"}}>
+          <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </div>
       )}
       <div className="absolute w-5 h-5 bg-primary/20 rounded-full animate-ping" />
       <div className="w-4 h-4 bg-primary rounded-full border-2 shadow-md transition-all flex items-center justify-center" style={{borderColor:"color-mix(in srgb, var(--btn-text) 80%, transparent)","--hover-bg":"var(--white-custom)"} as any}>
@@ -175,6 +180,7 @@ export default function MapaInteractivo() {
               descripcion: p.descripcion,
               coord_x: p.coord_x,
               coord_y: p.coord_y,
+              oculto: p.oculto ?? false,
             }).eq("id", p.id)
           )
         );
@@ -314,8 +320,8 @@ export default function MapaInteractivo() {
                     <Marker key={reino.id} x={reino.coord_x} y={reino.coord_y} info={reino.nombre} tipo="reino" editMode={editMode} onClick={() => handleReinoClick(reino)} />
                   ))
                 ) : (
-                  detallesReino.map(punto => (
-                    <Marker key={punto.id} x={punto.coord_x} y={punto.coord_y} info={punto.nombre} tipo="detalle" editMode={editMode} onClick={() => setPuntoSeleccionado(punto)} />
+                  detallesReino.filter(punto => editMode || !punto.oculto).map(punto => (
+                    <Marker key={punto.id} x={punto.coord_x} y={punto.coord_y} info={punto.nombre} tipo="detalle" editMode={editMode} oculto={punto.oculto} onClick={() => setPuntoSeleccionado(punto)} />
                   ))
                 )
               )}
