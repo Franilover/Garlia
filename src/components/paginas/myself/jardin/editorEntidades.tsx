@@ -13,7 +13,6 @@ import { normalize } from "@/components/templates/EstudioTemplates";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
-import { useAuth } from "@/providers/AuthProvider";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -452,10 +451,9 @@ function BloqueCapsNarrados({ personajeId }: { personajeId: string }) {
 
 // ─── Barra de acciones sticky ─────────────────────────────────────────────────
 
-function BarraAcciones({ status, onSave, onDelete, isAdmin }: {
-  status: SaveStatus; onSave: () => void; onDelete: () => void; isAdmin: boolean;
+function BarraAcciones({ status, onSave, onDelete }: {
+  status: SaveStatus; onSave: () => void; onDelete: () => void;
 }) {
-  if (!isAdmin) return null;
   return (
     <div
       className="shrink-0 sticky bottom-0 z-10 px-5 py-3 flex items-center justify-between gap-3 border-t border-primary/8"
@@ -478,8 +476,8 @@ function BarraAcciones({ status, onSave, onDelete, isAdmin }: {
 
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 
-function EditorPersonaje({ item, onSaved, onDeleted, isAdmin }: {
-  item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; isAdmin: boolean;
+function EditorPersonaje({ item, onSaved, onDeleted }: {
+  item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -583,7 +581,7 @@ function EditorPersonaje({ item, onSaved, onDeleted, isAdmin }: {
           <BloqueCapsNarrados personajeId={form.id} />
         </div>
 
-        <BarraAcciones status={status} onSave={save} onDelete={del} isAdmin={isAdmin} />
+        <BarraAcciones status={status} onSave={save} onDelete={del} />
       </div>
 
       {/* ── Columna derecha: imagen de cuerpo full-height ── */}
@@ -607,8 +605,8 @@ function EditorPersonaje({ item, onSaved, onDeleted, isAdmin }: {
 
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 
-function EditorCriatura({ item, onSaved, onDeleted, isAdmin }: {
-  item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void; isAdmin: boolean;
+function EditorCriatura({ item, onSaved, onDeleted }: {
+  item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -712,7 +710,6 @@ function EditorCriatura({ item, onSaved, onDeleted, isAdmin }: {
                   variante={v}
                   onSaved={updated => setVariantes(prev => prev.map(x => x.id === updated.id ? updated : x))}
                   onDeleted={id => setVariantes(prev => prev.filter(x => x.id !== id))}
-                  isAdmin={isAdmin}
                 />
               ))}
             </div>
@@ -751,7 +748,7 @@ function EditorCriatura({ item, onSaved, onDeleted, isAdmin }: {
           </div>
         </div>
 
-        <BarraAcciones status={status} onSave={save} onDelete={del} isAdmin={isAdmin} />
+        <BarraAcciones status={status} onSave={save} onDelete={del} />
       </div>
 
       {/* Panel de personajes de esta especie */}
@@ -767,8 +764,8 @@ function EditorCriatura({ item, onSaved, onDeleted, isAdmin }: {
 
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
-function EditorItem({ item, onSaved, onDeleted, isAdmin }: {
-  item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; isAdmin: boolean;
+function EditorItem({ item, onSaved, onDeleted }: {
+  item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void;
 }) {
   const [form,   setForm]   = useState<Item>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -830,7 +827,7 @@ function EditorItem({ item, onSaved, onDeleted, isAdmin }: {
         <CampoArea label="Descripción" value={form.descripcion ?? ""} onChange={field("descripcion")} rows={6} placeholder="Qué es, qué hace, su historia…" />
       </div>
 
-      <BarraAcciones status={status} onSave={save} onDelete={del} isAdmin={isAdmin} />
+      <BarraAcciones status={status} onSave={save} onDelete={del} />
     </div>
   );
 }
@@ -996,7 +993,7 @@ function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
             <BloqueCapsNarrados personajeId={form.id} />
           </div>
 
-          <BarraAcciones status={status} onSave={save} onDelete={async () => {}} isAdmin={isAdmin} />
+          <BarraAcciones status={status} onSave={save} onDelete={async () => {}} />
         </div>
 
         {/* Columna derecha: imagen de cuerpo */}
@@ -1230,8 +1227,8 @@ function MapaPuntosReino({ mapaUrl, detalles, onDetallesChange }: {
 
 // ─── DetalleEditor ────────────────────────────────────────────────────────────
 
-function DetalleEditor({ detalle, onSaved, onDeleted, isAdmin }: {
-  detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void; isAdmin: boolean;
+function DetalleEditor({ detalle, onSaved, onDeleted }: {
+  detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void;
 }) {
   const [form, setForm] = useState(detalle);
   const [expanded, setExpanded] = useState(false);
@@ -1299,19 +1296,17 @@ function DetalleEditor({ detalle, onSaved, onDeleted, isAdmin }: {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* Toggle visibilidad */}
-          {isAdmin && (
-            <button
-              onClick={toggleOculto}
-              title={form.oculto ? "Mostrar en mapa" : "Ocultar del mapa"}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
-                form.oculto
-                  ? "text-orange-400 bg-orange-400/10 border-orange-400/30 hover:bg-orange-400/20"
-                  : "text-primary/50 bg-primary/5 border-primary/15 hover:text-primary hover:bg-primary/10"
-              }`}
-            >
-              {form.oculto ? <><EyeOff size={11} /> Oculto</> : <><Eye size={11} /> Visible</>}
-            </button>
-          )}
+          <button
+            onClick={toggleOculto}
+            title={form.oculto ? "Mostrar en mapa" : "Ocultar del mapa"}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
+              form.oculto
+                ? "text-orange-400 bg-orange-400/10 border-orange-400/30 hover:bg-orange-400/20"
+                : "text-primary/50 bg-primary/5 border-primary/15 hover:text-primary hover:bg-primary/10"
+            }`}
+          >
+            {form.oculto ? <><EyeOff size={11} /> Oculto</> : <><Eye size={11} /> Visible</>}
+          </button>
           <span className="text-[9px] font-bold text-primary/30 bg-primary/5 px-1.5 py-0.5 rounded-lg border border-primary/10">
             {(form.coord_x ?? 0).toFixed(1)},{(form.coord_y ?? 0).toFixed(1)}
           </span>
@@ -1339,31 +1334,29 @@ function DetalleEditor({ detalle, onSaved, onDeleted, isAdmin }: {
           </div>
 
           {/* Toggle visibilidad en el mapa */}
-          {isAdmin && (
-            <div className="flex items-center justify-between px-1 py-2 rounded-xl border border-primary/8 bg-primary/3">
-              <div className="flex items-center gap-2">
-                {form.oculto ? <EyeOff size={13} className="text-orange-400" /> : <Eye size={13} className="text-primary/40" />}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Visibilidad en el mapa</p>
-                  <p className="text-[9px] text-primary/35">{form.oculto ? "Este punto no aparece para los usuarios" : "Este punto es visible en el mapa"}</p>
-                </div>
+          <div className="flex items-center justify-between px-1 py-2 rounded-xl border border-primary/8 bg-primary/3">
+            <div className="flex items-center gap-2">
+              {form.oculto ? <EyeOff size={13} className="text-orange-400" /> : <Eye size={13} className="text-primary/40" />}
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Visibilidad en el mapa</p>
+                <p className="text-[9px] text-primary/35">{form.oculto ? "Este punto no aparece para los usuarios" : "Este punto es visible en el mapa"}</p>
               </div>
-              <button
-                onClick={toggleOculto}
-                className={`relative w-10 h-5 rounded-full transition-all border ${
-                  form.oculto
-                    ? "bg-orange-400/20 border-orange-400/40"
-                    : "bg-primary/15 border-primary/20"
-                }`}
-              >
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${
-                  form.oculto
-                    ? "left-5 bg-orange-400"
-                    : "left-0.5 bg-primary/50"
-                }`} />
-              </button>
             </div>
-          )}
+            <button
+              onClick={toggleOculto}
+              className={`relative w-10 h-5 rounded-full transition-all border ${
+                form.oculto
+                  ? "bg-orange-400/20 border-orange-400/40"
+                  : "bg-primary/15 border-primary/20"
+              }`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${
+                form.oculto
+                  ? "left-5 bg-orange-400"
+                  : "left-0.5 bg-primary/50"
+              }`} />
+            </button>
+          </div>
 
           <div className="flex items-center justify-between pt-1">
             <button onClick={handleDelete} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all">
@@ -1386,8 +1379,8 @@ function DetalleEditor({ detalle, onSaved, onDeleted, isAdmin }: {
 
 // ─── VarianteEditor ───────────────────────────────────────────────────────────
 
-function VarianteEditor({ variante, onSaved, onDeleted, isAdmin }: {
-  variante: CriaturaVariante; onSaved: (v: CriaturaVariante) => void; onDeleted: (id: string) => void; isAdmin: boolean;
+function VarianteEditor({ variante, onSaved, onDeleted }: {
+  variante: CriaturaVariante; onSaved: (v: CriaturaVariante) => void; onDeleted: (id: string) => void;
 }) {
   const [form, setForm] = useState(variante);
   const [expanded, setExpanded] = useState(false);
@@ -1504,8 +1497,8 @@ function VarianteEditor({ variante, onSaved, onDeleted, isAdmin }: {
 
 // ─── EditorReino ──────────────────────────────────────────────────────────────
 
-function EditorReino({ item, onSaved, onDeleted, isAdmin }: {
-  item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void; isAdmin: boolean;
+function EditorReino({ item, onSaved, onDeleted }: {
+  item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void;
 }) {
   const [form, setForm] = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -1586,33 +1579,31 @@ function EditorReino({ item, onSaved, onDeleted, isAdmin }: {
           <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
 
           {/* Toggle visibilidad del reino */}
-          {isAdmin && (
-            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-primary/8 bg-primary/3">
-              <div className="flex items-center gap-2">
-                {form.oculto ? <EyeOff size={13} className="text-orange-400" /> : <Eye size={13} className="text-primary/40" />}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Visibilidad en el mapa</p>
-                  <p className="text-[9px] text-primary/35">
-                    {form.oculto ? "Este reino no aparece en el mapa interactivo" : "Este reino es visible en el mapa"}
-                  </p>
-                </div>
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-primary/8 bg-primary/3">
+            <div className="flex items-center gap-2">
+              {form.oculto ? <EyeOff size={13} className="text-orange-400" /> : <Eye size={13} className="text-primary/40" />}
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Visibilidad en el mapa</p>
+                <p className="text-[9px] text-primary/35">
+                  {form.oculto ? "Este reino no aparece en el mapa interactivo" : "Este reino es visible en el mapa"}
+                </p>
               </div>
-              <button
-                onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
-                className={`relative w-10 h-5 rounded-full transition-all border ${
-                  form.oculto
-                    ? "bg-orange-400/20 border-orange-400/40"
-                    : "bg-primary/15 border-primary/20"
-                }`}
-              >
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${
-                  form.oculto
-                    ? "left-5 bg-orange-400"
-                    : "left-0.5 bg-primary/50"
-                }`} />
-              </button>
             </div>
-          )}
+            <button
+              onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
+              className={`relative w-10 h-5 rounded-full transition-all border ${
+                form.oculto
+                  ? "bg-orange-400/20 border-orange-400/40"
+                  : "bg-primary/15 border-primary/20"
+              }`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${
+                form.oculto
+                  ? "left-5 bg-orange-400"
+                  : "left-0.5 bg-primary/50"
+              }`} />
+            </button>
+          </div>
 
           <div className="h-px bg-primary/8" />
 
@@ -1637,7 +1628,6 @@ function EditorReino({ item, onSaved, onDeleted, isAdmin }: {
                   detalle={det}
                   onSaved={updated => setDetalles(prev => prev.map(d => d.id === updated.id ? updated : d))}
                   onDeleted={id => setDetalles(prev => prev.filter(d => d.id !== id))}
-                  isAdmin={isAdmin}
                 />
               ))}
             </div>
@@ -1676,7 +1666,7 @@ function EditorReino({ item, onSaved, onDeleted, isAdmin }: {
           </div>
         </div>
 
-        <BarraAcciones status={status} onSave={save} onDelete={del} isAdmin={isAdmin} />
+        <BarraAcciones status={status} onSave={save} onDelete={del} />
       </div>
 
       {/* Panel de personajes del reino */}
@@ -1761,8 +1751,6 @@ export default function EditorEntidades() {
   const [showNueva,   setShowNueva]   = useState(false);
 
   const { items, setItems, loading, isOffline, refetch } = useEntidades<any>(tab);
-  const { perfil } = useAuth() as any;
-  const isAdmin = perfil?.rol === "admin";
 
   // Persistir tab y selectedId cada vez que cambian
   useEffect(() => {
@@ -1813,12 +1801,10 @@ export default function EditorEntidades() {
           );
         })}
       </div>
-      {isAdmin && (
-        <button onClick={() => setShowNueva(true)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
-          <Plus size={12} /> Nueva entrada
-        </button>
-      )}
+      <button onClick={() => setShowNueva(true)}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
+        <Plus size={12} /> Nueva entrada
+      </button>
     </>
   );
 
@@ -1855,10 +1841,10 @@ export default function EditorEntidades() {
         <div className="flex-1 flex min-h-0 overflow-hidden">
           {selected ? (
             <>
-              {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} isAdmin={isAdmin} />}
-              {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} isAdmin={isAdmin} />}
-              {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} isAdmin={isAdmin} />}
-              {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} isAdmin={isAdmin} />}
+              {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} />}
+              {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} />}
+              {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} />}
+              {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} />}
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-foreground/20">
