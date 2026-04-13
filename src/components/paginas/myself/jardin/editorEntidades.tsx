@@ -6,7 +6,7 @@ import {
   Users, Bug, Package, Map, MapPin, Check, RefreshCw,
   AlertCircle, CheckCircle2,
   BookOpen, Mic2, ChevronDown, Image as ImageIcon, X,
-  UserCircle2, Maximize2,
+  UserCircle2, Maximize2, Eye, EyeOff,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { normalize } from "@/components/templates/EstudioTemplates";
@@ -70,6 +70,7 @@ type ReinoDetalle = {
   descripcion?: string;
   coord_x?: number;
   coord_y?: number;
+  oculto?: boolean;
 };
 
 type CapituloNarrado = {
@@ -1238,7 +1239,13 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
   const handleSave = async () => {
     setStatus("saving");
     try {
-      const { error } = await supabase.from("reino_detalles").update(form).eq("id", form.id);
+      const { error } = await supabase.from("reino_detalles").update({
+        nombre: form.nombre,
+        descripcion: form.descripcion,
+        coord_x: form.coord_x,
+        coord_y: form.coord_y,
+        oculto: form.oculto ?? false,
+      }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
       onSaved(form);
@@ -1258,10 +1265,23 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
       <ConfirmModal />
       <div className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer select-none" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <MapPin size={12} className="text-primary/40 shrink-0" />
-          <span className="text-[11px] font-black uppercase text-primary tracking-widest truncate">{form.nombre}</span>
+          <MapPin size={12} className={`shrink-0 ${form.oculto ? "text-primary/20" : "text-primary/40"}`} />
+          <span className={`text-[11px] font-black uppercase tracking-widest truncate ${form.oculto ? "text-primary/30 line-through" : "text-primary"}`}>{form.nombre}</span>
+          {form.oculto && (
+            <span className="shrink-0 flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-orange-400/70 bg-orange-400/10 border border-orange-400/20 px-1.5 py-0.5 rounded-lg">
+              <EyeOff size={8} /> Oculto
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {/* Toggle visibilidad — no propagar el click al acordeón */}
+          <button
+            onClick={e => { e.stopPropagation(); setForm(f => ({ ...f, oculto: !f.oculto })); }}
+            title={form.oculto ? "Mostrar en mapa" : "Ocultar del mapa"}
+            className={`p-1 rounded-lg transition-all ${form.oculto ? "text-orange-400 bg-orange-400/10 hover:bg-orange-400/20" : "text-primary/30 hover:text-primary/60 hover:bg-primary/8"}`}
+          >
+            {form.oculto ? <EyeOff size={12} /> : <Eye size={12} />}
+          </button>
           <span className="text-[9px] font-bold text-primary/30 bg-primary/5 px-1.5 py-0.5 rounded-lg border border-primary/10">
             {(form.coord_x ?? 0).toFixed(1)},{(form.coord_y ?? 0).toFixed(1)}
           </span>
