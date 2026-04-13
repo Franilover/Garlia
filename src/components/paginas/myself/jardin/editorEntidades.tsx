@@ -1250,6 +1250,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
 
   const handleSave = async () => {
     setStatus("saving");
+    console.log("🔍 handleSave form.oculto:", form.oculto, "| form completo:", form);
     try {
       const { error } = await supabase.from("reino_detalles").update({
         nombre: form.nombre,
@@ -1334,7 +1335,12 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
               </div>
             </div>
             <button
-              onClick={() => setForm(f => ({ ...f, oculto: !f.oculto }))}
+              onClick={async () => {
+                const nuevo = { ...form, oculto: !form.oculto };
+                setForm(nuevo);
+                await supabase.from("reino_detalles").update({ oculto: nuevo.oculto }).eq("id", form.id);
+                onSaved(nuevo);
+              }}
               className={`relative w-10 h-5 rounded-full transition-all border ${
                 form.oculto
                   ? "bg-orange-400/20 border-orange-400/40"
