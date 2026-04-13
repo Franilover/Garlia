@@ -191,6 +191,7 @@ export default function MapaInteractivo() {
           descripcion: reinoSeleccionado.descripcion,
           coord_x: reinoSeleccionado.coord_x,
           coord_y: reinoSeleccionado.coord_y,
+          oculto: reinoSeleccionado.oculto ?? false,
         }).eq("id", reinoSeleccionado.id);
         if (error) throw error;
         setReinos(prev => prev.map(r => r.id === reinoSeleccionado.id ? reinoSeleccionado : r));
@@ -316,8 +317,8 @@ export default function MapaInteractivo() {
               />
               {!cargandoImagen && (
                 vistaActual === "global" ? (
-                  reinos.map(reino => (
-                    <Marker key={reino.id} x={reino.coord_x} y={reino.coord_y} info={reino.nombre} tipo="reino" editMode={editMode} onClick={() => handleReinoClick(reino)} />
+                  reinos.filter(reino => editMode || !reino.oculto).map(reino => (
+                    <Marker key={reino.id} x={reino.coord_x} y={reino.coord_y} info={reino.nombre} tipo="reino" editMode={editMode} oculto={reino.oculto} onClick={() => handleReinoClick(reino)} />
                   ))
                 ) : (
                   detallesReino.filter(punto => editMode || !punto.oculto).map(punto => (
@@ -391,6 +392,30 @@ export default function MapaInteractivo() {
                     ))}
                   </div>
                 </div>
+
+                {/* Toggle visibilidad reino */}
+                {!puntoSeleccionado && (
+                  <div className="flex items-center justify-between px-3 py-2.5 border border-primary/10 bg-primary/3" style={{borderRadius:"var(--radius-btn)"}}>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Visibilidad en el mapa</p>
+                      <p className="text-[9px] text-primary/35 mt-0.5">
+                        {reinoSeleccionado.oculto ? "Este reino no aparece para usuarios" : "Este reino es visible en el mapa"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setReinoSeleccionado(r => ({ ...r, oculto: !r.oculto }))}
+                      className={`relative w-10 h-5 rounded-full transition-all border ${
+                        reinoSeleccionado.oculto
+                          ? "bg-orange-400/20 border-orange-400/40"
+                          : "bg-primary/15 border-primary/20"
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${
+                        reinoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-primary/50"
+                      }`} />
+                    </button>
+                  </div>
+                )}
 
                 {}
                 {!puntoSeleccionado && (
