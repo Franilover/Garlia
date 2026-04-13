@@ -1274,13 +1274,17 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {/* Toggle visibilidad — no propagar el click al acordeón */}
+          {/* Toggle visibilidad */}
           <button
             onClick={e => { e.stopPropagation(); setForm(f => ({ ...f, oculto: !f.oculto })); }}
             title={form.oculto ? "Mostrar en mapa" : "Ocultar del mapa"}
-            className={`p-1 rounded-lg transition-all ${form.oculto ? "text-orange-400 bg-orange-400/10 hover:bg-orange-400/20" : "text-primary/30 hover:text-primary/60 hover:bg-primary/8"}`}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
+              form.oculto
+                ? "text-orange-400 bg-orange-400/10 border-orange-400/30 hover:bg-orange-400/20"
+                : "text-primary/50 bg-primary/5 border-primary/15 hover:text-primary hover:bg-primary/10"
+            }`}
           >
-            {form.oculto ? <EyeOff size={12} /> : <Eye size={12} />}
+            {form.oculto ? <><EyeOff size={11} /> Oculto</> : <><Eye size={11} /> Visible</>}
           </button>
           <span className="text-[9px] font-bold text-primary/30 bg-primary/5 px-1.5 py-0.5 rounded-lg border border-primary/10">
             {(form.coord_x ?? 0).toFixed(1)},{(form.coord_y ?? 0).toFixed(1)}
@@ -1307,6 +1311,37 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
               placeholder="Escribe el lore aquí..."
             />
           </div>
+
+          {/* Toggle visibilidad en el mapa */}
+          <div className="flex items-center justify-between px-1 py-2 rounded-xl border border-primary/8 bg-primary/3">
+            <div className="flex items-center gap-2">
+              {form.oculto ? <EyeOff size={13} className="text-orange-400" /> : <Eye size={13} className="text-primary/40" />}
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Visibilidad en el mapa</p>
+                <p className="text-[9px] text-primary/35">{form.oculto ? "Este punto no aparece para los usuarios" : "Este punto es visible en el mapa"}</p>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                const nuevo = { ...form, oculto: !form.oculto };
+                setForm(nuevo);
+                await supabase.from("reino_detalles").update({ oculto: nuevo.oculto }).eq("id", form.id);
+                onSaved(nuevo);
+              }}
+              className={`relative w-10 h-5 rounded-full transition-all border ${
+                form.oculto
+                  ? "bg-orange-400/20 border-orange-400/40"
+                  : "bg-primary/15 border-primary/20"
+              }`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${
+                form.oculto
+                  ? "left-5 bg-orange-400"
+                  : "left-0.5 bg-primary/50"
+              }`} />
+            </button>
+          </div>
+
           <div className="flex items-center justify-between pt-1">
             <button onClick={handleDelete} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all">
               <Trash2 size={10} /> Eliminar
