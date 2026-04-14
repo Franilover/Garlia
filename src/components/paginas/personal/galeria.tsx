@@ -1,8 +1,7 @@
-import { MotionArticle } from '@/components/ui/Motion';
 "use client";
+import { MotionArticle, MotionDiv, MotionH1 } from '@/components/ui/Motion';
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MotionDiv, MotionH1 } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { useAuth } from "@/providers/AuthProvider";
