@@ -1530,7 +1530,8 @@ const ModalEditarLibro = ({
         portada_url: portada.trim(),
         estado,
         visibilidad,
-        fecha_publicacion: visibilidad === "programado" ? (fechaLibro || undefined) : undefined,
+        // ✅ null limpia la columna en Supabase; undefined causa error 400
+        fecha_publicacion: visibilidad === "programado" ? (fechaLibro || null) : null,
       };
       await libroUpdateMeta(libro.id, fields);
       onSaved({ ...libro, ...fields });
