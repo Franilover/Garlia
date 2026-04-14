@@ -1,5 +1,5 @@
 "use client";
-import { MotionDiv } from '@/components/ui/Motion';
+import { MotionButton } from '@/components/ui/Motion';
 import React from "react";
 import { ChevronRight as ChevronR } from "lucide-react";
 import { useToast } from "@/hooks/ui/useToast";

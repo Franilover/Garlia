@@ -1,5 +1,5 @@
 "use client";
-import { MotionDiv } from '@/components/ui/Motion';
+import { MotionSpan } from '@/components/ui/Motion';
 import React, { useState, useEffect, useRef } from "react";
 import { Music2 } from "lucide-react";
 
