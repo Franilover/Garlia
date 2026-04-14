@@ -192,7 +192,7 @@ export const GestionPersonal = () => {
         <div className="flex-1 min-h-0 flex flex-col">
           <AnimatePresence mode="wait">
             {modoCalendario === "mes" ? (
-              <motion.div
+              <MotionDiv
                 key="mes"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -212,9 +212,9 @@ export const GestionPersonal = () => {
                   isAddingEvento={isAddingEvento}
                   handleAddEvento={handleAddEventoMes}
                 />
-              </motion.div>
+              </MotionDiv>
             ) : (
-              <motion.div
+              <MotionDiv
                 key="semana"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -228,7 +228,7 @@ export const GestionPersonal = () => {
                   isAddingEvento={isAddingEvento}
                   onAddEvento={handleAddEventoSemanal}
                 />
-              </motion.div>
+              </MotionDiv>
             )}
           </AnimatePresence>
         </div>

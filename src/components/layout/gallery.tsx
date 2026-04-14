@@ -40,7 +40,7 @@ export const GalleryItem = React.memo(({ src, alt, children, onClick, onExpand, 
   }, [onClick, onExpand]);
 
   return (
-    <motion.div
+    <MotionDiv
       layout="position"
       onClick={handleInteraction}
       initial={{ opacity: 0, scale: 0.9 }}
@@ -90,7 +90,7 @@ export const GalleryItem = React.memo(({ src, alt, children, onClick, onExpand, 
       {color && (
         <div className="absolute top-0 w-full h-1.5 opacity-40 z-40" style={{ backgroundColor: color }} />
       )}
-    </motion.div>
+    </MotionDiv>
   );
 });
 GalleryItem.displayName = 'GalleryItem';

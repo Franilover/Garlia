@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import SobreMi from "@/components/paginas/personal/sobre-mi";
 
 export default function Home() {

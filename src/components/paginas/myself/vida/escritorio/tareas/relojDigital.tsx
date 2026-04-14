@@ -220,7 +220,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
     <div className="relative z-10 shrink-0">
 
       {/* ── Tarjeta reloj ──────────────────────────────────────────────── */}
-      <motion.div
+      <MotionDiv
         layout
         onClick={() => setPomPantallaCompleta(true)}
         className="flex flex-col sm:flex-row items-center gap-6 bg-white-custom text-primary px-6 py-4 rounded-[var(--radius-card)] shadow-xl shadow-primary/5 border border-primary/10 cursor-pointer hover:border-primary/30 transition-all select-none"
@@ -243,12 +243,12 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
           <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 italic">Pomodoro</span>
           <ChevronLeft size={14} className="text-primary/30 -rotate-90" />
         </div>
-      </motion.div>
+      </MotionDiv>
 
       {/* ── Overlay pantalla completa ───────────────────────────────────── */}
       <AnimatePresence>
         {pomPantallaCompleta && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -484,7 +484,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>

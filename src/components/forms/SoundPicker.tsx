@@ -114,7 +114,7 @@ export function SoundPicker({ open, onClose, onInsert }: SoundPickerProps) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-black/20">
-      <motion.div 
+      <MotionDiv 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="bg-white w-full max-w-2xl h-[500px] rounded-[32px] shadow-2xl border border-[#6B5E70]/10 flex flex-col overflow-hidden"
@@ -201,7 +201,7 @@ export function SoundPicker({ open, onClose, onInsert }: SoundPickerProps) {
             </button>
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
     </div>
   );
 }

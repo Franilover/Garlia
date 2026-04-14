@@ -278,13 +278,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       <AnimatePresence>
         {showAvatarPicker && (
           <>
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowAvatarPicker(false)}
               className="fixed inset-0 z-40 backdrop-blur-sm"
               style={{ background: "rgba(0,0,0,0.4)" }}
             />
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, scale: 0.94, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 16 }}
@@ -400,7 +400,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </span>
                 </div>
               )}
-            </motion.div>
+            </MotionDiv>
           </>
         )}
       </AnimatePresence>
@@ -409,10 +409,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       <AnimatePresence>
         {showPersonajePicker && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowPersonajePicker(false)}
               className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "rgba(0,0,0,0.4)" }} />
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 16 }}
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
@@ -478,7 +478,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </div>
                 )}
               </div>
-            </motion.div>
+            </MotionDiv>
           </>
         )}
       </AnimatePresence>
@@ -487,10 +487,10 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       <AnimatePresence>
         {showMascotaPicker && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowMascotaPicker(false)}
               className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "rgba(0,0,0,0.4)" }} />
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 16 }}
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
@@ -556,7 +556,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </div>
                 )}
               </div>
-            </motion.div>
+            </MotionDiv>
           </>
         )}
       </AnimatePresence>
@@ -914,7 +914,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
             {}
             <AnimatePresence mode="wait">
-              <motion.div key={tab}
+              <MotionDiv key={tab}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}
                 className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
@@ -955,7 +955,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     : <EmptyTab label="Sin registros en la agenda" />
                 )}
 
-              </motion.div>
+              </MotionDiv>
             </AnimatePresence>
           </div>
 
@@ -968,7 +968,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               </p>
               {otrosPerfiles.map(p => (
                 <Link key={p.id} href={`/wiki/personal/${p.username}`}>
-                  <motion.div whileHover={{ x: 2 }}
+                  <MotionDiv whileHover={{ x: 2 }}
                     className="flex items-center gap-2.5 px-3 py-2.5 transition-all cursor-pointer group"
                     style={{
                       background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
@@ -991,7 +991,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         ))}
                       </div>
                     </div>
-                  </motion.div>
+                  </MotionDiv>
                 </Link>
               ))}
             </aside>

@@ -21,13 +21,13 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
     return () => clearTimeout(t);
   }, [onClose]);
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
       className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-5 py-3 shadow-xl text-btn-text text-[11px] font-black uppercase tracking-wide ${type === "success" ? "bg-green-600" : "bg-red-500"}`} style={{borderRadius:"var(--radius-btn)"}}
     >
       {type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
       {message}
-    </motion.div>
+    </MotionDiv>
   );
 }
 
@@ -296,7 +296,7 @@ export default function MapaInteractivo() {
         {}
         <AnimatePresence>
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
               className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2" style={{borderRadius:"var(--radius-btn)"}}
             >
@@ -304,20 +304,20 @@ export default function MapaInteractivo() {
               {modifiedDetalles.size > 1 && (
                 <span className="bg-yellow-900/20 px-1.5 py-0.5 rounded-full text-[9px]">{modifiedDetalles.size} pendientes</span>
               )}
-            </motion.div>
+            </MotionDiv>
           )}
         </AnimatePresence>
 
         {}
         <AnimatePresence>
           {cargandoImagen && (
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 z-[60] bg-bg-main flex flex-col items-center justify-center"
             >
               <Loader2 className="animate-spin text-primary mb-2" />
               <span className="text-[8px] font-black uppercase tracking-widest text-primary/40">Cargando Cartografía...</span>
-            </motion.div>
+            </MotionDiv>
           )}
         </AnimatePresence>
 
@@ -367,7 +367,7 @@ export default function MapaInteractivo() {
       {}
       <AnimatePresence>
         {vistaActual === "reino" && reinoSeleccionado && (
-          <motion.div
+          <MotionDiv
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="
@@ -637,7 +637,7 @@ export default function MapaInteractivo() {
                 </div>
               </>
             )}
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>

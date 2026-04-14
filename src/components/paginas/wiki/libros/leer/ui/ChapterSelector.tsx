@@ -28,7 +28,7 @@ export function ChapterSelector({ lista, capIdActual, onSelect }: {
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-64 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] shadow-2xl z-50 overflow-hidden">
+          <MotionDiv initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute left-0 top-full mt-2 w-64 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] shadow-2xl z-50 overflow-hidden">
             <div className="max-h-72 overflow-y-auto">
               {lista.map(cap => {
                 const esActual = cap.id === capIdActual;
@@ -43,7 +43,7 @@ export function ChapterSelector({ lista, capIdActual, onSelect }: {
                 );
               })}
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>

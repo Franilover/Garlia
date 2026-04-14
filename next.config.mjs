@@ -33,6 +33,7 @@ const nextConfig = {
 
 const analyze = withBundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
+  openAnalyzer: true,
 });
 
 export default analyze(million.next(withPWA(nextConfig), {

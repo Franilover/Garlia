@@ -315,12 +315,12 @@ export default function ArmarioPage() {
   // ─── Modal wrapper ─────────────────────────────────────────────────────────
 
   const Modal = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={onClose}
       className="fixed inset-0 z-50 bg-foreground/50 backdrop-blur-sm flex items-center justify-center p-4"
     >
-      <motion.div
+      <MotionDiv
         initial={{ scale: 0.92, opacity: 0, y: 16 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.92, opacity: 0, y: 16 }}
@@ -330,8 +330,8 @@ export default function ArmarioPage() {
         style={{ borderRadius: "var(--radius-card)" }}
       >
         {children}
-      </motion.div>
-    </motion.div>
+      </MotionDiv>
+    </MotionDiv>
   );
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -533,7 +533,7 @@ export default function ArmarioPage() {
         {/* Panel de filtros */}
         <AnimatePresence>
           {showFiltros && (
-            <motion.div
+            <MotionDiv
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -619,7 +619,7 @@ export default function ArmarioPage() {
                   </button>
                 )}
               </div>
-            </motion.div>
+            </MotionDiv>
           )}
         </AnimatePresence>
       </div>

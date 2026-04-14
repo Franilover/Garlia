@@ -99,8 +99,8 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
     <AnimatePresence>
       {open && (
         <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[72] bg-primary-dark/50 backdrop-blur-sm" />
-          <motion.div
+          <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[72] bg-primary-dark/50 backdrop-blur-sm" />
+          <MotionDiv
             initial={{ opacity: 0, y: 32, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.98 }}
             className="fixed z-[73] inset-x-4 bottom-0 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:w-[600px] bg-white rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             style={{ maxHeight: "85vh" }}
@@ -199,7 +199,7 @@ export function EntidadPicker({ open, onClose, onInsert, tipoFijo }: EntidadPick
               <button onClick={onClose} className="text-[10px] font-black uppercase text-primary/40 hover:text-primary/60 transition-colors">Cancelar</button>
               <button onClick={handleInsert} disabled={!selected || !palabra.trim()} className="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase bg-primary text-white disabled:opacity-30 shadow-lg shadow-primary/20 transition-all active:scale-95">Insertar Drop</button>
             </div>
-          </motion.div>
+          </MotionDiv>
         </>
       )}
     </AnimatePresence>

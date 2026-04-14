@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +43,7 @@ export const TIPOS_EVENTO = ["Plan", "Reunión", "Personal"] as const;
 export const EventoBadge = ({ item, compact = false }: { item: Evento; compact?: boolean }) => {
   const color = COLORES_EVENTO[item.tipo] ?? COLORES_EVENTO["default"];
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
@@ -54,7 +54,7 @@ export const EventoBadge = ({ item, compact = false }: { item: Evento; compact?:
     >
       {item.esCapitulo && <BookOpen size={9} className="shrink-0" />}
       <span className="font-black uppercase tracking-tight truncate">{item.titulo}</span>
-    </motion.div>
+    </MotionDiv>
   );
 };
 

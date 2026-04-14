@@ -125,12 +125,12 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
       <AnimatePresence>
         {open && state !== "idle" && (
           <>
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => { if (state !== "loading") setOpen(false); }}
               className="fixed inset-0 z-[80] bg-black/5 backdrop-blur-[2px]"
             />
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, scale: 0.85, y: -8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: -4 }}
@@ -147,7 +147,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
                   </div>
                 ) : (
                   <>
-                    <motion.div
+                    <MotionDiv
                       initial={{ scale: 0 }} animate={{ scale: 1 }}
                       transition={{ type: "spring", damping: 16, stiffness: 300, delay: 0.1 }}
                       className={cn(
@@ -156,7 +156,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
                       )}
                     >
                       {state === "already" ? <Check size={24} className="text-primary/40" /> : <Icon size={24} className={messages[state].color} />}
-                    </motion.div>
+                    </MotionDiv>
 
                     <div>
                       <p className={cn("font-black uppercase text-[11px] tracking-widest", messages[state].color)}>
@@ -170,7 +170,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
                     </div>
 
                     {(state === "success" || state === "already") && (
-                      <motion.div
+                      <MotionDiv
                         initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                         className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-full"
                       >
@@ -178,7 +178,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
                         <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest">
                           {entidadNombre}
                         </span>
-                      </motion.div>
+                      </MotionDiv>
                     )}
 
                     <button
@@ -190,7 +190,7 @@ export function DropWord({ word, tipo, entidadId, entidadNombre }: DropWordProps
                   </>
                 )}
               </div>
-            </motion.div>
+            </MotionDiv>
           </>
         )}
       </AnimatePresence>

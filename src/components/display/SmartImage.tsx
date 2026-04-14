@@ -34,7 +34,7 @@ export const SmartImage = ({
     <div className={`relative overflow-hidden bg-primary/5 ${className}`}>
       <AnimatePresence>
         {!loaded && (
-          <motion.div
+          <MotionDiv
             key="skeleton"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -43,7 +43,7 @@ export const SmartImage = ({
         )}
       </AnimatePresence>
 
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, scale: 1.05 }}
         animate={{ opacity: loaded ? 1 : 0, scale: loaded ? 1 : 1.05 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
@@ -58,7 +58,7 @@ export const SmartImage = ({
             contain ? 'object-contain' : 'object-cover'
           } ${loaded ? 'blur-0' : 'blur-xl'}`}
         />
-      </motion.div>
+      </MotionDiv>
     </div>
   );
 };

@@ -301,7 +301,7 @@ export const IngredientesPage = () => {
                 const isConfirm  = confirmDelete === item.id;
 
                 return (
-                  <motion.div
+                  <MotionDiv
                     key={item.id}
                     layout
                     initial={{ opacity: 0, y: 16 }}
@@ -317,7 +317,7 @@ export const IngredientesPage = () => {
 
                       <AnimatePresence mode="wait">
                         {isConfirm ? (
-                          <motion.div
+                          <MotionDiv
                             key="confirm"
                             initial={{ opacity: 0, x: 8 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -337,11 +337,11 @@ export const IngredientesPage = () => {
                             >
                               No
                             </button>
-                          </motion.div>
+                          </MotionDiv>
                         ) : (
-                          <motion.div key="trash" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                          <MotionDiv key="trash" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <BtnIcon variant="ghost" size="sm" onClick={() => setConfirmDelete(item.id)} className="border-none text-primary/20 hover:text-red-400 hover:bg-red-50 mt-0.5 w-7 h-7"><Trash2 size={13} /></BtnIcon>
-                          </motion.div>
+                          </MotionDiv>
                         )}
                       </AnimatePresence>
                     </div>
@@ -370,7 +370,7 @@ export const IngredientesPage = () => {
 
                     <AnimatePresence>
                       {qtyOpen[item.id] && (
-                        <motion.div
+                        <MotionDiv
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
@@ -408,7 +408,7 @@ export const IngredientesPage = () => {
                               Reset
                             </button>
                           </div>
-                        </motion.div>
+                        </MotionDiv>
                       )}
                     </AnimatePresence>
 
@@ -471,7 +471,7 @@ export const IngredientesPage = () => {
                         </button>
                       </div>
                     </div>
-                  </motion.div>
+                  </MotionDiv>
                 );
               })}
             </AnimatePresence>
@@ -499,14 +499,14 @@ export const IngredientesPage = () => {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pb-16 sm:pb-6">
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
               className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
             />
-            <motion.div
+            <MotionDiv
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
@@ -569,7 +569,7 @@ export const IngredientesPage = () => {
                 <Btn type="submit" loading={isSaving} disabled={!formData.nombre.trim()} icon={<Save size={16} />} fullWidth size="lg">Registrar insumo</Btn>
               </form>
               </div>
-            </motion.div>
+            </MotionDiv>
           </div>
         )}
       </AnimatePresence>

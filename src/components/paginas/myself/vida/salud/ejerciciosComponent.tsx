@@ -102,8 +102,8 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
   const pct = fase === "descanso" ? segundos / ejercicio.descanso : 1;
 
   if (fase === "fin") return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-primary">
-      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }} className="flex flex-col items-center gap-4">
+    <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-primary">
+      <MotionDiv initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }} className="flex flex-col items-center gap-4">
         <div className="w-20 h-20 rounded-full bg-btn-text/20 flex items-center justify-center mb-2"><Star size={40} className="text-btn-text" /></div>
         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] italic">Completado</span>
         <h2 className="text-5xl font-black text-btn-text italic tracking-tighter text-center">{rutina.nombre}</h2>
@@ -111,12 +111,12 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
           {rutina.ejercicios.length} ejercicios · {(rutina.ejercicios ?? []).reduce((a, e) => a + e.series, 0)} series
         </p>
         <Btn onClick={onCerrar} size="lg" className="mt-8 bg-white-custom text-primary hover:bg-white-custom/90 shadow-2xl">Terminar</Btn>
-      </motion.div>
-    </motion.div>
+      </MotionDiv>
+    </MotionDiv>
   );
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex flex-col bg-primary">
+    <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex flex-col bg-primary">
       <div className="flex items-center justify-between px-6 pt-6 pb-4">
         <div>
           <span className="text-[8px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">Rutina</span>
@@ -139,7 +139,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-6 gap-8">
         <AnimatePresence mode="wait">
-          <motion.div key={ejercicioIdx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex flex-col items-center gap-3 text-center">
+          <MotionDiv key={ejercicioIdx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex flex-col items-center gap-3 text-center">
             <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">{ejercicio.musculo}</span>
             <h1 className="text-4xl sm:text-6xl font-black text-btn-text italic tracking-tighter leading-none">{ejercicio.nombre}</h1>
             <div className="flex items-center gap-4 mt-2">
@@ -154,7 +154,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
               ))}
             </div>
             {ejercicio.notas && <span className="text-[10px] font-bold text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic mt-1">* {ejercicio.notas}</span>}
-          </motion.div>
+          </MotionDiv>
         </AnimatePresence>
         {fase === "descanso" ? (
           <div className="flex flex-col items-center gap-4">
@@ -196,7 +196,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
           </Btn>
         </div>
       )}
-    </motion.div>
+    </MotionDiv>
   );
 };
 
@@ -217,9 +217,9 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
             <h3 className="text-lg font-black text-primary italic tracking-tight leading-none mb-1">{rutina.nombre}</h3>
             <p className="text-[10px] font-bold text-primary/40 uppercase tracking-wide">{rutina.descripcion}</p>
           </div>
-          <motion.div animate={{ rotate: expandida ? 180 : 0 }} transition={{ duration: 0.25 }}>
+          <MotionDiv animate={{ rotate: expandida ? 180 : 0 }} transition={{ duration: 0.25 }}>
             <ChevronDown size={18} className="text-primary/30 shrink-0 mt-1" />
-          </motion.div>
+          </MotionDiv>
         </div>
         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-primary/5">
           <div className="flex items-center gap-1.5"><Dumbbell size={12} className="text-primary/30" /><span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{ejercicios.length} ejercicios</span></div>
@@ -232,11 +232,11 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
       </div>
       <AnimatePresence>
         {expandida && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+          <MotionDiv initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
             <div className="px-5 pb-5 border-t border-primary/5">
               <div className="pt-4 space-y-2">
                 {ejercicios.map((ej, i) => (
-                  <motion.div key={ej.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
+                  <MotionDiv key={ej.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                     className="flex items-center gap-3 p-3 bg-primary/3 rounded-[var(--radius-btn)] border border-primary/5">
                     <div className="w-6 h-6 rounded-[var(--radius-btn)] bg-primary/10 flex items-center justify-center shrink-0"><span className="text-[8px] font-black text-primary">{i + 1}</span></div>
                     <div className="flex-1 min-w-0">
@@ -247,11 +247,11 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
                       <span className="text-[9px] font-black text-primary/50">{ej.series}×{ej.reps}</span>
                       <span className="text-[8px] font-bold text-primary/25 border border-primary/10 px-1.5 py-0.5 rounded-[var(--radius-btn)]">{ej.descanso}s</span>
                     </div>
-                  </motion.div>
+                  </MotionDiv>
                 ))}
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>
@@ -276,7 +276,7 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white-custom border border-primary/10 rounded-[28px] p-6 shadow-xl shadow-primary/5">
+    <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white-custom border border-primary/10 rounded-[28px] p-6 shadow-xl shadow-primary/5">
       <div className="flex items-center gap-3 mb-6"><Plus size={18} className="text-primary" /><h3 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Nueva Rutina</h3></div>
       <div className="space-y-3 mb-6">
         <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la rutina..." className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
@@ -312,7 +312,7 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
         <Btn variant="outline" className="flex-1" onClick={onCancelar} disabled={guardando}>Cancelar</Btn>
         <Btn className="flex-1" loading={guardando} onClick={() => onGuardar({ nombre, descripcion, tag }, ejercicios)} disabled={!nombre.trim() || ejercicios.length === 0 || guardando}>Guardar rutina</Btn>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 };
 
@@ -389,9 +389,9 @@ export const PaginaEjercicios = () => {
           <div className="space-y-4">
             <AnimatePresence mode="popLayout">
               {rutinasFiltradas.map(rutina => (
-                <motion.div key={rutina.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}>
+                <MotionDiv key={rutina.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}>
                   <CardRutina rutina={rutina} onIniciar={() => setRutinaActiva(rutina)} onEliminar={() => handleEliminar(rutina.id)} expandida={expandida === rutina.id} onToggle={() => setExpandida(expandida === rutina.id ? null : rutina.id)} />
-                </motion.div>
+                </MotionDiv>
               ))}
             </AnimatePresence>
             {rutinasFiltradas.length === 0 && <EmptyState label={filtroTag === "Todas" ? "Aún no tienes rutinas" : `No hay rutinas de ${filtroTag}`} icon={<Dumbbell size={32} />} />}

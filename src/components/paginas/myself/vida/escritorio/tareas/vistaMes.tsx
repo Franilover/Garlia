@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Bookmark, BookOpen, Plus } from "lucide-react";
 import { BtnIcon } from "@/components/ui";
@@ -191,7 +191,7 @@ export const VistaMes = ({
         <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-0">
           {itemsCombinadosDelDia.length > 0 ? (
             itemsCombinadosDelDia.map((item: any) => (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 key={item.id}
@@ -217,7 +217,7 @@ export const VistaMes = ({
                     Cap.
                   </span>
                 )}
-              </motion.div>
+              </MotionDiv>
             ))
           ) : (
             <p className="text-[10px] font-bold text-primary/20 italic px-1">Sin eventos para este día.</p>

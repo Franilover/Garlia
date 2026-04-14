@@ -109,7 +109,7 @@ export default function EntidadPageBase({
     <main className="min-h-svh bg-bg-main pb-20 overflow-x-hidden">
       <AnimatePresence>
         {isOffline && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -122,7 +122,7 @@ export default function EntidadPageBase({
           >
             <WifiOff size={11} />
             Sin conexión — mostrando datos guardados
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 

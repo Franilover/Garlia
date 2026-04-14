@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Book, Lock, Timer } from "lucide-react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, PageHeader } from "@/components/ui";
@@ -31,7 +31,7 @@ const Biblioteca = () => {
 
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
         {libros.map((libro, index) => (
-          <motion.div
+          <MotionDiv
             key={libro.id}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -40,7 +40,7 @@ const Biblioteca = () => {
           >
             <Link href={`/wiki/libros/${libro.id}`}>
               <div className="cursor-pointer relative">
-                <motion.div
+                <MotionDiv
                   whileHover={{ y: -10 }}
                   className="relative aspect-[3/4] rounded-[var(--radius-card)] overflow-hidden shadow-xl border border-primary/10 bg-white-custom"
                 >
@@ -62,7 +62,7 @@ const Biblioteca = () => {
                       </div>
                     );
                   })()}
-                </motion.div>
+                </MotionDiv>
 
                 <div className="mt-6 px-2">
                   <h2 className="text-primary font-black uppercase text-base group-hover:text-[var(--accent)] transition-colors leading-tight tracking-tight">
@@ -74,7 +74,7 @@ const Biblioteca = () => {
                 </div>
               </div>
             </Link>
-          </motion.div>
+          </MotionDiv>
         ))}
 
         {!loading && libros.length === 0 && (

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { Music2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 
 export function SoundInline({ url, volume }: { url: string; volume: number }) {
   const [playing, setPlaying] = useState(false);

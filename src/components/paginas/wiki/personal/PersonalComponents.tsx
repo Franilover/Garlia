@@ -77,13 +77,13 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
 
   return (
     <AnimatePresence>
-      <motion.div
+      <MotionDiv
         key="backdrop"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
         className="fixed inset-0 z-40 bg-primary/10 backdrop-blur-sm"
       />
-      <motion.div
+      <MotionDiv
         key="modal"
         initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -182,7 +182,7 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
             )}
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
     </AnimatePresence>
   );
 }

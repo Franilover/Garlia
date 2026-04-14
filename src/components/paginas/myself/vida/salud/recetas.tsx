@@ -182,7 +182,7 @@ function RecipeCard({
   const totales = calcTotales(ingredientesList);
 
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0, transition: { delay: index * 0.03 } }}
       layout
@@ -250,7 +250,7 @@ function RecipeCard({
           </Link>
         </div>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 }
 
@@ -341,12 +341,12 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
   return (
     <>
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pb-16 sm:pb-6">
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
         className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
       />
-      <motion.div
+      <MotionDiv
         initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
         exit={{ y: 60, opacity: 0 }}
         transition={{ type: "spring", stiffness: 380, damping: 36 }}
@@ -416,7 +416,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
               />
               <AnimatePresence>
                 {filteredDbIngredientes.length > 0 && (
-                  <motion.div
+                  <MotionDiv
                     initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
                     className="absolute top-full left-0 w-full bg-white-custom border border-primary/10 rounded-(--radius-btn) mt-1.5 shadow-xl z-50 overflow-hidden"
                   >
@@ -432,14 +432,14 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                         </span>
                       </button>
                     ))}
-                  </motion.div>
+                  </MotionDiv>
                 )}
               </AnimatePresence>
             </div>
 
             <AnimatePresence>
               {pendingIng && (
-                <motion.div
+                <MotionDiv
                   initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.18 }}
                   className="overflow-hidden"
@@ -493,7 +493,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
                       <Btn type="button" onClick={confirmIngrediente} className="flex-1">✓ Añadir</Btn>
                     </div>
                   </div>
-                </motion.div>
+                </MotionDiv>
               )}
             </AnimatePresence>
 
@@ -571,7 +571,7 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
           <Btn type="submit" loading={isSaving} disabled={!formData.nombre.trim()} icon={<Save size={16} />} fullWidth size="lg">Guardar receta</Btn>
         </form>
-      </motion.div>
+      </MotionDiv>
     </div>
     <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>
@@ -739,7 +739,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
 
             <AnimatePresence mode="popLayout">
               {filteredRecipes.length === 0 && !loading ? (
-                <motion.div
+                <MotionDiv
                   key="empty"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   className="col-span-full flex flex-col items-center justify-center py-24 gap-2"
@@ -748,7 +748,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                   <p className="text-[11px] font-black uppercase tracking-widest text-primary/25">
                     {filter || catFilter ? "Sin resultados" : "Sin recetas aún"}
                   </p>
-                </motion.div>
+                </MotionDiv>
               ) : (
                 filteredRecipes.map((receta, i) => (
                   <RecipeCard

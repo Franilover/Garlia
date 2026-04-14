@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { supabase } from "@/lib/api/client/supabase";
 import { MenuCard } from "@/components/templates/MenuCard";
 import type { LucideProps } from "lucide-react";
@@ -51,7 +51,7 @@ export default function MenuBase({ titulo, items }: MenuBaseProps) {
       className="flex flex-col justify-center md:justify-start p-4 md:p-8 gap-6 md:gap-8"
       style={{ height: "calc(100svh - 64px)" }}
     >
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         className="text-center shrink-0 md:pt-10"
@@ -59,7 +59,7 @@ export default function MenuBase({ titulo, items }: MenuBaseProps) {
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter text-primary italic">
           {titulo}
         </h1>
-      </motion.div>
+      </MotionDiv>
 
       {/* Desktop: grid */}
       <div className="hidden md:grid grid-cols-2 gap-4 lg:gap-6 flex-1 min-h-0">

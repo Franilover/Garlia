@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { ChevronRight as ChevronR } from "lucide-react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { useToast } from "@/hooks/ui/useToast";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ToastContainer } from "@/components/ui/ToastContainer";

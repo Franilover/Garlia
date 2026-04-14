@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import Link from "next/link";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { SmartImage } from "@/components/display/SmartImage";
@@ -19,14 +19,14 @@ interface Cancion {
 }
 
 const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }) => (
-  <motion.div
+  <MotionDiv
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: index * 0.04 }}
     className="relative group h-full"
   >
     <Link href={`/wiki/canciones/${cancion.id}`}>
-      <motion.div
+      <MotionDiv
         whileHover={{ y: -12 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
         className="cursor-pointer h-full flex flex-col"
@@ -60,13 +60,13 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
             {cancion.idioma     && <span className="flex items-center gap-2"><Globe size={10} />{cancion.idioma}</span>}
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
     </Link>
-  </motion.div>
+  </MotionDiv>
 );
 
 const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }) => (
-  <motion.div
+  <MotionDiv
     initial={{ opacity: 0, y: 6 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: index * 0.03 }}
@@ -93,7 +93,7 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
         </div>
       </div>
     </Link>
-  </motion.div>
+  </MotionDiv>
 );
 
 export default function CancionesPage() {

@@ -78,24 +78,24 @@ export default function CancionDetallesPage() {
 
         {/* ── Sidebar ── */}
         <aside className="space-y-6">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
             className="aspect-square rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10"
           >
             <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo ?? ""} className="w-full h-full object-cover" />
-          </motion.div>
+          </MotionDiv>
 
           {cancion?.estado && (
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
               className="p-4 rounded-[var(--radius-card)] border text-center bg-primary/5 border-primary/10"
             >
               <h4 className="font-black uppercase text-[9px] tracking-[0.2em] text-primary">{cancion.estado}</h4>
-            </motion.div>
+            </MotionDiv>
           )}
 
           {cancion?.personaje && (
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className="p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10"
             >
@@ -103,7 +103,7 @@ export default function CancionDetallesPage() {
                 <User size={12} /> Personaje
               </h4>
               <p className="text-primary font-bold text-sm italic">{cancion.personaje}</p>
-            </motion.div>
+            </MotionDiv>
           )}
 
           <LinkSection links={cancion?.links} />
@@ -111,12 +111,12 @@ export default function CancionDetallesPage() {
 
         {/* ── Contenido principal ── */}
         <main>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
+          <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
             <h1 className="text-6xl font-black text-primary italic tracking-tighter leading-[0.85] mb-6 uppercase">
               {cancion?.titulo}
             </h1>
             <div className="h-1.5 w-24 bg-primary/10 rounded-full" />
-          </motion.div>
+          </MotionDiv>
 
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-8 border-b border-primary/10 pb-4">
@@ -132,7 +132,7 @@ export default function CancionDetallesPage() {
 
             <div className="space-y-12">
               {secciones.map((sec, index) => (
-                <motion.div
+                <MotionDiv
                   key={sec.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -162,18 +162,18 @@ export default function CancionDetallesPage() {
                       })}
                     </div>
                   </div>
-                </motion.div>
+                </MotionDiv>
               ))}
             </div>
 
             {secciones.length === 0 && (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 className="text-center py-24 bg-primary/5 rounded-[var(--radius-card)] border border-dashed border-primary/10"
               >
                 <Music size={48} className="mx-auto text-primary/20 mb-4" />
                 <p className="text-primary/40 font-bold uppercase text-sm tracking-widest italic">Letra en proceso…</p>
-              </motion.div>
+              </MotionDiv>
             )}
           </div>
         </main>

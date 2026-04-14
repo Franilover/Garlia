@@ -73,7 +73,7 @@ export function ContenidoInteractivo({ texto, onNavigate }: {
 
       <AnimatePresence mode="wait">
         {currentId !== "" && (
-          <motion.div
+          <MotionDiv
             key={currentId} ref={sectionRef}
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
@@ -94,7 +94,7 @@ export function ContenidoInteractivo({ texto, onNavigate }: {
               <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
             </div>
             <RenderSegmentos segs={currentSegs} onNavigate={handleNavigate} />
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>

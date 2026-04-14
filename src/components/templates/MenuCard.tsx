@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import Link from "next/link";
 import { LucideProps } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
@@ -27,7 +27,7 @@ export const MenuCard = ({
   const { theme } = useTheme();
 
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, type: "spring", stiffness: 100 }}
@@ -46,7 +46,7 @@ export const MenuCard = ({
           }`}
         >
           {hasNewContent && (
-            <motion.div
+            <MotionDiv
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               className={`absolute z-20 bg-red-500 rounded-full shadow-lg ${
@@ -60,10 +60,10 @@ export const MenuCard = ({
                   horizontal ? "w-3 h-3" : "w-3 h-3 md:w-4 md:h-4"
                 }`}
               />
-            </motion.div>
+            </MotionDiv>
           )}
 
-          <motion.div
+          <MotionDiv
             className={`text-primary flex items-center justify-center transition-all duration-300 shrink-0 opacity-80 group-hover:opacity-100 ${
               horizontal ? "w-16 h-16" : "w-10 h-10 md:w-16 md:h-16 mb-3 md:mb-4"
             }`}
@@ -73,7 +73,7 @@ export const MenuCard = ({
               size: horizontal ? 32 : 24,
               className: horizontal ? undefined : "md:w-[36px] md:h-[36px]",
             })}
-          </motion.div>
+          </MotionDiv>
 
           <h2
             className={`font-black uppercase tracking-tighter text-primary ${
@@ -84,6 +84,6 @@ export const MenuCard = ({
           </h2>
         </div>
       </Link>
-    </motion.div>
+    </MotionDiv>
   );
 };

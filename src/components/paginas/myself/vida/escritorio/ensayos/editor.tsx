@@ -178,7 +178,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
 
   return (
     <div className="relative" ref={containerRef}>
-      <motion.div
+      <MotionDiv
         key={ensayo.id}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -274,7 +274,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
 
         {}
         {editMode && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-1 px-2 py-1.5 mb-3 overflow-x-auto"
@@ -326,7 +326,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
                 </span>
               </>
             )}
-          </motion.div>
+          </MotionDiv>
         )}
 
         {}
@@ -382,7 +382,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
                 </AnimatePresence>
               </>
             ) : (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="prose max-w-none min-h-[50vh] md:min-h-125"
@@ -391,7 +391,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {ensayo.contenido || "*Empieza a escribir en el modo edición...*"}
                 </ReactMarkdown>
-              </motion.div>
+              </MotionDiv>
             )}
           </div>
 
@@ -417,7 +417,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
             </div>
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
 
       {}
       <TagPanel

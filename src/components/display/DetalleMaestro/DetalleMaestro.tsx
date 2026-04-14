@@ -141,14 +141,14 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
     <div className="w-full max-w-[96%] xl:max-w-screen-2xl mx-auto relative pt-10 px-4 pb-32 space-y-8">
       <AnimatePresence>
         {showSuccess && (
-          <motion.div
+          <MotionDiv
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -50, opacity: 0 }}
             className="fixed top-10 left-1/2 -translate-x-1/2 z-3000 bg-accent text-primary px-10 py-5 shadow-lg flex items-center gap-3 font-bold border border-primary/20" style={{borderRadius:"var(--radius-card)"}}
           >
             <CheckCircle2 size={24} /> Registro Sincronizado
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 
@@ -193,14 +193,14 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
           {}
           <AnimatePresence>
             {showPicker && (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
                 onClick={(e) => e.target === e.currentTarget && setShowPicker(false)}
               >
-                <motion.div
+                <MotionDiv
                   initial={{ scale: 0.92, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.92, opacity: 0 }}
@@ -222,8 +222,8 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
                     onSelect={handlePickImage}
                     onClose={() => setShowPicker(false)}
                   />
-                </motion.div>
-              </motion.div>
+                </MotionDiv>
+              </MotionDiv>
             )}
           </AnimatePresence>
 
@@ -351,7 +351,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
 
       {}
       {isAdmin && !isNew && (
-        <motion.div
+        <MotionDiv
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="fixed bottom-10 left-1/2 -translate-x-1/2 z-1100 flex items-center gap-4 backdrop-blur-md p-4 border border-primary/20 shadow-2xl" style={{background:"var(--white-custom)",borderRadius:"var(--radius-card)"}}
@@ -393,7 +393,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
               <span className="text-[10px] font-black uppercase tracking-widest">Sincronizar</span>
             </button>
           )}
-        </motion.div>
+        </MotionDiv>
       )}
     </div>
 

@@ -20,12 +20,12 @@ export function Modal({ open, onClose, title, subtitle, children, maxWidth = "ma
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
             className="absolute inset-0 bg-primary/20 backdrop-blur-sm"
           />
-          <motion.div
+          <MotionDiv
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
@@ -50,7 +50,7 @@ export function Modal({ open, onClose, title, subtitle, children, maxWidth = "ma
               <X size={18} />
             </button>
             {children}
-          </motion.div>
+          </MotionDiv>
         </div>
       )}
     </AnimatePresence>
@@ -101,7 +101,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, icon, action }: PageHeaderProps) {
   return (
-    <motion.div
+    <MotionDiv
       initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
       className="flex items-end justify-between mb-10"
     >
@@ -116,7 +116,7 @@ export function PageHeader({ title, subtitle, icon, action }: PageHeaderProps) {
         )}
       </div>
       {action && <div>{action}</div>}
-    </motion.div>
+    </MotionDiv>
   );
 }
 

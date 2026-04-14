@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, Sword } from "lucide-react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { supabase } from "@/lib/api/client/supabase";
 import { CapituloScrollItem } from "../type";
 
@@ -65,7 +65,7 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
   if (!personajes.length) return null;
 
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 40, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] w-[calc(100vw-2rem)] max-w-sm"
@@ -95,7 +95,7 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
           ))}
         </div>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 }
 

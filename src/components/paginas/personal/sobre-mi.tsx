@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { Palette, Monitor, Droplets, Music, Instagram, Youtube } from "lucide-react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 
@@ -71,7 +71,7 @@ export default function SobreMi() {
             </motion.h1>
           </div>
 
-          <motion.div
+          <MotionDiv
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ duration: 0.9, delay: 0.4, ease: [0.16, 1, 0.3, 1] as any }}
@@ -92,7 +92,7 @@ export default function SobreMi() {
               boxShadow: "var(--shadow-card)",
             }}
           >
-            <motion.div
+            <MotionDiv
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] as any }}
@@ -108,7 +108,7 @@ export default function SobreMi() {
               proyectos: Mi mayor proyecto es "Garden of Sins" el cual puedes ver en el icono de la flor.
             </p>
 
-            <motion.div
+            <MotionDiv
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 0.8, delay: 0.65, ease: [0.16, 1, 0.3, 1] as any }}
@@ -138,7 +138,7 @@ export default function SobreMi() {
               {TOOLS.map((tool, i) => {
                 const Icon = tool.icon;
                 return (
-                  <motion.div
+                  <MotionDiv
                     key={tool.num}
                     {...fade(0.28 + i * 0.07)}
                     whileHover={{ y: -4 }}
@@ -177,7 +177,7 @@ export default function SobreMi() {
                       className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 ease-out rounded-full"
                       style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
                     />
-                  </motion.div>
+                  </MotionDiv>
                 );
               })}
             </div>
@@ -214,7 +214,7 @@ export default function SobreMi() {
               </h2>
             </div>
 
-            <motion.div
+            <MotionDiv
               whileHover={{ x: 6 }}
               transition={{ duration: 0.22 }}
               className="relative pl-8 py-6 pr-6 w-full max-w-2xl"
@@ -239,7 +239,7 @@ export default function SobreMi() {
                 en mi. Y pese a que los temas de esta historia son recurrentes en la actualidad, y muchos aconteciemtos
                 estan basados en ciertos periodos historicos todo lo contado en estas historias es ficticio.  
               </p>
-            </motion.div>
+            </MotionDiv>
 
           </motion.section>
 
@@ -342,7 +342,7 @@ export default function SobreMi() {
                       </motion.button>
 
                       {igOpen && (
-                        <motion.div
+                        <MotionDiv
                           initial={{ opacity: 0, y: 6, scale: 0.97 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.97 }}
@@ -380,7 +380,7 @@ export default function SobreMi() {
                               </div>
                             </a>
                           ))}
-                        </motion.div>
+                        </MotionDiv>
                       )}
                     </div>
                   );

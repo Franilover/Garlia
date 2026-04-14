@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
 interface CitePopupProps {
@@ -25,7 +25,7 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
   if (filtered.length === 0) return null;
 
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: -6, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -4, scale: 0.97 }}
@@ -85,6 +85,6 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
           ↑↓ navegar · Enter seleccionar · Esc cerrar
         </p>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 }

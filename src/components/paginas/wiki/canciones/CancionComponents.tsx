@@ -56,9 +56,9 @@ export const FullLyricsModal = ({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-0 md:p-6">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose} className="absolute inset-0 bg-primary/40 backdrop-blur-md" />
-          <motion.div
+          <MotionDiv
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -101,7 +101,7 @@ export const FullLyricsModal = ({
                 <div className="h-40" />
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         </div>
       )}
     </AnimatePresence>
@@ -156,7 +156,7 @@ export const FullLyricsModal = ({
 export const LinkSection = ({ links }: { links?: { titulo: string; url: string }[] }) => {
   if (!links?.length) return null;
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
       className="p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10"
     >
@@ -172,6 +172,6 @@ export const LinkSection = ({ links }: { links?: { titulo: string; url: string }
           </a>
         ))}
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { PenLine, X } from "lucide-react";
 
 interface NewNoteModalProps {
@@ -28,7 +28,7 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
   return (
     <>
       {}
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -38,7 +38,7 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
       />
 
       {}
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, scale: 0.95, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 12 }}
@@ -122,7 +122,7 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
             Crear nota →
           </button>
         </div>
-      </motion.div>
+      </MotionDiv>
     </>
   );
 }

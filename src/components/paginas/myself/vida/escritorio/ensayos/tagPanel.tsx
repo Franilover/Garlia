@@ -32,7 +32,7 @@ export function TagPanel({ tag, ensayos, onClose, onSelectEnsayo, onTagClick }: 
     <AnimatePresence>
       {tag && (
         <>
-          <motion.div
+          <MotionDiv
             key="overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -42,7 +42,7 @@ export function TagPanel({ tag, ensayos, onClose, onSelectEnsayo, onTagClick }: 
             onClick={onClose}
           />
 
-          <motion.div
+          <MotionDiv
             key="panel"
             initial={{ x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -231,7 +231,7 @@ export function TagPanel({ tag, ensayos, onClose, onSelectEnsayo, onTagClick }: 
                 </div>
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         </>
       )}
     </AnimatePresence>

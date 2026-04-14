@@ -32,8 +32,8 @@ export function FloatWord({ word, url, caption }: { word: string; url: string; c
       <AnimatePresence>
         {open && pos && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} className="fixed inset-0 z-[55]" />
-            <motion.div
+            <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} className="fixed inset-0 z-[55]" />
+            <MotionDiv
               initial={{ opacity: 0, scale: 0.85, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.88, y: 8 }}
               transition={{ type: "spring", damping: 24, stiffness: 340 }}
               className="fixed z-[56] pointer-events-auto"
@@ -47,7 +47,7 @@ export function FloatWord({ word, url, caption }: { word: string; url: string; c
                 {caption && <div className="bg-white-custom px-4 py-3"><p className="text-[10px] font-black uppercase tracking-widest text-primary/50 text-center">{caption}</p></div>}
               </div>
               <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0" style={{ borderLeft: "8px solid transparent", borderRight: "8px solid transparent", borderTop: caption ? "8px solid white" : "8px solid var(--foreground)" }} />
-            </motion.div>
+            </MotionDiv>
           </>
         )}
       </AnimatePresence>

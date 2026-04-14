@@ -1041,10 +1041,10 @@ function GaleriaSection({
     <>
       <AnimatePresence>
         {editing && (
-          <motion.div key="editor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <MotionDiv key="editor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }} className="fixed inset-0 z-[300]">
             <CanvasEditorModal item={item} onSave={handleSave} onCancel={() => setEditing(false)} />
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 
@@ -1307,18 +1307,18 @@ export default function GaleriaPage() {
             Galería
           </motion.h1>
         </div>
-        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
+        <MotionDiv initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
           transition={{ duration: 0.9, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
           className="h-[2px] w-28 origin-left rounded-full"
           style={{ background: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />
         {isAdmin && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-8">
+          <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-8">
             <button onClick={() => setShowAdd(true)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-dashed transition-all hover:opacity-80"
               style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
               <Plus size={12} /> Añadir obra
             </button>
-          </motion.div>
+          </MotionDiv>
         )}
       </header>
 

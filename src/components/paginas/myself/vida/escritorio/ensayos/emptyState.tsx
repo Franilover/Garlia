@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { PenTool, Plus } from "lucide-react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 
 interface EmptyStateProps {
   onCrearEnsayo?: () => void;
@@ -9,7 +9,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ onCrearEnsayo }: EmptyStateProps) {
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex flex-col items-center justify-center min-h-[70vh] text-center gap-5"
@@ -54,7 +54,7 @@ export function EmptyState({ onCrearEnsayo }: EmptyStateProps) {
           <Plus size={13} /> Nueva nota
         </button>
       )}
-    </motion.div>
+    </MotionDiv>
   );
 }
 

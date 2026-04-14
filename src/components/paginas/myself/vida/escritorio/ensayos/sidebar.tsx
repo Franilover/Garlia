@@ -122,7 +122,7 @@ export default function Sidebar({
             {ensayosFiltrados.map(ens => {
               const isActive = ensayoActivoId === ens.id;
               return (
-                <motion.div key={ens.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                <MotionDiv key={ens.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   onClick={() => onEnsayoClick(ens.id)}
                   className="group px-4 py-3 cursor-pointer transition-all"
                   style={{ ...(isActive ? activeStyle : inactiveStyle), borderRadius: "var(--radius-btn)" }}
@@ -140,7 +140,7 @@ export default function Sidebar({
                       <Trash2 size={12} />
                     </button>
                   </div>
-                </motion.div>
+                </MotionDiv>
               );
             })}
           </AnimatePresence>

@@ -44,7 +44,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
         {toasts.map((t) => {
           const { icon, classes } = CONFIG[t.type];
           return (
-            <motion.div
+            <MotionDiv
               key={t.id}
               layout
               initial={{ opacity: 0, y: 16, scale: 0.95 }}
@@ -67,7 +67,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
               >
                 <X size={12} />
               </button>
-            </motion.div>
+            </MotionDiv>
           );
         })}
       </AnimatePresence>

@@ -165,7 +165,7 @@ function SideNavItem({
       {/* Flyout lateral */}
       <AnimatePresence>
         {open && hasSublinks && (
-          <motion.div
+          <MotionDiv
             variants={flyoutVariants} initial="hidden" animate="visible" exit="exit"
             transition={{ duration: 0.15 }}
             onClick={(e) => e.stopPropagation()}
@@ -183,7 +183,7 @@ function SideNavItem({
                 onClick={() => { setOpen(false); onClose(); }}
               />
             ))}
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>
@@ -236,7 +236,7 @@ function MobileNavItem({
       {/* Panel hacia arriba */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
             animate={{ opacity: 1, y: 0, scale: 1,    x: "-50%" }}
             exit={{ opacity: 0, y: 8, scale: 0.97,    x: "-50%" }}
@@ -266,7 +266,7 @@ function MobileNavItem({
                 {subLabel}
               </Link>
             ))}
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>
@@ -329,7 +329,7 @@ function SideNavItemNested({
       {/* Flyout nivel 1 — lista de grupos */}
       <AnimatePresence>
         {open && (
-          <motion.div
+          <MotionDiv
             variants={flyoutVariants} initial="hidden" animate="visible" exit="exit"
             transition={{ duration: 0.15 }}
             onClick={(e) => e.stopPropagation()}
@@ -371,7 +371,7 @@ function SideNavItemNested({
                   {/* Flyout nivel 2 — sublinks del grupo */}
                   <AnimatePresence>
                     {hoveredGroup === group.href && (
-                      <motion.div
+                      <MotionDiv
                         variants={flyoutVariants} initial="hidden" animate="visible" exit="exit"
                         transition={{ duration: 0.12 }}
                         onClick={(e) => e.stopPropagation()}
@@ -389,13 +389,13 @@ function SideNavItemNested({
                             onClick={() => { setOpen(false); setHoveredGroup(null); onClose(); }}
                           />
                         ))}
-                      </motion.div>
+                      </MotionDiv>
                     )}
                   </AnimatePresence>
                 </div>
               );
             })}
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>
@@ -434,7 +434,7 @@ function MobileNavItemNested({
       {/* Panel nivel 1 — grupos */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 8, scale: 0.97, x: "-50%" }}
             animate={{ opacity: 1, y: 0, scale: 1,    x: "-50%" }}
             exit={{ opacity: 0, y: 8, scale: 0.97,    x: "-50%" }}
@@ -482,7 +482,7 @@ function MobileNavItemNested({
                   {/* Nivel 2 inline */}
                   <AnimatePresence>
                     {groupOpen && (
-                      <motion.div
+                      <MotionDiv
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
@@ -504,13 +504,13 @@ function MobileNavItemNested({
                             {subLabel}
                           </Link>
                         ))}
-                      </motion.div>
+                      </MotionDiv>
                     )}
                   </AnimatePresence>
                 </div>
               );
             })}
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>
@@ -651,7 +651,7 @@ const Navbar = () => {
 
             <AnimatePresence>
               {themeMenuOpen && (
-                <motion.div initial={{ opacity: 0, x: -8, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -8, scale: 0.97 }} transition={{ duration: 0.15 }}
+                <MotionDiv initial={{ opacity: 0, x: -8, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -8, scale: 0.97 }} transition={{ duration: 0.15 }}
                   onClick={(e) => e.stopPropagation()}
                   className="absolute left-full ml-2 w-56 z-[1001] overflow-hidden"
                   style={{ ...submenuSurface, bottom: "0", top: "auto" }}>
@@ -667,7 +667,7 @@ const Navbar = () => {
                     <span className="text-[10px] font-black uppercase tracking-widest">{isDark ? "Modo claro" : "Modo oscuro"}</span>
                   </button>
                   <ThemeSelector />
-                </motion.div>
+                </MotionDiv>
               )}
             </AnimatePresence>
           </div>
@@ -694,7 +694,7 @@ const Navbar = () => {
               </button>
               <AnimatePresence>
                 {userMenuOpen && (
-                  <motion.div initial={{ opacity: 0, x: -8, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -8, scale: 0.97 }} transition={{ duration: 0.15 }}
+                  <MotionDiv initial={{ opacity: 0, x: -8, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -8, scale: 0.97 }} transition={{ duration: 0.15 }}
                     onClick={(e) => e.stopPropagation()}
                     className="absolute left-full ml-2 w-48 p-2 z-[1001]"
                     style={{ ...submenuSurface, bottom: "0" }}>
@@ -715,7 +715,7 @@ const Navbar = () => {
                     >
                       <LogOut size={14} /> Salir
                     </button>
-                  </motion.div>
+                  </MotionDiv>
                 )}
               </AnimatePresence>
             </div>
@@ -744,22 +744,22 @@ const Navbar = () => {
         <AnimatePresence>
           {themeMenuOpen && (
             <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]" onClick={closeAll} />
-              <motion.div
+              <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]" onClick={closeAll} />
+              <MotionDiv
                 initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 onClick={(e) => e.stopPropagation()}
                 className="absolute bottom-full right-4 mb-2 w-56 overflow-hidden z-[2000]"
                 style={submenuSurface}>
                 <ThemeSelector />
-              </motion.div>
+              </MotionDiv>
             </>
           )}
         </AnimatePresence>
 
         <AnimatePresence>
           {mobileOpenMenu && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]" onClick={closeAll} />
+            <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]" onClick={closeAll} />
           )}
         </AnimatePresence>
 
@@ -845,7 +845,7 @@ const Navbar = () => {
 
               <AnimatePresence>
                 {userMenuOpen && user && (
-                  <motion.div
+                  <MotionDiv
                     initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 420, damping: 34 }}
                     onClick={(e) => e.stopPropagation()}
@@ -910,7 +910,7 @@ const Navbar = () => {
                       <LogOut size={13} />
                       <span className="text-[10px] font-black uppercase tracking-widest">Salir</span>
                     </button>
-                  </motion.div>
+                  </MotionDiv>
                 )}
               </AnimatePresence>
             </div>

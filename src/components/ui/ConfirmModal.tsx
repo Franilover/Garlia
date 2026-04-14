@@ -49,14 +49,14 @@ export function useConfirm() {
     <AnimatePresence>
       {state && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center p-6">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-primary/20 backdrop-blur-sm"
             onClick={() => handleResponse(false)}
           />
-          <motion.div
+          <MotionDiv
             initial={{ scale: 0.92, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.92, opacity: 0 }}
@@ -101,7 +101,7 @@ export function useConfirm() {
                 {state.confirmLabel ?? "Confirmar"}
               </button>
             </div>
-          </motion.div>
+          </MotionDiv>
         </div>
       )}
     </AnimatePresence>

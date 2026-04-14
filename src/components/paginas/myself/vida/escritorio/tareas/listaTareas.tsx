@@ -50,7 +50,7 @@ export const ListaTareas = ({
     <div className="flex flex-col gap-2 lg:flex-1 lg:overflow-y-auto lg:min-h-0 pr-0.5">
       <AnimatePresence mode="popLayout">
         {tareas.map((t: any) => (
-          <motion.div
+          <MotionDiv
             key={t.id}
             layout
             initial={{ opacity: 0, y: 8 }}
@@ -93,7 +93,7 @@ export const ListaTareas = ({
             >
               <Trash2 size={14} />
             </BtnIcon>
-          </motion.div>
+          </MotionDiv>
         ))}
       </AnimatePresence>
 

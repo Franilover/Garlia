@@ -202,7 +202,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
       */}
       <div className="flex-1 lg:min-h-0 min-h-[220px] overflow-x-auto lg:overflow-x-visible">
         <AnimatePresence mode="wait">
-          <motion.div
+          <MotionDiv
             key={`${vista}-${fechaBase.toISOString()}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -228,7 +228,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
                 compact={compact}
               />
             ))}
-          </motion.div>
+          </MotionDiv>
         </AnimatePresence>
       </div>
 
@@ -276,7 +276,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           {eventosDiaSeleccionado.length === 0 ? (
             <p className="text-[9px] font-bold text-primary/20 italic px-1">Sin eventos para este día.</p>
           ) : eventosDiaSeleccionado.map(ev => (
-            <motion.div
+            <MotionDiv
               key={ev.id}
               initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
@@ -300,7 +300,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
               {ev.esCapitulo && (
                 <span className="text-[7px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase shrink-0">Cap.</span>
               )}
-            </motion.div>
+            </MotionDiv>
           ))}
         </div>
       </div>

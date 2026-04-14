@@ -68,7 +68,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-bg-main px-4">
-      <motion.div 
+      <MotionDiv 
         initial={{ opacity: 0, y: 20 }} 
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md card-main bg-white shadow-2xl p-8 md:p-12"
@@ -80,7 +80,7 @@ export default function LoginPage() {
         <form onSubmit={handleAuth} className="space-y-6">
           <AnimatePresence mode="popLayout">
             {isRegistering && (
-              <motion.div 
+              <MotionDiv 
                 initial={{ opacity: 0, x: -10 }} 
                 animate={{ opacity: 1, x: 0 }} 
                 exit={{ opacity: 0, x: 10 }}
@@ -94,7 +94,7 @@ export default function LoginPage() {
                   className="input-brand"
                   required
                 />
-              </motion.div>
+              </MotionDiv>
             )}
           </AnimatePresence>
 
@@ -146,7 +146,7 @@ export default function LoginPage() {
         >
           {isRegistering ? "¿Ya tienes cuenta? Entra aquí" : "¿No tienes cuenta? Regístrate"}
         </button>
-      </motion.div>
+      </MotionDiv>
     </main>
   );
 }

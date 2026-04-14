@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { 
   Sparkles, Shield, Flame, Droplets, 
   Sun, Moon, Zap, Leaf, Skull 
@@ -39,7 +39,7 @@ export const SelectorVariantes = ({ variantes = [], varianteActiva, onSelecciona
       >
         <span className="relative z-10">Original</span>
         {!varianteActiva && mounted && (
-          <motion.div 
+          <MotionDiv 
             layoutId="activeTab" 
             className="absolute inset-0 bg-primary"
             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
@@ -66,7 +66,7 @@ export const SelectorVariantes = ({ variantes = [], varianteActiva, onSelecciona
               {v.tipo}
             </span>
             {isActive && mounted && (
-              <motion.div 
+              <MotionDiv 
                 layoutId="activeTab" 
                 className="absolute inset-0 bg-primary" style={{borderRadius:"var(--radius-btn)"}}
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}

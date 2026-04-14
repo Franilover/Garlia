@@ -94,10 +94,10 @@ function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }
   const tags = [d.categoria, d.habitat, d.alma ? `Alma ${d.alma}` : null, d.reino, d.especie].filter(Boolean) as string[];
   return (
     <AnimatePresence>
-      <motion.div key="bd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      <MotionDiv key="bd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose} className="fixed inset-0 z-40 backdrop-blur-sm"
         style={{ background: "rgba(0,0,0,0.35)" }} />
-      <motion.div key="md"
+      <MotionDiv key="md"
         initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 20 }}
@@ -163,7 +163,7 @@ function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }
             )}
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
     </AnimatePresence>
   );
 }
@@ -547,7 +547,7 @@ export default function PerfilPublico() {
             </div>
 
             <AnimatePresence mode="wait">
-              <motion.div key={tab}
+              <MotionDiv key={tab}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}
                 className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -587,7 +587,7 @@ export default function PerfilPublico() {
                     : <EmptyTab label="Sin personajes conocidos" />
                 )}
 
-              </motion.div>
+              </MotionDiv>
             </AnimatePresence>
         </div>
 
