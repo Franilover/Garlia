@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import { useState } from "react";
 import { LayoutGrid, AlignJustify, Search, X, ArrowUpNarrowWide, ArrowDownNarrowWide, WifiOff } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -171,7 +172,7 @@ export default function EntidadPageBase({
                   />
                   <AnimatePresence>
                     {busqueda && (
-                      <motion.button
+                      <MotionButton
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
@@ -179,7 +180,7 @@ export default function EntidadPageBase({
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors p-1"
                       >
                         <X size={16} />
-                      </motion.button>
+                      </MotionButton>
                     )}
                   </AnimatePresence>
                 </div>

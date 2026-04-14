@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, Suspense, type ReactNode } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { MotionDiv } from '@/components/ui/Motion';
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
 export interface Panel {
@@ -231,7 +232,7 @@ function PanelSliderInner({
 
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
+          <MotionDiv
             key={active}
             custom={direction}
             variants={variants}
@@ -243,7 +244,7 @@ function PanelSliderInner({
             className={contentClassName}
           >
             {panels[active]?.content}
-          </motion.div>
+          </MotionDiv>
         </AnimatePresence>
       </div>
     </div>

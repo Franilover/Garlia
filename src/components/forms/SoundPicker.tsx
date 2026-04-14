@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 
 import React, { useEffect, useState, useRef } from "react";
 import { X, Music, Folder, FolderOpen, ChevronRight, Check, Loader2, Play, Pause, Volume2 } from "lucide-react";

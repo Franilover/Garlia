@@ -1,3 +1,4 @@
+import { MotionSpan } from '@/components/ui/Motion';
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Loader2, Menu, X, PenTool } from "lucide-react";
@@ -323,12 +324,12 @@ export default function Ensayos() {
         <div className="shrink-0 z-10 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-2.5 flex items-center justify-center bg-bg-main/80">
           <AnimatePresence mode="wait">
             {saveStatus !== "idle" && (
-              <motion.span key={saveStatus} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              <MotionSpan key={saveStatus} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="font-mono text-[9px] uppercase tracking-widest"
                 style={{ color: saveStatus === "saving" ? "color-mix(in srgb, var(--primary) 30%, transparent)" : saveStatus === "saved" ? "oklch(0.6 0.15 145)" : "oklch(0.6 0.2 25)" }}
               >
                 {saveStatus === "saving" ? "Guardando…" : saveStatus === "saved" ? "✓ Guardado" : "Error"}
-              </motion.span>
+              </MotionSpan>
             )}
           </AnimatePresence>
         </div>

@@ -1,3 +1,4 @@
+import { MotionButton, MotionSpan } from '@/components/ui/Motion';
 "use client";
 import { useTheme } from "@/providers/ThemeProvider";
 import { Moon, Sun } from "lucide-react";
@@ -8,7 +9,7 @@ export function DarkModeToggle() {
   const isDark = dark === "dark";
 
   return (
-    <motion.button
+    <MotionButton
       onClick={toggleDark}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.9 }}
@@ -22,7 +23,7 @@ export function DarkModeToggle() {
     >
       <AnimatePresence mode="wait" initial={false}>
         {isDark ? (
-          <motion.span
+          <MotionSpan
             key="sun"
             initial={{ rotate: -90, opacity: 0 }}
             animate={{ rotate: 0, opacity: 1 }}
@@ -30,9 +31,9 @@ export function DarkModeToggle() {
             transition={{ duration: 0.2 }}
           >
             <Sun size={16} />
-          </motion.span>
+          </MotionSpan>
         ) : (
-          <motion.span
+          <MotionSpan
             key="moon"
             initial={{ rotate: 90, opacity: 0 }}
             animate={{ rotate: 0, opacity: 1 }}
@@ -40,9 +41,9 @@ export function DarkModeToggle() {
             transition={{ duration: 0.2 }}
           >
             <Moon size={16} />
-          </motion.span>
+          </MotionSpan>
         )}
       </AnimatePresence>
-    </motion.button>
+    </MotionButton>
   );
 }

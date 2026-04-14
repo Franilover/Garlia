@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Save, Eye, Edit3, Tag, Bold, Italic, Quote, List, Heading2, Code } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

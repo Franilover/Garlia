@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { MotionDiv } from "@/components/ui/Motion";
 import {
   User, Sword, Cat ,Package, Calendar, X, Tag, Loader2, Users} from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";

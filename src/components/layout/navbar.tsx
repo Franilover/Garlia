@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -147,17 +148,17 @@ function SideNavItem({
         </span>
         <AnimatePresence>
           {sidebarExpanded && (
-            <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+            <MotionSpan initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
               className="flex-1 text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
               {label}
-            </motion.span>
+            </MotionSpan>
           )}
         </AnimatePresence>
         <AnimatePresence>
           {sidebarExpanded && hasSublinks && (
-            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
+            <MotionSpan initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
               <ChevronRight size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
-            </motion.span>
+            </MotionSpan>
           )}
         </AnimatePresence>
       </Link>
@@ -311,17 +312,17 @@ function SideNavItemNested({
         </span>
         <AnimatePresence>
           {sidebarExpanded && (
-            <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+            <MotionSpan initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
               className="flex-1 text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
               {label}
-            </motion.span>
+            </MotionSpan>
           )}
         </AnimatePresence>
         <AnimatePresence>
           {sidebarExpanded && (
-            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
+            <MotionSpan initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
               <ChevronRight size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-            </motion.span>
+            </MotionSpan>
           )}
         </AnimatePresence>
       </div>
@@ -589,10 +590,10 @@ const Navbar = () => {
           </span>
           <AnimatePresence>
             {sidebarExpanded && (
-              <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.18 }}
+              <MotionSpan initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.18 }}
                 className="text-base font-black italic tracking-tighter whitespace-nowrap">
                 FRANI<span style={{ opacity: 0.35 }}>LOVER</span>
-              </motion.span>
+              </MotionSpan>
             )}
           </AnimatePresence>
         </Link>
@@ -643,8 +644,8 @@ const Navbar = () => {
               <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><Palette size={16} /></span>
               <AnimatePresence>
                 {sidebarExpanded && (
-                  <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
-                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Tema</motion.span>
+                  <MotionSpan initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Tema</MotionSpan>
                 )}
               </AnimatePresence>
             </button>
@@ -685,10 +686,10 @@ const Navbar = () => {
                 <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
                 <AnimatePresence>
                   {sidebarExpanded && (
-                    <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+                    <MotionSpan initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
                       className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap truncate max-w-[110px]">
                       {perfil?.username}
-                    </motion.span>
+                    </MotionSpan>
                   )}
                 </AnimatePresence>
               </button>
@@ -729,8 +730,8 @@ const Navbar = () => {
               <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
               <AnimatePresence>
                 {sidebarExpanded && (
-                  <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
-                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Entrar</motion.span>
+                  <MotionSpan initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
+                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Entrar</MotionSpan>
                 )}
               </AnimatePresence>
             </Link>
@@ -824,16 +825,16 @@ const Navbar = () => {
 
           {/* Controles derecha */}
           <div className="ml-auto flex items-center gap-1">
-            <motion.button whileTap={{ scale: 0.88 }}
+            <MotionButton whileTap={{ scale: 0.88 }}
               onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); setMobileOpenMenu(null); }}
               className="flex items-center justify-center transition-all"
               style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
               <Palette size={16} />
-            </motion.button>
+            </MotionButton>
 
             <div className="relative">
-              <motion.button whileTap={{ scale: 0.88 }}
+              <MotionButton whileTap={{ scale: 0.88 }}
                 onClick={() => user
                   ? (setUserMenuOpen(!userMenuOpen), setThemeMenuOpen(false), setMobileOpenMenu(null))
                   : (window.location.href = "/auth/login")}
@@ -841,7 +842,7 @@ const Navbar = () => {
                 style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", background: userMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 <CircleUser size={16} />
-              </motion.button>
+              </MotionButton>
 
               <AnimatePresence>
                 {userMenuOpen && user && (

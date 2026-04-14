@@ -1,3 +1,4 @@
+import { MotionSpan } from '@/components/ui/Motion';
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { Music2 } from "lucide-react";
@@ -36,7 +37,7 @@ export function SoundInline({ url, volume }: { url: string; volume: number }) {
       {playing ? (
         <span className="inline-flex items-end gap-px h-3">
           {[0, 1, 2].map(i => (
-            <motion.span key={i} className="w-px rounded-full bg-white-custom" style={{ display: "inline-block" }}
+            <MotionSpan key={i} className="w-px rounded-full bg-white-custom" style={{ display: "inline-block" }}
               animate={{ height: ["4px", "10px", "5px", "12px", "4px"][i % 5] }}
               transition={{ duration: 0.5 + i * 0.1, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
             />

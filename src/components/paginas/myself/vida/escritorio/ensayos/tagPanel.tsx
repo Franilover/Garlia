@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React, { useMemo } from "react";
 import { X, Hash, FileText, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -179,7 +180,7 @@ export function TagPanel({ tag, ensayos, onClose, onSelectEnsayo, onTagClick }: 
                 </p>
                 <div className="flex flex-col gap-2">
                   {ensayosConTag.map((ens, i) => (
-                    <motion.button
+                    <MotionButton
                       key={ens.id}
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -226,7 +227,7 @@ export function TagPanel({ tag, ensayos, onClose, onSelectEnsayo, onTagClick }: 
                       >
                         {new Date(ens.updated_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
                       </p>
-                    </motion.button>
+                    </MotionButton>
                   ))}
                 </div>
               </div>

@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Loader2, ChevronRight, ArrowLeft, House, Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, Users, UserX } from "lucide-react";
@@ -324,13 +325,13 @@ export default function MapaInteractivo() {
         {}
         <AnimatePresence>
           {vistaActual === "reino" && (
-            <motion.button
+            <MotionButton
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               onClick={volverAlGlobal}
               className="absolute top-6 left-6 z-50 bg-white-custom/90 backdrop-blur-md p-3 shadow-xl border border-primary/20 text-primary hover:scale-110 transition-transform" style={{borderRadius:"var(--radius-btn)"}}
             >
               <ArrowLeft size={20} />
-            </motion.button>
+            </MotionButton>
           )}
         </AnimatePresence>
 

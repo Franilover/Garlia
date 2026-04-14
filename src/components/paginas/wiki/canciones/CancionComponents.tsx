@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React, { useState } from "react";
 import { FileText, Copy, ExternalLink, Link2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -125,7 +126,7 @@ export const FullLyricsModal = ({
 //     </h4>
 //     <div className="grid grid-cols-2 gap-2">
 //       {IDIOMAS.map(l => (
-//         <motion.button
+//         <MotionButton
 //           key={l.id}
 //           whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
 //           onClick={() => onToggle(l.id)}
@@ -141,7 +142,7 @@ export const FullLyricsModal = ({
 //           }
 //         >
 //           {l.label}
-//         </motion.button>
+//         </MotionButton>
 //       ))}
 //     </div>
 //     <p className="text-[7px] text-center mt-3 font-bold uppercase tracking-widest"

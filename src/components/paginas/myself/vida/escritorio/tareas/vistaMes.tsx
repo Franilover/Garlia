@@ -1,6 +1,6 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React, { useState, useMemo } from "react";
-import { MotionDiv } from '@/components/ui/Motion';
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Bookmark, BookOpen, Plus } from "lucide-react";
 import { BtnIcon } from "@/components/ui";
@@ -116,7 +116,7 @@ export const VistaMes = ({
               añoActual === new Date().getFullYear();
 
             return (
-              <motion.button
+              <MotionButton
                 key={dia}
                 onClick={() => setDiaSeleccionado(dia)}
                 whileHover={{ scale: 1.08 }}
@@ -139,7 +139,7 @@ export const VistaMes = ({
                     )}
                   />
                 )}
-              </motion.button>
+              </MotionButton>
             );
           })}
         </div>

@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React, { useState } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useRouter } from "next/navigation";
@@ -131,13 +132,13 @@ export default function LoginPage() {
         </form>
 
         {mensaje && (
-          <motion.p 
+          <MotionP 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             className="mt-6 text-[10px] text-center text-primary font-black uppercase italic border-t border-primary/10 pt-4"
           >
             {mensaje}
-          </motion.p>
+          </MotionP>
         )}
 
         <button 

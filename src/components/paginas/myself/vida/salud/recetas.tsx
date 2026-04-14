@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -724,7 +725,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
             {}
-            <motion.button
+            <MotionButton
               whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
               onClick={() => setIsModalOpen(true)}
               className="border-(length:--border-width) border-dashed border-primary/15 rounded-(--radius-card) flex flex-col items-center justify-center p-8 bg-white-custom hover:bg-primary/5 transition-all group min-h-55"
@@ -735,7 +736,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
               <span className="text-[9px] font-black uppercase mt-3 text-primary/35 tracking-widest group-hover:text-primary transition-colors">
                 Nueva receta
               </span>
-            </motion.button>
+            </MotionButton>
 
             <AnimatePresence mode="popLayout">
               {filteredRecipes.length === 0 && !loading ? (
@@ -771,13 +772,13 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         >
           <Carrot size={18} />
         </Link>
-        <motion.button
+        <MotionButton
           whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
           onClick={() => setIsModalOpen(true)}
           className="w-14 h-14 rounded-(--radius-btn) btn-brand shadow-2xl"
         >
           <Plus size={22} />
-        </motion.button>
+        </MotionButton>
       </div>
 
       {}

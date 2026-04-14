@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
@@ -486,14 +487,14 @@ export const IngredientesPage = () => {
         >
           <ShoppingCart size={18} />
         </Link>
-        <motion.button
+        <MotionButton
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.94 }}
           onClick={() => setIsModalOpen(true)}
           className="w-14 h-14 rounded-[var(--radius-btn)] btn-brand shadow-2xl"
         >
           <Plus size={22} />
-        </motion.button>
+        </MotionButton>
       </div>
 
       <AnimatePresence>

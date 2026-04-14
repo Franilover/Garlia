@@ -1,4 +1,5 @@
 "use client";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -671,7 +672,7 @@ export default function ArmarioPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
             {outfitsFiltrados.map((outfit: Outfit) => (
               <div key={outfit.id} className="relative group/card">
-                <motion.button
+                <MotionButton
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setLightbox(outfit)}
                   className="card-main w-full relative overflow-hidden group p-0 transition-all border-primary/10 hover:border-primary/30"
@@ -735,7 +736,7 @@ export default function ArmarioPage() {
                       </div>
                     )}
                   </div>
-                </motion.button>
+                </MotionButton>
 
                 {/* Botones editar/borrar */}
                 <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all">
@@ -758,7 +759,7 @@ export default function ArmarioPage() {
             ))}
 
             {/* Botón añadir */}
-            <motion.button
+            <MotionButton
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowNuevo(true)}
               className="relative border-2 border-dashed border-primary/10 hover:border-primary/30 transition-all flex flex-col items-center justify-center gap-3 text-muted-on-surface hover:text-primary"
@@ -766,7 +767,7 @@ export default function ArmarioPage() {
             >
               <Plus size={24} className="opacity-30" />
               <p className="text-[9px] font-black uppercase tracking-widest opacity-30">Añadir</p>
-            </motion.button>
+            </MotionButton>
           </div>
         )}
       </main>

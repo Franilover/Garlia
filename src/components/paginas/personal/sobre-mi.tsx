@@ -1,3 +1,4 @@
+import { MotionH1, MotionSection, MotionButton, MotionA } from '@/components/ui/Motion';
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { Palette, Monitor, Droplets, Music, Instagram, Youtube } from "lucide-react";
@@ -56,7 +57,7 @@ export default function SobreMi() {
 
         <header className="mb-24 md:mb-32">
           <div className="overflow-hidden">
-            <motion.h1
+            <MotionH1
               initial={{ y: "110%" }}
               animate={{ y: 0 }}
               transition={{ duration: 0.7, delay: 0.06, ease: [0.16, 1, 0.3, 1] as any }}
@@ -68,7 +69,7 @@ export default function SobreMi() {
               }}
             >
               Sobre Mí
-            </motion.h1>
+            </MotionH1>
           </div>
 
           <MotionDiv
@@ -82,7 +83,7 @@ export default function SobreMi() {
 
         <div className="space-y-24 md:space-y-32">
 
-          <motion.section
+          <MotionSection
             {...fade(0.18)}
             className="relative flex flex-col items-center text-center py-16 md:py-20 px-8 md:px-16 overflow-hidden"
             style={{
@@ -124,9 +125,9 @@ export default function SobreMi() {
               className="absolute right-0 top-1/4 bottom-1/4 w-[3px] rounded-full"
               style={{ background: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
             />
-          </motion.section>
+          </MotionSection>
 
-          <motion.section {...fade(0.24)} className="flex flex-col items-center text-center">
+          <MotionSection {...fade(0.24)} className="flex flex-col items-center text-center">
             <div
               className="flex items-center gap-2 text-[18px] font-black uppercase tracking-[0.4em] mb-10"
               style={{ color: "var(--primary)", opacity: 0.3 }}
@@ -182,9 +183,9 @@ export default function SobreMi() {
               })}
             </div>
 
-          </motion.section>
+          </MotionSection>
 
-          <motion.section {...fade(0.3)} className="space-y-12 flex flex-col items-center text-center">
+          <MotionSection {...fade(0.3)} className="space-y-12 flex flex-col items-center text-center">
 
             <div className="flex items-center gap-5 w-full">
               <div
@@ -241,10 +242,10 @@ export default function SobreMi() {
               </p>
             </MotionDiv>
 
-          </motion.section>
+          </MotionSection>
 
           {/* Redes Sociales */}
-          <motion.section {...fade(0.36)} className="flex flex-col items-center text-center space-y-10">
+          <MotionSection {...fade(0.36)} className="flex flex-col items-center text-center space-y-10">
 
             <div
               className="flex items-center gap-2 text-[18px] font-black uppercase tracking-[0.4em]"
@@ -330,7 +331,7 @@ export default function SobreMi() {
                 if (isInstagram) {
                   return (
                     <div key={social.label} className="relative" ref={igRef}>
-                      <motion.button
+                      <MotionButton
                         {...fade(0.38 + i * 0.06)}
                         whileHover={{ y: -4 }}
                         transition={{ duration: 0.22 }}
@@ -339,7 +340,7 @@ export default function SobreMi() {
                         style={cardStyle}
                       >
                         {cardInner}
-                      </motion.button>
+                      </MotionButton>
 
                       {igOpen && (
                         <MotionDiv
@@ -387,7 +388,7 @@ export default function SobreMi() {
                 }
 
                 return (
-                  <motion.a
+                  <MotionA
                     key={social.label}
                     href={social.href!}
                     target="_blank"
@@ -399,12 +400,12 @@ export default function SobreMi() {
                     style={cardStyle}
                   >
                     {cardInner}
-                  </motion.a>
+                  </MotionA>
                 );
               })}
             </div>
 
-          </motion.section>
+          </MotionSection>
 
         </div>
       </main>

@@ -1,27 +1,29 @@
 "use client";
 import dynamic from 'next/dynamic';
+import type { ComponentType } from 'react';
+import type { HTMLMotionProps } from 'framer-motion';
 
-export const MotionDiv = dynamic(
-  () => import('framer-motion').then(mod => mod.motion.div),
-  { ssr: false }
-);
+type HTMLTag = keyof HTMLElementTagNameMap;
 
-export const MotionButton = dynamic(
-  () => import('framer-motion').then(mod => mod.motion.button),
-  { ssr: false }
-);
+const make = <T extends HTMLTag>(tag: T) => {
+  const Component = dynamic(
+    () => import('framer-motion').then(mod => ({
+      default: (mod.motion as any)[tag],
+    })),
+    { ssr: true }
+  );
+  return Component as ComponentType<HTMLMotionProps<T>>;
+};
 
-export const MotionLi = dynamic(
-  () => import('framer-motion').then(mod => mod.motion.li),
-  { ssr: false }
-);
-
-export const MotionH1 = dynamic(
-  () => import('framer-motion').then(mod => mod.motion.h1),
-  { ssr: false }
-);
-
-export const MotionMain = dynamic(
-  () => import('framer-motion').then(mod => mod.motion.main),
-  { ssr: false }
-);
+export const MotionDiv     = make('div');
+export const MotionMain    = make('main');
+export const MotionH1      = make('h1');
+export const MotionH2      = make('h2');
+export const MotionButton  = make('button');
+export const MotionLi      = make('li');
+export const MotionSpan    = make('span');
+export const MotionP       = make('p');
+export const MotionSection = make('section');
+export const MotionArticle = make('article');
+export const MotionImg     = make('img');
+export const MotionA = make('a');

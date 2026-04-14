@@ -1,3 +1,4 @@
+import { MotionButton } from '@/components/ui/Motion';
 "use client";
 import React from "react";
 import { ChevronRight as ChevronR } from "lucide-react";
@@ -8,7 +9,7 @@ import { ToastContainer } from "@/components/ui/ToastContainer";
 
 export function ChoiceButton({ label, onSelect }: { label: string; onSelect: () => void }) {
   return (
-    <motion.button
+    <MotionButton
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
@@ -16,7 +17,7 @@ export function ChoiceButton({ label, onSelect }: { label: string; onSelect: () 
     >
       <span className="font-black uppercase text-xs tracking-widest">{label}</span>
       <ChevronR size={16} className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-    </motion.button>
+    </MotionButton>
   );
 }
 

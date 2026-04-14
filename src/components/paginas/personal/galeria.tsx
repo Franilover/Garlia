@@ -1,3 +1,4 @@
+import { MotionArticle } from '@/components/ui/Motion';
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1042,7 +1043,7 @@ function GaleriaSection({
         />
       )}
 
-      <motion.article
+      <MotionArticle
         initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
@@ -1136,7 +1137,7 @@ function GaleriaSection({
             <TextBlock item={item} />
           </>
         )}
-      </motion.article>
+      </MotionArticle>
     </>
   );
 }
