@@ -29,5 +29,7 @@ const nextConfig = {
     ],
   },
 };
-// Million envuelve a withPWA, no al revés
-export default million.next(withPWA(nextConfig), { auto: true });
+
+export default million.next(withPWA(nextConfig), { 
+  auto: { rsc: false }
+});
