@@ -410,3 +410,28 @@
     border-color: color-mix(in srgb, var(--primary) 20%, transparent) !important;
   }
 }
+
+
+
+/* Mapeo shadcn → tus variables */
+@layer base {
+  :root {
+    --background: var(--bg-main);
+    --card: var(--white-custom);
+    --card-foreground: var(--text-on-card);
+    --popover: var(--white-custom);
+    --popover-foreground: var(--text-on-card);
+    --primary: var(--primary);
+    --primary-foreground: var(--btn-text);
+    --secondary: var(--accent);
+    --secondary-foreground: var(--btn-text);
+    --muted: color-mix(in srgb, var(--bg-main) 80%, var(--primary));
+    --muted-foreground: color-mix(in srgb, var(--foreground) 60%, transparent);
+    --accent: var(--accent);
+    --accent-foreground: var(--btn-text);
+    --border: color-mix(in srgb, var(--primary) 20%, transparent);
+    --input: var(--input-bg);
+    --ring: var(--accent);
+    --radius: var(--radius-btn);
+  }
+}
