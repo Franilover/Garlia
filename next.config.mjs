@@ -1,6 +1,7 @@
 // next.config.mjs
 import withPWAInit from 'next-pwa';
 import million from 'million/compiler';
+import withBundleAnalyzer from '@next/bundle-analyzer';
 
 const withPWA = withPWAInit({
   dest: 'public',
@@ -13,7 +14,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig = {
-  
+  turbopack: {},
   images: {
     remotePatterns: [
       {
@@ -30,6 +31,10 @@ const nextConfig = {
   },
 };
 
-export default million.next(withPWA(nextConfig), { 
-  auto: { rsc: false }
+const analyze = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
 });
+
+export default analyze(million.next(withPWA(nextConfig), {
+  auto: { rsc: false },
+}));
