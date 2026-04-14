@@ -20,3 +20,8 @@ export const MotionH1 = dynamic(
   () => import('framer-motion').then(mod => mod.motion.h1),
   { ssr: false }
 );
+
+export const MotionMain = dynamic(
+  () => import('framer-motion').then(mod => mod.motion.main),
+  { ssr: false }
+);

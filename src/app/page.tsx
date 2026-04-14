@@ -1,17 +1,17 @@
 "use client";
 import React from "react";
-import { MotionDiv } from '@/components/ui/Motion';
+import { MotionMain } from "@/components/ui/Motion";
 import SobreMi from "@/components/paginas/personal/sobre-mi";
 
 export default function Home() {
   return (
-    <motion.main 
+    <MotionMain 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className="min-h-svh bg-bg-main"
     >
       <SobreMi />
-    </motion.main>
+    </MotionMain>
   );
 }
