@@ -995,7 +995,7 @@ const PanelEditor = ({
       <AnimatePresence>
         {previewOpen && (
           <div className="fixed inset-0 z-[200] flex flex-col">
-            <MotionDiv
+            <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-bg-main"
             />

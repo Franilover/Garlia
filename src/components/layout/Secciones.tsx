@@ -231,7 +231,7 @@ function PanelSliderInner({
 
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         <AnimatePresence mode="wait" custom={direction}>
-          <MotionDiv
+          <motion.div
             key={active}
             custom={direction}
             variants={variants}
@@ -243,7 +243,7 @@ function PanelSliderInner({
             className={contentClassName}
           >
             {panels[active]?.content}
-          </MotionDiv>
+          </motion.div>
         </AnimatePresence>
       </div>
     </div>
