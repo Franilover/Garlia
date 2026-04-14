@@ -1,8 +1,7 @@
-import { MotionH1, MotionSection, MotionButton, MotionA } from '@/components/ui/Motion';
 "use client";
+import { MotionDiv } from '@/components/ui/Motion';
 import React, { useState, useRef, useEffect } from "react";
 import { Palette, Monitor, Droplets, Music, Instagram, Youtube } from "lucide-react";
-import { MotionDiv } from '@/components/ui/Motion';
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 

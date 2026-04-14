@@ -1,5 +1,5 @@
-import { MotionDiv } from '@/components/ui/Motion';
 "use client";
+import { MotionDiv } from '@/components/ui/Motion';
 
 import React, {
   useState, useEffect, useCallback, useRef, useMemo,

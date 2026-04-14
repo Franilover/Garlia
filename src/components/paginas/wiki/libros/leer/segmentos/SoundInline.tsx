@@ -1,8 +1,7 @@
-import { MotionSpan } from '@/components/ui/Motion';
 "use client";
+import { MotionDiv } from '@/components/ui/Motion';
 import React, { useState, useEffect, useRef } from "react";
 import { Music2 } from "lucide-react";
-import { MotionDiv } from '@/components/ui/Motion';
 
 export function SoundInline({ url, volume }: { url: string; volume: number }) {
   const [playing, setPlaying] = useState(false);

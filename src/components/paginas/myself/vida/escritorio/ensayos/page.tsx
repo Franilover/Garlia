@@ -1,5 +1,5 @@
-import { MotionSpan } from '@/components/ui/Motion';
 "use client";
+import { MotionDiv } from '@/components/ui/Motion';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Loader2, Menu, X, PenTool } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
