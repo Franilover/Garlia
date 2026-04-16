@@ -611,14 +611,12 @@ const Navbar = () => {
           {esFranilover && (
             <>
               <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "6px 4px" }} />
-              <SideNavItemNested
-                label="Personal"
-                icon={House}
-                active={isSalud || isEscritorio}
-                groups={personalMyselfGroups}
-                sidebarExpanded={sidebarExpanded}
-                onClose={closeAll}
-              />
+              <SideNavItem href="/myself/escritorio" label="Escritorio" icon={PenTool}
+                active={isEscritorio} fillActive={false}
+                sidebarExpanded={sidebarExpanded} onClose={closeAll} />
+              <SideNavItem href="/myself/salud" label="Salud" icon={Utensils}
+                active={isSalud} fillActive={false}
+                sidebarExpanded={sidebarExpanded} onClose={closeAll} />
               {franiLinks.map(({ href, label, icon, active }) => (
                 <SideNavItem key={href} href={href} label={label} icon={icon}
                   active={active} fillActive={false}
