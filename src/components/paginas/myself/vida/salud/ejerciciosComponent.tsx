@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { rutinasQueries, ejerciciosQueries } from "@/lib/api/queries/personal/ejercicios";
-import { Dumbbell, Play, Check, X, Plus, ChevronDown, Flame, Star, Calendar, Zap, Music2, Leaf, Target } from "lucide-react";
+import { Play, Check, X, Plus, ChevronDown } from "lucide-react";
 import { Btn, BtnIcon, Badge, Loading, EmptyState } from "@/components/ui";
 
 interface Ejercicio {
@@ -24,36 +24,132 @@ const TAG_COLORES: Record<string, string> = {
   "Movilidad":    "bg-accent/10 text-primary border-accent/20",
 };
 const PLAN_DIARIO = [
-  { tipo: "Fuerza",       subtitulo: "Calistenia",          icon: Zap,      frecuencia: "3× semana", duracion: "40 – 50 min", color: "bg-primary/10 text-primary border-primary/20" },
-  { tipo: "Cardio",       subtitulo: "Caminata o Baile",    icon: Music2,   frecuencia: "2× semana", duracion: "20 – 30 min", color: "bg-accent/20 text-primary border-accent/30" },
-  { tipo: "Flexibilidad", subtitulo: "Yoga",                icon: Leaf,     frecuencia: "Diario",    duracion: "10 – 15 min", color: "bg-primary/5 text-primary border-primary/10" },
-  { tipo: "Movilidad",    subtitulo: "Movilidad articular", icon: Target,   frecuencia: "Diario",    duracion: "5 min",       color: "bg-accent/10 text-primary border-accent/20" },
+  { tipo: "Fuerza",       subtitulo: "Calistenia",          frecuencia: "3× semana", duracion: "40 – 50 min", color: "bg-primary/10 text-primary border-primary/20" },
+  { tipo: "Cardio",       subtitulo: "Caminata o Baile",    frecuencia: "2× semana", duracion: "20 – 30 min", color: "bg-accent/20 text-primary border-accent/30" },
+  { tipo: "Flexibilidad", subtitulo: "Yoga",                frecuencia: "Diario",    duracion: "10 – 15 min", color: "bg-primary/5 text-primary border-primary/10" },
+  { tipo: "Movilidad",    subtitulo: "Movilidad articular", frecuencia: "Diario",    duracion: "5 min",       color: "bg-accent/10 text-primary border-accent/20" },
 ];
+const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 
-const PlanDiario = () => (
-  <div className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[28px] p-6 shadow-lg shadow-primary/5">
-    <div className="flex items-center gap-3 mb-5">
-      <div className="w-8 h-8 rounded-[var(--radius-btn)] bg-primary/10 flex items-center justify-center"><Calendar size={14} className="text-primary" /></div>
-      <h3 className="text-sm font-black text-primary italic tracking-tight leading-none">Rutina</h3>
-    </div>
-    <div className="space-y-2">
-      {PLAN_DIARIO.map(({ tipo, subtitulo, icon: Icon, frecuencia, duracion, color }) => (
-        <div key={tipo} className={`rounded-[var(--radius-btn)] border-[length:var(--border-width)] p-3.5 ${color} flex items-center gap-3`}>
-          <Icon size={16} className="shrink-0 opacity-70" />
-          <div className="flex-1 min-w-0">
-            <span className="text-[11px] font-black uppercase tracking-widest">{tipo}</span>
-            <span className="text-[8px] font-bold opacity-50 block">{subtitulo}</span>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className="bg-white-custom/70 rounded-[var(--radius-btn)] px-2 py-1"><span className="text-[10px] font-black block leading-none">{frecuencia}</span></div>
-            <div className="bg-white-custom/70 rounded-[var(--radius-btn)] px-2 py-1"><span className="text-[10px] font-black block leading-none">{duracion}</span></div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
+// Obtiene la clave ISO de la semana actual (ej: "2025-W22")
+const getSemanaKey = () => {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const week = Math.ceil(((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+  return `${now.getFullYear()}-W${String(week).padStart(2, "0")}`;
+};
 
+// ─── Tracker semanal de plan diario ────────────────────────────────────────
+const PlanDiario = () => {
+  const [expandido, setExpandido] = useState<string | null>(null);
+  const [registros, setRegistros] = useState<Record<string, boolean[]>>({});
+  const semanaActual = getSemanaKey();
+
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        const { supabase } = await import("@/lib/api/client/supabase");
+        const { data } = await supabase
+          .from("plan_diario_registro")
+          .select("tipo, dias")
+          .eq("semana", semanaActual);
+        if (data) {
+          const map: Record<string, boolean[]> = {};
+          data.forEach((row: { tipo: string; dias: boolean[] }) => { map[row.tipo] = row.dias; });
+          setRegistros(map);
+        }
+      } catch {}
+    };
+    cargar();
+  }, [semanaActual]);
+
+  const toggleDia = async (tipo: string, diaIdx: number) => {
+    const diasActuales = registros[tipo] ?? Array(7).fill(false);
+    const nuevosDias = diasActuales.map((v: boolean, i: number) => i === diaIdx ? !v : v);
+    setRegistros(prev => ({ ...prev, [tipo]: nuevosDias }));
+    try {
+      const { supabase } = await import("@/lib/api/client/supabase");
+      await supabase
+        .from("plan_diario_registro")
+        .upsert({ semana: semanaActual, tipo, dias: nuevosDias }, { onConflict: "semana,tipo" });
+    } catch {}
+  };
+
+  return (
+    <div className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-6 shadow-lg shadow-primary/5">
+      <div className="mb-5">
+        <h3 className="text-base font-black text-primary tracking-tight">Plan semanal</h3>
+        <span className="text-[10px] font-bold text-primary/40 uppercase tracking-widest">{semanaActual}</span>
+      </div>
+      <div className="space-y-2">
+        {PLAN_DIARIO.map(({ tipo, subtitulo, frecuencia, duracion, color }) => {
+          const abierto = expandido === tipo;
+          const dias = registros[tipo] ?? Array(7).fill(false);
+          const cumplidos = dias.filter(Boolean).length;
+          return (
+            <div key={tipo} className={`rounded-[var(--radius-btn)] border-[length:var(--border-width)] ${color} overflow-hidden`}>
+              <div
+                className="p-3.5 flex items-center gap-3 cursor-pointer select-none"
+                onClick={() => setExpandido(abierto ? null : tipo)}
+              >
+                <div className="flex-1 min-w-0">
+                  <span className="text-[11px] font-black uppercase tracking-widest">{tipo}</span>
+                  <span className="text-[8px] font-bold opacity-50 block">{subtitulo}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="bg-white-custom/70 rounded-[var(--radius-btn)] px-2 py-1">
+                    <span className="text-[10px] font-black block leading-none">{frecuencia}</span>
+                  </div>
+                  <div className="bg-white-custom/70 rounded-[var(--radius-btn)] px-2 py-1">
+                    <span className="text-[10px] font-black block leading-none">{duracion}</span>
+                  </div>
+                  {cumplidos > 0 && (
+                    <div className="bg-white-custom/80 rounded-[var(--radius-btn)] px-2 py-1">
+                      <span className="text-[10px] font-black block leading-none text-primary">{cumplidos}/7</span>
+                    </div>
+                  )}
+                  <MotionDiv animate={{ rotate: abierto ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <ChevronDown size={14} className="opacity-50" />
+                  </MotionDiv>
+                </div>
+              </div>
+              <AnimatePresence>
+                {abierto && (
+                  <MotionDiv
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-3.5 pb-3.5 pt-0 flex gap-1.5">
+                      {DIAS.map((dia, i) => (
+                        <button
+                          key={dia}
+                          onClick={() => toggleDia(tipo, i)}
+                          className={cn(
+                            "flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] text-[9px] font-black uppercase tracking-widest transition-all",
+                            dias[i]
+                              ? "bg-primary text-btn-text border-primary"
+                              : "bg-white-custom/50 text-primary/40 border-primary/10 hover:bg-white-custom/80"
+                          )}
+                        >
+                          {dias[i] ? <Check size={10} className="mx-auto" /> : dia}
+                        </button>
+                      ))}
+                    </div>
+                  </MotionDiv>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ─── Beep ──────────────────────────────────────────────────────────────────
 const beep = (freq = 880, dur = 0.15) => {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -66,6 +162,7 @@ const beep = (freq = 880, dur = 0.15) => {
   } catch {}
 };
 
+// ─── Modal ejecutar rutina ─────────────────────────────────────────────────
 const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => void }) => {
   const [ejercicioIdx, setEjercicioIdx] = useState(0);
   const [serieActual, setSerieActual]   = useState(1);
@@ -105,7 +202,6 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
   if (fase === "fin") return (
     <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-primary">
       <MotionDiv initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }} className="flex flex-col items-center gap-4">
-        <div className="w-20 h-20 rounded-full bg-btn-text/20 flex items-center justify-center mb-2"><Star size={40} className="text-btn-text" /></div>
         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] italic">Completado</span>
         <h2 className="text-5xl font-black text-btn-text italic tracking-tighter text-center">{rutina.nombre}</h2>
         <p className="text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] text-sm font-bold uppercase tracking-widest">
@@ -201,6 +297,7 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
   );
 };
 
+// ─── Card rutina ───────────────────────────────────────────────────────────
 const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
   rutina: Rutina; onIniciar: () => void; onEliminar: () => void; expandida: boolean; onToggle: () => void;
 }) => {
@@ -208,12 +305,12 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
   const totalSeries = ejercicios.reduce((a, e) => a + e.series, 0);
   const tagColor = TAG_COLORES[rutina.tag] ?? "bg-primary/10 text-primary border-primary/20";
   return (
-    <div className={cn("bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[28px] overflow-hidden shadow-lg shadow-primary/5 transition-all", expandida && "shadow-xl shadow-primary/10")}>
+    <div className={cn("bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] overflow-hidden shadow-lg shadow-primary/5 transition-all", expandida && "shadow-xl shadow-primary/10")}>
       <div className="p-5 cursor-pointer" onClick={onToggle}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <span className={cn("text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-[var(--radius-btn)] border", tagColor)}>{rutina.tag}</span>
+              <span className={cn("text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-[var(--radius-btn)] border-[length:var(--border-width)]", tagColor)}>{rutina.tag}</span>
             </div>
             <h3 className="text-lg font-black text-primary italic tracking-tight leading-none mb-1">{rutina.nombre}</h3>
             <p className="text-[10px] font-bold text-primary/40 uppercase tracking-wide">{rutina.descripcion}</p>
@@ -223,8 +320,8 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
           </MotionDiv>
         </div>
         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-primary/5">
-          <div className="flex items-center gap-1.5"><Dumbbell size={12} className="text-primary/30" /><span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{ejercicios.length} ejercicios</span></div>
-          <div className="flex items-center gap-1.5"><Flame size={12} className="text-primary/30" /><span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{totalSeries} series</span></div>
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{ejercicios.length} ejercicios</span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{totalSeries} series</span>
           <div className="ml-auto flex items-center gap-2">
             <BtnIcon variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEliminar(); }} className="text-accent hover:text-primary hover:bg-accent/10 border-none"><X size={14} /></BtnIcon>
             <Btn size="sm" icon={<Play size={11} fill="white" />} onClick={(e) => { e.stopPropagation(); onIniciar(); }}>Iniciar</Btn>
@@ -238,7 +335,7 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
               <div className="pt-4 space-y-2">
                 {ejercicios.map((ej, i) => (
                   <MotionDiv key={ej.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                    className="flex items-center gap-3 p-3 bg-primary/3 rounded-[var(--radius-btn)] border border-primary/5">
+                    className="flex items-center gap-3 p-3 bg-primary/3 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/5">
                     <div className="w-6 h-6 rounded-[var(--radius-btn)] bg-primary/10 flex items-center justify-center shrink-0"><span className="text-[8px] font-black text-primary">{i + 1}</span></div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-black text-primary uppercase tracking-tight truncate">{ej.nombre}</p>
@@ -246,7 +343,7 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-[9px] font-black text-primary/50">{ej.series}×{ej.reps}</span>
-                      <span className="text-[8px] font-bold text-primary/25 border border-primary/10 px-1.5 py-0.5 rounded-[var(--radius-btn)]">{ej.descanso}s</span>
+                      <span className="text-[8px] font-bold text-primary/25 border-[length:var(--border-width)] border-primary/10 px-1.5 py-0.5 rounded-[var(--radius-btn)]">{ej.descanso}s</span>
                     </div>
                   </MotionDiv>
                 ))}
@@ -259,6 +356,7 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
   );
 };
 
+// ─── Formulario nueva rutina ───────────────────────────────────────────────
 const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
   onGuardar: (datos: { nombre: string; descripcion: string; tag: string }, ejercicios: Omit<Ejercicio, "id">[]) => Promise<void>;
   onCancelar: () => void; guardando: boolean;
@@ -268,7 +366,7 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
   const [tag, setTag]                 = useState("Fuerza");
   const [ejercicios, setEjercicios]   = useState<Omit<Ejercicio, "id">[]>([]);
   const [nuevoEj, setNuevoEj]         = useState({ nombre: "", series: "3", reps: "10", descanso: "60", musculo: "" });
-  const inputCls = "bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20";
+  const inputCls = "bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20";
 
   const addEjercicio = () => {
     if (!nuevoEj.nombre.trim()) return;
@@ -277,7 +375,7 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
   };
 
   return (
-    <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[28px] p-6 shadow-xl shadow-primary/5">
+    <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-6 shadow-xl shadow-primary/5">
       <div className="flex items-center gap-3 mb-6"><Plus size={18} className="text-primary" /><h3 className="text-[12px] font-black uppercase tracking-widest text-primary/60">Nueva Rutina</h3></div>
       <div className="space-y-3 mb-6">
         <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre de la rutina..." className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-3 px-5 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all" />
@@ -298,7 +396,7 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
           ))}
         </div>
       )}
-      <div className="bg-primary/4 rounded-[var(--radius-btn)] p-4 mb-6 border border-primary/8">
+      <div className="bg-primary/4 rounded-[var(--radius-btn)] p-4 mb-6 border-[length:var(--border-width)] border-primary/8">
         <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-3">Añadir ejercicio</p>
         <div className="grid grid-cols-2 gap-2 mb-2">
           <input value={nuevoEj.nombre} onChange={e => setNuevoEj(p => ({ ...p, nombre: e.target.value }))} placeholder="Nombre..." onKeyDown={e => e.key === "Enter" && addEjercicio()} className={`col-span-2 ${inputCls}`} />
@@ -317,6 +415,7 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
   );
 };
 
+// ─── Página principal ──────────────────────────────────────────────────────
 export const PaginaEjercicios = () => {
   const [rutinas, setRutinas]   = useState<Rutina[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -380,7 +479,7 @@ export const PaginaEjercicios = () => {
       <div className="max-w-4xl mx-auto space-y-8">
         <PlanDiario />
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] p-1.5 flex-wrap shadow-sm">
+          <div className="flex items-center gap-1.5 bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)] p-1.5 flex-wrap shadow-sm">
             {TAGS.map(t => <Badge key={t} active={filtroTag === t} onClick={() => setFiltroTag(t)}>{t}</Badge>)}
           </div>
           <Btn className="ml-auto shrink-0" icon={<Plus size={14} />} onClick={() => setCreando(true)}>Nueva rutina</Btn>
@@ -395,7 +494,7 @@ export const PaginaEjercicios = () => {
                 </MotionDiv>
               ))}
             </AnimatePresence>
-            {rutinasFiltradas.length === 0 && <EmptyState label={filtroTag === "Todas" ? "Aún no tienes rutinas" : `No hay rutinas de ${filtroTag}`} icon={<Dumbbell size={32} />} />}
+            {rutinasFiltradas.length === 0 && <EmptyState label={filtroTag === "Todas" ? "Aún no tienes rutinas" : `No hay rutinas de ${filtroTag}`} />}
           </div>
         )}
       </div>
