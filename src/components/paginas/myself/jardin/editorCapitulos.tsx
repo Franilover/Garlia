@@ -220,6 +220,20 @@ async function libroUpdateVisibilidad(id: string, visibilidad: string, fechaPubl
   if (error) throw error;
 }
 
+async function libroCreate(titulo: string): Promise<Libro> {
+  const { data, error } = await supabase
+    .from("libros")
+    .insert([{ titulo: titulo.trim().toUpperCase(), estado: "BORRADOR", visibilidad: "oculto" }])
+    .select()
+    .single();
+  if (error) throw error;
+  try {
+    const table = (db as any)["libros"];
+    if (table) await table.put({ ...data, status: "synced" });
+  } catch {}
+  return data as Libro;
+}
+
 
 function useLibros() {
   const [libros, setLibros]       = useState<Libro[]>([]);
@@ -501,7 +515,7 @@ const CapituloItem = ({
 };
 
 const LibroItem = ({
-  libro, selectedCapId, onSelectCap, expanded, onToggle, onEditCap, onDeleteCap, onEditLibro,
+  libro, selectedCapId, onSelectCap, expanded, onToggle, onEditCap, onDeleteCap, onEditLibro, onNuevoCap,
 }: {
   libro: Libro;
   selectedCapId: string | null;
@@ -511,6 +525,7 @@ const LibroItem = ({
   onEditCap: (cap: Capitulo) => void;
   onDeleteCap: (id: string, libroId: string) => void;
   onEditLibro: (libro: Libro) => void;
+  onNuevoCap: (libroId: string) => void;
 }) => {
   const { capitulos, loading } = useCapitulos(expanded ? libro.id : null);
 
@@ -571,6 +586,14 @@ const LibroItem = ({
               />
             ))
           )}
+          <div className="pt-1 pb-0.5">
+            <button
+              onClick={() => onNuevoCap(libro.id)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase text-primary/25 hover:text-primary/60 hover:border-primary/30 hover:bg-primary/3 transition-all tracking-widest"
+            >
+              <Plus size={10}/> Nuevo Capítulo
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -1502,6 +1525,116 @@ const ModalNuevoCapitulo = ({
   );
 };
 
+// ─── SelectorImagenPortada ────────────────────────────────────────────────────
+function SelectorImagenPortada({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Portada</label>
+      <div
+        onClick={() => setOpen(true)}
+        className="relative aspect-[2/3] w-28 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 cursor-pointer group"
+      >
+        {value ? (
+          <>
+            <img src={value} alt="portada" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
+              <BookMarked size={16} className="text-white" />
+              <span className="text-[9px] font-black uppercase text-white tracking-widest">Cambiar</span>
+            </div>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onChange(""); }}
+              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 hover:bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+            >
+              <X size={9} className="text-white" />
+            </button>
+          </>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-primary/25 hover:text-primary/50 transition-colors">
+            <BookMarked size={20} />
+            <span className="text-[8px] font-black uppercase tracking-widest text-center px-1">Elegir portada</span>
+          </div>
+        )}
+      </div>
+      {open && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+                <BookMarked size={11} /> Portada del libro
+              </h3>
+              <button onClick={() => setOpen(false)} className="text-primary/30 hover:text-primary transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <SimpleImagePicker
+              onSelect={url => { onChange(url); setOpen(false); }}
+              onClose={() => setOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ModalNuevoLibro ──────────────────────────────────────────────────────────
+const ModalNuevoLibro = ({
+  onCreated, onClose,
+}: {
+  onCreated: (l: Libro) => void;
+  onClose: () => void;
+}) => {
+  const [titulo,  setTitulo]  = useState("");
+  const [saving,  setSaving]  = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!titulo.trim()) return;
+    setSaving(true);
+    setErrorMsg("");
+    try {
+      const libro = await libroCreate(titulo);
+      onCreated(libro);
+      onClose();
+    } catch {
+      setErrorMsg("No se pudo crear el libro. Inténtalo de nuevo.");
+    }
+    setSaving(false);
+  };
+
+  return (
+    <ModalBase onClose={onClose}>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+          <BookMarked size={12}/> Nuevo Libro
+        </h3>
+        <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16}/></button>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <CampoInput label="Título" value={titulo} onChange={setTitulo} placeholder="TÍTULO DEL LIBRO…" autoFocus />
+        {errorMsg && <p className="text-[10px] text-red-400 font-black uppercase tracking-widest">{errorMsg}</p>}
+        <div className="pt-1">
+          <BotonSubmit
+            loading={saving}
+            disabled={!titulo.trim()}
+            labelLoading={<><Loader2 size={13} className="animate-spin"/>Creando…</>}
+            labelNormal={<><Plus size={13}/>Crear Libro</>}
+          />
+        </div>
+      </form>
+    </ModalBase>
+  );
+};
+
 // ─── ModalEditarLibro ─────────────────────────────────────────────────────────
 const ModalEditarLibro = ({
   libro, onSaved, onClose,
@@ -1561,7 +1694,7 @@ const ModalEditarLibro = ({
             className="w-full bg-bg-main border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2.5 text-[12px] text-primary outline-none focus:border-primary/30 resize-none transition-colors"
           />
         </div>
-        <CampoInput label="URL de portada" value={portada} onChange={setPortada} placeholder="https://…" />
+        <SelectorImagenPortada value={portada} onChange={setPortada} />
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Estado</label>
           <div className="flex gap-1.5 flex-wrap">
@@ -1614,6 +1747,7 @@ export default function EstudioCapitulos() {
   const [focusMode,       setFocusMode]         = useState(false);
   const [busqueda,        setBusqueda]          = useState("");
   const [showNuevoCap,    setShowNuevoCap]      = useState(false);
+  const [showNuevoLibro,  setShowNuevoLibro]    = useState(false);
   const [editandoCap,     setEditandoCap]       = useState<Capitulo | null>(null);
   const [capRefreshKey,   setCapRefreshKey]     = useState(0);
   const [editandoLibro,   setEditandoLibro]     = useState<Libro | null>(null);
@@ -1662,6 +1796,13 @@ export default function EstudioCapitulos() {
     setEditandoLibro(null);
   };
 
+  const handleLibroCreado = (libro: Libro) => {
+    setLibros(prev => [libro, ...prev]);
+    setExpandedLibros(prev => new Set([...prev, libro.id]));
+    setSelectedLibroId(libro.id);
+    setShowNuevoLibro(false);
+  };
+
   const handleCapEliminada = async (id: string, libroId: string) => {
     try {
       await capDelete(id);
@@ -1672,14 +1813,12 @@ export default function EstudioCapitulos() {
 
   const sidebarContent = (
     <>
-      {selectedLibroId && (
-        <div className="px-2 pb-3">
-          <button onClick={() => setShowNuevoCap(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
-            <Plus size={12}/> Nuevo Capítulo
-          </button>
-        </div>
-      )}
+      <div className="px-2 pb-3">
+        <button onClick={() => setShowNuevoLibro(true)}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
+          <Plus size={12}/> Nuevo Libro
+        </button>
+      </div>
       {loadingLibros ? (
         <div className="flex items-center justify-center py-12 text-primary/30"><Loader2 className="animate-spin" size={20}/></div>
       ) : librosFiltrados.length === 0 ? (
@@ -1688,7 +1827,8 @@ export default function EstudioCapitulos() {
         <LibroItem key={libro.id + capRefreshKey} libro={libro} selectedCapId={selectedCapId}
           onSelectCap={handleSelectCap} expanded={expandedLibros.has(libro.id)}
           onToggle={() => toggleExpanded(libro.id)} onEditCap={setEditandoCap}
-          onDeleteCap={handleCapEliminada} onEditLibro={setEditandoLibro} />
+          onDeleteCap={handleCapEliminada} onEditLibro={setEditandoLibro}
+          onNuevoCap={(libroId) => { setSelectedLibroId(libroId); setShowNuevoCap(true); }} />
       ))}
     </>
   );
@@ -1717,6 +1857,7 @@ export default function EstudioCapitulos() {
           <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Estudio de Capítulos" subtitulo="Expande un libro y selecciona un capítulo" />
         )}
       </EstudioLayout>
+      {showNuevoLibro && <ModalNuevoLibro onCreated={handleLibroCreado} onClose={() => setShowNuevoLibro(false)} />}
       {showNuevoCap && selectedLibroId && <ModalNuevoCapitulo libroId={selectedLibroId} ordenSiguiente={capitulos.length + 1} onCreated={handleCapCreada} onClose={() => setShowNuevoCap(false)} />}
       {editandoLibro && <ModalEditarLibro libro={editandoLibro} onSaved={handleLibroEditado} onClose={() => setEditandoLibro(null)} />}
       {editandoCap && <ModalEditarCapitulo cap={editandoCap} onSaved={handleCapEditada} onClose={() => setEditandoCap(null)} />}
