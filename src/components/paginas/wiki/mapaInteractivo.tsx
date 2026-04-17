@@ -282,7 +282,7 @@ export default function MapaInteractivo() {
       <div
         className={`relative transition-all duration-500 ease-in-out
           ${isMobile
-            ? "fixed inset-0 z-10"                                            // móvil: pantalla completa siempre
+            ? "fixed inset-0 z-10 overflow-hidden"                            // móvil: pantalla completa, sin overflow
             : vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"         // desktop: normal
           }
         `}
@@ -354,20 +354,25 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
-        {/* ── En móvil + vista reino: botón para abrir/cerrar panel info ── */}
+        {/* ── En móvil + vista reino: tab para abrir panel info, anclado arriba del bottom sheet ── */}
         <AnimatePresence>
           {isMobile && vistaActual === "reino" && reinoSeleccionado && (
             <MotionDiv
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-              className="absolute bottom-6 right-6 z-50"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed left-0 right-0 z-[55] flex justify-center pointer-events-none"
+              style={{
+                bottom: mobilePanelOpen ? "calc(80vh - 1px)" : "0",
+                transition: "bottom 0.4s cubic-bezier(0.32,0.72,0,1)",
+              }}
             >
               <button
                 onClick={() => setMobilePanelOpen(v => !v)}
-                className="flex items-center gap-2 px-4 py-3 bg-primary text-btn-text text-[10px] font-black uppercase shadow-2xl"
-                style={{borderRadius:"var(--radius-btn)"}}
+                className="pointer-events-auto flex items-center gap-2 px-6 py-2.5 bg-primary text-btn-text text-[10px] font-black uppercase shadow-2xl rounded-t-xl"
               >
-                {mobilePanelOpen ? <X size={14} /> : <ChevronRight size={14} />}
-                {mobilePanelOpen ? "Cerrar" : reinoSeleccionado.nombre}
+                {mobilePanelOpen
+                  ? <><X size={14} /> Cerrar</>
+                  : <><ChevronRight size={14} style={{ transform: "rotate(-90deg)" }} /> {reinoSeleccionado.nombre}</>
+                }
               </button>
             </MotionDiv>
           )}
@@ -375,16 +380,16 @@ export default function MapaInteractivo() {
 
         {}
         <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5} enabled={!editMode}>
-          <div ref={mapRef} className={`origin-top-left ${isMobile ? "w-full h-full" : "w-full h-full"}`}>
+          <div ref={mapRef} className="origin-top-left w-full h-full">
             <div
-              className={`relative inline-block w-full ${isMobile ? "h-screen" : ""} ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+              className={`relative inline-block w-full ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
               onClick={handleMapClick}
             >
               <img
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
-                className={`block pointer-events-none select-none ${isMobile ? "w-full h-full object-contain" : "w-full h-auto"}`}
+                className="w-full h-auto block pointer-events-none select-none"
                 onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
               />
               {!cargandoImagen && (
@@ -413,16 +418,22 @@ export default function MapaInteractivo() {
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={
               isMobile
-                ? "fixed bottom-0 left-0 right-0 z-[60] bg-white-custom rounded-t-2xl shadow-[0_-10px_50px_rgba(0,0,0,0.15)] p-6 flex flex-col gap-0 max-h-[80vh] overflow-y-auto"
+                ? "fixed bottom-0 left-0 right-0 z-[60] bg-white-custom rounded-t-2xl shadow-[0_-10px_50px_rgba(0,0,0,0.15)] flex flex-col gap-0 overflow-hidden"
                 : "relative z-40 md:w-1/3 bg-white-custom border-l border-primary/10 p-10 flex flex-col gap-0 shadow-[-20px_0_50px_rgba(0,0,0,0.05)] overflow-y-auto"
             }
+            style={isMobile ? { height: "80vh", maxHeight: "80vh" } : undefined}
           >
-            {/* Drag handle en móvil */}
+            {/* Drag handle en móvil + padding top */}
             {isMobile && (
-              <div className="flex justify-center mb-4">
+              <div
+                className="flex-shrink-0 flex justify-center pt-4 pb-3 cursor-pointer"
+                onClick={() => setMobilePanelOpen(false)}
+              >
                 <div className="w-10 h-1 rounded-full bg-primary/20" />
               </div>
             )}
+            {/* Contenido scrolleable en móvil */}
+            <div className={isMobile ? "flex-1 overflow-y-auto px-6 pb-8" : "flex flex-col gap-0 flex-grow"}>
             {editMode ? (
               <div className="flex flex-col gap-4 flex-grow">
 
@@ -680,6 +691,7 @@ export default function MapaInteractivo() {
                 </div>
               </>
             )}
+            </div>{/* fin contenedor scrolleable */}
           </MotionDiv>
         )}
       </AnimatePresence>
