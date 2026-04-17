@@ -12,8 +12,8 @@ const AuthContext = createContext({});
 export const AuthProvider = ({ children }) => {
   const [user, setPerfil_user] = useState(null);
   const [perfil, setPerfil]    = useState(null);
-  const [loading, setLoading]  = useState(true);
-
+  const [loading, setLoading]  = useState(true);  
+  const isAdmin = perfil?.rol === "admin"; // o el campo que uses
   const fetchPerfil = async (userId: string, userEmail: string) => {
     try {
       // ── 1. Servir caché de Dexie inmediatamente (0 ms de espera) ──────────
@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, perfil, loading }}>
+    <AuthContext.Provider value={{ user, perfil, loading, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
