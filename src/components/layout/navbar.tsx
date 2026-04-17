@@ -525,6 +525,7 @@ const Navbar = () => {
   const [userMenuOpen,    setUserMenuOpen]    = useState(false);
   const [themeMenuOpen,   setThemeMenuOpen]   = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [sidebarVisible,  setSidebarVisible]  = useState(false);
   const [mobileOpenMenu,  setMobileOpenMenu]  = useState<string | null>(null);
   const { dark, toggleDark, accent, setAccent } = useTheme();
   const isDark = dark === "dark";
@@ -543,6 +544,7 @@ const Navbar = () => {
     setThemeMenuOpen(false);
     setMobileOpenMenu(null);
     setSidebarExpanded(false);
+    setSidebarVisible(false);
   };
 
   useEffect(() => { closeAll(); }, [currentPath]); // eslint-disable-line
@@ -568,22 +570,73 @@ const Navbar = () => {
   return (
     <>
       {/* ── SIDEBAR DESKTOP ─────────────────────────────────────────────── */}
+
+      {/* Botón flor flotante — solo visible en desktop cuando sidebar está oculta */}
+      <AnimatePresence>
+        {!sidebarVisible && (
+          <MotionDiv
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.18 }}
+            className="hidden md:flex fixed z-[200]"
+            style={{ left: "16px", top: "16px" }}
+          >
+            <MotionButton
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setSidebarVisible(true)}
+              className="flex items-center justify-center"
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "var(--radius-btn)",
+                background: "color-mix(in srgb, var(--bg-main) 92%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                color: "var(--primary)",
+                boxShadow: "var(--shadow-card)",
+              }}
+            >
+              <Flower2 size={20} />
+            </MotionButton>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+
+      {/* Overlay para cerrar sidebar al click fuera */}
+      <AnimatePresence>
+        {sidebarVisible && (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="hidden md:block fixed inset-0 z-[99]"
+            onClick={closeAll}
+          />
+        )}
+      </AnimatePresence>
+
       <aside
-        onMouseEnter={() => setSidebarExpanded(true)}
-        onMouseLeave={() => { setSidebarExpanded(false); closeAll(); }}
-        className="hidden md:flex fixed left-0 top-0 h-full z-[100] flex-col transition-all duration-300 ease-in-out"
+        onMouseEnter={() => sidebarVisible && setSidebarExpanded(true)}
+        onMouseLeave={() => setSidebarExpanded(false)}
+        className="hidden md:flex fixed left-0 top-0 h-full z-[100] flex-col"
         style={{
           width: sidebarExpanded ? "220px" : "68px",
           background: "color-mix(in srgb, var(--bg-main) 92%, transparent)",
           borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
+          transform: sidebarVisible ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 0.25s ease-in-out, width 0.3s ease-in-out",
         }}
       >
-        {/* Logo */}
-        <Link href="/" onClick={closeAll}
-          className="flex items-center gap-3 px-4 shrink-0 overflow-hidden"
+        {/* Logo / botón cerrar */}
+        <div
+          className="flex items-center gap-3 px-4 shrink-0 overflow-hidden cursor-pointer"
           style={{ height: "68px", color: "var(--primary)" }}
+          onClick={() => setSidebarVisible(false)}
         >
           <span className="shrink-0 flex items-center justify-center" style={{ width: "36px" }}>
             <Flower2 size={22} />
@@ -596,7 +649,7 @@ const Navbar = () => {
               </MotionSpan>
             )}
           </AnimatePresence>
-        </Link>
+        </div>
 
         <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "0 12px" }} />
 
