@@ -323,7 +323,7 @@ export default function Ensayos() {
         footerLeft={`${ensayos.length} notas`}
         sidebarContent={<Sidebar {...sidebarProps} embedded />}
       >
-        {}
+        {/* Barra de estado de guardado */}
         <div className="shrink-0 z-10 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-2.5 flex items-center justify-center bg-bg-main/80">
           <AnimatePresence mode="wait">
             {saveStatus !== "idle" && (
@@ -337,7 +337,7 @@ export default function Ensayos() {
           </AnimatePresence>
         </div>
 
-        {}
+        {/* Área principal */}
         <main className="relative flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto min-h-0">
           {loading ? (
             <div className="flex flex-col gap-4 animate-pulse">
@@ -347,7 +347,11 @@ export default function Ensayos() {
               <div className="h-4 rounded w-1/2" style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }} />
             </div>
           ) : (
-            <AnimatePresence mode="wait">
+            // ── FIX: sin mode="wait" — evita que Framer haga exit animation
+            // del editor completo cada vez que cambia ensayoActivo por un save.
+            // El Editor tiene su propia animación de entrada con key={ensayoActivo.id}
+            // que solo se dispara al cambiar de nota, no al guardar.
+            <AnimatePresence>
               {ensayoActivo ? (
                 <Editor
                   key={ensayoActivo.id}

@@ -47,10 +47,9 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
   const [tagInputFocused, setTagInputFocused] = useState(false);
   const [tagPanelActivo, setTagPanelActivo] = useState<string | null>(null);
 
-  
   const [citePopup, setCitePopup] = useState<{
     query: string;
-    atStart: number; 
+    atStart: number;
     position: { top: number; left: number };
   } | null>(null);
   const [citeActiveIdx, setCiteActiveIdx] = useState(0);
@@ -59,7 +58,6 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     setTagInput(ensayo.tags?.join(", ") || "");
   }, [ensayo.id]);
 
-  
   const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     onUpdateField(ensayo.id, "contenido", value);
@@ -92,7 +90,6 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     }
   }, [ensayo.id, onUpdateField, sources]);
 
-  
   const insertCite = useCallback((src: ZoteroSource) => {
     if (!citePopup) return;
     const textarea = textareaRef.current;
@@ -109,7 +106,6 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     onUpdateField(ensayo.id, "contenido", newContent);
     setCitePopup(null);
 
-    
     requestAnimationFrame(() => {
       textarea.focus();
       const pos = citePopup.atStart + cite.length;
@@ -117,7 +113,6 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     });
   }, [citePopup, ensayo.id, ensayo.contenido, onUpdateField]);
 
-  
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (!citePopup || !sources.length) return;
 
@@ -144,7 +139,6 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     }
   }, [citePopup, sources, citeActiveIdx, insertCite]);
 
-  
   const applyFormat = (action: ToolbarAction) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -182,10 +176,14 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
         key={ensayo.id}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        // ── FIX: exit definido explícitamente para que Framer no invierta
+        // la animación inicial (que tenía translateX herededado del layout padre).
+        // Con esto al cambiar de nota la salida es limpia: fade + sube suavemente.
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
         className="flex flex-col gap-0 min-h-[80vh]"
       >
-        {}
+        {/* Barra de tags */}
         <div
           className="flex items-center gap-2 px-3 md:px-4 py-2.5 mb-3"
           style={{
@@ -196,25 +194,23 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
         >
           <Tag size={11} className="shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }} />
           {!tagInputFocused && parsedTags.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5 flex-1">
+            <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
               {parsedTags.map(tag => (
                 <button
                   key={tag}
                   onClick={() => setTagPanelActivo(tag)}
-                  className="font-mono text-[10px] uppercase tracking-wide px-2.5 py-1 transition-all"
+                  className="font-mono text-[10px] uppercase tracking-wide px-2 py-0.5 transition-all"
                   style={{
                     background: "color-mix(in srgb, var(--accent) 10%, transparent)",
                     color: "var(--accent)",
-                    border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
                     borderRadius: "var(--radius-btn)",
+                    border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
                   }}
                   onMouseEnter={e => {
                     (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 20%, transparent)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)";
                   }}
                   onMouseLeave={e => {
                     (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 25%, transparent)";
                   }}
                 >
                   #{tag}
@@ -222,16 +218,15 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
               ))}
               <button
                 onClick={() => setTagInputFocused(true)}
-                className="font-mono text-[9px] uppercase tracking-wide px-2 py-1 transition-all"
+                className="font-mono text-[9px] uppercase tracking-wide px-2 py-0.5 transition-all"
                 style={{
-                  background: "transparent",
                   color: "color-mix(in srgb, var(--primary) 25%, transparent)",
                   border: "1px dashed color-mix(in srgb, var(--primary) 15%, transparent)",
                   borderRadius: "var(--radius-btn)",
                 }}
                 onMouseEnter={e => {
                   (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 50%, transparent)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 30%, transparent)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)";
                 }}
                 onMouseLeave={e => {
                   (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 25%, transparent)";
@@ -272,7 +267,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
           </button>
         </div>
 
-        {}
+        {/* Toolbar de formato */}
         {editMode && (
           <MotionDiv
             initial={{ opacity: 0, y: -4 }}
@@ -312,7 +307,6 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
             >
               Markdown
             </span>
-            {}
             {sources.length > 0 && (
               <>
                 <div className="ml-2 h-4 w-px shrink-0"
@@ -329,7 +323,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
           </MotionDiv>
         )}
 
-        {}
+        {/* Cuerpo del editor */}
         <div
           className="flex flex-col gap-0 flex-1 p-5 md:p-8"
           style={{
@@ -351,7 +345,6 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
             style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
           />
 
-          {}
           <div className="flex-1 relative">
             {editMode ? (
               <>
@@ -417,7 +410,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
         </div>
       </MotionDiv>
 
-      {}
+      {/* TagPanel del editor */}
       <TagPanel
         tag={tagPanelActivo}
         ensayos={ensayos}

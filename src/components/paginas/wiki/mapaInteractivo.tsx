@@ -254,7 +254,7 @@ export default function MapaInteractivo() {
   );
 
   return (
-    <div className="flex flex-col md:flex-row 100dvh bg-bg-main overflow-hidden">
+    <div className="flex flex-col md:flex-row w-full bg-bg-main overflow-hidden">
 
       {/* ── Modal de detalle de personaje ── */}
       {modalEntidad && (
