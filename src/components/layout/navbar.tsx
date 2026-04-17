@@ -549,20 +549,25 @@ const Navbar = () => {
 
   useEffect(() => { closeAll(); }, [currentPath]); // eslint-disable-line
 
-  const isWiki       = currentPath?.startsWith("/wiki")              ?? false;
-  const isPersonal   = currentPath?.startsWith("/personal")          ?? false;
-  const isJardin = currentPath?.startsWith("/myself/jardin") ?? false;
-  const isSalud      = currentPath?.startsWith("/myself/salud")      ?? false;;
-  const isEscritorio      = currentPath?.startsWith("/myself/escritorio")      ?? false;;
-    
-    
-  // Links del nav público
-  const mainLinks = [
-    { href: "/personal", label: "Personal", icon: Star,   active: isPersonal, fillActive: true  },
-    { href: "/wiki",     label: "Jardin",   icon: Flower2, active: isWiki,     fillActive: false },
+  const isJardin     = currentPath?.startsWith("/myself/jardin")      ?? false;
+  const isSalud      = currentPath?.startsWith("/myself/salud")       ?? false;
+  const isEscritorio = currentPath?.startsWith("/myself/escritorio")  ?? false;
+
+  // Links directos — Personal
+  const personalLinks = [
+    { href: "/personal/sobre-mi", label: "Sobre Mí", icon: Star,    active: currentPath?.startsWith("/personal/sobre-mi") ?? false, fillActive: true  },
+    { href: "/personal/galeria",  label: "Galería",  icon: Palette, active: currentPath?.startsWith("/personal/galeria")  ?? false, fillActive: false },
   ];
 
-  // Links de Franilover
+  // Links directos — Wiki / Jardín
+  const wikiLinks = [
+    { href: "/wiki/personal",  label: "Mi Personaje", icon: UserCircle2, active: currentPath?.startsWith("/wiki/personal")  ?? false, fillActive: false },
+    { href: "/wiki/mapa",      label: "Mapa",         icon: Compass,     active: currentPath?.startsWith("/wiki/mapa")      ?? false, fillActive: false },
+    { href: "/wiki/libros",    label: "Libros",       icon: BookText,    active: currentPath?.startsWith("/wiki/libros")    ?? false, fillActive: false },
+    { href: "/wiki/canciones", label: "Canciones",    icon: Music,       active: currentPath?.startsWith("/wiki/canciones") ?? false, fillActive: false },
+  ];
+
+  // Links de Franilover (myself/admin)
   const franiLinks = [
     { href: "/myself/jardin", label: "Arte", icon: Cat, active: isJardin },
   ];
@@ -647,7 +652,17 @@ const Navbar = () => {
 
         {/* Nav — todos usan SideNavItem con flyout */}
         <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
-          {mainLinks.map(({ href, label, icon, active, fillActive }) => (
+          {/* Personal */}
+          {personalLinks.map(({ href, label, icon, active, fillActive }) => (
+            <SideNavItem key={href} href={href} label={label} icon={icon}
+              active={active} fillActive={fillActive}
+              sidebarExpanded={false} onClose={closeAll} />
+          ))}
+
+          <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "6px 4px" }} />
+
+          {/* Wiki / Jardín */}
+          {wikiLinks.map(({ href, label, icon, active, fillActive }) => (
             <SideNavItem key={href} href={href} label={label} icon={icon}
               active={active} fillActive={fillActive}
               sidebarExpanded={false} onClose={closeAll} />
@@ -807,7 +822,22 @@ const Navbar = () => {
               border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            {mainLinks.map(({ href, label, icon, active, fillActive }) => (
+            {/* Personal */}
+            {personalLinks.map(({ href, label, icon, active, fillActive }) => (
+              <MobileNavItem
+                key={href} href={href} label={label} icon={icon}
+                active={active} fillActive={fillActive}
+                isOpen={mobileOpenMenu === href}
+                onToggle={() => setMobileOpenMenu(mobileOpenMenu === href ? null : href)}
+                onClose={closeAll}
+              />
+            ))}
+
+            {/* Separador */}
+            <div style={{ width: "var(--border-width)", alignSelf: "stretch", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "4px 2px" }} />
+
+            {/* Wiki / Jardín */}
+            {wikiLinks.map(({ href, label, icon, active, fillActive }) => (
               <MobileNavItem
                 key={href} href={href} label={label} icon={icon}
                 active={active} fillActive={fillActive}
@@ -818,6 +848,9 @@ const Navbar = () => {
             ))}
             {esFranilover && (
               <>
+                {/* Separador admin */}
+                <div style={{ width: "var(--border-width)", alignSelf: "stretch", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "4px 2px" }} />
+
                 {personalMyselfGroups.map(({ href, icon: GroupIcon }) => {
                   const isActive = currentPath?.startsWith(href) ?? false;
                   return (
