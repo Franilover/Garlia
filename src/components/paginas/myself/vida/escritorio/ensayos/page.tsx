@@ -249,7 +249,7 @@ export default function Ensayos() {
 
   const scheduleSave = useCallback((id: string, updates: Record<string, any>) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    setSaveStatus("saving");
+    //setSaveStatus("saving");
     saveTimerRef.current = setTimeout(async () => {
       try {
         await supabase.from("ensayos").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id);
