@@ -370,11 +370,14 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
                 />
                 {}
                 <AnimatePresence>
-                  {citePopup && (
+                  {citePopup && sources && sources.length > 0 && (
                     <CitePopup
                       sources={sources}
                       query={citePopup.query}
-                      position={citePopup.position}
+                      position={{ 
+                        top: citePopup.position.top + 25, 
+                        left: citePopup.position.left 
+                      }}
                       onSelect={insertCite}
                       onClose={() => setCitePopup(null)}
                       activeIndex={citeActiveIdx}
