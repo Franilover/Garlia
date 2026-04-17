@@ -78,6 +78,8 @@ export default function MapaInteractivo() {
   const [modifiedDetalles, setModifiedDetalles] = useState<Set<string>>(new Set());
   const [isUploadingImg, setIsUploadingImg] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const mapRef = useRef(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
   // ── Personajes del reino seleccionado y desbloqueados por el usuario ──────
@@ -87,6 +89,13 @@ export default function MapaInteractivo() {
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
 
   const showToast = (message: string, type: ToastType) => setToast({ message, type });
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const onUpdate = useCallback(({ x, y, scale }) => {
     if (mapRef.current) {
@@ -244,6 +253,7 @@ export default function MapaInteractivo() {
     setPersonajesReino([]);
     setModifiedDetalles(new Set());
     setEditMode(false);
+    setMobilePanelOpen(false);
   };
 
   if (loading) return (
@@ -266,8 +276,17 @@ export default function MapaInteractivo() {
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
-      {}
-      <div className={`relative transition-all duration-500 ease-in-out ${vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"}`}>
+      {/* ══════════════════════════════════════════
+          MAPA (full-screen en móvil, izquierda en desktop)
+      ══════════════════════════════════════════ */}
+      <div
+        className={`relative transition-all duration-500 ease-in-out
+          ${isMobile
+            ? "fixed inset-0 z-10"                                            // móvil: pantalla completa siempre
+            : vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"         // desktop: normal
+          }
+        `}
+      >
 
         {}
         {isAdmin && (
@@ -335,18 +354,37 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
+        {/* ── En móvil + vista reino: botón para abrir/cerrar panel info ── */}
+        <AnimatePresence>
+          {isMobile && vistaActual === "reino" && reinoSeleccionado && (
+            <MotionDiv
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+              className="absolute bottom-6 right-6 z-50"
+            >
+              <button
+                onClick={() => setMobilePanelOpen(v => !v)}
+                className="flex items-center gap-2 px-4 py-3 bg-primary text-btn-text text-[10px] font-black uppercase shadow-2xl"
+                style={{borderRadius:"var(--radius-btn)"}}
+              >
+                {mobilePanelOpen ? <X size={14} /> : <ChevronRight size={14} />}
+                {mobilePanelOpen ? "Cerrar" : reinoSeleccionado.nombre}
+              </button>
+            </MotionDiv>
+          )}
+        </AnimatePresence>
+
         {}
         <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5} enabled={!editMode}>
-          <div ref={mapRef} className="w-full h-full origin-top-left">
+          <div ref={mapRef} className={`origin-top-left ${isMobile ? "w-full h-full" : "w-full h-full"}`}>
             <div
-              className={`relative inline-block w-full ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+              className={`relative inline-block w-full ${isMobile ? "h-screen" : ""} ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
               onClick={handleMapClick}
             >
               <img
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
-                className="w-full h-auto block pointer-events-none select-none"
+                className={`block pointer-events-none select-none ${isMobile ? "w-full h-full object-contain" : "w-full h-auto"}`}
                 onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
               />
               {!cargandoImagen && (
@@ -356,7 +394,7 @@ export default function MapaInteractivo() {
                   ))
                 ) : (
                   detallesReino.filter(punto => editMode || !punto.oculto).map(punto => (
-                    <Marker key={punto.id} x={punto.coord_x} y={punto.coord_y} info={punto.nombre} tipo="detalle" editMode={editMode} oculto={punto.oculto} onClick={() => setPuntoSeleccionado(punto)} />
+                    <Marker key={punto.id} x={punto.coord_x} y={punto.coord_y} info={punto.nombre} tipo="detalle" editMode={editMode} oculto={punto.oculto} onClick={() => { setPuntoSeleccionado(punto); if (isMobile) setMobilePanelOpen(true); }} />
                   ))
                 )
               )}
@@ -369,18 +407,22 @@ export default function MapaInteractivo() {
       <AnimatePresence>
         {vistaActual === "reino" && reinoSeleccionado && (
           <MotionDiv
-            initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+            initial={isMobile ? { y: "100%" } : { x: "100%" }}
+            animate={isMobile ? (mobilePanelOpen ? { y: 0 } : { y: "100%" }) : { x: 0 }}
+            exit={isMobile ? { y: "100%" } : { x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="
-              absolute inset-0 z-40
-              md:relative md:inset-auto md:z-40 md:w-1/3
-              bg-white-custom border-l border-primary/10 p-10
-              flex flex-col gap-0
-              shadow-[-20px_0_50px_rgba(0,0,0,0.05)]
-              overflow-y-auto
-            "
+            className={
+              isMobile
+                ? "fixed bottom-0 left-0 right-0 z-[60] bg-white-custom rounded-t-2xl shadow-[0_-10px_50px_rgba(0,0,0,0.15)] p-6 flex flex-col gap-0 max-h-[80vh] overflow-y-auto"
+                : "relative z-40 md:w-1/3 bg-white-custom border-l border-primary/10 p-10 flex flex-col gap-0 shadow-[-20px_0_50px_rgba(0,0,0,0.05)] overflow-y-auto"
+            }
           >
-            {}
+            {/* Drag handle en móvil */}
+            {isMobile && (
+              <div className="flex justify-center mb-4">
+                <div className="w-10 h-1 rounded-full bg-primary/20" />
+              </div>
+            )}
             {editMode ? (
               <div className="flex flex-col gap-4 flex-grow">
 
@@ -641,6 +683,9 @@ export default function MapaInteractivo() {
           </MotionDiv>
         )}
       </AnimatePresence>
+
+      {/* Spacer para móvil: el mapa es fixed, necesitamos darle altura al contenedor */}
+      {isMobile && <div className="h-screen w-full" />}
     </div>
   );
-} 
+}
