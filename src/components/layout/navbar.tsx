@@ -58,7 +58,7 @@ const navItemBase = {
 
 const submenuSurface = {
   background: "var(--white-custom)",
-  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+  border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
   borderRadius: "var(--radius-card)",
   boxShadow: "var(--shadow-card)",
 } as const;
@@ -619,61 +619,53 @@ const Navbar = () => {
       </AnimatePresence>
 
       <aside
-        onMouseEnter={() => sidebarVisible && setSidebarExpanded(true)}
-        onMouseLeave={() => setSidebarExpanded(false)}
         className="hidden md:flex fixed left-0 top-0 h-full z-[100] flex-col"
         style={{
-          width: sidebarExpanded ? "220px" : "68px",
+          width: "68px",
           background: "color-mix(in srgb, var(--bg-main) 92%, transparent)",
-          borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          borderRight: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
           transform: sidebarVisible ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.25s ease-in-out, width 0.3s ease-in-out",
+          transition: "transform 0.25s ease-in-out",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         {/* Logo / botón cerrar */}
-        <div
-          className="flex items-center gap-3 px-4 shrink-0 overflow-hidden cursor-pointer"
-          style={{ height: "68px", color: "var(--primary)" }}
+        <MotionButton
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.92 }}
           onClick={() => setSidebarVisible(false)}
+          className="flex items-center justify-center shrink-0 mx-auto"
+          style={{ width: "44px", height: "68px", color: "var(--primary)" }}
+          title="Cerrar menú"
         >
-          <span className="shrink-0 flex items-center justify-center" style={{ width: "36px" }}>
-            <Flower2 size={22} />
-          </span>
-          <AnimatePresence>
-            {sidebarExpanded && (
-              <MotionSpan initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.18 }}
-                className="text-base font-black italic tracking-tighter whitespace-nowrap">
-                FRANI<span style={{ opacity: 0.35 }}>LOVER</span>
-              </MotionSpan>
-            )}
-          </AnimatePresence>
-        </div>
+          <Flower2 size={22} />
+        </MotionButton>
 
-        <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "0 12px" }} />
+        <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "0 12px" }} />
 
         {/* Nav — todos usan SideNavItem con flyout */}
         <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
           {mainLinks.map(({ href, label, icon, active, fillActive }) => (
             <SideNavItem key={href} href={href} label={label} icon={icon}
               active={active} fillActive={fillActive}
-              sidebarExpanded={sidebarExpanded} onClose={closeAll} />
+              sidebarExpanded={false} onClose={closeAll} />
           ))}
 
           {esFranilover && (
             <>
-              <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "6px 4px" }} />
+              <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "6px 4px" }} />
               <SideNavItem href="/myself/escritorio" label="Escritorio" icon={PenTool}
                 active={isEscritorio} fillActive={false}
-                sidebarExpanded={sidebarExpanded} onClose={closeAll} />
+                sidebarExpanded={false} onClose={closeAll} />
               <SideNavItem href="/myself/salud" label="Salud" icon={Utensils}
                 active={isSalud} fillActive={false}
-                sidebarExpanded={sidebarExpanded} onClose={closeAll} />
+                sidebarExpanded={false} onClose={closeAll} />
               {franiLinks.map(({ href, label, icon, active }) => (
                 <SideNavItem key={href} href={href} label={label} icon={icon}
                   active={active} fillActive={false}
-                  sidebarExpanded={sidebarExpanded} onClose={closeAll} />
+                  sidebarExpanded={false} onClose={closeAll} />
               ))}
             </>
           )}
@@ -681,7 +673,7 @@ const Navbar = () => {
 
         {/* Controles inferiores */}
         <div className="flex flex-col gap-1 px-2 pb-4 shrink-0">
-          <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "4px 4px 8px" }} />
+          <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "4px 4px 8px" }} />
 
           {/* Tema */}
           <div className="relative">
@@ -693,12 +685,7 @@ const Navbar = () => {
               onMouseLeave={(e) => { if (!themeMenuOpen) (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)"; }}
             >
               <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><Palette size={16} /></span>
-              <AnimatePresence>
-                {sidebarExpanded && (
-                  <MotionSpan initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
-                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Tema</MotionSpan>
-                )}
-              </AnimatePresence>
+
             </button>
 
             <AnimatePresence>
@@ -711,7 +698,7 @@ const Navbar = () => {
                   <button
                     onClick={toggle}
                     className="flex items-center gap-2.5 w-full px-4 py-3 transition-all"
-                    style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
+                    style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)", borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 60%, transparent)"; }}
                   >
@@ -735,14 +722,7 @@ const Navbar = () => {
                 onMouseLeave={(e) => { if (!userMenuOpen) (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
               >
                 <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
-                <AnimatePresence>
-                  {sidebarExpanded && (
-                    <MotionSpan initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
-                      className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap truncate max-w-[110px]">
-                      {perfil?.username}
-                    </MotionSpan>
-                  )}
-                </AnimatePresence>
+
               </button>
               <AnimatePresence>
                 {userMenuOpen && (
@@ -758,7 +738,7 @@ const Navbar = () => {
                     >
                       <Sword size={14} /> Mi Personaje
                     </Link>
-                    <div style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)", margin: "4px 0" }} />
+                    <div style={{ borderTop: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)", margin: "4px 0" }} />
                     <button onClick={handleLogout}
                       className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase transition-all"
                       style={{ color: "oklch(0.6 0.2 25)", borderRadius: "var(--radius-btn)", background: "transparent" }}
@@ -779,12 +759,7 @@ const Navbar = () => {
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
             >
               <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
-              <AnimatePresence>
-                {sidebarExpanded && (
-                  <MotionSpan initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16 }}
-                    className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">Entrar</MotionSpan>
-                )}
-              </AnimatePresence>
+
             </Link>
           )}
         </div>
@@ -904,18 +879,18 @@ const Navbar = () => {
                     className="absolute bottom-full right-0 mb-2 overflow-hidden z-[2000]"
                     style={{ width: 180, ...submenuSurface }}
                   >
-                    <div className="px-4 py-3" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                    <div className="px-4 py-3" style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                       <p className="text-[10px] font-black uppercase tracking-widest text-primary truncate">{perfil?.username}</p>
                     </div>
                     <Link href="/wiki/personal" onClick={() => setTimeout(closeAll, 150)}
                       className="flex items-center gap-2.5 px-4 py-3 transition-all"
-                      style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
+                      style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)", borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
                     >
                       <CircleUser size={13} />
                       <span className="text-[10px] font-black uppercase tracking-widest">Mi perfil</span>
                     </Link>
                     {esFranilover && (
-                      <div className="p-2" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                      <div className="p-2" style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                         <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
                           style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Franilover</p>
 
