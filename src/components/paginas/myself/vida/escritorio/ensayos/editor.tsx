@@ -71,16 +71,15 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     const match = textToCursor.match(/@([\w\-.]*)$/);
 
     if (match) {
-      
       const textarea = textareaRef.current;
       if (!textarea) return;
 
-      
-      const linesBefore = textToCursor.split("\n");
-      const lineHeight = 28; 
-      const linesCount = linesBefore.length;
-      const top = Math.min(linesCount * lineHeight + 8, textarea.offsetHeight - 200);
-      const left = 0;
+      const rect = textarea.getBoundingClientRect();
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 24;
+      const lines = textToCursor.split("\n");
+      const approxTop = rect.top + (lines.length * lineHeight);
+      const top = Math.min(approxTop, window.innerHeight - 320);
+      const left = Math.max(rect.left, 8);
 
       setCitePopup({
         query: match[1],
@@ -367,17 +366,16 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
                 />
                 <AnimatePresence>
                   {citePopup && sources && sources.length > 0 && (
-                    <CitePopup
-                      sources={sources}
-                      query={citePopup.query}
-                      position={{ 
-                        top: citePopup.position.top + 25, 
-                        left: citePopup.position.left 
-                      }}
-                      onSelect={insertCite}
-                      onClose={() => setCitePopup(null)}
-                      activeIndex={citeActiveIdx}
-                    />
+                    <div style={{ position: "fixed", top: citePopup.position.top + 25, left: citePopup.position.left, zIndex: 9999 }}>
+                      <CitePopup
+                        sources={sources}
+                        query={citePopup.query}
+                        position={{ top: 0, left: 0 }}
+                        onSelect={insertCite}
+                        onClose={() => setCitePopup(null)}
+                        activeIndex={citeActiveIdx}
+                      />
+                    </div>
                   )}
                 </AnimatePresence>
               </>

@@ -32,13 +32,11 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 5, scale: 0.98 }}
       transition={{ duration: 0.1 }}
-      className="absolute z-[100] flex flex-col overflow-hidden shadow-2xl"
+      className="flex flex-col overflow-hidden shadow-2xl"
       style={{
-        top: position.top + 25, // Un pequeño offset para que no tape el cursor
-        left: position.left,
         minWidth: 280,
         maxWidth: 400,
-        background: "var(--white-custom)", // Usamos el fondo de tu app
+        background: "var(--white-custom)",
         border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
         borderRadius: "var(--radius-card)",
         backdropFilter: "blur(8px)",
