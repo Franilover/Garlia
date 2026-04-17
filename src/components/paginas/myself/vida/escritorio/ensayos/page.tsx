@@ -247,10 +247,13 @@ export default function Ensayos() {
     });
   }, [ensayos, tagActivo, searchTerm]);
 
+  const pendingSaveRef = useRef(false);
   const scheduleSave = useCallback((id: string, updates: Record<string, any>) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    //setSaveStatus("saving");
+    pendingSaveRef.current = true;
     saveTimerRef.current = setTimeout(async () => {
+      pendingSaveRef.current = false;
+      setSaveStatus("saving");
       try {
         await supabase.from("ensayos").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id);
         setSaveStatus("saved");

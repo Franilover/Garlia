@@ -202,7 +202,7 @@ export interface OfflineOperation {
 }
 
 export interface ReproductorHandle {
-  key: string; 
+  key: string;
   handle: FileSystemDirectoryHandle;
 }
 
@@ -211,8 +211,15 @@ export interface Compra {
   [key: string]: any;
 }
 
+// ── Nueva tabla: caché de sesión (perfil, etc.) ───────────────────────────────
+export interface SessionCache {
+  key: string;   // PK — ej: "perfil"
+  value: any;    // objeto serializable (perfil, flags, etc.)
+  updated_at: number;
+}
+
 class AgendaFraniDB extends Dexie {
-  
+
   personajes!: Table<Personaje, string>;
   criaturas!: Table<Criatura, string>;
   criatura_variantes!: Table<CriaturaVariante, string>;
@@ -224,7 +231,6 @@ class AgendaFraniDB extends Dexie {
   reinos!: Table<Reino, string>;
   relaciones!: Table<Relacion, string>;
 
-  
   tareas!: Table<Tarea, string>;
   eventos!: Table<Evento, string>;
   recetas!: Table<Receta, string>;
@@ -235,23 +241,21 @@ class AgendaFraniDB extends Dexie {
   dibujos!: Table<Dibujo, number>;
   compras!: Table<Compra, string>;
 
-  
   notas!: Table<Nota, string>;
 
-  
   rutinas!: Table<RutinaLocal, string>;
   ejercicios_rutina!: Table<EjercicioLocal, string>;
 
-  
   offline_queue!: Table<OfflineOperation, number>;
 
-  
   reproductor_handles!: Table<ReproductorHandle, string>;
+
+  // Nueva tabla
+  session_cache!: Table<SessionCache, string>;
 
   constructor() {
     super("AgendaFranilover");
 
-    
     this.version(1).stores({
       personajes:         "id, nombre, visible",
       criaturas:          "id, nombre, habitat, alma, pensamiento",
@@ -274,7 +278,6 @@ class AgendaFraniDB extends Dexie {
       notas:              "id, status, updated_at",
     });
 
-    
     this.version(2).stores({
       personajes:         "id, nombre, visible",
       criaturas:          "id, nombre, habitat, alma, pensamiento",
@@ -300,7 +303,6 @@ class AgendaFraniDB extends Dexie {
       offline_queue:      "++id, table, operation, recordId, timestamp",
     });
 
-    
     this.version(3).stores({
       personajes:           "id, nombre, visible",
       criaturas:            "id, nombre, habitat, alma, pensamiento",
@@ -325,7 +327,35 @@ class AgendaFraniDB extends Dexie {
       ejercicios_rutina:    "id, rutina_id, status",
       offline_queue:        "++id, table, operation, recordId, timestamp",
       compras:              "id",
-      reproductor_handles:  "key", 
+      reproductor_handles:  "key",
+    });
+
+    this.version(4).stores({
+      personajes:           "id, nombre, visible",
+      criaturas:            "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes:   "id, criatura_id, tipo",
+      items:                "id, nombre, categoria",
+      libros:               "id, created_at",
+      capitulos:            "id, libro_id, orden, fecha_publicacion",
+      canciones:            "id, titulo, personaje, visible, created_at",
+      secciones_cancion:    "id, cancion_id, orden",
+      reinos:               "id, nombre, orden",
+      relaciones:           "id, personaje_id",
+      tareas:               "id, username, completada, created_at, status",
+      eventos:              "id, username, fecha, tipo, status",
+      recetas:              "id, autor_id, categoria, created_at",
+      ingredientes:         "id, user_id",
+      ropa:                 "id, user_id, created_at",
+      ropa_outfits:         "id, user_id, created_at",
+      diario_fotos:         "++id, categoria, created_at",
+      dibujos:              "++id, categoria",
+      notas:                "id, status, updated_at",
+      rutinas:              "id, status",
+      ejercicios_rutina:    "id, rutina_id, status",
+      offline_queue:        "++id, table, operation, recordId, timestamp",
+      compras:              "id",
+      reproductor_handles:  "key",
+      session_cache:        "key, updated_at",  // ← nueva
     });
   }
 }
