@@ -521,7 +521,7 @@ function MobileNavItemNested({
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 const Navbar = () => {
   const currentPath = usePathname();
-  const { user, perfil } = useAuth() as { user: any; perfil: any };
+  const { user, perfil, isAdmin } = useAuth() as { user: any; perfil: any; isAdmin: boolean };
   const [themeMenuOpen,   setThemeMenuOpen]   = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [sidebarVisible,  setSidebarVisible]  = useState(false);
@@ -529,8 +529,6 @@ const Navbar = () => {
   const { dark, toggleDark, accent, setAccent } = useTheme();
   const isDark = dark === "dark";
   const toggle = toggleDark;
-
-  const esFranilover = perfil?.username?.toLowerCase() === "franilover";
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -566,13 +564,13 @@ const Navbar = () => {
     { href: "/wiki/canciones", label: "Canciones",    icon: Music,       active: currentPath?.startsWith("/wiki/canciones") ?? false, fillActive: false },
   ];
 
-  // Links de menú — para uso móvil de franilover
+  // Links de menú — para uso móvil de admin
   const mainLinks = [
     { href: "/personal", label: "Personal", icon: Star,    active: isPersonal, fillActive: true  },
     { href: "/wiki",     label: "Jardín",   icon: Flower2, active: isWiki,     fillActive: false },
   ];
 
-  // Links de Franilover (myself/admin)
+  // Links de admin (myself)
   const franiLinks = [
     { href: "/myself/jardin", label: "Arte", icon: Cat, active: isJardin },
   ];
@@ -617,9 +615,9 @@ const Navbar = () => {
               active={active} fillActive={fillActive}
               sidebarExpanded={false} onClose={closeAll} />
           ))}
-        
-          {/* Si es franilover se añaden los extras sin agrupar en submenus */}
-          {esFranilover && (
+
+          {/* Links de admin */}
+          {isAdmin && (
             <>
               <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "6px 4px" }} />
               <SideNavItem href="/myself/escritorio" label="Escritorio" icon={PenTool}
@@ -764,7 +762,7 @@ const Navbar = () => {
               border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            {esFranilover ? (
+            {isAdmin ? (
               /* ── Franilover: menús compactos + admin ── */
               <>
                 {mainLinks.map(({ href, label, icon, active, fillActive }) => (
@@ -869,4 +867,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar; 
+export default Navbar;
