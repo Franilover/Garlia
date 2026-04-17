@@ -522,7 +522,6 @@ function MobileNavItemNested({
 const Navbar = () => {
   const currentPath = usePathname();
   const { user, perfil } = useAuth() as { user: any; perfil: any };
-  const [userMenuOpen,    setUserMenuOpen]    = useState(false);
   const [themeMenuOpen,   setThemeMenuOpen]   = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [sidebarVisible,  setSidebarVisible]  = useState(false);
@@ -540,7 +539,6 @@ const Navbar = () => {
   };
 
   const closeAll = () => {
-    setUserMenuOpen(false);
     setThemeMenuOpen(false);
     setMobileOpenMenu(null);
     setSidebarExpanded(false);
@@ -555,19 +553,20 @@ const Navbar = () => {
   const isWiki       = currentPath?.startsWith("/wiki")               ?? false;
   const isPersonal   = currentPath?.startsWith("/personal")           ?? false;
 
-  // Links directos — para usuarios normales
+  // Links directos 
   const personalLinks = [
     { href: "/personal/sobre-mi", label: "Sobre Mí", icon: Star,    active: currentPath?.startsWith("/personal/sobre-mi") ?? false, fillActive: true  },
     { href: "/personal/galeria",  label: "Galería",  icon: Palette, active: currentPath?.startsWith("/personal/galeria")  ?? false, fillActive: false },
   ];
+  
+  // Icono "Mi Personaje" removido de acá
   const wikiLinks = [
-    { href: "/wiki/personal",  label: "Mi Personaje", icon: UserCircle2, active: currentPath?.startsWith("/wiki/personal")  ?? false, fillActive: false },
     { href: "/wiki/mapa",      label: "Mapa",         icon: Compass,     active: currentPath?.startsWith("/wiki/mapa")      ?? false, fillActive: false },
     { href: "/wiki/libros",    label: "Libros",       icon: BookText,    active: currentPath?.startsWith("/wiki/libros")    ?? false, fillActive: false },
     { href: "/wiki/canciones", label: "Canciones",    icon: Music,       active: currentPath?.startsWith("/wiki/canciones") ?? false, fillActive: false },
   ];
 
-  // Links de menú — para franilover (menos botones, más compacto)
+  // Links de menú — para uso móvil de franilover
   const mainLinks = [
     { href: "/personal", label: "Personal", icon: Star,    active: isPersonal, fillActive: true  },
     { href: "/wiki",     label: "Jardín",   icon: Flower2, active: isWiki,     fillActive: false },
@@ -656,16 +655,23 @@ const Navbar = () => {
 
         <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "0 12px" }} />
 
-        {/* Nav — todos usan SideNavItem con flyout */}
+        {/* Nav — todos los iconos visibles directamente en escritorio */}
         <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
-          {esFranilover ? (
-            /* ── Franilover: menús compactos + admin ── */
+          {personalLinks.map(({ href, label, icon, active, fillActive }) => (
+            <SideNavItem key={href} href={href} label={label} icon={icon}
+              active={active} fillActive={fillActive}
+              sidebarExpanded={false} onClose={closeAll} />
+          ))}
+          <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "6px 4px" }} />
+          {wikiLinks.map(({ href, label, icon, active, fillActive }) => (
+            <SideNavItem key={href} href={href} label={label} icon={icon}
+              active={active} fillActive={fillActive}
+              sidebarExpanded={false} onClose={closeAll} />
+          ))}
+
+          {/* Si es franilover se añaden los extras sin agrupar en submenus */}
+          {esFranilover && (
             <>
-              {mainLinks.map(({ href, label, icon, active, fillActive }) => (
-                <SideNavItem key={href} href={href} label={label} icon={icon}
-                  active={active} fillActive={fillActive}
-                  sidebarExpanded={false} onClose={closeAll} />
-              ))}
               <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "6px 4px" }} />
               <SideNavItem href="/myself/escritorio" label="Escritorio" icon={PenTool}
                 active={isEscritorio} fillActive={false}
@@ -679,21 +685,6 @@ const Navbar = () => {
                   sidebarExpanded={false} onClose={closeAll} />
               ))}
             </>
-          ) : (
-            /* ── Usuarios normales: links directos ── */
-            <>
-              {personalLinks.map(({ href, label, icon, active, fillActive }) => (
-                <SideNavItem key={href} href={href} label={label} icon={icon}
-                  active={active} fillActive={fillActive}
-                  sidebarExpanded={false} onClose={closeAll} />
-              ))}
-              <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "6px 4px" }} />
-              {wikiLinks.map(({ href, label, icon, active, fillActive }) => (
-                <SideNavItem key={href} href={href} label={label} icon={icon}
-                  active={active} fillActive={fillActive}
-                  sidebarExpanded={false} onClose={closeAll} />
-              ))}
-            </>
           )}
         </nav>
 
@@ -704,14 +695,13 @@ const Navbar = () => {
           {/* Tema */}
           <div className="relative">
             <button
-              onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); }}
+              onClick={() => setThemeMenuOpen(!themeMenuOpen)}
               className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
               style={{ ...navItemBase, background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               onMouseEnter={(e) => { if (!themeMenuOpen) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
               onMouseLeave={(e) => { if (!themeMenuOpen) (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)"; }}
             >
               <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><Palette size={16} /></span>
-
             </button>
 
             <AnimatePresence>
@@ -737,45 +727,27 @@ const Navbar = () => {
             </AnimatePresence>
           </div>
 
-          {/* Usuario */}
+          {/* Usuario y Salir Directos (Sin Submenu) */}
           {user ? (
-            <div className="relative">
-              <button
-                onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); setThemeMenuOpen(false); }}
+            <div className="flex flex-col gap-1">
+              <Link href="/wiki/personal" title="Mi Personaje"
+                onClick={closeAll}
                 className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
-                style={{ ...navItemBase, background: userMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}
-                onMouseEnter={(e) => { if (!userMenuOpen) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
-                onMouseLeave={(e) => { if (!userMenuOpen) (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
+                style={{ ...navItemBase, color: currentPath === "/wiki/personal" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)", background: currentPath === "/wiki/personal" ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = currentPath === "/wiki/personal" ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent"; (e.currentTarget as HTMLElement).style.color = currentPath === "/wiki/personal" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
               >
                 <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
-
+              </Link>
+              
+              <button onClick={handleLogout} title="Salir"
+                className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
+                style={{ ...navItemBase, color: "oklch(0.6 0.2 25)" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "oklch(0.97 0.01 25)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+              >
+                <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><LogOut size={16} /></span>
               </button>
-              <AnimatePresence>
-                {userMenuOpen && (
-                  <MotionDiv initial={{ opacity: 0, x: -8, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -8, scale: 0.97 }} transition={{ duration: 0.15 }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute left-full ml-2 w-48 p-2 z-[1001]"
-                    style={{ ...submenuSurface, bottom: "0" }}>
-                    <Link href="/wiki/personal" onClick={closeAll}
-                      className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase transition-all"
-                      style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)", borderRadius: "var(--radius-btn)" }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; (e.currentTarget as HTMLElement).style.color = "var(--primary)"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 60%, transparent)"; }}
-                    >
-                      <Sword size={14} /> Mi Personaje
-                    </Link>
-                    <div style={{ borderTop: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)", margin: "4px 0" }} />
-                    <button onClick={handleLogout}
-                      className="flex items-center gap-3 w-full px-4 py-3 text-[10px] font-black uppercase transition-all"
-                      style={{ color: "oklch(0.6 0.2 25)", borderRadius: "var(--radius-btn)", background: "transparent" }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "oklch(0.97 0.01 25)"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                    >
-                      <LogOut size={14} /> Salir
-                    </button>
-                  </MotionDiv>
-                )}
-              </AnimatePresence>
             </div>
           ) : (
             <Link href="/auth/login"
@@ -785,7 +757,6 @@ const Navbar = () => {
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 50%, transparent)"; }}
             >
               <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}><CircleUser size={18} /></span>
-
             </Link>
           )}
         </div>
@@ -802,7 +773,7 @@ const Navbar = () => {
                 initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 onClick={(e) => e.stopPropagation()}
-                className="absolute bottom-full right-4 mb-2 w-56 overflow-hidden z-[2000]"
+                className="absolute bottom-full left-4 mb-2 w-56 overflow-hidden z-[2000]"
                 style={submenuSurface}>
                 <ThemeSelector />
               </MotionDiv>
@@ -816,8 +787,8 @@ const Navbar = () => {
           )}
         </AnimatePresence>
 
-        {/* Barra */}
-        <div className="flex items-center px-4 relative z-[100]"
+        {/* Barra móvil */}
+        <div className="flex items-center justify-between w-full px-4 relative z-[100]"
           style={{
             height: "56px",
             background: "color-mix(in srgb, var(--bg-main) 90%, transparent)",
@@ -825,8 +796,19 @@ const Navbar = () => {
             borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
+          {/* Controles izquierda (Tema) */}
+          <div className="flex items-center z-[101]">
+            <MotionButton whileTap={{ scale: 0.88 }}
+              onClick={() => { setThemeMenuOpen(!themeMenuOpen); setMobileOpenMenu(null); }}
+              className="flex items-center justify-center transition-all"
+              style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              <Palette size={16} />
+            </MotionButton>
+          </div>
+
           {/* Nav principal — centrado absolutamente para no empujar los controles */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 p-1"
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 z-[101]"
             style={{
               background: "color-mix(in srgb, var(--primary) 5%, transparent)",
               borderRadius: "var(--radius-card)",
@@ -900,103 +882,36 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Controles derecha */}
-          <div className="ml-auto flex items-center gap-1">
-            <MotionButton whileTap={{ scale: 0.88 }}
-              onClick={() => { setThemeMenuOpen(!themeMenuOpen); setUserMenuOpen(false); setMobileOpenMenu(null); }}
-              className="flex items-center justify-center transition-all"
-              style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", background: themeMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: themeMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              <Palette size={16} />
-            </MotionButton>
-
-            <div className="relative">
-              <MotionButton whileTap={{ scale: 0.88 }}
-                onClick={() => user
-                  ? (setUserMenuOpen(!userMenuOpen), setThemeMenuOpen(false), setMobileOpenMenu(null))
-                  : (window.location.href = "/auth/login")}
+          {/* Controles derecha (Usuario y Salir) */}
+          <div className="flex items-center gap-1 z-[101]">
+            {user ? (
+              <>
+                <Link href="/wiki/personal" onClick={closeAll}
+                  className="flex items-center justify-center transition-all"
+                  style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", background: currentPath === "/wiki/personal" ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: currentPath === "/wiki/personal" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                >
+                  <CircleUser size={16} />
+                </Link>
+                <button onClick={handleLogout}
+                  className="flex items-center justify-center transition-all"
+                  style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", color: "oklch(0.6 0.2 25)" }}
+                >
+                  <LogOut size={16} />
+                </button>
+              </>
+            ) : (
+              <Link href="/auth/login"
                 className="flex items-center justify-center transition-all"
-                style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", background: userMenuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: userMenuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                style={{ width: 34, height: 34, borderRadius: "var(--radius-btn)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 <CircleUser size={16} />
-              </MotionButton>
-
-              <AnimatePresence>
-                {userMenuOpen && user && (
-                  <MotionDiv
-                    initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute bottom-full right-0 mb-2 overflow-hidden z-[2000]"
-                    style={{ width: 180, ...submenuSurface }}
-                  >
-                    <div className="px-4 py-3" style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-primary truncate">{perfil?.username}</p>
-                    </div>
-                    <Link href="/wiki/personal" onClick={() => setTimeout(closeAll, 150)}
-                      className="flex items-center gap-2.5 px-4 py-3 transition-all"
-                      style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)", borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-                    >
-                      <CircleUser size={13} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Mi perfil</span>
-                    </Link>
-                    {esFranilover && (
-                      <div className="p-2" style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                        <p className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
-                          style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Franilover</p>
-
-                        {/* Personal — grupos anidados inline */}
-                        <div className="px-2 py-1.5">
-                          <p className="text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 mb-1"
-                            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                            <House size={11} /> Personal
-                          </p>
-                          {personalMyselfGroups.map(group => (
-                            <div key={group.href} className="mb-1">
-                              <Link href={group.href} onClick={() => setTimeout(closeAll, 150)}
-                                className="flex items-center gap-2 px-2 py-1.5 rounded-[var(--radius-btn)] transition-all text-[10px] font-black uppercase tracking-widest"
-                                style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-                              >
-                                <group.icon size={12} /> {group.label}
-                              </Link>
-                              <div className="pl-4 space-y-0.5">
-                                {group.subLinks.map(({ href: sub, label: subLabel, icon: SubIcon }) => (
-                                  <Link key={sub} href={sub} onClick={() => setTimeout(closeAll, 150)}
-                                    className="flex items-center gap-2 px-2 py-1 rounded-[var(--radius-btn)] transition-all text-[9px] font-black uppercase tracking-widest"
-                                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-                                  >
-                                    <SubIcon size={11} /> {subLabel}
-                                  </Link>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {franiLinks.map(({ href, icon: Icon, label, active }) => (
-                          <Link key={href} href={href} onClick={() => setTimeout(closeAll, 150)}
-                            className="flex items-center gap-2.5 px-2 py-2 rounded-[var(--radius-btn)] transition-all"
-                            style={{ background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}
-                          >
-                            <Icon size={13} />
-                            <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                    <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-4 py-3 transition-all" style={{ color: "oklch(0.55 0.18 25)" }}>
-                      <LogOut size={13} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Salir</span>
-                    </button>
-                  </MotionDiv>
-                )}
-              </AnimatePresence>
-            </div>
+              </Link>
+            )}
           </div>
         </div>
       </div>
 
-      {(userMenuOpen || themeMenuOpen) && (
+      {themeMenuOpen && (
         <div className="fixed inset-0 z-[90]"
           style={{ background: "color-mix(in srgb, var(--foreground) 5%, transparent)" }}
           onClick={closeAll} />
