@@ -581,52 +581,7 @@ const Navbar = () => {
     <>
       {/* ── SIDEBAR DESKTOP ─────────────────────────────────────────────── */}
 
-      {/* Botón flor flotante — solo visible en desktop cuando sidebar está oculta */}
-      <AnimatePresence>
-        {!sidebarVisible && (
-          <MotionDiv
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.18 }}
-            className="hidden md:flex fixed z-[200]"
-            style={{ left: "16px", top: "16px" }}
-          >
-            <MotionButton
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={() => setSidebarVisible(true)}
-              className="flex items-center justify-center"
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "var(--radius-btn)",
-                background: "color-mix(in srgb, var(--bg-main) 92%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                backdropFilter: "blur(16px)",
-                WebkitBackdropFilter: "blur(16px)",
-                color: "var(--primary)",
-                boxShadow: "var(--shadow-card)",
-              }}
-            >
-              <Flower2 size={20} />
-            </MotionButton>
-          </MotionDiv>
-        )}
-      </AnimatePresence>
-
-      {/* Overlay para cerrar sidebar al click fuera */}
-      <AnimatePresence>
-        {sidebarVisible && (
-          <MotionDiv
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="hidden md:block fixed inset-0 z-[99]"
-            onClick={closeAll}
-          />
-        )}
-      </AnimatePresence>
+      {/* Sidebar siempre fija — botón flotante y overlay eliminados */}
 
       <aside
         className="hidden md:flex fixed left-0 top-0 h-full z-[100] flex-col"
@@ -636,22 +591,16 @@ const Navbar = () => {
           borderRight: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
-          transform: sidebarVisible ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.25s ease-in-out",
           boxShadow: "var(--shadow-card)",
         }}
       >
-        {/* Logo / botón cerrar */}
-        <MotionButton
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={() => setSidebarVisible(false)}
+        {/* Logo */}
+        <div
           className="flex items-center justify-center shrink-0 mx-auto"
           style={{ width: "44px", height: "68px", color: "var(--primary)" }}
-          title="Cerrar menú"
         >
           <Flower2 size={22} />
-        </MotionButton>
+        </div>
 
         <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "0 12px" }} />
 
