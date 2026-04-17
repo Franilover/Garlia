@@ -361,14 +361,10 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
                   value={ensayo.contenido}
                   onChange={handleContentChange}
                   onKeyDown={handleKeyDown}
-                  className="w-full min-h-[50vh] md:min-h-125 bg-transparent outline-none border-none resize-none text-[15px] md:text-[16px] leading-[1.9] font-light scrollbar-thin"
-                  style={{ color: "color-mix(in srgb, var(--foreground) 75%, transparent)" }}
-                  placeholder={sources.length
-                    ? "Escribe en Markdown... Usa @ para citar fuentes de Zotero"
-                    : "Escribe en Markdown...\n\n## Subtítulos con ##\n**negrita**, *cursiva*\n> citas con >"
-                  }
+                  placeholder="Empieza a escribir..."
+                  className="w-full bg-transparent outline-none border-none resize-none font-serif text-base md:text-lg leading-relaxed min-h-[50vh] md:min-h-125"
+                  style={{ color: "var(--primary)" }}
                 />
-                {}
                 <AnimatePresence>
                   {citePopup && sources && sources.length > 0 && (
                     <CitePopup
