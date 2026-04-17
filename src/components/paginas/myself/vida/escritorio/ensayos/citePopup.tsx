@@ -2,6 +2,7 @@
 import React from "react";
 import { MotionDiv } from '@/components/ui/Motion';
 import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
+import { Book } from "lucide-react";
 
 interface CitePopupProps {
   sources:     ZoteroSource[];
@@ -22,67 +23,85 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
     )
     .slice(0, 8);
 
+  // Si no hay resultados, no renderizamos ABSOLUTAMENTE NADA
   if (filtered.length === 0) return null;
 
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+      initial={{ opacity: 0, y: 5, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -4, scale: 0.97 }}
-      transition={{ duration: 0.12 }}
-      className="absolute z-50 flex flex-col overflow-hidden"
+      exit={{ opacity: 0, y: 5, scale: 0.98 }}
+      transition={{ duration: 0.1 }}
+      className="absolute z-[100] flex flex-col overflow-hidden shadow-2xl"
       style={{
-        top: position.top,
+        top: position.top + 25, // Un pequeño offset para que no tape el cursor
         left: position.left,
         minWidth: 280,
-        maxWidth: 360,
-        background: "var(--white-custom)",
-        border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+        maxWidth: 400,
+        background: "var(--white-custom)", // Usamos el fondo de tu app
+        border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
         borderRadius: "var(--radius-card)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+        backdropFilter: "blur(8px)",
       }}
     >
-      <div className="px-3 py-1.5 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-        <p className="font-mono text-[8px] uppercase tracking-[0.25em]"
-          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-          Citar fuente · {filtered.length} resultado{filtered.length !== 1 ? "s" : ""}
-        </p>
+      <div className="px-3 py-2 border-b flex items-center gap-2" 
+           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+        <Book size={12} style={{ color: "var(--accent)" }} />
+        <span className="font-mono text-[9px] uppercase tracking-widest opacity-50">
+          Citar fuente de Zotero
+        </span>
       </div>
-      {filtered.map((src, i) => {
-        const isActive = i === activeIndex;
-        const key = src.citekey || `${src.author}-${src.year}-${i}`;
-        return (
-          <button
-            key={key}
-            onMouseDown={(e) => { e.preventDefault(); onSelect(src); }}
-            className="flex flex-col px-3 py-2.5 text-left transition-all w-full"
-            style={{
-              background: isActive ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "transparent",
-              borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",
-            }}
-          >
-            <span className="text-[11px] font-medium truncate" style={{ color: "var(--primary)" }}>
-              {src.title}
-            </span>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="font-mono text-[9px]" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                {src.author}{src.year ? ` · ${src.year}` : ""}
-              </span>
-              {src.citekey && (
-                <span className="font-mono text-[9px] px-1.5 py-0.5"
-                  style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)", borderRadius: 4 }}>
-                  @{src.citekey}
-                </span>
+
+      <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+        {filtered.map((src, i) => {
+          const isActive = i === activeIndex;
+          return (
+            <button
+              key={src.citekey || i}
+              onMouseDown={(e) => {
+                e.preventDefault(); // Evita que el textarea pierda el foco al hacer click
+                onSelect(src);
+              }}
+              className="flex flex-col px-4 py-3 text-left transition-colors w-full relative"
+              style={{
+                background: isActive ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "transparent",
+              }}
+            >
+              {isActive && (
+                <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: "var(--accent)" }} />
               )}
-            </div>
-          </button>
-        );
-      })}
-      <div className="px-3 py-1.5 border-t"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-        <p className="font-mono text-[8px]" style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-          ↑↓ navegar · Enter seleccionar · Esc cerrar
+              
+              <span className="text-[11px] font-medium leading-tight mb-1" style={{ color: "var(--primary)" }}>
+                {src.title}
+              </span>
+              
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[9px] opacity-60" style={{ color: "var(--primary)" }}>
+                  {src.author} {src.year ? `(${src.year})` : ""}
+                </span>
+                {src.citekey && (
+                  <span className="font-mono text-[8px] px-1.5 py-0.5"
+                    style={{ 
+                      background: "color-mix(in srgb, var(--accent) 10%, transparent)", 
+                      color: "var(--accent)", 
+                      borderRadius: 4 
+                    }}>
+                    @{src.citekey}
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="px-3 py-1.5 bg-neutral-50/50 border-t flex justify-between"
+        style={{ 
+          borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 2%, transparent)"
+        }}>
+        <p className="font-mono text-[8px] opacity-40 uppercase">
+          ↑↓ para navegar · enter para insertar
         </p>
       </div>
     </MotionDiv>

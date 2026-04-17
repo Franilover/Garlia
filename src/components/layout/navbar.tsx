@@ -668,7 +668,7 @@ const Navbar = () => {
               active={active} fillActive={fillActive}
               sidebarExpanded={false} onClose={closeAll} />
           ))}
-
+        
           {/* Si es franilover se añaden los extras sin agrupar en submenus */}
           {esFranilover && (
             <>
