@@ -394,8 +394,9 @@ export default function MapaInteractivo() {
         </AnimatePresence>
 
         {}
-        <div className={isMobile ? "w-full h-full flex items-start justify-start" : "w-full"}>
-        <QuickPinchZoom ref={pinchZoomRef} onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode} style={isMobile ? { width: "100%", height: "100%" } : {}}>
+        <div className={isMobile ? "w-full h-full" : "w-full"} style={isMobile ? { overflow: "hidden" } : {}}>
+        <div style={isMobile ? { width: "100%", height: "100%" } : {}}>
+        <QuickPinchZoom ref={pinchZoomRef} onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode}>
           <div ref={mapRef} className={isMobile ? "origin-top-left" : "origin-top-left w-full h-full"}>
             <div
               className={`relative ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
@@ -424,6 +425,7 @@ export default function MapaInteractivo() {
             </div>
           </div>
         </QuickPinchZoom>
+        </div>
         </div>
       </div>
 
