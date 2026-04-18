@@ -81,7 +81,6 @@ export default function MapaInteractivo() {
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const mapRef = useRef(null);
-  const imgRef = useRef<HTMLImageElement>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
   // ── Personajes del reino seleccionado y desbloqueados por el usuario ──────
   const [personajesReino,       setPersonajesReino]       = useState<any[]>([]);
@@ -97,20 +96,6 @@ export default function MapaInteractivo() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-
-  const pinchZoomRef = useRef<any>(null);
-
-  // Set initial zoom on mobile so the map fills the screen
-  const setInitialMobileZoom = useCallback(() => {
-    if (!isMobile || !imgRef.current || !pinchZoomRef.current) return;
-    const imgW = imgRef.current.naturalWidth;
-    const imgH = imgRef.current.naturalHeight;
-    if (!imgW || !imgH) return;
-    const scaleX = window.innerWidth / imgW;
-    const scaleY = window.innerHeight / imgH;
-    const scale = Math.max(scaleX, scaleY);
-    pinchZoomRef.current.scaleTo({ x: 0, y: 0, scale });
-  }, [isMobile]);
 
   const onUpdate = useCallback(({ x, y, scale }) => {
     if (mapRef.current) {
@@ -374,9 +359,9 @@ export default function MapaInteractivo() {
           {isMobile && vistaActual === "reino" && reinoSeleccionado && (
             <MotionDiv
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed left-0 right-0 z-[80] flex justify-center pointer-events-none"
+              className="fixed left-0 right-0 z-[55] flex justify-center pointer-events-none"
               style={{
-                bottom: mobilePanelOpen ? "calc(80vh - 1px)" : "env(safe-area-inset-bottom, 0px)",
+                bottom: mobilePanelOpen ? "calc(80vh - 1px)" : "0",
                 transition: "bottom 0.4s cubic-bezier(0.32,0.72,0,1)",
               }}
             >
@@ -394,22 +379,20 @@ export default function MapaInteractivo() {
         </AnimatePresence>
 
         {}
-        <div className={isMobile ? "w-full h-full" : "w-full"} style={isMobile ? { overflow: "hidden" } : {}}>
-        <div style={isMobile ? { width: "100%", height: "100%" } : {}}>
-        <QuickPinchZoom ref={pinchZoomRef} onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode}>
+        <div className={isMobile ? "w-full h-full" : "w-full"}>
+        <QuickPinchZoom onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode}>
           <div ref={mapRef} className={isMobile ? "origin-top-left" : "origin-top-left w-full h-full"}>
             <div
               className={`relative ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
               onClick={handleMapClick}
             >
               <img
-                ref={imgRef}
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
                 className="block pointer-events-none select-none"
-                style={{ width: "100%", height: "auto" }}
-                onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); setInitialMobileZoom(); }}
+                style={isMobile ? { width: "950vw", height: "auto" } : { width: "100%", height: "auto" }}
+                onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
               />
               {!cargandoImagen && (
                 vistaActual === "global" ? (
@@ -425,7 +408,6 @@ export default function MapaInteractivo() {
             </div>
           </div>
         </QuickPinchZoom>
-        </div>
         </div>
       </div>
 
