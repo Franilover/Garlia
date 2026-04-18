@@ -119,7 +119,7 @@ export default function SobreMi() {
             {/* Columna derecha: herramientas en columna */}
             <MotionSection {...fade(0.24)} className="mt-10 md:mt-0 md:w-[28%] shrink-0">
               <div
-                className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.4em] mb-6"
+                className="flex items-center justify-center gap-2 text-[13px] font-black uppercase tracking-[0.4em] mb-6"
                 style={{ color: "var(--primary)", opacity: 0.3 }}
               >
                 Herramientas
@@ -134,7 +134,7 @@ export default function SobreMi() {
                       {...fade(0.28 + i * 0.07)}
                       whileHover={{ x: 4 }}
                       transition={{ duration: 0.22 }}
-                      className="group relative flex items-center gap-4 p-5 overflow-hidden cursor-default"
+                      className="group relative flex items-center justify-center gap-4 p-5 overflow-hidden cursor-default text-center"
                       style={{
                         background: "var(--white-custom)",
                         borderRadius: "var(--radius-card)",
