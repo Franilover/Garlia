@@ -1,6 +1,6 @@
 "use client";
-import { MotionH1, MotionSection, MotionButton, MotionDiv, MotionA } from '@/components/ui/Motion';
-import React, { useState, useRef, useEffect } from "react";
+import { MotionH1, MotionSection, MotionDiv, MotionA } from '@/components/ui/Motion';
+import React, { useState } from "react";
 import { Palette, Monitor, Droplets, Music, Instagram, Youtube } from "lucide-react";
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
@@ -22,19 +22,6 @@ export default function SobreMi() {
   const [enviado, setEnviado] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toasts, toast, dismiss } = useToast();
-  const [igOpen, setIgOpen] = useState(false);
-  const igRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (igRef.current && !igRef.current.contains(e.target as Node)) {
-        setIgOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -131,7 +118,7 @@ export default function SobreMi() {
               className="flex items-center gap-2 text-[18px] font-black uppercase tracking-[0.4em] mb-10"
               style={{ color: "var(--primary)", opacity: 0.3 }}
             >
-              <Palette size={20} strokeWidth={2.5} /> Herramientas
+                Herramientas
             </div>
 
             <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -250,15 +237,21 @@ export default function SobreMi() {
               className="flex items-center gap-2 text-[18px] font-black uppercase tracking-[0.4em]"
               style={{ color: "var(--primary)", opacity: 0.3 }}
             >
-              Encuéntrame en
+              Redes Sociales
             </div>
 
             <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 {
+                  label: "Instagram Arte",
+                  handle: "@franiloverart",
+                  href: "https://www.instagram.com/franiloverart/",
+                  icon: <Instagram size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
+                },
+                {
                   label: "Instagram",
-                  handle: "Perfiles",
-                  href: null,
+                  handle: "@franilover",
+                  href: "https://www.instagram.com/franilover/",
                   icon: <Instagram size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
                 },
                 {
@@ -277,29 +270,26 @@ export default function SobreMi() {
                     </svg>
                   ),
                 },
-                {
-                  label: "Minecraft",
-                  handle: "####",
-                  href: "https://GoS.net",
-                  icon: (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65 }}>
-                      <rect x="2" y="2" width="9" height="9" rx="1" />
-                      <rect x="13" y="2" width="9" height="9" rx="1" />
-                      <rect x="2" y="13" width="9" height="9" rx="1" />
-                      <rect x="13" y="13" width="9" height="9" rx="1" />
-                    </svg>
-                  ),
-                },
               ].map((social, i) => {
-                const isInstagram = social.label === "Instagram";
                 const cardStyle = {
                   background: "var(--white-custom)",
                   borderRadius: "var(--radius-card)",
                   border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
                   boxShadow: "var(--shadow-card)",
                 };
-                const cardInner = (
-                  <>
+
+                return (
+                  <MotionA
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    {...fade(0.38 + i * 0.06)}
+                    whileHover={{ y: -4 }}
+                    transition={{ duration: 0.22 }}
+                    className="group relative flex flex-col items-center gap-3 p-6 overflow-hidden cursor-pointer no-underline"
+                    style={cardStyle}
+                  >
                     <div
                       className="w-10 h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
                       style={{
@@ -324,81 +314,6 @@ export default function SobreMi() {
                       className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 ease-out rounded-full"
                       style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
                     />
-                  </>
-                );
-
-                if (isInstagram) {
-                  return (
-                    <div key={social.label} className="relative" ref={igRef}>
-                      <MotionButton
-                        {...fade(0.38 + i * 0.06)}
-                        whileHover={{ y: -4 }}
-                        transition={{ duration: 0.22 }}
-                        onClick={() => setIgOpen((v) => !v)}
-                        className="group relative flex flex-col items-center gap-3 p-6 overflow-hidden cursor-pointer w-full"
-                        style={cardStyle}
-                      >
-                        {cardInner}
-                      </MotionButton>
-
-                      {igOpen && (
-                        <MotionDiv
-                          initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                          transition={{ duration: 0.18 }}
-                          className="absolute left-0 right-0 mt-2 z-50 overflow-hidden"
-                          style={{
-                            background: "var(--white-custom)",
-                            borderRadius: "var(--radius-card)",
-                            border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                            boxShadow: "var(--shadow-card)",
-                          }}
-                        >
-                          {[
-                            { label: "Arte", handle: "@franilover", href: "https://www.instagram.com/franiloverart/" },
-                            { label: "Personal", handle: "@franiloverart", href: "https://www.instagram.com/franilover/" },
-                          ].map((profile) => (
-                            <a
-                              key={profile.label}
-                              href={profile.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => setIgOpen(false)}
-                              className="flex items-center gap-3 px-4 py-3 no-underline transition-colors duration-150"
-                              style={{
-                                color: "var(--primary)",
-                                borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
-                              }}
-                              onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)")}
-                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                            >
-                              <Instagram size={14} strokeWidth={1.5} style={{ opacity: 0.5, flexShrink: 0 }} />
-                              <div>
-                                <p className="font-black text-xs leading-none mb-0.5">{profile.label}</p>
-                                <p className="text-[10px]" style={{ opacity: 0.4 }}>{profile.handle}</p>
-                              </div>
-                            </a>
-                          ))}
-                        </MotionDiv>
-                      )}
-                    </div>
-                  );
-                }
-
-                return (
-                  <MotionA
-                    key={social.label}
-                    href={social.href!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    {...fade(0.38 + i * 0.06)}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.22 }}
-                    className="group relative flex flex-col items-center gap-3 p-6 overflow-hidden cursor-pointer no-underline"
-                    style={cardStyle}
-                  >
-                    {cardInner}
                   </MotionA>
                 );
               })}
