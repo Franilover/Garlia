@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { MotionDiv } from '@/components/ui/Motion';
 import Link from "next/link";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
@@ -16,6 +16,7 @@ interface Cancion {
   compositor?: string;
   idioma?: string;
   portada_url?: string;
+  visible?: boolean; // 👈 campo de visibilidad (ajusta el nombre si es distinto en tu DB)
 }
 
 const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }) => (
@@ -99,19 +100,33 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
 export default function CancionesPage() {
   const { data: canciones, loading } = useSupabaseData<Cancion>("canciones", {
     order: { campo: "created_at", asc: false },
+    // 👇 Opción A: filtrar por visibilidad directamente en la query (recomendado)
+    // Si tu hook soporta filters, úsalo así:
+    // filters: [{ campo: "visible", valor: true }],
   });
   const [vistaFila, setVistaFila] = useState(false);
   const [busqueda,  setBusqueda]  = useState("");
 
+  // Siempre mostramos el loading hasta que los datos lleguen
   if (loading) return <Loading text="Afinando instrumentos…" />;
 
-  const filtradas = busqueda
-    ? canciones.filter(c =>
-        c.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
-        c.cantante?.toLowerCase().includes(busqueda.toLowerCase()) ||
-        c.personaje?.toLowerCase().includes(busqueda.toLowerCase())
-      )
-    : canciones;
+  // 👇 Opción B: filtrar en cliente si el hook no soporta filtros en query.
+  // El filtro de visibilidad va PRIMERO, antes que la búsqueda,
+  // así nunca se renderiza una canción no visible.
+  const filtradas = useMemo(() =>
+    canciones
+      .filter(c => c.visible !== false) // excluye las no visibles (null/undefined se tratan como visible)
+      .filter(c => {
+        if (!busqueda) return true;
+        const q = busqueda.toLowerCase();
+        return (
+          c.titulo.toLowerCase().includes(q) ||
+          c.cantante?.toLowerCase().includes(q) ||
+          c.personaje?.toLowerCase().includes(q)
+        );
+      }),
+    [canciones, busqueda]
+  );
 
   return (
     <div className="min-h-screen bg-bg-main pb-20">
