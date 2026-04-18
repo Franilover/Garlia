@@ -1321,10 +1321,6 @@ export default function GaleriaPage() {
             Galería
           </MotionH1>
         </div>
-        <MotionDiv initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
-          transition={{ duration: 0.9, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="h-[2px] w-28 origin-left rounded-full"
-          style={{ background: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />
         {isAdmin && (
           <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-8">
             <button onClick={() => setShowAdd(true)}
