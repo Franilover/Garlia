@@ -107,12 +107,7 @@ export default function CancionesPage() {
   const [vistaFila, setVistaFila] = useState(false);
   const [busqueda,  setBusqueda]  = useState("");
 
-  // Siempre mostramos el loading hasta que los datos lleguen
-  if (loading) return <Loading text="Afinando instrumentos…" />;
-
-  // 👇 Opción B: filtrar en cliente si el hook no soporta filtros en query.
-  // El filtro de visibilidad va PRIMERO, antes que la búsqueda,
-  // así nunca se renderiza una canción no visible.
+  // 👇 useMemo SIEMPRE antes de cualquier return condicional (reglas de hooks)
   const filtradas = useMemo(() =>
     canciones
       .filter(c => c.visible !== false) // excluye las no visibles (null/undefined se tratan como visible)
@@ -127,6 +122,8 @@ export default function CancionesPage() {
       }),
     [canciones, busqueda]
   );
+
+  if (loading) return <Loading text="Afinando instrumentos…" />;
 
   return (
     <div className="min-h-screen bg-bg-main pb-20">
