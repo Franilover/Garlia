@@ -12,9 +12,9 @@ const fade = (delay = 0) => ({
 });
 
 const TOOLS = [
-  { num: "01", label: "Digitales",  title: "Linux & Krita",       icon: Monitor },
+  { num: "01", label: "Digitales", title: "Linux & Krita",        icon: Monitor },
   { num: "02", label: "Analogas",  title: "Acuarelas & Acrílico", icon: Droplets },
-  { num: "03", label: "Extras",   title: "Mucha Música",         icon: Music },
+  { num: "03", label: "Extras",    title: "Mucha Música",         icon: Music },
 ];
 
 export default function SobreMi() {
@@ -40,7 +40,7 @@ export default function SobreMi() {
 
   return (
     <div className="w-full bg-bg-main min-h-screen selection:bg-primary/10">
-      <main className="max-w-5xl mx-auto px-6 pb-40 pt-20 md:pt-36">
+      <main className="max-w-7xl mx-auto px-8 md:px-16 pb-40 pt-16 md:pt-24">
 
         {/* ── SECCIÓN HERO: dos columnas en desktop ── */}
         <section className="mb-24 md:mb-32">
@@ -57,7 +57,7 @@ export default function SobreMi() {
                     className="font-black italic uppercase leading-[0.85] whitespace-nowrap"
                     style={{
                       color: "var(--primary)",
-                      fontSize: "clamp(3rem, 9vw, 7rem)",
+                      fontSize: "clamp(3rem, 10vw, 10rem)",
                       letterSpacing: "-0.03em",
                     }}
                   >
@@ -109,7 +109,6 @@ export default function SobreMi() {
                   style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
                 />
 
-                {/* Borde izquierdo decorativo */}
                 <div
                   className="absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-full"
                   style={{ background: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
@@ -118,7 +117,7 @@ export default function SobreMi() {
             </div>
 
             {/* Columna derecha: herramientas en columna */}
-            <MotionSection {...fade(0.24)} className="mt-10 md:mt-0 md:w-64 lg:w-72 shrink-0">
+            <MotionSection {...fade(0.24)} className="mt-10 md:mt-0 md:w-[28%] shrink-0">
               <div
                 className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.4em] mb-6"
                 style={{ color: "var(--primary)", opacity: 0.3 }}
@@ -165,7 +164,6 @@ export default function SobreMi() {
                         >{tool.title}</h4>
                       </div>
 
-                      {/* Línea inferior al hover */}
                       <div
                         className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 ease-out rounded-full"
                         style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
@@ -208,7 +206,7 @@ export default function SobreMi() {
                 className="font-black italic uppercase leading-[0.88]"
                 style={{
                   color: "var(--primary)",
-                  fontSize: "clamp(2.8rem, 7vw, 5.5rem)",
+                  fontSize: "clamp(2.8rem, 7vw, 7rem)",
                   letterSpacing: "-0.03em",
                 }}
               >
