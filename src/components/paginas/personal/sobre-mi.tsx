@@ -54,11 +54,11 @@ export default function SobreMi() {
                     initial={{ y: "110%" }}
                     animate={{ y: 0 }}
                     transition={{ duration: 0.7, delay: 0.06, ease: [0.16, 1, 0.3, 1] as any }}
-                    className="font-black italic uppercase leading-[0.85] whitespace-nowrap"
+                    className="font-black italic uppercase leading-[0.9]"
                     style={{
                       color: "var(--primary)",
-                      fontSize: "clamp(3rem, 10vw, 10rem)",
-                      letterSpacing: "-0.03em",
+                      fontSize: "clamp(2.8rem, 7vw, 6rem)",
+                      letterSpacing: "-0.02em",
                     }}
                   >
                     Sobre Mí
@@ -203,11 +203,11 @@ export default function SobreMi() {
             {/* Columna izquierda: título */}
             <div className="shrink-0 mb-10 md:mb-0">
               <h2
-                className="font-black italic uppercase leading-[0.88]"
+                className="font-black italic uppercase leading-[0.9]"
                 style={{
                   color: "var(--primary)",
-                  fontSize: "clamp(2.8rem, 7vw, 7rem)",
-                  letterSpacing: "-0.03em",
+                  fontSize: "clamp(2.4rem, 5.5vw, 5rem)",
+                  letterSpacing: "-0.02em",
                 }}
               >
                 Garden<br />of Sins
