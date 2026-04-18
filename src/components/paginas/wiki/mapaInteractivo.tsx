@@ -376,7 +376,7 @@ export default function MapaInteractivo() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed left-0 right-0 z-[55] flex justify-center pointer-events-none"
               style={{
-                bottom: mobilePanelOpen ? "calc(80vh - 1px)" : "0",
+                bottom: mobilePanelOpen ? "calc(80vh - 1px)" : "env(safe-area-inset-bottom, 0px)",
                 transition: "bottom 0.4s cubic-bezier(0.32,0.72,0,1)",
               }}
             >
