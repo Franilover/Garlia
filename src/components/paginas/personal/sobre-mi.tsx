@@ -243,7 +243,7 @@ export default function SobreMi() {
             <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 {
-                  label: "Instagram Arte",
+                  label: "Arte",
                   handle: "@franiloverart",
                   href: "https://www.instagram.com/franiloverart/",
                   icon: <Instagram size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
