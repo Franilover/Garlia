@@ -282,7 +282,7 @@ export default function MapaInteractivo() {
       <div
         className={`relative transition-all duration-500 ease-in-out
           ${isMobile
-            ? "fixed inset-0 z-10 h-full"                                    // móvil: pantalla completa, overflow libre para que la imagen se pase
+            ? "fixed inset-0 z-10 h-full overflow-hidden"                    // móvil: overflow-hidden para que QuickPinchZoom controle el pan
             : vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"         // desktop: normal
           }
         `}
@@ -391,7 +391,7 @@ export default function MapaInteractivo() {
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
                 className="block pointer-events-none select-none"
-                style={isMobile ? { width: "950vw", height: "auto" } : { width: "100%", height: "auto" }}
+                style={isMobile ? { width: "200vw", height: "auto" } : { width: "100%", height: "auto" }}
                 onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
               />
               {!cargandoImagen && (
