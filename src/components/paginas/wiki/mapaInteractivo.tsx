@@ -383,7 +383,7 @@ export default function MapaInteractivo() {
         <QuickPinchZoom onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode}>
           <div ref={mapRef} className={isMobile ? "relative w-screen h-screen" : "origin-top-left w-full h-full"}>
             <div
-              className={`relative w-full h-full ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+              className={`relative ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
               onClick={handleMapClick}
             >
               <img
@@ -391,7 +391,7 @@ export default function MapaInteractivo() {
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
                 className="block pointer-events-none select-none"
-                style={isMobile ? { position: "absolute", top: 0, left: 0, width: "auto", height: "auto", minWidth: "800px", minHeight: "100vh" } : { width: "100%", height: "auto" }}
+                style={isMobile ? { width: "200vw", height: "200vh", objectFit: "cover" } : { width: "100%", height: "auto" }}
                 onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
               />
               {!cargandoImagen && (
