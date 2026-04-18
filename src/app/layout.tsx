@@ -39,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
       <head>
+        <meta name="google-site-verification" content="Wil88vfT-qaSn4IBTlmk7MKlhxcjQYX0V0zhVS5_E_A" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
