@@ -134,7 +134,7 @@ export default function SobreMi() {
 
                       <div className="relative z-10 space-y-0.5 text-left">
                         <h4
-                          className="font-black text-sm leading-snug"
+                          className="font-black text-m leading-snug"
                           style={{ color: "var(--primary)", letterSpacing: "-0.02em" }}
                         >{tool.title}</h4>
                       </div>
