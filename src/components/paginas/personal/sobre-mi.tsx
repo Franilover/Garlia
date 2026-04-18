@@ -49,7 +49,7 @@ export default function SobreMi() {
             {/* Columna izquierda: título + bienvenida */}
             <div className="flex-1 min-w-0">
               <header className="mb-10 flex flex-col items-center text-center">
-                <div className="overflow-hidden">
+                <div className="overflow-visible">
                   <MotionH1
                     initial={{ y: "110%" }}
                     animate={{ y: 0 }}
