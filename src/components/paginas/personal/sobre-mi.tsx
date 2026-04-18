@@ -12,9 +12,9 @@ const fade = (delay = 0) => ({
 });
 
 const TOOLS = [
-  { num: "01", label: "Digitales", title: "Linux & Krita",        icon: Monitor },
-  { num: "02", label: "Analogas",  title: "Acuarelas & Acrílico", icon: Droplets },
-  { num: "03", label: "Extras",    title: "Mucha Música",         icon: Music },
+  { num: "01", title: "Linux & Krita",        icon: Monitor },
+  { num: "02",  title: "Acuarelas & Acrílico", icon: Droplets },
+  { num: "03",  title: "Mucha Música",         icon: Music },
 ];
 
 export default function SobreMi() {
@@ -133,10 +133,6 @@ export default function SobreMi() {
                       </div>
 
                       <div className="relative z-10 space-y-0.5 text-left">
-                        <p
-                          className="text-[8px] font-black uppercase tracking-[0.35em]"
-                          style={{ color: "var(--primary)", opacity: 0.28 }}
-                        >{tool.label}</p>
                         <h4
                           className="font-black text-sm leading-snug"
                           style={{ color: "var(--primary)", letterSpacing: "-0.02em" }}
