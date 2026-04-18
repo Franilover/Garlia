@@ -81,6 +81,7 @@ export default function MapaInteractivo() {
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const mapRef = useRef(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
   // ── Personajes del reino seleccionado y desbloqueados por el usuario ──────
   const [personajesReino,       setPersonajesReino]       = useState<any[]>([]);
@@ -96,6 +97,20 @@ export default function MapaInteractivo() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  const pinchZoomRef = useRef<any>(null);
+
+  // Set initial zoom on mobile so the map fills the screen
+  const setInitialMobileZoom = useCallback(() => {
+    if (!isMobile || !imgRef.current || !pinchZoomRef.current) return;
+    const imgW = imgRef.current.naturalWidth;
+    const imgH = imgRef.current.naturalHeight;
+    if (!imgW || !imgH) return;
+    const scaleX = window.innerWidth / imgW;
+    const scaleY = window.innerHeight / imgH;
+    const scale = Math.max(scaleX, scaleY);
+    pinchZoomRef.current.scaleTo({ x: 0, y: 0, scale });
+  }, [isMobile]);
 
   const onUpdate = useCallback(({ x, y, scale }) => {
     if (mapRef.current) {
@@ -380,19 +395,20 @@ export default function MapaInteractivo() {
 
         {}
         <div className={isMobile ? "w-full h-full" : "w-full"}>
-        <QuickPinchZoom onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode}>
-          <div ref={mapRef} className={isMobile ? "relative" : "origin-top-left w-full h-full"}>
+        <QuickPinchZoom ref={pinchZoomRef} onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode}>
+          <div ref={mapRef} className={isMobile ? "origin-top-left" : "origin-top-left w-full h-full"}>
             <div
               className={`relative ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
               onClick={handleMapClick}
             >
               <img
+                ref={imgRef}
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
                 className="block pointer-events-none select-none"
-                style={isMobile ? { width: "100vw", height: "100vh", objectFit: "cover" } : { width: "100%", height: "auto" }}
-                onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
+                style={{ width: "100%", height: "auto" }}
+                onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); setInitialMobileZoom(); }}
               />
               {!cargandoImagen && (
                 vistaActual === "global" ? (
