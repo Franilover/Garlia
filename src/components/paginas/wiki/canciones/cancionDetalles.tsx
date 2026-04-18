@@ -57,7 +57,7 @@ export default function CancionDetallesPage() {
     });
   }, []);
 
-  if (loading) return <Loading text="Afinando instrumentos…" />;
+  if (loading) return <Loading text="Cargando..." />;
   if (errorAcceso) return (
     <div className="h-screen flex items-center justify-center bg-bg-main flex-col gap-4 text-center px-6">
       <AlertCircle className="text-red-400" size={48} />

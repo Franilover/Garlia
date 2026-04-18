@@ -123,7 +123,7 @@ export default function CancionesPage() {
     [canciones, busqueda]
   );
 
-  if (loading) return <Loading text="Afinando instrumentos…" />;
+  if (loading) return <Loading text="Cargando..." />;
 
   return (
     <div className="min-h-screen bg-bg-main pb-20">
