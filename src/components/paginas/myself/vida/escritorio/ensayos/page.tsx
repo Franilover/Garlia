@@ -248,24 +248,35 @@ export default function Ensayos() {
   }, [ensayos, tagActivo, searchTerm]);
 
   const pendingSaveRef = useRef(false);
+  // Accumulate all pending field changes so a single Supabase call saves everything
+  const pendingUpdatesRef = useRef<Record<string, any>>({});
+
   const scheduleSave = useCallback((id: string, updates: Record<string, any>) => {
+    // Merge into pending batch — never triggers a re-render
+    pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
+
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     pendingSaveRef.current = true;
     saveTimerRef.current = setTimeout(async () => {
       pendingSaveRef.current = false;
+      const batch = { ...pendingUpdatesRef.current };
+      pendingUpdatesRef.current = {};
       setSaveStatus("saving");
       try {
-        await supabase.from("ensayos").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id);
+        const now = new Date().toISOString();
+        await supabase.from("ensayos").update({ ...batch, updated_at: now }).eq("id", id);
+        // Only update local array AFTER the successful save — keeps re-renders away from keystrokes
+        setEnsayos(prev => prev.map(e =>
+          e.id === id ? { ...e, ...batch, updated_at: now } : e
+        ));
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 2000);
       } catch { setSaveStatus("error"); }
     }, 1500);
   }, []);
 
+  // actualizarLocal no longer calls setEnsayos — zero re-renders on keystrokes
   const actualizarLocal = useCallback((id: string, field: string, value: any) => {
-    setEnsayos(prev => prev.map(e =>
-      e.id === id ? { ...e, [field]: value, updated_at: new Date().toISOString() } : e
-    ));
     scheduleSave(id, { [field]: value });
   }, [scheduleSave]);
 

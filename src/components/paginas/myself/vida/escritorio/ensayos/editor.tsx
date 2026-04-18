@@ -40,12 +40,22 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const wordCount = ensayo.contenido?.split(/\s+/).filter(Boolean).length || 0;
-  const charCount = ensayo.contenido?.length || 0;
-
+  // Local state — decoupled from parent so keystrokes don't bubble up as re-renders
+  const [localTitulo, setLocalTitulo] = useState<string>(ensayo.titulo || "");
+  const [localContenido, setLocalContenido] = useState<string>(ensayo.contenido || "");
   const [tagInput, setTagInput] = useState<string>(ensayo.tags?.join(", ") || "");
   const [tagInputFocused, setTagInputFocused] = useState(false);
   const [tagPanelActivo, setTagPanelActivo] = useState<string | null>(null);
+
+  // Sync local state only when switching notes
+  useEffect(() => {
+    setLocalTitulo(ensayo.titulo || "");
+    setLocalContenido(ensayo.contenido || "");
+    setTagInput(ensayo.tags?.join(", ") || "");
+  }, [ensayo.id]);
+
+  const wordCount = localContenido.split(/\s+/).filter(Boolean).length || 0;
+  const charCount = localContenido.length || 0;
 
   const [citePopup, setCitePopup] = useState<{
     query: string;
@@ -54,12 +64,9 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
   } | null>(null);
   const [citeActiveIdx, setCiteActiveIdx] = useState(0);
 
-  useEffect(() => {
-    setTagInput(ensayo.tags?.join(", ") || "");
-  }, [ensayo.id]);
-
   const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
+    setLocalContenido(value);
     onUpdateField(ensayo.id, "contenido", value);
 
     if (!sources.length) return;
@@ -99,10 +106,11 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
       ? `[@${src.citekey}]`
       : `[@${src.author.split(",")[0].trim().toLowerCase()}${src.year}]`;
 
-    const before = ensayo.contenido.substring(0, citePopup.atStart);
-    const after = ensayo.contenido.substring(textarea.selectionStart);
+    const before = localContenido.substring(0, citePopup.atStart);
+    const after = localContenido.substring(textarea.selectionStart);
     const newContent = before + cite + after;
 
+    setLocalContenido(newContent);
     onUpdateField(ensayo.id, "contenido", newContent);
     setCitePopup(null);
 
@@ -111,7 +119,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
       const pos = citePopup.atStart + cite.length;
       textarea.setSelectionRange(pos, pos);
     });
-  }, [citePopup, ensayo.id, ensayo.contenido, onUpdateField]);
+  }, [citePopup, ensayo.id, localContenido, onUpdateField]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (!citePopup || !sources.length) return;
@@ -161,6 +169,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
       newCursorStart = start + action.prefix.length;
       newCursorEnd = start + insertion.length - action.suffix.length;
     }
+    setLocalContenido(newText);
     onUpdateField(ensayo.id, "contenido", newText);
     requestAnimationFrame(() => {
       textarea.focus();
@@ -168,7 +177,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
     });
   };
 
-  const parsedTags: string[] = ensayo.tags || [];
+  const parsedTags: string[] = tagInput.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
 
   return (
     <div className="relative" ref={containerRef}>
@@ -335,8 +344,11 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
         >
           <input
             type="text"
-            value={ensayo.titulo}
-            onChange={(e) => onUpdateField(ensayo.id, "titulo", e.target.value)}
+            value={localTitulo}
+            onChange={(e) => {
+              setLocalTitulo(e.target.value);
+              onUpdateField(ensayo.id, "titulo", e.target.value);
+            }}
             className="w-full bg-transparent outline-none border-none text-3xl md:text-4xl lg:text-5xl font-serif italic leading-tight mb-5 md:mb-6"
             style={{ color: "var(--primary)" }}
             placeholder="Título del ensayo..."
@@ -350,7 +362,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
               <>
                 <textarea
                   ref={textareaRef}
-                  value={ensayo.contenido}
+                  value={localContenido}
                   onChange={handleContentChange}
                   onKeyDown={handleKeyDown}
                   placeholder="Empieza a escribir..."
@@ -380,7 +392,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
                 style={{ color: "var(--foreground)" } as React.CSSProperties}
               >
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {ensayo.contenido || "*Empieza a escribir en el modo edición...*"}
+                  {localContenido || "*Empieza a escribir en el modo edición...*"}
                 </ReactMarkdown>
               </MotionDiv>
             )}
