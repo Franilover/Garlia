@@ -391,7 +391,7 @@ export default function MapaInteractivo() {
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
                 className="block pointer-events-none select-none"
-                style={isMobile ? { width: "350vw", height: "auto" } : { width: "100%", height: "auto" }}
+                style={isMobile ? { width: "950vw", height: "auto" } : { width: "100%", height: "auto" }}
                 onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
               />
               {!cargandoImagen && (
