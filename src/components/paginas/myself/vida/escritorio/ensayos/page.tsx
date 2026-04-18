@@ -1,5 +1,4 @@
 "use client";
-import { MotionSpan } from '@/components/ui/Motion';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Loader2, Menu, X, PenTool } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -28,6 +27,18 @@ export interface ZoteroSource {
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+// Mutates the DOM directly — no setState, no re-render
+function setSaveIndicator(el: HTMLElement | null, status: SaveStatus) {
+  if (!el) return;
+  if (status === "idle") { el.style.opacity = "0"; return; }
+  el.style.opacity = "1";
+  el.textContent = status === "saving" ? "Guardando…" : status === "saved" ? "✓ Guardado" : "Error al guardar";
+  el.style.color = status === "saving"
+    ? "color-mix(in srgb, var(--primary) 30%, transparent)"
+    : status === "saved" ? "oklch(0.6 0.15 145)" : "oklch(0.6 0.2 25)";
+}
+
 const LS_ACTIVE = "ensayos-active-id";
 const DEXIE_ZOTERO_KEY = "zotero_file_handle";
 
@@ -98,8 +109,8 @@ export default function Ensayos() {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveIndicatorRef = useRef<HTMLSpanElement | null>(null);
 
   
   const fetchData = useCallback(async () => {
@@ -261,17 +272,13 @@ export default function Ensayos() {
       pendingSaveRef.current = false;
       const batch = { ...pendingUpdatesRef.current };
       pendingUpdatesRef.current = {};
-      setSaveStatus("saving");
+      setSaveIndicator(saveIndicatorRef.current, "saving");
       try {
         const now = new Date().toISOString();
         await supabase.from("ensayos").update({ ...batch, updated_at: now }).eq("id", id);
-        // Only update local array AFTER the successful save — keeps re-renders away from keystrokes
-        setEnsayos(prev => prev.map(e =>
-          e.id === id ? { ...e, ...batch, updated_at: now } : e
-        ));
-        setSaveStatus("saved");
-        setTimeout(() => setSaveStatus("idle"), 2000);
-      } catch { setSaveStatus("error"); }
+        setSaveIndicator(saveIndicatorRef.current, "saved");
+        setTimeout(() => setSaveIndicator(saveIndicatorRef.current, "idle"), 2000);
+      } catch { setSaveIndicator(saveIndicatorRef.current, "error"); }
     }, 1500);
   }, []);
 
@@ -334,18 +341,13 @@ export default function Ensayos() {
         footerLeft={`${ensayos.length} notas`}
         sidebarContent={<Sidebar {...sidebarProps} embedded />}
       >
-        {/* Barra de estado de guardado */}
+        {/* Barra de estado de guardado — DOM-only, zero re-renders */}
         <div className="shrink-0 z-10 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-2.5 flex items-center justify-center bg-bg-main/80">
-          <AnimatePresence mode="wait">
-            {saveStatus !== "idle" && (
-              <MotionSpan key={saveStatus} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="font-mono text-[9px] uppercase tracking-widest"
-                style={{ color: saveStatus === "saving" ? "color-mix(in srgb, var(--primary) 30%, transparent)" : saveStatus === "saved" ? "oklch(0.6 0.15 145)" : "oklch(0.6 0.2 25)" }}
-              >
-                {saveStatus === "saving" ? "Guardando…" : saveStatus === "saved" ? "✓ Guardado" : "Error"}
-              </MotionSpan>
-            )}
-          </AnimatePresence>
+          <span
+            ref={saveIndicatorRef}
+            className="font-mono text-[9px] uppercase tracking-widest transition-opacity duration-300"
+            style={{ opacity: 0 }}
+          />
         </div>
 
         {/* Área principal */}
