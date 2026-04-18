@@ -44,11 +44,11 @@ export default function SobreMi() {
 
         {/* ── SECCIÓN HERO: dos columnas en desktop ── */}
         <section className="mb-24 md:mb-32">
-          <div className="flex flex-col md:flex-row md:gap-16 md:items-start">
+          <div className="flex flex-col md:flex-row md:gap-16 md:items-center">
 
             {/* Columna izquierda: título + bienvenida */}
             <div className="flex-1 min-w-0">
-              <header className="mb-10">
+              <header className="mb-10 flex flex-col items-center text-center">
                 <div className="overflow-hidden">
                   <MotionH1
                     initial={{ y: "110%" }}
@@ -198,7 +198,7 @@ export default function SobreMi() {
 
         {/* ── GARDEN OF SINS: dos columnas en desktop ── */}
         <MotionSection {...fade(0.3)} className="mb-24 md:mb-32">
-          <div className="flex flex-col md:flex-row md:gap-16 md:items-start">
+          <div className="flex flex-col md:flex-row md:gap-16 md:items-center">
 
             {/* Columna izquierda: título */}
             <div className="shrink-0 mb-10 md:mb-0">
@@ -215,7 +215,7 @@ export default function SobreMi() {
             </div>
 
             {/* Columna derecha: texto */}
-            <div className="flex-1 min-w-0 flex items-start">
+            <div className="flex-1 min-w-0 flex items-center">
               <MotionDiv
                 whileHover={{ x: 4 }}
                 transition={{ duration: 0.22 }}
