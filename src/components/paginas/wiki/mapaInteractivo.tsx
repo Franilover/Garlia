@@ -374,7 +374,7 @@ export default function MapaInteractivo() {
           {isMobile && vistaActual === "reino" && reinoSeleccionado && (
             <MotionDiv
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed left-0 right-0 z-[55] flex justify-center pointer-events-none"
+              className="fixed left-0 right-0 z-[80] flex justify-center pointer-events-none"
               style={{
                 bottom: mobilePanelOpen ? "calc(80vh - 1px)" : "env(safe-area-inset-bottom, 0px)",
                 transition: "bottom 0.4s cubic-bezier(0.32,0.72,0,1)",
@@ -394,8 +394,8 @@ export default function MapaInteractivo() {
         </AnimatePresence>
 
         {}
-        <div className={isMobile ? "w-full h-full" : "w-full"}>
-        <QuickPinchZoom ref={pinchZoomRef} onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode}>
+        <div className={isMobile ? "w-full h-full flex items-start justify-start" : "w-full"}>
+        <QuickPinchZoom ref={pinchZoomRef} onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode} style={isMobile ? { width: "100%", height: "100%" } : {}}>
           <div ref={mapRef} className={isMobile ? "origin-top-left" : "origin-top-left w-full h-full"}>
             <div
               className={`relative ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
