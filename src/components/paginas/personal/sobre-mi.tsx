@@ -201,7 +201,7 @@ export default function SobreMi() {
           <div className="flex flex-col md:flex-row md:gap-16 md:items-center">
 
             {/* Columna izquierda: título */}
-            <div className="shrink-0 mb-10 md:mb-0">
+            <div className="shrink-0 mb-10 md:mb-0 text-center md:text-left">
               <h2
                 className="font-black italic uppercase leading-[0.9]"
                 style={{
