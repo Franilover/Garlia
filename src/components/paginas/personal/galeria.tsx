@@ -1,5 +1,5 @@
 "use client";
-import { MotionArticle, MotionDiv, MotionH1 } from '@/components/ui/Motion';
+import { MotionArticle, MotionDiv } from '@/components/ui/Motion';
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
@@ -1256,81 +1256,21 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
 export default function GaleriaPage() {
   const { perfil } = useAuth() as any;
   const isAdmin    = perfil?.rol === "admin";
-  const { items, setItems, loading, reload } = useGaleria();
+  const { items, loading, reload } = useGaleria();
   const [showAdd, setShowAdd] = useState(false);
-  const [mobileLightbox, setMobileLightbox] = useState<GaleriaItem | null>(null);
-
-  // Columnas base (siempre existen) vs extras (requieren migración SQL)
-  const BASE_COLS = new Set([
-    "titulo", "descripcion", "url_imagen", "bg_color",
-    "img_x", "img_y", "img_scale", "img_width",
-    "text_position", "text_x", "text_y", "text_size",
-    "text_bg_color", "text_color", "orden", "aspect_ratio",
-  ]);
-
-  const handleUpdate = useCallback(async (id: number, updates: Partial<GaleriaItem>) => {
-    // Intento 1: enviar todo
-    const { error } = await supabase.from("galeria").update(updates).eq("id", id);
-
-    if (!error) {
-      setItems(prev => prev.map(it => it.id === id ? { ...it, ...updates } : it));
-      return;
-    }
-
-    // Intento 2: si falla por columnas desconocidas (400), enviamos solo las columnas base
-    const safeUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([k]) => BASE_COLS.has(k))
-    ) as Partial<GaleriaItem>;
-
-    const { error: error2 } = await supabase.from("galeria").update(safeUpdates).eq("id", id);
-    if (!error2) {
-      setItems(prev => prev.map(it => it.id === id ? { ...it, ...safeUpdates } : it));
-      console.warn(
-        "[Galería] Columnas extra no encontradas. Ejecuta en Supabase;"
-      );
-    } else {
-      console.error("[Galería] Error al guardar:", error2.message);
-    }
-  }, [setItems]);
-
-  const handleDelete = useCallback(async (id: number) => {
-    const { error } = await supabase.from("galeria").delete().eq("id", id);
-    if (!error) setItems(prev => prev.filter(it => it.id !== id));
-  }, [setItems]);
-
-  const handleMove = useCallback(async (index: number, dir: "up" | "down") => {
-    const arr  = [...items];
-    const swap = dir === "up" ? index - 1 : index + 1;
-    if (swap < 0 || swap >= arr.length) return;
-    [arr[index], arr[swap]] = [arr[swap], arr[index]];
-    const reordered = arr.map((it, i) => ({ ...it, orden: i }));
-    setItems(reordered);
-    await Promise.all(reordered.map(it =>
-      supabase.from("galeria").update({ orden: it.orden }).eq("id", it.id)
-    ));
-  }, [items, setItems]);
+  const [lightbox, setLightbox] = useState<GaleriaItem | null>(null);
 
   return (
     <div className="w-full bg-bg-main min-h-screen">
-      <header className="hidden md:block max-w-3xl mx-auto px-6 pt-20 md:pt-32 pb-16 md:pb-24">
-        <div className="overflow-hidden mb-6">
-          <MotionH1 initial={{ y: "110%" }} animate={{ y: 0 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="font-black italic uppercase leading-[0.85]"
-            style={{ color: "var(--primary)", fontSize: "clamp(3rem, 11vw, 8rem)", letterSpacing: "-0.03em" }}>
-            Galería
-          </MotionH1>
+      {isAdmin && (
+        <div className="flex justify-end px-3 pt-4 pb-2">
+          <button onClick={() => setShowAdd(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-dashed transition-all hover:opacity-80"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+            <Plus size={12} /> Añadir obra
+          </button>
         </div>
-        {isAdmin && (
-          <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-8">
-            <button onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-dashed transition-all hover:opacity-80"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-              <Plus size={12} /> Añadir obra
-            </button>
-          </MotionDiv>
-        )}
-      </header>
+      )}
 
       <main>
         {loading ? (
@@ -1345,66 +1285,44 @@ export default function GaleriaPage() {
             </p>
           </div>
         ) : (
-          <>
-            {/* ── Vista móvil: grilla 2 columnas, solo imágenes ── */}
-            <div className="md:hidden grid grid-cols-2 gap-0.5 p-0.5">
-              {items.map(item => {
-                const isWide = (item.aspect_ratio ?? "square") === "wide";
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setMobileLightbox(item)}
-                    className="relative w-full overflow-hidden focus:outline-none"
+          <div className="grid grid-cols-2 gap-0.5 p-0.5">
+            {items.map(item => {
+              const isWide = (item.aspect_ratio ?? "square") === "wide";
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setLightbox(item)}
+                  className="relative w-full overflow-hidden focus:outline-none"
+                  style={{
+                    paddingBottom: isWide ? `${CANVAS_RATIO * 100}%` : "100%",
+                    backgroundColor: item.bg_color,
+                    gridColumn: isWide ? "span 2" : undefined,
+                  }}
+                >
+                  <img
+                    src={item.url_imagen}
+                    alt={item.titulo || "Obra"}
+                    className="absolute inset-0 w-full h-full object-contain"
                     style={{
-                      paddingBottom: isWide ? `${CANVAS_RATIO * 100}%` : "100%",
-                      backgroundColor: item.bg_color,
-                      gridColumn: isWide ? "span 2" : undefined,
+                      objectPosition: `${item.img_x ?? 50}% ${item.img_y ?? 50}%`,
                     }}
-                  >
-                    <img
-                      src={item.url_imagen}
-                      alt={item.titulo || "Obra"}
-                      className="absolute inset-0 w-full h-full object-contain"
-                      style={{
-                        objectPosition: `${item.img_x ?? 50}% ${item.img_y ?? 50}%`,
-                      }}
-                      draggable={false}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* ── Vista desktop: layout completo ── */}
-            <div className="hidden md:block">
-              {items.map((item, i) => (
-                <GaleriaSection key={item.id} item={item} isAdmin={isAdmin}
-                  isFirst={i === 0} isLast={i === items.length - 1}
-                  onUpdate={handleUpdate} onDelete={handleDelete}
-                  onMoveUp={() => handleMove(i, "up")} onMoveDown={() => handleMove(i, "down")} />
-              ))}
-            </div>
-          </>
+                    draggable={false}
+                  />
+                </button>
+              );
+            })}
+          </div>
         )}
       </main>
 
-      {/* Lightbox móvil global */}
-      {mobileLightbox && (
+      {lightbox && (
         <ImageLightbox
-          src={mobileLightbox.url_imagen}
-          alt={mobileLightbox.titulo || "Obra"}
-          bgColor={mobileLightbox.bg_color}
-          onClose={() => setMobileLightbox(null)}
+          src={lightbox.url_imagen}
+          alt={lightbox.titulo || "Obra"}
+          bgColor={lightbox.bg_color}
+          onClose={() => setLightbox(null)}
         />
       )}
-
-      <footer className="hidden md:block max-w-3xl mx-auto px-6 py-24">
-        <div className="flex items-center gap-6">
-          <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-          <span className="text-[20px]" style={{ color: "var(--primary)", opacity: 0.12 }}>⚝</span>
-          <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-        </div>
-      </footer>
 
       <AnimatePresence>
         {showAdd && <AddModal onClose={() => setShowAdd(false)} onSuccess={reload} nextOrden={items.length} />}
