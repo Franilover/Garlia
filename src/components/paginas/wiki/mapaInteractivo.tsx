@@ -282,7 +282,7 @@ export default function MapaInteractivo() {
       <div
         className={`relative transition-all duration-500 ease-in-out
           ${isMobile
-            ? "fixed inset-0 z-10 overflow-hidden"                            // móvil: pantalla completa, sin overflow
+            ? "fixed inset-0 z-10 overflow-hidden h-full"                    // móvil: pantalla completa, sin overflow
             : vistaActual === "reino" ? "w-full md:w-2/3" : "w-full"         // desktop: normal
           }
         `}
@@ -379,17 +379,17 @@ export default function MapaInteractivo() {
         </AnimatePresence>
 
         {}
-        <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5} enabled={!editMode}>
+        <QuickPinchZoom onUpdate={onUpdate} maxZoom={5} minZoom={0.5} enabled={!editMode} style={isMobile ? { width: "100%", height: "100%" } : undefined}>
           <div ref={mapRef} className="origin-top-left w-full h-full">
             <div
-              className={`relative inline-block w-full ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+              className={`relative w-full ${isMobile ? "h-screen" : "inline-block"} ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
               onClick={handleMapClick}
             >
               <img
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
-                className="w-full h-auto block pointer-events-none select-none"
+                className={`block pointer-events-none select-none ${isMobile ? "w-full h-full object-contain" : "w-full h-auto"}`}
                 onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
               />
               {!cargandoImagen && (
