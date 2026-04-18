@@ -35,6 +35,7 @@ interface GaleriaItem {
   text_bg_color: string;
   text_color:    string;
   orden:         number;
+  aspect_ratio:  "square" | "wide";
   creado_en:     string;
 }
 
@@ -70,6 +71,7 @@ function draftFromItem(item: GaleriaItem): Draft {
     text_size:     item.text_size     ?? 2,
     text_bg_color: item.text_bg_color ?? "transparent",
     text_color:    item.text_color    ?? "#1a1a1a",
+    aspect_ratio:  item.aspect_ratio  ?? "square",
   };
 }
 
@@ -528,6 +530,32 @@ function CanvasEditorModal({
           {/* ── TAB IMAGEN ── */}
           {tab === "img" && (
             <>
+              <section className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Formato en móvil</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {([
+                    { value: "square", label: "□ Cuadrado", hint: "2 columnas" },
+                    { value: "wide",   label: "▬ Wide 16:9", hint: "fila completa" },
+                  ] as { value: "square" | "wide"; label: string; hint: string }[]).map(opt => {
+                    const active = (draft.aspect_ratio ?? "square") === opt.value;
+                    return (
+                      <button key={opt.value} onClick={() => set({ aspect_ratio: opt.value })}
+                        className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl border text-[9px] font-black uppercase tracking-wide transition-all"
+                        style={{
+                          background:  active ? "var(--primary)" : "transparent",
+                          color:       active ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                          borderColor: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                        }}>
+                        {opt.label}
+                        <span className="text-[7px] font-normal normal-case opacity-70">{opt.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <hr style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+
               <section className="space-y-2">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Fondo de sección</p>
                 <ColorRow label="Color" value={draft.bg_color} onChange={v => set({ bg_color: v })}
@@ -1163,6 +1191,7 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
       text_position: "bottom",
       text_x: 50, text_y: 85, text_width: 40, text_size: 2,
       text_bg_color: "transparent", text_color: "#ffffff",
+      aspect_ratio: "square",
       orden: nextOrden,
     }]);
     setSaving(false);
@@ -1236,7 +1265,7 @@ export default function GaleriaPage() {
     "titulo", "descripcion", "url_imagen", "bg_color",
     "img_x", "img_y", "img_scale", "img_width",
     "text_position", "text_x", "text_y", "text_size",
-    "text_bg_color", "text_color", "orden",
+    "text_bg_color", "text_color", "orden", "aspect_ratio",
   ]);
 
   const handleUpdate = useCallback(async (id: number, updates: Partial<GaleriaItem>) => {
@@ -1323,24 +1352,31 @@ export default function GaleriaPage() {
           <>
             {/* ── Vista móvil: grilla 2 columnas, solo imágenes ── */}
             <div className="md:hidden grid grid-cols-2 gap-0.5 p-0.5">
-              {items.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => setMobileLightbox(item)}
-                  className="relative w-full overflow-hidden focus:outline-none"
-                  style={{ paddingBottom: "100%", backgroundColor: item.bg_color }}
-                >
-                  <img
-                    src={item.url_imagen}
-                    alt={item.titulo || "Obra"}
-                    className="absolute inset-0 w-full h-full object-contain"
+              {items.map(item => {
+                const isWide = (item.aspect_ratio ?? "square") === "wide";
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setMobileLightbox(item)}
+                    className="relative w-full overflow-hidden focus:outline-none"
                     style={{
-                      objectPosition: `${item.img_x ?? 50}% ${item.img_y ?? 50}%`,
+                      paddingBottom: isWide ? `${CANVAS_RATIO * 100}%` : "100%",
+                      backgroundColor: item.bg_color,
+                      gridColumn: isWide ? "span 2" : undefined,
                     }}
-                    draggable={false}
-                  />
-                </button>
-              ))}
+                  >
+                    <img
+                      src={item.url_imagen}
+                      alt={item.titulo || "Obra"}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      style={{
+                        objectPosition: `${item.img_x ?? 50}% ${item.img_y ?? 50}%`,
+                      }}
+                      draggable={false}
+                    />
+                  </button>
+                );
+              })}
             </div>
 
             {/* ── Vista desktop: layout completo ── */}
