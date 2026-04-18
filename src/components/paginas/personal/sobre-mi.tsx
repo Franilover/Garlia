@@ -85,14 +85,6 @@ export default function SobreMi() {
                   boxShadow: "var(--shadow-card)",
                 }}
               >
-                <MotionDiv
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] as any }}
-                  className="mb-6 h-[1px] w-12 origin-left rounded-full"
-                  style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-                />
-
                 <p
                   className="text-xl md:text-2xl leading-[1.5] font-light italic"
                   style={{ color: "var(--primary)", opacity: 0.88 }}
@@ -100,19 +92,6 @@ export default function SobreMi() {
                   Bienvenido a mi pequeño jardín digital. Uso este espacio para compartir mis hobbys y
                   proyectos: Mi mayor proyecto es "Garden of Sins" el cual puedes ver en el icono de la flor.
                 </p>
-
-                <MotionDiv
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.8, delay: 0.65, ease: [0.16, 1, 0.3, 1] as any }}
-                  className="mt-6 h-[1px] w-12 origin-left rounded-full"
-                  style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-                />
-
-                <div
-                  className="absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-full"
-                  style={{ background: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
-                />
               </MotionSection>
             </div>
 
