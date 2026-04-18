@@ -940,7 +940,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   misCriaturas.length > 0
                     ? misCriaturas.map((d, i) => (
                       <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Criatura"}
-                        sub={`Visto el ${new Date(d.fecha_descubrimiento).toLocaleDateString("es-ES")}`}
                         icono={<Cat size={20} />} onClick={() => setModalEntidad({ tipo: "criatura", data: d })} />
                     ))
                     : <EmptyTab label="Sin registros en el bestiario" />
@@ -950,7 +949,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   misPersonajes.length > 0
                     ? misPersonajes.map((d, i) => (
                       <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Contacto"}
-                        sub={`Visto el ${new Date(d.fecha_descubrimiento).toLocaleDateString("es-ES")}`}
                         icono={<User size={20} />} onClick={() => setModalEntidad({ tipo: "personaje", data: d })} />
                     ))
                     : <EmptyTab label="Sin registros en la agenda" />

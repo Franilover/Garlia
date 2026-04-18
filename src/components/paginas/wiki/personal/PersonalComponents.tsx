@@ -193,7 +193,7 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
 export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
   imagen?: string;
   nombre: string;
-  sub: string;
+  sub?: string;
   icono: React.ReactNode;
   onClick: () => void;
 }) {
