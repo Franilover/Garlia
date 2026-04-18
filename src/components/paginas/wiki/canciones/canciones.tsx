@@ -123,12 +123,12 @@ export default function CancionesPage() {
     [canciones, busqueda]
   );
 
-  if (loading) return <Loading text="Cargando..." />;
+  if (loading) return <Loading text="Cargando" />;
 
   return (
     <div className="min-h-screen bg-bg-main pb-20">
       <div className="max-w-6xl mx-auto pt-16 px-6">
-        <PageHeader title="Soliloquios" subtitle="Las canciones del mundo" icon={<Music size={32} />} />
+        <PageHeader title="Soliloquios" icon={<Music size={32} />} />
         <div className="flex items-center gap-3 mb-10">
           <input
             value={busqueda}
