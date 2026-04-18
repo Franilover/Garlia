@@ -390,7 +390,8 @@ export default function MapaInteractivo() {
                 key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
                 src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
                 alt="Mapa"
-                className={`block pointer-events-none select-none ${isMobile ? "w-[150vw] h-auto" : "w-full h-auto"}`}
+                className={`block pointer-events-none select-none ${isMobile ? "h-auto" : "w-full h-auto"}`}
+                style={isMobile ? { width: "1200px" } : undefined}
                 onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
               />
               {!cargandoImagen && (
