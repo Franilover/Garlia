@@ -380,7 +380,7 @@ export default function MapaInteractivo() {
 
         {}
         <div className={isMobile ? "w-full h-full" : "w-full"}>
-        <QuickPinchZoom onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode} zoomFactor={isMobile ? 2 : 1}>
+        <QuickPinchZoom onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode}>
           <div ref={mapRef} className="origin-top-left w-full h-full">
             <div
               className={`relative ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
