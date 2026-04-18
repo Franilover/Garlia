@@ -1229,6 +1229,7 @@ export default function GaleriaPage() {
   const isAdmin    = perfil?.rol === "admin";
   const { items, setItems, loading, reload } = useGaleria();
   const [showAdd, setShowAdd] = useState(false);
+  const [mobileLightbox, setMobileLightbox] = useState<GaleriaItem | null>(null);
 
   // Columnas base (siempre existen) vs extras (requieren migración SQL)
   const BASE_COLS = new Set([
@@ -1282,7 +1283,7 @@ export default function GaleriaPage() {
 
   return (
     <div className="w-full bg-bg-main min-h-screen">
-      <header className="max-w-3xl mx-auto px-6 pt-20 md:pt-32 pb-16 md:pb-24">
+      <header className="hidden md:block max-w-3xl mx-auto px-6 pt-20 md:pt-32 pb-16 md:pb-24">
         <div className="overflow-hidden mb-6">
           <MotionH1 initial={{ y: "110%" }} animate={{ y: 0 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
@@ -1319,18 +1320,53 @@ export default function GaleriaPage() {
             </p>
           </div>
         ) : (
-          <div>
-            {items.map((item, i) => (
-              <GaleriaSection key={item.id} item={item} isAdmin={isAdmin}
-                isFirst={i === 0} isLast={i === items.length - 1}
-                onUpdate={handleUpdate} onDelete={handleDelete}
-                onMoveUp={() => handleMove(i, "up")} onMoveDown={() => handleMove(i, "down")} />
-            ))}
-          </div>
+          <>
+            {/* ── Vista móvil: grilla 2 columnas, solo imágenes ── */}
+            <div className="md:hidden grid grid-cols-2 gap-0.5 p-0.5">
+              {items.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setMobileLightbox(item)}
+                  className="relative w-full overflow-hidden focus:outline-none"
+                  style={{ paddingBottom: `${CANVAS_RATIO * 100}%`, backgroundColor: item.bg_color }}
+                >
+                  <img
+                    src={item.url_imagen}
+                    alt={item.titulo || "Obra"}
+                    className="absolute inset-0 w-full h-full object-contain"
+                    style={{
+                      objectPosition: `${item.img_x ?? 50}% ${item.img_y ?? 50}%`,
+                    }}
+                    draggable={false}
+                  />
+                </button>
+              ))}
+            </div>
+
+            {/* ── Vista desktop: layout completo ── */}
+            <div className="hidden md:block">
+              {items.map((item, i) => (
+                <GaleriaSection key={item.id} item={item} isAdmin={isAdmin}
+                  isFirst={i === 0} isLast={i === items.length - 1}
+                  onUpdate={handleUpdate} onDelete={handleDelete}
+                  onMoveUp={() => handleMove(i, "up")} onMoveDown={() => handleMove(i, "down")} />
+              ))}
+            </div>
+          </>
         )}
       </main>
 
-      <footer className="max-w-3xl mx-auto px-6 py-24">
+      {/* Lightbox móvil global */}
+      {mobileLightbox && (
+        <ImageLightbox
+          src={mobileLightbox.url_imagen}
+          alt={mobileLightbox.titulo || "Obra"}
+          bgColor={mobileLightbox.bg_color}
+          onClose={() => setMobileLightbox(null)}
+        />
+      )}
+
+      <footer className="hidden md:block max-w-3xl mx-auto px-6 py-24">
         <div className="flex items-center gap-6">
           <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
           <span className="text-[20px]" style={{ color: "var(--primary)", opacity: 0.12 }}>⚝</span>
