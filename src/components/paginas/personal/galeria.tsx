@@ -14,12 +14,18 @@ interface GaleriaItem {
   bg_color:     string;
   img_x:        number;
   img_y:        number;
-  aspect_ratio: "square" | "wide";
+  aspect_ratio: "square" | "wide" | "portrait";
   orden:        number;
   creado_en:    string;
 }
 
 const CANVAS_RATIO = 9 / 16;
+
+function paddingForRatio(ratio: "square" | "wide" | "portrait" | undefined) {
+  if (ratio === "wide")     return `${CANVAS_RATIO * 100}%`;
+  if (ratio === "portrait") return "125%"; // 4:5
+  return "100%"; // square
+}
 
 // ─── Hook de datos ────────────────────────────────────────────────────────────
 
@@ -200,7 +206,7 @@ function EditModal({ item, onSave, onClose }: {
   onClose: () => void;
 }) {
   const [bgColor,     setBgColor]     = useState(item.bg_color     ?? "#111111");
-  const [aspectRatio, setAspectRatio] = useState<"square" | "wide">(item.aspect_ratio ?? "square");
+  const [aspectRatio, setAspectRatio] = useState<"square" | "wide" | "portrait">(item.aspect_ratio ?? "portrait");
   const [saving,      setSaving]      = useState(false);
 
   const handleSave = async () => {
@@ -229,7 +235,7 @@ function EditModal({ item, onSave, onClose }: {
         {/* Preview */}
         <div className="px-5 pt-4">
           <div className="relative w-full overflow-hidden rounded-xl"
-            style={{ paddingBottom: aspectRatio === "wide" ? `${CANVAS_RATIO * 100}%` : "100%", backgroundColor: bgColor }}>
+            style={{ paddingBottom: paddingForRatio(aspectRatio), backgroundColor: bgColor }}>
             <img
               src={item.url_imagen}
               alt="preview"
@@ -263,15 +269,16 @@ function EditModal({ item, onSave, onClose }: {
           {/* Formato */}
           <div className="space-y-2">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Formato</p>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {([
-                { value: "square", label: "Cuadrado",    hint: "2 columnas" },
-                { value: "wide",   label: "Panorámico",  hint: "fila completa" },
-              ] as { value: "square" | "wide"; label: string; hint: string }[]).map(opt => {
+                { value: "portrait", label: "4:5",         hint: "2 col · alto"  },
+                { value: "square",   label: "1:1",         hint: "2 col · cuad"  },
+                { value: "wide",     label: "16:9",        hint: "fila completa" },
+              ] as { value: "square" | "wide" | "portrait"; label: string; hint: string }[]).map(opt => {
                 const active = aspectRatio === opt.value;
                 return (
                   <button key={opt.value} onClick={() => setAspectRatio(opt.value)}
-                    className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl border text-[9px] font-black uppercase tracking-wide transition-all"
+                    className="flex flex-col items-center gap-0.5 px-2 py-2.5 rounded-xl border text-[9px] font-black uppercase tracking-wide transition-all"
                     style={{
                       background:  active ? "var(--primary)" : "transparent",
                       color:       active ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
@@ -319,7 +326,7 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
       url_imagen:   url,
       bg_color:     "#111111",
       img_x: 50, img_y: 50,
-      aspect_ratio: "square",
+      aspect_ratio: "portrait",
       orden:        nextOrden,
     }]);
     setSaving(false);
@@ -425,13 +432,13 @@ export default function GaleriaPage() {
         ) : (
           <div className="grid grid-cols-2 gap-0.5 p-0.5">
             {items.map(item => {
-              const isWide = (item.aspect_ratio ?? "square") === "wide";
+              const isWide = (item.aspect_ratio ?? "portrait") === "wide";
               return (
                 <div
                   key={item.id}
                   className="relative w-full overflow-hidden"
                   style={{
-                    paddingBottom:   isWide ? `${CANVAS_RATIO * 100}%` : "100%",
+                    paddingBottom: paddingForRatio(item.aspect_ratio),
                     backgroundColor: item.bg_color,
                     gridColumn:      isWide ? "span 2" : undefined,
                   }}
