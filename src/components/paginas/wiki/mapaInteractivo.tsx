@@ -144,7 +144,6 @@ export default function MapaInteractivo() {
     if (!personajesRes.error) setPersonajesReino(personajesRes.data ?? []);
 
     setVistaActual("reino");
-    if (isMobile) setMobilePanelOpen(true); // ✅ FIX: abrir panel en móvil al clickear un reino
   };
 
   // ── Abrir modal con la info del personaje desbloqueado ────────────────────
@@ -414,10 +413,10 @@ export default function MapaInteractivo() {
 
       {}
       <AnimatePresence>
-        {vistaActual === "reino" && reinoSeleccionado && (
+        {vistaActual === "reino" && reinoSeleccionado && (!isMobile || mobilePanelOpen) && (
           <MotionDiv
             initial={isMobile ? { y: "100%" } : { x: "100%" }}
-            animate={isMobile ? (mobilePanelOpen ? { y: 0 } : { y: "100%" }) : { x: 0 }}
+            animate={isMobile ? { y: 0 } : { x: 0 }}
             exit={isMobile ? { y: "100%" } : { x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className={
