@@ -1284,6 +1284,18 @@ export default function GaleriaPage() {
   return (
     <div className="w-full bg-bg-main min-h-screen">
       <header className="hidden md:block max-w-3xl mx-auto px-6 pt-20 md:pt-32 pb-16 md:pb-24">
+        <div className="overflow-hidden mb-6">
+          <MotionH1 initial={{ y: "110%" }} animate={{ y: 0 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="font-black italic uppercase leading-[0.85]"
+            style={{ color: "var(--primary)", fontSize: "clamp(3rem, 11vw, 8rem)", letterSpacing: "-0.03em" }}>
+            Galería
+          </MotionH1>
+        </div>
+        <MotionDiv initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
+          transition={{ duration: 0.9, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="h-[2px] w-28 origin-left rounded-full"
+          style={{ background: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />
         {isAdmin && (
           <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-8">
             <button onClick={() => setShowAdd(true)}
@@ -1316,7 +1328,7 @@ export default function GaleriaPage() {
                   key={item.id}
                   onClick={() => setMobileLightbox(item)}
                   className="relative w-full overflow-hidden focus:outline-none"
-                  style={{ paddingBottom: `${CANVAS_RATIO * 100}%`, backgroundColor: item.bg_color }}
+                  style={{ paddingBottom: "100%", backgroundColor: item.bg_color }}
                 >
                   <img
                     src={item.url_imagen}
