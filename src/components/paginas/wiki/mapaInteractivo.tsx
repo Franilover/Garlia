@@ -144,6 +144,7 @@ export default function MapaInteractivo() {
     if (!personajesRes.error) setPersonajesReino(personajesRes.data ?? []);
 
     setVistaActual("reino");
+    if (isMobile) setMobilePanelOpen(true); // ✅ FIX: abrir panel en móvil al clickear un reino
   };
 
   // ── Abrir modal con la info del personaje desbloqueado ────────────────────
