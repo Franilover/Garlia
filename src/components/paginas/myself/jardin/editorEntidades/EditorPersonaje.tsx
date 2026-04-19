@@ -171,25 +171,29 @@ export function FormularioPersonaje({ form, setForm, status, onSave, onDelete, c
           <CampoArea label="Sobre el personaje" value={form.sobre ?? ""} onChange={field("sobre")} rows={6} placeholder="Biografía, personalidad, historia…" />
           {!compacto && (
             <>
-              <CampoArea label="Deseo" value={form.deseo ?? ""} onChange={field("deseo")} rows={8} placeholder="Qué busca, qué quiere lograr, motivaciones profundas…" />
-              <CampoArea label="Historia" value={form.historia ?? ""} onChange={field("historia")} rows={8} placeholder="Pasado, eventos clave, origen…" />
-              <CampoArea label="Características" value={form.caracteristicas ?? ""} onChange={field("caracteristicas")} rows={8} placeholder="Rasgos físicos, personalidad, habilidades destacadas…" />
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5"
-                  style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                  <span>🔒</span> Notas de creador
-                </label>
-                <textarea
-                  value={form.notas_creador ?? ""}
-                  onChange={field("notas_creador")}
-                  rows={4}
-                  placeholder="Ideas, pendientes, inspiración, spoilers… solo para ti."
-                  className="w-full bg-input-bg text-input-text border border-primary/15 rounded-xl px-3 py-2.5 text-xs font-medium outline-none focus:border-primary/40 placeholder:text-primary/25 transition-colors resize-none"
-                  style={{
-                    borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
-                    background:  "color-mix(in srgb, var(--accent) 4%, var(--input-bg))",
-                  }}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <CampoArea label="Deseo" value={form.deseo ?? ""} onChange={field("deseo")} rows={8} placeholder="Qué busca, qué quiere lograr, motivaciones profundas…" />
+                <CampoArea label="Historia" value={form.historia ?? ""} onChange={field("historia")} rows={8} placeholder="Pasado, eventos clave, origen…" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <CampoArea label="Características" value={form.caracteristicas ?? ""} onChange={field("caracteristicas")} rows={8} placeholder="Rasgos físicos, personalidad, habilidades destacadas…" />
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5"
+                    style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                    <span>🔒</span> Notas de creador
+                  </label>
+                  <textarea
+                    value={form.notas_creador ?? ""}
+                    onChange={field("notas_creador")}
+                    rows={8}
+                    placeholder="Ideas, pendientes, inspiración, spoilers… solo para ti."
+                    className="w-full bg-input-bg text-input-text border border-primary/15 rounded-xl px-3 py-2.5 text-xs font-medium outline-none focus:border-primary/40 placeholder:text-primary/25 transition-colors resize-none"
+                    style={{
+                      borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
+                      background:  "color-mix(in srgb, var(--accent) 4%, var(--input-bg))",
+                    }}
+                  />
+                </div>
               </div>
             </>
           )}

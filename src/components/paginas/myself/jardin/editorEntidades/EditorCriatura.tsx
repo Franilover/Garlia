@@ -183,10 +183,14 @@ export function EditorCriatura({ item, onSaved, onDeleted }: {
 
         <div className="p-5 pt-2 space-y-5">
           <CampoArea label="Descripción" value={form.descripcion ?? ""} onChange={field("descripcion")} rows={5} placeholder="Aspecto físico general…" />
-          <CampoArea label="Biología" value={form.biologia ?? ""} onChange={field("biologia")} rows={8} placeholder="Anatomía, fisiología, ciclo de vida, reproducción…" />
-          <CampoArea label="Relación" value={form.relacion ?? ""} onChange={field("relacion")} rows={8} placeholder="Vínculo con otras especies, personajes o facciones…" />
-          <CampoArea label="Comportamiento" value={form.comportamiento ?? ""} onChange={field("comportamiento")} rows={8} placeholder="Hábitos, instintos, patrones de caza o defensa…" />
-          <CampoArea label="Magia" value={form.magia ?? ""} onChange={field("magia")} rows={8} placeholder="Poderes, habilidades mágicas, debilidades…" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <CampoArea label="Biología" value={form.biologia ?? ""} onChange={field("biologia")} rows={8} placeholder="Anatomía, fisiología, ciclo de vida, reproducción…" />
+            <CampoArea label="Relación" value={form.relacion ?? ""} onChange={field("relacion")} rows={8} placeholder="Vínculo con otras especies, personajes o facciones…" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <CampoArea label="Comportamiento" value={form.comportamiento ?? ""} onChange={field("comportamiento")} rows={8} placeholder="Hábitos, instintos, patrones de caza o defensa…" />
+            <CampoArea label="Magia" value={form.magia ?? ""} onChange={field("magia")} rows={8} placeholder="Poderes, habilidades mágicas, debilidades…" />
+          </div>
           <div className="h-px bg-primary/8" />
 
           <div className="space-y-2">

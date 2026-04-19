@@ -278,10 +278,14 @@ export function EditorReino({ item, onSaved, onDeleted }: {
 
         <div className="p-5 pt-2 space-y-5">
           <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
-          <CampoArea label="Historia" value={form.historia ?? ""} onChange={e => setForm(f => ({ ...f, historia: e.target.value }))} rows={8} placeholder="Origen, eventos clave, cronología del reino…" />
-          <CampoArea label="Política" value={form.politica ?? ""} onChange={e => setForm(f => ({ ...f, politica: e.target.value }))} rows={8} placeholder="Sistema de gobierno, facciones, líderes, leyes…" />
-          <CampoArea label="Economía" value={form.economia ?? ""} onChange={e => setForm(f => ({ ...f, economia: e.target.value }))} rows={8} placeholder="Recursos, comercio, moneda, riqueza…" />
-          <CampoArea label="Geografía" value={form.geografia ?? ""} onChange={e => setForm(f => ({ ...f, geografia: e.target.value }))} rows={8} placeholder="Paisajes, clima, fronteras, ciudades principales…" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <CampoArea label="Historia" value={form.historia ?? ""} onChange={e => setForm(f => ({ ...f, historia: e.target.value }))} rows={8} placeholder="Origen, eventos clave, cronología del reino…" />
+            <CampoArea label="Política" value={form.politica ?? ""} onChange={e => setForm(f => ({ ...f, politica: e.target.value }))} rows={8} placeholder="Sistema de gobierno, facciones, líderes, leyes…" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <CampoArea label="Economía" value={form.economia ?? ""} onChange={e => setForm(f => ({ ...f, economia: e.target.value }))} rows={8} placeholder="Recursos, comercio, moneda, riqueza…" />
+            <CampoArea label="Geografía" value={form.geografia ?? ""} onChange={e => setForm(f => ({ ...f, geografia: e.target.value }))} rows={8} placeholder="Paisajes, clima, fronteras, ciudades principales…" />
+          </div>
           <CampoArea label="Cultura" value={form.cultura ?? ""} onChange={e => setForm(f => ({ ...f, cultura: e.target.value }))} rows={8} placeholder="Tradiciones, religión, idioma, costumbres, arte…" />
 
           {/* Toggle visibilidad */}

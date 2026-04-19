@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import {
-  Loader2, Eye, EyeOff, Plus, Globe, ChevronDown,
+  Loader2, Eye, EyeOff, Plus, Globe,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { TAB_CONFIG, MUNDO_SECTIONS, type TabKey, type MundoSectionKey } from "./types";
@@ -72,62 +72,58 @@ export function EntidadCard({ item, tab, selected, onClick, onToggleOculto }: {
 
 // ─── TabNav ───────────────────────────────────────────────────────────────────
 
-export function TabNav({ tab, onTabChange }: {
+export function TabNav({ tab, mundoSection, onTabChange, onMundoSectionChange }: {
   tab: TabKey;
+  mundoSection: MundoSectionKey;
   onTabChange: (t: TabKey) => void;
+  onMundoSectionChange: (s: MundoSectionKey) => void;
 }) {
-  const [mundoOpen, setMundoOpen] = useState(false);
-
   return (
-    <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
-      {(Object.keys(TAB_CONFIG) as Exclude<TabKey, "mundo">[]).map(k => {
-        const { Icon: TabIcon, label } = TAB_CONFIG[k];
-        return (
-          <button key={k} onClick={() => onTabChange(k)}
-            title={label}
-            className={`flex-1 flex items-center justify-center py-2 rounded-lg transition-all ${
-              tab === k ? "bg-primary/15 text-primary border border-primary/20" : "text-primary/25 hover:text-primary/60"
-            }`}
-          >
-            <TabIcon size={13} />
-          </button>
-        );
-      })}
-
-      {/* Botón Mundo con dropdown */}
-      <div className="relative flex-1">
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
+        {(Object.keys(TAB_CONFIG) as Exclude<TabKey, "mundo">[]).map(k => {
+          const { Icon: TabIcon, label } = TAB_CONFIG[k];
+          return (
+            <button key={k} onClick={() => onTabChange(k)}
+              title={label}
+              className={`flex-1 flex items-center justify-center py-2 rounded-lg transition-all ${
+                tab === k ? "bg-primary/15 text-primary border border-primary/20" : "text-primary/25 hover:text-primary/60"
+              }`}
+            >
+              <TabIcon size={13} />
+            </button>
+          );
+        })}
         <button
-          onClick={() => setMundoOpen(o => !o)}
+          onClick={() => onTabChange("mundo")}
           title="Mundo"
-          className={`w-full flex items-center justify-center py-2 rounded-lg transition-all ${
+          className={`flex-1 flex items-center justify-center py-2 rounded-lg transition-all ${
             tab === "mundo" ? "bg-primary/15 text-primary border border-primary/20" : "text-primary/25 hover:text-primary/60"
           }`}
         >
           <Globe size={13} />
         </button>
-
-        {mundoOpen && (
-          <>
-            {/* Backdrop */}
-            <div className="fixed inset-0 z-40" onClick={() => setMundoOpen(false)} />
-            <div className="absolute right-0 top-full mt-1.5 z-50 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden min-w-[140px]">
-              <div className="px-3 py-2 border-b border-primary/8">
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Mundo</span>
-              </div>
-              {MUNDO_SECTIONS.map(s => (
-                <button
-                  key={s.key}
-                  onClick={() => { onTabChange("mundo"); setMundoOpen(false); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-xs font-bold text-primary/70 hover:bg-primary/8 hover:text-primary transition-colors"
-                >
-                  <span>{s.emoji}</span>
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
       </div>
+
+      {/* Subsecciones de Mundo — solo visibles cuando tab === "mundo" */}
+      {tab === "mundo" && (
+        <div className="flex flex-col gap-0.5 px-1">
+          {MUNDO_SECTIONS.map(s => (
+            <button
+              key={s.key}
+              onClick={() => onMundoSectionChange(s.key)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all text-xs font-bold ${
+                mundoSection === s.key
+                  ? "bg-primary/15 text-primary border border-primary/20"
+                  : "text-primary/40 hover:text-primary/70 hover:bg-primary/5 border border-transparent"
+              }`}
+            >
+              <span className="text-sm">{s.emoji}</span>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

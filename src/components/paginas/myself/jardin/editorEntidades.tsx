@@ -7,7 +7,7 @@ import { normalize } from "@/components/templates/EstudioTemplates";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import {
   TAB_CONFIG, MUNDO_SECTIONS,
-  type TabKey, type Personaje, type Criatura, type Item, type Reino,
+  type TabKey, type MundoSectionKey, type Personaje, type Criatura, type Item, type Reino,
 } from "./editorEntidades/types";
 import { useEntidades } from "./editorEntidades/hooks";
 import { EntidadCard, TabNav } from "./editorEntidades/SidebarComponents";
@@ -92,6 +92,10 @@ export default function EditorEntidades() {
   const [selectedId,  setSelectedId]  = useState<string | null>(session.current.selectedId);
   const [sidebarOpen, setSidebarOpen] = useState(!session.current.selectedId);
   const [showNueva,   setShowNueva]   = useState(false);
+  const [mundoSection, setMundoSection] = useState<MundoSectionKey>("magia");
+  const [mundoTextos,  setMundoTextos]  = useState<Record<MundoSectionKey, string>>({
+    magia: "", geografia: "", historia: "",
+  });
 
   const { items, setItems, loading, isOffline, refetch } = useEntidades<any>(tab);
 
@@ -138,7 +142,7 @@ export default function EditorEntidades() {
   // ── Header extra de sidebar ───────────────────────────────────────────────
   const headerExtra = (
     <>
-      <TabNav tab={tab} onTabChange={setTab} />
+      <TabNav tab={tab} onTabChange={setTab} mundoSection={mundoSection} onMundoSectionChange={setMundoSection} />
       {!isMundo && (
         <button onClick={() => setShowNueva(true)}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
@@ -149,17 +153,7 @@ export default function EditorEntidades() {
   );
 
   // ── Contenido del sidebar ─────────────────────────────────────────────────
-  const sidebarContent = isMundo ? (
-    <div className="space-y-0.5 px-1 pt-2">
-      {MUNDO_SECTIONS.map(s => (
-        <button key={s.key}
-          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left text-xs font-bold text-primary/50 hover:text-primary hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all">
-          <span className="text-base">{s.emoji}</span>
-          {s.label}
-        </button>
-      ))}
-    </div>
-  ) : (
+  const sidebarContent = isMundo ? null : (
     <div className="space-y-0.5">
       {loading ? (
         <div className="flex items-center justify-center py-12 text-primary/30"><Loader2 className="animate-spin" size={24} /></div>
@@ -196,7 +190,12 @@ export default function EditorEntidades() {
       >
         <div className="flex-1 flex min-h-0 overflow-hidden">
           {isMundo ? (
-            <EditorMundo />
+            <EditorMundo
+              activeSection={mundoSection}
+              textos={mundoTextos}
+              onTextoChange={(section, value) => setMundoTextos(t => ({ ...t, [section]: value }))}
+              onSave={(_section) => { /* TODO: guardar en supabase */ }}
+            />
           ) : selected ? (
             <>
               {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} />}
