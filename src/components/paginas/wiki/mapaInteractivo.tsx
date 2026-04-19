@@ -496,7 +496,15 @@ export default function MapaInteractivo() {
     <div className="relative w-full bg-bg-main" style={{ minHeight: "100dvh" }}>
 
       {/* Modal personaje */}
-      {modalEntidad && <ModalDetalle entidad={modalEntidad} onClose={() => setModalEntidad(null)} />}
+      {modalEntidad && (
+        <ModalDetalle
+          entidad={modalEntidad}
+          onClose={() => {
+            setModalEntidad(null);
+            if (isMobile && vistaActual === "reino") setPanelOpen(true);
+          }}
+        />
+      )}
 
       {/* Toast */}
       <AnimatePresence>
