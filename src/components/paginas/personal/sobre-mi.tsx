@@ -13,7 +13,7 @@ const fade = (delay = 0) => ({
 
 const TOOLS = [
   { num: "01", title: "Linux & Krita",        icon: Monitor },
-  { num: "02",  title: "Acuarelas & Acrílico", icon: Droplets },
+  { num: "02",  title: "Acrílico", icon: Droplets },
   { num: "03",  title: "Mucha Música",         icon: Music },
 ];
 
