@@ -1,16 +1,18 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { MotionDiv } from "@/components/ui/Motion";
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
-import { AlertCircle, User, List, Music, ChevronDown, FileText } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AlertCircle, User, List, Music, FileText } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
-import { Btn, BtnIcon, Loading, BackBtn } from "@/components/ui";
+import { Btn, Loading } from "@/components/ui";
 import {
-  FullLyricsModal, LinkSection,
-  IDIOMAS, getLetra,
-  type Seccion, type IdiomaId,
+  ModalVisorLetras,
+  LinkSection,
+  IDIOMAS,
+  getLetra,
+  type Seccion,
+  type IdiomaId,
 } from "@/components/paginas/wiki/canciones/CancionComponents";
 
 interface Cancion {
@@ -20,26 +22,32 @@ interface Cancion {
   estado: string;
   portada_url?: string;
   visible: boolean;
+  duracion_segundos?: number | null;
   links?: { titulo: string; url: string }[];
 }
 
 export default function CancionDetallesPage() {
-  const params   = useParams();
-  const router   = useRouter();
-  const id       = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
+  const params = useParams();
+  const router = useRouter();
+  const id     = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
 
-  const [cancion,         setCancion]         = useState<Cancion | null>(null);
-  const [secciones,       setSecciones]       = useState<Seccion[]>([]);
-  const [loading,         setLoading]         = useState(true);
-  const [errorAcceso,     setErrorAcceso]     = useState(false);
-  const [idiomasActivos,  setIdiomasActivos]  = useState<IdiomaId[]>(["es"]);
-  const [showLectura,     setShowLectura]     = useState(false);
+  const [cancion,        setCancion]        = useState<Cancion | null>(null);
+  const [secciones,      setSecciones]      = useState<Seccion[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [errorAcceso,    setErrorAcceso]    = useState(false);
+  const [idiomasActivos, setIdiomasActivos] = useState<IdiomaId[]>(["es"]);
+  const [showVisor,      setShowVisor]      = useState(false);
 
   useEffect(() => {
     if (!id) return;
     Promise.all([
       supabase.from("canciones").select("*").eq("id", id).eq("visible", true).single(),
-      supabase.from("secciones_cancion").select("*").eq("cancion_id", id).order("orden", { ascending: true }),
+      // Seleccionamos también los campos de timings para el visor karaoke
+      supabase
+        .from("secciones_cancion")
+        .select("id, nombre_seccion, letra_es, letra_en, letra_jp, letra_romaji, orden, timings_es, timings_en, timings_jp, timings_romaji")
+        .eq("cancion_id", id)
+        .order("orden", { ascending: true }),
     ]).then(([{ data: c, error: ec }, { data: s, error: es }]) => {
       if (ec || !c) { setErrorAcceso(true); return; }
       if (es) throw es;
@@ -68,12 +76,16 @@ export default function CancionDetallesPage() {
 
   return (
     <div className="min-h-screen bg-bg-main pb-20 relative">
-      <FullLyricsModal
-        isOpen={showLectura}
-        onClose={() => setShowLectura(false)}
+
+      {/* ── Visor de letras (karaoke + libro, solo lectura) ── */}
+      <ModalVisorLetras
+        isOpen={showVisor}
+        onClose={() => setShowVisor(false)}
         secciones={secciones}
-        idiomaActivo={idiomasActivos}
+        cancionTitulo={cancion?.titulo ?? ""}
+        duracion={cancion?.duracion_segundos}
       />
+
       <br />
       <div className={`mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4 transition-all duration-500 ${idiomasActivos.length > 1 ? "max-w-7xl" : "max-w-5xl"}`}>
 
@@ -83,7 +95,11 @@ export default function CancionDetallesPage() {
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
             className="aspect-square rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10"
           >
-            <SmartImage src={cancion?.portada_url || "/placeholder-cover.jpg"} alt={cancion?.titulo ?? ""} className="w-full h-full object-cover" />
+            <SmartImage
+              src={cancion?.portada_url || "/placeholder-cover.jpg"}
+              alt={cancion?.titulo ?? ""}
+              className="w-full h-full object-cover"
+            />
           </MotionDiv>
 
           {cancion?.estado && (
@@ -120,17 +136,19 @@ export default function CancionDetallesPage() {
           </MotionDiv>
 
           <div className="space-y-6">
+            {/* Cabecera sección letra */}
             <div className="flex items-center justify-between mb-8 border-b border-primary/10 pb-4">
               <h3 className="text-primary font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
                 <List size={16} /> Letra
               </h3>
               {secciones.length > 0 && (
-                <Btn variant="ghost" size="sm" icon={<FileText size={12} />} onClick={() => setShowLectura(true)}>
+                <Btn variant="ghost" size="sm" icon={<FileText size={12} />} onClick={() => setShowVisor(true)}>
                   Lectura
                 </Btn>
               )}
             </div>
 
+            {/* Secciones de letra */}
             <div className="space-y-12">
               {secciones.map((sec, index) => (
                 <MotionDiv
