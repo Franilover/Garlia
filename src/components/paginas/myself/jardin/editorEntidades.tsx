@@ -537,8 +537,8 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
             />
           </div>
 
-          {/* Nombre, especie, reino en columna a la derecha */}
-          <div className="flex-1 flex flex-col gap-3 pt-0.5">
+          {/* Nombre, especie, reino en fila horizontal */}
+          <div className="flex-1 grid grid-cols-3 gap-3 pt-0.5">
             <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del personaje" />
             <SelectorTexto
               label="Especie / Raza"
@@ -682,8 +682,8 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
             />
           </div>
 
-          {/* Nombre, hábitat, pensamiento y alma en columna a la derecha */}
-          <div className="flex-1 flex flex-col gap-3 pt-0.5">
+          {/* Nombre, hábitat, pensamiento, alma en fila horizontal */}
+          <div className="flex-1 grid grid-cols-2 gap-3 pt-0.5">
             <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre de la criatura" />
             <SelectorTexto
               label="Hábitat"
@@ -822,8 +822,8 @@ function EditorItem({ item, onSaved, onDeleted }: {
           />
         </div>
 
-        {/* Nombre y categoría en columna a la derecha */}
-        <div className="flex-1 flex flex-col gap-3 pt-0.5">
+        {/* Nombre y categoría en fila horizontal */}
+        <div className="flex-1 grid grid-cols-2 gap-3 pt-0.5">
           <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del objeto" />
           <SelectorTexto
             label="Categoría"
@@ -992,7 +992,7 @@ function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
                 onChange={url => setForm(f => ({ ...f, img_url: url }))}
                 aspect="square" placeholder={<UserCircle2 size={22} className="opacity-25" />} />
             </div>
-            <div className="flex-1 flex flex-col gap-3 pt-0.5">
+            <div className="flex-1 grid grid-cols-3 gap-3 pt-0.5">
               <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del personaje" />
               <SelectorTexto label="Especie / Raza" value={form.especie ?? ""}
                 onChange={v => setForm(f => ({ ...f, especie: v }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
