@@ -499,10 +499,7 @@ export default function MapaInteractivo() {
       {modalEntidad && (
         <ModalDetalle
           entidad={modalEntidad}
-          onClose={() => {
-            setModalEntidad(null);
-            if (isMobile && vistaActual === "reino") setPanelOpen(true);
-          }}
+          onClose={() => setModalEntidad(null)}
         />
       )}
 
@@ -512,10 +509,10 @@ export default function MapaInteractivo() {
       </AnimatePresence>
 
       {/* ── LAYOUT ── */}
-      <div className={isMobile ? "fixed inset-0 z-10" : "flex w-full"}>
+      <div className={isMobile ? "flex flex-col w-full" : "flex w-full"}>
 
         {/* Mapa */}
-        <div className={`relative ${isMobile ? "w-full h-full" : vistaActual === "reino" ? "w-2/3" : "w-full"} transition-all duration-500`}>
+        <div className={`relative ${isMobile ? "w-full" : vistaActual === "reino" ? "w-2/3" : "w-full"} transition-all duration-500`} style={isMobile ? { height: "100dvh", position: "sticky", top: 0 } : {}}>
 
           {/* Botones admin */}
           {isAdmin && (
@@ -615,94 +612,22 @@ export default function MapaInteractivo() {
       </div>
 
       {/* ═══════════════════════════════════════════════
-          PANEL MÓVIL — CSS puro, sin Framer Motion
-          para evitar bugs de timing con AnimatePresence
+          PANEL MÓVIL — debajo del mapa, en el flujo
       ═══════════════════════════════════════════════ */}
       {isMobile && vistaActual === "reino" && reinoSeleccionado && (
-        <>
-          {/* Overlay */}
-          <div
-            onClick={() => setPanelOpen(false)}
-            style={{
-              position: "fixed", inset: 0, zIndex: 50,
-              background: "rgba(0,0,0,0.45)",
-              opacity: panelOpen ? 1 : 0,
-              pointerEvents: panelOpen ? "auto" : "none",
-              transition: "opacity 0.3s ease",
-            }}
-          />
-
-          {/* Bottom sheet — siempre en el DOM, se mueve con CSS */}
-          <div
-            style={{
-              position: "fixed",
-              bottom: 0, left: 0, right: 0,
-              zIndex: 60,
-              height: "80dvh",
-              background: "var(--white-custom, #fff)",
-              borderRadius: "1.25rem 1.25rem 0 0",
-              boxShadow: "0 -8px 40px rgba(0,0,0,0.18)",
-              transform: panelOpen ? "translateY(0%)" : "translateY(100%)",
-              transition: "transform 0.35s cubic-bezier(0.32,0.72,0,1)",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              willChange: "transform",
-            }}
-          >
-            {/* Handle */}
-            <div
-              style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: "0.75rem", paddingBottom: "0.5rem", cursor: "pointer" }}
-              onClick={() => setPanelOpen(false)}
-            >
-              <div style={{ width: "2.5rem", height: "0.25rem", borderRadius: "9999px", background: "color-mix(in srgb, var(--primary) 20%, transparent)", marginBottom: "0.25rem" }} />
-              <span style={{ fontSize: "9px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.2em", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                {reinoSeleccionado.nombre}
-              </span>
-            </div>
-
-            {/* Contenido */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "0 1.5rem 2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <PanelContenido {...panelProps} />
-            </div>
-          </div>
-
-          {/* Tab para reabrir el panel (visible cuando está cerrado) */}
-          <div
-            style={{
-              position: "fixed",
-              bottom: 0, left: 0, right: 0,
-              zIndex: 55,
-              display: "flex",
-              justifyContent: "center",
-              pointerEvents: panelOpen ? "none" : "auto",
-              opacity: panelOpen ? 0 : 1,
-              transition: "opacity 0.2s ease",
-            }}
-          >
-            <button
-              onClick={() => setPanelOpen(true)}
-              style={{
-                display: "flex", alignItems: "center", gap: "0.4rem",
-                padding: "0.6rem 1.75rem",
-                background: "var(--primary)",
-                color: "var(--btn-text)",
-                fontSize: "10px", fontWeight: 900,
-                textTransform: "uppercase", letterSpacing: "0.1em",
-                borderRadius: "0.75rem 0.75rem 0 0",
-                boxShadow: "0 -4px 20px rgba(0,0,0,0.2)",
-                border: "none", cursor: "pointer",
-              }}
-            >
-              <ChevronRight size={14} style={{ transform: "rotate(-90deg)" }} />
-              {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
-            </button>
-          </div>
-        </>
+        <div
+          style={{
+            background: "var(--white-custom, #fff)",
+            borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            padding: "1.5rem 1.5rem 3rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
+          }}
+        >
+          <PanelContenido {...panelProps} />
+        </div>
       )}
-
-      {/* Spacer móvil */}
-      {isMobile && <div style={{ height: "100dvh" }} />}
     </div>
   );
 }
