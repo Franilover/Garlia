@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/api/client/supabase";
-import { TAB_CONFIG, type TabKey, type Personaje, type ReinoDetalle, type CriaturaVariante, type CapituloNarrado } from "./types";
+import { TAB_CONFIG, type TabKey, type MundoSectionKey, type Personaje, type ReinoDetalle, type CriaturaVariante, type CapituloNarrado } from "./types";
 
 // ─── useEntidades ─────────────────────────────────────────────────────────────
 
@@ -163,4 +163,35 @@ export function usePersonajesDeEspecie(especieNombre: string | null | undefined)
   }, [especieNombre]);
 
   return { personajes, setPersonajes, loading };
+}
+
+// ─── useMundoSecciones ────────────────────────────────────────────────────────
+
+export function useMundoSecciones() {
+  const [textos,  setTextos]  = useState<Record<MundoSectionKey, string>>({
+    magia: "", geografia: "", historia: "",
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("mundo_secciones")
+      .select("key, contenido")
+      .then(({ data }) => {
+        if (!data) return;
+        const result = { magia: "", geografia: "", historia: "" } as Record<MundoSectionKey, string>;
+        data.forEach((r: any) => { result[r.key as MundoSectionKey] = r.contenido ?? ""; });
+        setTextos(result);
+        setLoading(false);
+      });
+  }, []);
+
+  const save = async (section: MundoSectionKey, value: string) => {
+    await supabase
+      .from("mundo_secciones")
+      .update({ contenido: value, updated_at: new Date().toISOString() })
+      .eq("key", section);
+  };
+
+  return { textos, setTextos, loading, save };
 }

@@ -9,7 +9,7 @@ import {
   TAB_CONFIG, MUNDO_SECTIONS,
   type TabKey, type MundoSectionKey, type Personaje, type Criatura, type Item, type Reino,
 } from "./editorEntidades/types";
-import { useEntidades } from "./editorEntidades/hooks";
+import { useEntidades, useMundoSecciones } from "./editorEntidades/hooks";
 import { EntidadCard, TabNav } from "./editorEntidades/SidebarComponents";
 import { EditorPersonaje } from "./editorEntidades/EditorPersonaje";
 import { EditorCriatura }  from "./editorEntidades/EditorCriatura";
@@ -93,9 +93,7 @@ export default function EditorEntidades() {
   const [sidebarOpen, setSidebarOpen] = useState(!session.current.selectedId);
   const [showNueva,   setShowNueva]   = useState(false);
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>("magia");
-  const [mundoTextos,  setMundoTextos]  = useState<Record<MundoSectionKey, string>>({
-    magia: "", geografia: "", historia: "",
-  });
+  const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
 
   const { items, setItems, loading, isOffline, refetch } = useEntidades<any>(tab);
 
@@ -194,7 +192,7 @@ export default function EditorEntidades() {
               activeSection={mundoSection}
               textos={mundoTextos}
               onTextoChange={(section, value) => setMundoTextos(t => ({ ...t, [section]: value }))}
-              onSave={(_section) => { /* TODO: guardar en supabase */ }}
+              onSave={(section) => saveMundo(section, mundoTextos[section])}
             />
           ) : selected ? (
             <>
