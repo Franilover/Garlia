@@ -64,14 +64,6 @@ export default function SobreMi() {
                     Sobre Mí
                   </MotionH1>
                 </div>
-
-                <MotionDiv
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.9, delay: 0.4, ease: [0.16, 1, 0.3, 1] as any }}
-                  className="mt-6 h-[2px] w-24 origin-left rounded-full"
-                  style={{ background: "color-mix(in srgb, var(--primary) 22%, transparent)" }}
-                />
               </header>
 
               {/* Cuadro de bienvenida */}
