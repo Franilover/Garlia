@@ -524,21 +524,21 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
       {/* ── Columna izquierda: cara + campos + caps ── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
 
-        {/* Cara cuadrada pequeña */}
-        <div className="shrink-0 p-5 pb-3" style={{ width: 140 }}>
-          <SelectorImagen
-            label="Cara"
-            value={form.img_url ?? ""}
-            onChange={url => setForm(f => ({ ...f, img_url: url }))}
-            aspect="square"
-            placeholder={<UserCircle2 size={22} className="opacity-25" />}
-          />
-        </div>
+        {/* Imagen + campos principales en fila */}
+        <div className="shrink-0 p-5 pb-3 flex items-start gap-4">
+          {/* Cara cuadrada pequeña */}
+          <div className="shrink-0" style={{ width: 88 }}>
+            <SelectorImagen
+              label="Cara"
+              value={form.img_url ?? ""}
+              onChange={url => setForm(f => ({ ...f, img_url: url }))}
+              aspect="square"
+              placeholder={<UserCircle2 size={22} className="opacity-25" />}
+            />
+          </div>
 
-        {/* Campos */}
-        <div className="p-5 pt-2 space-y-5">
-          {/* 3 columnas en desktop: nombre / especie / reino */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Nombre, especie, reino en columna a la derecha */}
+          <div className="flex-1 flex flex-col gap-3 pt-0.5">
             <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del personaje" />
             <SelectorTexto
               label="Especie / Raza"
@@ -555,7 +555,10 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
               placeholder="Reino, grupo, nación…"
             />
           </div>
+        </div>
 
+        {/* Campos restantes */}
+        <div className="p-5 pt-2 space-y-5">
           <CampoArea label="Sobre el personaje" value={form.sobre ?? ""} onChange={field("sobre")} rows={6} placeholder="Biografía, personalidad, historia…" />
 
           {/* Notas de creador — solo visibles para ti */}
@@ -665,20 +668,22 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
 
       {/* Columna principal */}
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-        {/* Imagen principal — compacta */}
-        <div className="shrink-0 p-5 pb-3">
-          <SelectorImagen
-            label="Ilustración"
-            value={form.imagen_url ?? ""}
-            onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-            aspect="landscape"
-            placeholder={<Bug size={20} className="opacity-20" />}
-          />
-        </div>
 
-        <div className="p-5 pt-2 space-y-5">
-          {/* 2 columnas: nombre + hábitat */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Imagen + campos principales en fila */}
+        <div className="shrink-0 p-5 pb-3 flex items-start gap-4">
+          {/* Ilustración cuadrada pequeña */}
+          <div className="shrink-0" style={{ width: 88 }}>
+            <SelectorImagen
+              label="Ilustración"
+              value={form.imagen_url ?? ""}
+              onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+              aspect="square"
+              placeholder={<Bug size={20} className="opacity-20" />}
+            />
+          </div>
+
+          {/* Nombre, hábitat, pensamiento y alma en columna a la derecha */}
+          <div className="flex-1 flex flex-col gap-3 pt-0.5">
             <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre de la criatura" />
             <SelectorTexto
               label="Hábitat"
@@ -687,12 +692,13 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
               opciones={habitats}
               placeholder="Bosque, océano, volcán…"
             />
+            <Campo label="Pensamiento" value={form.pensamiento ?? ""} onChange={e => setForm(f => ({ ...f, pensamiento: e.target.value }))} placeholder="¿Cómo piensa?" />
+            <Campo label="Alma" value={form.alma ?? ""} onChange={e => setForm(f => ({ ...f, alma: e.target.value }))} placeholder="Naturaleza espiritual…" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <CampoArea label="Descripción"  value={form.descripcion  ?? ""} onChange={field("descripcion")}  rows={5} placeholder="Aspecto, comportamiento…" />
-            <CampoArea label="Pensamiento"  value={form.pensamiento  ?? ""} onChange={field("pensamiento")}  rows={5} placeholder="¿Cómo piensa?" />
-          </div>
-          <CampoArea label="Alma" value={form.alma ?? ""} onChange={field("alma")} rows={3} placeholder="Naturaleza espiritual…" />
+        </div>
+
+        <div className="p-5 pt-2 space-y-5">
+          <CampoArea label="Descripción" value={form.descripcion ?? ""} onChange={field("descripcion")} rows={5} placeholder="Aspecto, comportamiento…" />
 
           <div className="h-px bg-primary/8" />
 
@@ -803,18 +809,21 @@ function EditorItem({ item, onSaved, onDeleted }: {
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
       <ConfirmModal />
 
-      <div className="shrink-0 p-5 pb-3">
-        <SelectorImagen
-          label="Imagen"
-          value={form.imagen_url ?? ""}
-          onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-          aspect="landscape"
-          placeholder={<Package size={20} className="opacity-20" />}
-        />
-      </div>
+      {/* Imagen + campos principales en fila */}
+      <div className="shrink-0 p-5 pb-3 flex items-start gap-4">
+        {/* Imagen cuadrada pequeña */}
+        <div className="shrink-0" style={{ width: 88 }}>
+          <SelectorImagen
+            label="Imagen"
+            value={form.imagen_url ?? ""}
+            onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+            aspect="square"
+            placeholder={<Package size={20} className="opacity-20" />}
+          />
+        </div>
 
-      <div className="p-5 pt-2 space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Nombre y categoría en columna a la derecha */}
+        <div className="flex-1 flex flex-col gap-3 pt-0.5">
           <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del objeto" />
           <SelectorTexto
             label="Categoría"
@@ -824,6 +833,9 @@ function EditorItem({ item, onSaved, onDeleted }: {
             placeholder="Arma, reliquia, objeto…"
           />
         </div>
+      </div>
+
+      <div className="p-5 pt-2 space-y-5">
         <CampoArea label="Descripción" value={form.descripcion ?? ""} onChange={field("descripcion")} rows={6} placeholder="Qué es, qué hace, su historia…" />
       </div>
 
@@ -973,20 +985,23 @@ function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Columna izquierda: cara + campos + caps */}
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-          <div className="shrink-0 p-5 pb-3" style={{ width: 140 }}>
-            <SelectorImagen label="Cara" value={form.img_url ?? ""}
-              onChange={url => setForm(f => ({ ...f, img_url: url }))}
-              aspect="square" placeholder={<UserCircle2 size={22} className="opacity-25" />} />
-          </div>
-
-          <div className="p-5 pt-2 space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Imagen + campos principales en fila */}
+          <div className="shrink-0 p-5 pb-3 flex items-start gap-4">
+            <div className="shrink-0" style={{ width: 88 }}>
+              <SelectorImagen label="Cara" value={form.img_url ?? ""}
+                onChange={url => setForm(f => ({ ...f, img_url: url }))}
+                aspect="square" placeholder={<UserCircle2 size={22} className="opacity-25" />} />
+            </div>
+            <div className="flex-1 flex flex-col gap-3 pt-0.5">
               <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del personaje" />
               <SelectorTexto label="Especie / Raza" value={form.especie ?? ""}
                 onChange={v => setForm(f => ({ ...f, especie: v }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
               <SelectorTexto label="Reino / Facción" value={form.reino ?? ""}
                 onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
             </div>
+          </div>
+
+          <div className="p-5 pt-2 space-y-5">
             <CampoArea label="Sobre el personaje" value={form.sobre ?? ""} onChange={field("sobre")} rows={6}
               placeholder="Biografía, personalidad, historia…" />
             <div className="h-px bg-primary/8" />
