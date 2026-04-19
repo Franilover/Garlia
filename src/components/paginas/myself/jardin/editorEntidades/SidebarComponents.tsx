@@ -108,20 +108,23 @@ export function TabNav({ tab, mundoSection, onTabChange, onMundoSectionChange }:
       {/* Subsecciones de Mundo — solo visibles cuando tab === "mundo" */}
       {tab === "mundo" && (
         <div className="flex flex-col gap-0.5 px-1">
-          {MUNDO_SECTIONS.map(s => (
-            <button
-              key={s.key}
-              onClick={() => onMundoSectionChange(s.key)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all text-xs font-bold ${
-                mundoSection === s.key
-                  ? "bg-primary/15 text-primary border border-primary/20"
-                  : "text-primary/40 hover:text-primary/70 hover:bg-primary/5 border border-transparent"
-              }`}
-            >
-              <span className="text-sm">{s.emoji}</span>
-              {s.label}
-            </button>
-          ))}
+          {MUNDO_SECTIONS.map(s => {
+            const SectionIcon = s.Icon;
+            return (
+              <button
+                key={s.key}
+                onClick={() => onMundoSectionChange(s.key)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all text-xs font-bold ${
+                  mundoSection === s.key
+                    ? "bg-primary/15 text-primary border border-primary/20"
+                    : "text-primary/40 hover:text-primary/70 hover:bg-primary/5 border border-transparent"
+                }`}
+              >
+                <SectionIcon size={13} />
+                {s.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

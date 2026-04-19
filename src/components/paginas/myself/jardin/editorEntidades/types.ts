@@ -82,7 +82,7 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-import { Users, Bug, Package, Map, Globe } from "lucide-react";
+import { Users, Bug, Package, Map, Sparkles, Mountain, ScrollText } from "lucide-react";
 
 export const TAB_CONFIG: Record<Exclude<TabKey, "mundo">, { emoji: string; label: string; tabla: string; Icon: React.ElementType }> = {
   personajes: { emoji: "🧑", label: "Personajes", tabla: "personajes", Icon: Users   },
@@ -92,9 +92,9 @@ export const TAB_CONFIG: Record<Exclude<TabKey, "mundo">, { emoji: string; label
 };
 
 export const MUNDO_SECTIONS = [
-  { key: "magia",     label: "Magia",     emoji: "✨" },
-  { key: "geografia", label: "Geografía", emoji: "🌍" },
-  { key: "historia",  label: "Historia",  emoji: "📜" },
+  { key: "magia",     label: "Magia",     Icon: Sparkles   },
+  { key: "geografia", label: "Geografía", Icon: Mountain   },
+  { key: "historia",  label: "Historia",  Icon: ScrollText },
 ] as const;
 
 export type MundoSectionKey = typeof MUNDO_SECTIONS[number]["key"];

@@ -17,11 +17,14 @@ export function EditorMundo({ activeSection, textos, onTextoChange, onSave }: {
   onSave: (section: MundoSectionKey) => void;
 }) {
   const current = MUNDO_SECTIONS.find(s => s.key === activeSection)!;
+  const SectionIcon = current.Icon;
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-6 gap-4">
       <div className="flex items-center gap-3">
-        <span className="text-2xl">{current.emoji}</span>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-primary/8 border border-primary/15">
+          <SectionIcon size={18} className="text-primary/60" />
+        </div>
         <div>
           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-primary">{current.label}</h2>
           <p className="text-[10px] text-primary/35">Worldbuilding · {current.label}</p>
