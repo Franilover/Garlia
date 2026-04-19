@@ -1,7 +1,7 @@
 "use client";
 import { MotionH1, MotionSection, MotionDiv, MotionA } from '@/components/ui/Motion';
 import React, { useState } from "react";
-import { Monitor, Droplets, Music, Instagram, Youtube } from "lucide-react";
+import { Monitor, Droplets, Palette , Music, Instagram, Youtube } from "lucide-react";
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 
@@ -12,9 +12,9 @@ const fade = (delay = 0) => ({
 });
 
 const TOOLS = [
-  { num: "01", title: "Linux & Krita",        icon: Monitor },
-  { num: "02",  title: "Acrílico", icon: Droplets },
-  { num: "03",  title: "Mucha Música",         icon: Music },
+  { num: "01", title: "Linux",        icon: Monitor },
+  { num: "02",  title: "Krita", icon: Palette },
+  { num: "03",  title: "Música",         icon: Music },
 ];
 
 export default function SobreMi() {
@@ -126,7 +126,7 @@ export default function SobreMi() {
 
                       <div className="relative z-10 space-y-0.5 text-left">
                         <h4
-                          className="font-black text-l leading-snug"
+                          className="font-black text-m leading-snug"
                           style={{ color: "var(--primary)", letterSpacing: "-0.02em" }}
                         >{tool.title}</h4>
                       </div>
