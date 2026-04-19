@@ -38,6 +38,10 @@ type Criatura = {
   habitat?: string;
   pensamiento?: string;
   alma?: string;
+  biologia?: string;
+  relacion?: string;
+  comportamiento?: string;
+  magia?: string;
 };
 
 type CriaturaVariante = {
@@ -60,7 +64,11 @@ type Item = {
 type Reino = {
   id: string;
   nombre: string;
-  descripcion?: string;
+  historia?: string;
+  politica?: string;
+  economia?: string;
+  geografia?: string;
+  cultura?: string;
   mapa_url?: string;
   coord_x?: number;
   coord_y?: number;
@@ -760,6 +768,8 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
         nombre: form.nombre, imagen_url: form.imagen_url || null,
         descripcion: form.descripcion, habitat: form.habitat,
         pensamiento: form.pensamiento, alma: form.alma,
+        biologia: form.biologia, relacion: form.relacion,
+        comportamiento: form.comportamiento, magia: form.magia,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
@@ -838,7 +848,11 @@ function EditorCriatura({ item, onSaved, onDeleted }: {
         </div>
 
         <div className="p-5 pt-2 space-y-5">
-          <CampoArea label="Descripción" value={form.descripcion ?? ""} onChange={field("descripcion")} rows={5} placeholder="Aspecto, comportamiento…" />
+          <CampoArea label="Descripción" value={form.descripcion ?? ""} onChange={field("descripcion")} rows={5} placeholder="Aspecto físico general…" />
+          <CampoArea label="Biología" value={form.biologia ?? ""} onChange={field("biologia")} rows={8} placeholder="Anatomía, fisiología, ciclo de vida, reproducción…" />
+          <CampoArea label="Relación" value={form.relacion ?? ""} onChange={field("relacion")} rows={8} placeholder="Vínculo con otras especies, personajes o facciones…" />
+          <CampoArea label="Comportamiento" value={form.comportamiento ?? ""} onChange={field("comportamiento")} rows={8} placeholder="Hábitos, instintos, patrones de caza o defensa…" />
+          <CampoArea label="Magia" value={form.magia ?? ""} onChange={field("magia")} rows={8} placeholder="Poderes, habilidades mágicas, debilidades…" />
 
           <div className="h-px bg-primary/8" />
 
@@ -1668,7 +1682,9 @@ function EditorReino({ item, onSaved, onDeleted }: {
     setStatus("saving");
     try {
       const { error } = await supabase.from("reinos").update({
-        nombre: form.nombre, descripcion: form.descripcion,
+        nombre: form.nombre,
+        historia: form.historia, politica: form.politica,
+        economia: form.economia, geografia: form.geografia, cultura: form.cultura,
         mapa_url: form.mapa_url, coord_x: form.coord_x, coord_y: form.coord_y,
         oculto: form.oculto ?? false,
       }).eq("id", form.id);
@@ -1727,11 +1743,12 @@ function EditorReino({ item, onSaved, onDeleted }: {
         </div>
 
         <div className="p-5 pt-2 space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
-            <div /> {/* espacio reservado para futuros campos */}
-          </div>
-          <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
+          <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
+          <CampoArea label="Historia" value={form.historia ?? ""} onChange={e => setForm(f => ({ ...f, historia: e.target.value }))} rows={8} placeholder="Origen, eventos clave, cronología del reino…" />
+          <CampoArea label="Política" value={form.politica ?? ""} onChange={e => setForm(f => ({ ...f, politica: e.target.value }))} rows={8} placeholder="Sistema de gobierno, facciones, líderes, leyes…" />
+          <CampoArea label="Economía" value={form.economia ?? ""} onChange={e => setForm(f => ({ ...f, economia: e.target.value }))} rows={8} placeholder="Recursos, comercio, moneda, riqueza…" />
+          <CampoArea label="Geografía" value={form.geografia ?? ""} onChange={e => setForm(f => ({ ...f, geografia: e.target.value }))} rows={8} placeholder="Paisajes, clima, fronteras, ciudades principales…" />
+          <CampoArea label="Cultura" value={form.cultura ?? ""} onChange={e => setForm(f => ({ ...f, cultura: e.target.value }))} rows={8} placeholder="Tradiciones, religión, idioma, costumbres, arte…" />
 
           {/* Toggle visibilidad del reino */}
           <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-primary/8 bg-primary/3">
