@@ -90,7 +90,7 @@ const IDIOMAS: { id: IdiomaKey; label: string; nombre: string; campo: keyof Secc
   { id: "romaji", label: "RO", nombre: "Romaji",   campo: "letra_romaji" },
 ];
 
-const ESTADOS = ["EN PROCESO", "BORRADOR", "TERMINADA"] as const;
+const ESTADOS = ["TERMINADA", "EN PROCESO", "BORRADOR"] as const;
 
 const ESTADO_COLOR: Record<string, string> = {
   TERMINADA:    "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
@@ -403,17 +403,32 @@ const IdiomaTab = ({
 // ── SidebarItem ───────────────────────────────────────────────────────────────
 
 const SidebarItem = ({
-  cancion, selected, onClick, onEdit, onDelete,
+  cancion, selected, onClick, onEdit, onDelete, onToggleVisible,
 }: {
   cancion: Cancion;
   selected: boolean;
   onClick: () => void;
   onEdit: (c: Cancion) => void;
   onDelete: (id: string) => void;
+  onToggleVisible: (id: string, visible: boolean) => void;
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { confirm, ConfirmModal } = useConfirm();
+
+  const handleToggleVisible = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (toggling) return;
+    setToggling(true);
+    const nuevoVisible = !cancion.visible;
+    try {
+      await supabase.from("canciones").update({ visible: nuevoVisible }).eq("id", cancion.id);
+      onToggleVisible(cancion.id, nuevoVisible);
+    } finally {
+      setToggling(false);
+    }
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -451,6 +466,24 @@ const SidebarItem = ({
             {cancion.personaje || cancion.cantante}
           </p>
         )}
+      </button>
+
+      {/* Eye toggle */}
+      <button
+        onClick={handleToggleVisible}
+        title={cancion.visible ? "Ocultar canción" : "Mostrar canción"}
+        className={`absolute top-2 right-8 p-1 rounded-lg transition-all z-10 ${
+          !cancion.visible
+            ? selected ? "opacity-80 text-bg-main/60" : "opacity-100 text-primary/30"
+            : selected
+              ? "opacity-0 group-hover/item:opacity-60 hover:!opacity-100 text-bg-main hover:bg-bg-main/20"
+              : "opacity-0 group-hover/item:opacity-100 text-primary/50 hover:bg-primary/10 hover:text-primary"
+        }`}
+      >
+        {toggling
+          ? <Loader2 size={13} className="animate-spin" />
+          : cancion.visible ? <Eye size={13} /> : <EyeOff size={13} />
+        }
       </button>
 
       <div ref={menuRef} className="absolute top-2 right-2">
@@ -689,83 +722,74 @@ const PanelFiltros = ({
   const toggle = (k: keyof Filtros, v: string) =>
     onChange({ ...filtros, [k]: (filtros[k] === v ? "" : v) as any });
 
+  const DropdownFiltro = ({ label, campo, opciones: opts }: {
+    label: string; campo: keyof Filtros; opciones: string[];
+  }) => (
+    <div>
+      <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">{label}</p>
+      <div className="relative">
+        <select
+          value={filtros[campo] as string}
+          onChange={e => onChange({ ...filtros, [campo]: e.target.value })}
+          className="w-full appearance-none bg-bg-main border border-primary/15 rounded-xl px-3 py-2 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors cursor-pointer pr-7"
+        >
+          <option value="">Todos</option>
+          {opts.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-4 p-3 bg-primary/5 rounded-xl border border-primary/10">
-      <div>
-        <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Estado</p>
-        <div className="flex gap-1 flex-wrap">
-          {ESTADOS.map(e => (
-            <Chip key={e} active={filtros.estado === e} onClick={() => toggle("estado", e)}>
-              {e === "EN PROCESO" ? "WIP" : e}
-            </Chip>
-          ))}
-        </div>
-      </div>
-      <div>
-        <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Visibilidad</p>
-        <div className="flex gap-1">
-          <Chip active={filtros.visible === "true"}  onClick={() => toggle("visible", "true")}>Visible</Chip>
-          <Chip active={filtros.visible === "false"} onClick={() => toggle("visible", "false")}>Oculta</Chip>
-        </div>
-      </div>
-      {opciones.personajes.length > 0 && (
+    <div className="space-y-3 p-3 bg-primary/5 rounded-xl border border-primary/10">
+      {/* Fila 1: Estado + Visibilidad */}
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Personaje</p>
-          <div className="relative">
-            <select
-              value={filtros.personaje}
-              onChange={e => onChange({ ...filtros, personaje: e.target.value })}
-              className="w-full appearance-none bg-bg-main border border-primary/15 rounded-xl px-3 py-2 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors cursor-pointer pr-7"
-            >
-              <option value="">Todos</option>
-              {opciones.personajes.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
-            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
-          </div>
-        </div>
-      )}
-      {opciones.idiomas.length > 0 && (
-        <div>
-          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Idioma</p>
+          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Estado</p>
           <div className="flex gap-1 flex-wrap">
-            {opciones.idiomas.map(id => (
-              <Chip key={id} active={filtros.idioma === id} onClick={() => toggle("idioma", id)}>{id}</Chip>
+            {ESTADOS.map(e => (
+              <Chip key={e} active={filtros.estado === e} onClick={() => toggle("estado", e)}>
+                {e === "EN PROCESO" ? "WIP" : e === "TERMINADA" ? "✓" : "…"}
+              </Chip>
             ))}
           </div>
         </div>
-      )}
-      {opciones.cantantes.length > 0 && (
         <div>
-          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Cantante</p>
-          <div className="relative">
-            <select
-              value={filtros.cantante}
-              onChange={e => onChange({ ...filtros, cantante: e.target.value })}
-              className="w-full appearance-none bg-bg-main border border-primary/15 rounded-xl px-3 py-2 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors cursor-pointer pr-7"
-            >
-              <option value="">Todos</option>
-              {opciones.cantantes.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
+          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Visibilidad</p>
+          <div className="flex gap-1 flex-wrap">
+            <Chip active={filtros.visible === "true"}  onClick={() => toggle("visible", "true")}>
+              <Eye size={10} className="inline mr-0.5" />Visible
+            </Chip>
+            <Chip active={filtros.visible === "false"} onClick={() => toggle("visible", "false")}>
+              <EyeOff size={10} className="inline mr-0.5" />Oculta
+            </Chip>
           </div>
         </div>
-      )}
-      {opciones.compositores.length > 0 && (
-        <div>
-          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Compositor</p>
-          <div className="relative">
-            <select
-              value={filtros.compositor}
-              onChange={e => onChange({ ...filtros, compositor: e.target.value })}
-              className="w-full appearance-none bg-bg-main border border-primary/15 rounded-xl px-3 py-2 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors cursor-pointer pr-7"
-            >
-              <option value="">Todos</option>
-              {opciones.compositores.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
-          </div>
+      </div>
+
+      {/* Fila 2: Idioma + Personaje */}
+      <div className="grid grid-cols-2 gap-3">
+        {opciones.idiomas.length > 0 && (
+          <DropdownFiltro label="Idioma" campo="idioma" opciones={opciones.idiomas} />
+        )}
+        {opciones.personajes.length > 0 && (
+          <DropdownFiltro label="Personaje" campo="personaje" opciones={opciones.personajes} />
+        )}
+      </div>
+
+      {/* Fila 3: Cantante + Compositor */}
+      {(opciones.cantantes.length > 0 || opciones.compositores.length > 0) && (
+        <div className="grid grid-cols-2 gap-3">
+          {opciones.cantantes.length > 0 && (
+            <DropdownFiltro label="Cantante" campo="cantante" opciones={opciones.cantantes} />
+          )}
+          {opciones.compositores.length > 0 && (
+            <DropdownFiltro label="Compositor" campo="compositor" opciones={opciones.compositores} />
+          )}
         </div>
       )}
+
       {Object.values(filtros).some(Boolean) && (
         <button
           onClick={() => onChange(FILTROS_VACIOS)}
@@ -2699,6 +2723,10 @@ export default function EstudioLetras() {
     } catch (e) { console.error(e); }
   };
 
+  const handleToggleVisible = useCallback((id: string, visible: boolean) => {
+    setCanciones(prev => prev.map(c => c.id === id ? { ...c, visible } : c));
+  }, [setCanciones]);
+
   const sidebarContent = (
     <div className="space-y-1">
       {loadingLista ? (
@@ -2723,6 +2751,7 @@ export default function EstudioLetras() {
                 onClick={() => { setSelectedId(c.id); setSidebarOpen(false); }}
                 onEdit={setEditandoCancion}
                 onDelete={handleCancionEliminada}
+                onToggleVisible={handleToggleVisible}
               />
             ))}
           </div>
@@ -2736,6 +2765,7 @@ export default function EstudioLetras() {
             onClick={() => { setSelectedId(c.id); setSidebarOpen(false); }}
             onEdit={setEditandoCancion}
             onDelete={handleCancionEliminada}
+            onToggleVisible={handleToggleVisible}
           />
         ))
       )}
