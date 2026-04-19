@@ -41,14 +41,14 @@ const DEXIE_TABLES = new Set([
   // Personal
   "tareas", "eventos", "recetas", "ingredientes",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
-  "compras", "notas", "rutinas", "ejercicios_rutina",
+  "compras", "notas", "ensayos", "rutinas", "ejercicios_rutina",
   // Nota: reproductor_handles NO está aquí — guarda FileSystemDirectoryHandle
   // que no es serializable a JSON y se maneja aparte con db directamente.
 ]);
 
 const OFFLINE_WRITABLE = new Set([
   // Escritura creativa
-  "notas", "secciones_cancion", "capitulos",
+  "notas", "ensayos", "secciones_cancion", "capitulos",
   // Agenda
   "tareas", "eventos",
   // Ejercicio

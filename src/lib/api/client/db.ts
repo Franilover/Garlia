@@ -242,6 +242,7 @@ class AgendaFraniDB extends Dexie {
   compras!: Table<Compra, string>;
 
   notas!: Table<Nota, string>;
+  ensayos!: Table<Nota, string>; // alias directo de la tabla Supabase "ensayos"
 
   rutinas!: Table<RutinaLocal, string>;
   ejercicios_rutina!: Table<EjercicioLocal, string>;
@@ -356,6 +357,34 @@ class AgendaFraniDB extends Dexie {
       compras:              "id",
       reproductor_handles:  "key",
       session_cache:        "key, updated_at",  // ← nueva
+    });
+    this.version(5).stores({
+      personajes:           "id, nombre, visible",
+      criaturas:            "id, nombre, habitat, alma, pensamiento",
+      criatura_variantes:   "id, criatura_id, tipo",
+      items:                "id, nombre, categoria",
+      libros:               "id, created_at",
+      capitulos:            "id, libro_id, orden, fecha_publicacion",
+      canciones:            "id, titulo, personaje, visible, created_at",
+      secciones_cancion:    "id, cancion_id, orden",
+      reinos:               "id, nombre, orden",
+      relaciones:           "id, personaje_id",
+      tareas:               "id, username, completada, created_at, status",
+      eventos:              "id, username, fecha, tipo, status",
+      recetas:              "id, autor_id, categoria, created_at",
+      ingredientes:         "id, user_id",
+      ropa:                 "id, user_id, created_at",
+      ropa_outfits:         "id, user_id, created_at",
+      diario_fotos:         "++id, categoria, created_at",
+      dibujos:              "++id, categoria",
+      notas:                "id, status, updated_at",
+      ensayos:              "id, status, updated_at",   // ← nueva
+      rutinas:              "id, status",
+      ejercicios_rutina:    "id, rutina_id, status",
+      offline_queue:        "++id, table, operation, recordId, timestamp",
+      compras:              "id",
+      reproductor_handles:  "key",
+      session_cache:        "key, updated_at",
     });
   }
 }

@@ -10,6 +10,7 @@ const SYNC_TABLES: Record<string, {
 }> = {
   // Escritura creativa
   notas:             { supabaseTable: "ensayos",           excludeFields: ["status", "deleted"] },
+  ensayos:           { supabaseTable: "ensayos",           excludeFields: ["status", "deleted"] },
   secciones_cancion: { supabaseTable: "secciones_cancion", excludeFields: ["status", "deleted"] },
   capitulos:         { supabaseTable: "capitulos",         excludeFields: ["status", "deleted"] },
   // Agenda

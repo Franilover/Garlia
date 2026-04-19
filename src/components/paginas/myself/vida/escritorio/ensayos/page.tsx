@@ -3,12 +3,12 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Loader2, Menu, X, PenTool } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/api/client/supabase";
 import { useAuth } from "@/providers/AuthProvider";
-import { db } from "@/lib/api/client/db";
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { db } from "@/lib/api/client/db";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
 import Sidebar from "@/components/paginas/myself/vida/escritorio/ensayos/sidebar";
 import Editor from "@/components/paginas/myself/vida/escritorio/ensayos/editor";
@@ -21,7 +21,7 @@ export interface ZoteroSource {
   title: string;
   author: string;
   year: string;
-  citekey?: string;   
+  citekey?: string;
   journal?: string;
   url?: string;
 }
@@ -78,7 +78,6 @@ async function readZoteroFile(handle: FileSystemFileHandle): Promise<ZoteroSourc
   const file = await handle.getFile();
   const text = await file.text();
   const json = JSON.parse(text);
-  
   const items = Array.isArray(json) ? json : (json.items || json.references || []);
   return parseZoteroJson(items);
 }
@@ -88,16 +87,32 @@ export default function Ensayos() {
   const router = useRouter();
   const { toasts, toast, dismiss } = useToast();
   const { confirm, ConfirmModal } = useConfirm();
-  const [loading, setLoading]           = useState(false);
+
   const [editMode, setEditMode]         = useState(true);
   const [sidebarOpen, setSidebarOpen]   = useState(false);
   const [showNewNoteModal, setShowNewNoteModal] = useState(false);
 
-  const [ensayos, setEnsayos]   = useState<any[]>([]);
-  const [sources, setSources]   = useState<ZoteroSource[]>([]);
+  const [sources, setSources]           = useState<ZoteroSource[]>([]);
   const [zoteroConnected, setZoteroConnected] = useState(false);
-  const [tagActivo, setTagActivo] = useState<string | null>(null);
-  const [tagPanel, setTagPanel]   = useState<string | null>(null);
+  const [tagActivo, setTagActivo]       = useState<string | null>(null);
+  const [tagPanel, setTagPanel]         = useState<string | null>(null);
+
+  // ── useSupabaseData para ensayos ─────────────────────────────────────────
+  // La tabla Dexie se llama "notas" pero en Supabase es "ensayos".
+  // useSupabaseData lo resuelve automáticamente vía QUERIES_MAP si existe;
+  // si no, agrega una entrada en QUERIES_MAP o usa el select directo.
+  // Aquí usamos la tabla "notas" (Dexie) pero apuntando a "ensayos" en Supabase
+  // a través del hook con el nombre supabase real. Para no romper QUERIES_MAP
+  // existente, pasamos directamente "ensayos" — el hook usará supabase.from("ensayos").
+  const {
+    data: ensayos,
+    setData: setEnsayos,
+    loading,
+    isOffline,
+    addRow,
+    updateRow,
+    deleteRow,
+  } = useSupabaseData("ensayos", { order: { campo: "updated_at", asc: false } });
 
   const handleTagClick      = useCallback((tag: string | null) => setTagActivo(tag), []);
   const handleTagPanelOpen  = useCallback((tag: string) => setTagPanel(tag), []);
@@ -112,62 +127,38 @@ export default function Ensayos() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveIndicatorRef = useRef<HTMLSpanElement | null>(null);
 
-  
-  const fetchData = useCallback(async () => {
-    if (!user) return;
-    setEnsayos((prev) => { if (prev.length === 0) setLoading(true); return prev; });
-    const { data: ens } = await supabase
-      .from("ensayos")
-      .select("*")
-      .order("updated_at", { ascending: false });
-    if (ens) setEnsayos(ens);
-    setLoading(false);
-  }, [user]);
-
-  
+  // ── Zotero ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchData();
-
     (async () => {
-      
       const handle = await loadZoteroHandle();
       if (!handle) {
-        
         const cached = localStorage.getItem("fran-zotero-cache");
         if (cached) {
           try { setSources(JSON.parse(cached)); } catch {}
         }
         return;
       }
-
-      
       try {
         const h = handle as any;
         const perm = await h.queryPermission({ mode: "read" });
         const granted = perm === "granted" ? "granted" : await h.requestPermission({ mode: "read" });
         if (granted !== "granted") return;
-
-        
         const parsed = await readZoteroFile(handle);
         setSources(parsed);
         setZoteroConnected(true);
-        
         localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
       } catch (e) {
         console.warn("[Zotero] No se pudo leer el archivo:", e);
-        
         const cached = localStorage.getItem("fran-zotero-cache");
         if (cached) {
           try { setSources(JSON.parse(cached)); } catch {}
         }
       }
     })();
-  }, [fetchData]);
+  }, []);
 
-  
   const connectZotero = useCallback(async () => {
     if (!("showOpenFilePicker" in window)) {
-      
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".json";
@@ -187,13 +178,11 @@ export default function Ensayos() {
       input.click();
       return;
     }
-
     try {
       const [handle] = await (window as any).showOpenFilePicker({
         types: [{ description: "Zotero JSON", accept: { "application/json": [".json"] } }],
         multiple: false,
       });
-
       await saveZoteroHandle(handle);
       const parsed = await readZoteroFile(handle);
       setSources(parsed);
@@ -204,7 +193,6 @@ export default function Ensayos() {
     }
   }, []);
 
-  
   const refreshZotero = useCallback(async () => {
     const handle = await loadZoteroHandle();
     if (!handle) { connectZotero(); return; }
@@ -245,12 +233,12 @@ export default function Ensayos() {
 
   const todosLosTags = useMemo(() => {
     const tags = new Set<string>();
-    ensayos.forEach(e => e.tags?.forEach((t: string) => tags.add(t)));
+    ensayos.forEach((e: any) => e.tags?.forEach((t: string) => tags.add(t)));
     return Array.from(tags).sort();
   }, [ensayos]);
 
   const ensayosFiltrados = useMemo(() => {
-    return ensayos.filter(e => {
+    return ensayos.filter((e: any) => {
       const cumpleTag = tagActivo ? e.tags?.includes(tagActivo) : true;
       const q = searchTerm.toLowerCase();
       const cumpleBusqueda = e.titulo?.toLowerCase().includes(q) || e.contenido?.toLowerCase().includes(q);
@@ -259,7 +247,7 @@ export default function Ensayos() {
   }, [ensayos, tagActivo, searchTerm]);
 
   const pendingSaveRef = useRef(false);
-  // Accumulate all pending field changes so a single Supabase call saves everything
+  // Accumulate all pending field changes so a single call saves everything
   const pendingUpdatesRef = useRef<Record<string, any>>({});
 
   const scheduleSave = useCallback((id: string, updates: Record<string, any>) => {
@@ -268,34 +256,63 @@ export default function Ensayos() {
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     pendingSaveRef.current = true;
+
     saveTimerRef.current = setTimeout(async () => {
       pendingSaveRef.current = false;
       const batch = { ...pendingUpdatesRef.current };
       pendingUpdatesRef.current = {};
       setSaveIndicator(saveIndicatorRef.current, "saving");
+
+      const now = new Date().toISOString();
+      const payload = { ...batch, updated_at: now };
+
+      // Actualizar estado local inmediatamente — offline-first
+      setEnsayos((prev: any[]) =>
+        prev.map((e: any) => e.id === id ? { ...e, ...payload } : e)
+      );
+
       try {
-        const now = new Date().toISOString();
-        await supabase.from("ensayos").update({ ...batch, updated_at: now }).eq("id", id);
+        // updateRow: online → Supabase + Dexie; offline → Dexie + cola
+        const { error } = await updateRow(id, payload);
+        if (error) throw error;
         setSaveIndicator(saveIndicatorRef.current, "saved");
         setTimeout(() => setSaveIndicator(saveIndicatorRef.current, "idle"), 2000);
-      } catch { setSaveIndicator(saveIndicatorRef.current, "error"); }
+      } catch {
+        setSaveIndicator(saveIndicatorRef.current, "error");
+      }
     }, 1500);
-  }, []);
+  }, [updateRow, setEnsayos]);
 
-  // actualizarLocal no longer calls setEnsayos — zero re-renders on keystrokes
+  // actualizarLocal no longer calls setEnsayos on keystrokes — zero re-renders
   const actualizarLocal = useCallback((id: string, field: string, value: any) => {
     scheduleSave(id, { [field]: value });
   }, [scheduleSave]);
 
   const crearEnsayo = async (titulo: string) => {
     if (!titulo.trim() || !user) return;
-    const { data } = await supabase.from("ensayos").insert([{
-      titulo: titulo.trim(), user_id: user.id, contenido: "",
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const newEnsayo = {
+      id,
+      titulo: titulo.trim(),
+      user_id: user.id,
+      contenido: "",
       tags: tagActivo ? [tagActivo] : [],
-    }]).select();
-    if (data) {
-      setEnsayos(prev => [data[0], ...prev]);
-      setEnsayoActivo(data[0].id);
+      created_at: now,
+      updated_at: now,
+    };
+
+    // addRow guarda en Dexie y encola si es offline
+    const { data, error } = await addRow(newEnsayo);
+    if (!error) {
+      // Si vino de Supabase, usar ese objeto; si fue offline, usar el local
+      const created = data ?? newEnsayo;
+      setEnsayos((prev: any[]) => {
+        // evitar duplicado si addRow ya hizo optimistic update
+        if (prev.find((e: any) => e.id === created.id)) return prev;
+        return [created, ...prev];
+      });
+      setEnsayoActivo(created.id);
       setEditMode(true);
       setShowNewNoteModal(false);
       setSidebarOpen(false);
@@ -305,8 +322,12 @@ export default function Ensayos() {
   const eliminarEnsayo = async (id: string) => {
     const ok = await confirm({ message: "¿Eliminar esta nota?", danger: true, confirmLabel: "Eliminar" });
     if (!ok) return;
-    await supabase.from("ensayos").delete().eq("id", id);
-    setEnsayos(prev => prev.filter(e => e.id !== id));
+
+    // deleteRow maneja offline: marca deleted en Dexie y encola
+    await deleteRow(id);
+    // setEnsayos ya se actualiza dentro de deleteRow (optimistic), pero por
+    // si acaso también lo filtramos aquí para mayor seguridad
+    setEnsayos((prev: any[]) => prev.filter((e: any) => e.id !== id));
     if (ensayoActivoId === id) setEnsayoActivo(null);
   };
 
@@ -315,7 +336,7 @@ export default function Ensayos() {
     setSidebarOpen(false);
   };
 
-  const ensayoActivo = ensayos.find(e => e.id === ensayoActivoId) ?? null;
+  const ensayoActivo = ensayos.find((e: any) => e.id === ensayoActivoId) ?? null;
 
   const sidebarProps = {
     ensayos, ensayosFiltrados, todosLosTags, tagActivo, ensayoActivoId,
@@ -337,7 +358,7 @@ export default function Ensayos() {
         colapsadoLabel="Notas"
         sidebarOpen={sidebarOpen}
         onSidebarOpenChange={setSidebarOpen}
-        isOffline={false}
+        isOffline={isOffline}
         footerLeft={`${ensayos.length} notas`}
         sidebarContent={<Sidebar {...sidebarProps} embedded />}
       >
@@ -360,10 +381,6 @@ export default function Ensayos() {
               <div className="h-4 rounded w-1/2" style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }} />
             </div>
           ) : (
-            // ── FIX: sin mode="wait" — evita que Framer haga exit animation
-            // del editor completo cada vez que cambia ensayoActivo por un save.
-            // El Editor tiene su propia animación de entrada con key={ensayoActivo.id}
-            // que solo se dispara al cambiar de nota, no al guardar.
             <AnimatePresence>
               {ensayoActivo ? (
                 <Editor
