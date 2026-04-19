@@ -664,6 +664,12 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
           <BloqueCapsNarrados personajeId={form.id} />
         </div>
 
+        {/* ── Imagen cuerpo en mobile: botón abajo del contenido ── */}
+        <MobileCuerpoButton
+          value={form.img_cuerpo_url ?? ""}
+          onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
+        />
+
         <BarraAcciones status={status} onSave={save} onDelete={del} />
       </div>
 
@@ -682,12 +688,6 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
           <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 block text-center">Cuerpo</span>
         </div>
       </div>
-
-      {/* ── Imagen cuerpo en mobile: botón tipo variante ── */}
-      <MobileCuerpoButton
-        value={form.img_cuerpo_url ?? ""}
-        onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-      />
     </div>
   );
 }
