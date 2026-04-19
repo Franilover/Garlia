@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
-import { Play, ListOrdered, Calendar, Loader2 } from "lucide-react";
+import { Play, ListOrdered, Calendar, Clock, Loader2 } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, BackBtn } from "@/components/ui";
 
@@ -20,7 +20,11 @@ interface Libro {
   titulo: string;
   sinopsis: string;
   portada_url: string;
-  fecha_proximo_capitulo?: string;
+}
+
+interface CapituloProximo {
+  titulo_capitulo: string;
+  fecha_publicacion: string;
 }
 
 export default function LibroDetalle() {
@@ -29,16 +33,19 @@ export default function LibroDetalle() {
   const router = useRouter();
 
   // Un solo estado de loading para libro + capítulos
-  const [loading, setLoading]     = useState(true);
-  const [libro, setLibro]         = useState<Libro | null>(null);
-  const [capitulos, setCapitulos] = useState<Capitulo[]>([]);
-  const [notFound, setNotFound]   = useState(false);
+  const [loading, setLoading]                 = useState(true);
+  const [libro, setLibro]                     = useState<Libro | null>(null);
+  const [capitulos, setCapitulos]             = useState<Capitulo[]>([]);
+  const [capituloProximo, setCapituloProximo] = useState<CapituloProximo | null | false>(null);
+  const [notFound, setNotFound]               = useState(false);
 
   useEffect(() => {
     if (!id) return;
 
     setLoading(true);
     setNotFound(false);
+
+    const ahora = new Date().toISOString();
 
     Promise.all([
       supabase.from("libros").select("*").eq("id", id).single(),
@@ -49,7 +56,16 @@ export default function LibroDetalle() {
         .eq("visibilidad", "publico")
         .not("titulo_capitulo", "like", "[Ruta]%")
         .order("orden", { ascending: true }),
-    ]).then(([libroRes, capsRes]) => {
+      supabase
+        .from("capitulos")
+        .select("titulo_capitulo, fecha_publicacion")
+        .eq("libro_id", id)
+        .eq("visibilidad", "programado")
+        .gt("fecha_publicacion", ahora)
+        .order("fecha_publicacion", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]).then(([libroRes, capsRes, proximoRes]) => {
       if (!libroRes.data) {
         // El libro no existe o no es visible — no renderizar nada
         setNotFound(true);
@@ -57,6 +73,8 @@ export default function LibroDetalle() {
       }
       setLibro(libroRes.data);
       setCapitulos(capsRes.data ?? []);
+      // false = consultado pero sin resultado; null = todavía no consultado
+      setCapituloProximo(proximoRes.data ?? false);
     }).finally(() => {
       setLoading(false);
     });
@@ -86,16 +104,33 @@ export default function LibroDetalle() {
               className="w-full h-full"
             />
           </div>
-          {libro.fecha_proximo_capitulo && (
-            <div className="mt-8 p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10">
-              <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
-                <Calendar size={12} /> Próximo Capítulo
-              </h4>
-              <p className="text-primary font-bold text-sm">
-                {new Date(libro.fecha_proximo_capitulo).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}
+
+          {/* Próximo capítulo programado — siempre visible tras la carga */}
+          <div className="mt-8 p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10">
+            <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
+              <Calendar size={12} /> Próximo Capítulo
+            </h4>
+
+            {capituloProximo ? (
+              <>
+                <p className="text-primary font-bold text-sm leading-snug mb-1">
+                  {capituloProximo.titulo_capitulo}
+                </p>
+                <p className="text-primary/50 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 italic">
+                  <Clock size={10} />
+                  {new Date(capituloProximo.fecha_publicacion).toLocaleDateString("es-ES", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+              </>
+            ) : (
+              <p className="text-primary/30 font-bold text-xs italic">
+                Sin capítulo programado
               </p>
-            </div>
-          )}
+            )}
+          </div>
         </aside>
 
         <main>
