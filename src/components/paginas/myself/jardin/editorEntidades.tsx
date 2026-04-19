@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -190,11 +191,27 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
 
 // ─── EntidadCard ──────────────────────────────────────────────────────────────
 
-function EntidadCard({ item, tab, selected, onClick }: {
+function EntidadCard({ item, tab, selected, onClick, onToggleOculto }: {
   item: any; tab: TabKey; selected: boolean; onClick: () => void;
+  onToggleOculto?: (id: string, oculto: boolean) => void;
 }) {
   const img = tab === "personajes" ? item.img_url : item.imagen_url;
   const TabIcon = TAB_CONFIG[tab].Icon;
+  const [toggling, setToggling] = useState(false);
+
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onToggleOculto || toggling) return;
+    setToggling(true);
+    const nuevoOculto = !item.oculto;
+    try {
+      await supabase.from("reinos").update({ oculto: nuevoOculto }).eq("id", item.id);
+      onToggleOculto(item.id, nuevoOculto);
+    } finally {
+      setToggling(false);
+    }
+  };
+
   return (
     <button
       onClick={onClick}
@@ -215,8 +232,23 @@ function EntidadCard({ item, tab, selected, onClick }: {
         {tab === "criaturas" && item.habitat && <p className="text-[10px] text-primary/35 truncate">{item.habitat}</p>}
         {tab === "items" && item.categoria && <p className="text-[10px] text-primary/35 truncate">{item.categoria}</p>}
       </div>
-      {tab === "reinos" && item.oculto && (
-        <EyeOff size={9} className="shrink-0 text-orange-400/60" />
+      {tab === "reinos" && onToggleOculto && (
+        <button
+          onClick={handleToggle}
+          title={item.oculto ? "Mostrar reino" : "Ocultar reino"}
+          className={`shrink-0 p-1.5 rounded-lg transition-all border ${
+            item.oculto
+              ? "text-orange-400 bg-orange-400/10 border-orange-400/20 hover:bg-orange-400/20"
+              : "text-primary/25 bg-transparent border-transparent hover:text-primary/60 hover:bg-primary/8 hover:border-primary/10"
+          } ${toggling ? "opacity-40 pointer-events-none" : ""}`}
+        >
+          {toggling
+            ? <Loader2 size={11} className="animate-spin" />
+            : item.oculto
+              ? <EyeOff size={11} />
+              : <Eye size={11} />
+          }
+        </button>
       )}
     </button>
   );
@@ -1881,10 +1913,16 @@ export default function EditorEntidades() {
     setBusqueda("");
   }, [tab]);
 
-  const filtrados = useMemo(() =>
-    items.filter(i => !busqueda || normalize(i.nombre).includes(normalize(busqueda))),
-    [items, busqueda]
-  );
+  const filtrados = useMemo(() => {
+    if (!busqueda) return items;
+    const term = normalize(busqueda);
+    return items.filter(i => {
+      const nom = normalize(i.nombre);
+      // Coincide si el nombre completo empieza con el término
+      // O si alguna palabra del nombre empieza con el término
+      return nom.startsWith(term) || nom.split(/\s+/).some(w => w.startsWith(term));
+    });
+  }, [items, busqueda]);
 
   const selected = useMemo(() => items.find(i => i.id === selectedId) ?? null, [items, selectedId]);
 
@@ -1923,6 +1961,10 @@ export default function EditorEntidades() {
     </>
   );
 
+  const handleToggleOcultoReino = useCallback((id: string, oculto: boolean) => {
+    setItems(prev => prev.map(i => i.id === id ? { ...i, oculto } : i));
+  }, [setItems]);
+
   const sidebarContent = (
     <div className="space-y-0.5">
       {loading ? (
@@ -1930,7 +1972,14 @@ export default function EditorEntidades() {
       ) : filtrados.length === 0 ? (
         <div className="text-center py-10 text-primary/25"><p className="text-xs font-black uppercase tracking-widest">Sin resultados</p></div>
       ) : filtrados.map(item => (
-        <EntidadCard key={item.id} item={item} tab={tab} selected={selectedId === item.id} onClick={() => handleSelect(item.id)} />
+        <EntidadCard
+          key={item.id}
+          item={item}
+          tab={tab}
+          selected={selectedId === item.id}
+          onClick={() => handleSelect(item.id)}
+          onToggleOculto={tab === "reinos" ? handleToggleOcultoReino : undefined}
+        />
       ))}
     </div>
   );
