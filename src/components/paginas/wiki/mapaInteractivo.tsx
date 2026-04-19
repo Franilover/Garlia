@@ -512,7 +512,7 @@ export default function MapaInteractivo() {
       <div className={isMobile ? "flex flex-col w-full" : "flex w-full"}>
 
         {/* Mapa */}
-        <div className={`relative ${isMobile ? "w-full" : vistaActual === "reino" ? "w-2/3" : "w-full"} transition-all duration-500`} style={isMobile ? { height: "100dvh", position: "sticky", top: 0 } : {}}>
+        <div className={`relative ${isMobile ? "w-full" : vistaActual === "reino" ? "w-2/3" : "w-full"} transition-all duration-500`}>
 
           {/* Botones admin */}
           {isAdmin && (
