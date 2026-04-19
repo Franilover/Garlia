@@ -299,15 +299,6 @@ export default function CancionDetallesPage() {
             />
           </MotionDiv>
 
-          {cancion?.estado && (
-            <MotionDiv
-              initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-              className="p-4 rounded-[var(--radius-card)] border text-center bg-primary/5 border-primary/10"
-            >
-              <h4 className="font-black uppercase text-[9px] tracking-[0.2em] text-primary">{cancion.estado}</h4>
-            </MotionDiv>
-          )}
-
           {cancion?.personaje && (
             <MotionDiv
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -329,7 +320,6 @@ export default function CancionDetallesPage() {
             <h1 className="text-6xl font-black text-primary italic tracking-tighter leading-[0.85] mb-6 uppercase">
               {cancion?.titulo}
             </h1>
-            <div className="h-1.5 w-24 bg-primary/10 rounded-full" />
           </MotionDiv>
 
           <div className="flex items-center mb-8 border-b border-primary/10 pb-4">
