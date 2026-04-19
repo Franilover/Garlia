@@ -621,7 +621,7 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
           <div className="flex-1 grid grid-cols-3 gap-3 pt-0.5">
             <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del personaje" />
             <SelectorTexto
-              label="Especie / Raza"
+              label="Especie"
               value={form.especie ?? ""}
               onChange={v => setForm(f => ({ ...f, especie: v }))}
               opciones={especies}
@@ -1094,7 +1094,7 @@ function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
             </div>
             <div className="flex-1 grid grid-cols-3 gap-3 pt-0.5">
               <Campo label="Nombre" value={form.nombre ?? ""} onChange={field("nombre")} placeholder="Nombre del personaje" />
-              <SelectorTexto label="Especie / Raza" value={form.especie ?? ""}
+              <SelectorTexto label="Especie" value={form.especie ?? ""}
                 onChange={v => setForm(f => ({ ...f, especie: v }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
               <SelectorTexto label="Reino / Facción" value={form.reino ?? ""}
                 onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
