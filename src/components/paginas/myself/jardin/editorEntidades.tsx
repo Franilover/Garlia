@@ -25,6 +25,9 @@ type Personaje = {
   reino?: string;
   especie?: string;
   notas_creador?: string;
+  deseo?: string;
+  historia?: string;
+  caracteristicas?: string;
 };
 
 type Criatura = {
@@ -57,11 +60,7 @@ type Item = {
 type Reino = {
   id: string;
   nombre: string;
-  historia?: string;
-  politica?: string;
-  economia?: string;
-  geografia?: string;
-  cultura?: string;
+  descripcion?: string;
   mapa_url?: string;
   coord_x?: number;
   coord_y?: number;
@@ -617,6 +616,9 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
         reino:           form.reino,
         especie:         form.especie,
         notas_creador:   form.notas_creador  || null,
+        deseo:           form.deseo          || null,
+        historia:        form.historia       || null,
+        caracteristicas: form.caracteristicas || null,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");
@@ -675,6 +677,9 @@ function EditorPersonaje({ item, onSaved, onDeleted }: {
         {/* Campos restantes */}
         <div className="p-5 pt-2 space-y-5">
           <CampoArea label="Sobre el personaje" value={form.sobre ?? ""} onChange={field("sobre")} rows={6} placeholder="Biografía, personalidad, historia…" />
+          <CampoArea label="Deseo" value={form.deseo ?? ""} onChange={field("deseo")} rows={8} placeholder="Qué busca, qué quiere lograr, motivaciones profundas…" />
+          <CampoArea label="Historia" value={form.historia ?? ""} onChange={field("historia")} rows={8} placeholder="Pasado, eventos clave, origen…" />
+          <CampoArea label="Características" value={form.caracteristicas ?? ""} onChange={field("caracteristicas")} rows={8} placeholder="Rasgos físicos, personalidad, habilidades destacadas…" />
 
           {/* Notas de creador — solo visibles para ti */}
           <div className="space-y-1.5">
@@ -1663,12 +1668,7 @@ function EditorReino({ item, onSaved, onDeleted }: {
     setStatus("saving");
     try {
       const { error } = await supabase.from("reinos").update({
-        nombre: form.nombre,
-        historia: form.historia,
-        politica: form.politica,
-        economia: form.economia,
-        geografia: form.geografia,
-        cultura: form.cultura,
+        nombre: form.nombre, descripcion: form.descripcion,
         mapa_url: form.mapa_url, coord_x: form.coord_x, coord_y: form.coord_y,
         oculto: form.oculto ?? false,
       }).eq("id", form.id);
@@ -1727,13 +1727,11 @@ function EditorReino({ item, onSaved, onDeleted }: {
         </div>
 
         <div className="p-5 pt-2 space-y-5">
-          <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
-
-          <CampoArea label="Historia" value={form.historia ?? ""} onChange={e => setForm(f => ({ ...f, historia: e.target.value }))} rows={8} placeholder="Origen, eventos clave, cronología del reino…" />
-          <CampoArea label="Política" value={form.politica ?? ""} onChange={e => setForm(f => ({ ...f, politica: e.target.value }))} rows={8} placeholder="Sistema de gobierno, facciones, líderes, leyes…" />
-          <CampoArea label="Economía" value={form.economia ?? ""} onChange={e => setForm(f => ({ ...f, economia: e.target.value }))} rows={8} placeholder="Recursos, comercio, moneda, riqueza…" />
-          <CampoArea label="Geografía" value={form.geografia ?? ""} onChange={e => setForm(f => ({ ...f, geografia: e.target.value }))} rows={8} placeholder="Paisajes, clima, fronteras, ciudades principales…" />
-          <CampoArea label="Cultura" value={form.cultura ?? ""} onChange={e => setForm(f => ({ ...f, cultura: e.target.value }))} rows={8} placeholder="Tradiciones, religión, idioma, costumbres, arte…" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Campo label="Nombre" value={form.nombre ?? ""} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del reino" />
+            <div /> {/* espacio reservado para futuros campos */}
+          </div>
+          <CampoArea label="Descripción / Lore" value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={5} placeholder="Historia y detalles del reino…" />
 
           {/* Toggle visibilidad del reino */}
           <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-primary/8 bg-primary/3">
