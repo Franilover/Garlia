@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { TAB_CONFIG, type TabKey, type MundoSectionKey, type Personaje, type ReinoDetalle, type CriaturaVariante, type CapituloNarrado } from "./types";
 
@@ -168,54 +168,30 @@ export function usePersonajesDeEspecie(especieNombre: string | null | undefined)
 // ─── useMundoSecciones ────────────────────────────────────────────────────────
 
 export function useMundoSecciones() {
-  const [textos, setTextos] = useState<Record<MundoSectionKey, string>>({
+  const [textos,  setTextos]  = useState<Record<MundoSectionKey, string>>({
     magia: "", geografia: "", historia: "",
   });
   const [loading, setLoading] = useState(true);
-
-  // Ref para que save() siempre lea el valor más reciente sin necesitar el estado como dependencia
-  const textosRef = useRef(textos);
-  useEffect(() => { textosRef.current = textos; }, [textos]);
 
   useEffect(() => {
     supabase
       .from("mundo_secciones")
       .select("key, contenido")
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("[useMundoSecciones] Error al cargar:", error.message);
-          setLoading(false);
-          return;
-        }
-        if (!data) { setLoading(false); return; }
-
-        const result: Record<MundoSectionKey, string> = { magia: "", geografia: "", historia: "" };
-        data.forEach((r: any) => {
-          if (r.key in result) result[r.key as MundoSectionKey] = r.contenido ?? "";
-        });
+      .then(({ data }) => {
+        if (!data) return;
+        const result = { magia: "", geografia: "", historia: "" } as Record<MundoSectionKey, string>;
+        data.forEach((r: any) => { result[r.key as MundoSectionKey] = r.contenido ?? ""; });
         setTextos(result);
         setLoading(false);
       });
   }, []);
 
-  // Actualiza tanto el estado local como la BD
-  const handleChange = useCallback((section: MundoSectionKey, value: string) => {
-    setTextos(prev => ({ ...prev, [section]: value }));
-  }, []);
-
-  // Save lee del ref para tener siempre el valor actualizado
-  const save = useCallback(async (section: MundoSectionKey) => {
-    const value = textosRef.current[section];
-    const { error } = await supabase
+  const save = async (section: MundoSectionKey, value: string) => {
+    await supabase
       .from("mundo_secciones")
       .update({ contenido: value, updated_at: new Date().toISOString() })
       .eq("key", section);
+  };
 
-    if (error) {
-      console.error("[useMundoSecciones] Error al guardar:", error.message, error.details, error.hint);
-      throw error;
-    }
-  }, []);
-
-  return { textos, setTextos, handleChange, loading, save };
+  return { textos, setTextos, loading, save };
 }
