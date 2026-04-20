@@ -4,8 +4,10 @@ import React, { useState, useCallback } from "react";
 import {
   Music, Info, Film, Loader2, RefreshCw, FileText,
   Eye, EyeOff, Columns2, Plus, Check, X, Layers,
+  MoreHorizontal, ChevronDown,
 } from "lucide-react";
 import { User, Mic2, PenLine, Globe } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { BannerOffline } from "@/components/templates/EstudioTemplates";
 import { useCancionEditor } from "../../hooks/useCancionEditor";
 import { secUpdate, secCreate, secDelete, secReorder } from "../../lib/seccionesDb";
@@ -20,13 +22,17 @@ import type { Seccion, IdiomaKey, EditorTab } from "../../types";
 
 export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const { cancion, setCancion, loading, isOffline: editorOffline, reload } = useCancionEditor(cancionId);
-  const [idiomaA,    setIdiomaA]    = useState<IdiomaKey>("es");
-  const [idiomaB,    setIdiomaB]    = useState<IdiomaKey>("en");
-  const [splitMode,  setSplitMode]  = useState(false);
-  const [addingOpen, setAddingOpen] = useState(false);
-  const [addingName, setAddingName] = useState("");
-  const [showLector, setShowLector] = useState(false);
-  const [activeTab,  setActiveTab]  = useState<EditorTab>("letras");
+  const [idiomaA,       setIdiomaA]       = useState<IdiomaKey>("es");
+  const [idiomaB,       setIdiomaB]       = useState<IdiomaKey>("en");
+  const [splitMode,     setSplitMode]     = useState(false);
+  const [addingOpen,    setAddingOpen]    = useState(false);
+  const [addingName,    setAddingName]    = useState("");
+  const [showLector,    setShowLector]    = useState(false);
+  const [activeTab,     setActiveTab]     = useState<EditorTab>("letras");
+  // Mobile-specific state
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [mobileIdiomaOpen,  setMobileIdiomaOpen]  = useState(false);
+  const [headerExpanded,    setHeaderExpanded]     = useState(false);
 
   const handleSaveField = useCallback(async (id: string, updates: Partial<Seccion>) => {
     await secUpdate(id, updates);
@@ -109,6 +115,12 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const conLetra  = secciones.filter(s => !!(s[campoA] as string)?.trim()).length;
   const pct       = secciones.length ? Math.round((conLetra / secciones.length) * 100) : 0;
 
+  const TABS = [
+    { id: "letras", label: "Letras", icon: <Music size={10} /> },
+    { id: "info",   label: "Info",   icon: <Info  size={10} /> },
+    { id: "guion",  label: "Guion",  icon: <Film  size={10} /> },
+  ] as { id: EditorTab; label: string; icon: React.ReactNode }[];
+
   if (loading) return (
     <div className="flex-1 flex items-center justify-center text-primary/30">
       <Loader2 className="animate-spin" size={28} />
@@ -145,32 +157,44 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
         <BannerOffline color="amber" mensaje="Sin conexión — los cambios se sincronizan al reconectar" />
       )}
 
-      {/* Header del editor */}
-      <div className="shrink-0 px-8 pt-7 pb-5 border-b border-primary/10 space-y-4">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-black uppercase italic tracking-tight text-primary leading-none truncate">
-              {cancion.titulo}
-            </h1>
-            <div className="flex flex-wrap gap-4 mt-2 text-[10px] font-black uppercase text-primary/40 tracking-widest items-center">
-              {cancion.personaje  && <span className="flex items-center gap-1"><User   size={12} strokeWidth={3} /> {cancion.personaje}</span>}
-              {cancion.cantante   && <span className="flex items-center gap-1"><Mic2   size={12} strokeWidth={3} /> {cancion.cantante}</span>}
-              {cancion.compositor && <span className="flex items-center gap-1"><PenLine size={12} strokeWidth={3} /> {cancion.compositor}</span>}
-              {cancion.idioma     && <span className="flex items-center gap-1"><Globe  size={12} strokeWidth={3} /> {cancion.idioma}</span>}
-            </div>
+      {/* ── HEADER ─────────────────────────────────────────────────── */}
+      <div className="shrink-0 border-b border-primary/10">
+
+        {/* Fila principal: título + acciones */}
+        <div className="px-4 sm:px-8 pt-4 sm:pt-7 pb-2 sm:pb-0 flex items-start gap-2">
+          {/* Título — tap para expandir detalles en mobile */}
+          <div className="flex-1 min-w-0">
+            <button
+              onClick={() => setHeaderExpanded(v => !v)}
+              className="sm:cursor-default w-full text-left group"
+            >
+              <h1 className="text-lg sm:text-2xl font-black uppercase italic tracking-tight text-primary leading-none truncate">
+                {cancion.titulo}
+              </h1>
+              {/* Pills compactas — siempre visibles */}
+              <div className="flex flex-wrap gap-2 mt-1.5 items-center">
+                <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${ESTADO_COLOR[cancion.estado]}`}>
+                  {cancion.estado}
+                </span>
+                <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border flex items-center gap-1 ${
+                  cancion.visible
+                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                    : "bg-primary/10 text-primary/40 border-primary/20"
+                }`}>
+                  {cancion.visible ? <Eye size={9} /> : <EyeOff size={9} />}
+                  {cancion.visible ? "Visible" : "Oculta"}
+                </span>
+                {/* Indicador de expand en mobile */}
+                <ChevronDown
+                  size={11}
+                  className={`sm:hidden text-primary/25 transition-transform duration-200 ${headerExpanded ? "rotate-180" : ""}`}
+                />
+              </div>
+            </button>
           </div>
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border ${ESTADO_COLOR[cancion.estado]}`}>
-              {cancion.estado}
-            </span>
-            <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full border flex items-center gap-1 ${
-              cancion.visible
-                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                : "bg-primary/10 text-primary/40 border-primary/20"
-            }`}>
-              {cancion.visible ? <Eye size={10} /> : <EyeOff size={10} />}
-              {cancion.visible ? "Visible" : "Oculta"}
-            </span>
+
+          {/* Acciones desktop */}
+          <div className="hidden sm:flex items-center gap-1 shrink-0 mt-1">
             <button
               onClick={() => setShowLector(true)}
               title="Modo lectura"
@@ -182,66 +206,200 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
               <RefreshCw size={13} />
             </button>
           </div>
+
+          {/* Acciones mobile — overflow menu */}
+          <div className="sm:hidden shrink-0 relative mt-0.5">
+            <button
+              onClick={() => setMobileActionsOpen(o => !o)}
+              className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+            >
+              <MoreHorizontal size={15} />
+            </button>
+            <AnimatePresence>
+              {mobileActionsOpen && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-40"
+                    onClick={() => setMobileActionsOpen(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute right-0 top-9 z-50 min-w-[160px] bg-bg-main border border-primary/15 rounded-xl shadow-xl py-1 overflow-hidden"
+                  >
+                    <button
+                      onClick={() => { setShowLector(true); setMobileActionsOpen(false); }}
+                      className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2"
+                    >
+                      <FileText size={11} /> Modo lectura
+                    </button>
+                    <button
+                      onClick={() => { (reload as any)(); setMobileActionsOpen(false); }}
+                      className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2"
+                    >
+                      <RefreshCw size={11} /> Recargar
+                    </button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
-        {/* Tabs + controles de idioma */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
-            {([
-              { id: "letras", label: "Letras",   icon: <Music size={10} /> },
-              { id: "info",   label: "Info",     icon: <Info  size={10} /> },
-              { id: "guion",  label: "Guion MV", icon: <Film  size={10} /> },
-            ] as { id: EditorTab; label: string; icon: React.ReactNode }[]).map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                  activeTab === tab.id
-                    ? "bg-primary text-bg-main shadow-md shadow-primary/20"
-                    : "text-primary/40 hover:text-primary"
-                }`}
-              >
-                {tab.icon} {tab.label}
-                {tab.id === "guion" && (cancion.guion_mv?.length ?? 0) > 0 && (
-                  <span className={`rounded-full w-4 h-4 text-[8px] flex items-center justify-center ${
-                    activeTab === "guion" ? "bg-bg-main/30 text-bg-main" : "bg-primary/15 text-primary/70"
-                  }`}>
-                    {cancion.guion_mv!.length}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+        {/* Detalles expandibles (solo mobile) / siempre visibles desktop */}
+        <AnimatePresence initial={false}>
+          {(headerExpanded) && (
+            <motion.div
+              key="mobile-details"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="sm:hidden overflow-hidden"
+            >
+              <div className="flex flex-wrap gap-3 px-4 pt-1 pb-2 text-[10px] font-black uppercase text-primary/40 tracking-widest">
+                {cancion.personaje  && <span className="flex items-center gap-1"><User    size={11} strokeWidth={3} /> {cancion.personaje}</span>}
+                {cancion.cantante   && <span className="flex items-center gap-1"><Mic2    size={11} strokeWidth={3} /> {cancion.cantante}</span>}
+                {cancion.compositor && <span className="flex items-center gap-1"><PenLine size={11} strokeWidth={3} /> {cancion.compositor}</span>}
+                {cancion.idioma     && <span className="flex items-center gap-1"><Globe   size={11} strokeWidth={3} /> {cancion.idioma}</span>}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          {activeTab === "letras" && (
-            <>
-              <IdiomaTab value={idiomaA} onChange={changeIdiomaA} exclude={splitMode ? idiomaB : undefined} />
-              <button
-                onClick={() => setSplitMode(m => !m)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                  splitMode
-                    ? "bg-primary text-bg-main border-primary shadow-md shadow-primary/20"
-                    : "border-primary/20 text-primary/40 hover:text-primary hover:border-primary/30"
-                }`}
-              >
-                <Columns2 size={13} /> Vista dividida
-              </button>
-              {splitMode && (
-                <IdiomaTab value={idiomaB} onChange={changeIdiomaB} exclude={idiomaA} />
-              )}
-              <div className="ml-auto flex items-center gap-2 text-[10px] font-black uppercase text-primary/35 tracking-widest">
+        {/* Detalles siempre visibles en desktop */}
+        <div className="hidden sm:flex flex-wrap gap-4 px-8 mt-1.5 text-[10px] font-black uppercase text-primary/40 tracking-widest items-center">
+          {cancion.personaje  && <span className="flex items-center gap-1"><User    size={12} strokeWidth={3} /> {cancion.personaje}</span>}
+          {cancion.cantante   && <span className="flex items-center gap-1"><Mic2    size={12} strokeWidth={3} /> {cancion.cantante}</span>}
+          {cancion.compositor && <span className="flex items-center gap-1"><PenLine size={12} strokeWidth={3} /> {cancion.compositor}</span>}
+          {cancion.idioma     && <span className="flex items-center gap-1"><Globe   size={12} strokeWidth={3} /> {cancion.idioma}</span>}
+        </div>
+
+        {/* ── Tabs ──────────────────────────────────────────────────── */}
+        <div className="px-4 sm:px-8 pt-3 pb-3 sm:pb-4 space-y-2.5 sm:space-y-3">
+
+          {/* Fila de tabs */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
+              {TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                    activeTab === tab.id
+                      ? "bg-primary text-bg-main shadow-md shadow-primary/20"
+                      : "text-primary/40 hover:text-primary"
+                  }`}
+                >
+                  {tab.icon} {tab.label}
+                  {tab.id === "guion" && (cancion.guion_mv?.length ?? 0) > 0 && (
+                    <span className={`rounded-full w-4 h-4 text-[8px] flex items-center justify-center ${
+                      activeTab === "guion" ? "bg-bg-main/30 text-bg-main" : "bg-primary/15 text-primary/70"
+                    }`}>
+                      {cancion.guion_mv!.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Progreso (solo letras, desktop) */}
+            {activeTab === "letras" && (
+              <div className="hidden sm:flex ml-auto items-center gap-2 text-[10px] font-black uppercase text-primary/35 tracking-widest">
                 <span>{conLetra}/{secciones.length}</span>
                 <div className="w-20 h-1.5 rounded-full bg-primary/10 overflow-hidden">
                   <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
                 </div>
                 <span>{pct}%</span>
               </div>
+            )}
+          </div>
+
+          {/* ── Controles de idioma ──────────────────────────────────── */}
+          {activeTab === "letras" && (
+            <>
+              {/* Desktop: controles inline */}
+              <div className="hidden sm:flex items-center gap-3 flex-wrap">
+                <IdiomaTab value={idiomaA} onChange={changeIdiomaA} exclude={splitMode ? idiomaB : undefined} />
+                <button
+                  onClick={() => setSplitMode(m => !m)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                    splitMode
+                      ? "bg-primary text-bg-main border-primary shadow-md shadow-primary/20"
+                      : "border-primary/20 text-primary/40 hover:text-primary hover:border-primary/30"
+                  }`}
+                >
+                  <Columns2 size={13} /> Vista dividida
+                </button>
+                {splitMode && (
+                  <IdiomaTab value={idiomaB} onChange={changeIdiomaB} exclude={idiomaA} />
+                )}
+              </div>
+
+              {/* Mobile: toggle colapsable de controles de idioma */}
+              <div className="sm:hidden">
+                <button
+                  onClick={() => setMobileIdiomaOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-primary/10 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:border-primary/20 transition-all"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Music size={9} />
+                    Idioma: <span className="text-primary/70">{IDIOMAS.find(i => i.id === idiomaA)?.label}</span>
+                    {splitMode && (
+                      <span className="text-primary/30">· {IDIOMAS.find(i => i.id === idiomaB)?.label}</span>
+                    )}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-black uppercase text-primary/25">
+                      {conLetra}/{secciones.length} · {pct}%
+                    </span>
+                    <ChevronDown
+                      size={10}
+                      className={`transition-transform duration-200 ${mobileIdiomaOpen ? "rotate-180" : ""}`}
+                    />
+                  </span>
+                </button>
+                <AnimatePresence>
+                  {mobileIdiomaOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-2 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <IdiomaTab value={idiomaA} onChange={changeIdiomaA} exclude={splitMode ? idiomaB : undefined} />
+                          <button
+                            onClick={() => setSplitMode(m => !m)}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                              splitMode
+                                ? "bg-primary text-bg-main border-primary shadow-md shadow-primary/20"
+                                : "border-primary/20 text-primary/40 hover:text-primary hover:border-primary/30"
+                            }`}
+                          >
+                            <Columns2 size={12} /> Dividir
+                          </button>
+                        </div>
+                        {splitMode && (
+                          <IdiomaTab value={idiomaB} onChange={changeIdiomaB} exclude={idiomaA} />
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </>
           )}
         </div>
 
+        {/* Labels de split mode (desktop) */}
         {activeTab === "letras" && splitMode && (
-          <div className="flex gap-3 text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 px-1">
+          <div className="hidden sm:flex gap-3 text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 px-8 pb-3">
             <span className="flex-1 text-center">{IDIOMAS.find(i => i.id === idiomaA)?.nombre}</span>
             <span className="w-px" />
             <span className="flex-1 text-center">{IDIOMAS.find(i => i.id === idiomaB)?.nombre}</span>
@@ -249,12 +407,12 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
         )}
       </div>
 
-      {/* Contenido de la tab activa */}
+      {/* ── CONTENIDO ──────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
 
         {/* Tab: Letras */}
         {activeTab === "letras" && (
-          <div className="px-8 py-5 space-y-4">
+          <div className="px-4 sm:px-8 py-4 sm:py-5 space-y-4">
             {secciones.length > 0 && (
               <div className="border border-primary/10 rounded-xl bg-bg-main/50 overflow-hidden">
                 {secciones.map((sec, i) => (
