@@ -1,21 +1,175 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Search, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, X, ShoppingCart, Flame, Dumbbell, Wheat, Droplets, ChevronLeft, Package } from "lucide-react";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Ingrediente } from "@/lib/types/personal/ingrediente";
-import { Loading, BackBtn } from "@/components/ui";
+import { Loading } from "@/components/ui";
 
+// ─── Macro Popover (mobile) ───────────────────────────────────────────────────
+function MacroPopover({ item, onClose }: { item: Ingrediente; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const macros = [
+    { label: "Calorías",      value: item.kcal ?? 0,          unit: "kcal", Icon: Flame,    color: "text-orange-400" },
+    { label: "Proteínas",     value: item.proteinas ?? 0,     unit: "g",    Icon: Dumbbell, color: "text-blue-400"   },
+    { label: "Carbohidratos", value: item.carbohidratos ?? 0, unit: "g",    Icon: Wheat,    color: "text-amber-400"  },
+    { label: "Grasas",        value: item.grasas ?? 0,        unit: "g",    Icon: Droplets, color: "text-yellow-400" },
+  ];
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, scale: 0.92, y: -6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.92, y: -6 }}
+      transition={{ duration: 0.15 }}
+      className="absolute right-0 top-full mt-1.5 z-50 w-52 bg-white-custom border border-primary/12 rounded-[var(--radius-card)] shadow-xl p-3 space-y-1.5"
+      onClick={e => e.stopPropagation()}
+    >
+      <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 pb-1 border-b border-primary/8">
+        {item.nombre} · {item.porcion_texto}
+      </p>
+      {macros.map(({ label, value, unit, Icon, color }) => (
+        <div key={label} className="flex items-center gap-2">
+          <Icon size={11} className={`${color} shrink-0`} />
+          <span className="text-[10px] font-bold text-primary/50 flex-1">{label}</span>
+          <span className="text-[11px] font-black text-primary">{value.toFixed(unit === "kcal" ? 0 : 1)}</span>
+          <span className="text-[9px] text-primary/25">{unit}</span>
+        </div>
+      ))}
+    </motion.div>
+  );
+}
+
+// ─── Row ──────────────────────────────────────────────────────────────────────
+function IngredienteRow({
+  item, i, inCart, onToggle,
+}: {
+  item: Ingrediente; i: number; inCart: boolean; onToggle: () => void;
+}) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  return (
+    <tr className={`border-b border-primary/5 last:border-0 transition-colors ${
+      inCart ? "bg-accent/8" : i % 2 === 0 ? "" : "bg-primary/[0.015]"
+    }`}>
+      {/* Checkbox */}
+      <td className="pl-4 pr-2 py-3 w-8">
+        <button
+          onClick={onToggle}
+          className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center transition-all shrink-0 ${
+            inCart ? "bg-accent border-accent text-white" : "border-primary/20 hover:border-accent/60"
+          }`}
+        >
+          {inCart && (
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+              <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </button>
+      </td>
+
+      {/* Nombre */}
+      <td className="px-3 py-3">
+        <p className="text-[12px] font-black uppercase italic tracking-tight text-primary leading-none">{item.nombre}</p>
+        <p className="text-[9px] font-bold text-primary/30 uppercase mt-0.5">{item.porcion_texto}</p>
+      </td>
+
+      {/* Kcal — clickeable para popover */}
+      <td className="px-3 py-3 text-right">
+        <div className="relative inline-block">
+          <button
+            className="flex items-center gap-0.5 justify-end"
+            onClick={() => setPopoverOpen(p => !p)}
+          >
+            <span className="text-[11px] font-black text-primary">{(item.kcal ?? 0).toFixed(0)}</span>
+            <span className="text-[8px] text-primary/25 ml-0.5">kcal</span>
+          </button>
+          <AnimatePresence>
+            {popoverOpen && <MacroPopover item={item} onClose={() => setPopoverOpen(false)} />}
+          </AnimatePresence>
+        </div>
+      </td>
+
+      {/* Macros — hidden on mobile */}
+      <td className="px-3 py-3 text-right hidden sm:table-cell">
+        <span className="text-[11px] font-black text-primary">{(item.proteinas ?? 0).toFixed(1)}</span>
+        <span className="text-[8px] text-primary/25 ml-0.5">g</span>
+      </td>
+      <td className="px-3 py-3 text-right hidden sm:table-cell">
+        <span className="text-[11px] font-black text-primary">{(item.carbohidratos ?? 0).toFixed(1)}</span>
+        <span className="text-[8px] text-primary/25 ml-0.5">g</span>
+      </td>
+      <td className="px-3 py-3 text-right hidden sm:table-cell">
+        <span className="text-[11px] font-black text-primary">{(item.grasas ?? 0).toFixed(1)}</span>
+        <span className="text-[8px] text-primary/25 ml-0.5">g</span>
+      </td>
+
+      {/* Precio */}
+      <td className="px-4 py-3 text-right">
+        {(item as any).precio
+          ? <span className="text-[11px] font-black text-primary">${((item as any).precio).toFixed(0)}</span>
+          : <span className="text-[10px] text-primary/15">—</span>
+        }
+      </td>
+    </tr>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ComprasPage() {
   const { data: ingredientes, loading } = useSupabaseData<Ingrediente>("ingredientes");
   const [search, setSearch] = useState("");
+  const [cart, setCart] = useState<Set<string>>(new Set());
 
   const items = useMemo(() =>
     ingredientes.filter(i => !search || i.nombre.toLowerCase().includes(search.toLowerCase())),
     [ingredientes, search]
   );
 
-  const totales = useMemo(() => items.reduce(
+  const cartItems = useMemo(() =>
+    ingredientes.filter(i => cart.has(i.id)),
+    [ingredientes, cart]
+  );
+
+  const toggle = (id: string) =>
+    setCart(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+
+  const removeFromCart = (id: string) =>
+    setCart(prev => { const next = new Set(prev); next.delete(id); return next; });
+
+  const cartTotals = useMemo(() => cartItems.reduce(
+    (acc, i) => ({
+      kcal:          acc.kcal          + (i.kcal          ?? 0),
+      proteinas:     acc.proteinas     + (i.proteinas     ?? 0),
+      carbohidratos: acc.carbohidratos + (i.carbohidratos ?? 0),
+      grasas:        acc.grasas        + (i.grasas        ?? 0),
+      precio:        acc.precio        + ((i as any).precio ?? 0),
+    }),
+    { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0, precio: 0 }
+  ), [cartItems]);
+
+  const allVisibleInCart = items.length > 0 && items.every(i => cart.has(i.id));
+
+  const toggleAll = () => {
+    if (allVisibleInCart) {
+      setCart(prev => { const next = new Set(prev); items.forEach(i => next.delete(i.id)); return next; });
+    } else {
+      setCart(prev => { const next = new Set(prev); items.forEach(i => next.add(i.id)); return next; });
+    }
+  };
+
+  const tableTotals = useMemo(() => items.reduce(
     (acc, i) => ({
       kcal:          acc.kcal          + (i.kcal          ?? 0),
       proteinas:     acc.proteinas     + (i.proteinas     ?? 0),
@@ -27,14 +181,18 @@ export default function ComprasPage() {
   ), [items]);
 
   return (
-    <div className="min-h-screen bg-bg-main pb-20 text-foreground">
+    <div className="min-h-screen bg-bg-main pb-28 text-foreground">
+
+      {/* ── Header ── */}
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
         <div className="max-w-5xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <Link href="/personal/salud" className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors">
-              ← Salud
+              <ChevronLeft size={12} /> Salud
             </Link>
-            <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none text-primary">Compras</h1>
+            <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none text-primary">
+              Mi <span className="text-primary/20">Lista</span>
+            </h1>
           </div>
           <div className="relative w-full sm:w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" size={13} />
@@ -53,71 +211,203 @@ export default function ComprasPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-5 pt-5">
+      <main className="max-w-5xl mx-auto px-5 pt-5 space-y-4">
+
+        {/* ── Bloque carrito ── */}
+        <AnimatePresence>
+          {cartItems.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ type: "spring", stiffness: 340, damping: 30 }}
+              className="card-main overflow-hidden border-accent/25 bg-accent/5"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-accent/15">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart size={14} className="text-accent" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Carrito</span>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-black">{cartItems.length}</span>
+                </div>
+                <button
+                  onClick={() => setCart(new Set())}
+                  className="text-[8px] font-black uppercase tracking-widest text-primary/25 hover:text-red-400 transition-colors"
+                >
+                  Vaciar
+                </button>
+              </div>
+
+              <div className="divide-y divide-accent/10">
+                {cartItems.map(item => (
+                  <div key={item.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-black uppercase italic tracking-tight text-primary truncate">{item.nombre}</p>
+                      <p className="text-[8px] text-primary/30 uppercase font-bold">{item.porcion_texto}</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-[10px] font-black text-primary/50">{(item.kcal ?? 0).toFixed(0)} kcal</span>
+                      {(item as any).precio > 0 && (
+                        <span className="text-[10px] font-black text-accent">${((item as any).precio).toFixed(0)}</span>
+                      )}
+                      <button
+                        onClick={() => removeFromCart(item.id)}
+                        className="w-5 h-5 flex items-center justify-center rounded-[var(--radius-btn)] text-primary/20 hover:text-red-400 hover:bg-red-50 transition-all"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-4 px-4 py-3 border-t border-accent/15 bg-accent/8 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <Flame size={11} className="text-orange-400" />
+                  <span className="text-[10px] font-black text-primary">{cartTotals.kcal.toFixed(0)}</span>
+                  <span className="text-[8px] text-primary/30">kcal</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Dumbbell size={11} className="text-blue-400" />
+                  <span className="text-[10px] font-black text-primary">{cartTotals.proteinas.toFixed(1)}</span>
+                  <span className="text-[8px] text-primary/30">g prot</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Wheat size={11} className="text-amber-400" />
+                  <span className="text-[10px] font-black text-primary">{cartTotals.carbohidratos.toFixed(1)}</span>
+                  <span className="text-[8px] text-primary/30">g carb</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Droplets size={11} className="text-yellow-400" />
+                  <span className="text-[10px] font-black text-primary">{cartTotals.grasas.toFixed(1)}</span>
+                  <span className="text-[8px] text-primary/30">g gras</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Tabla ── */}
         {loading ? <Loading text="Cargando lista..." /> : (
           <div className="card-main overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-primary/8">
-                  <th className="text-left px-4 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 w-full">Ingrediente</th>
-                  <th className="text-right px-4 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap">Kcal</th>
-                  <th className="text-right px-4 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">Prot</th>
-                  <th className="text-right px-4 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">Carb</th>
-                  <th className="text-right px-4 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">Gras</th>
+                  <th className="pl-4 pr-2 py-3 w-8">
+                    <button
+                      onClick={toggleAll}
+                      title={allVisibleInCart ? "Deseleccionar todo" : "Seleccionar todo"}
+                      className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center transition-all ${
+                        allVisibleInCart ? "bg-accent border-accent text-white" : "border-primary/20 hover:border-accent/60"
+                      }`}
+                    >
+                      {allVisibleInCart && (
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                          <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </button>
+                  </th>
+                  <th className="text-left px-3 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 w-full">Ingrediente</th>
+                  <th className="text-right px-3 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap">
+                    <span className="sm:hidden text-accent/70">Kcal ↗</span>
+                    <span className="hidden sm:inline">Kcal</span>
+                  </th>
+                  <th className="text-right px-3 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">Prot</th>
+                  <th className="text-right px-3 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">Carb</th>
+                  <th className="text-right px-3 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">Gras</th>
                   <th className="text-right px-4 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap">Precio</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, i) => (
-                  <tr key={item.id} className={`border-b border-primary/5 last:border-0 hover:bg-primary/2 transition-colors ${i % 2 === 0 ? "" : "bg-primary/1.5"}`}>
-                    <td className="px-4 py-3">
-                      <p className="text-[12px] font-black uppercase italic tracking-tight text-primary leading-none">{item.nombre}</p>
-                      <p className="text-[9px] font-bold text-primary/30 uppercase mt-0.5">{item.porcion_texto}</p>
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-20">
+                      <Package className="mx-auto text-primary/15 mb-2" size={36} />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-primary/25">Sin resultados</p>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="text-[11px] font-black text-primary">{(item.kcal ?? 0).toFixed(0)}</span>
+                  </tr>
+                ) : (
+                  items.map((item, i) => (
+                    <IngredienteRow
+                      key={item.id}
+                      item={item}
+                      i={i}
+                      inCart={cart.has(item.id)}
+                      onToggle={() => toggle(item.id)}
+                    />
+                  ))
+                )}
+              </tbody>
+              {items.length > 0 && (
+                <tfoot>
+                  <tr className="border-t-2 border-primary/10 bg-primary/[0.02]">
+                    <td className="pl-4 pr-2 py-3" />
+                    <td className="px-3 py-3">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{items.length} ingredientes</span>
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <span className="text-[11px] font-black text-primary">{tableTotals.kcal.toFixed(0)}</span>
                       <span className="text-[8px] text-primary/25 ml-0.5">kcal</span>
                     </td>
-                    <td className="px-4 py-3 text-right hidden sm:table-cell">
-                      <span className="text-[11px] font-black text-primary">{(item.proteinas ?? 0).toFixed(1)}</span>
+                    <td className="px-3 py-3 text-right hidden sm:table-cell">
+                      <span className="text-[11px] font-black text-primary">{tableTotals.proteinas.toFixed(1)}</span>
                       <span className="text-[8px] text-primary/25 ml-0.5">g</span>
                     </td>
-                    <td className="px-4 py-3 text-right hidden sm:table-cell">
-                      <span className="text-[11px] font-black text-primary">{(item.carbohidratos ?? 0).toFixed(1)}</span>
+                    <td className="px-3 py-3 text-right hidden sm:table-cell">
+                      <span className="text-[11px] font-black text-primary">{tableTotals.carbohidratos.toFixed(1)}</span>
                       <span className="text-[8px] text-primary/25 ml-0.5">g</span>
                     </td>
-                    <td className="px-4 py-3 text-right hidden sm:table-cell">
-                      <span className="text-[11px] font-black text-primary">{(item.grasas ?? 0).toFixed(1)}</span>
+                    <td className="px-3 py-3 text-right hidden sm:table-cell">
+                      <span className="text-[11px] font-black text-primary">{tableTotals.grasas.toFixed(1)}</span>
                       <span className="text-[8px] text-primary/25 ml-0.5">g</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {(item as any).precio
-                        ? <span className="text-[11px] font-black text-primary">${((item as any).precio).toFixed(0)}</span>
+                      {tableTotals.precio > 0
+                        ? <span className="text-[11px] font-black text-primary">${tableTotals.precio.toFixed(0)}</span>
                         : <span className="text-[10px] text-primary/15">—</span>
                       }
                     </td>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-primary/10 bg-primary/2">
-                  <td className="px-4 py-3"><span className="text-[9px] font-black uppercase tracking-widest text-primary/40">{items.length} ingredientes</span></td>
-                  <td className="px-4 py-3 text-right"><span className="text-[11px] font-black text-primary">{totales.kcal.toFixed(0)}</span><span className="text-[8px] text-primary/25 ml-0.5">kcal</span></td>
-                  <td className="px-4 py-3 text-right hidden sm:table-cell"><span className="text-[11px] font-black text-primary">{totales.proteinas.toFixed(1)}</span><span className="text-[8px] text-primary/25 ml-0.5">g</span></td>
-                  <td className="px-4 py-3 text-right hidden sm:table-cell"><span className="text-[11px] font-black text-primary">{totales.carbohidratos.toFixed(1)}</span><span className="text-[8px] text-primary/25 ml-0.5">g</span></td>
-                  <td className="px-4 py-3 text-right hidden sm:table-cell"><span className="text-[11px] font-black text-primary">{totales.grasas.toFixed(1)}</span><span className="text-[8px] text-primary/25 ml-0.5">g</span></td>
-                  <td className="px-4 py-3 text-right">
-                    {totales.precio > 0
-                      ? <span className="text-[11px] font-black text-primary">${totales.precio.toFixed(0)}</span>
-                      : <span className="text-[10px] text-primary/15">—</span>
-                    }
-                  </td>
-                </tr>
-              </tfoot>
+                </tfoot>
+              )}
             </table>
           </div>
         )}
       </main>
+
+      {/* ── Footer sticky con precio carrito ── */}
+      <AnimatePresence>
+        {cartItems.length > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 340, damping: 32 }}
+            className="fixed bottom-0 inset-x-0 z-20 bg-bg-main/95 backdrop-blur-xl border-t border-primary/10"
+          >
+            <div className="max-w-5xl mx-auto px-5 py-4 flex items-center gap-4">
+              <div className="flex items-center gap-2 shrink-0">
+                <ShoppingCart size={15} className="text-accent" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary/50">
+                  {cartItems.length} ítem{cartItems.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="flex-1 flex items-center gap-3 overflow-x-auto">
+                <span className="text-[10px] font-bold text-primary/30 shrink-0">{cartTotals.kcal.toFixed(0)} kcal</span>
+                <span className="text-[10px] font-bold text-primary/30 shrink-0 hidden sm:inline">{cartTotals.proteinas.toFixed(1)}g prot</span>
+                <span className="text-[10px] font-bold text-primary/30 shrink-0 hidden sm:inline">{cartTotals.carbohidratos.toFixed(1)}g carb</span>
+              </div>
+              <div className="shrink-0 flex items-baseline gap-1.5">
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary/35">Total</span>
+                {cartTotals.precio > 0
+                  ? <span className="text-xl font-black italic tracking-tighter text-primary">${cartTotals.precio.toFixed(0)}</span>
+                  : <span className="text-[11px] font-black text-primary/20">—</span>
+                }
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
