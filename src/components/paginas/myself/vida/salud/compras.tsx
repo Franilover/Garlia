@@ -11,13 +11,24 @@ import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import { Loading } from "@/components/ui";
 
 // ─── tipos ────────────────────────────────────────────────────────────────────
+type MacroEdits = Partial<{ kcal: number; proteinas: number; carbohidratos: number; grasas: number; precio: number }>;
+
 type CartEntry = {
   qty: number;
-  overrides: Partial<{ kcal: number; proteinas: number; carbohidratos: number; grasas: number; precio: number }>;
 };
 
+// ─── helpers ──────────────────────────────────────────────────────────────────
+// Devuelve el valor efectivo: el editado por el usuario o el original del ingrediente
+function getEffective(item: Ingrediente, edits: MacroEdits, key: keyof MacroEdits): number {
+  return edits[key] ?? ((item as any)[key] ?? 0);
+}
+
 // ─── Macro Popover (mobile) ───────────────────────────────────────────────────
-function MacroPopover({ item, onClose }: { item: Ingrediente; onClose: () => void }) {
+function MacroPopover({
+  item, edits, onClose,
+}: {
+  item: Ingrediente; edits: MacroEdits; onClose: () => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
@@ -26,10 +37,10 @@ function MacroPopover({ item, onClose }: { item: Ingrediente; onClose: () => voi
   }, [onClose]);
 
   const macros = [
-    { label: "Calorías",      value: item.kcal ?? 0,          unit: "kcal", Icon: Flame,    color: "text-orange-400" },
-    { label: "Proteínas",     value: item.proteinas ?? 0,     unit: "g",    Icon: Dumbbell, color: "text-blue-400"   },
-    { label: "Carbohidratos", value: item.carbohidratos ?? 0, unit: "g",    Icon: Wheat,    color: "text-amber-400"  },
-    { label: "Grasas",        value: item.grasas ?? 0,        unit: "g",    Icon: Droplets, color: "text-yellow-400" },
+    { label: "Calorías",      value: getEffective(item, edits, "kcal"),          unit: "kcal", Icon: Flame,    color: "text-orange-400" },
+    { label: "Proteínas",     value: getEffective(item, edits, "proteinas"),     unit: "g",    Icon: Dumbbell, color: "text-blue-400"   },
+    { label: "Carbohidratos", value: getEffective(item, edits, "carbohidratos"), unit: "g",    Icon: Wheat,    color: "text-amber-400"  },
+    { label: "Grasas",        value: getEffective(item, edits, "grasas"),        unit: "g",    Icon: Droplets, color: "text-yellow-400" },
   ];
 
   return (
@@ -57,28 +68,27 @@ function MacroPopover({ item, onClose }: { item: Ingrediente; onClose: () => voi
   );
 }
 
-// ─── Cart Item Editor ─────────────────────────────────────────────────────────
-function CartItemEditor({
-  item, entry, onUpdate, onClose,
+// ─── Ingrediente Editor ───────────────────────────────────────────────────────
+// Edita los macros/precio BASE del ingrediente — completamente independiente del carrito
+function IngredienteEditor({
+  item, edits, onUpdate, onClose,
 }: {
   item: Ingrediente;
-  entry: CartEntry;
-  onUpdate: (overrides: CartEntry["overrides"]) => void;
+  edits: MacroEdits;
+  onUpdate: (edits: MacroEdits) => void;
   onClose: () => void;
 }) {
-  const fields: { key: keyof CartEntry["overrides"]; label: string; unit: string; step: string }[] = [
-    { key: "kcal",          label: "Calorías",      unit: "kcal", step: "1"   },
-    { key: "proteinas",     label: "Proteínas",     unit: "g",    step: "0.1" },
-    { key: "carbohidratos", label: "Carbohidratos", unit: "g",    step: "0.1" },
-    { key: "grasas",        label: "Grasas",        unit: "g",    step: "0.1" },
-    { key: "precio",        label: "Precio",        unit: "$",    step: "0.01"},
+  const fields: { key: keyof MacroEdits; label: string; unit: string; step: string }[] = [
+    { key: "kcal",          label: "Calorías",      unit: "kcal", step: "1"    },
+    { key: "proteinas",     label: "Proteínas",     unit: "g",    step: "0.1"  },
+    { key: "carbohidratos", label: "Carbohidratos", unit: "g",    step: "0.1"  },
+    { key: "grasas",        label: "Grasas",        unit: "g",    step: "0.1"  },
+    { key: "precio",        label: "Precio",        unit: "$",    step: "0.01" },
   ];
 
-  const [local, setLocal] = useState<CartEntry["overrides"]>(() => {
-    const o: CartEntry["overrides"] = {};
-    fields.forEach(f => {
-      o[f.key] = entry.overrides[f.key] ?? ((item as any)[f.key] ?? 0);
-    });
+  const [local, setLocal] = useState<MacroEdits>(() => {
+    const o: MacroEdits = {};
+    fields.forEach(f => { o[f.key] = getEffective(item, edits, f.key); });
     return o;
   });
 
@@ -125,18 +135,16 @@ function CartItemEditor({
 
 // ─── Cart Item Row ────────────────────────────────────────────────────────────
 function CartItemRow({
-  item, entry, onRemove, onQty,
+  item, entry, edits, onRemove, onQty,
 }: {
   item: Ingrediente;
   entry: CartEntry;
+  edits: MacroEdits;
   onRemove: () => void;
   onQty: (delta: number) => void;
 }) {
-  const val = (key: keyof CartEntry["overrides"]) =>
-    entry.overrides[key] ?? ((item as any)[key] ?? 0);
-
-  const precio = val("precio");
-  const kcal = val("kcal");
+  const precio = getEffective(item, edits, "precio");
+  const kcal   = getEffective(item, edits, "kcal");
 
   return (
     <div className="border-b border-accent/10 last:border-0">
@@ -189,16 +197,19 @@ function CartItemRow({
 
 // ─── Table Row ────────────────────────────────────────────────────────────────
 function IngredienteRow({
-  item, i, inCart, onToggle, entry, onUpdate,
+  item, i, inCart, onToggle, edits, onUpdateEdits,
 }: {
-  item: Ingrediente; i: number; inCart: boolean; onToggle: () => void;
-  entry?: CartEntry; onUpdate?: (overrides: CartEntry["overrides"]) => void;
+  item: Ingrediente;
+  i: number;
+  inCart: boolean;
+  onToggle: () => void;
+  edits: MacroEdits;
+  onUpdateEdits: (edits: MacroEdits) => void;
 }) {
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing]         = useState(false);
 
-  const val = (key: keyof CartEntry["overrides"]) =>
-    entry?.overrides[key] ?? ((item as any)[key] ?? 0);
+  const hasEdits = Object.keys(edits).length > 0;
 
   return (
     <>
@@ -227,8 +238,13 @@ function IngredienteRow({
             </div>
             <button
               onClick={() => setEditing(p => !p)}
-              className={`w-5 h-5 flex items-center justify-center rounded-[var(--radius-btn)] transition-all ${
-                editing ? "bg-accent/20 text-accent" : "text-primary/20 hover:text-accent hover:bg-accent/10"
+              title="Editar macros"
+              className={`w-5 h-5 flex items-center justify-center rounded-[var(--radius-btn)] transition-all shrink-0 ${
+                editing
+                  ? "bg-accent/20 text-accent"
+                  : hasEdits
+                    ? "text-accent/60 hover:text-accent hover:bg-accent/10"
+                    : "text-primary/20 hover:text-accent hover:bg-accent/10"
               }`}
             >
               <Pencil size={10} />
@@ -241,41 +257,53 @@ function IngredienteRow({
               className="flex items-center gap-0.5 justify-end"
               onClick={() => setPopoverOpen(p => !p)}
             >
-              <span className="text-[11px] font-black text-primary">{val("kcal").toFixed(0)}</span>
+              <span className={`text-[11px] font-black ${edits.kcal !== undefined ? "text-accent" : "text-primary"}`}>
+                {getEffective(item, edits, "kcal").toFixed(0)}
+              </span>
               <span className="text-[8px] text-primary/25 ml-0.5">kcal</span>
             </button>
             <AnimatePresence>
-              {popoverOpen && <MacroPopover item={item} onClose={() => setPopoverOpen(false)} />}
+              {popoverOpen && <MacroPopover item={item} edits={edits} onClose={() => setPopoverOpen(false)} />}
             </AnimatePresence>
           </div>
         </td>
         <td className="px-3 py-3 text-right hidden sm:table-cell">
-          <span className="text-[11px] font-black text-primary">{val("proteinas").toFixed(1)}</span>
+          <span className={`text-[11px] font-black ${edits.proteinas !== undefined ? "text-accent" : "text-primary"}`}>
+            {getEffective(item, edits, "proteinas").toFixed(1)}
+          </span>
           <span className="text-[8px] text-primary/25 ml-0.5">g</span>
         </td>
         <td className="px-3 py-3 text-right hidden sm:table-cell">
-          <span className="text-[11px] font-black text-primary">{val("carbohidratos").toFixed(1)}</span>
+          <span className={`text-[11px] font-black ${edits.carbohidratos !== undefined ? "text-accent" : "text-primary"}`}>
+            {getEffective(item, edits, "carbohidratos").toFixed(1)}
+          </span>
           <span className="text-[8px] text-primary/25 ml-0.5">g</span>
         </td>
         <td className="px-3 py-3 text-right hidden sm:table-cell">
-          <span className="text-[11px] font-black text-primary">{val("grasas").toFixed(1)}</span>
+          <span className={`text-[11px] font-black ${edits.grasas !== undefined ? "text-accent" : "text-primary"}`}>
+            {getEffective(item, edits, "grasas").toFixed(1)}
+          </span>
           <span className="text-[8px] text-primary/25 ml-0.5">g</span>
         </td>
         <td className="px-4 py-3 text-right">
-          {val("precio") > 0
-            ? <span className="text-[11px] font-black text-primary">${val("precio").toFixed(0)}</span>
+          {getEffective(item, edits, "precio") > 0
+            ? <span className={`text-[11px] font-black ${edits.precio !== undefined ? "text-accent" : "text-primary"}`}>
+                ${getEffective(item, edits, "precio").toFixed(0)}
+              </span>
             : <span className="text-[10px] text-primary/15">—</span>
           }
         </td>
       </tr>
+
+      {/* Editor inline bajo la fila */}
       <AnimatePresence>
-        {editing && entry && onUpdate && (
+        {editing && (
           <tr>
-            <td colSpan={7} className="p-0">
-              <CartItemEditor
+            <td colSpan={7} className="p-0 border-b border-primary/5">
+              <IngredienteEditor
                 item={item}
-                entry={entry}
-                onUpdate={onUpdate}
+                edits={edits}
+                onUpdate={onUpdateEdits}
                 onClose={() => setEditing(false)}
               />
             </td>
@@ -291,21 +319,23 @@ export default function ComprasPage() {
   const { data: ingredientes, loading } = useSupabaseData<Ingrediente>("ingredientes");
   const [search, setSearch]             = useState("");
   const [cart, setCart]                 = useState<Record<string, CartEntry>>({});
+  // Ediciones de macros/precio por ingrediente — independientes del carrito
+  const [ingredienteEdits, setIngredienteEdits] = useState<Record<string, MacroEdits>>({});
 
   const items = useMemo(() =>
     ingredientes.filter(i => !search || i.nombre.toLowerCase().includes(search.toLowerCase())),
     [ingredientes, search]
   );
 
-  const cartIds    = Object.keys(cart);
-  const cartItems  = useMemo(() => ingredientes.filter(i => cartIds.includes(i.id)), [ingredientes, cart]);
+  const cartIds   = Object.keys(cart);
+  const cartItems = useMemo(() => ingredientes.filter(i => cartIds.includes(i.id)), [ingredientes, cart]);
 
   const inCart = (id: string) => !!cart[id];
 
   const toggle = (id: string) =>
     setCart(prev => {
       if (prev[id]) { const { [id]: _, ...rest } = prev; return rest; }
-      return { ...prev, [id]: { qty: 1, overrides: {} } };
+      return { ...prev, [id]: { qty: 1 } };
     });
 
   const removeFromCart = (id: string) =>
@@ -319,44 +349,45 @@ export default function ComprasPage() {
       return { ...prev, [id]: { ...entry, qty } };
     });
 
-  const updateOverrides = (id: string, overrides: CartEntry["overrides"]) =>
-    setCart(prev => prev[id] ? { ...prev, [id]: { ...prev[id], overrides } } : prev);
+  const updateEdits = (id: string, edits: MacroEdits) =>
+    setIngredienteEdits(prev => ({ ...prev, [id]: edits }));
 
-  const getVal = (item: Ingrediente, key: keyof CartEntry["overrides"]) => {
-    const entry = cart[item.id];
-    return entry?.overrides[key] ?? ((item as any)[key] ?? 0);
-  };
+  const getEdits = (id: string): MacroEdits => ingredienteEdits[id] ?? {};
 
   const cartTotals = useMemo(() => cartItems.reduce(
     (acc, item) => {
-      const qty = cart[item.id]?.qty ?? 1;
+      const qty   = cart[item.id]?.qty ?? 1;
+      const edits = getEdits(item.id);
       return {
-        kcal:          acc.kcal          + getVal(item, "kcal")          * qty,
-        proteinas:     acc.proteinas     + getVal(item, "proteinas")     * qty,
-        carbohidratos: acc.carbohidratos + getVal(item, "carbohidratos") * qty,
-        grasas:        acc.grasas        + getVal(item, "grasas")        * qty,
-        precio:        acc.precio        + getVal(item, "precio")        * qty,
+        kcal:          acc.kcal          + getEffective(item, edits, "kcal")          * qty,
+        proteinas:     acc.proteinas     + getEffective(item, edits, "proteinas")     * qty,
+        carbohidratos: acc.carbohidratos + getEffective(item, edits, "carbohidratos") * qty,
+        grasas:        acc.grasas        + getEffective(item, edits, "grasas")        * qty,
+        precio:        acc.precio        + getEffective(item, edits, "precio")        * qty,
       };
     },
     { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0, precio: 0 }
-  ), [cartItems, cart]);
+  ), [cartItems, cart, ingredienteEdits]);
 
   const tableTotals = useMemo(() => items.reduce(
-    (acc, i) => ({
-      kcal:          acc.kcal          + (i.kcal          ?? 0),
-      proteinas:     acc.proteinas     + (i.proteinas     ?? 0),
-      carbohidratos: acc.carbohidratos + (i.carbohidratos ?? 0),
-      grasas:        acc.grasas        + (i.grasas        ?? 0),
-    }),
+    (acc, i) => {
+      const edits = getEdits(i.id);
+      return {
+        kcal:          acc.kcal          + getEffective(i, edits, "kcal"),
+        proteinas:     acc.proteinas     + getEffective(i, edits, "proteinas"),
+        carbohidratos: acc.carbohidratos + getEffective(i, edits, "carbohidratos"),
+        grasas:        acc.grasas        + getEffective(i, edits, "grasas"),
+      };
+    },
     { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0 }
-  ), [items]);
+  ), [items, ingredienteEdits]);
 
   const allVisibleInCart = items.length > 0 && items.every(i => inCart(i.id));
   const toggleAll = () => {
     if (allVisibleInCart) {
       setCart(prev => { const next = { ...prev }; items.forEach(i => { delete next[i.id]; }); return next; });
     } else {
-      setCart(prev => { const next = { ...prev }; items.forEach(i => { if (!next[i.id]) next[i.id] = { qty: 1, overrides: {} }; }); return next; });
+      setCart(prev => { const next = { ...prev }; items.forEach(i => { if (!next[i.id]) next[i.id] = { qty: 1 }; }); return next; });
     }
   };
 
@@ -426,7 +457,8 @@ export default function ComprasPage() {
                   <CartItemRow
                     key={item.id}
                     item={item}
-                    entry={cart[item.id] ?? { qty: 1, overrides: {} }}
+                    entry={cart[item.id] ?? { qty: 1 }}
+                    edits={getEdits(item.id)}
                     onRemove={() => removeFromCart(item.id)}
                     onQty={delta => updateQty(item.id, delta)}
                   />
@@ -513,8 +545,8 @@ export default function ComprasPage() {
                     i={i}
                     inCart={inCart(item.id)}
                     onToggle={() => toggle(item.id)}
-                    entry={cart[item.id]}
-                    onUpdate={ov => updateOverrides(item.id, ov)}
+                    edits={getEdits(item.id)}
+                    onUpdateEdits={edits => updateEdits(item.id, edits)}
                   />
                 ))}
               </tbody>
