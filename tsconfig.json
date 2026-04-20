@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "removeComments": true,
     "target": "esnext",
     "lib": [
       "dom",
@@ -15,7 +16,6 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "removeComments": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
