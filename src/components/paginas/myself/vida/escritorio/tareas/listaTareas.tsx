@@ -21,13 +21,13 @@ export const ListaTareas = ({
   isAddingTarea, onAdd, onToggle, onDelete,
 }: Props) => (
   <div className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-5 shadow-xl shadow-primary/5 flex flex-col lg:flex-1 lg:overflow-hidden">
-    {/* Título */}
+    {}
     <div className="flex items-center gap-3 mb-5 px-1 shrink-0">
       <CheckSquare className="text-primary" size={18} />
       <h2 className="text-[11px] font-black uppercase tracking-widest text-primary/60">Pendientes</h2>
     </div>
 
-    {/* Input nueva tarea */}
+    {}
     <div className="relative mb-4 shrink-0">
       <input
         type="text"
@@ -47,7 +47,7 @@ export const ListaTareas = ({
       </BtnIcon>
     </div>
 
-    {/* Lista — scroll interno solo en desktop */}
+    {}
     <div className="flex flex-col gap-2 lg:flex-1 lg:overflow-y-auto lg:min-h-0 pr-0.5">
       <AnimatePresence mode="popLayout">
         {tareas.map((t: any) => (
@@ -68,7 +68,7 @@ export const ListaTareas = ({
               className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
               onClick={() => onToggle(t.id, t.completada)}
             >
-              {/* Checkbox */}
+              {}
               <div className={cn(
                 "w-5 h-5 rounded-[var(--radius-input)] border-[length:var(--border-width)] flex items-center justify-center transition-all shrink-0",
                 t.completada
@@ -85,7 +85,7 @@ export const ListaTareas = ({
               </span>
             </div>
 
-            {/* Borrar */}
+            {}
             <BtnIcon
               variant="danger"
               size="sm"

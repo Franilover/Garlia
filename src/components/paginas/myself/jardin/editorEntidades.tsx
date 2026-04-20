@@ -17,8 +17,6 @@ import { EditorItem }      from "./editorEntidades/EditorItem";
 import { EditorReino }     from "./editorEntidades/EditorReino";
 import { EditorMundo }     from "./editorEntidades/EditorMundo";
 
-// ─── ModalNueva ───────────────────────────────────────────────────────────────
-
 function ModalNueva({ tab, onCreated, onClose }: {
   tab: TabKey; onCreated: (item: any) => void; onClose: () => void;
 }) {
@@ -65,8 +63,6 @@ function ModalNueva({ tab, onCreated, onClose }: {
   );
 }
 
-// ─── Sesión persistida ────────────────────────────────────────────────────────
-
 const STORAGE_KEY = "editorEntidades:session";
 
 function readSession(): { tab: TabKey; selectedId: string | null } {
@@ -81,8 +77,6 @@ function readSession(): { tab: TabKey; selectedId: string | null } {
     return { tab: "personajes", selectedId: null };
   }
 }
-
-// ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function EditorEntidades() {
   const session = useRef(readSession());
@@ -132,12 +126,12 @@ export default function EditorEntidades() {
     setItems(prev => prev.map(i => i.id === id ? { ...i, oculto } : i));
   }, [setItems]);
 
-  // ── Ícono y título según tab ──────────────────────────────────────────────
+  
   const isMundo = tab === "mundo";
   const Icon    = isMundo ? Globe : TAB_CONFIG[tab].Icon;
   const label   = isMundo ? "Mundo" : TAB_CONFIG[tab].label;
 
-  // ── Header extra de sidebar ───────────────────────────────────────────────
+  
   const headerExtra = (
     <>
       <TabNav tab={tab} onTabChange={setTab} mundoSection={mundoSection} onMundoSectionChange={setMundoSection} />
@@ -150,7 +144,7 @@ export default function EditorEntidades() {
     </>
   );
 
-  // ── Contenido del sidebar ─────────────────────────────────────────────────
+  
   const sidebarContent = isMundo ? null : (
     <div className="space-y-0.5">
       {loading ? (

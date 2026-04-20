@@ -12,8 +12,6 @@ import { FloatWord }    from "./FloatWord";
 import { SoundInline }  from "./SoundInline";
 import { ChoiceButton, UseWord } from "./Interactivos";
 
-// ─── RenderSegmentos ──────────────────────────────────────────────────────────
-
 export function RenderSegmentos({ segs, onNavigate, isFirst = false }: {
   segs: Segment[];
   onNavigate: (id: string) => void;
@@ -36,8 +34,6 @@ export function RenderSegmentos({ segs, onNavigate, isFirst = false }: {
     </>
   );
 }
-
-// ─── ContenidoInteractivo ─────────────────────────────────────────────────────
 
 export function ContenidoInteractivo({ texto, onNavigate }: {
   texto: string;

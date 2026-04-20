@@ -23,7 +23,7 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
     )
     .slice(0, 8);
 
-  // Si no hay resultados, no renderizamos ABSOLUTAMENTE NADA
+  
   if (filtered.length === 0) return null;
 
   return (
@@ -57,7 +57,7 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
             <button
               key={src.citekey || i}
               onMouseDown={(e) => {
-                e.preventDefault(); // Evita que el textarea pierda el foco al hacer click
+                e.preventDefault(); 
                 onSelect(src);
               }}
               className="flex flex-col px-4 py-3 text-left transition-colors w-full relative"

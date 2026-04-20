@@ -11,14 +11,13 @@ export interface Relacion {
   personaje: string;
 }
 
-// Alias exportado para no romper imports existentes en DetalleMaestro.tsx
 export type Variante = CriaturaVariante;
 
 interface DetalleMaestroOptions {
   onUpdate?: (record: any) => void;
-  /** Reemplaza alert() nativo. Ej: (msg) => toast.error(msg) */
+  
   showError?: (message: string) => void;
-  /** Reemplaza window.confirm() nativo. Ej: (msg) => confirm({ message: msg, danger: true }) */
+  
   requestConfirm?: (message: string) => Promise<boolean>;
 }
 
@@ -27,8 +26,8 @@ export function useDetalleMaestro(
   tabla: string,
   onUpdateOrOptions?: ((record: any) => void) | DetalleMaestroOptions
 ) {
-  // Soporte para la firma legacy useDetalleMaestro(data, tabla, onUpdate)
-  // y la nueva useDetalleMaestro(data, tabla, { onUpdate, showError, requestConfirm })
+  
+  
   const options: DetalleMaestroOptions =
     typeof onUpdateOrOptions === "function"
       ? { onUpdate: onUpdateOrOptions }

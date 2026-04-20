@@ -16,7 +16,7 @@ interface Cancion {
   compositor?: string;
   idioma?: string;
   portada_url?: string;
-  visible?: boolean; // 👈 campo de visibilidad (ajusta el nombre si es distinto en tu DB)
+  visible?: boolean; 
 }
 
 const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }) => (
@@ -100,17 +100,17 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
 export default function CancionesPage() {
   const { data: canciones, loading } = useSupabaseData<Cancion>("canciones", {
     order: { campo: "created_at", asc: false },
-    // 👇 Opción A: filtrar por visibilidad directamente en la query (recomendado)
-    // Si tu hook soporta filters, úsalo así:
-    // filters: [{ campo: "visible", valor: true }],
+    
+    
+    
   });
   const [vistaFila, setVistaFila] = useState(false);
   const [busqueda,  setBusqueda]  = useState("");
 
-  // 👇 useMemo SIEMPRE antes de cualquier return condicional (reglas de hooks)
+  
   const filtradas = useMemo(() =>
     canciones
-      .filter(c => c.visible !== false) // excluye las no visibles (null/undefined se tratan como visible)
+      .filter(c => c.visible !== false) 
       .filter(c => {
         if (!busqueda) return true;
         const q = busqueda.toLowerCase();

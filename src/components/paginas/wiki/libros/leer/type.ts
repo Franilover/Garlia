@@ -1,4 +1,4 @@
-// ─── Tipos compartidos del lector ─────────────────────────────────────────────
+
 
 export interface CapituloLista {
   id: string;
@@ -33,8 +33,6 @@ export type Segment =
   | { type: "section"; id: string; label?: string };
 
 export type SectionMap = Record<string, Segment[]>;
-
-// ─── Parsers ──────────────────────────────────────────────────────────────────
 
 export function parseSections(segs: Segment[]): SectionMap {
   const map: SectionMap = { "": [] };

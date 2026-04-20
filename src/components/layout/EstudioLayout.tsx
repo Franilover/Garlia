@@ -50,7 +50,7 @@ export function EstudioLayout({
   return (
     <div className="flex h-screen bg-bg-main overflow-hidden relative">
 
-      {/* ── Menú Colapsado — solo desktop ── */}
+      {}
       {!isOpen && (
         <div className="hidden md:flex shrink-0 w-10 flex-col items-center pt-6 gap-4 border-r border-primary/10 bg-bg-main">
           <button
@@ -71,10 +71,7 @@ export function EstudioLayout({
         </div>
       )}
 
-      {/* ── Sidebar ──
-           Móvil:   overlay pantalla completa (fixed inset-0, z-50)
-           Desktop: columna fija de 288px
-      ── */}
+      {}
       {isOpen && (
         <aside className="
           fixed inset-0 z-50 flex flex-col bg-bg-main
@@ -82,7 +79,7 @@ export function EstudioLayout({
           border-r border-primary/10 shadow-2xl md:shadow-none
         ">
 
-          {/* Header */}
+          {}
           <div className="px-5 pt-6 pb-4 border-b border-primary/10 shrink-0 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
@@ -108,7 +105,7 @@ export function EstudioLayout({
               </div>
             </div>
 
-            {/* Búsqueda — más grande en móvil */}
+            {}
             {onBusquedaChange && (
               <div className="relative">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary/30" />
@@ -132,12 +129,12 @@ export function EstudioLayout({
             {headerExtra}
           </div>
 
-          {/* Lista — items más grandes y fáciles de tocar en móvil */}
+          {}
           <div className="flex-1 overflow-y-auto px-3 py-3 [&>*]:md:text-xs [&_button]:min-h-[2.75rem] md:[&_button]:min-h-0">
             {sidebarContent}
           </div>
 
-          {/* Footer */}
+          {}
           <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
             {isOffline ? (
               <span className="flex items-center gap-1 text-amber-400">
@@ -153,13 +150,10 @@ export function EstudioLayout({
         </aside>
       )}
 
-      {/* ── Contenido principal ──
-           En móvil: siempre ocupa todo el ancho (el sidebar es overlay encima)
-           En desktop: flex-1 al lado del sidebar
-      ── */}
+      {}
       <main className="flex-1 flex flex-col min-w-0 min-h-0 w-full overflow-hidden">
 
-        {/* Botón "ver lista" — solo visible en móvil cuando el sidebar está cerrado */}
+        {}
         {!isOpen && (
           <div className="md:hidden shrink-0 px-4 py-2 border-b border-primary/10 flex items-center">
             <button

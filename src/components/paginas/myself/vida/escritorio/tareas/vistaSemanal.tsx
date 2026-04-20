@@ -11,8 +11,6 @@ import {
   addDays, isSameDay, toUTCDate,
 } from "./types";
 
-// ── Columna día (en la vista de semana) ─────────────────────────────────────
-
 const ColumniaDia = ({
   fecha, eventos, esHoy, seleccionado, onClick, compact,
 }: {
@@ -29,7 +27,7 @@ const ColumniaDia = ({
       esHoy && !seleccionado && "border-primary/25 bg-primary/5"
     )}
   >
-    {/* Cabecera día */}
+    {}
     <div className={cn(
       "flex flex-col items-center py-2 border-b gap-0.5 transition-colors shrink-0",
       seleccionado ? "border-primary/15" : "border-primary/5"
@@ -52,7 +50,7 @@ const ColumniaDia = ({
       </div>
     </div>
 
-    {/* Eventos del día */}
+    {}
     <div className="flex flex-col gap-1 p-1.5 flex-1 overflow-y-auto min-h-0">
       {eventos.length === 0 && (
         <p className="text-[7px] text-primary/15 font-bold italic text-center mt-3">—</p>
@@ -62,8 +60,6 @@ const ColumniaDia = ({
   </div>
 );
 
-// ── Props ────────────────────────────────────────────────────────────────────
-
 interface Props {
   eventos: any[];
   capitulosRaw: any[];
@@ -71,8 +67,6 @@ interface Props {
   onAddEvento: (fecha: string, titulo: string, tipo: string) => Promise<void>;
 }
 
-// En móvil, las vistas de 5 y 7 días quedan muy apretadas.
-// Limitamos el selector a 1/3/5 días en pantallas pequeñas vía JS (según viewport).
 const VISTAS_MOVIL: VistaOpcion[] = [1, 3, 5];
 
 export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }: Props) => {
@@ -148,9 +142,9 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
   return (
     <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-4 shadow-xl shadow-primary/5 flex flex-col gap-3 lg:flex-1 lg:overflow-hidden">
 
-      {/* ── Barra superior ─────────────────────────────────────────────────── */}
+      {}
       <div className="flex flex-col gap-2 shrink-0">
-        {/* Navegación + rango */}
+        {}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={irAHoy}
@@ -175,7 +169,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           </span>
         </div>
 
-        {/* Selector de vista — en móvil muestra versión corta */}
+        {}
         <div className="flex items-center gap-1 bg-primary/5 rounded-[var(--radius-btn)] p-1 self-start">
           {VISTAS.map((v) => (
             <button
@@ -195,12 +189,8 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </div>
       </div>
 
-      {/* ── Grid de columnas por día ─────────────────────────────────────── */}
-      {/*
-        En móvil: si hay 5 o 7 días, las columnas quedan muy estrechas.
-        Usamos overflow-x-auto como escape hatch para no cortar el contenido.
-        En lg: el flex-1 + min-h-0 maneja el scroll vertical interno.
-      */}
+      {}
+      {}
       <div className="flex-1 lg:min-h-0 min-h-[220px] overflow-x-auto lg:overflow-x-visible">
         <AnimatePresence mode="wait">
           <MotionDiv
@@ -214,7 +204,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
               display: "grid",
               gridTemplateColumns: `repeat(${Math.min(vista, 7)}, minmax(${compact ? "5rem" : "7rem"}, 1fr))`,
               gap: "0.375rem",
-              // En mobile hace scroll horizontal si las cols no caben
+              
               minWidth: compact ? `${vista * 5}rem` : `${vista * 7}rem`,
             }}
           >
@@ -233,9 +223,9 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </AnimatePresence>
       </div>
 
-      {/* ── Panel inferior: añadir + lista del día seleccionado ─────────── */}
+      {}
       <div className="bg-primary/5 rounded-[var(--radius-btn)] p-3 border border-primary/10 shrink-0">
-        {/* Cabecera fecha */}
+        {}
         <div className="flex items-center gap-2 mb-2">
           <Calendar size={12} className="text-primary/40" />
           <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
@@ -243,7 +233,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           </span>
         </div>
 
-        {/* Input nuevo evento — stack en móvil */}
+        {}
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
           <select
             value={tipoEvento}
@@ -272,7 +262,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           </div>
         </div>
 
-        {/* Eventos del día — scroll limitado */}
+        {}
         <div className="space-y-1.5 max-h-32 overflow-y-auto">
           {eventosDiaSeleccionado.length === 0 ? (
             <p className="text-[9px] font-bold text-primary/20 italic px-1">Sin eventos para este día.</p>

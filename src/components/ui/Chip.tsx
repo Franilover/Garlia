@@ -2,10 +2,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-// ─── Chip ─────────────────────────────────────────────────────────────────────
-// Pill de filtro simple — usado en editorLetras (filtros de canciones)
-// y como base para ChipGroup
-
 export function Chip({
   active,
   onClick,
@@ -30,10 +26,6 @@ export function Chip({
     </button>
   );
 }
-
-// ─── ChipGroup ────────────────────────────────────────────────────────────────
-// Grupo de pills de filtro multi-selección — usado en ropa.tsx
-// Soporta colorDot opcional (para chips de colores)
 
 export function ChipGroup<T extends string>({
   options,

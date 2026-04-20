@@ -16,22 +16,6 @@ interface ConfirmState extends ConfirmOptions {
   resolve: (value: boolean) => void;
 }
 
-/**
- * Hook para reemplazar window.confirm() con un modal no bloqueante.
- *
- * Uso:
- *   const { confirm, ConfirmModal } = useConfirm();
- *
- *   const ok = await confirm({
- *     title: "¿Eliminar?",
- *     message: `¿Borrar "${nombre}" permanentemente?`,
- *     danger: true,
- *   });
- *   if (!ok) return;
- *
- *   // Renderizar en el JSX del componente:
- *   <ConfirmModal />
- */
 export function useConfirm() {
   const [state, setState] = useState<ConfirmState | null>(null);
 
@@ -64,7 +48,7 @@ export function useConfirm() {
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className="relative bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-8 w-full max-w-sm shadow-2xl z-10"
           >
-            {/* Icono */}
+            {}
             <div className={`w-12 h-12 rounded-[var(--radius-btn)] flex items-center justify-center mb-5 ${
               state.danger
                 ? "bg-red-50 text-red-500 border border-red-100"
@@ -73,7 +57,7 @@ export function useConfirm() {
               <AlertTriangle size={20} />
             </div>
 
-            {/* Texto */}
+            {}
             {state.title && (
               <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-primary mb-2">
                 {state.title}
@@ -83,7 +67,7 @@ export function useConfirm() {
               {state.message}
             </p>
 
-            {/* Botones */}
+            {}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => handleResponse(false)}

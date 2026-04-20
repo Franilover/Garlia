@@ -98,7 +98,7 @@ function ProjectDetalleContenido({ data, tabla, onClose, tags, onUpdate, onDelet
 
   const agregarVariante = () => {
     const nueva = {
-      id: String(Date.now()),   // id temporal, Supabase asigna el real al guardar
+      id: String(Date.now()),   
       tipo: "Nueva Variante",
       descripcion_variante: "",
       imagen_url: "",

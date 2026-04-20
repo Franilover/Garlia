@@ -10,8 +10,6 @@ import { Campo, CampoArea, BarraAcciones, SelectorImagen, SelectorTexto, SaveInd
 import { BookOpen, Mic2, Loader2, ChevronDown, ImageIcon, X } from "lucide-react";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 
-// ─── BloqueCapsNarrados ───────────────────────────────────────────────────────
-
 function BloqueCapsNarrados({ personajeId }: { personajeId: string }) {
   const { caps, loading } = useCapitulosNarrados(personajeId);
 
@@ -50,8 +48,6 @@ function BloqueCapsNarrados({ personajeId }: { personajeId: string }) {
     </div>
   );
 }
-
-// ─── MobileCuerpoButton ───────────────────────────────────────────────────────
 
 function MobileCuerpoButton({ value, onChange }: { value: string; onChange: (url: string) => void }) {
   const [open,       setOpen]       = useState(false);
@@ -130,8 +126,6 @@ function MobileCuerpoButton({ value, onChange }: { value: string; onChange: (url
   );
 }
 
-// ─── Formulario de personaje compartido (usado en Editor y en Overlay) ─────────
-
 export function FormularioPersonaje({ form, setForm, status, onSave, onDelete, compacto = false }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -148,7 +142,7 @@ export function FormularioPersonaje({ form, setForm, status, onSave, onDelete, c
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
-      {/* Columna izquierda */}
+      {}
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
         <div className="shrink-0 p-5 pb-3 flex items-start gap-4">
           <div className="shrink-0" style={{ width: 88 }}>
@@ -211,7 +205,7 @@ export function FormularioPersonaje({ form, setForm, status, onSave, onDelete, c
         <BarraAcciones status={status} onSave={onSave} onDelete={onDelete} />
       </div>
 
-      {/* Columna derecha: cuerpo full-height — solo desktop */}
+      {}
       <div className="hidden sm:flex w-44 shrink-0 border-l border-primary/10 flex-col overflow-hidden">
         <div className="flex-1 min-h-0">
           <SelectorImagen
@@ -229,8 +223,6 @@ export function FormularioPersonaje({ form, setForm, status, onSave, onDelete, c
     </div>
   );
 }
-
-// ─── EditorPersonaje ──────────────────────────────────────────────────────────
 
 export function EditorPersonaje({ item, onSaved, onDeleted }: {
   item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void;

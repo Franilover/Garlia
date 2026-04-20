@@ -2,7 +2,7 @@ import { supabase } from '@/lib/api/client/supabase';
 
 export interface EscenaMV {
   id: string;
-  timestamp_seg: number;  // segundos desde el inicio
+  timestamp_seg: number;  
   descripcion: string;
   tipo: "escena" | "camara" | "efecto" | "transicion" | "personaje";
 }
@@ -33,7 +33,7 @@ interface Cancion {
   created_at: string;
   updated_at: string;
   secciones?: Seccion[];
-  // Nuevos campos
+  
   info_cancion?: string | null;
   guion_mv?: EscenaMV[] | null;
 }
@@ -132,7 +132,7 @@ export const cancionesQueries = {
     return data as Cancion[];
   },
 
-  // Guardar info de la canción
+  
   updateInfo: async (id: string, info_cancion: string | null) => {
     const { data, error } = await supabase
       .from('canciones')
@@ -145,7 +145,7 @@ export const cancionesQueries = {
     return data;
   },
 
-  // Guardar guion MV completo
+  
   updateGuionMV: async (id: string, guion_mv: EscenaMV[]) => {
     const { data, error } = await supabase
       .from('canciones')

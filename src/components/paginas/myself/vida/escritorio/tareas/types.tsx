@@ -39,7 +39,6 @@ export const COLORES_EVENTO: Record<string, string> = {
 
 export const TIPOS_EVENTO = ["Plan", "Reunión", "Personal"] as const;
 
-// Componente compartido entre VistaMes y VistaSemanal
 export const EventoBadge = ({ item, compact = false }: { item: Evento; compact?: boolean }) => {
   const color = COLORES_EVENTO[item.tipo] ?? COLORES_EVENTO["default"];
   return (

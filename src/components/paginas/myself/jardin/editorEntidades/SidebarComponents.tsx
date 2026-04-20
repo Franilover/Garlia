@@ -7,8 +7,6 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { TAB_CONFIG, MUNDO_SECTIONS, type TabKey, type MundoSectionKey } from "./types";
 
-// ─── EntidadCard ──────────────────────────────────────────────────────────────
-
 export function EntidadCard({ item, tab, selected, onClick, onToggleOculto }: {
   item: any; tab: TabKey; selected: boolean; onClick: () => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
@@ -70,8 +68,6 @@ export function EntidadCard({ item, tab, selected, onClick, onToggleOculto }: {
   );
 }
 
-// ─── TabNav ───────────────────────────────────────────────────────────────────
-
 export function TabNav({ tab, mundoSection, onTabChange, onMundoSectionChange }: {
   tab: TabKey;
   mundoSection: MundoSectionKey;
@@ -105,7 +101,7 @@ export function TabNav({ tab, mundoSection, onTabChange, onMundoSectionChange }:
         </button>
       </div>
 
-      {/* Subsecciones de Mundo — solo visibles cuando tab === "mundo" */}
+      {}
       {tab === "mundo" && (
         <div className="flex flex-col gap-0.5 px-1">
           {MUNDO_SECTIONS.map(s => {

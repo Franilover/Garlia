@@ -17,15 +17,15 @@ export default function AppLogic({ children }) {
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
         hiddenAtRef.current = Date.now();
-        // Cancelar cualquier reconexión pendiente
+        
         if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       } else {
-        // Volvió a ser visible
+        
         const hiddenDuration = Date.now() - hiddenAtRef.current;
 
         if (hiddenDuration > RECONNECT_AFTER_MS) {
-          // Estuvo suficiente tiempo oculto como para que el WS muriera
-          // Pequeño delay para que el sistema operativo libere la red primero
+          
+          
           reconnectTimerRef.current = setTimeout(() => {
             supabase.realtime.connect();
           }, 300);
@@ -34,7 +34,7 @@ export default function AppLogic({ children }) {
     };
 
     const handleOnline = () => {
-      // Red recuperada → reconectar realtime inmediatamente
+      
       supabase.realtime.connect();
     };
 
@@ -48,14 +48,14 @@ export default function AppLogic({ children }) {
     };
   }, []);
 
-  // ─── Scroll al top y cierre de lightbox en navegación ───────────────────────
+  
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.scrollTo(0, 0);
     if (closeLightbox && typeof closeLightbox === "function") closeLightbox();
   }, [pathname, closeLightbox]);
 
-  // ─── Protección de contenido ─────────────────────────────────────────────────
+  
   useEffect(() => {
     if (typeof window === "undefined") return;
 

@@ -40,14 +40,14 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Local state — decoupled from parent so keystrokes don't bubble up as re-renders
+  
   const [localTitulo, setLocalTitulo] = useState<string>(ensayo.titulo || "");
   const [localContenido, setLocalContenido] = useState<string>(ensayo.contenido || "");
   const [tagInput, setTagInput] = useState<string>(ensayo.tags?.join(", ") || "");
   const [tagInputFocused, setTagInputFocused] = useState(false);
   const [tagPanelActivo, setTagPanelActivo] = useState<string | null>(null);
 
-  // Sync local state only when switching notes
+  
   useEffect(() => {
     setLocalTitulo(ensayo.titulo || "");
     setLocalContenido(ensayo.contenido || "");
@@ -185,14 +185,14 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
         key={ensayo.id}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        // ── FIX: exit definido explícitamente para que Framer no invierta
-        // la animación inicial (que tenía translateX herededado del layout padre).
-        // Con esto al cambiar de nota la salida es limpia: fade + sube suavemente.
+        
+        
+        
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
         className="flex flex-col gap-0 min-h-[80vh]"
       >
-        {/* Barra de tags */}
+        {}
         <div
           className="flex items-center gap-2 px-3 md:px-4 py-2.5 mb-3"
           style={{
@@ -276,7 +276,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
           </button>
         </div>
 
-        {/* Toolbar de formato */}
+        {}
         {editMode && (
           <MotionDiv
             initial={{ opacity: 0, y: -4 }}
@@ -332,7 +332,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
           </MotionDiv>
         )}
 
-        {/* Cuerpo del editor */}
+        {}
         <div
           className="flex flex-col gap-0 flex-1 p-5 md:p-8"
           style={{
@@ -422,7 +422,7 @@ export function Editor({ ensayo, ensayos, sources = [], editMode, onToggleEditMo
         </div>
       </MotionDiv>
 
-      {/* TagPanel del editor */}
+      {}
       <TagPanel
         tag={tagPanelActivo}
         ensayos={ensayos}

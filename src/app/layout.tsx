@@ -91,7 +91,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      {/* IMPORTANTE: sin montserrat.className aquí — las fuentes se controlan por CSS/tema */}
+      {}
       <body className="antialiased bg-bg-main min-h-svh flex flex-col">
         <OfflineSyncActivator />
         <AuthProvider>

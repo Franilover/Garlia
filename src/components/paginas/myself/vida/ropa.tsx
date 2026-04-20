@@ -11,8 +11,6 @@ import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Temporada = "Primavera" | "Verano" | "Otoño" | "Invierno";
 type Vibra     = "Casual" | "Formal" | "Sport" | "Noche" | "Aesthetic";
 type Color     = "Negro" | "Blanco" | "Gris" | "Rosa" | "Rojo" | "Azul" | "Verde" | "Beige" | "Marrón" | "Lila";
@@ -36,8 +34,6 @@ interface FormData {
   colores: Color[];
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const TEMPORADAS: Temporada[] = ["Primavera", "Verano", "Otoño", "Invierno"];
 const VIBRAS: Vibra[]         = ["Casual", "Formal", "Sport", "Noche", "Aesthetic"];
 const COLORES: Color[]        = ["Negro", "Blanco", "Gris", "Rosa", "Rojo", "Azul", "Verde", "Beige", "Marrón", "Lila"];
@@ -53,13 +49,9 @@ const EMPTY_FORM: FormData = {
   temporadas: [], vibras: [], colores: [],
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function toggleArr<T>(arr: T[], val: T): T[] {
   return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
 }
-
-// ─── ChipGroup ────────────────────────────────────────────────────────────────
 
 function ChipGroup<T extends string>({
   options, selected, onToggle, colorDot,
@@ -96,8 +88,6 @@ function ChipGroup<T extends string>({
   );
 }
 
-// ─── OutfitForm ───────────────────────────────────────────────────────────────
-
 interface OutfitFormProps {
   initial: FormData;
   onSave: (data: FormData) => Promise<void>;
@@ -116,7 +106,7 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
 
   return (
     <>
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between p-5 border-b border-primary/10">
         <div className="flex items-center gap-2">
           {icon}
@@ -132,7 +122,7 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
       </div>
 
       <div className="p-5 flex flex-col gap-4 overflow-y-auto" style={{ maxHeight: "80vh" }}>
-        {/* Image picker */}
+        {}
         {!showPicker ? (
           <button
             onClick={() => setShowPicker(true)}
@@ -174,7 +164,7 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
 
         {!showPicker && (
           <>
-            {/* Nombre */}
+            {}
             <input
               type="text"
               placeholder="NOMBRE DEL OUTFIT..."
@@ -183,7 +173,7 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
               className="input-brand text-[10px] font-black"
             />
 
-            {/* Descripción */}
+            {}
             <textarea
               placeholder="Descripción o notas (opcional)..."
               value={form.descripcion}
@@ -192,7 +182,7 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
               className="input-brand text-[10px] resize-none"
             />
 
-            {/* Temporada */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Temporada</p>
               <ChipGroup
@@ -202,7 +192,7 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
               />
             </div>
 
-            {/* Vibra */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Vibra</p>
               <ChipGroup
@@ -212,7 +202,7 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
               />
             </div>
 
-            {/* Colores */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Colores</p>
               <ChipGroup
@@ -238,8 +228,6 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
   );
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────────
-
 export default function ArmarioPage() {
   const {
     data: outfits = [],
@@ -259,7 +247,7 @@ export default function ArmarioPage() {
   const [savingOutfit, setSavingOutfit]   = useState(false);
   const [deletingId, setDeletingId]       = useState<string | null>(null);
 
-  // Filtros
+  
   const [filtroTemporada, setFiltroTemporada] = useState<Temporada | null>(null);
   const [filtroVibra, setFiltroVibra]         = useState<Vibra | null>(null);
   const [filtroColor, setFiltroColor]         = useState<Color | null>(null);
@@ -282,7 +270,7 @@ export default function ArmarioPage() {
     setFiltroColor(null);
   };
 
-  // CRUD
+  
   const guardarNuevo = async (data: FormData) => {
     setSavingOutfit(true);
     const { error } = await addOutfit(data);
@@ -313,7 +301,7 @@ export default function ArmarioPage() {
     </div>
   );
 
-  // ─── Modal wrapper ─────────────────────────────────────────────────────────
+  
 
   const Modal = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
     <MotionDiv
@@ -335,12 +323,12 @@ export default function ArmarioPage() {
     </MotionDiv>
   );
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  
 
   return (
     <div className="min-h-screen bg-bg-main">
 
-      {/* Modal: nuevo outfit */}
+      {}
       <AnimatePresence>
         {showNuevo && (
           <Modal onClose={() => setShowNuevo(false)}>
@@ -356,7 +344,7 @@ export default function ArmarioPage() {
         )}
       </AnimatePresence>
 
-      {/* Modal: editar */}
+      {}
       <AnimatePresence>
         {editando && (
           <Modal onClose={() => setEditando(null)}>
@@ -379,7 +367,7 @@ export default function ArmarioPage() {
         )}
       </AnimatePresence>
 
-      {/* Modal: confirmar borrado */}
+      {}
       <AnimatePresence>
         {confirmDelete && (
           <Modal onClose={() => setConfirmDelete(null)}>
@@ -421,11 +409,11 @@ export default function ArmarioPage() {
         )}
       </AnimatePresence>
 
-      {/* Modal: lightbox */}
+      {}
       <AnimatePresence>
         {lightbox && (
           <Modal onClose={() => setLightbox(null)}>
-            {/* Acciones flotantes */}
+            {}
             <div className="absolute top-4 left-4 z-10 flex gap-2">
               <button
                 onClick={() => { setEditando(lightbox); setLightbox(null); }}
@@ -450,7 +438,7 @@ export default function ArmarioPage() {
               <X size={16} />
             </button>
 
-            {/* Imagen */}
+            {}
             <div className="aspect-[3/4] w-full bg-primary/5 overflow-hidden flex items-center justify-center">
               {lightbox.imagen_url
                 ? <img src={lightbox.imagen_url} alt={lightbox.nombre} className="w-full h-full object-cover" />
@@ -458,7 +446,7 @@ export default function ArmarioPage() {
               }
             </div>
 
-            {/* Info */}
+            {}
             <div className="p-5 border-t border-primary/10">
               <p className="text-xs font-black uppercase text-on-surface">{lightbox.nombre}</p>
               {lightbox.descripcion && (
@@ -482,7 +470,7 @@ export default function ArmarioPage() {
         )}
       </AnimatePresence>
 
-      {/* ─── Sticky header ──────────────────────────────────────────────────── */}
+      {}
       <div
         className="sticky top-0 z-40 backdrop-blur-md"
         style={{
@@ -531,7 +519,7 @@ export default function ArmarioPage() {
           </div>
         </div>
 
-        {/* Panel de filtros */}
+        {}
         <AnimatePresence>
           {showFiltros && (
             <MotionDiv
@@ -543,7 +531,7 @@ export default function ArmarioPage() {
             >
               <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-4">
 
-                {/* Temporada */}
+                {}
                 <div className="flex items-start gap-4 flex-wrap">
                   <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Temporada</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -565,7 +553,7 @@ export default function ArmarioPage() {
                   </div>
                 </div>
 
-                {/* Vibra */}
+                {}
                 <div className="flex items-start gap-4 flex-wrap">
                   <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Vibra</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -587,7 +575,7 @@ export default function ArmarioPage() {
                   </div>
                 </div>
 
-                {/* Color */}
+                {}
                 <div className="flex items-start gap-4 flex-wrap">
                   <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface w-20 shrink-0 pt-1">Color</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -610,7 +598,7 @@ export default function ArmarioPage() {
                   </div>
                 </div>
 
-                {/* Limpiar */}
+                {}
                 {hayFiltros && (
                   <button
                     onClick={limpiarFiltros}
@@ -625,10 +613,10 @@ export default function ArmarioPage() {
         </AnimatePresence>
       </div>
 
-      {/* ─── Grid principal ─────────────────────────────────────────────────── */}
+      {}
       <main className="max-w-7xl mx-auto p-6 md:p-10">
 
-        {/* Chips de filtros activos */}
+        {}
         {hayFiltros && (
           <div className="flex flex-wrap gap-2 mb-6">
             {[
@@ -648,7 +636,7 @@ export default function ArmarioPage() {
           </div>
         )}
 
-        {/* Empty state */}
+        {}
         {outfitsFiltrados.length === 0 ? (
           <div
             className="flex flex-col items-center justify-center p-20 border-2 border-dashed border-primary/10"
@@ -668,7 +656,7 @@ export default function ArmarioPage() {
             )}
           </div>
         ) : (
-          /* Grid de outfits — 2 cols en móvil, 3 en md, 4 en xl */
+          
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
             {outfitsFiltrados.map((outfit: Outfit) => (
               <div key={outfit.id} className="relative group/card">
@@ -678,7 +666,7 @@ export default function ArmarioPage() {
                   className="card-main w-full relative overflow-hidden group p-0 transition-all border-primary/10 hover:border-primary/30"
                   style={{ aspectRatio: "3/4" }}
                 >
-                  {/* Imagen */}
+                  {}
                   <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
                     {outfit.imagen_url
                       ? <img
@@ -690,14 +678,14 @@ export default function ArmarioPage() {
                     }
                   </div>
 
-                  {/* Hover overlay */}
+                  {}
                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="modal-surface p-3 rounded-full shadow-lg">
                       <ZoomIn size={18} className="text-primary" />
                     </div>
                   </div>
 
-                  {/* Dots de color */}
+                  {}
                   {outfit.colores && outfit.colores.length > 0 && (
                     <div className="absolute top-2 right-2 flex gap-0.5">
                       {outfit.colores.slice(0, 4).map(c => (
@@ -710,7 +698,7 @@ export default function ArmarioPage() {
                     </div>
                   )}
 
-                  {/* Caption — usa var(--white-custom) en vez de from-foreground/80 para no romper en dark */}
+                  {}
                   <div
                     className="absolute inset-x-0 bottom-0 p-3"
                     style={{
@@ -738,7 +726,7 @@ export default function ArmarioPage() {
                   </div>
                 </MotionButton>
 
-                {/* Botones editar/borrar */}
+                {}
                 <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all">
                   <button
                     onClick={() => setEditando(outfit)}
@@ -758,7 +746,7 @@ export default function ArmarioPage() {
               </div>
             ))}
 
-            {/* Botón añadir */}
+            {}
             <MotionButton
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowNuevo(true)}

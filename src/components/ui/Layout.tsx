@@ -5,8 +5,6 @@ import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Text } from "@/components/ui/Tiopgrafia";
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
-
 interface ModalProps {
   open:      boolean;
   onClose:   () => void;
@@ -58,8 +56,6 @@ export function Modal({ open, onClose, title, subtitle, children, maxWidth = "ma
   );
 }
 
-// ─── Card ─────────────────────────────────────────────────────────────────────
-
 interface CardProps {
   children:   React.ReactNode;
   className?: string;
@@ -91,8 +87,6 @@ export function Card({ children, className = "", onClick, hover, padding = "md" 
   );
 }
 
-// ─── PageHeader ───────────────────────────────────────────────────────────────
-
 interface PageHeaderProps {
   title:     string;
   subtitle?: string;
@@ -120,8 +114,6 @@ export function PageHeader({ title, subtitle, icon, action }: PageHeaderProps) {
     </MotionDiv>
   );
 }
-
-// ─── BackBtn ──────────────────────────────────────────────────────────────────
 
 interface BackBtnProps {
   onClick: () => void;

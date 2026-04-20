@@ -59,7 +59,6 @@ function calcTotales(list: IngredienteReceta[]) {
   );
 }
 
-
 function RecetaDetalle({ receta }: { receta: Receta }) {
   const ingredientesList = parseIngredientes(receta.ingredientes);
   const totales = calcTotales(ingredientesList);

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, ChevronLeft, X, ChevronUp, ChevronDown, CheckSquare, Circle } from "lucide-react";
 
-// ── Presets ──────────────────────────────────────────────────────────────────
 const PRESETS = [
   { label: "5m",   min: 5,  h: 0 },
   { label: "15m",  min: 15, h: 0 },
@@ -33,7 +32,6 @@ const reproducirSonidoFin = () => {
   } catch (e) { console.warn("Audio no disponible", e); }
 };
 
-// ── Notificaciones ────────────────────────────────────────────────────────────
 const pedirPermisoNotificaciones = async () => {
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission === "default") {
@@ -46,12 +44,11 @@ const enviarNotificacion = (titulo: string, cuerpo?: string) => {
   if (Notification.permission !== "granted") return;
   new Notification(titulo, {
     body: cuerpo,
-    icon: "/icon-192.png", // ajusta al ícono de tu PWA si tienes uno
-    silent: true,          // el sonido ya lo maneja Web Audio
+    icon: "/icon-192.png", 
+    silent: true,          
   });
 };
 
-// ── Spinner numérico con flechas ─────────────────────────────────────────────
 const NumSpinner = ({
   value, min, max, onChange, label, disabled,
 }: {
@@ -92,7 +89,6 @@ const NumSpinner = ({
   );
 };
 
-// ── Props ─────────────────────────────────────────────────────────────────────
 interface Props {
   horario: any[];
   tareas?: any[];
@@ -101,7 +97,7 @@ interface Props {
 export const RelojDigital = ({ horario, tareas = [] }: Props) => {
   const [hora, setHora] = useState(new Date());
 
-  // Temporizador — ahora en horas + minutos
+  
   const [pomHoras, setPomHoras]       = useState(0);
   const [pomMins, setPomMins]         = useState(25);
   const [pomSegundos, setPomSegundos] = useState(25 * 60);
@@ -109,16 +105,16 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
   const [pomTerminado, setPomTerminado] = useState(false);
   const [pomPantallaCompleta, setPomPantallaCompleta] = useState(false);
 
-  // Tarea seleccionada para el pomodoro
+  
   const [tareaSeleccionada, setTareaSeleccionada] = useState<any | null>(null);
 
-  // Ref para acceder a tareaSeleccionada dentro de closures del timer
+  
   const tareaRef = useRef(tareaSeleccionada);
   useEffect(() => { tareaRef.current = tareaSeleccionada; }, [tareaSeleccionada]);
 
   const totalSegundosConfig = pomHoras * 3600 + pomMins * 60;
 
-  // Pedir permiso de notificaciones al montar
+  
   useEffect(() => {
     pedirPermisoNotificaciones();
   }, []);
@@ -201,7 +197,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
     setPomSegundos(totalSegundosConfig);
   };
 
-  // Display del temporizador corriendo
+  
   const hDisplay   = Math.floor(pomSegundos / 3600);
   const minDisplay = Math.floor((pomSegundos % 3600) / 60).toString().padStart(2, "0");
   const secDisplay = (pomSegundos % 60).toString().padStart(2, "0");
@@ -211,7 +207,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
 
   const pct = totalSegundosConfig > 0 ? 1 - pomSegundos / totalSegundosConfig : 0;
 
-  // Tareas pendientes
+  
   const tareasPendientes = tareas.filter((t: any) => !t.completada);
 
   const styMuted = { color: "color-mix(in srgb, var(--menu-text) 30%, transparent)" };
@@ -220,7 +216,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
   return (
     <div className="relative z-10 shrink-0">
 
-      {/* ── Tarjeta reloj ──────────────────────────────────────────────── */}
+      {}
       <MotionDiv
         layout
         onClick={() => setPomPantallaCompleta(true)}
@@ -246,7 +242,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
         </div>
       </MotionDiv>
 
-      {/* ── Overlay pantalla completa ───────────────────────────────────── */}
+      {}
       <AnimatePresence>
         {pomPantallaCompleta && (
           <MotionDiv
@@ -257,7 +253,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
             className="fixed inset-0 z-[9999] overflow-hidden"
             style={{ backgroundColor: "var(--bg-menu)", color: "var(--menu-text)" }}
           >
-            {/* ── Barra superior ── */}
+            {}
             <div className="flex items-center justify-between px-6 py-4 shrink-0"
               style={{ borderBottom: "1px solid color-mix(in srgb, var(--menu-text) 8%, transparent)" }}
             >
@@ -270,7 +266,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                   ▶ {tareaSeleccionada.titulo}
                 </span>
               )}
-              {/* X para cerrar — siempre visible en la barra */}
+              {}
               <button
                 onClick={() => setPomPantallaCompleta(false)}
                 className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-[var(--radius-btn)] transition-all"
@@ -288,13 +284,13 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
               </button>
             </div>
 
-            {/* ── Contenido principal: dos columnas ── */}
+            {}
             <div className="flex h-[calc(100%-57px)]">
 
-              {/* ── Columna izquierda: temporizador ── */}
+              {}
               <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8">
 
-                {/* Círculo */}
+                {}
                 <div
                   className="relative cursor-pointer"
                   style={{ width: "min(45vw, 320px)", height: "min(45vw, 320px)" }}
@@ -349,7 +345,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                   </div>
                 </div>
 
-                {/* Selector de tiempo: spinners H + M */}
+                {}
                 <div className="flex items-end gap-3">
                   <NumSpinner value={pomHoras} min={0} max={9}
                     onChange={cambiarHoras} label="Horas" disabled={pomActivo} />
@@ -358,7 +354,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                     onChange={cambiarMins} label="Minutos" disabled={pomActivo} />
                 </div>
 
-                {/* Presets */}
+                {}
                 <div className="flex flex-wrap justify-center gap-1.5 max-w-xs">
                   {PRESETS.map(p => {
                     const activo = pomHoras === p.h && pomMins === p.min;
@@ -382,7 +378,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                   })}
                 </div>
 
-                {/* Botones acción */}
+                {}
                 <div className="flex items-center gap-3">
                   <button
                     onClick={togglePomodoro}
@@ -417,11 +413,11 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                 </div>
               </div>
 
-              {/* ── Divisor ── */}
+              {}
               <div className="w-px shrink-0 my-8"
                 style={{ background: "color-mix(in srgb, var(--menu-text) 8%, transparent)" }} />
 
-              {/* ── Columna derecha: lista de tareas ── */}
+              {}
               <div className="w-72 xl:w-80 flex flex-col px-6 py-6 gap-4 overflow-hidden">
                 <div className="flex items-center gap-2 shrink-0">
                   <CheckSquare size={14} style={styMuted} />
@@ -430,7 +426,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                   </span>
                 </div>
 
-                {/* Sin tarea seleccionada */}
+                {}
                 {!tareaSeleccionada ? (
                   <p className="text-[9px] italic" style={{ color: "color-mix(in srgb, var(--menu-text) 20%, transparent)" }}>
                     Selecciona una tarea para dedicarle este pomodoro.
@@ -451,7 +447,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                   </div>
                 )}
 
-                {/* Lista */}
+                {}
                 <div className="flex flex-col gap-1.5 overflow-y-auto flex-1 min-h-0">
                   {tareasPendientes.length === 0 ? (
                     <p className="text-[9px] italic" style={{ color: "color-mix(in srgb, var(--menu-text) 20%, transparent)" }}>

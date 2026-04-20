@@ -10,8 +10,6 @@ import { BarraAcciones, SelectorImagen } from "./UIComponents";
 import { FormularioPersonaje } from "./EditorPersonaje";
 import { Maximize2 } from "lucide-react";
 
-// ─── OverlayEditorPersonaje ───────────────────────────────────────────────────
-
 export function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
   personaje: Personaje; onSaved: (p: Personaje) => void; onClose: () => void;
 }) {
@@ -71,8 +69,6 @@ export function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
   );
 }
 
-// ─── PanelPersonajes ──────────────────────────────────────────────────────────
-
 export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "Personajes" }: {
   personajes: Personaje[];
   loading: boolean;
@@ -127,7 +123,7 @@ export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "
         />
       )}
 
-      {/* Botón móvil */}
+      {}
       <button
         onClick={() => setPanelAbierto(true)}
         className="md:hidden fixed bottom-20 right-4 z-30 flex items-center gap-2 px-3 py-2.5 rounded-xl shadow-xl border border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary transition-all"
@@ -140,7 +136,7 @@ export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "
         )}
       </button>
 
-      {/* Overlay lista móvil */}
+      {}
       {panelAbierto && (
         <div className="md:hidden fixed inset-0 z-50 flex flex-col" style={{ background: "var(--bg-main)" }}>
           <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-primary/10"
@@ -162,7 +158,7 @@ export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "
         </div>
       )}
 
-      {/* Panel desktop lateral */}
+      {}
       <div className="hidden md:flex w-52 shrink-0 border-l border-primary/10 flex-col min-h-0 overflow-hidden">
         <div className="shrink-0 px-3 py-2.5 border-b border-primary/8 flex items-center gap-2"
           style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>

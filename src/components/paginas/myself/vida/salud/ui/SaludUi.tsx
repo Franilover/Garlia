@@ -1,9 +1,6 @@
 "use client";
 import React from "react";
 
-// ─── SectionTitle ─────────────────────────────────────────────────────────────
-// Idéntico en recetas e ingredientes
-
 export function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">
@@ -11,10 +8,6 @@ export function SectionTitle({ children }: { children: React.ReactNode }) {
     </p>
   );
 }
-
-// ─── FieldInput ───────────────────────────────────────────────────────────────
-// recetas usa: label, type, value, onChange, placeholder, required
-// ingredientes añade: min, step
 
 export function FieldInput({
   label, type = "text", value, onChange, placeholder, required, min, step,
@@ -46,10 +39,6 @@ export function FieldInput({
     </div>
   );
 }
-
-// ─── MacroBadge ───────────────────────────────────────────────────────────────
-// recetas usa: label, value, unit
-// ingredientes añade: scaled (para mostrar valor ajustado por porción, con cambio de color)
 
 export function MacroBadge({
   label, value, unit, scaled,

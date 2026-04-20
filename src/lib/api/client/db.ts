@@ -211,10 +211,9 @@ export interface Compra {
   [key: string]: any;
 }
 
-// ── Nueva tabla: caché de sesión (perfil, etc.) ───────────────────────────────
 export interface SessionCache {
-  key: string;   // PK — ej: "perfil"
-  value: any;    // objeto serializable (perfil, flags, etc.)
+  key: string;   
+  value: any;    
   updated_at: number;
 }
 
@@ -242,7 +241,7 @@ class AgendaFraniDB extends Dexie {
   compras!: Table<Compra, string>;
 
   notas!: Table<Nota, string>;
-  ensayos!: Table<Nota, string>; // alias directo de la tabla Supabase "ensayos"
+  ensayos!: Table<Nota, string>; 
 
   rutinas!: Table<RutinaLocal, string>;
   ejercicios_rutina!: Table<EjercicioLocal, string>;
@@ -251,7 +250,7 @@ class AgendaFraniDB extends Dexie {
 
   reproductor_handles!: Table<ReproductorHandle, string>;
 
-  // Nueva tabla
+  
   session_cache!: Table<SessionCache, string>;
 
   constructor() {
@@ -356,7 +355,7 @@ class AgendaFraniDB extends Dexie {
       offline_queue:        "++id, table, operation, recordId, timestamp",
       compras:              "id",
       reproductor_handles:  "key",
-      session_cache:        "key, updated_at",  // ← nueva
+      session_cache:        "key, updated_at",  
     });
     this.version(5).stores({
       personajes:           "id, nombre, visible",
@@ -378,7 +377,7 @@ class AgendaFraniDB extends Dexie {
       diario_fotos:         "++id, categoria, created_at",
       dibujos:              "++id, categoria",
       notas:                "id, status, updated_at",
-      ensayos:              "id, status, updated_at",   // ← nueva
+      ensayos:              "id, status, updated_at",   
       rutinas:              "id, status",
       ejercicios_rutina:    "id, rutina_id, status",
       offline_queue:        "++id, table, operation, recordId, timestamp",

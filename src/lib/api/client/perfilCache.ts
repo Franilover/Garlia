@@ -1,4 +1,4 @@
-// lib/api/client/perfilCache.ts
+
 import { db } from "./db";
 
 export interface PerfilCacheValue {

@@ -6,8 +6,6 @@ import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { useAuth } from "@/providers/AuthProvider";
 import { Plus, X, Loader2, Pencil, Trash2, ImageIcon, Save } from "lucide-react";
 
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-
 interface GaleriaItem {
   id:           number;
   url_imagen:   string;
@@ -23,11 +21,9 @@ const CANVAS_RATIO = 9 / 16;
 
 function paddingForRatio(ratio: "square" | "wide" | "portrait" | undefined) {
   if (ratio === "wide")     return `${CANVAS_RATIO * 100}%`;
-  if (ratio === "portrait") return "125%"; // 4:5
-  return "100%"; // square
+  if (ratio === "portrait") return "125%"; 
+  return "100%"; 
 }
-
-// ─── Hook de datos ────────────────────────────────────────────────────────────
 
 function useGaleria() {
   const [items,   setItems]   = useState<GaleriaItem[]>([]);
@@ -46,8 +42,6 @@ function useGaleria() {
   useEffect(() => { load(); }, [load]);
   return { items, setItems, loading, reload: load };
 }
-
-// ─── ImageLightbox ────────────────────────────────────────────────────────────
 
 function ImageLightbox({ src, alt, bgColor, onClose }: {
   src: string; alt: string; bgColor: string; onClose: () => void;
@@ -198,8 +192,6 @@ function ImageLightbox({ src, alt, bgColor, onClose }: {
   );
 }
 
-// ─── EditModal ────────────────────────────────────────────────────────────────
-
 function EditModal({ item, onSave, onClose }: {
   item:    GaleriaItem;
   onSave:  (updates: Partial<GaleriaItem>) => Promise<void>;
@@ -232,7 +224,7 @@ function EditModal({ item, onSave, onClose }: {
           </button>
         </div>
 
-        {/* Preview */}
+        {}
         <div className="px-5 pt-4">
           <div className="relative w-full overflow-hidden rounded-xl"
             style={{ paddingBottom: paddingForRatio(aspectRatio), backgroundColor: bgColor }}>
@@ -247,7 +239,7 @@ function EditModal({ item, onSave, onClose }: {
 
         <div className="px-5 py-4 space-y-4">
 
-          {/* Color de fondo */}
+          {}
           <div className="space-y-2">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Color de fondo</p>
             <div className="flex items-center gap-2">
@@ -266,7 +258,7 @@ function EditModal({ item, onSave, onClose }: {
             </div>
           </div>
 
-          {/* Formato */}
+          {}
           <div className="space-y-2">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Formato</p>
             <div className="grid grid-cols-3 gap-1.5">
@@ -310,8 +302,6 @@ function EditModal({ item, onSave, onClose }: {
     </div>
   );
 }
-
-// ─── AddModal ─────────────────────────────────────────────────────────────────
 
 function AddModal({ onClose, onSuccess, nextOrden }: {
   onClose: () => void; onSuccess: () => void; nextOrden: number;
@@ -383,8 +373,6 @@ function AddModal({ onClose, onSuccess, nextOrden }: {
     </div>
   );
 }
-
-// ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function GaleriaPage() {
   const { perfil } = useAuth() as any;

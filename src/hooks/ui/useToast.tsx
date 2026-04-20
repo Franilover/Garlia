@@ -11,16 +11,6 @@ interface Toast {
 
 let nextId = 0;
 
-/**
- * Hook liviano para mostrar toasts sin dependencias externas.
- *
- * Uso:
- *   const { toasts, toast } = useToast();
- *   toast.error("El nombre es obligatorio");
- *   toast.success("Guardado correctamente");
- *
- * Renderizar <ToastContainer toasts={toasts} onDismiss={dismiss} /> en el componente raíz.
- */
 export function useToast(duration = 3500) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 

@@ -13,17 +13,17 @@ export const AuthProvider = ({ children }) => {
   const [user, setPerfil_user] = useState(null);
   const [perfil, setPerfil]    = useState(null);
   const [loading, setLoading]  = useState(true);  
-  const isAdmin = perfil?.rol === "admin"; // o el campo que uses
+  const isAdmin = perfil?.rol === "admin"; 
   const fetchPerfil = async (userId: string, userEmail: string) => {
     try {
-      // ── 1. Servir caché de Dexie inmediatamente (0 ms de espera) ──────────
+      
       const cached = await getPerfilCached();
       if (cached?.perfil) {
         setPerfil(cached.perfil);
-        setLoading(false); // navbar ya puede renderizar
+        setLoading(false); 
       }
 
-      // ── 2. Revalidar contra Supabase en background ────────────────────────
+      
       const { data, error } = await supabase
         .from("perfiles")
         .select("*")
@@ -32,10 +32,10 @@ export const AuthProvider = ({ children }) => {
 
       if (data) {
         setPerfil(data);
-        setPerfilCached(data); // actualizar caché con datos frescos
+        setPerfilCached(data); 
         console.log("Perfil cargado:", data);
       } else {
-        // Crear perfil automático si no existe
+        
         const nombreAuto = userEmail ? userEmail.split("@")[0] : "Usuario";
         const nuevoPerfil = {
           id: userId,
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       console.error("Error al cargar perfil:", err);
-      // Si falla la red pero había caché, el perfil ya está en estado — no hacer nada
+      
     } finally {
       setLoading(false);
     }
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setPerfil_user(null);
         setPerfil(null);
-        clearPerfilCached(); // limpiar al cerrar sesión
+        clearPerfilCached(); 
         setLoading(false);
       }
     });

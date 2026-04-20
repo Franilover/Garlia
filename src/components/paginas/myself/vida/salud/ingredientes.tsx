@@ -33,7 +33,6 @@ const INITIAL_FORM = {
   precio: 0,
 };
 
-
 export const IngredientesPage = () => {
   const [filter, setFilter]           = useState("");
   const [catFilter, setCatFilter]     = useState<string | null>(null);

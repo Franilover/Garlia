@@ -64,7 +64,7 @@ export default function CancionDetallesPage() {
       <br />
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4">
 
-        {/* ── Sidebar ── */}
+        {}
         <aside className="space-y-6">
           <MotionDiv
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
@@ -92,7 +92,7 @@ export default function CancionDetallesPage() {
           <LinkSection links={cancion?.links} />
         </aside>
 
-        {/* ── Contenido principal ── */}
+        {}
         <main>
           <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
             <h1 className="text-6xl font-black text-primary italic tracking-tighter leading-[0.85] mb-6 uppercase">

@@ -67,7 +67,7 @@ export const VistaMes = ({
   return (
     <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-4 shadow-xl shadow-primary/5 flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
 
-      {/* ── Cabecera mes ─────────────────────────────────────────────────── */}
+      {}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <CalendarIcon className="text-primary" size={16} />
@@ -92,16 +92,16 @@ export const VistaMes = ({
         </div>
       </div>
 
-      {/* ── Grid del calendario ───────────────────────────────────────────── */}
+      {}
       <div className="shrink-0">
-        {/* Cabecera días */}
+        {}
         <div className="grid grid-cols-7 mb-1">
           {["L", "M", "X", "J", "V", "S", "D"].map(d => (
             <div key={d} className="text-center text-[8px] font-black uppercase text-primary/25 py-1">{d}</div>
           ))}
         </div>
 
-        {/* Celdas — altura fija para no depender del ancho del contenedor */}
+        {}
         <div className="grid grid-cols-7 gap-1">
           {Array.from({ length: primerDiaSemana }).map((_, i) => (
             <div key={`empty-${i}`} className="h-8" />
@@ -145,7 +145,7 @@ export const VistaMes = ({
         </div>
       </div>
 
-      {/* ── Añadir evento ─────────────────────────────────────────────────── */}
+      {}
       <div className="bg-primary/5 rounded-[var(--radius-btn)] p-3 border border-primary/10 shrink-0">
         <div className="flex items-center gap-2 mb-2">
           <Bookmark size={12} className="text-primary/40" />
@@ -153,7 +153,7 @@ export const VistaMes = ({
             Día {diaSeleccionado}
           </span>
         </div>
-        {/* En móvil: stack vertical; en sm+: fila */}
+        {}
         <div className="flex flex-col sm:flex-row gap-2">
           <select
             value={tipoEvento}
@@ -183,7 +183,7 @@ export const VistaMes = ({
         </div>
       </div>
 
-      {/* ── Lista de eventos del día ──────────────────────────────────────── */}
+      {}
       <div className="flex flex-col flex-1 min-h-0">
         <h3 className="text-[9px] font-black uppercase tracking-widest text-primary/30 px-1 mb-2 shrink-0">
           Eventos del día {diaSeleccionado}

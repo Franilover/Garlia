@@ -6,7 +6,6 @@ import { ChevronLeft, List } from "lucide-react";
 import { Btn } from "@/components/ui";
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
 
-// Subcomponentes extraídos
 import { CapituloLista, CapituloScrollItem } from "./leer/type";
 import { LectorSkeleton }      from "./leer/ui/LectorSkeleton";
 import { IndexPanel }          from "./leer/ui/IndexPanel";
@@ -39,7 +38,7 @@ export default function Lector() {
   useEffect(() => {
     if (loading || !capId) return;
     document.getElementById(`cap-${capId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [capId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [capId]); 
 
   useEffect(() => {
     if (!capId || !id) return;
@@ -61,8 +60,8 @@ export default function Lector() {
 
         const capsValidas = (contenidos as CapituloScrollItem[]) ?? [];
 
-        // Filtra listaCapitulos para que coincida exactamente con los que pasaron
-        // los filtros de visibilidad y ruta — así el índice lateral tampoco los muestra
+        
+        
         const idsValidos = new Set(capsValidas.map(c => c.id));
         const listaFiltrada = listaRaw.filter(c => idsValidos.has(c.id));
 

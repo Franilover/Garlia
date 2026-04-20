@@ -4,8 +4,6 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Sword, Package, ShieldCheck, X, Calendar, Tag } from "lucide-react";
 
-// ─── Tipos compartidos ────────────────────────────────────────────────────────
-
 export interface Descubrimiento {
   tipo: "item" | "criatura" | "personaje";
   entidad_id: string;
@@ -36,8 +34,6 @@ export interface ItemInventario {
 export type EntidadModal =
   | { tipo: "item_inv"; data: ItemInventario }
   | { tipo: "item" | "criatura" | "personaje"; data: Descubrimiento };
-
-// ─── ModalDetalle ─────────────────────────────────────────────────────────────
 
 export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onClose: () => void }) {
   const isItemInv  = entidad.tipo === "item_inv";
@@ -102,7 +98,7 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
           }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Imagen / header */}
+          {}
           <div className="relative h-40 flex items-center justify-center"
             style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
             {imagen
@@ -188,8 +184,6 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
   );
 }
 
-// ─── EntidadCard ──────────────────────────────────────────────────────────────
-
 export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
   imagen?: string;
   nombre: string;
@@ -251,8 +245,6 @@ export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
     </button>
   );
 }
-
-// ─── EmptyTab ─────────────────────────────────────────────────────────────────
 
 export function EmptyTab({ label }: { label: string }) {
   return (

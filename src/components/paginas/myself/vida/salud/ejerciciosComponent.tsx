@@ -31,7 +31,6 @@ const PLAN_DIARIO = [
 ];
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 
-// Obtiene la clave ISO de la semana actual (ej: "2025-W22")
 const getSemanaKey = () => {
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);
@@ -39,7 +38,6 @@ const getSemanaKey = () => {
   return `${now.getFullYear()}-W${String(week).padStart(2, "0")}`;
 };
 
-// ─── Tracker semanal de plan diario ────────────────────────────────────────
 const PlanDiario = () => {
   const [expandido, setExpandido] = useState<string | null>(null);
   const [registros, setRegistros] = useState<Record<string, boolean[]>>({});
@@ -149,7 +147,6 @@ const PlanDiario = () => {
   );
 };
 
-// ─── Beep ──────────────────────────────────────────────────────────────────
 const beep = (freq = 880, dur = 0.15) => {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -162,7 +159,6 @@ const beep = (freq = 880, dur = 0.15) => {
   } catch {}
 };
 
-// ─── Modal ejecutar rutina ─────────────────────────────────────────────────
 const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => void }) => {
   const [ejercicioIdx, setEjercicioIdx] = useState(0);
   const [serieActual, setSerieActual]   = useState(1);
@@ -297,7 +293,6 @@ const EjecutarRutina = ({ rutina, onCerrar }: { rutina: Rutina; onCerrar: () => 
   );
 };
 
-// ─── Card rutina ───────────────────────────────────────────────────────────
 const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
   rutina: Rutina; onIniciar: () => void; onEliminar: () => void; expandida: boolean; onToggle: () => void;
 }) => {
@@ -356,7 +351,6 @@ const CardRutina = ({ rutina, onIniciar, onEliminar, expandida, onToggle }: {
   );
 };
 
-// ─── Formulario nueva rutina ───────────────────────────────────────────────
 const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
   onGuardar: (datos: { nombre: string; descripcion: string; tag: string }, ejercicios: Omit<Ejercicio, "id">[]) => Promise<void>;
   onCancelar: () => void; guardando: boolean;
@@ -415,7 +409,6 @@ const FormNuevaRutina = ({ onGuardar, onCancelar, guardando }: {
   );
 };
 
-// ─── Página principal ──────────────────────────────────────────────────────
 export const PaginaEjercicios = () => {
   const [rutinas, setRutinas]   = useState<Rutina[]>([]);
   const [cargando, setCargando] = useState(true);

@@ -9,8 +9,6 @@ import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS, type SaveStatus } from "./types";
 
-// ─── SaveIndicator ────────────────────────────────────────────────────────────
-
 export function SaveIndicator({ status }: { status: SaveStatus }) {
   if (status === "idle") return null;
   const map = {
@@ -25,8 +23,6 @@ export function SaveIndicator({ status }: { status: SaveStatus }) {
   );
 }
 
-// ─── Campo ────────────────────────────────────────────────────────────────────
-
 export function Campo({ label, value, onChange, placeholder }: {
   label: string; value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -40,8 +36,6 @@ export function Campo({ label, value, onChange, placeholder }: {
   );
 }
 
-// ─── CampoArea ────────────────────────────────────────────────────────────────
-
 export function CampoArea({ label, value, onChange, placeholder, rows = 4 }: {
   label: string; value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -54,8 +48,6 @@ export function CampoArea({ label, value, onChange, placeholder, rows = 4 }: {
     </div>
   );
 }
-
-// ─── BarraAcciones ────────────────────────────────────────────────────────────
 
 export function BarraAcciones({ status, onSave, onDelete }: {
   status: SaveStatus; onSave: () => void; onDelete: () => void;
@@ -79,8 +71,6 @@ export function BarraAcciones({ status, onSave, onDelete }: {
     </div>
   );
 }
-
-// ─── SelectorImagen ───────────────────────────────────────────────────────────
 
 export function SelectorImagen({ label, value, onChange, aspect, placeholder }: {
   label: string; value: string; onChange: (url: string) => void;
@@ -153,8 +143,6 @@ export function SelectorImagen({ label, value, onChange, aspect, placeholder }: 
     </div>
   );
 }
-
-// ─── SelectorTexto ────────────────────────────────────────────────────────────
 
 export function SelectorTexto({ label, value, onChange, opciones, placeholder }: {
   label: string; value: string; onChange: (v: string) => void;

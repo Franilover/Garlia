@@ -1,36 +1,18 @@
 "use client";
-/**
- * useEditorShared.tsx
- * Hooks y componentes compartidos entre editorLetras y editorCapitulos.
- *
- * Exporta:
- *  - usePersonajes()          → lista de personajes de Supabase (con caché Dexie)
- *  - useLastOpenedId(key)     → persiste el último id abierto en localStorage
- *  - useDraftRestore(...)     → guarda borradores locales y ofrece restaurar
- *  - DraftRestoreBanner       → banner visual de "hay borrador, ¿restaurar?"
- *  - SelectPersonaje          → <select> con lista de personajes
- *  - SelectIdioma             → <select> con ES / JP / EN
- */
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { RotateCcw, X, Save, WifiOff } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tipos
-// ─────────────────────────────────────────────────────────────────────────────
 export interface Personaje { id: string; nombre: string; }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// usePersonajes — carga personajes con caché en Dexie
-// ─────────────────────────────────────────────────────────────────────────────
 export function usePersonajes() {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
   const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
-    // 1. Mostrar caché local inmediatamente
+    
     (async () => {
       try {
         const table = (db as any)["personajes"];
@@ -40,7 +22,7 @@ export function usePersonajes() {
         }
       } catch {}
 
-      // 2. Fetch remoto
+      
       if (!navigator.onLine) { setLoading(false); return; }
       try {
         const { data } = await supabase
@@ -49,7 +31,7 @@ export function usePersonajes() {
           .order("nombre", { ascending: true });
         if (data) {
           setPersonajes(data as Personaje[]);
-          // Actualizar caché
+          
           try {
             const table = (db as any)["personajes"];
             if (table) await table.bulkPut(data);
@@ -63,9 +45,6 @@ export function usePersonajes() {
   return { personajes, loading };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// useLastOpenedId — persiste el último id abierto por clave
-// ─────────────────────────────────────────────────────────────────────────────
 export function useLastOpenedId(storageKey: string): [string | null, (id: string | null) => void] {
   const [id, setIdState] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
@@ -82,23 +61,12 @@ export function useLastOpenedId(storageKey: string): [string | null, (id: string
   return [id, setId];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// useDraftRestore — guarda borrador local y detecta si hay uno pendiente
-//
-// Uso:
-//   const draft = useDraftRestore({ key: `cap-draft-${capId}`, currentValue: contenido });
-//   draft.save(texto);        // guardar borrador (llamar en cada cambio)
-//   draft.clear();            // limpiar tras guardar en servidor
-//   draft.hasDraft            // true si hay borrador más reciente que el servidor
-//   draft.draftValue          // el texto del borrador
-//   <DraftRestoreBanner draft={draft} onRestore={(v) => setContenido(v)} />
-// ─────────────────────────────────────────────────────────────────────────────
 interface DraftRestoreOptions {
-  /** Clave única, ej: "cap-draft-abc123" */
+  
   key: string;
-  /** Valor actual cargado del servidor (para detectar si el borrador difiere) */
+  
   serverValue: string;
-  /** Desactivar si el id aún no existe */
+  
   enabled?: boolean;
 }
 
@@ -115,7 +83,7 @@ export function useDraftRestore({ key, serverValue, enabled = true }: DraftResto
   const [hasDraft,    setHasDraft]    = useState(false);
   const [dismissed,   setDismissed]   = useState(false);
 
-  // Al montar o cambiar de key: leer borrador guardado
+  
   useEffect(() => {
     if (!enabled || typeof window === "undefined") return;
     setDismissed(false);
@@ -123,7 +91,7 @@ export function useDraftRestore({ key, serverValue, enabled = true }: DraftResto
     if (!raw) { setHasDraft(false); setDraftValue(""); return; }
     try {
       const { value, ts } = JSON.parse(raw) as { value: string; ts: number };
-      // Mostrar solo si difiere del valor del servidor
+      
       if (value && value !== serverValue) {
         setDraftValue(value);
         setHasDraft(true);
@@ -162,9 +130,6 @@ export function useDraftRestore({ key, serverValue, enabled = true }: DraftResto
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DraftRestoreBanner — banner visual "hay borrador guardado"
-// ─────────────────────────────────────────────────────────────────────────────
 export function DraftRestoreBanner({
   draft,
   onRestore,
@@ -201,9 +166,6 @@ export function DraftRestoreBanner({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SelectPersonaje — dropdown con lista de personajes
-// ─────────────────────────────────────────────────────────────────────────────
 const selectCls = "w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-2.5 text-sm font-medium text-primary outline-none focus:border-primary/40 transition-colors appearance-none cursor-pointer";
 
 export function SelectPersonaje({
@@ -234,16 +196,13 @@ export function SelectPersonaje({
             <option key={p.id} value={p.nombre}>{p.nombre}</option>
           ))}
         </select>
-        {/* Chevron decorativo */}
+        {}
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 text-xs">▾</span>
       </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SelectIdioma — dropdown ES / JP / EN
-// ─────────────────────────────────────────────────────────────────────────────
 const IDIOMAS_OPCIONES = [
   { value: "Español",  label: "Español (ES)" },
   { value: "Japonés",  label: "Japonés (JP)" },

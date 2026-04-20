@@ -15,7 +15,6 @@ import {
   UtensilsCrossed, Carrot, Cat, House,
 } from "lucide-react";
 
-// ─── Sublinks ────────────────────────────────────────────────────────────────
 const wikiSubLinks = [
   { href: "/wiki/personal",  label: "Mi Personaje", icon: UserCircle2 },
   { href: "/wiki/mapa",      label: "Mapa",         icon: Compass     },
@@ -43,13 +42,11 @@ const saludSubLinks = [
   { href: "/myself/salud?panel=compras",      label: "Compras",      icon: ShoppingCart    },
 ];
 
-// Grupo anidado: escritorio + salud bajo un mismo item "Personal"
 const personalMyselfGroups = [
   { href: "/myself/escritorio", label: "Escritorio", icon: PenTool,  subLinks: escritorioSubLinks },
   { href: "/myself/salud",      label: "Salud",      icon: Utensils, subLinks: saludSubLinks      },
 ];
 
-// ─── Estilos compartidos ─────────────────────────────────────────────────────
 const navItemBase = {
   height: "44px",
   borderRadius: "var(--radius-btn)",
@@ -69,7 +66,6 @@ const flyoutVariants = {
   exit:    { opacity: 0, x: -8, scale: 0.97 },
 };
 
-// ─── SideSubItem ─────────────────────────────────────────────────────────────
 function SideSubItem({
   href, label, icon: Icon, active, onClick,
 }: {
@@ -100,7 +96,6 @@ function SideSubItem({
   );
 }
 
-// ─── SideNavItem — sidebar desktop con flyout al hover ────────────────────────
 function SideNavItem({
   href, label, icon: Icon, active, fillActive,
   subLinks, sidebarExpanded, onClose,
@@ -163,7 +158,7 @@ function SideNavItem({
         </AnimatePresence>
       </Link>
 
-      {/* Flyout lateral */}
+      {}
       <AnimatePresence>
         {open && hasSublinks && (
           <MotionDiv
@@ -191,7 +186,6 @@ function SideNavItem({
   );
 }
 
-// ─── MobileNavItem — label navega, flecha abre submenú ───────────────────────
 function MobileNavItem({
   href, label, icon: Icon, active, fillActive,
   subLinks, isOpen, onToggle, onClose,
@@ -211,7 +205,7 @@ function MobileNavItem({
     touchAction: "manipulation",
   });
 
-  // Sin sublinks → icono simple
+  
   if (!hasSublinks) {
     return (
       <Link href={href} onClick={onClose}
@@ -223,7 +217,7 @@ function MobileNavItem({
     );
   }
 
-  // Con sublinks → icono que abre desplegable al tocar
+  
   return (
     <div className="relative flex items-stretch">
       <button
@@ -234,7 +228,7 @@ function MobileNavItem({
         <Icon size={16} fill={active && fillActive ? "currentColor" : "none"} strokeWidth={active ? 2.5 : 2} />
       </button>
 
-      {/* Panel hacia arriba */}
+      {}
       <AnimatePresence>
         {isOpen && (
           <MotionDiv
@@ -274,7 +268,6 @@ function MobileNavItem({
   );
 }
 
-// ─── SideNavItemNested — flyout con grupos que tienen sus propios sublinks ────
 function SideNavItemNested({
   label, icon: Icon, active, groups, sidebarExpanded, onClose,
 }: {
@@ -294,7 +287,7 @@ function SideNavItemNested({
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => { setOpen(false); setHoveredGroup(null); }}
     >
-      {/* Botón principal — no navega, solo abre el flyout */}
+      {}
       <div
         className="flex items-center gap-3 transition-all duration-200 overflow-hidden cursor-default"
         style={{
@@ -327,7 +320,7 @@ function SideNavItemNested({
         </AnimatePresence>
       </div>
 
-      {/* Flyout nivel 1 — lista de grupos */}
+      {}
       <AnimatePresence>
         {open && (
           <MotionDiv
@@ -369,7 +362,7 @@ function SideNavItemNested({
                     <ChevronRight size={10} style={{ opacity: 0.4 }} />
                   </Link>
 
-                  {/* Flyout nivel 2 — sublinks del grupo */}
+                  {}
                   <AnimatePresence>
                     {hoveredGroup === group.href && (
                       <MotionDiv
@@ -403,7 +396,6 @@ function SideNavItemNested({
   );
 }
 
-// ─── MobileNavItemNested — dos niveles en móvil ───────────────────────────────
 function MobileNavItemNested({
   label, icon: Icon, active, groups, isOpen, onToggle, onClose,
 }: {
@@ -423,7 +415,7 @@ function MobileNavItemNested({
 
   return (
     <div className="relative flex items-stretch">
-      {/* Icono — abre el panel al tocar */}
+      {}
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); setOpenGroup(null); }}
         className="flex items-center justify-center transition-all"
@@ -432,7 +424,7 @@ function MobileNavItemNested({
         <Icon size={16} strokeWidth={active ? 2.5 : 2} />
       </button>
 
-      {/* Panel nivel 1 — grupos */}
+      {}
       <AnimatePresence>
         {isOpen && (
           <MotionDiv
@@ -480,7 +472,7 @@ function MobileNavItemNested({
                     </button>
                   </div>
 
-                  {/* Nivel 2 inline */}
+                  {}
                   <AnimatePresence>
                     {groupOpen && (
                       <MotionDiv
@@ -518,7 +510,6 @@ function MobileNavItemNested({
   );
 }
 
-// ─── Navbar ───────────────────────────────────────────────────────────────────
 const Navbar = () => {
   const currentPath = usePathname();
   const { user, perfil, isAdmin } = useAuth() as { user: any; perfil: any; isAdmin: boolean };
@@ -543,7 +534,7 @@ const Navbar = () => {
     setSidebarVisible(false);
   };
 
-  useEffect(() => { closeAll(); }, [currentPath]); // eslint-disable-line
+  useEffect(() => { closeAll(); }, [currentPath]); 
 
   const isJardin     = currentPath?.startsWith("/myself/jardin")      ?? false;
   const isSalud      = currentPath?.startsWith("/myself/salud")       ?? false;
@@ -551,35 +542,35 @@ const Navbar = () => {
   const isWiki       = currentPath?.startsWith("/wiki")               ?? false;
   const isPersonal   = currentPath?.startsWith("/personal")           ?? false;
 
-  // Links directos 
+  
   const personalLinks = [
     { href: "/personal/sobre-mi", label: "Sobre Mí", icon: Star,    active: currentPath?.startsWith("/personal/sobre-mi") ?? false, fillActive: true  },
     { href: "/personal/galeria",  label: "Galería",  icon: Palette, active: currentPath?.startsWith("/personal/galeria")  ?? false, fillActive: false },
   ];
   
-  // Icono "Mi Personaje" removido de acá
+  
   const wikiLinks = [
     { href: "/wiki/mapa",      label: "Mapa",         icon: Compass,     active: currentPath?.startsWith("/wiki/mapa")      ?? false, fillActive: false },
     { href: "/wiki/libros",    label: "Libros",       icon: BookText,    active: currentPath?.startsWith("/wiki/libros")    ?? false, fillActive: false },
     { href: "/wiki/canciones", label: "Canciones",    icon: Music,       active: currentPath?.startsWith("/wiki/canciones") ?? false, fillActive: false },
   ];
 
-  // Links de menú — para uso móvil de admin
+  
   const mainLinks = [
     { href: "/personal", label: "Personal", icon: Star,    active: isPersonal, fillActive: true  },
     { href: "/wiki",     label: "Jardín",   icon: Flower2, active: isWiki,     fillActive: false },
   ];
 
-  // Links de admin (myself)
+  
   const franiLinks = [
     { href: "/myself/jardin", label: "Arte", icon: Cat, active: isJardin },
   ];
 
   return (
     <>
-      {/* ── SIDEBAR DESKTOP ─────────────────────────────────────────────── */}
+      {}
 
-      {/* Sidebar siempre fija — botón flotante y overlay eliminados */}
+      {}
 
       <aside
         className="hidden md:flex fixed left-0 top-0 h-full z-[100] flex-col"
@@ -592,7 +583,7 @@ const Navbar = () => {
           boxShadow: "var(--shadow-card)",
         }}
       >
-        {/* Logo */}
+        {}
         <div
           className="flex items-center justify-center shrink-0 mx-auto"
           style={{ width: "44px", height: "68px", color: "var(--primary)" }}
@@ -602,7 +593,7 @@ const Navbar = () => {
 
         <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "0 12px" }} />
 
-        {/* Nav — todos los iconos visibles directamente en escritorio */}
+        {}
         <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
           {personalLinks.map(({ href, label, icon, active, fillActive }) => (
             <SideNavItem key={href} href={href} label={label} icon={icon}
@@ -616,7 +607,7 @@ const Navbar = () => {
               sidebarExpanded={false} onClose={closeAll} />
           ))}
 
-          {/* Links de admin */}
+          {}
           {isAdmin && (
             <>
               <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "6px 4px" }} />
@@ -635,11 +626,11 @@ const Navbar = () => {
           )}
         </nav>
 
-        {/* Controles inferiores */}
+        {}
         <div className="flex flex-col gap-1 px-2 pb-4 shrink-0">
           <div style={{ height: "var(--border-width)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", margin: "4px 4px 8px" }} />
 
-          {/* Tema */}
+          {}
           <div className="relative">
             <button
               onClick={() => setThemeMenuOpen(!themeMenuOpen)}
@@ -657,7 +648,7 @@ const Navbar = () => {
                   onClick={(e) => e.stopPropagation()}
                   className="absolute left-full ml-2 w-56 z-[1001] overflow-hidden"
                   style={{ ...submenuSurface, bottom: "0", top: "auto" }}>
-                  {/* Toggle dark/light */}
+                  {}
                   <button
                     onClick={toggle}
                     className="flex items-center gap-2.5 w-full px-4 py-3 transition-all"
@@ -674,7 +665,7 @@ const Navbar = () => {
             </AnimatePresence>
           </div>
 
-          {/* Usuario y Salir Directos (Sin Submenu) */}
+          {}
           {user ? (
             <div className="flex flex-col gap-1">
               <Link href="/wiki/personal" title="Mi Personaje"
@@ -709,7 +700,7 @@ const Navbar = () => {
         </div>
       </aside>
 
-      {/* ── BOTTOM NAV MÓVIL ─────────────────────────────────────────────── */}
+      {}
       <div className="md:hidden fixed bottom-0 left-0 w-full z-[1000]">
 
         <AnimatePresence>
@@ -734,7 +725,7 @@ const Navbar = () => {
           )}
         </AnimatePresence>
 
-        {/* Barra móvil */}
+        {}
         <div className="flex items-center justify-between w-full px-4 relative z-[100]"
           style={{
             height: "56px",
@@ -743,7 +734,7 @@ const Navbar = () => {
             borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
-          {/* Controles izquierda (Tema) */}
+          {}
           <div className="flex items-center z-[101]">
             <MotionButton whileTap={{ scale: 0.88 }}
               onClick={() => { setThemeMenuOpen(!themeMenuOpen); setMobileOpenMenu(null); }}
@@ -754,7 +745,7 @@ const Navbar = () => {
             </MotionButton>
           </div>
 
-          {/* Nav principal — centrado absolutamente para no empujar los controles */}
+          {}
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 z-[101]"
             style={{
               background: "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -763,7 +754,7 @@ const Navbar = () => {
             }}
           >
             {isAdmin ? (
-              /* ── Franilover: menús compactos + admin ── */
+              
               <>
                 {mainLinks.map(({ href, label, icon, active, fillActive }) => (
                   <MobileNavItem
@@ -804,7 +795,7 @@ const Navbar = () => {
                 ))}
               </>
             ) : (
-              /* ── Usuarios normales: links directos ── */
+              
               <>
                 {personalLinks.map(({ href, label, icon, active, fillActive }) => (
                   <MobileNavItem
@@ -829,7 +820,7 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Controles derecha (Usuario y Salir) */}
+          {}
           <div className="flex items-center gap-1 z-[101]">
             {user ? (
               <>

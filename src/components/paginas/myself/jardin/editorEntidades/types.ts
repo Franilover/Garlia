@@ -1,4 +1,4 @@
-// ─── Tipos ────────────────────────────────────────────────────────────────────
+
 
 export type Personaje = {
   id: string;
@@ -79,8 +79,6 @@ export type CapituloNarrado = {
 
 export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo";
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
-
-// ─── Config ───────────────────────────────────────────────────────────────────
 
 import { Users, Bug, Package, Map, Sparkles, Mountain, ScrollText } from "lucide-react";
 

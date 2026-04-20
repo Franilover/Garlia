@@ -28,7 +28,6 @@ export interface ZoteroSource {
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-// Mutates the DOM directly — no setState, no re-render
 function setSaveIndicator(el: HTMLElement | null, status: SaveStatus) {
   if (!el) return;
   if (status === "idle") { el.style.opacity = "0"; return; }
@@ -97,13 +96,13 @@ export default function Ensayos() {
   const [tagActivo, setTagActivo]       = useState<string | null>(null);
   const [tagPanel, setTagPanel]         = useState<string | null>(null);
 
-  // ── useSupabaseData para ensayos ─────────────────────────────────────────
-  // La tabla Dexie se llama "notas" pero en Supabase es "ensayos".
-  // useSupabaseData lo resuelve automáticamente vía QUERIES_MAP si existe;
-  // si no, agrega una entrada en QUERIES_MAP o usa el select directo.
-  // Aquí usamos la tabla "notas" (Dexie) pero apuntando a "ensayos" en Supabase
-  // a través del hook con el nombre supabase real. Para no romper QUERIES_MAP
-  // existente, pasamos directamente "ensayos" — el hook usará supabase.from("ensayos").
+  
+  
+  
+  
+  
+  
+  
   const {
     data: ensayos,
     setData: setEnsayos,
@@ -127,7 +126,7 @@ export default function Ensayos() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveIndicatorRef = useRef<HTMLSpanElement | null>(null);
 
-  // ── Zotero ───────────────────────────────────────────────────────────────
+  
   useEffect(() => {
     (async () => {
       const handle = await loadZoteroHandle();
@@ -247,11 +246,11 @@ export default function Ensayos() {
   }, [ensayos, tagActivo, searchTerm]);
 
   const pendingSaveRef = useRef(false);
-  // Accumulate all pending field changes so a single call saves everything
+  
   const pendingUpdatesRef = useRef<Record<string, any>>({});
 
   const scheduleSave = useCallback((id: string, updates: Record<string, any>) => {
-    // Merge into pending batch — never triggers a re-render
+    
     pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -266,13 +265,13 @@ export default function Ensayos() {
       const now = new Date().toISOString();
       const payload = { ...batch, updated_at: now };
 
-      // Actualizar estado local inmediatamente — offline-first
+      
       setEnsayos((prev: any[]) =>
         prev.map((e: any) => e.id === id ? { ...e, ...payload } : e)
       );
 
       try {
-        // updateRow: online → Supabase + Dexie; offline → Dexie + cola
+        
         const { error } = await updateRow(id, payload);
         if (error) throw error;
         setSaveIndicator(saveIndicatorRef.current, "saved");
@@ -283,7 +282,7 @@ export default function Ensayos() {
     }, 1500);
   }, [updateRow, setEnsayos]);
 
-  // actualizarLocal no longer calls setEnsayos on keystrokes — zero re-renders
+  
   const actualizarLocal = useCallback((id: string, field: string, value: any) => {
     scheduleSave(id, { [field]: value });
   }, [scheduleSave]);
@@ -302,13 +301,13 @@ export default function Ensayos() {
       updated_at: now,
     };
 
-    // addRow guarda en Dexie y encola si es offline
+    
     const { data, error } = await addRow(newEnsayo);
     if (!error) {
-      // Si vino de Supabase, usar ese objeto; si fue offline, usar el local
+      
       const created = data ?? newEnsayo;
       setEnsayos((prev: any[]) => {
-        // evitar duplicado si addRow ya hizo optimistic update
+        
         if (prev.find((e: any) => e.id === created.id)) return prev;
         return [created, ...prev];
       });
@@ -323,10 +322,10 @@ export default function Ensayos() {
     const ok = await confirm({ message: "¿Eliminar esta nota?", danger: true, confirmLabel: "Eliminar" });
     if (!ok) return;
 
-    // deleteRow maneja offline: marca deleted en Dexie y encola
+    
     await deleteRow(id);
-    // setEnsayos ya se actualiza dentro de deleteRow (optimistic), pero por
-    // si acaso también lo filtramos aquí para mayor seguridad
+    
+    
     setEnsayos((prev: any[]) => prev.filter((e: any) => e.id !== id));
     if (ensayoActivoId === id) setEnsayoActivo(null);
   };
@@ -362,7 +361,7 @@ export default function Ensayos() {
         footerLeft={`${ensayos.length} notas`}
         sidebarContent={<Sidebar {...sidebarProps} embedded />}
       >
-        {/* Barra de estado de guardado — DOM-only, zero re-renders */}
+        {}
         <div className="shrink-0 z-10 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-2.5 flex items-center justify-center bg-bg-main/80">
           <span
             ref={saveIndicatorRef}
@@ -371,7 +370,7 @@ export default function Ensayos() {
           />
         </div>
 
-        {/* Área principal */}
+        {}
         <main className="relative flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto min-h-0">
           {loading ? (
             <div className="flex flex-col gap-4 animate-pulse">

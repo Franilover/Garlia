@@ -24,13 +24,13 @@ const Biblioteca = () => {
     order: { campo: "created_at", asc: false },
   });
 
-  // Filtrar libros visibles ANTES de renderizar, con memoización
+  
   const librosVisibles = useMemo(
     () => libros.filter(l => l.visibilidad === "publico" || l.visibilidad === "programado"),
     [libros]
   );
 
-  // Esperar a que los datos lleguen antes de mostrar cualquier cosa
+  
   if (loading) return <Loading text="Abriendo archivos..." />;
 
   return (

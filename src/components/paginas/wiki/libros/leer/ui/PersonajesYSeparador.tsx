@@ -5,8 +5,6 @@ import { MotionDiv } from '@/components/ui/Motion';
 import { supabase } from "@/lib/api/client/supabase";
 import { CapituloScrollItem } from "../type";
 
-// ─── Hook ────────────────────────────────────────────────────────────────────
-
 export function useDesbloquearPersonajes(capId: string, personajesIds: string[] | undefined) {
   const [desbloqueados, setDesbloqueados] = useState<string[]>([]);
   const [mostrarCelebration, setMostrarCelebration] = useState(false);
@@ -42,8 +40,6 @@ export function useDesbloquearPersonajes(capId: string, personajesIds: string[] 
 
   return { disparar, mostrarCelebration, desbloqueados, cerrar };
 }
-
-// ─── Toast visual ────────────────────────────────────────────────────────────
 
 export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
   personajesIds: string[];
@@ -98,8 +94,6 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
     </MotionDiv>
   );
 }
-
-// ─── Separador final ──────────────────────────────────────────────────────────
 
 export function FinCapituloSeparador({ cap, onVisible }: {
   cap: CapituloScrollItem;

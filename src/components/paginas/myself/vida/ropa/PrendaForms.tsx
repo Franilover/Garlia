@@ -5,8 +5,6 @@ import { cn } from "@/lib/utils";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { ChipGroup } from "@/components/ui/Chip";
 
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-
 export type Categoria = "Superior" | "Inferior" | "Calzado" | "Accesorios" | "Outfit";
 export type Temporada = "Primavera" | "Verano" | "Otoño" | "Invierno";
 export type Vibra     = "Casual" | "Formal" | "Sport" | "Noche" | "Aesthetic";
@@ -20,8 +18,6 @@ export interface FormData {
   vibras:     Vibra[];
   colores:    Color[];
 }
-
-// ─── Constantes ───────────────────────────────────────────────────────────────
 
 export const CATEGORIAS: Categoria[] = ["Superior", "Inferior", "Calzado", "Accesorios", "Outfit"];
 export const TEMPORADAS: Temporada[] = ["Primavera", "Verano", "Otoño", "Invierno"];
@@ -42,8 +38,6 @@ export const EMPTY_FORM: FormData = {
 export function toggleArr<T>(arr: T[], val: T): T[] {
   return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
 }
-
-// ─── PrendaForm ───────────────────────────────────────────────────────────────
 
 interface PrendaFormProps {
   initial: FormData;
@@ -74,7 +68,7 @@ export function PrendaForm({ initial, onSave, onClose, saving, title, icon }: Pr
       </div>
 
       <div className="p-5 flex flex-col gap-4 overflow-y-auto" style={{ maxHeight: "80vh" }}>
-        {/* Selector de imagen */}
+        {}
         {!showPicker ? (
           <button
             onClick={() => setShowPicker(true)}
@@ -116,7 +110,7 @@ export function PrendaForm({ initial, onSave, onClose, saving, title, icon }: Pr
 
         {!showPicker && (
           <>
-            {/* Nombre */}
+            {}
             <input
               type="text"
               placeholder="NOMBRE..."
@@ -125,7 +119,7 @@ export function PrendaForm({ initial, onSave, onClose, saving, title, icon }: Pr
               className="input-brand text-[10px] font-black"
             />
 
-            {/* Categoría */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Categoría</p>
               <div className="flex flex-wrap gap-1.5">
@@ -145,19 +139,19 @@ export function PrendaForm({ initial, onSave, onClose, saving, title, icon }: Pr
               </div>
             </div>
 
-            {/* Temporada */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Temporada</p>
               <ChipGroup options={TEMPORADAS} selected={form.temporadas} onToggle={(v) => set("temporadas", toggleArr(form.temporadas, v))} />
             </div>
 
-            {/* Vibra */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Vibra</p>
               <ChipGroup options={VIBRAS} selected={form.vibras} onToggle={(v) => set("vibras", toggleArr(form.vibras, v))} />
             </div>
 
-            {/* Colores */}
+            {}
             <div>
               <p className="text-[8px] font-black uppercase tracking-widest text-muted-on-surface mb-2">Colores</p>
               <ChipGroup options={COLORES} selected={form.colores} onToggle={(v) => set("colores", toggleArr(form.colores, v))} colorDot={COLOR_DOT} />

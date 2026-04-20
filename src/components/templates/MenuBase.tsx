@@ -61,7 +61,7 @@ export default function MenuBase({ titulo, items }: MenuBaseProps) {
         </h1>
       </MotionDiv>
 
-      {/* Desktop: grid */}
+      {}
       <div className="hidden md:grid grid-cols-2 gap-4 lg:gap-6 flex-1 min-h-0">
         {items.map(({ href, title, icon, pageKey, delay = 0 }) => (
           <MenuCard
@@ -76,7 +76,7 @@ export default function MenuBase({ titulo, items }: MenuBaseProps) {
         ))}
       </div>
 
-      {/* Mobile: lista horizontal */}
+      {}
       <div className="flex flex-col gap-3 shrink-0 md:hidden">
         {items.map(({ href, title, icon, pageKey, delay = 0 }) => (
           <MenuCard

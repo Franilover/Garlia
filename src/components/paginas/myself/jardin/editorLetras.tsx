@@ -25,8 +25,6 @@ import {
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { Chip } from "@/components/ui/Chip";
 
-// ── Tipos ─────────────────────────────────────────────────────────────────────
-
 export type EscenaMV = {
   id: string;
   timestamp_seg: number;
@@ -43,7 +41,7 @@ type Seccion = {
   letra_jp?: string;
   letra_romaji?: string;
   orden: number;
-  // Timings guardados en Supabase por idioma
+  
   timings_es?:     Record<string, number> | null;
   timings_en?:     Record<string, number> | null;
   timings_jp?:     Record<string, number> | null;
@@ -65,7 +63,7 @@ type Cancion = {
   links?: CancionLink[];
   secciones?: Seccion[];
   duracion_segundos?: number | null;
-  // Nuevos campos
+  
   info_cancion?: string | null;
   guion_mv?: EscenaMV[] | null;
 };
@@ -80,8 +78,6 @@ type Filtros = {
   compositor: string;
   personaje: string;
 };
-
-// ── Constantes ────────────────────────────────────────────────────────────────
 
 const IDIOMAS: { id: IdiomaKey; label: string; nombre: string; campo: keyof Seccion }[] = [
   { id: "es",     label: "ES", nombre: "Español",  campo: "letra_es" },
@@ -120,8 +116,6 @@ const TIPO_ESCENA_COLOR: Record<EscenaMV["tipo"], string> = {
   personaje:  "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
 };
 
-// ── Dexie helpers ─────────────────────────────────────────────────────────────
-
 async function dexieSecRead(cancionId: string): Promise<Seccion[]> {
   try {
     const table = (db as any)[TABLA_SEC];
@@ -152,8 +146,6 @@ async function dexieSecDelete(id: string): Promise<void> {
 async function dexieSecGet(id: string): Promise<any> {
   try { return await (db as any)[TABLA_SEC]?.get(id); } catch { return null; }
 }
-
-// ── useCanciones ──────────────────────────────────────────────────────────────
 
 function useCanciones() {
   const [canciones,  setCanciones] = useState<Cancion[]>([]);
@@ -215,8 +207,6 @@ function useCanciones() {
 
   return { canciones, setCanciones, loading, isOffline, refetch: load };
 }
-
-// ── useCancionEditor ──────────────────────────────────────────────────────────
 
 function useCancionEditor(id: string | null) {
   const [cancion,   setCancion]  = useState<Cancion | null>(null);
@@ -288,8 +278,6 @@ function useCancionEditor(id: string | null) {
 
   return { cancion, setCancion, loading, isOffline, reload: () => id && load(id) };
 }
-
-// ── CRUD de secciones ─────────────────────────────────────────────────────────
 
 async function secUpdate(id: string, updates: Partial<Seccion>): Promise<void> {
   if (!navigator.onLine) {
@@ -378,8 +366,6 @@ async function secReorder(secciones: { id: string; orden: number }[]): Promise<v
   }
 }
 
-// ── Componentes pequeños ──────────────────────────────────────────────────────
-
 const IdiomaTab = ({
   value, onChange, exclude,
 }: { value: IdiomaKey; onChange: (v: IdiomaKey) => void; exclude?: IdiomaKey }) => (
@@ -399,8 +385,6 @@ const IdiomaTab = ({
     ))}
   </div>
 );
-
-// ── SidebarItem ───────────────────────────────────────────────────────────────
 
 const SidebarItem = ({
   cancion, selected, onClick, onEdit, onDelete, onToggleVisible,
@@ -468,7 +452,7 @@ const SidebarItem = ({
         )}
       </button>
 
-      {/* Eye toggle */}
+      {}
       <button
         onClick={handleToggleVisible}
         title={cancion.visible ? "Ocultar canción" : "Mostrar canción"}
@@ -527,8 +511,6 @@ const SidebarItem = ({
     </div>
   );
 };
-
-// ── SeccionTextarea ───────────────────────────────────────────────────────────
 
 type ColState = {
   dirty:  boolean;
@@ -647,8 +629,6 @@ const SeccionTextarea = ({
   );
 };
 
-// ── SeccionEditor ─────────────────────────────────────────────────────────────
-
 const SeccionEditor = ({
   sec, idiomaA, idiomaB, splitMode,
   onSaveField, onSaveNombre, onDelete, onDuplicate, onMoveUp, onMoveDown,
@@ -710,8 +690,6 @@ const SeccionEditor = ({
   );
 };
 
-// ── PanelFiltros ──────────────────────────────────────────────────────────────
-
 const PanelFiltros = ({
   filtros, onChange, opciones,
 }: {
@@ -743,7 +721,7 @@ const PanelFiltros = ({
 
   return (
     <div className="space-y-3 p-3 bg-primary/5 rounded-xl border border-primary/10">
-      {/* Fila 1: Estado + Visibilidad */}
+      {}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">Estado</p>
@@ -768,7 +746,7 @@ const PanelFiltros = ({
         </div>
       </div>
 
-      {/* Fila 2: Idioma + Personaje */}
+      {}
       <div className="grid grid-cols-2 gap-3">
         {opciones.idiomas.length > 0 && (
           <DropdownFiltro label="Idioma" campo="idioma" opciones={opciones.idiomas} />
@@ -778,7 +756,7 @@ const PanelFiltros = ({
         )}
       </div>
 
-      {/* Fila 3: Cantante + Compositor */}
+      {}
       {(opciones.cantantes.length > 0 || opciones.compositores.length > 0) && (
         <div className="grid grid-cols-2 gap-3">
           {opciones.cantantes.length > 0 && (
@@ -801,8 +779,6 @@ const PanelFiltros = ({
     </div>
   );
 };
-
-// ── InputConSugerencias ───────────────────────────────────────────────────────
 
 function useValoresUnicos(tabla: string, columna: string) {
   const [valores, setValores] = useState<string[]>([]);
@@ -902,8 +878,6 @@ const InputConSugerencias = ({
     </div>
   );
 };
-
-// ── ModalNuevaCancion ─────────────────────────────────────────────────────────
 
 const ModalNuevaCancion = ({
   onCreated,
@@ -1006,8 +980,6 @@ const Campo = ({ label, value, onChange, placeholder, autoFocus }: {
     />
   </div>
 );
-
-// ── ModalEditarCancion ────────────────────────────────────────────────────────
 
 const ModalEditarCancion = ({
   cancion,
@@ -1160,8 +1132,6 @@ const ModalEditarCancion = ({
   );
 };
 
-// ── Karaoke ───────────────────────────────────────────────────────────────────
-
 type LineaConTiempo = {
   seccionId: string;
   lineaIdx:  number;
@@ -1230,7 +1200,7 @@ function useKaraoke(
       try { setTimings(JSON.parse(localStorage.getItem(storageKey) || "{}")); } catch { setTimings({}); }
     }
     setElapsed(0); setPlaying(false);
-  }, [storageKey]); // eslint-disable-line
+  }, [storageKey]); 
 
   useEffect(() => {
     if (playing) {
@@ -1250,7 +1220,7 @@ function useKaraoke(
       baseRef.current = elapsed;
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [playing, duracion]); // eslint-disable-line
+  }, [playing, duracion]); 
 
   const saveSeccionTimings = (seccionId: string, secTimings: Record<number, number>) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -1264,7 +1234,7 @@ function useKaraoke(
     }, 1000);
   };
 
-  // Guardar inmediatamente sin debounce (usado al editar tiempo a mano)
+  
   const saveSeccionTimingsNow = async (seccionId: string, secTimings: Record<number, number>) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     const col = `timings_${idioma}`;
@@ -1320,7 +1290,7 @@ function useKaraoke(
   const getTiempo = (seccionId: string, lineaIdx: number): number | null =>
     timings[seccionId]?.[lineaIdx] ?? null;
 
-  // Establecer un tiempo concreto sin depender del elapsed actual
+  
   const setTiempo = (seccionId: string, lineaIdx: number, seg: number) => {
     setTimings(prev => {
       const secTimings = { ...(prev[seccionId] || {}), [lineaIdx]: seg };
@@ -1367,8 +1337,6 @@ function parseTimeSeg(str: string): number | null {
   return isNaN(plain) ? null : plain;
 }
 
-// ── parseLrc ──────────────────────────────────────────────────────────────────
-
 function parseLrc(texto: string, secciones: Seccion[], idioma: IdiomaKey): Record<string, Record<number, number>> {
   const result: Record<string, Record<number, number>> = {};
   const lines = texto.split("\n");
@@ -1403,8 +1371,6 @@ function parseLrc(texto: string, secciones: Seccion[], idioma: IdiomaKey): Recor
   }
   return result;
 }
-
-// ── ModalLectorLetras ─────────────────────────────────────────────────────────
 
 const ModalLectorLetras = ({
   isOpen, onClose, secciones, cancionTitulo, cancionId, duracion, onSeccionTimingsChange,
@@ -1479,7 +1445,7 @@ const ModalLectorLetras = ({
 
     if (seg !== null) {
       const roundedSeg = Math.round(seg * 10) / 10;
-      // Actualizar state local + Supabase directamente (sin depender del elapsed actual)
+      
       karaoke.setTiempo(seccionId, lineaIdx, roundedSeg);
     }
     setEditandoTiempo(null);
@@ -1493,7 +1459,7 @@ const ModalLectorLetras = ({
 
       <div className="bg-bg-main w-full max-w-4xl h-[100dvh] md:h-[92vh] md:rounded-[var(--radius-card)] shadow-2xl relative z-10 border border-primary/10 flex flex-col overflow-hidden">
 
-        {/* Header */}
+        {}
         <div className="px-4 py-2.5 bg-white-custom border-b border-primary/10 flex-shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-primary font-black uppercase text-[10px] tracking-[0.2em] italic truncate flex-1 min-w-0">
@@ -1546,7 +1512,7 @@ const ModalLectorLetras = ({
           </div>
         </div>
 
-        {/* Controles karaoke */}
+        {}
         {modoKaraoke && (
           <div className="flex-shrink-0 border-b border-primary/10 bg-white-custom/80 backdrop-blur-sm">
             <div className="px-4 py-2 flex items-center gap-2">
@@ -1606,7 +1572,7 @@ const ModalLectorLetras = ({
           </div>
         )}
 
-        {/* Contenido */}
+        {}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-bg-main">
 
           {modoKaraoke ? (
@@ -1750,8 +1716,6 @@ const ModalLectorLetras = ({
   );
 };
 
-// ── PanelLinks ────────────────────────────────────────────────────────────────
-
 const PanelLinks = ({
   cancionId, links, onLinksChange,
 }: {
@@ -1886,8 +1850,6 @@ const PanelLinks = ({
   );
 };
 
-// ── PanelInfo ─────────────────────────────────────────────────────────────────
-
 const PanelInfo = ({
   cancionId,
   infoInicial,
@@ -1975,8 +1937,6 @@ const PanelInfo = ({
   );
 };
 
-// ── PanelGuionMV ──────────────────────────────────────────────────────────────
-
 const PanelGuionMV = ({
   cancionId,
   secciones,
@@ -2005,7 +1965,7 @@ const PanelGuionMV = ({
     setFormOpen(false);
   }, [cancionId]);
 
-  // Recoger todos los timestamps únicos del karaoke
+  
   const timestampsDisponibles = useMemo((): number[] => {
     const timingKey = `timings_${idiomaActivo}` as keyof Seccion;
     const allTimes = new Set<number>();
@@ -2077,7 +2037,7 @@ const PanelGuionMV = ({
   };
 
   const handleTimestampClick = (ts: number) => {
-    // Si ya existe escena para ese timestamp, editar la primera que coincida
+    
     const existing = guion.find(e => Math.abs(e.timestamp_seg - ts) < 0.5);
     if (existing) {
       handleEdit(existing);
@@ -2093,7 +2053,7 @@ const PanelGuionMV = ({
 
   return (
     <div className="px-8 py-6 space-y-5">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
@@ -2117,7 +2077,7 @@ const PanelGuionMV = ({
         </div>
       </div>
 
-      {/* Timestamps del karaoke disponibles */}
+      {}
       {timestampsDisponibles.length > 0 && (
         <div className="space-y-2">
           <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">
@@ -2145,7 +2105,7 @@ const PanelGuionMV = ({
         </div>
       )}
 
-      {/* Estado vacío */}
+      {}
       {timestampsDisponibles.length === 0 && guion.length === 0 && (
         <div className="flex flex-col items-center gap-3 py-12 text-primary/20 border border-dashed border-primary/10 rounded-xl">
           <Film size={36} strokeWidth={1} />
@@ -2158,7 +2118,7 @@ const PanelGuionMV = ({
         </div>
       )}
 
-      {/* Formulario nueva/editar escena */}
+      {}
       {formOpen && (
         <div className="border border-primary/15 rounded-xl bg-primary/3 p-4 space-y-3">
           <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40">
@@ -2166,7 +2126,7 @@ const PanelGuionMV = ({
           </p>
 
           <div className="flex gap-3 items-end flex-wrap">
-            {/* Timestamp */}
+            {}
             <div className="space-y-1.5 w-28">
               <label className="text-[8px] font-black uppercase text-primary/30 tracking-widest">Tiempo</label>
               <div className="relative">
@@ -2180,7 +2140,7 @@ const PanelGuionMV = ({
               </div>
             </div>
 
-            {/* Tipo */}
+            {}
             <div className="space-y-1.5 flex-1 min-w-0">
               <label className="text-[8px] font-black uppercase text-primary/30 tracking-widest">Tipo</label>
               <div className="flex gap-1 flex-wrap">
@@ -2202,7 +2162,7 @@ const PanelGuionMV = ({
             </div>
           </div>
 
-          {/* Descripción */}
+          {}
           <div className="space-y-1.5">
             <label className="text-[8px] font-black uppercase text-primary/30 tracking-widest">Descripción</label>
             <textarea
@@ -2245,7 +2205,7 @@ const PanelGuionMV = ({
         </div>
       )}
 
-      {/* Lista de escenas */}
+      {}
       {guionOrdenado.length > 0 && (
         <div className="space-y-2">
           {guionOrdenado.map((escena) => (
@@ -2253,7 +2213,7 @@ const PanelGuionMV = ({
               key={escena.id}
               className="group flex gap-3 items-start p-3 rounded-xl border border-primary/8 hover:border-primary/15 bg-bg-main/40 hover:bg-bg-main/60 transition-all"
             >
-              {/* Timestamp + tipo */}
+              {}
               <div className="shrink-0 flex flex-col items-center gap-1.5 pt-0.5 min-w-[52px]">
                 <span className="font-mono text-sm font-black text-primary tabular-nums">
                   {fmtTimeSeg(escena.timestamp_seg)}
@@ -2263,15 +2223,15 @@ const PanelGuionMV = ({
                 </span>
               </div>
 
-              {/* Línea divisoria vertical */}
+              {}
               <div className="w-px self-stretch bg-primary/8 shrink-0 mt-1" />
 
-              {/* Descripción */}
+              {}
               <p className="flex-1 text-sm text-primary/70 leading-relaxed whitespace-pre-wrap min-w-0">
                 {escena.descripcion}
               </p>
 
-              {/* Acciones */}
+              {}
               <div className="shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                 <button
                   onClick={() => handleEdit(escena)}
@@ -2295,8 +2255,6 @@ const PanelGuionMV = ({
     </div>
   );
 };
-
-// ── PanelEditor ───────────────────────────────────────────────────────────────
 
 type EditorTab = "letras" | "info" | "guion";
 
@@ -2400,7 +2358,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      {/* Modal lector */}
+      {}
       {showLector && (
         <ModalLectorLetras
           isOpen={showLector}
@@ -2410,10 +2368,10 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           cancionId={cancionId}
           duracion={cancion.duracion_segundos}
           onSeccionTimingsChange={(seccionId, col, timings) => {
-            // col es "timings_es", "timings_en", etc.
+            
             const idiomaKey = col.replace("timings_", "") as IdiomaKey;
             const timingField = `timings_${idiomaKey}` as keyof Seccion;
-            // Convertir keys string → number para el state local
+            
             const timingsNum = Object.fromEntries(
               Object.entries(timings).map(([k, v]) => [k, v])
             );
@@ -2429,7 +2387,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 
       {editorOffline && <BannerOffline color="amber" mensaje="Sin conexión — los cambios se sincronizan al reconectar" />}
 
-      {/* ── Header de la canción ── */}
+      {}
       <div className="shrink-0 px-8 pt-7 pb-5 border-b border-primary/10 space-y-4">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
@@ -2484,7 +2442,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           </div>
         </div>
 
-        {/* ── Tab bar principal ── */}
+        {}
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex gap-1 p-1 bg-primary/5 rounded-xl border border-primary/10">
             {([
@@ -2502,7 +2460,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                 }`}
               >
                 {tab.icon} {tab.label}
-                {/* Badge con conteo para guion */}
+                {}
                 {tab.id === "guion" && (cancion.guion_mv?.length ?? 0) > 0 && (
                   <span className={`rounded-full w-4 h-4 text-[8px] flex items-center justify-center ${
                     activeTab === "guion" ? "bg-bg-main/30 text-bg-main" : "bg-primary/15 text-primary/70"
@@ -2514,7 +2472,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
             ))}
           </div>
 
-          {/* Controles de idioma — solo en tab letras */}
+          {}
           {activeTab === "letras" && (
             <>
               <IdiomaTab value={idiomaA} onChange={changeIdiomaA} exclude={splitMode ? idiomaB : undefined} />
@@ -2551,10 +2509,10 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
         )}
       </div>
 
-      {/* ── Contenido por tab ── */}
+      {}
       <div className="flex-1 overflow-y-auto">
 
-        {/* Tab: Letras */}
+        {}
         {activeTab === "letras" && (
           <div className="px-8 py-5 space-y-4">
             {secciones.length > 0 && (
@@ -2614,7 +2572,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
               </button>
             )}
 
-            {/* Panel de links al fondo */}
+            {}
             <PanelLinks
               cancionId={cancionId}
               links={cancion.links || []}
@@ -2625,7 +2583,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           </div>
         )}
 
-        {/* Tab: Info */}
+        {}
         {activeTab === "info" && (
           <PanelInfo
             cancionId={cancionId}
@@ -2636,7 +2594,7 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           />
         )}
 
-        {/* Tab: Guion MV */}
+        {}
         {activeTab === "guion" && (
           <PanelGuionMV
             cancionId={cancionId}
@@ -2652,8 +2610,6 @@ const PanelEditor = ({ cancionId }: { cancionId: string }) => {
     </div>
   );
 };
-
-// ── EstudioLetras (root) ──────────────────────────────────────────────────────
 
 export default function EstudioLetras() {
   const { canciones, setCanciones, loading: loadingLista, isOffline: listaOffline, refetch } = useCanciones();

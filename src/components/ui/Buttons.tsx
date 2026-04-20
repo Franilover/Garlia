@@ -2,7 +2,7 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils"; // Tu función de utilidad
+import { cn } from "@/lib/utils"; 
 
 const btnVariants = cva(
   "inline-flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 shrink-0",
@@ -57,7 +57,6 @@ export function Btn({
     </button>
   );
 }
-
 
 const btnIconVariants = cva(
   "flex items-center justify-center rounded-full transition-all active:scale-95 disabled:opacity-50",

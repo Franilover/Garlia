@@ -16,10 +16,6 @@ interface ThemeCtx {
 
 const ThemeContext = createContext<ThemeCtx | null>(null);
 
-// ─── Paletas de color por acento ─────────────────────────────────────────────
-// Cada acento define primary, accent y bg-main para light y dark.
-// El resto de variables (bg-menu, foreground, etc.) se derivan del primary.
-
 const ACCENT_PALETTES: Record<AccentColor, {
   light: Record<string, string>;
   dark:  Record<string, string>;
@@ -144,10 +140,9 @@ const ACCENT_PALETTES: Record<AccentColor, {
       "--btn-text":   "#08140d",
     },
   },
-  // ── fin paletas ──
+  
 };
 
-// ─── Metadatos de UI para cada acento ────────────────────────────────────────
 export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string }[] = [
   { id: "purple", label: "Lila",   hex: "#9d70b5" },
   { id: "yellow", label: "Dorado", hex: "#e8c84a" },
@@ -162,7 +157,6 @@ const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
   { id: "scribble", label: "Antiguo",     emoji: "" },
 ];
 
-// ─── Aplicar paleta al DOM ────────────────────────────────────────────────────
 function applyAccentPalette(accent: AccentColor, dark: DarkMode) {
   const palette = ACCENT_PALETTES[accent][dark];
   const root = document.documentElement;
@@ -171,13 +165,12 @@ function applyAccentPalette(accent: AccentColor, dark: DarkMode) {
   });
 }
 
-// ─── Provider ────────────────────────────────────────────────────────────────
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme,  setThemeState]  = useState<ThemeName>("scribble");
   const [dark,   setDarkState]   = useState<DarkMode>("dark");
   const [accent, setAccentState] = useState<AccentColor>("purple");
 
-  // Cargar preferencias guardadas
+  
   useEffect(() => {
     try {
       const savedTheme  = localStorage.getItem("app-theme")  as ThemeName   | null;
@@ -189,13 +182,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
-  // Aplicar tema (data-theme)
+  
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("app-theme", theme);
   }, [theme]);
 
-  // Aplicar dark mode
+  
   useEffect(() => {
     if (dark === "dark") {
       document.documentElement.classList.add("dark");
@@ -207,7 +200,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyAccentPalette(accent, dark);
   }, [dark, accent]);
 
-  // Aplicar paleta de acento
+  
   useEffect(() => {
     applyAccentPalette(accent, dark);
     localStorage.setItem("app-accent", accent);
@@ -225,21 +218,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) throw new Error("useTheme debe usarse dentro de <ThemeProvider>");
   return ctx;
 }
 
-// ─── ThemeSelector — panel del sidebar ───────────────────────────────────────
 export function ThemeSelector() {
   const { theme, setTheme, toggleDark, dark, accent, setAccent } = useTheme();
 
   return (
     <div className="flex flex-col gap-4 p-4">
 
-      {/* Selector de tema */}
+      {}
       <div className="flex flex-col gap-2">
         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Diseño</p>
         {THEMES.map(t => (
@@ -258,7 +249,7 @@ export function ThemeSelector() {
         ))}
       </div>
 
-      {/* Selector de color */}
+      {}
       <div className="flex flex-col gap-2">
         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Color</p>
         <div className="flex gap-2 flex-wrap">
@@ -278,7 +269,7 @@ export function ThemeSelector() {
         </div>
       </div>
 
-      {/* Toggle dark */}
+      {}
       <button
         onClick={toggleDark}
         className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-primary/15 bg-bg-main text-primary/60 hover:border-primary/40 hover:text-primary transition-all"

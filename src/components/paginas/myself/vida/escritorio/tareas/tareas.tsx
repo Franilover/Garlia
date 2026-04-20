@@ -32,7 +32,7 @@ export const GestionPersonal = () => {
   const [nuevoEvento, setNuevoEvento] = useState("");
   const [tipoEvento, setTipoEvento] = useState("Plan");
 
-  // ── CRUD tareas ─────────────────────────────────────────────────────────────
+  
 
   const handleAddTarea = async () => {
     if (!nuevaTarea.trim() || isAddingTarea) return;
@@ -86,7 +86,7 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); }
   };
 
-  // ── CRUD eventos ─────────────────────────────────────────────────────────────
+  
 
   const handleAddEventoMes = async () => {
     if (!nuevoEvento.trim() || isAddingEvento) return;
@@ -137,16 +137,13 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); } finally { setIsAddingEvento(false); }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  
 
   return (
-    /*
-      Móvil  : columna única, scroll libre (no overflow-hidden)
-      Desktop: dos columnas fijas a la altura de la pantalla, scroll interno
-    */
+    
     <div className="flex flex-col lg:grid lg:grid-cols-12 lg:h-[calc(100vh-var(--navbar-height,80px))] gap-4 pb-6 lg:pb-0 lg:overflow-hidden">
 
-      {/* ── Columna izquierda: reloj + tareas ──────────────────────────────── */}
+      {}
       <section className="lg:col-span-5 flex flex-col gap-4 lg:h-full lg:overflow-hidden">
         <RelojDigital horario={horarioRaw || []} tareas={tareas || []} />
         <ListaTareas
@@ -160,10 +157,10 @@ export const GestionPersonal = () => {
         />
       </section>
 
-      {/* ── Columna derecha: selector + calendario ─────────────────────────── */}
+      {}
       <section className="lg:col-span-7 flex flex-col gap-3 lg:h-full lg:overflow-hidden">
 
-        {/* Selector mes / semana — compacto en móvil */}
+        {}
         <div className="flex items-center gap-1 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] p-1 self-start lg:self-end shadow-sm shrink-0">
           <button
             onClick={() => setModoCalendario("mes")}
@@ -189,7 +186,7 @@ export const GestionPersonal = () => {
           </button>
         </div>
 
-        {/* Vista activa — ocupa el espacio restante en desktop, altura auto en móvil */}
+        {}
         <div className="flex-1 min-h-0 flex flex-col">
           <AnimatePresence mode="wait">
             {modoCalendario === "mes" ? (

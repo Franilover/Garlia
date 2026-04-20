@@ -9,8 +9,6 @@ import { useUniqueValues, useCriaturaVariantes, usePersonajesDeEspecie } from ".
 import { Campo, CampoArea, BarraAcciones, SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { PanelPersonajes } from "./PanelPersonajes";
 
-// ─── VarianteEditor ───────────────────────────────────────────────────────────
-
 function VarianteEditor({ variante, onSaved, onDeleted }: {
   variante: CriaturaVariante; onSaved: (v: CriaturaVariante) => void; onDeleted: (id: string) => void;
 }) {
@@ -105,8 +103,6 @@ function VarianteEditor({ variante, onSaved, onDeleted }: {
     </div>
   );
 }
-
-// ─── EditorCriatura ───────────────────────────────────────────────────────────
 
 export function EditorCriatura({ item, onSaved, onDeleted }: {
   item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void;

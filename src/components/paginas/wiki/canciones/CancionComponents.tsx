@@ -4,8 +4,6 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { FileText, Copy, ExternalLink, Link2, Play, Pause, SkipBack, Timer, X } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 
-// ─── Tipos compartidos ────────────────────────────────────────────────────────
-
 export interface Seccion {
   id: string;
   nombre_seccion: string;
@@ -36,8 +34,6 @@ export const getLetra = (sec: Seccion, lang: IdiomaId): string =>
  : lang === "romaji" ? sec.letra_romaji
  : "") || "";
 
-// ─── Helpers karaoke (solo lectura) ──────────────────────────────────────────
-
 type KaraokeTimings = Record<string, Record<number, number>>;
 
 type LineaConTiempo = {
@@ -66,7 +62,7 @@ function fmtTime(s: number): string {
 }
 
 function useKaraokeVisor(secciones: Seccion[], idioma: IdiomaId, duracion?: number | null) {
-  // Lee timings desde las secciones (ya vienen de Supabase)
+  
   const timings = useMemo<KaraokeTimings>(() => {
     const col = `timings_${idioma}` as keyof Seccion;
     const result: KaraokeTimings = {};
@@ -87,7 +83,7 @@ function useKaraokeVisor(secciones: Seccion[], idioma: IdiomaId, duracion?: numb
   const startRef    = useRef<number>(0);
   const baseRef     = useRef<number>(0);
 
-  // Reiniciar cuando cambia el idioma
+  
   useEffect(() => {
     setElapsed(0);
     setPlaying(false);
@@ -112,7 +108,7 @@ function useKaraokeVisor(secciones: Seccion[], idioma: IdiomaId, duracion?: numb
       baseRef.current = elapsed;
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [playing, duracion]); // eslint-disable-line
+  }, [playing, duracion]); 
 
   const toggle = () => setPlaying(p => !p);
   const reset  = () => { setPlaying(false); baseRef.current = 0; setElapsed(0); };
@@ -140,10 +136,6 @@ function useKaraokeVisor(secciones: Seccion[], idioma: IdiomaId, duracion?: numb
   return { elapsed, playing, toggle, reset, seekTo, getTiempo, getLineaActiva, hasTimings };
 }
 
-// ─── ModalVisorLetras ─────────────────────────────────────────────────────────
-// Visualizador de letras de solo lectura con modo karaoke y modo libro.
-// Reemplaza al antiguo FullLyricsModal en cancionDetalles.
-
 export const ModalVisorLetras = ({
   isOpen,
   onClose,
@@ -167,14 +159,14 @@ export const ModalVisorLetras = ({
   const lineas    = useMemo(() => buildLineas(secciones, idioma), [secciones, idioma]);
   const lineaActiva = karaoke.getLineaActiva(lineas);
 
-  // Scroll auto a la línea activa
+  
   useEffect(() => {
     if (modoKaraoke && activaRef.current) {
       activaRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [lineaActiva, modoKaraoke]);
 
-  // Copiar letra al portapapeles
+  
   const handleCopy = () => {
     const texto = secciones
       .map(s => { const l = getLetra(s, idioma); return l ? `${s.nombre_seccion}\n\n${l}` : ""; })
@@ -190,14 +182,14 @@ export const ModalVisorLetras = ({
 
       <div className="bg-bg-main w-full max-w-4xl h-[100dvh] md:h-[92vh] md:rounded-[var(--radius-card)] shadow-2xl relative z-10 border border-primary/10 flex flex-col overflow-hidden">
 
-        {/* ── Header ── */}
+        {}
         <div className="px-4 py-2.5 bg-white-custom border-b border-primary/10 flex-shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-primary font-black uppercase text-[10px] tracking-[0.2em] italic truncate flex-1 min-w-0">
               {cancionTitulo}
             </span>
 
-            {/* Selector de idioma */}
+            {}
             <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10">
               {IDIOMAS.map(({ id, label }) => (
                 <button
@@ -212,7 +204,7 @@ export const ModalVisorLetras = ({
               ))}
             </div>
 
-            {/* Selector de modo */}
+            {}
             <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10">
               <button
                 onClick={() => setModoKaraoke(true)}
@@ -232,7 +224,7 @@ export const ModalVisorLetras = ({
               </button>
             </div>
 
-            {/* Zoom (solo en modo letra) */}
+            {}
             {!modoKaraoke && (
               <div className="flex items-center gap-0.5">
                 <button onClick={() => setZoom(z => Math.max(0.4, z - 0.1))} className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm">-</button>
@@ -250,7 +242,7 @@ export const ModalVisorLetras = ({
           </div>
         </div>
 
-        {/* ── Controles karaoke (solo lectura: play/seek, sin marcar ni editar) ── */}
+        {}
         {modoKaraoke && (
           <div className="flex-shrink-0 border-b border-primary/10 bg-white-custom/80 backdrop-blur-sm">
             <div className="px-4 py-2 flex items-center gap-2">
@@ -297,10 +289,10 @@ export const ModalVisorLetras = ({
           </div>
         )}
 
-        {/* ── Contenido ── */}
+        {}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-bg-main">
 
-          {/* Modo karaoke */}
+          {}
           {modoKaraoke ? (
             <div className="max-w-2xl mx-auto py-8 px-4 md:px-8">
               {secciones.map(sec => {
@@ -327,7 +319,7 @@ export const ModalVisorLetras = ({
                         <div
                           key={lineaIdx}
                           ref={isActiva ? activaRef : undefined}
-                          // Clic en línea con tiempo → salta a ese momento
+                          
                           onClick={() => { if (tiempo !== null) karaoke.seekTo(tiempo); }}
                           className={`relative flex items-center gap-2 py-1 px-2 rounded-lg transition-all duration-200 ${
                             isActiva ? "bg-primary/8" : tiempo !== null ? "cursor-pointer hover:bg-primary/5" : ""
@@ -337,7 +329,7 @@ export const ModalVisorLetras = ({
                             <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary rounded-r-full" />
                           )}
 
-                          {/* Tiempo (solo si existe) */}
+                          {}
                           <span className="shrink-0 min-w-[52px] font-mono text-[10px] font-black tracking-widest transition-all rounded px-1 py-0.5 select-none">
                             {tiempo !== null ? (
                               <span className={
@@ -369,7 +361,7 @@ export const ModalVisorLetras = ({
             </div>
 
           ) : (
-            /* Modo letra / libro con zoom */
+            
             <div className="w-full overflow-x-hidden">
               <div
                 className="origin-top transition-all duration-300 pb-16"
@@ -405,8 +397,6 @@ export const ModalVisorLetras = ({
     </div>
   );
 };
-
-// ─── FullLyricsModal (legacy — mantenido por retrocompatibilidad) ─────────────
 
 export const FullLyricsModal = ({
   isOpen, onClose, secciones, idiomaActivo,
@@ -481,8 +471,6 @@ export const FullLyricsModal = ({
     </AnimatePresence>
   );
 };
-
-// ─── LinkSection ─────────────────────────────────────────────────────────────
 
 export const LinkSection = ({ links }: { links?: { titulo: string; url: string }[] }) => {
   if (!links?.length) return null;

@@ -2,8 +2,6 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
 
-// ─── Loading ──────────────────────────────────────────────────────────────────
-
 interface LoadingProps {
   text?:       string;
   fullScreen?: boolean;
@@ -23,8 +21,6 @@ export function Loading({ text = "Cargando...", fullScreen = true }: LoadingProp
   );
 }
 
-// ─── EmptyState ───────────────────────────────────────────────────────────────
-
 interface EmptyStateProps {
   label: string;
   icon?: React.ReactNode;
@@ -41,8 +37,6 @@ export function EmptyState({ label, icon }: EmptyStateProps) {
     </div>
   );
 }
-
-// ─── Badge ────────────────────────────────────────────────────────────────────
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -79,8 +73,6 @@ export function Badge({ children, active, onClick, variant = "default" }: BadgeP
   );
 }
 
-// ─── Divider ──────────────────────────────────────────────────────────────────
-
 export function Divider({ label }: { label?: string }) {
   return (
     <div className="flex items-center gap-4 py-2">
@@ -95,8 +87,6 @@ export function Divider({ label }: { label?: string }) {
     </div>
   );
 }
-
-// ─── StatRow ──────────────────────────────────────────────────────────────────
 
 interface StatRowProps {
   icon:  React.ReactNode;

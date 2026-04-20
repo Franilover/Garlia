@@ -10,8 +10,6 @@ import { EntidadPicker }    from "@/components/forms/EntidadPicker";
 import SimpleImagePicker    from "@/components/forms/SimpleImagePicker";
 import { useEntidades }     from "./useEntidades";
 
-// ─── Tipos compartidos ────────────────────────────────────────────────────────
-
 type SnippetProps = {
   onInsert: (s: string) => void;
   onClose:  () => void;
@@ -19,19 +17,13 @@ type SnippetProps = {
 
 type CapItem = { id: string; orden: number; titulo_capitulo: string };
 
-// ─── ModalDrop ────────────────────────────────────────────────────────────────
-
 export const ModalDrop = ({ onInsert, onClose }: SnippetProps) => (
   <EntidadPicker open onClose={onClose} onInsert={onInsert} />
 );
 
-// ─── ModalSonido ──────────────────────────────────────────────────────────────
-
 export const ModalSonido = ({ onInsert, onClose }: SnippetProps) => (
   <SoundPicker open onClose={onClose} onInsert={onInsert} />
 );
-
-// ─── ModalSection ─────────────────────────────────────────────────────────────
 
 export const ModalSection = ({ onInsert, onClose }: SnippetProps) => {
   const [sectionId, setSectionId] = useState("");
@@ -66,8 +58,6 @@ export const ModalSection = ({ onInsert, onClose }: SnippetProps) => {
     </ModalBase>
   );
 };
-
-// ─── ModalChoice ──────────────────────────────────────────────────────────────
 
 export const ModalChoice = ({ onInsert, onClose, listaCapitulos }: SnippetProps & { listaCapitulos: CapItem[] }) => {
   const [label,  setLabel]  = useState("");
@@ -120,8 +110,6 @@ export const ModalChoice = ({ onInsert, onClose, listaCapitulos }: SnippetProps 
     </ModalBase>
   );
 };
-
-// ─── ModalUseItem ─────────────────────────────────────────────────────────────
 
 export const ModalUseItem = ({ onInsert, onClose, listaCapitulos }: SnippetProps & { listaCapitulos: CapItem[] }) => {
   const [palabra,      setPalabra]      = useState("");
@@ -192,8 +180,6 @@ export const ModalUseItem = ({ onInsert, onClose, listaCapitulos }: SnippetProps
   );
 };
 
-// ─── ModalImagen ──────────────────────────────────────────────────────────────
-
 export const ModalImagen = ({ onInsert, onClose }: SnippetProps) => {
   const [selected, setSelected] = useState<string | null>(null);
   const [caption,  setCaption]  = useState("");
@@ -241,8 +227,6 @@ export const ModalImagen = ({ onInsert, onClose }: SnippetProps) => {
     </ModalBase>
   );
 };
-
-// ─── SnippetToolbar ───────────────────────────────────────────────────────────
 
 export const SnippetToolbar = ({
   textareaRef, value, onChange, listaCapitulos,

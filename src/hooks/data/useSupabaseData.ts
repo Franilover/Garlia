@@ -33,48 +33,43 @@ const QUERIES_MAP: Record<string, any> = {
 };
 
 const DEXIE_TABLES = new Set([
-  // Wiki / mundo
+  
   "personajes", "criaturas", "criatura_variantes", "items",
   "libros", "canciones", "reinos", "relaciones",
-  // Escritura
+  
   "secciones_cancion", "capitulos",
-  // Personal
+  
   "tareas", "eventos", "recetas", "ingredientes",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
   "compras", "notas", "ensayos", "rutinas", "ejercicios_rutina",
-  // Nota: reproductor_handles NO está aquí — guarda FileSystemDirectoryHandle
-  // que no es serializable a JSON y se maneja aparte con db directamente.
+  
+  
 ]);
 
 const OFFLINE_WRITABLE = new Set([
-  // Escritura creativa
+  
   "notas", "ensayos", "secciones_cancion", "capitulos",
-  // Agenda
+  
   "tareas", "eventos",
-  // Ejercicio
+  
   "rutinas", "ejercicios_rutina",
-  // Cocina
+  
   "recetas", "ingredientes", "compras",
-  // Ropa
+  
   "ropa", "ropa_outfits",
-  // Galería / multimedia (id numérico autoincremental — solo update/delete offline,
-  // los creates se bloquean sin conexión porque el id lo asigna Supabase)
+  
+  
   "diario_fotos", "dibujos",
-  // Wiki (solo update/delete — creates de entidades requieren conexión)
+  
   "personajes", "criaturas", "criatura_variantes", "items", "reinos", "relaciones",
 ]);
 
-// Tablas cuyo id es numérico autoincremental (++id en Dexie / serial en Supabase).
-// Para estas, addRow offline está bloqueado: el id definitivo lo asigna Supabase.
-// updateRow y deleteRow sí funcionan offline porque el id ya existe.
 const NUMERIC_ID_TABLES = new Set([
   "diario_fotos", "dibujos",
 ]);
 
-// Timeout más generoso para conexiones lentas (12s en lugar de 5s)
 const FETCH_TIMEOUT_MS = 12_000;
 
-// Tiempo mínimo entre revalidaciones tras volver de background (ms)
 const REVALIDATE_THROTTLE_MS = 30_000;
 
 interface UseSupabaseOptions {
@@ -122,14 +117,14 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const lastVisibleRef  = useRef<number>(Date.now());
   const optionsKey      = JSON.stringify(opciones);
 
-  // ─── Fetch principal ────────────────────────────────────────────────────────
+  
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
     if (tabla === "__skip__") return;
 
     setError(null);
 
-    // 1. Servir datos locales inmediatamente (stale-while-revalidate)
+    
     const localData    = await readFromDexie<T>(tabla);
     const hasLocalData = localData.length > 0;
 
@@ -140,7 +135,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       setLoading(true);
     }
 
-    // 2. Sin conexión → quedarse con local
+    
     if (!navigator.onLine) {
       if (isMounted.current) {
         if (!hasLocalData) setLoading(false);
@@ -151,7 +146,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     setIsOffline(false);
 
-    // 3. Fetch a Supabase con timeout generoso
+    
     try {
       const currentOptions = JSON.parse(optionsKey);
 
@@ -222,11 +217,11 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla, updateCache, optionsKey]);
 
-  // ─── CRUD ───────────────────────────────────────────────────────────────────
+  
 
   const addRow = useCallback(async (newData: any) => {
-    // Tablas con id numérico autoincremental no pueden crearse offline:
-    // el id lo asigna Supabase y no hay forma de predecirlo localmente.
+    
+    
     if (!navigator.onLine && NUMERIC_ID_TABLES.has(tabla)) {
       return { data: null, error: "Esta tabla requiere conexión para crear registros." };
     }
@@ -314,7 +309,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
 
-  // ─── Efectos de conexión ────────────────────────────────────────────────────
+  
   useEffect(() => {
     isMounted.current = true;
     fetchData();

@@ -13,7 +13,6 @@ import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { ModalDetalle } from "@/components/paginas/wiki/personal/PersonalComponents";
 
-/* ─── tipos ─────────────────────────────────────────────────────────────── */
 type EntidadModal =
   | { tipo: "personaje"; data: any }
   | { tipo: "criatura";  data: any }
@@ -22,7 +21,6 @@ type EntidadModal =
 
 type ToastType = "success" | "error";
 
-/* ─── Toast ──────────────────────────────────────────────────────────────── */
 function Toast({ message, type, onClose }: { message: string; type: ToastType; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
   return (
@@ -37,7 +35,6 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   );
 }
 
-/* ─── Marker ─────────────────────────────────────────────────────────────── */
 const Marker = ({ x, y, info, onClick, tipo, editMode, oculto }: any) => (
   <div
     className="absolute z-20 flex flex-col items-center"
@@ -79,7 +76,6 @@ const Marker = ({ x, y, info, onClick, tipo, editMode, oculto }: any) => (
   </div>
 );
 
-/* ─── Panel contenido (compartido móvil/desktop) ─────────────────────────── */
 function PanelContenido({
   editMode, reinoSeleccionado, puntoSeleccionado,
   setPuntoSeleccionado, setDetallesReino, setModifiedDetalles,
@@ -90,7 +86,7 @@ function PanelContenido({
   if (editMode) {
     return (
       <div className="flex flex-col gap-4 flex-grow">
-        {/* Nombre */}
+        {}
         <div className="flex flex-col gap-1">
           <label className="text-[9px] font-bold uppercase text-primary/50 ml-1">Nombre</label>
           <input
@@ -107,7 +103,7 @@ function PanelContenido({
           />
         </div>
 
-        {/* Descripción */}
+        {}
         <div className="flex flex-col gap-1 flex-grow">
           <label className="text-[9px] font-bold uppercase text-primary/50 ml-1">Descripción / Lore</label>
           <textarea
@@ -123,7 +119,7 @@ function PanelContenido({
           />
         </div>
 
-        {/* Coordenadas */}
+        {}
         <div className="flex flex-col gap-1">
           <label className="text-[9px] font-bold uppercase text-primary/50 ml-1 flex items-center gap-1">
             <Move size={9} /> Coordenadas
@@ -139,7 +135,7 @@ function PanelContenido({
           </div>
         </div>
 
-        {/* Toggle visibilidad reino */}
+        {}
         {!puntoSeleccionado && (
           <div className="flex items-center justify-between px-3 py-2.5 border border-primary/10 bg-primary/3" style={{ borderRadius: "var(--radius-btn)" }}>
             <div>
@@ -157,7 +153,7 @@ function PanelContenido({
           </div>
         )}
 
-        {/* Toggle visibilidad punto */}
+        {}
         {puntoSeleccionado && (
           <div className="flex items-center justify-between px-3 py-2.5 border border-primary/10 bg-primary/3" style={{ borderRadius: "var(--radius-btn)" }}>
             <div>
@@ -180,7 +176,7 @@ function PanelContenido({
           </div>
         )}
 
-        {/* Imagen del mapa */}
+        {}
         {!puntoSeleccionado && (
           <div className="flex flex-col gap-1">
             <label className="text-[9px] font-bold uppercase text-primary/50 ml-1 flex items-center gap-1">
@@ -208,7 +204,7 @@ function PanelContenido({
           </div>
         )}
 
-        {/* Guardar */}
+        {}
         <button
           onClick={handleSaveChanges}
           disabled={isSaving}
@@ -222,7 +218,7 @@ function PanelContenido({
     );
   }
 
-  /* ── Vista normal ── */
+  
   return (
     <>
       <h2 className="text-primary font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
@@ -235,7 +231,7 @@ function PanelContenido({
           </p>
         </div>
 
-        {/* Habitantes */}
+        {}
         {!puntoSeleccionado && personajesReino.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-3">
@@ -309,7 +305,6 @@ function PanelContenido({
   );
 }
 
-/* ─── Componente principal ───────────────────────────────────────────────── */
 export default function MapaInteractivo() {
   const isAdmin = useIsAdmin();
   const [reinos, setReinos] = useState<any[]>([]);
@@ -377,7 +372,7 @@ export default function MapaInteractivo() {
     if (!personajesRes.error) setPersonajesReino(personajesRes.data ?? []);
 
     setVistaActual("reino");
-    setPanelOpen(true); // ← siempre abre el panel
+    setPanelOpen(true); 
   };
 
   const handlePersonajeClick = (p: any) => {
@@ -495,7 +490,7 @@ export default function MapaInteractivo() {
   return (
     <div className="relative w-full bg-bg-main" style={{ minHeight: "100dvh" }}>
 
-      {/* Modal personaje */}
+      {}
       {modalEntidad && (
         <ModalDetalle
           entidad={modalEntidad}
@@ -503,18 +498,18 @@ export default function MapaInteractivo() {
         />
       )}
 
-      {/* Toast */}
+      {}
       <AnimatePresence>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
-      {/* ── LAYOUT ── */}
+      {}
       <div className={isMobile ? "flex flex-col w-full" : "flex w-full"}>
 
-        {/* Mapa */}
+        {}
         <div className={`relative ${isMobile ? "w-full" : vistaActual === "reino" ? "w-2/3" : "w-full"} transition-all duration-500`}>
 
-          {/* Botones admin */}
+          {}
           {isAdmin && (
             <div className="absolute top-4 right-4 z-[70] flex gap-2">
               <button
@@ -536,7 +531,7 @@ export default function MapaInteractivo() {
             </div>
           )}
 
-          {/* Hint edición */}
+          {}
           <AnimatePresence>
             {editMode && (reinoSeleccionado || puntoSeleccionado) && (
               <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
@@ -550,7 +545,7 @@ export default function MapaInteractivo() {
             )}
           </AnimatePresence>
 
-          {/* Loader */}
+          {}
           {cargandoImagen && (
             <div className="absolute inset-0 z-[60] bg-bg-main flex flex-col items-center justify-center">
               <Loader2 className="animate-spin text-primary mb-2" />
@@ -558,7 +553,7 @@ export default function MapaInteractivo() {
             </div>
           )}
 
-          {/* Botón volver */}
+          {}
           <AnimatePresence>
             {vistaActual === "reino" && (
               <MotionButton initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
@@ -570,7 +565,7 @@ export default function MapaInteractivo() {
             )}
           </AnimatePresence>
 
-          {/* El mapa con pinch zoom */}
+          {}
           <QuickPinchZoom onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode}>
             <div ref={mapRef} className="origin-top-left">
               <div
@@ -603,7 +598,7 @@ export default function MapaInteractivo() {
           </QuickPinchZoom>
         </div>
 
-        {/* Panel desktop */}
+        {}
         {!isMobile && vistaActual === "reino" && reinoSeleccionado && (
           <div className="w-1/3 bg-white-custom border-l border-primary/10 p-10 flex flex-col gap-4 shadow-[-20px_0_50px_rgba(0,0,0,0.05)] overflow-y-auto">
             <PanelContenido {...panelProps} />
@@ -611,9 +606,7 @@ export default function MapaInteractivo() {
         )}
       </div>
 
-      {/* ═══════════════════════════════════════════════
-          PANEL MÓVIL — debajo del mapa, en el flujo
-      ═══════════════════════════════════════════════ */}
+      {}
       {isMobile && vistaActual === "reino" && reinoSeleccionado && (
         <div
           style={{

@@ -39,18 +39,18 @@ export const librosQueries = {
     if (capError) throw capError;
     if (!capitulo) return { data: null, error: "Capítulo no encontrado" };
 
-    // Bloquear si no es admin
+    
     if (!isAdmin) {
       if (capitulo.visibilidad === "oculto") {
         return { data: null, error: "Este capítulo aún no ha sido revelado." };
       }
-      // Solo los programados necesitan verificar la fecha
+      
       if (capitulo.visibilidad === "programado") {
         if (!capitulo.fecha_publicacion || capitulo.fecha_publicacion > hoy) {
           return { data: null, error: "Este capítulo aún no ha sido revelado." };
         }
       }
-      // publico sin fecha = siempre accesible
+      
     }
 
     let navQuery = supabase
@@ -59,7 +59,7 @@ export const librosQueries = {
       .eq("libro_id", libroId);
 
     if (!isAdmin) {
-      // Mostrar: públicos (sin importar fecha) + programados cuya fecha ya llegó
+      
       navQuery = navQuery.or(
         `visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`
       );

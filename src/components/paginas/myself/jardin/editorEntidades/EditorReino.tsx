@@ -9,8 +9,6 @@ import { useReinoDetalles, usePersonajesDelReino } from "./hooks";
 import { Campo, CampoArea, BarraAcciones, SelectorImagen, SaveIndicator } from "./UIComponents";
 import { PanelPersonajes } from "./PanelPersonajes";
 
-// ─── MapaPuntosReino ──────────────────────────────────────────────────────────
-
 function MapaPuntosReino({ mapaUrl, detalles, onDetallesChange }: {
   mapaUrl: string;
   detalles: ReinoDetalle[];
@@ -88,8 +86,6 @@ function MapaPuntosReino({ mapaUrl, detalles, onDetallesChange }: {
     </div>
   );
 }
-
-// ─── DetalleEditor ────────────────────────────────────────────────────────────
 
 function DetalleEditor({ detalle, onSaved, onDeleted }: {
   detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void;
@@ -206,14 +202,10 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
   );
 }
 
-// ─── PanelPersonajesReino ─────────────────────────────────────────────────────
-
 function PanelPersonajesReino({ reinoNombre }: { reinoNombre: string }) {
   const { personajes, setPersonajes, loading } = usePersonajesDelReino(reinoNombre);
   return <PanelPersonajes personajes={personajes} loading={loading} setPersonajes={setPersonajes} titulo="Personajes" />;
 }
-
-// ─── EditorReino ──────────────────────────────────────────────────────────────
 
 export function EditorReino({ item, onSaved, onDeleted }: {
   item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void;
@@ -288,7 +280,7 @@ export function EditorReino({ item, onSaved, onDeleted }: {
           </div>
           <CampoArea label="Cultura" value={form.cultura ?? ""} onChange={e => setForm(f => ({ ...f, cultura: e.target.value }))} rows={8} placeholder="Tradiciones, religión, idioma, costumbres, arte…" />
 
-          {/* Toggle visibilidad */}
+          {}
           <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-primary/8 bg-primary/3">
             <div className="flex items-center gap-2">
               {form.oculto ? <EyeOff size={13} className="text-orange-400" /> : <Eye size={13} className="text-primary/40" />}

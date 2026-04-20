@@ -125,7 +125,7 @@ function PanelSliderInner({
     if (!panelParam) return;
     const idx = panels.findIndex(p => p.id === panelParam);
     if (idx !== -1 && idx !== active) goTo(idx);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  
   }, [panelParam]);
 
   const goTo = useCallback((idx: number) => {
@@ -251,7 +251,6 @@ function PanelSliderInner({
   );
 }
 
-// Wrapper público con Suspense requerido por useSearchParams
 export function PanelSlider(props: PanelSliderProps) {
   return (
     <Suspense fallback={null}>
@@ -260,6 +259,5 @@ export function PanelSlider(props: PanelSliderProps) {
   );
 }
 
-// Alias Secciones para compatibilidad con imports existentes
 export { PanelSlider as Secciones };
 export default PanelSlider;

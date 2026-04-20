@@ -49,7 +49,7 @@ type Capitulo = {
   fecha_publicacion: string;
   visibilidad?: "publico" | "programado" | "oculto";
   personajes_ids?: string[];
-  // ── NUEVO: personaje que narra/protagoniza el capítulo ──
+  
   narrador_id?: string | null;
   status?: "pending" | "synced";
   deleted?: boolean;
@@ -71,7 +71,6 @@ const VISIBILIDAD_CONFIG = {
   programado: { label: "Programado", icon: Timer, color: "bg-primary/8  text-primary/70 border-primary/20"        },
   oculto:     { label: "Borrador",   icon: Lock,  color: "bg-primary/5  text-primary/40 border-primary/10"        },
 } as const;
-
 
 function wordCount(text: string) {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -233,7 +232,6 @@ async function libroCreate(titulo: string): Promise<Libro> {
   } catch {}
   return data as Libro;
 }
-
 
 function useLibros() {
   const [libros, setLibros]       = useState<Libro[]>([]);
@@ -600,7 +598,6 @@ const LibroItem = ({
   );
 };
 
-// ─── Selector de visibilidad inline para capítulo ────────────────────────────
 const VisibilidadCapPicker = ({
   capId, current, onChanged,
 }: {
@@ -645,7 +642,6 @@ const VisibilidadCapPicker = ({
   );
 };
 
-// ─── NUEVO: Selector de narrador/protagonista (single-select) ────────────────
 const SelectorNarrador = ({
   value,
   onChange,
@@ -657,7 +653,7 @@ const SelectorNarrador = ({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Cerrar al hacer click fuera
+  
   useEffect(() => {
     if (!open) return;
     const h = (e: MouseEvent) => {
@@ -676,7 +672,7 @@ const SelectorNarrador = ({
         Narrador / Protagonista del capítulo
       </label>
 
-      {/* Botón principal */}
+      {}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -706,7 +702,7 @@ const SelectorNarrador = ({
         <ChevronDown size={12} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {/* Dropdown */}
+      {}
       {open && (
         <div
           className="border rounded-[var(--radius-btn)] overflow-hidden"
@@ -715,7 +711,7 @@ const SelectorNarrador = ({
             background: "var(--bg-main)",
           }}
         >
-          {/* Opción: ninguno */}
+          {}
           <button
             type="button"
             onClick={() => { onChange(null); setOpen(false); }}
@@ -733,7 +729,7 @@ const SelectorNarrador = ({
 
           <div className="h-px mx-3" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
 
-          {/* Lista de personajes */}
+          {}
           <div className="max-h-48 overflow-y-auto">
             {personajes.length === 0 ? (
               <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">Sin personajes</p>
@@ -768,8 +764,6 @@ const SelectorNarrador = ({
   );
 };
 
-// ─── Snippets de diálogo ─────────────────────────────────────────────────────
-
 type DialogSnippet = {
   label: string;
   title: string;
@@ -797,7 +791,7 @@ function insertAtCursor(
   const ins   = typeof snippet.insert === "function" ? snippet.insert(sel) : snippet.insert;
   const next  = value.slice(0, start) + ins + value.slice(end);
   onChange(next);
-  // Restore cursor after react re-render
+  
   requestAnimationFrame(() => {
     ta.focus();
     const pos = start + ins.length;
@@ -822,7 +816,7 @@ const DialogSnippets = ({
         title={s.title}
         type="button"
         onMouseDown={(e) => {
-          // prevent textarea losing focus
+          
           e.preventDefault();
           if (textareaRef.current) insertAtCursor(textareaRef.current, value, onChange, s);
         }}
@@ -833,8 +827,6 @@ const DialogSnippets = ({
     ))}
   </div>
 );
-
-// ─── PanelEditor ─────────────────────────────────────────────────────────────
 
 const PanelEditor = ({
   capId, libroId, onCapitulosChange, focusMode, onToggleFocus,
@@ -886,7 +878,7 @@ const PanelEditor = ({
       });
   }, [libroId]);
 
-  // ── Auto-height ────────────────────────────────────────────────────────────
+  
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -894,7 +886,7 @@ const PanelEditor = ({
     ta.style.height = `${ta.scrollHeight}px`;
   }, [contenido]);
 
-  // ── Centrar cursor verticalmente usando un div espejo ──────────────────────
+  
   const centerCursor = useCallback(() => {
     const ta        = textareaRef.current;
     const container = scrollRef.current;
@@ -959,7 +951,7 @@ const PanelEditor = ({
     setSaveStatus("saving");
     clearTimeout(timer.current);
     timer.current = setTimeout(() => doSave(val), 2000);
-    // Centrar cursor después del re-render (cuando el auto-height ya corrió)
+    
     requestAnimationFrame(() => centerCursor());
   };
 
@@ -1007,15 +999,15 @@ const PanelEditor = ({
   );
   if (!cap) return null;
 
-  // Narrador del capítulo (para mostrar en la cabecera)
-  const narradorLabel = cap.narrador_id ? null : null; // se resuelve en ModalEditar, aquí solo mostramos el id si existe
+  
+  const narradorLabel = cap.narrador_id ? null : null; 
 
   const palabras = wordCount(contenido);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-      {/* Modal de preview del lector */}
+      {}
       <AnimatePresence>
         {previewOpen && (
           <div className="fixed inset-0 z-[200] flex flex-col">
@@ -1086,7 +1078,7 @@ const PanelEditor = ({
       {!focusMode && (
         <div className="shrink-0 px-8 pt-6 pb-4 border-b border-primary/8 space-y-4">
 
-          {/* Título */}
+          {}
           <div className="flex items-start gap-3">
             {editingTitle ? (
               <div className="flex-1 flex items-center gap-2">
@@ -1121,7 +1113,7 @@ const PanelEditor = ({
               </div>
             )}
 
-            {/* Acciones */}
+            {}
             <div className="flex items-center gap-1 shrink-0">
               <button onClick={() => doSave(contenido)} disabled={saveStatus === "saving"}
                 className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30" title="Guardar (Ctrl+S)">
@@ -1143,14 +1135,14 @@ const PanelEditor = ({
             </div>
           </div>
 
-          {/* Meta row */}
+          {}
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3 text-[9px] font-black uppercase text-primary/30 tracking-widest flex-wrap">
               <span className="flex items-center gap-1">
                 <Hash size={9}/> Cap. {cap.orden}
               </span>
 
-              {/* Narrador pill — visible si está asignado */}
+              {}
               {cap.narrador_id && (
                 <NarradorPill narradorId={cap.narrador_id} />
               )}
@@ -1238,7 +1230,7 @@ const PanelEditor = ({
       )}
 
       <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-16 py-12 max-w-3xl mx-auto w-full" : "px-8 py-6"}`}>
-        {/* Div espejo para calcular posición exacta del cursor (word-wrap real) */}
+        {}
         <div ref={caretMirrorRef} aria-hidden="true" />
         <textarea
           ref={textareaRef}
@@ -1265,7 +1257,6 @@ const PanelEditor = ({
   );
 };
 
-// ─── Pill del narrador en la barra del editor ─────────────────────────────────
 const NarradorPill = ({ narradorId }: { narradorId: string }) => {
   const { personajes } = usePersonajes();
   const p = personajes.find(x => x.id === narradorId);
@@ -1284,7 +1275,6 @@ const NarradorPill = ({ narradorId }: { narradorId: string }) => {
   );
 };
 
-// ─── SelectorVisibilidad ─────────────────────────────────────────────────────
 const SelectorVisibilidad = ({
   value, onChange, fechaPublicacion, onFechaChange, label = "Visibilidad",
 }: {
@@ -1330,7 +1320,6 @@ const SelectorVisibilidad = ({
   </div>
 );
 
-// ─── Selector multi-personaje (aparecen en el capítulo) ──────────────────────
 const SelectorPersonajesCapitulo = ({
   value, onChange,
 }: {
@@ -1391,7 +1380,6 @@ const SelectorPersonajesCapitulo = ({
   );
 };
 
-// ─── ModalEditarCapitulo ─────────────────────────────────────────────────────
 const ModalEditarCapitulo = ({
   cap, onSaved, onClose,
 }: {
@@ -1448,7 +1436,7 @@ const ModalEditarCapitulo = ({
           onFechaChange={setFecha}
           label="Visibilidad del Capítulo"
         />
-        {/* Narrador primero — es el campo más característico */}
+        {}
         <SelectorNarrador value={narradorId} onChange={setNarradorId} />
         <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
         <BotonSubmit
@@ -1462,7 +1450,6 @@ const ModalEditarCapitulo = ({
   );
 };
 
-// ─── ModalNuevoCapitulo ───────────────────────────────────────────────────────
 const ModalNuevoCapitulo = ({
   libroId, ordenSiguiente, onCreated, onClose,
 }: {
@@ -1525,7 +1512,6 @@ const ModalNuevoCapitulo = ({
   );
 };
 
-// ─── SelectorImagenPortada ────────────────────────────────────────────────────
 function SelectorImagenPortada({ value, onChange }: { value: string; onChange: (url: string) => void }) {
   const [open, setOpen] = useState(false);
   return (
@@ -1585,7 +1571,6 @@ function SelectorImagenPortada({ value, onChange }: { value: string; onChange: (
   );
 }
 
-// ─── ModalNuevoLibro ──────────────────────────────────────────────────────────
 const ModalNuevoLibro = ({
   onCreated, onClose,
 }: {
@@ -1635,7 +1620,6 @@ const ModalNuevoLibro = ({
   );
 };
 
-// ─── ModalEditarLibro ─────────────────────────────────────────────────────────
 const ModalEditarLibro = ({
   libro, onSaved, onClose,
 }: {
@@ -1664,7 +1648,7 @@ const ModalEditarLibro = ({
         portada_url: portada.trim(),
         estado,
         visibilidad,
-        // ✅ null limpia la columna en Supabase; undefined causa error 400
+        
         fecha_publicacion: visibilidad === "programado" ? (fechaLibro || null) : null,
       };
       await libroUpdateMeta(libro.id, fields);
@@ -1730,7 +1714,6 @@ const ModalEditarLibro = ({
   );
 };
 
-
 export default function EstudioCapitulos() {
   const { libros, setLibros, loading: loadingLibros, isOffline: listaOffline, refetch } = useLibros();
 
@@ -1756,7 +1739,7 @@ export default function EstudioCapitulos() {
 
   useEffect(() => {
     if (lastLibroId) setExpandedLibros(new Set([lastLibroId]));
-  }, []); // eslint-disable-line
+  }, []); 
 
   const librosFiltrados = useMemo(() =>
     libros.filter(l => !busqueda || normalize(l.titulo).includes(normalize(busqueda))),

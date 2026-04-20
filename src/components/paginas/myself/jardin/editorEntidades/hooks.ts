@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { TAB_CONFIG, type TabKey, type MundoSectionKey, type Personaje, type ReinoDetalle, type CriaturaVariante, type CapituloNarrado } from "./types";
 
-// ─── useEntidades ─────────────────────────────────────────────────────────────
-
 export function useEntidades<T extends { id: string; nombre: string }>(tab: TabKey) {
   const [items,     setItems]     = useState<T[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -33,8 +31,6 @@ export function useEntidades<T extends { id: string; nombre: string }>(tab: TabK
   return { items, setItems, loading, isOffline, refetch: load };
 }
 
-// ─── useUniqueValues ──────────────────────────────────────────────────────────
-
 export function useUniqueValues(tabla: string, columna: string) {
   const [valores, setValores] = useState<string[]>([]);
 
@@ -52,8 +48,6 @@ export function useUniqueValues(tabla: string, columna: string) {
 
   return valores;
 }
-
-// ─── useCapitulosNarrados ─────────────────────────────────────────────────────
 
 export function useCapitulosNarrados(personajeId: string | null) {
   const [caps,    setCaps]    = useState<CapituloNarrado[]>([]);
@@ -82,8 +76,6 @@ export function useCapitulosNarrados(personajeId: string | null) {
   return { caps, loading };
 }
 
-// ─── useReinoDetalles ─────────────────────────────────────────────────────────
-
 export function useReinoDetalles(reinoId: string | null) {
   const [detalles, setDetalles] = useState<ReinoDetalle[]>([]);
   const [loading, setLoading] = useState(false);
@@ -102,8 +94,6 @@ export function useReinoDetalles(reinoId: string | null) {
 
   return { detalles, setDetalles, loading };
 }
-
-// ─── useCriaturaVariantes ─────────────────────────────────────────────────────
 
 export function useCriaturaVariantes(criaturaId: string | null) {
   const [variantes, setVariantes] = useState<CriaturaVariante[]>([]);
@@ -125,8 +115,6 @@ export function useCriaturaVariantes(criaturaId: string | null) {
   return { variantes, setVariantes, loading };
 }
 
-// ─── usePersonajesDelReino ────────────────────────────────────────────────────
-
 export function usePersonajesDelReino(reinoNombre: string | null | undefined) {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
   const [loading, setLoading] = useState(false);
@@ -145,8 +133,6 @@ export function usePersonajesDelReino(reinoNombre: string | null | undefined) {
   return { personajes, setPersonajes, loading };
 }
 
-// ─── usePersonajesDeEspecie ───────────────────────────────────────────────────
-
 export function usePersonajesDeEspecie(especieNombre: string | null | undefined) {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
   const [loading, setLoading] = useState(false);
@@ -164,8 +150,6 @@ export function usePersonajesDeEspecie(especieNombre: string | null | undefined)
 
   return { personajes, setPersonajes, loading };
 }
-
-// ─── useMundoSecciones ────────────────────────────────────────────────────────
 
 export function useMundoSecciones() {
   const [textos,  setTextos]  = useState<Record<MundoSectionKey, string>>({

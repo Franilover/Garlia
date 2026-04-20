@@ -32,7 +32,7 @@ export default function LibroDetalle() {
   const id = params?.id as string;
   const router = useRouter();
 
-  // Un solo estado de loading para libro + capítulos
+  
   const [loading, setLoading]                 = useState(true);
   const [libro, setLibro]                     = useState<Libro | null>(null);
   const [capitulos, setCapitulos]             = useState<Capitulo[]>([]);
@@ -67,23 +67,23 @@ export default function LibroDetalle() {
         .maybeSingle(),
     ]).then(([libroRes, capsRes, proximoRes]) => {
       if (!libroRes.data) {
-        // El libro no existe o no es visible — no renderizar nada
+        
         setNotFound(true);
         return;
       }
       setLibro(libroRes.data);
       setCapitulos(capsRes.data ?? []);
-      // false = consultado pero sin resultado; null = todavía no consultado
+      
       setCapituloProximo(proximoRes.data ?? false);
     }).finally(() => {
       setLoading(false);
     });
   }, [id]);
 
-  // Esperar a que todo esté listo antes de mostrar cualquier cosa
+  
   if (loading) return <Loading text="Cargando libro…" />;
 
-  // Libro no encontrado
+  
   if (notFound || !libro) return (
     <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-4">
       <p className="text-primary/30 font-black uppercase text-xs tracking-widest italic">Libro no encontrado</p>
@@ -105,7 +105,7 @@ export default function LibroDetalle() {
             />
           </div>
 
-          {/* Próximo capítulo programado — siempre visible tras la carga */}
+          {}
           <div className="mt-8 p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10">
             <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
               <Calendar size={12} /> Próximo Capítulo

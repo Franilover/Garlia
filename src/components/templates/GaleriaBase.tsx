@@ -55,7 +55,7 @@ export default function EntidadPageBase({
   plantillaNueva,
   permitirOrden = false,
 }: EntidadPageBaseProps) {
-  // Una sola llamada a useIsAdmin — se pasa a los hooks que la necesitan
+  
   const isAdmin = useIsAdmin();
 
   const { data, setData, loading, isOffline } = useSupabaseData(

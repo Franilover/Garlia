@@ -11,8 +11,7 @@ interface SmartImageProps {
   className?: string;
   contain?: boolean;
   priority?: boolean;
-  /** Fuerza recarga omitiendo caché del navegador. Usar solo cuando la imagen
-   *  puede cambiar entre sesiones (ej: avatar de perfil). Por defecto false. */
+  
   cacheBust?: boolean;
 }
 
