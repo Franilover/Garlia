@@ -407,14 +407,23 @@ function useCapituloEditor(capId: string | null) {
   return { cap, setCap, loading, isOffline, reload: () => capId && load(capId) };
 }
 
-const EstadisticasEscritura = ({ texto }: { texto: string }) => {
+const EstadisticasEscritura = ({ texto, compact = false }: { texto: string; compact?: boolean }) => {
   const palabras  = wordCount(texto);
   const caracteres = texto.length;
   const lectura   = readingTime(palabras);
+  if (compact) {
+    return (
+      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/25">
+        <Hash size={9}/>{palabras.toLocaleString()}
+        <span className="text-primary/15">·</span>
+        <Clock size={9}/>{lectura}
+      </span>
+    );
+  }
   return (
     <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-primary/25">
       <span className="flex items-center gap-1"><Hash size={9}/>{palabras.toLocaleString()} pal.</span>
-      <span className="flex items-center gap-1"><AlignLeft size={9}/>{caracteres.toLocaleString()} car.</span>
+      <span className="hidden sm:flex items-center gap-1"><AlignLeft size={9}/>{caracteres.toLocaleString()} car.</span>
       <span className="flex items-center gap-1"><Clock size={9}/>{lectura}</span>
     </div>
   );
@@ -808,7 +817,7 @@ const DialogSnippets = ({
   value: string;
   onChange: (v: string) => void;
 }) => (
-  <div className="shrink-0 flex items-center gap-1 px-8 py-1.5 border-b border-primary/5 flex-wrap">
+  <div className="shrink-0 flex items-center gap-1 px-4 sm:px-8 py-1.5 border-b border-primary/5 flex-wrap">
     <span className="text-[8px] font-black uppercase tracking-widest text-primary/20 mr-1">Diálogo</span>
     {DIALOG_SNIPPETS.map((s) => (
       <button
@@ -1003,6 +1012,8 @@ const PanelEditor = ({
   const narradorLabel = cap.narrador_id ? null : null; 
 
   const palabras = wordCount(contenido);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -1076,10 +1087,10 @@ const PanelEditor = ({
       )}
 
       {!focusMode && (
-        <div className="shrink-0 px-8 pt-6 pb-4 border-b border-primary/8 space-y-4">
+        <div className="shrink-0 px-4 sm:px-8 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-primary/8 space-y-3">
 
           {}
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-2">
             {editingTitle ? (
               <div className="flex-1 flex items-center gap-2">
                 <input
@@ -1090,7 +1101,7 @@ const PanelEditor = ({
                     if (e.key === "Enter") handleSaveTitle();
                     if (e.key === "Escape") { setEditingTitle(false); setTitulo(cap.titulo_capitulo); }
                   }}
-                  className="flex-1 bg-transparent text-2xl font-black uppercase italic tracking-tight text-primary outline-none border-b-2 border-primary/30 focus:border-primary pb-1"
+                  className="flex-1 bg-transparent text-lg sm:text-2xl font-black uppercase italic tracking-tight text-primary outline-none border-b-2 border-primary/30 focus:border-primary pb-1"
                 />
                 <button onClick={handleSaveTitle} disabled={savingMeta} className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40">
                   {savingMeta ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>}
@@ -1102,19 +1113,20 @@ const PanelEditor = ({
             ) : (
               <div className="flex items-start gap-2 flex-1 min-w-0">
                 <h1
-                  className="flex-1 text-2xl font-black uppercase italic tracking-tight text-primary leading-tight cursor-pointer hover:text-primary/70 transition-colors"
+                  className="flex-1 text-lg sm:text-2xl font-black uppercase italic tracking-tight text-primary leading-tight cursor-pointer hover:text-primary/70 transition-colors"
                   onClick={() => setEditingTitle(true)}
                 >
                   {cap.titulo_capitulo}
                 </h1>
-                <button onClick={() => setEditingTitle(true)} className="shrink-0 p-1.5 rounded-lg hover:bg-primary/8 text-primary/25 hover:text-primary transition-all mt-1">
-                  <Pencil size={13}/>
+                <button onClick={() => setEditingTitle(true)} className="shrink-0 p-1.5 rounded-lg hover:bg-primary/8 text-primary/25 hover:text-primary transition-all mt-0.5">
+                  <Pencil size={12}/>
                 </button>
               </div>
             )}
 
             {}
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Desktop actions */}
+            <div className="hidden sm:flex items-center gap-1 shrink-0">
               <button onClick={() => doSave(contenido)} disabled={saveStatus === "saving"}
                 className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30" title="Guardar (Ctrl+S)">
                 <Save size={14}/>
@@ -1133,16 +1145,70 @@ const PanelEditor = ({
                 <Trash2 size={13}/>
               </button>
             </div>
+
+            {}
+            {/* Mobile: save + overflow menu */}
+            <div className="flex sm:hidden items-center gap-1 shrink-0">
+              <SaveIndicator status={saveStatus}/>
+              <button onClick={() => doSave(contenido)} disabled={saveStatus === "saving"}
+                className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30">
+                <Save size={14}/>
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setMobileActionsOpen(o => !o)}
+                  className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+                >
+                  <MoreHorizontal size={14}/>
+                </button>
+                <AnimatePresence>
+                  {mobileActionsOpen && (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-40"
+                        onClick={() => setMobileActionsOpen(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute right-0 top-9 z-50 min-w-[160px] bg-bg-main border border-primary/15 rounded-xl shadow-xl py-1 overflow-hidden"
+                      >
+                        <button onClick={() => { setPreviewOpen(true); setMobileActionsOpen(false); }}
+                          className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2">
+                          <Eye size={11}/> Vista previa
+                        </button>
+                        <button onClick={() => { onToggleFocus(); setMobileActionsOpen(false); }}
+                          className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2">
+                          <Maximize2 size={11}/> Modo foco
+                        </button>
+                        <button onClick={() => { (reload as any)(); setMobileActionsOpen(false); }}
+                          className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2">
+                          <RefreshCw size={11}/> Recargar
+                        </button>
+                        <div className="h-px bg-primary/8 mx-2 my-1"/>
+                        <button onClick={() => { handleDelete(); setMobileActionsOpen(false); }}
+                          className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-red-400/70 hover:bg-red-500/8 hover:text-red-400 transition-all flex items-center gap-2">
+                          <Trash2 size={11}/> Eliminar
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
           </div>
 
           {}
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3 text-[9px] font-black uppercase text-primary/30 tracking-widest flex-wrap">
-              <span className="flex items-center gap-1">
-                <Hash size={9}/> Cap. {cap.orden}
+          {/* Meta row — compact on mobile */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-primary/30 tracking-widest flex-wrap min-w-0">
+              <span className="flex items-center gap-1 shrink-0">
+                <Hash size={9}/> {cap.orden}
               </span>
 
-              {}
               {cap.narrador_id && (
                 <NarradorPill narradorId={cap.narrador_id} />
               )}
@@ -1168,12 +1234,17 @@ const PanelEditor = ({
                 ) : (
                   <button onClick={() => setEditingFecha(true)} className="flex items-center gap-1 hover:text-primary transition-colors group/fecha" title="Editar fecha">
                     <Calendar size={9}/>
-                    {fecha
-                      ? new Date(fecha) > new Date()
-                        ? `Programado · ${new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}`
-                        : new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })
-                      : "Sin fecha"
-                    }
+                    <span className="hidden sm:inline">
+                      {fecha
+                        ? new Date(fecha) > new Date()
+                          ? `Prog. · ${new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`
+                          : new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short" })
+                        : "Sin fecha"
+                      }
+                    </span>
+                    <span className="sm:hidden">
+                      {fecha ? new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : "Fecha"}
+                    </span>
                     <Pencil size={8} className="opacity-0 group-hover/fecha:opacity-60 transition-opacity ml-0.5"/>
                   </button>
                 )
@@ -1193,21 +1264,22 @@ const PanelEditor = ({
               />
             </div>
 
-            <div className="flex items-center gap-4">
-              <EstadisticasEscritura texto={contenido}/>
-              <SaveIndicator status={saveStatus}/>
+            <div className="flex items-center gap-2 shrink-0">
+              <EstadisticasEscritura texto={contenido} compact={true}/>
+              {/* SaveIndicator only on desktop here; mobile has it in the actions row */}
+              <span className="hidden sm:block"><SaveIndicator status={saveStatus}/></span>
             </div>
           </div>
         </div>
       )}
 
       {focusMode && (
-        <div className="shrink-0 flex items-center justify-between px-8 py-3 border-b border-primary/5">
-          <span className="text-xs font-black uppercase italic tracking-tight text-primary/40 truncate max-w-xs">
+        <div className="shrink-0 flex items-center justify-between px-4 sm:px-8 py-3 border-b border-primary/5">
+          <span className="text-xs font-black uppercase italic tracking-tight text-primary/40 truncate max-w-[180px] sm:max-w-xs">
             {cap.titulo_capitulo}
           </span>
-          <div className="flex items-center gap-3">
-            <EstadisticasEscritura texto={contenido}/>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <EstadisticasEscritura texto={contenido} compact={true}/>
             <SaveIndicator status={saveStatus}/>
             <button onClick={onToggleFocus} className="p-1.5 rounded-lg hover:bg-primary/8 text-primary/25 hover:text-primary transition-all">
               <Minimize2 size={13}/>
@@ -1217,19 +1289,56 @@ const PanelEditor = ({
       )}
 
       {!focusMode && (
-        <DialogSnippets textareaRef={textareaRef} value={contenido} onChange={onChange} />
+        <>
+          {/* Desktop: toolbars inline */}
+          <div className="hidden sm:block">
+            <DialogSnippets textareaRef={textareaRef} value={contenido} onChange={onChange} />
+          </div>
+          <div className="hidden sm:block">
+            <SnippetToolbar
+              textareaRef={textareaRef}
+              value={contenido}
+              onChange={onChange}
+              listaCapitulos={listaSnippetCaps}
+            />
+          </div>
+
+          {/* Mobile: toggle button + collapsible drawer */}
+          <div className="sm:hidden shrink-0">
+            <button
+              onClick={() => setMobileToolsOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 py-2 border-b border-primary/8 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:bg-primary/3 transition-all"
+            >
+              <span className="flex items-center gap-1.5">
+                <Zap size={9}/>
+                Herramientas de escritura
+              </span>
+              <ChevronDown size={10} className={`transition-transform duration-200 ${mobileToolsOpen ? "rotate-180" : ""}`}/>
+            </button>
+            <AnimatePresence>
+              {mobileToolsOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="overflow-hidden border-b border-primary/8"
+                >
+                  <DialogSnippets textareaRef={textareaRef} value={contenido} onChange={onChange} />
+                  <SnippetToolbar
+                    textareaRef={textareaRef}
+                    value={contenido}
+                    onChange={onChange}
+                    listaCapitulos={listaSnippetCaps}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </>
       )}
 
-      {!focusMode && (
-        <SnippetToolbar
-          textareaRef={textareaRef}
-          value={contenido}
-          onChange={onChange}
-          listaCapitulos={listaSnippetCaps}
-        />
-      )}
-
-      <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-16 py-12 max-w-3xl mx-auto w-full" : "px-8 py-6"}`}>
+      <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12 max-w-3xl mx-auto w-full" : "px-4 sm:px-8 py-4 sm:py-6"}`}>
         {}
         <div ref={caretMirrorRef} aria-hidden="true" />
         <textarea
@@ -1240,16 +1349,16 @@ const PanelEditor = ({
             if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(contenido); }
           }}
           spellCheck
-          className={`w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all ${focusMode ? "text-xl" : "text-base"}`}
+          className={`w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all ${focusMode ? "text-lg sm:text-xl" : "text-base"}`}
           style={{ minHeight: "60vh" }}
           placeholder="Empieza a escribir…"
         />
       </div>
 
       {!focusMode && (
-        <div className="shrink-0 px-8 py-3 border-t border-primary/5 flex items-center justify-between">
+        <div className="shrink-0 px-4 sm:px-8 py-2.5 border-t border-primary/5 flex items-center justify-between">
           <EstadisticasEscritura texto={contenido}/>
-          <span className="text-[9px] font-black uppercase text-primary/20 tracking-widest">Ctrl+S para guardar</span>
+          <span className="hidden sm:block text-[9px] font-black uppercase text-primary/20 tracking-widest">Ctrl+S para guardar</span>
         </div>
       )}
       <ConfirmModal />
