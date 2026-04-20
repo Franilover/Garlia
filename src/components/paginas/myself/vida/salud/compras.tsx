@@ -2,19 +2,25 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, ShoppingCart, Flame, Dumbbell, Wheat, Droplets, ChevronLeft, Package } from "lucide-react";
+import {
+  Search, X, ShoppingCart, Flame, Dumbbell, Wheat, Droplets,
+  ChevronLeft, Package, Plus, Minus, Pencil, Check,
+} from "lucide-react";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import { Loading } from "@/components/ui";
 
+// ─── tipos ────────────────────────────────────────────────────────────────────
+type CartEntry = {
+  qty: number;
+  overrides: Partial<{ kcal: number; proteinas: number; carbohidratos: number; grasas: number; precio: number }>;
+};
+
 // ─── Macro Popover (mobile) ───────────────────────────────────────────────────
 function MacroPopover({ item, onClose }: { item: Ingrediente; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
@@ -51,7 +57,160 @@ function MacroPopover({ item, onClose }: { item: Ingrediente; onClose: () => voi
   );
 }
 
-// ─── Row ──────────────────────────────────────────────────────────────────────
+// ─── Cart Item Editor ─────────────────────────────────────────────────────────
+function CartItemEditor({
+  item, entry, onUpdate, onClose,
+}: {
+  item: Ingrediente;
+  entry: CartEntry;
+  onUpdate: (overrides: CartEntry["overrides"]) => void;
+  onClose: () => void;
+}) {
+  const fields: { key: keyof CartEntry["overrides"]; label: string; unit: string; step: string }[] = [
+    { key: "kcal",          label: "Calorías",      unit: "kcal", step: "1"   },
+    { key: "proteinas",     label: "Proteínas",     unit: "g",    step: "0.1" },
+    { key: "carbohidratos", label: "Carbohidratos", unit: "g",    step: "0.1" },
+    { key: "grasas",        label: "Grasas",        unit: "g",    step: "0.1" },
+    { key: "precio",        label: "Precio",        unit: "$",    step: "0.01"},
+  ];
+
+  const [local, setLocal] = useState<CartEntry["overrides"]>(() => {
+    const o: CartEntry["overrides"] = {};
+    fields.forEach(f => {
+      o[f.key] = entry.overrides[f.key] ?? ((item as any)[f.key] ?? 0);
+    });
+    return o;
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.18 }}
+      className="overflow-hidden"
+    >
+      <div className="mx-4 mb-3 rounded-[var(--radius-btn)] border border-primary/10 bg-bg-main overflow-hidden">
+        <div className="px-3 py-2 border-b border-primary/8 flex items-center justify-between">
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Editar valores · por porción</span>
+          <button onClick={onClose} className="text-primary/25 hover:text-primary transition-colors"><X size={12} /></button>
+        </div>
+        <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {fields.map(({ key, label, unit, step }) => (
+            <div key={key} className="flex flex-col gap-1">
+              <label className="text-[8px] font-black uppercase tracking-widest text-primary/30 pl-0.5">{label} ({unit})</label>
+              <input
+                type="number"
+                min="0"
+                step={step}
+                value={local[key] ?? 0}
+                onChange={e => setLocal(p => ({ ...p, [key]: Number(e.target.value) }))}
+                className="input-brand text-[11px] font-black py-1.5 px-2"
+              />
+            </div>
+          ))}
+        </div>
+        <div className="px-3 pb-3 flex justify-end">
+          <button
+            onClick={() => { onUpdate(local); onClose(); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-accent text-white text-[9px] font-black uppercase tracking-widest"
+          >
+            <Check size={11} /> Aplicar
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Cart Item Row ────────────────────────────────────────────────────────────
+function CartItemRow({
+  item, entry, onRemove, onQty, onUpdate,
+}: {
+  item: Ingrediente;
+  entry: CartEntry;
+  onRemove: () => void;
+  onQty: (delta: number) => void;
+  onUpdate: (overrides: CartEntry["overrides"]) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  const val = (key: keyof CartEntry["overrides"]) =>
+    entry.overrides[key] ?? ((item as any)[key] ?? 0);
+
+  const precio = val("precio");
+  const kcal = val("kcal");
+
+  return (
+    <div className="border-b border-accent/10 last:border-0">
+      <div className="flex items-center gap-2 px-4 py-2.5">
+        {/* Nombre */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-black uppercase italic tracking-tight text-primary truncate">{item.nombre}</p>
+          <p className="text-[8px] text-primary/30 uppercase font-bold">{item.porcion_texto}</p>
+        </div>
+
+        {/* Macros resumen */}
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
+          <span className="text-[10px] font-black text-primary/40">{(kcal * entry.qty).toFixed(0)} kcal</span>
+          {precio > 0 && (
+            <span className="text-[10px] font-black text-accent">${(precio * entry.qty).toFixed(0)}</span>
+          )}
+        </div>
+        <div className="flex sm:hidden items-center gap-1.5 shrink-0">
+          <span className="text-[9px] font-black text-primary/40">{(kcal * entry.qty).toFixed(0)} kcal</span>
+        </div>
+
+        {/* Qty controls */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => onQty(-1)}
+            className="w-6 h-6 flex items-center justify-center rounded-[var(--radius-btn)] border border-primary/15 text-primary/30 hover:text-red-400 hover:border-red-100 transition-all"
+          >
+            <Minus size={10} />
+          </button>
+          <span className="w-5 text-center text-[11px] font-black text-primary">{entry.qty}</span>
+          <button
+            onClick={() => onQty(1)}
+            className="w-6 h-6 flex items-center justify-center rounded-[var(--radius-btn)] border border-primary/15 text-primary/30 hover:text-accent hover:border-accent/40 transition-all"
+          >
+            <Plus size={10} />
+          </button>
+        </div>
+
+        {/* Edit + Remove */}
+        <button
+          onClick={() => setEditing(p => !p)}
+          className={`w-6 h-6 flex items-center justify-center rounded-[var(--radius-btn)] transition-all ${
+            editing ? "bg-accent/20 text-accent" : "text-primary/20 hover:text-accent hover:bg-accent/10"
+          }`}
+        >
+          <Pencil size={11} />
+        </button>
+        <button
+          onClick={onRemove}
+          className="w-6 h-6 flex items-center justify-center rounded-[var(--radius-btn)] text-primary/20 hover:text-red-400 hover:bg-red-50 transition-all"
+        >
+          <X size={10} />
+        </button>
+      </div>
+
+      {/* Editor inline */}
+      <AnimatePresence>
+        {editing && (
+          <CartItemEditor
+            item={item}
+            entry={entry}
+            onUpdate={onUpdate}
+            onClose={() => setEditing(false)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Table Row ────────────────────────────────────────────────────────────────
 function IngredienteRow({
   item, i, inCart, onToggle,
 }: {
@@ -63,7 +222,6 @@ function IngredienteRow({
     <tr className={`border-b border-primary/5 last:border-0 transition-colors ${
       inCart ? "bg-accent/8" : i % 2 === 0 ? "" : "bg-primary/[0.015]"
     }`}>
-      {/* Checkbox */}
       <td className="pl-4 pr-2 py-3 w-8">
         <button
           onClick={onToggle}
@@ -78,14 +236,10 @@ function IngredienteRow({
           )}
         </button>
       </td>
-
-      {/* Nombre */}
       <td className="px-3 py-3">
         <p className="text-[12px] font-black uppercase italic tracking-tight text-primary leading-none">{item.nombre}</p>
         <p className="text-[9px] font-bold text-primary/30 uppercase mt-0.5">{item.porcion_texto}</p>
       </td>
-
-      {/* Kcal — clickeable para popover */}
       <td className="px-3 py-3 text-right">
         <div className="relative inline-block">
           <button
@@ -100,8 +254,6 @@ function IngredienteRow({
           </AnimatePresence>
         </div>
       </td>
-
-      {/* Macros — hidden on mobile */}
       <td className="px-3 py-3 text-right hidden sm:table-cell">
         <span className="text-[11px] font-black text-primary">{(item.proteinas ?? 0).toFixed(1)}</span>
         <span className="text-[8px] text-primary/25 ml-0.5">g</span>
@@ -114,8 +266,6 @@ function IngredienteRow({
         <span className="text-[11px] font-black text-primary">{(item.grasas ?? 0).toFixed(1)}</span>
         <span className="text-[8px] text-primary/25 ml-0.5">g</span>
       </td>
-
-      {/* Precio */}
       <td className="px-4 py-3 text-right">
         {(item as any).precio
           ? <span className="text-[11px] font-black text-primary">${((item as any).precio).toFixed(0)}</span>
@@ -129,45 +279,57 @@ function IngredienteRow({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ComprasPage() {
   const { data: ingredientes, loading } = useSupabaseData<Ingrediente>("ingredientes");
-  const [search, setSearch] = useState("");
-  const [cart, setCart] = useState<Set<string>>(new Set());
+  const [search, setSearch]             = useState("");
+  const [cart, setCart]                 = useState<Record<string, CartEntry>>({});
 
   const items = useMemo(() =>
     ingredientes.filter(i => !search || i.nombre.toLowerCase().includes(search.toLowerCase())),
     [ingredientes, search]
   );
 
-  const cartItems = useMemo(() =>
-    ingredientes.filter(i => cart.has(i.id)),
-    [ingredientes, cart]
-  );
+  const cartIds    = Object.keys(cart);
+  const cartItems  = useMemo(() => ingredientes.filter(i => cartIds.includes(i.id)), [ingredientes, cart]);
+
+  const inCart = (id: string) => !!cart[id];
 
   const toggle = (id: string) =>
-    setCart(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+    setCart(prev => {
+      if (prev[id]) { const { [id]: _, ...rest } = prev; return rest; }
+      return { ...prev, [id]: { qty: 1, overrides: {} } };
+    });
 
   const removeFromCart = (id: string) =>
-    setCart(prev => { const next = new Set(prev); next.delete(id); return next; });
+    setCart(prev => { const { [id]: _, ...rest } = prev; return rest; });
+
+  const updateQty = (id: string, delta: number) =>
+    setCart(prev => {
+      const entry = prev[id];
+      if (!entry) return prev;
+      const qty = Math.max(1, entry.qty + delta);
+      return { ...prev, [id]: { ...entry, qty } };
+    });
+
+  const updateOverrides = (id: string, overrides: CartEntry["overrides"]) =>
+    setCart(prev => prev[id] ? { ...prev, [id]: { ...prev[id], overrides } } : prev);
+
+  const getVal = (item: Ingrediente, key: keyof CartEntry["overrides"]) => {
+    const entry = cart[item.id];
+    return entry?.overrides[key] ?? ((item as any)[key] ?? 0);
+  };
 
   const cartTotals = useMemo(() => cartItems.reduce(
-    (acc, i) => ({
-      kcal:          acc.kcal          + (i.kcal          ?? 0),
-      proteinas:     acc.proteinas     + (i.proteinas     ?? 0),
-      carbohidratos: acc.carbohidratos + (i.carbohidratos ?? 0),
-      grasas:        acc.grasas        + (i.grasas        ?? 0),
-      precio:        acc.precio        + ((i as any).precio ?? 0),
-    }),
+    (acc, item) => {
+      const qty = cart[item.id]?.qty ?? 1;
+      return {
+        kcal:          acc.kcal          + getVal(item, "kcal")          * qty,
+        proteinas:     acc.proteinas     + getVal(item, "proteinas")     * qty,
+        carbohidratos: acc.carbohidratos + getVal(item, "carbohidratos") * qty,
+        grasas:        acc.grasas        + getVal(item, "grasas")        * qty,
+        precio:        acc.precio        + getVal(item, "precio")        * qty,
+      };
+    },
     { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0, precio: 0 }
-  ), [cartItems]);
-
-  const allVisibleInCart = items.length > 0 && items.every(i => cart.has(i.id));
-
-  const toggleAll = () => {
-    if (allVisibleInCart) {
-      setCart(prev => { const next = new Set(prev); items.forEach(i => next.delete(i.id)); return next; });
-    } else {
-      setCart(prev => { const next = new Set(prev); items.forEach(i => next.add(i.id)); return next; });
-    }
-  };
+  ), [cartItems, cart]);
 
   const tableTotals = useMemo(() => items.reduce(
     (acc, i) => ({
@@ -175,10 +337,20 @@ export default function ComprasPage() {
       proteinas:     acc.proteinas     + (i.proteinas     ?? 0),
       carbohidratos: acc.carbohidratos + (i.carbohidratos ?? 0),
       grasas:        acc.grasas        + (i.grasas        ?? 0),
-      precio:        acc.precio        + ((i as any).precio ?? 0),
     }),
-    { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0, precio: 0 }
+    { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0 }
   ), [items]);
+
+  const allVisibleInCart = items.length > 0 && items.every(i => inCart(i.id));
+  const toggleAll = () => {
+    if (allVisibleInCart) {
+      setCart(prev => { const next = { ...prev }; items.forEach(i => { delete next[i.id]; }); return next; });
+    } else {
+      setCart(prev => { const next = { ...prev }; items.forEach(i => { if (!next[i.id]) next[i.id] = { qty: 1, overrides: {} }; }); return next; });
+    }
+  };
+
+  const totalCartItems = cartItems.reduce((acc, i) => acc + (cart[i.id]?.qty ?? 1), 0);
 
   return (
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
@@ -223,43 +395,36 @@ export default function ComprasPage() {
               transition={{ type: "spring", stiffness: 340, damping: 30 }}
               className="card-main overflow-hidden border-accent/25 bg-accent/5"
             >
+              {/* Header carrito */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-accent/15">
                 <div className="flex items-center gap-2">
                   <ShoppingCart size={14} className="text-accent" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Carrito</span>
-                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-black">{cartItems.length}</span>
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-black">{totalCartItems}</span>
                 </div>
                 <button
-                  onClick={() => setCart(new Set())}
+                  onClick={() => setCart({})}
                   className="text-[8px] font-black uppercase tracking-widest text-primary/25 hover:text-red-400 transition-colors"
                 >
                   Vaciar
                 </button>
               </div>
 
-              <div className="divide-y divide-accent/10">
+              {/* Items */}
+              <div>
                 {cartItems.map(item => (
-                  <div key={item.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black uppercase italic tracking-tight text-primary truncate">{item.nombre}</p>
-                      <p className="text-[8px] text-primary/30 uppercase font-bold">{item.porcion_texto}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-[10px] font-black text-primary/50">{(item.kcal ?? 0).toFixed(0)} kcal</span>
-                      {(item as any).precio > 0 && (
-                        <span className="text-[10px] font-black text-accent">${((item as any).precio).toFixed(0)}</span>
-                      )}
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="w-5 h-5 flex items-center justify-center rounded-[var(--radius-btn)] text-primary/20 hover:text-red-400 hover:bg-red-50 transition-all"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  </div>
+                  <CartItemRow
+                    key={item.id}
+                    item={item}
+                    entry={cart[item.id] ?? { qty: 1, overrides: {} }}
+                    onRemove={() => removeFromCart(item.id)}
+                    onQty={delta => updateQty(item.id, delta)}
+                    onUpdate={ov => updateOverrides(item.id, ov)}
+                  />
                 ))}
               </div>
 
+              {/* Totales carrito */}
               <div className="flex items-center gap-4 px-4 py-3 border-t border-accent/15 bg-accent/8 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <Flame size={11} className="text-orange-400" />
@@ -281,6 +446,12 @@ export default function ComprasPage() {
                   <span className="text-[10px] font-black text-primary">{cartTotals.grasas.toFixed(1)}</span>
                   <span className="text-[8px] text-primary/30">g gras</span>
                 </div>
+                {cartTotals.precio > 0 && (
+                  <div className="ml-auto flex items-baseline gap-1">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-primary/35">Total</span>
+                    <span className="text-lg font-black italic tracking-tighter text-accent">${cartTotals.precio.toFixed(0)}</span>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -326,17 +497,15 @@ export default function ComprasPage() {
                       <p className="text-[10px] font-black uppercase tracking-widest text-primary/25">Sin resultados</p>
                     </td>
                   </tr>
-                ) : (
-                  items.map((item, i) => (
-                    <IngredienteRow
-                      key={item.id}
-                      item={item}
-                      i={i}
-                      inCart={cart.has(item.id)}
-                      onToggle={() => toggle(item.id)}
-                    />
-                  ))
-                )}
+                ) : items.map((item, i) => (
+                  <IngredienteRow
+                    key={item.id}
+                    item={item}
+                    i={i}
+                    inCart={inCart(item.id)}
+                    onToggle={() => toggle(item.id)}
+                  />
+                ))}
               </tbody>
               {items.length > 0 && (
                 <tfoot>
@@ -362,10 +531,7 @@ export default function ComprasPage() {
                       <span className="text-[8px] text-primary/25 ml-0.5">g</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {tableTotals.precio > 0
-                        ? <span className="text-[11px] font-black text-primary">${tableTotals.precio.toFixed(0)}</span>
-                        : <span className="text-[10px] text-primary/15">—</span>
-                      }
+                      <span className="text-[10px] text-primary/15">—</span>
                     </td>
                   </tr>
                 </tfoot>
@@ -375,7 +541,7 @@ export default function ComprasPage() {
         )}
       </main>
 
-      {/* ── Footer sticky con precio carrito ── */}
+      {/* ── Footer sticky ── */}
       <AnimatePresence>
         {cartItems.length > 0 && (
           <motion.div
@@ -389,7 +555,7 @@ export default function ComprasPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <ShoppingCart size={15} className="text-accent" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary/50">
-                  {cartItems.length} ítem{cartItems.length !== 1 ? "s" : ""}
+                  {totalCartItems} ítem{totalCartItems !== 1 ? "s" : ""}
                 </span>
               </div>
               <div className="flex-1 flex items-center gap-3 overflow-x-auto">
