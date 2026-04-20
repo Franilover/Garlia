@@ -7,22 +7,24 @@ import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import {
   Search, Plus, ChevronLeft, X, Save,
   Package, PackageX, Minus, FlaskConical, Flame, Trash2, Calculator, ShoppingCart,
+  Pencil, Drumstick, Wheat, Droplets, Leaf, Apple, Milk, Sparkles, Layers,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Btn, BtnIcon, Badge, Modal, InputLine, Textarea, Loading, EmptyState, BackBtn, Divider, PageHeader } from "@/components/ui";
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { SectionTitle, FieldInput, MacroBadge } from "@/components/paginas/myself/vida/salud/ui/SaludUi";
 
-const CATEGORIAS = [
-  { label: "Proteínas",     emoji: "🥩" },
-  { label: "Carbohidratos", emoji: "🍞" },
-  { label: "Grasas",        emoji: "🧈" },
-  { label: "Verduras",      emoji: "🥦" },
-  { label: "Frutas",        emoji: "🍓" },
-  { label: "Lácteos",       emoji: "🥛" },
-  { label: "Superfoods",    emoji: "✨" },
-  { label: "Cereales",      emoji: "🌾" },
+const CATEGORIAS: { label: string; Icon: LucideIcon }[] = [
+  { label: "Proteínas",     Icon: Drumstick  },
+  { label: "Carbohidratos", Icon: Wheat      },
+  { label: "Grasas",        Icon: Droplets   },
+  { label: "Verduras",      Icon: Leaf       },
+  { label: "Frutas",        Icon: Apple      },
+  { label: "Lácteos",       Icon: Milk       },
+  { label: "Superfoods",    Icon: Sparkles   },
+  { label: "Cereales",      Icon: Layers     },
 ];
 
 const INITIAL_FORM = {
@@ -30,7 +32,6 @@ const INITIAL_FORM = {
   proteinas: 0, carbohidratos: 0, grasas: 0,
   porcion_texto: "100g", stock_actual: 0,
   fibra: 0, sodio: 0, agua_ml: 0,
-  precio: 0,
 };
 
 export const IngredientesPage = () => {
@@ -48,6 +49,9 @@ export const IngredientesPage = () => {
   const [localItems, setLocalItems] = useState<Ingrediente[] | null>(() =>
     ingredientes?.length ? ingredientes : null
   );
+  const [editItem, setEditItem] = useState<Ingrediente | null>(null);
+  const [isEditSaving, setIsEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState(INITIAL_FORM);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
   const [qtyOpen, setQtyOpen] = useState<Record<string, boolean>>({});
@@ -90,6 +94,48 @@ export const IngredientesPage = () => {
 
   const patch = (key: keyof typeof INITIAL_FORM) =>
     (v: string) => setFormData(p => ({ ...p, [key]: typeof INITIAL_FORM[key] === "number" ? Number(v) : v }));
+
+  const patchEdit = (key: keyof typeof INITIAL_FORM) =>
+    (v: string) => setEditForm(p => ({ ...p, [key]: typeof INITIAL_FORM[key] === "number" ? Number(v) : v }));
+
+  const openEdit = (item: Ingrediente) => {
+    setEditForm({
+      nombre: item.nombre ?? "",
+      categoria: item.categoria ?? "Verduras",
+      kcal: item.kcal ?? 0,
+      proteinas: item.proteinas ?? 0,
+      carbohidratos: item.carbohidratos ?? 0,
+      grasas: item.grasas ?? 0,
+      porcion_texto: item.porcion_texto ?? "100g",
+      stock_actual: item.stock_actual ?? 0,
+      fibra: item.fibra ?? 0,
+      sodio: item.sodio ?? 0,
+      agua_ml: item.agua_ml ?? 0,
+    });
+    setEditItem(item);
+  };
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editItem) return;
+    setIsEditSaving(true);
+    try {
+      const result = await updateRow(editItem.id, editForm);
+      if (result.error) {
+        const msg = typeof result.error === "string" ? result.error : (result.error as any)?.message ?? JSON.stringify(result.error);
+        toast.error(`Error al guardar: ${msg}`);
+      } else {
+        setLocalItems(prev =>
+          (prev ?? []).map(i => i.id === editItem.id ? { ...i, ...editForm } : i)
+        );
+        setEditItem(null);
+      }
+    } catch (err) {
+      toast.error(`Error inesperado: ${err}`);
+    } finally {
+      setIsEditSaving(false);
+    }
+  };
 
   const handleUpdateStock = async (id: string, current: number, delta: number) => {
     const newStock = Math.max(0, current + delta);
@@ -213,7 +259,7 @@ export const IngredientesPage = () => {
               </span>
             </button>
 
-            {CATEGORIAS.map(({ label, emoji }) => {
+            {CATEGORIAS.map(({ label, Icon }) => {
               const count = catCounts[label] || 0;
               if (count === 0) return null;
               const active = catFilter === label;
@@ -227,7 +273,7 @@ export const IngredientesPage = () => {
                       : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
                   }`}
                 >
-                  <span>{emoji}</span>
+                  <Icon size={11} />
                   {label}
                   <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}>
                     {count}
@@ -297,7 +343,7 @@ export const IngredientesPage = () => {
             <AnimatePresence mode="popLayout">
               {filteredItems.map((item, i) => {
                 const hasStock   = (item.stock_actual || 0) > 0;
-                const catEmoji   = CATEGORIAS.find(c => c.label === item.categoria)?.emoji ?? "🫙";
+                const CatIcon    = CATEGORIAS.find(c => c.label === item.categoria)?.Icon ?? FlaskConical;
                 const isConfirm  = confirmDelete === item.id;
 
                 return (
@@ -311,7 +357,7 @@ export const IngredientesPage = () => {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-menu-text flex items-center gap-1 shrink-0">
-                        <span>{catEmoji}</span>
+                        <CatIcon size={10} />
                         {item.categoria}
                       </span>
 
@@ -339,7 +385,8 @@ export const IngredientesPage = () => {
                             </button>
                           </MotionDiv>
                         ) : (
-                          <MotionDiv key="trash" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                          <MotionDiv key="trash" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1">
+                            <BtnIcon variant="ghost" size="sm" onClick={() => openEdit(item)} className="border-none text-primary/20 hover:text-accent hover:bg-accent/10 mt-0.5 w-7 h-7"><Pencil size={12} /></BtnIcon>
                             <BtnIcon variant="ghost" size="sm" onClick={() => setConfirmDelete(item.id)} className="border-none text-primary/20 hover:text-red-400 hover:bg-red-50 mt-0.5 w-7 h-7"><Trash2 size={13} /></BtnIcon>
                           </MotionDiv>
                         )}
@@ -537,14 +584,13 @@ export const IngredientesPage = () => {
                         className="input-brand text-[11px] font-bold appearance-none"
                       >
                         {CATEGORIAS.map(c => (
-                          <option key={c.label} value={c.label}>{c.emoji} {c.label}</option>
+                          <option key={c.label} value={c.label}>{c.label}</option>
                         ))}
                       </select>
                     </div>
                     <FieldInput label="Porción" value={formData.porcion_texto} onChange={patch("porcion_texto")} placeholder="100g" />
                   </div>
                   <FieldInput label="Stock inicial" type="number" min="0" value={formData.stock_actual} onChange={patch("stock_actual")} />
-                  <FieldInput label="Precio / porción ($)" type="number" min="0" step="0.01" value={formData.precio} onChange={patch("precio")} placeholder="0.00" />
                 </section>
 
                 <section className="space-y-4">
@@ -568,6 +614,82 @@ export const IngredientesPage = () => {
 
                 <Btn type="submit" loading={isSaving} disabled={!formData.nombre.trim()} icon={<Save size={16} />} fullWidth size="lg">Registrar insumo</Btn>
               </form>
+              </div>
+            </MotionDiv>
+          </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {editItem && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pb-16 sm:pb-6">
+            <MotionDiv
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditItem(null)}
+              className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+            />
+            <MotionDiv
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 380, damping: 36 }}
+              className="relative w-full sm:max-w-lg rounded-t-[40px] sm:rounded-[var(--radius-card)] overflow-hidden bg-white-custom shadow-2xl max-h-[92vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between px-7 pt-7 pb-4 shrink-0">
+                <div>
+                  <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mb-4" />
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
+                    Editar <span className="text-primary/20">{editItem.nombre}</span>
+                  </h2>
+                </div>
+                <BtnIcon variant="ghost" onClick={() => setEditItem(null)} className="hidden sm:flex border-none bg-primary/8 text-primary/40"><X size={16} /></BtnIcon>
+              </div>
+
+              <div className="overflow-y-auto flex-1 px-7 pb-7">
+                <form onSubmit={handleEditSave} className="space-y-7">
+                  <section className="space-y-4">
+                    <SectionTitle>Información básica</SectionTitle>
+                    <FieldInput label="Nombre" required value={editForm.nombre} onChange={patchEdit("nombre")} placeholder="Tomate, Pollo, Arroz…" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">Categoría</label>
+                        <select
+                          value={editForm.categoria}
+                          onChange={(e) => setEditForm(p => ({ ...p, categoria: e.target.value }))}
+                          className="input-brand text-[11px] font-bold appearance-none"
+                        >
+                          {CATEGORIAS.map(c => (
+                            <option key={c.label} value={c.label}>{c.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <FieldInput label="Porción" value={editForm.porcion_texto} onChange={patchEdit("porcion_texto")} placeholder="100g" />
+                    </div>
+                    <FieldInput label="Stock actual" type="number" min="0" value={editForm.stock_actual} onChange={patchEdit("stock_actual")} />
+                  </section>
+
+                  <section className="space-y-4">
+                    <SectionTitle>Macronutrientes · por porción</SectionTitle>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FieldInput label="Calorías (kcal)"    type="number" min="0" step="0.1" value={editForm.kcal}          onChange={patchEdit("kcal")} />
+                      <FieldInput label="Proteínas (g)"       type="number" min="0" step="0.1" value={editForm.proteinas}     onChange={patchEdit("proteinas")} />
+                      <FieldInput label="Carbohidratos (g)"   type="number" min="0" step="0.1" value={editForm.carbohidratos} onChange={patchEdit("carbohidratos")} />
+                      <FieldInput label="Grasas (g)"          type="number" min="0" step="0.1" value={editForm.grasas}        onChange={patchEdit("grasas")} />
+                    </div>
+                  </section>
+
+                  <section className="space-y-4">
+                    <SectionTitle>Micronutrientes · opcional</SectionTitle>
+                    <div className="grid grid-cols-3 gap-3">
+                      <FieldInput label="Fibra (g)"  type="number" min="0" step="0.1" value={editForm.fibra}   onChange={patchEdit("fibra")} />
+                      <FieldInput label="Sodio (mg)" type="number" min="0" step="1"   value={editForm.sodio}   onChange={patchEdit("sodio")} />
+                      <FieldInput label="Agua (ml)"  type="number" min="0" step="1"   value={editForm.agua_ml} onChange={patchEdit("agua_ml")} />
+                    </div>
+                  </section>
+
+                  <Btn type="submit" loading={isEditSaving} disabled={!editForm.nombre.trim()} icon={<Save size={16} />} fullWidth size="lg">Guardar cambios</Btn>
+                </form>
               </div>
             </MotionDiv>
           </div>
