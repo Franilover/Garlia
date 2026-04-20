@@ -74,8 +74,8 @@ export function EstudioLayout({
       {}
       {isOpen && (
         <aside className="
-          fixed inset-0 z-50 flex flex-col bg-bg-main
-          md:relative md:inset-auto md:z-auto md:w-72 md:shrink-0
+          fixed inset-x-0 top-[41px] bottom-14 z-50 flex flex-col bg-bg-main
+          md:relative md:inset-auto md:top-auto md:bottom-auto md:z-auto md:w-72 md:shrink-0
           border-r border-primary/10 shadow-2xl md:shadow-none
         ">
 
