@@ -857,6 +857,8 @@ const PanelEditor = ({
   const [savingMeta,    setSavingMeta]    = useState(false);
   const [previewOpen,   setPreviewOpen]   = useState(false);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const timer            = useRef<any>(null);
   const textareaRef      = useRef<HTMLTextAreaElement>(null);
   const scrollRef        = useRef<HTMLDivElement>(null);
@@ -1012,8 +1014,6 @@ const PanelEditor = ({
   const narradorLabel = cap.narrador_id ? null : null; 
 
   const palabras = wordCount(contenido);
-  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
-  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
