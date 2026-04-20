@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Plus, Loader2, Globe } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
-import { normalize } from "@/components/templates/EstudioTemplates";
+import { normalize, ModalBase } from "@/components/templates/EstudioTemplates";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import {
   TAB_CONFIG, MUNDO_SECTIONS,
@@ -36,30 +36,28 @@ function ModalNueva({ tab, onCreated, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white-custom text-foreground border border-primary/15 rounded-2xl p-6 w-80 shadow-2xl space-y-4" onClick={e => e.stopPropagation()}>
-        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50">
-          Nueva entrada · {tab === "mundo" ? "Mundo" : TAB_CONFIG[tab].label}
-        </h3>
-        <input
-          autoFocus value={nombre}
-          onChange={e => setNombre(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && create()}
-          placeholder="Nombre…"
-          className="w-full bg-input-bg text-input-text border border-primary/15 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary/40 transition-colors"
-        />
-        <div className="flex gap-2">
-          <button onClick={onClose}
-            className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/10 text-primary/30 hover:text-primary hover:border-primary/20 transition-all">
-            Cancelar
-          </button>
-          <button onClick={create} disabled={loading || !nombre.trim()}
-            className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-all disabled:opacity-40 flex items-center justify-center gap-1.5">
-            {loading ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Crear
-          </button>
-        </div>
+    <ModalBase onClose={onClose}>
+      <h3 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 mb-4">
+        Nueva entrada · {tab === "mundo" ? "Mundo" : TAB_CONFIG[tab].label}
+      </h3>
+      <input
+        autoFocus value={nombre}
+        onChange={e => setNombre(e.target.value)}
+        onKeyDown={e => e.key === "Enter" && create()}
+        placeholder="Nombre…"
+        className="w-full bg-input-bg text-input-text border border-primary/15 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary/40 transition-colors mb-4"
+      />
+      <div className="flex gap-2">
+        <button onClick={onClose}
+          className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/10 text-primary/30 hover:text-primary hover:border-primary/20 transition-all">
+          Cancelar
+        </button>
+        <button onClick={create} disabled={loading || !nombre.trim()}
+          className="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-all disabled:opacity-40 flex items-center justify-center gap-1.5">
+          {loading ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Crear
+        </button>
       </div>
-    </div>
+    </ModalBase>
   );
 }
 
