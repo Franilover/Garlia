@@ -100,7 +100,7 @@ export function ModalBase({ onClose, children, maxWidth = "max-w-sm" }: ModalBas
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 pb-[calc(1.5rem+56px)] md:pb-6">
       <div
         className="absolute inset-0 bg-primary/20 backdrop-blur-sm"
         onClick={onClose}
