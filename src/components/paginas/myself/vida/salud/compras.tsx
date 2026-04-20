@@ -125,16 +125,13 @@ function CartItemEditor({
 
 // ─── Cart Item Row ────────────────────────────────────────────────────────────
 function CartItemRow({
-  item, entry, onRemove, onQty, onUpdate,
+  item, entry, onRemove, onQty,
 }: {
   item: Ingrediente;
   entry: CartEntry;
   onRemove: () => void;
   onQty: (delta: number) => void;
-  onUpdate: (overrides: CartEntry["overrides"]) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-
   const val = (key: keyof CartEntry["overrides"]) =>
     entry.overrides[key] ?? ((item as any)[key] ?? 0);
 
@@ -178,15 +175,7 @@ function CartItemRow({
           </button>
         </div>
 
-        {/* Edit + Remove */}
-        <button
-          onClick={() => setEditing(p => !p)}
-          className={`w-6 h-6 flex items-center justify-center rounded-[var(--radius-btn)] transition-all ${
-            editing ? "bg-accent/20 text-accent" : "text-primary/20 hover:text-accent hover:bg-accent/10"
-          }`}
-        >
-          <Pencil size={11} />
-        </button>
+        {/* Remove */}
         <button
           onClick={onRemove}
           className="w-6 h-6 flex items-center justify-center rounded-[var(--radius-btn)] text-primary/20 hover:text-red-400 hover:bg-red-50 transition-all"
@@ -194,85 +183,106 @@ function CartItemRow({
           <X size={10} />
         </button>
       </div>
-
-      {/* Editor inline */}
-      <AnimatePresence>
-        {editing && (
-          <CartItemEditor
-            item={item}
-            entry={entry}
-            onUpdate={onUpdate}
-            onClose={() => setEditing(false)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }
 
 // ─── Table Row ────────────────────────────────────────────────────────────────
 function IngredienteRow({
-  item, i, inCart, onToggle,
+  item, i, inCart, onToggle, entry, onUpdate,
 }: {
   item: Ingrediente; i: number; inCart: boolean; onToggle: () => void;
+  entry?: CartEntry; onUpdate?: (overrides: CartEntry["overrides"]) => void;
 }) {
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  const val = (key: keyof CartEntry["overrides"]) =>
+    entry?.overrides[key] ?? ((item as any)[key] ?? 0);
 
   return (
-    <tr className={`border-b border-primary/5 last:border-0 transition-colors ${
-      inCart ? "bg-accent/8" : i % 2 === 0 ? "" : "bg-primary/[0.015]"
-    }`}>
-      <td className="pl-4 pr-2 py-3 w-8">
-        <button
-          onClick={onToggle}
-          className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center transition-all shrink-0 ${
-            inCart ? "bg-accent border-accent text-white" : "border-primary/20 hover:border-accent/60"
-          }`}
-        >
-          {inCart && (
-            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-              <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </button>
-      </td>
-      <td className="px-3 py-3">
-        <p className="text-[12px] font-black uppercase italic tracking-tight text-primary leading-none">{item.nombre}</p>
-        <p className="text-[9px] font-bold text-primary/30 uppercase mt-0.5">{item.porcion_texto}</p>
-      </td>
-      <td className="px-3 py-3 text-right">
-        <div className="relative inline-block">
+    <>
+      <tr className={`border-b border-primary/5 last:border-0 transition-colors ${
+        inCart ? "bg-accent/8" : i % 2 === 0 ? "" : "bg-primary/[0.015]"
+      }`}>
+        <td className="pl-4 pr-2 py-3 w-8">
           <button
-            className="flex items-center gap-0.5 justify-end"
-            onClick={() => setPopoverOpen(p => !p)}
+            onClick={onToggle}
+            className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center transition-all shrink-0 ${
+              inCart ? "bg-accent border-accent text-white" : "border-primary/20 hover:border-accent/60"
+            }`}
           >
-            <span className="text-[11px] font-black text-primary">{(item.kcal ?? 0).toFixed(0)}</span>
-            <span className="text-[8px] text-primary/25 ml-0.5">kcal</span>
+            {inCart && (
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
           </button>
-          <AnimatePresence>
-            {popoverOpen && <MacroPopover item={item} onClose={() => setPopoverOpen(false)} />}
-          </AnimatePresence>
-        </div>
-      </td>
-      <td className="px-3 py-3 text-right hidden sm:table-cell">
-        <span className="text-[11px] font-black text-primary">{(item.proteinas ?? 0).toFixed(1)}</span>
-        <span className="text-[8px] text-primary/25 ml-0.5">g</span>
-      </td>
-      <td className="px-3 py-3 text-right hidden sm:table-cell">
-        <span className="text-[11px] font-black text-primary">{(item.carbohidratos ?? 0).toFixed(1)}</span>
-        <span className="text-[8px] text-primary/25 ml-0.5">g</span>
-      </td>
-      <td className="px-3 py-3 text-right hidden sm:table-cell">
-        <span className="text-[11px] font-black text-primary">{(item.grasas ?? 0).toFixed(1)}</span>
-        <span className="text-[8px] text-primary/25 ml-0.5">g</span>
-      </td>
-      <td className="px-4 py-3 text-right">
-        {(item as any).precio
-          ? <span className="text-[11px] font-black text-primary">${((item as any).precio).toFixed(0)}</span>
-          : <span className="text-[10px] text-primary/15">—</span>
-        }
-      </td>
-    </tr>
+        </td>
+        <td className="px-3 py-3">
+          <div className="flex items-center gap-1.5">
+            <div>
+              <p className="text-[12px] font-black uppercase italic tracking-tight text-primary leading-none">{item.nombre}</p>
+              <p className="text-[9px] font-bold text-primary/30 uppercase mt-0.5">{item.porcion_texto}</p>
+            </div>
+            <button
+              onClick={() => setEditing(p => !p)}
+              className={`w-5 h-5 flex items-center justify-center rounded-[var(--radius-btn)] transition-all ${
+                editing ? "bg-accent/20 text-accent" : "text-primary/20 hover:text-accent hover:bg-accent/10"
+              }`}
+            >
+              <Pencil size={10} />
+            </button>
+          </div>
+        </td>
+        <td className="px-3 py-3 text-right">
+          <div className="relative inline-block">
+            <button
+              className="flex items-center gap-0.5 justify-end"
+              onClick={() => setPopoverOpen(p => !p)}
+            >
+              <span className="text-[11px] font-black text-primary">{val("kcal").toFixed(0)}</span>
+              <span className="text-[8px] text-primary/25 ml-0.5">kcal</span>
+            </button>
+            <AnimatePresence>
+              {popoverOpen && <MacroPopover item={item} onClose={() => setPopoverOpen(false)} />}
+            </AnimatePresence>
+          </div>
+        </td>
+        <td className="px-3 py-3 text-right hidden sm:table-cell">
+          <span className="text-[11px] font-black text-primary">{val("proteinas").toFixed(1)}</span>
+          <span className="text-[8px] text-primary/25 ml-0.5">g</span>
+        </td>
+        <td className="px-3 py-3 text-right hidden sm:table-cell">
+          <span className="text-[11px] font-black text-primary">{val("carbohidratos").toFixed(1)}</span>
+          <span className="text-[8px] text-primary/25 ml-0.5">g</span>
+        </td>
+        <td className="px-3 py-3 text-right hidden sm:table-cell">
+          <span className="text-[11px] font-black text-primary">{val("grasas").toFixed(1)}</span>
+          <span className="text-[8px] text-primary/25 ml-0.5">g</span>
+        </td>
+        <td className="px-4 py-3 text-right">
+          {val("precio") > 0
+            ? <span className="text-[11px] font-black text-primary">${val("precio").toFixed(0)}</span>
+            : <span className="text-[10px] text-primary/15">—</span>
+          }
+        </td>
+      </tr>
+      <AnimatePresence>
+        {editing && entry && onUpdate && (
+          <tr>
+            <td colSpan={7} className="p-0">
+              <CartItemEditor
+                item={item}
+                entry={entry}
+                onUpdate={onUpdate}
+                onClose={() => setEditing(false)}
+              />
+            </td>
+          </tr>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -419,7 +429,6 @@ export default function ComprasPage() {
                     entry={cart[item.id] ?? { qty: 1, overrides: {} }}
                     onRemove={() => removeFromCart(item.id)}
                     onQty={delta => updateQty(item.id, delta)}
-                    onUpdate={ov => updateOverrides(item.id, ov)}
                   />
                 ))}
               </div>
@@ -504,6 +513,8 @@ export default function ComprasPage() {
                     i={i}
                     inCart={inCart(item.id)}
                     onToggle={() => toggle(item.id)}
+                    entry={cart[item.id]}
+                    onUpdate={ov => updateOverrides(item.id, ov)}
                   />
                 ))}
               </tbody>
