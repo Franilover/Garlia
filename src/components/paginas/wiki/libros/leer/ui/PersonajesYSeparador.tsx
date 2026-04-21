@@ -85,7 +85,7 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
               </div>
               <div>
                 <p className="text-sm font-black uppercase italic text-primary tracking-tight">{p.nombre}</p>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-primary/40">Añadido a tu wiki</p>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-primary/40">Añadido a tu agenda</p>
               </div>
             </div>
           ))}
