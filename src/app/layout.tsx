@@ -77,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         pixelifySans.variable,
         caveat.variable,
         lora.variable,
+        literata.variable,
       )}
       suppressHydrationWarning
     >
