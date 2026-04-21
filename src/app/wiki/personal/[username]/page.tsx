@@ -131,11 +131,6 @@ function ModalDetalle({ d, onClose }: { d: Descubrimiento; onClose: () => void }
             <div>
               <h2 className="text-xl font-black tracking-tight capitalize"
                 style={{ color: "var(--primary)" }}>{d.nombre}</h2>
-              <p className="flex items-center gap-1.5 mt-1 text-[9px] font-black uppercase tracking-widest"
-                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                <Calendar size={10} />
-                Registrado el {new Date(d.fecha_descubrimiento).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}
-              </p>
             </div>
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
