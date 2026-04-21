@@ -8,6 +8,7 @@ import {
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS, type SaveStatus } from "./types";
+import { MarkdownEditor } from "./MarkdownEditor";
 
 export function SaveIndicator({ status }: { status: SaveStatus }) {
   if (status === "idle") return null;
@@ -41,10 +42,13 @@ export function CampoArea({ label, value, onChange, placeholder, rows = 4 }: {
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   placeholder?: string; rows?: number;
 }) {
+  const handleChange = (v: string) => {
+    onChange({ target: { value: v } } as React.ChangeEvent<HTMLTextAreaElement>);
+  };
   return (
     <div className="space-y-1.5">
       <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">{label}</label>
-      <textarea value={value} onChange={onChange} rows={rows} placeholder={placeholder} className={`${INPUT_CLS} resize-none`} />
+      <MarkdownEditor value={value} onChange={handleChange} placeholder={placeholder} rows={rows} toolbar defaultMode="split" />
     </div>
   );
 }

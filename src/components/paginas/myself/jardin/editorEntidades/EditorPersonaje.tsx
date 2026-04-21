@@ -7,6 +7,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Personaje, type SaveStatus } from "./types";
 import { useUniqueValues, useCapitulosNarrados } from "./hooks";
 import { Campo, CampoArea, BarraAcciones, SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
+import { MarkdownEditor } from "./MarkdownEditor";
 import { BookOpen, Mic2, Loader2, ChevronDown, ImageIcon, X } from "lucide-react";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 
@@ -176,16 +177,13 @@ export function FormularioPersonaje({ form, setForm, status, onSave, onDelete, c
                     style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
                     <span>🔒</span> Notas de creador
                   </label>
-                  <textarea
+                  <MarkdownEditor
                     value={form.notas_creador ?? ""}
-                    onChange={field("notas_creador")}
+                    onChange={v => setForm(f => ({ ...f, notas_creador: v }))}
                     rows={8}
                     placeholder="Ideas, pendientes, inspiración, spoilers… solo para ti."
-                    className="w-full bg-input-bg text-input-text border border-primary/15 rounded-xl px-3 py-2.5 text-xs font-medium outline-none focus:border-primary/40 placeholder:text-primary/25 transition-colors resize-none"
-                    style={{
-                      borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
-                      background:  "color-mix(in srgb, var(--accent) 4%, var(--input-bg))",
-                    }}
+                    toolbar
+                    defaultMode="split"
                   />
                 </div>
               </div>

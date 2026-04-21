@@ -7,6 +7,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./types";
 import { useUniqueValues, useCriaturaVariantes, usePersonajesDeEspecie } from "./hooks";
 import { Campo, CampoArea, BarraAcciones, SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
+import { MarkdownEditor } from "./MarkdownEditor";
 import { PanelPersonajes } from "./PanelPersonajes";
 
 function VarianteEditor({ variante, onSaved, onDeleted }: {
@@ -74,18 +75,16 @@ function VarianteEditor({ variante, onSaved, onDeleted }: {
           </div>
           <div>
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Descripción</label>
-            <textarea value={form.descripcion ?? ""} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-              rows={4} className={`${INPUT_CLS} resize-none mt-1`} placeholder="Diferencias físicas, comportamiento particular…" />
+            <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+              rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="split" />
           </div>
           <div>
             <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5 mb-1"
               style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
               <span>🔒</span> Notas de creador
             </label>
-            <textarea value={form.notas ?? ""} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))}
-              rows={2} className={`${INPUT_CLS} resize-none`}
-              style={{ borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)", background: "color-mix(in srgb, var(--accent) 4%, var(--input-bg))" }}
-              placeholder="Ideas, pendientes, inspiración…" />
+            <MarkdownEditor value={form.notas ?? ""} onChange={v => setForm(f => ({ ...f, notas: v }))}
+              rows={2} placeholder="Ideas, pendientes, inspiración…" toolbar defaultMode="split" />
           </div>
           <div className="flex items-center justify-between pt-1">
             <button onClick={handleDelete} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all">
