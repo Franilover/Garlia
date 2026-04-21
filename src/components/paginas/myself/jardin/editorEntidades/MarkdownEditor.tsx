@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Eye, Edit3, Columns } from "lucide-react";
 
 // ── Renderer ────────────────────────────────────────────────────────────────
@@ -100,6 +100,17 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const [mode, setMode] = useState<ViewMode>(defaultMode);
   const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // En móvil, si el modo es "split" lo forzamos a "edit"
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const check = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches && mode === "split") setMode("edit");
+    };
+    check(mq);
+    mq.addEventListener("change", check);
+    return () => mq.removeEventListener("change", check);
+  }, [mode]);
 
   const minH = `${rows * 1.6}rem`;
 
@@ -204,9 +215,11 @@ export function MarkdownEditor({
             {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
               const Icon  = m === "edit" ? Edit3 : m === "preview" ? Eye : Columns;
               const title = m === "edit" ? "Editar" : m === "preview" ? "Vista" : "Dividir";
+              // Ocultar "split" en móvil
+              const hideMobile = m === "split" ? "hidden sm:flex" : "flex";
               return (
                 <button key={m} type="button" onClick={() => setMode(m)} title={title}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                  className={`${hideMobile} items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                     mode === m ? "bg-primary text-btn-text shadow-sm" : "text-primary/40 hover:text-primary/70"
                   }`}>
                   <Icon size={11} />
