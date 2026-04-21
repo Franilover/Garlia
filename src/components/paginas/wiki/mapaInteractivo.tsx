@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/Motion";
 import {
   X, MapPin, Loader2, ChevronRight, ArrowLeft, House,
-  Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, UserX, ZoomIn, ZoomOut,
+  Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, UserX, ZoomIn, ZoomOut, User,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
@@ -27,8 +27,13 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   return (
     <MotionDiv
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-      className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 px-5 py-3 shadow-xl text-white text-[11px] font-black uppercase tracking-wide ${type === "success" ? "bg-emerald-700" : "bg-red-700"}`}
-      style={{ clipPath: "polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)" }}
+      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 px-5 py-3 shadow-xl text-[11px] font-black uppercase tracking-wide"
+      style={{
+        clipPath: "polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)",
+        background: type === "success" ? "rgba(5,150,105,0.95)" : "rgba(185,28,28,0.95)",
+        color: "var(--btn-text, #fff)",
+        border: `1px solid ${type === "success" ? "rgba(52,211,153,0.4)" : "rgba(248,113,113,0.4)"}`,
+      }}
     >
       {type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
       {message}
@@ -48,7 +53,7 @@ function PanelContenido({
     return (
       <div className="flex flex-col gap-4 flex-grow">
         <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold uppercase tracking-widest text-amber-400/70 ml-1">Nombre</label>
+          <label className="text-[9px] font-bold uppercase tracking-widest ml-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Nombre</label>
           <input
             type="text"
             value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
@@ -59,12 +64,12 @@ function PanelContenido({
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
               } else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
             }}
-            className="bg-stone-900/80 border border-amber-500/30 text-amber-100 font-black uppercase text-xl outline-none px-4 py-3 focus:border-amber-400/60 transition-colors"
+            className="input-brand font-black uppercase text-xl outline-none px-4 py-3"
             style={{ clipPath: "polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%)" }}
           />
         </div>
         <div className="flex flex-col gap-1 flex-grow">
-          <label className="text-[9px] font-bold uppercase tracking-widest text-amber-400/70 ml-1">Descripción / Lore</label>
+          <label className="text-[9px] font-bold uppercase tracking-widest ml-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Descripción / Lore</label>
           <textarea
             value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
             onChange={(e) => {
@@ -74,28 +79,30 @@ function PanelContenido({
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
               } else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
             }}
-            className="bg-stone-900/80 border border-amber-500/30 text-amber-100/80 text-sm italic leading-relaxed h-36 resize-none outline-none px-4 py-3 focus:border-amber-400/60 transition-colors"
+            className="input-brand text-sm italic leading-relaxed h-36 resize-none outline-none px-4 py-3"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold uppercase tracking-widest text-amber-400/70 ml-1 flex items-center gap-1">
+          <label className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
             <Move size={9} /> Coordenadas
           </label>
           <div className="grid grid-cols-2 gap-2">
             {[["X", puntoSeleccionado ? puntoSeleccionado.coord_x : reinoSeleccionado.coord_x],
               ["Y", puntoSeleccionado ? puntoSeleccionado.coord_y : reinoSeleccionado.coord_y]].map(([label, val]) => (
-              <div key={label} className="bg-stone-900/60 border border-amber-500/20 p-3 text-center">
-                <span className="block text-[8px] text-amber-400/40 font-bold uppercase">{label}</span>
-                <span className="text-sm font-black text-amber-300">{val}</span>
+              <div key={label} className="p-3 text-center border"
+                style={{ background: "color-mix(in srgb, var(--bg-main) 70%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                <span className="block text-[8px] font-bold uppercase" style={{ color: "color-mix(in srgb, var(--foreground) 40%, transparent)" }}>{label}</span>
+                <span className="text-sm font-black" style={{ color: "var(--accent)" }}>{val}</span>
               </div>
             ))}
           </div>
         </div>
         {!puntoSeleccionado && (
-          <div className="flex items-center justify-between px-3 py-2.5 border border-amber-500/20 bg-stone-900/50">
+          <div className="flex items-center justify-between px-3 py-2.5 border"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", background: "color-mix(in srgb, var(--bg-main) 60%, transparent)" }}>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-amber-400/60">Visibilidad en el mapa</p>
-              <p className="text-[9px] text-amber-400/35 mt-0.5">
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Visibilidad en el mapa</p>
+              <p className="text-[9px] mt-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 35%, transparent)" }}>
                 {reinoSeleccionado.oculto ? "Este reino no aparece para usuarios" : "Este reino es visible en el mapa"}
               </p>
             </div>
@@ -108,10 +115,11 @@ function PanelContenido({
           </div>
         )}
         {puntoSeleccionado && (
-          <div className="flex items-center justify-between px-3 py-2.5 border border-amber-500/20 bg-stone-900/50">
+          <div className="flex items-center justify-between px-3 py-2.5 border"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", background: "color-mix(in srgb, var(--bg-main) 60%, transparent)" }}>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-amber-400/60">Visibilidad en el mapa</p>
-              <p className="text-[9px] text-amber-400/35 mt-0.5">
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Visibilidad en el mapa</p>
+              <p className="text-[9px] mt-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 35%, transparent)" }}>
                 {puntoSeleccionado.oculto ? "Este punto no aparece para usuarios" : "Este punto es visible en el mapa"}
               </p>
             </div>
@@ -130,14 +138,16 @@ function PanelContenido({
         )}
         {!puntoSeleccionado && (
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-bold uppercase tracking-widest text-amber-400/70 ml-1 flex items-center gap-1">
+            <label className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1"
+              style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
               <ImagePlus size={9} /> Imagen del Mapa
             </label>
             {reinoSeleccionado.mapa_url && (
-              <div className="relative w-full h-20 overflow-hidden border border-amber-500/20 mb-1">
+              <div className="relative w-full h-20 overflow-hidden border mb-1"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
                 <img src={reinoSeleccionado.mapa_url} alt="Mapa actual" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-amber-200">Imagen actual</span>
+                <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
+                  <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--accent)" }}>Imagen actual</span>
                 </div>
               </div>
             )}
@@ -145,7 +155,8 @@ function PanelContenido({
             <button
               onClick={() => imgInputRef.current?.click()}
               disabled={isUploadingImg}
-              className="w-full flex items-center justify-center gap-2 bg-amber-500/10 border border-dashed border-amber-500/30 text-amber-300 text-[10px] font-black uppercase py-3 hover:bg-amber-500/20 transition-all disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 border border-dashed text-[10px] font-black uppercase py-3 transition-all disabled:opacity-50"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--accent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
               {isUploadingImg
                 ? <><Loader2 size={12} className="animate-spin" /> Subiendo...</>
@@ -156,7 +167,7 @@ function PanelContenido({
         <button
           onClick={handleSaveChanges}
           disabled={isSaving}
-          className="w-full flex items-center justify-center gap-2 bg-amber-600 text-stone-950 text-[11px] font-black uppercase py-4 hover:bg-amber-500 transition-all disabled:opacity-50 shadow-lg shadow-amber-600/20 mt-auto"
+          className="btn-brand w-full justify-center text-[11px] uppercase py-4 mt-auto disabled:opacity-50"
           style={{ clipPath: "polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)" }}
         >
           {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
@@ -168,35 +179,35 @@ function PanelContenido({
 
   return (
     <>
-      {/* Title with LoL-style decorative line */}
+      {/* Title with decorative line */}
       <div className="relative mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-500/40" />
-          <div className="w-1.5 h-1.5 rotate-45 bg-amber-500/60" />
-          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-500/40" />
+          <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
+          <div className="w-1.5 h-1.5 rotate-45" style={{ background: "var(--accent)" }} />
+          <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
         </div>
-        <h2 className="text-amber-100 font-black text-3xl uppercase tracking-[0.12em] leading-none text-center"
-          style={{ fontFamily: "'Cinzel', serif", textShadow: "0 0 30px rgba(245,158,11,0.3)" }}>
+        <h2 className="font-black text-3xl uppercase tracking-[0.12em] leading-none text-center"
+          style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)", textShadow: "0 0 30px color-mix(in srgb, var(--accent) 30%, transparent)" }}>
           {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
         </h2>
         <div className="flex items-center gap-3 mt-2">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-500/40" />
-          <div className="w-1.5 h-1.5 rotate-45 bg-amber-500/60" />
-          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-500/40" />
+          <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
+          <div className="w-1.5 h-1.5 rotate-45" style={{ background: "var(--accent)" }} />
+          <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
         </div>
       </div>
 
-      <div className="space-y-6 flex-grow overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-amber-500/20">
+      <div className="space-y-6 flex-grow overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent/20">
         {/* Lore text */}
-        <div className="relative p-5 border border-amber-500/15"
-          style={{ background: "linear-gradient(135deg, rgba(120,53,15,0.12), rgba(0,0,0,0.3))" }}>
+        <div className="relative p-5 border"
+          style={{ borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           {/* Corner decorations */}
-          <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-amber-500/50" />
-          <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-amber-500/50" />
-          <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-amber-500/50" />
-          <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-amber-500/50" />
-          <p className="text-amber-100/70 text-sm italic leading-relaxed">
-            "{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}"
+          <div className="absolute top-0 left-0 w-3 h-3 border-t border-l" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+          <div className="absolute top-0 right-0 w-3 h-3 border-t border-r" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+          <p className="text-sm italic leading-relaxed" style={{ color: "color-mix(in srgb, var(--foreground) 70%, transparent)" }}>
+            &ldquo;{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}&rdquo;
           </p>
         </div>
 
@@ -204,9 +215,9 @@ function PanelContenido({
         {!puntoSeleccionado && personajesReino.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="h-px flex-1 bg-amber-500/20" />
-              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-amber-500/60">Habitantes conocidos</span>
-              <div className="h-px flex-1 bg-amber-500/20" />
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+              <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>Habitantes conocidos</span>
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
             </div>
             <div className="flex flex-col gap-2">
               {personajesReino.map((p: any) => {
@@ -218,9 +229,9 @@ function PanelContenido({
                     className="flex items-center gap-3 p-2.5 w-full text-left transition-all group"
                     style={{
                       background: desbloqueado
-                        ? "linear-gradient(135deg, rgba(120,53,15,0.2), rgba(0,0,0,0.3))"
-                        : "rgba(0,0,0,0.2)",
-                      border: `1px solid ${desbloqueado ? "rgba(245,158,11,0.2)" : "rgba(245,158,11,0.07)"}`,
+                        ? "color-mix(in srgb, var(--primary) 15%, transparent)"
+                        : "color-mix(in srgb, var(--bg-main) 50%, transparent)",
+                      border: `1px solid ${desbloqueado ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "color-mix(in srgb, var(--accent) 7%, transparent)"}`,
                       opacity: desbloqueado ? 1 : 0.5,
                       cursor: desbloqueado ? "pointer" : "default",
                     }}
@@ -228,38 +239,38 @@ function PanelContenido({
                     <div
                       className="shrink-0 w-9 h-9 overflow-hidden flex items-center justify-center border"
                       style={{
-                        borderColor: desbloqueado ? "rgba(245,158,11,0.25)" : "rgba(245,158,11,0.08)",
-                        background: "rgba(0,0,0,0.4)",
+                        borderColor: desbloqueado ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--accent) 8%, transparent)",
+                        background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
                         filter: desbloqueado ? "none" : "grayscale(100%) blur(2px)",
                       }}
                     >
                       {desbloqueado && p.img_url
                         ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                        : <UserX size={14} className="text-amber-500/30" />}
+                        : <UserX size={14} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-black uppercase leading-tight"
                         style={{
-                          color: desbloqueado ? "rgba(253,230,138,0.9)" : "rgba(245,158,11,0.3)",
+                          color: desbloqueado ? "var(--foreground)" : "color-mix(in srgb, var(--accent) 30%, transparent)",
                           textDecoration: desbloqueado ? "none" : "line-through",
-                          textDecorationColor: "rgba(245,158,11,0.3)",
+                          textDecorationColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
                         }}>
                         {desbloqueado ? p.nombre : "???"}
                       </p>
                       {p.especie && (
-                        <p className="text-[9px] font-medium mt-0.5 text-amber-500/35">
+                        <p className="text-[9px] font-medium mt-0.5" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
                           {desbloqueado ? p.especie : "Desconocido"}
                         </p>
                       )}
                     </div>
                     {desbloqueado ? (
                       <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide flex items-center gap-1"
-                        style={{ background: "rgba(245,158,11,0.1)", color: "rgba(253,230,138,0.7)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                        style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)" }}>
                         Ver <ChevronRight size={8} />
                       </span>
                     ) : (
                       <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide"
-                        style={{ background: "rgba(245,158,11,0.04)", color: "rgba(245,158,11,0.25)", border: "1px solid rgba(245,158,11,0.08)" }}>
+                        style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", color: "color-mix(in srgb, var(--accent) 25%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 8%, transparent)" }}>
                         ???
                       </span>
                     )}
@@ -285,7 +296,7 @@ interface CanvasMapProps {
   tipo: "global" | "reino";
 }
 
-function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo }: CanvasMapProps) {
+function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo, onOpenPanel }: CanvasMapProps & { onOpenPanel?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -300,43 +311,82 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
   const lastPinchDist = useRef<number | null>(null);
   // Pulse animation
   const pulseRef = useRef(0);
+  // Theme CSS vars read at draw time
+  const cssColorsRef = useRef({ primary: "#888", accent: "#aaa", bg: "#0a0806", fg: "#fff" });
+
+  // Read CSS vars once mounted and on theme change
+  useEffect(() => {
+    const read = () => {
+      const s = getComputedStyle(document.documentElement);
+      cssColorsRef.current = {
+        primary: s.getPropertyValue("--primary").trim() || "#888",
+        accent: s.getPropertyValue("--accent").trim() || "#aaa",
+        bg: s.getPropertyValue("--bg-main").trim() || "#0a0806",
+        fg: s.getPropertyValue("--foreground").trim() || "#fff",
+      };
+    };
+    read();
+    const obs = new MutationObserver(read);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+    return () => obs.disconnect();
+  }, []);
+
+  // Helper: fit image to canvas
+  const centerImage = useCallback(() => {
+    const canvas = canvasRef.current;
+    const img = imgRef.current;
+    if (!canvas || !img) return;
+    const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.95;
+    camRef.current = {
+      x: (canvas.width - img.width * scale) / 2,
+      y: (canvas.height - img.height * scale) / 2,
+      scale,
+    };
+  }, []);
 
   // Load image
   useEffect(() => {
     setImgLoaded(false);
+    imgRef.current = null;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = imageSrc;
     img.onload = () => {
       imgRef.current = img;
-      // Center the map
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.95;
-        camRef.current = {
-          x: (canvas.width - img.width * scale) / 2,
-          y: (canvas.height - img.height * scale) / 2,
-          scale,
-        };
-      }
+      centerImage();
       setImgLoaded(true);
     };
-  }, [imageSrc]);
+    img.onerror = () => {
+      // Retry once after 800ms in case of transient CDN/network error
+      setTimeout(() => {
+        const retry = new Image();
+        retry.crossOrigin = "anonymous";
+        retry.src = imageSrc + (imageSrc.includes("?") ? "&" : "?") + "_r=" + Date.now();
+        retry.onload = () => { imgRef.current = retry; centerImage(); setImgLoaded(true); };
+      }, 800);
+    };
+  }, [imageSrc, centerImage]);
 
-  // Resize canvas
+  // Resize canvas — re-center image on each resize
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
     const resize = () => {
+      const prevW = canvas.width;
+      const prevH = canvas.height;
       canvas.width = container.clientWidth;
       canvas.height = container.clientHeight;
+      // Re-center only if image is loaded and canvas actually changed size
+      if (imgRef.current && (prevW !== canvas.width || prevH !== canvas.height)) {
+        centerImage();
+      }
     };
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(container);
     return () => ro.disconnect();
-  }, []);
+  }, [centerImage]);
 
   // Render loop
   useEffect(() => {
@@ -349,8 +399,10 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
       pulseRef.current = t;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      const { primary, accent, bg } = cssColorsRef.current;
+
       // Background
-      ctx.fillStyle = "#0a0806";
+      ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const { x: cx, y: cy, scale } = camRef.current;
@@ -367,14 +419,14 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
         // Draw map image
         ctx.drawImage(img, 0, 0, iw, ih);
 
-        // Subtle sepia overlay for aged look
-        ctx.fillStyle = "rgba(80, 40, 10, 0.08)";
+        // Subtle overlay for aged look
+        ctx.fillStyle = "rgba(80, 40, 10, 0.06)";
         ctx.fillRect(0, 0, iw, ih);
 
         // Vignette over the map
         const vgr = ctx.createRadialGradient(iw / 2, ih / 2, ih * 0.3, iw / 2, ih / 2, Math.max(iw, ih) * 0.72);
         vgr.addColorStop(0, "rgba(0,0,0,0)");
-        vgr.addColorStop(1, "rgba(8,4,2,0.65)");
+        vgr.addColorStop(1, `${bg}aa`);
         ctx.fillStyle = vgr;
         ctx.fillRect(0, 0, iw, ih);
 
@@ -395,19 +447,19 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
           ctx.beginPath();
           ctx.arc(0, 0, ringR, 0, Math.PI * 2);
           ctx.strokeStyle = isSelected
-            ? `rgba(253,230,138,${0.5 * (1 - pulse)})`
-            : `rgba(180,120,30,${0.35 * (1 - pulse)})`;
+            ? `${accent}${Math.round(0.5 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`
+            : `${primary}${Math.round(0.35 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`;
           ctx.lineWidth = 1.5;
           ctx.stroke();
 
           // Inner glow
           const grd = ctx.createRadialGradient(0, 0, 2, 0, 0, 10);
           if (isSelected) {
-            grd.addColorStop(0, "rgba(253,230,138,0.9)");
-            grd.addColorStop(1, "rgba(245,158,11,0)");
+            grd.addColorStop(0, `${accent}e6`);
+            grd.addColorStop(1, `${accent}00`);
           } else {
-            grd.addColorStop(0, "rgba(200,140,40,0.6)");
-            grd.addColorStop(1, "rgba(180,100,20,0)");
+            grd.addColorStop(0, `${primary}99`);
+            grd.addColorStop(1, `${primary}00`);
           }
           ctx.beginPath();
           ctx.arc(0, 0, 10, 0, Math.PI * 2);
@@ -418,12 +470,12 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
           ctx.save();
           ctx.rotate(Math.PI / 4);
           const d = isSelected ? 6 : 5;
-          ctx.fillStyle = isSelected ? "#fde68a" : "#c9852a";
-          ctx.shadowColor = isSelected ? "rgba(253,230,138,0.8)" : "rgba(200,140,40,0.4)";
+          ctx.fillStyle = isSelected ? accent : primary;
+          ctx.shadowColor = isSelected ? `${accent}cc` : `${primary}66`;
           ctx.shadowBlur = isSelected ? 12 : 6;
           ctx.fillRect(-d, -d, d * 2, d * 2);
-          // Inner diamond
-          ctx.fillStyle = isSelected ? "rgba(255,255,255,0.9)" : "rgba(255,220,120,0.6)";
+          // Inner diamond highlight
+          ctx.fillStyle = isSelected ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)";
           ctx.shadowBlur = 0;
           const di = d * 0.45;
           ctx.fillRect(-di, -di, di * 2, di * 2);
@@ -433,7 +485,7 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
           if (editMode) {
             ctx.beginPath();
             ctx.arc(6, -6, 3.5, 0, Math.PI * 2);
-            ctx.fillStyle = "#facc15";
+            ctx.fillStyle = accent;
             ctx.fill();
             if (m.oculto) {
               ctx.beginPath();
@@ -453,29 +505,29 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
           const ly = -20;
 
           // Label bg
-          ctx.fillStyle = "rgba(10,8,4,0.82)";
+          ctx.fillStyle = `${bg}d4`;
           ctx.beginPath();
           ctx.rect(-lw / 2, ly - lh / 2, lw, lh);
           ctx.fill();
 
           // Label border
-          ctx.strokeStyle = isSelected ? "rgba(253,230,138,0.5)" : "rgba(180,120,30,0.35)";
+          ctx.strokeStyle = isSelected ? `${accent}80` : `${primary}59`;
           ctx.lineWidth = 0.75;
           ctx.stroke();
 
           // Label text
-          ctx.fillStyle = isSelected ? "#fde68a" : "#d4a84b";
+          ctx.fillStyle = isSelected ? accent : primary;
           ctx.fillText(label, 0, ly + 4);
 
           ctx.restore();
         }
       } else {
-        // Loading shimmer
+        // Loading shimmer using theme accent
         const gr = ctx.createLinearGradient(0, 0, canvas.width, 0);
         const off = ((t * 0.001) % 1);
-        gr.addColorStop(Math.max(0, off - 0.1), "rgba(50,30,10,0.1)");
-        gr.addColorStop(off, "rgba(180,120,40,0.12)");
-        gr.addColorStop(Math.min(1, off + 0.1), "rgba(50,30,10,0.1)");
+        gr.addColorStop(Math.max(0, off - 0.1), `${primary}1a`);
+        gr.addColorStop(off, `${accent}20`);
+        gr.addColorStop(Math.min(1, off + 0.1), `${primary}1a`);
         ctx.fillStyle = gr;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
@@ -486,7 +538,7 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
         canvas.width / 2, canvas.height / 2, canvas.height * 0.75
       );
       outerVg.addColorStop(0, "rgba(0,0,0,0)");
-      outerVg.addColorStop(1, "rgba(4,2,1,0.7)");
+      outerVg.addColorStop(1, `${bg}b3`);
       ctx.fillStyle = outerVg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -648,18 +700,38 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       />
-      {/* Zoom controls */}
+      {/* Zoom controls + mobile panel button */}
       <div className="absolute bottom-6 right-6 flex flex-col gap-1.5 z-10">
         {[
           { icon: <ZoomIn size={14} />, fn: () => zoom(1.25) },
           { icon: <ZoomOut size={14} />, fn: () => zoom(0.8) },
         ].map((btn, i) => (
           <button key={i} onClick={btn.fn}
-            className="w-9 h-9 flex items-center justify-center text-amber-300/70 hover:text-amber-200 transition-colors border border-amber-500/20 hover:border-amber-500/40"
-            style={{ background: "rgba(10,8,4,0.85)", clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)" }}>
+            className="w-9 h-9 flex items-center justify-center transition-colors border"
+            style={{
+              background: "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
+              color: "var(--accent)",
+              clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)",
+            }}>
             {btn.icon}
           </button>
         ))}
+        {/* Mobile-only: open details panel button */}
+        {onOpenPanel && (
+          <button
+            onClick={onOpenPanel}
+            className="w-9 h-9 flex items-center justify-center transition-all border md:hidden"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 85%, transparent)",
+              borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
+              color: "var(--btn-text, #fff)",
+              clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)",
+              boxShadow: "0 0 12px color-mix(in srgb, var(--accent) 25%, transparent)",
+            }}>
+            <User size={14} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -833,21 +905,21 @@ export default function MapaInteractivo() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center p-20" style={{ background: "#0a0806", minHeight: "100dvh" }}>
+    <div className="flex flex-col items-center justify-center p-20" style={{ background: "var(--bg-main)", minHeight: "100dvh" }}>
       <div className="relative">
-        <div className="w-8 h-8 border border-amber-500/40 rotate-45 animate-spin" />
+        <div className="w-8 h-8 rotate-45 animate-spin border" style={{ borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-2 h-2 bg-amber-500/60 rotate-45" />
+          <div className="w-2 h-2 rotate-45" style={{ background: "color-mix(in srgb, var(--accent) 60%, transparent)" }} />
         </div>
       </div>
-      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-amber-500/40 mt-4">
+      <span className="text-[9px] font-black uppercase tracking-[0.3em] mt-4" style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }}>
         Desplegando Cartografía...
       </span>
     </div>
   );
 
   return (
-    <div className="relative w-full flex" style={{ minHeight: "100dvh", background: "#0a0806" }}>
+    <div className="relative w-full flex" style={{ minHeight: "100dvh", background: "var(--bg-main)" }}>
       {/* Google Font: Cinzel for map labels */}
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
@@ -872,9 +944,9 @@ export default function MapaInteractivo() {
               onClick={() => setEditMode(!editMode)}
               className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase transition-all border"
               style={{
-                background: editMode ? "rgba(220,38,38,0.9)" : "rgba(10,8,4,0.85)",
-                borderColor: editMode ? "#dc2626" : "rgba(245,158,11,0.3)",
-                color: editMode ? "#fff" : "#d4a84b",
+                background: editMode ? "rgba(220,38,38,0.9)" : "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
+                borderColor: editMode ? "#dc2626" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                color: editMode ? "var(--btn-text, #fff)" : "var(--accent)",
                 clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
               }}
             >
@@ -900,11 +972,15 @@ export default function MapaInteractivo() {
         <AnimatePresence>
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
             <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-              className="absolute bottom-16 left-1/2 -translate-x-1/2 z-50 text-amber-900 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2"
-              style={{ background: "#fbbf24", clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)" }}>
+              className="absolute bottom-16 left-1/2 -translate-x-1/2 z-50 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2"
+              style={{
+                background: "var(--accent)",
+                color: "var(--bg-main)",
+                clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+              }}>
               <Move size={12} /> Clickeá para mover el marcador
               {modifiedDetalles.size > 1 && (
-                <span className="bg-amber-900/20 px-1.5 py-0.5 text-[9px]">{modifiedDetalles.size} pendientes</span>
+                <span className="px-1.5 py-0.5 text-[9px]" style={{ background: "color-mix(in srgb, var(--bg-main) 20%, transparent)" }}>{modifiedDetalles.size} pendientes</span>
               )}
             </MotionDiv>
           )}
@@ -915,10 +991,11 @@ export default function MapaInteractivo() {
           {vistaActual === "reino" && (
             <MotionButton initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               onClick={volverAlGlobal}
-              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase text-amber-300 hover:text-amber-100 transition-colors"
+              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase transition-colors"
               style={{
-                background: "rgba(10,8,4,0.9)",
-                border: "1px solid rgba(245,158,11,0.3)",
+                background: "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+                color: "var(--accent)",
                 clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
               }}>
               <ArrowLeft size={14} /> Volver
@@ -942,6 +1019,7 @@ export default function MapaInteractivo() {
           onMapClick={handleMapClick}
           selectedMarkerId={puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null}
           tipo={vistaActual}
+          onOpenPanel={isMobile && (reinoSeleccionado || puntoSeleccionado) ? () => setPanelOpen(true) : undefined}
         />
       </div>
 
@@ -955,20 +1033,25 @@ export default function MapaInteractivo() {
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
             className="relative overflow-hidden flex-shrink-0"
             style={{
-              background: "linear-gradient(180deg, #120d06 0%, #0d0904 100%)",
-              borderLeft: "1px solid rgba(245,158,11,0.15)",
-              boxShadow: "-20px 0 60px rgba(0,0,0,0.6)",
+              background: "var(--white-custom)",
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+              boxShadow: "-20px 0 60px rgba(0,0,0,0.4)",
             }}
           >
             {/* Decorative top border */}
             <div className="absolute top-0 left-0 right-0 h-px"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)" }} />
+              style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 50%, transparent), transparent)" }} />
 
             {/* Close panel btn */}
             <button
               onClick={() => setPanelOpen(false)}
-              className="absolute top-4 right-4 z-10 w-7 h-7 flex items-center justify-center text-amber-500/50 hover:text-amber-300 transition-colors border border-amber-500/20 hover:border-amber-500/40"
-              style={{ background: "rgba(10,8,4,0.8)", clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)" }}
+              className="absolute top-4 right-4 z-10 w-7 h-7 flex items-center justify-center transition-colors border"
+              style={{
+                background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
+                color: "color-mix(in srgb, var(--foreground) 50%, transparent)",
+                clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)",
+              }}
             >
               <X size={12} />
             </button>
@@ -988,23 +1071,24 @@ export default function MapaInteractivo() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-none overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
             style={{
-              background: "linear-gradient(180deg, #120d06 0%, #0d0904 100%)",
-              borderTop: "1px solid rgba(245,158,11,0.2)",
+              background: "var(--white-custom)",
+              borderTop: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
               maxHeight: "65dvh",
-              boxShadow: "0 -20px 60px rgba(0,0,0,0.7)",
+              boxShadow: "0 -20px 60px rgba(0,0,0,0.5)",
             }}
           >
             <div className="absolute top-0 left-0 right-0 h-px"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.6), transparent)" }} />
+              style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 60%, transparent), transparent)" }} />
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-0.5 bg-amber-500/30 rounded-full" />
+              <div className="w-10 h-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
             </div>
             <button
               onClick={() => setPanelOpen(false)}
-              className="absolute top-3 right-4 w-7 h-7 flex items-center justify-center text-amber-500/50 hover:text-amber-300 transition-colors"
+              className="absolute top-3 right-4 w-7 h-7 flex items-center justify-center transition-colors"
+              style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}
             >
               <X size={14} />
             </button>
