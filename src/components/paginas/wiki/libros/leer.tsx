@@ -10,6 +10,7 @@ import { CapituloLista, CapituloScrollItem } from "./leer/type";
 import { LectorSkeleton }      from "./leer/ui/LectorSkeleton";
 import { IndexPanel }          from "./leer/ui/IndexPanel";
 import { CapituloScrollBlock } from "./leer/CapituloScrollBlock";
+import { ReadingProgressBar, Vignette } from "./leer/ui/LectorOrnamentos";
 
 export default function Lector() {
   const params = useParams();
@@ -59,9 +60,6 @@ export default function Lector() {
           .order("orden", { ascending: true });
 
         const capsValidas = (contenidos as CapituloScrollItem[]) ?? [];
-
-        
-        
         const idsValidos = new Set(capsValidas.map(c => c.id));
         const listaFiltrada = listaRaw.filter(c => idsValidos.has(c.id));
 
@@ -94,18 +92,51 @@ export default function Lector() {
 
   return (
     <div className="min-h-screen bg-bg-main text-primary-dark pb-24">
-      <IndexPanel open={showIndex} onClose={() => setShowIndex(false)} lista={listaCapitulos} capIdActual={capId} libroTitulo={libroTitulo} onSelect={(newId) => { handleChapterSelect(newId); setShowIndex(false); }} />
+      {/* ── Efectos de atmósfera ── */}
+      <ReadingProgressBar />
+      <Vignette />
+
+      <IndexPanel
+        open={showIndex}
+        onClose={() => setShowIndex(false)}
+        lista={listaCapitulos}
+        capIdActual={capId}
+        libroTitulo={libroTitulo}
+        onSelect={(newId) => { handleChapterSelect(newId); setShowIndex(false); }}
+      />
+
       <nav className="sticky top-0 z-50 bg-bg-main/80 backdrop-blur-md border-b border-primary/5 px-6 py-3">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.push(`/wiki/libros/${id}`)} className="text-primary/40 hover:text-primary transition-colors"><ChevronLeft size={20} /></button>
-          <button onClick={() => setShowIndex(true)} className="text-primary/40 hover:text-primary transition-colors"><List size={20} /></button>
+          <button
+            onClick={() => router.push(`/wiki/libros/${id}`)}
+            className="text-primary/40 hover:text-primary transition-colors"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            onClick={() => setShowIndex(true)}
+            className="text-primary/40 hover:text-primary transition-colors"
+          >
+            <List size={20} />
+          </button>
         </div>
       </nav>
+
       {capitulos.map((cap) => (
         <CapituloScrollBlock key={cap.id} cap={cap} onNavigate={handleNavigate} />
       ))}
+
       <footer className="max-w-2xl mx-auto px-6 pb-20 pt-4 flex flex-col items-center gap-6">
-        <button onClick={() => router.push(`/wiki/libros/${id}`)} className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all">
+        {/* Separador final del libro */}
+        <div className="flex items-center gap-4 w-full max-w-xs">
+          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
+          <span className="font-serif text-base" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>— Fin —</span>
+          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
+        </div>
+        <button
+          onClick={() => router.push(`/wiki/libros/${id}`)}
+          className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+        >
           <List size={16} /> Volver al índice
         </button>
       </footer>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, Sword } from "lucide-react";
 import { MotionDiv } from '@/components/ui/Motion';
+import { motion } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
 import { CapituloScrollItem } from "../type";
 
@@ -95,21 +96,30 @@ export function PersonajesDesbloqueadosToast({ personajesIds, onClose }: {
   );
 }
 
+/* ─────────────────────────────────────────────
+   Separador ornamentado al final de cada capítulo
+   Las líneas "se dibujan" desde el centro hacia afuera
+   cuando el elemento entra en viewport
+   ───────────────────────────────────────────── */
 export function FinCapituloSeparador({ cap, onVisible }: {
   cap: CapituloScrollItem;
   onVisible: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref     = useRef<HTMLDivElement>(null);
   const firedRef = useRef(false);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !firedRef.current) {
-          firedRef.current = true;
-          onVisible();
+        if (entry.isIntersecting) {
+          setVisible(true);
+          if (!firedRef.current) {
+            firedRef.current = true;
+            onVisible();
+          }
         }
       },
       { threshold: 0.5 }
@@ -119,10 +129,52 @@ export function FinCapituloSeparador({ cap, onVisible }: {
   }, [onVisible]);
 
   return (
-    <div ref={ref} className="mt-20 flex items-center gap-4">
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
-      <span className="text-primary/20 font-serif italic text-2xl select-none">✦</span>
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+    <div ref={ref} className="mt-20 mb-4 flex flex-col items-center gap-3">
+      {/* Líneas animadas que se expanden */}
+      <div className="flex items-center gap-4 w-full max-w-xs">
+        <motion.div
+          className="flex-1 h-px"
+          style={{ background: "linear-gradient(to left, color-mix(in srgb, var(--primary) 20%, transparent), transparent)" }}
+          initial={{ scaleX: 0, originX: 1 }}
+          animate={visible ? { scaleX: 1 } : { scaleX: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+        />
+
+        {/* Ornamento central */}
+        <motion.div
+          className="flex items-center gap-1.5 shrink-0"
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={visible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.6 }}
+          transition={{ duration: 0.4, delay: 0.5, ease: "backOut" }}
+        >
+          <span className="font-serif text-[10px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>✦</span>
+          <span className="font-serif text-base"   style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>❧</span>
+          <span className="font-serif text-[10px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>✦</span>
+        </motion.div>
+
+        <motion.div
+          className="flex-1 h-px"
+          style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 20%, transparent), transparent)" }}
+          initial={{ scaleX: 0, originX: 0 }}
+          animate={visible ? { scaleX: 1 } : { scaleX: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+        />
+      </div>
+
+      {/* Texto "Fin del capítulo" que aparece sutil */}
+      <motion.p
+        className="font-black uppercase"
+        style={{
+          fontSize: "0.55rem",
+          letterSpacing: "0.45em",
+          color: "color-mix(in srgb, var(--primary) 22%, transparent)",
+        }}
+        initial={{ opacity: 0, y: 4 }}
+        animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 4 }}
+        transition={{ duration: 0.5, delay: 0.75 }}
+      >
+        — fin del capítulo —
+      </motion.p>
     </div>
   );
 }

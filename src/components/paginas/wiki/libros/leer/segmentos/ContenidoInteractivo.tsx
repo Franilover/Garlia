@@ -12,6 +12,42 @@ import { FloatWord }    from "./FloatWord";
 import { SoundInline }  from "./SoundInline";
 import { ChoiceButton, UseWord } from "./Interactivos";
 
+/* ─────────────────────────────────────────────
+   Drop cap animado — la primera letra "aparece
+   como tinta empapando el papel"
+   ───────────────────────────────────────────── */
+function AnimatedDropCap({ char, rest }: { char: string; rest: string }) {
+  return (
+    <span>
+      <motion.span
+        className="float-left font-serif font-black text-primary leading-none mr-3"
+        style={{
+          fontSize: "clamp(4.5rem, 12vw, 6rem)",
+          marginTop: "0.18em",
+          lineHeight: 0.82,
+          // Efecto de "aparición de tinta": va de difuso y transparente a nítido
+        }}
+        initial={{ opacity: 0, filter: "blur(8px)", scale: 1.15 }}
+        animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+      >
+        {char}
+      </motion.span>
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, delay: 0.4 }}
+      >
+        {rest}
+      </motion.span>
+    </span>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Renderizado de segmentos con drop cap en el
+   primer párrafo
+   ───────────────────────────────────────────── */
 export function RenderSegmentos({ segs, onNavigate, isFirst = false }: {
   segs: Segment[];
   onNavigate: (id: string) => void;
@@ -20,8 +56,22 @@ export function RenderSegmentos({ segs, onNavigate, isFirst = false }: {
   return (
     <>
       {segs.map((seg, i) => {
-        const firstText = isFirst && i === 0;
-        if (seg.type === "text")   return <span key={i} className={cn("whitespace-pre-line", firstText && "first-letter:text-7xl first-letter:font-black first-letter:text-primary first-letter:mr-4 first-letter:float-left first-letter:mt-3")}>{seg.value}</span>;
+        const isFirstText = isFirst && i === 0 && seg.type === "text";
+
+        if (seg.type === "text") {
+          if (isFirstText && seg.value.length > 0) {
+            // Separar primera letra del resto
+            const firstChar = seg.value.charAt(0);
+            const restText  = seg.value.slice(1);
+            return (
+              <span key={i} className="whitespace-pre-line">
+                <AnimatedDropCap char={firstChar} rest={restText} />
+              </span>
+            );
+          }
+          return <span key={i} className="whitespace-pre-line">{seg.value}</span>;
+        }
+
         if (seg.type === "cita")   return <CitaVisual key={i} content={seg.content} />;
         if (seg.type === "img")    return <ImgInline key={i} url={seg.url} caption={seg.caption} />;
         if (seg.type === "float")  return <FloatWord key={i} word={seg.word} url={seg.url} caption={seg.caption} />;
@@ -35,6 +85,9 @@ export function RenderSegmentos({ segs, onNavigate, isFirst = false }: {
   );
 }
 
+/* ─────────────────────────────────────────────
+   Componente principal
+   ───────────────────────────────────────────── */
 export function ContenidoInteractivo({ texto, onNavigate }: {
   texto: string;
   onNavigate: (capId: string) => void;
@@ -59,7 +112,7 @@ export function ContenidoInteractivo({ texto, onNavigate }: {
     }
   };
 
-  const handleBack = () => setHistory(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
+  const handleBack  = () => setHistory(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
   const currentId   = history[history.length - 1];
   const currentSegs = sectionMap[currentId] ?? sectionMap[""] ?? [];
   const canGoBack   = history.length > 1;
