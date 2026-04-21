@@ -38,6 +38,15 @@ const lora = Lora({
   display: 'swap',
 });
 
+import { Literata } from "next/font/google";
+
+const literata = Literata({
+  subsets: ["latin"],
+  variable: "--font-literata",
+  weight: ["300", "400", "500", "700"],
+  style: ["normal", "italic"],
+});
+
 export const metadata = {
   title: 'Franilover',
   description: 'Mi pequeño jardin digital',

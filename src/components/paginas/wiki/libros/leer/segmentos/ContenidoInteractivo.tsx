@@ -20,12 +20,12 @@ function AnimatedDropCap({ char, rest }: { char: string; rest: string }) {
   return (
     <span>
       <motion.span
-        className="float-left font-serif font-black text-primary leading-none mr-3"
+        className="float-left font-black text-primary leading-none mr-3"
         style={{
+          fontFamily: "var(--font-literata), Georgia, serif",
           fontSize: "clamp(4.5rem, 12vw, 6rem)",
           marginTop: "0.18em",
           lineHeight: 0.82,
-          // Efecto de "aparición de tinta": va de difuso y transparente a nítido
         }}
         initial={{ opacity: 0, filter: "blur(8px)", scale: 1.15 }}
         animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
@@ -118,7 +118,16 @@ export function ContenidoInteractivo({ texto, onNavigate }: {
   const canGoBack   = history.length > 1;
 
   return (
-    <div className="text-lg md:text-xl leading-[2.2] text-primary-dark/90 font-serif">
+    <div
+      className="text-primary-dark/90"
+      style={{
+        fontFamily: "var(--font-literata), Georgia, 'Times New Roman', serif",
+        fontSize: "clamp(1rem, 2.5vw, 1.125rem)",
+        lineHeight: 1.85,
+        letterSpacing: "0.01em",
+        fontFeatureSettings: '"kern" 1, "liga" 1, "onum" 1',
+      }}
+    >
       <RenderSegmentos segs={sectionMap[""]} onNavigate={handleNavigate} isFirst />
 
       <AnimatePresence mode="wait">
