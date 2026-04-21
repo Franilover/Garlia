@@ -1,18 +1,18 @@
 "use client";
-import {
-  MotionDiv, MotionButton,
-} from "@/components/ui/Motion";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import {
+  MotionDiv, MotionButton,
+} from "@/components/ui/Motion";
+import {
   X, MapPin, Loader2, ChevronRight, ArrowLeft, House,
-  Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, UserX,
+  Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, UserX, ZoomIn, ZoomOut,
 } from "lucide-react";
-import QuickPinchZoom, { make3dTransformValue } from "react-quick-pinch-zoom";
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { ModalDetalle } from "@/components/paginas/wiki/personal/PersonalComponents";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 type EntidadModal =
   | { tipo: "personaje"; data: any }
   | { tipo: "criatura";  data: any }
@@ -21,13 +21,14 @@ type EntidadModal =
 
 type ToastType = "success" | "error";
 
+// ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ message, type, onClose }: { message: string; type: ToastType; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
   return (
     <MotionDiv
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-      className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 px-5 py-3 shadow-xl text-btn-text text-[11px] font-black uppercase tracking-wide ${type === "success" ? "bg-green-600" : "bg-red-500"}`}
-      style={{ borderRadius: "var(--radius-btn)" }}
+      className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 px-5 py-3 shadow-xl text-white text-[11px] font-black uppercase tracking-wide ${type === "success" ? "bg-emerald-700" : "bg-red-700"}`}
+      style={{ clipPath: "polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)" }}
     >
       {type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
       {message}
@@ -35,47 +36,7 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   );
 }
 
-const Marker = ({ x, y, info, onClick, tipo, editMode, oculto }: any) => (
-  <div
-    className="absolute z-20 flex flex-col items-center"
-    style={{ top: `${y}%`, left: `${x}%`, transform: "translate(-50%, -50%)", opacity: oculto ? 0.45 : 1 }}
-  >
-    <div
-      className="mb-1 bg-primary text-btn-text text-[9px] font-black uppercase px-2 py-0.5 shadow-lg whitespace-nowrap pointer-events-none"
-      style={{ borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--btn-text) 20%, transparent)" }}
-    >
-      {info}
-    </div>
-    <button
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="relative flex items-center justify-center cursor-pointer outline-none group"
-    >
-      {editMode && (
-        <div className="absolute -top-1 -right-1 z-10 w-3 h-3 bg-yellow-400 rounded-full"
-          style={{ border: "1px solid color-mix(in srgb, var(--btn-text) 80%, transparent)" }} />
-      )}
-      {editMode && oculto && (
-        <div className="absolute -bottom-1 -left-1 z-10 w-3 h-3 bg-orange-400 rounded-full flex items-center justify-center"
-          style={{ border: "1px solid color-mix(in srgb, var(--btn-text) 80%, transparent)" }}>
-          <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-            <line x1="1" y1="1" x2="23" y2="23" />
-          </svg>
-        </div>
-      )}
-      <div className="absolute w-5 h-5 bg-primary/20 rounded-full animate-ping" />
-      <div
-        className="w-4 h-4 bg-primary rounded-full border-2 shadow-md transition-all flex items-center justify-center"
-        style={{ borderColor: "color-mix(in srgb, var(--btn-text) 80%, transparent)" }}
-      >
-        {tipo === "reino"
-          ? <MapPin size={8} className="text-btn-text" />
-          : <House size={8} className="text-btn-text" />}
-      </div>
-    </button>
-  </div>
-);
-
+// ─── Panel Contenido ──────────────────────────────────────────────────────────
 function PanelContenido({
   editMode, reinoSeleccionado, puntoSeleccionado,
   setPuntoSeleccionado, setDetallesReino, setModifiedDetalles,
@@ -86,9 +47,8 @@ function PanelContenido({
   if (editMode) {
     return (
       <div className="flex flex-col gap-4 flex-grow">
-        {}
         <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold uppercase text-primary/50 ml-1">Nombre</label>
+          <label className="text-[9px] font-bold uppercase tracking-widest text-amber-400/70 ml-1">Nombre</label>
           <input
             type="text"
             value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
@@ -99,13 +59,12 @@ function PanelContenido({
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
               } else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
             }}
-            className="input-brand p-4! text-primary font-black uppercase text-xl! outline-none"
+            className="bg-stone-900/80 border border-amber-500/30 text-amber-100 font-black uppercase text-xl outline-none px-4 py-3 focus:border-amber-400/60 transition-colors"
+            style={{ clipPath: "polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%)" }}
           />
         </div>
-
-        {}
         <div className="flex flex-col gap-1 flex-grow">
-          <label className="text-[9px] font-bold uppercase text-primary/50 ml-1">Descripción / Lore</label>
+          <label className="text-[9px] font-bold uppercase tracking-widest text-amber-400/70 ml-1">Descripción / Lore</label>
           <textarea
             value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
             onChange={(e) => {
@@ -115,50 +74,44 @@ function PanelContenido({
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
               } else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
             }}
-            className="input-brand p-4! text-sm! italic leading-relaxed! h-36 resize-none outline-none"
+            className="bg-stone-900/80 border border-amber-500/30 text-amber-100/80 text-sm italic leading-relaxed h-36 resize-none outline-none px-4 py-3 focus:border-amber-400/60 transition-colors"
           />
         </div>
-
-        {}
         <div className="flex flex-col gap-1">
-          <label className="text-[9px] font-bold uppercase text-primary/50 ml-1 flex items-center gap-1">
+          <label className="text-[9px] font-bold uppercase tracking-widest text-amber-400/70 ml-1 flex items-center gap-1">
             <Move size={9} /> Coordenadas
           </label>
           <div className="grid grid-cols-2 gap-2">
             {[["X", puntoSeleccionado ? puntoSeleccionado.coord_x : reinoSeleccionado.coord_x],
               ["Y", puntoSeleccionado ? puntoSeleccionado.coord_y : reinoSeleccionado.coord_y]].map(([label, val]) => (
-              <div key={label} className="bg-primary/5 border border-primary/10 p-3 text-center" style={{ borderRadius: "var(--radius-btn)" }}>
-                <span className="block text-[8px] text-primary/40 font-bold uppercase">{label}</span>
-                <span className="text-sm font-black text-primary">{val}</span>
+              <div key={label} className="bg-stone-900/60 border border-amber-500/20 p-3 text-center">
+                <span className="block text-[8px] text-amber-400/40 font-bold uppercase">{label}</span>
+                <span className="text-sm font-black text-amber-300">{val}</span>
               </div>
             ))}
           </div>
         </div>
-
-        {}
         {!puntoSeleccionado && (
-          <div className="flex items-center justify-between px-3 py-2.5 border border-primary/10 bg-primary/3" style={{ borderRadius: "var(--radius-btn)" }}>
+          <div className="flex items-center justify-between px-3 py-2.5 border border-amber-500/20 bg-stone-900/50">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Visibilidad en el mapa</p>
-              <p className="text-[9px] text-primary/35 mt-0.5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-amber-400/60">Visibilidad en el mapa</p>
+              <p className="text-[9px] text-amber-400/35 mt-0.5">
                 {reinoSeleccionado.oculto ? "Este reino no aparece para usuarios" : "Este reino es visible en el mapa"}
               </p>
             </div>
             <button
               onClick={() => setReinoSeleccionado((r: any) => ({ ...r, oculto: !r.oculto }))}
-              className={`relative w-10 h-5 rounded-full transition-all border ${reinoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-primary/15 border-primary/20"}`}
+              className={`relative w-10 h-5 rounded-full transition-all border ${reinoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-amber-400/15 border-amber-400/20"}`}
             >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${reinoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-primary/50"}`} />
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${reinoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-amber-400/50"}`} />
             </button>
           </div>
         )}
-
-        {}
         {puntoSeleccionado && (
-          <div className="flex items-center justify-between px-3 py-2.5 border border-primary/10 bg-primary/3" style={{ borderRadius: "var(--radius-btn)" }}>
+          <div className="flex items-center justify-between px-3 py-2.5 border border-amber-500/20 bg-stone-900/50">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Visibilidad en el mapa</p>
-              <p className="text-[9px] text-primary/35 mt-0.5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-amber-400/60">Visibilidad en el mapa</p>
+              <p className="text-[9px] text-amber-400/35 mt-0.5">
                 {puntoSeleccionado.oculto ? "Este punto no aparece para usuarios" : "Este punto es visible en el mapa"}
               </p>
             </div>
@@ -169,24 +122,22 @@ function PanelContenido({
                 setDetallesReino((prev: any[]) => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, oculto: nuevoOculto } : p));
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
               }}
-              className={`relative w-10 h-5 rounded-full transition-all border ${puntoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-primary/15 border-primary/20"}`}
+              className={`relative w-10 h-5 rounded-full transition-all border ${puntoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-amber-400/15 border-amber-400/20"}`}
             >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${puntoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-primary/50"}`} />
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${puntoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-amber-400/50"}`} />
             </button>
           </div>
         )}
-
-        {}
         {!puntoSeleccionado && (
           <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-bold uppercase text-primary/50 ml-1 flex items-center gap-1">
+            <label className="text-[9px] font-bold uppercase tracking-widest text-amber-400/70 ml-1 flex items-center gap-1">
               <ImagePlus size={9} /> Imagen del Mapa
             </label>
             {reinoSeleccionado.mapa_url && (
-              <div className="relative w-full h-20 overflow-hidden border border-primary/10 mb-1" style={{ borderRadius: "var(--radius-btn)" }}>
+              <div className="relative w-full h-20 overflow-hidden border border-amber-500/20 mb-1">
                 <img src={reinoSeleccionado.mapa_url} alt="Mapa actual" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text)" }}>Imagen actual</span>
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-amber-200">Imagen actual</span>
                 </div>
               </div>
             )}
@@ -194,8 +145,7 @@ function PanelContenido({
             <button
               onClick={() => imgInputRef.current?.click()}
               disabled={isUploadingImg}
-              className="w-full flex items-center justify-center gap-2 bg-primary/5 border border-dashed border-primary/30 text-primary text-[10px] font-black uppercase py-3 hover:bg-primary/10 transition-all disabled:opacity-50"
-              style={{ borderRadius: "var(--radius-btn)" }}
+              className="w-full flex items-center justify-center gap-2 bg-amber-500/10 border border-dashed border-amber-500/30 text-amber-300 text-[10px] font-black uppercase py-3 hover:bg-amber-500/20 transition-all disabled:opacity-50"
             >
               {isUploadingImg
                 ? <><Loader2 size={12} className="animate-spin" /> Subiendo...</>
@@ -203,13 +153,11 @@ function PanelContenido({
             </button>
           </div>
         )}
-
-        {}
         <button
           onClick={handleSaveChanges}
           disabled={isSaving}
-          className="w-full flex items-center justify-center gap-2 bg-green-600 text-btn-text text-[11px] font-black uppercase py-4 hover:bg-green-700 transition-all disabled:opacity-50 shadow-lg shadow-green-600/20 mt-auto"
-          style={{ borderRadius: "var(--radius-btn)" }}
+          className="w-full flex items-center justify-center gap-2 bg-amber-600 text-stone-950 text-[11px] font-black uppercase py-4 hover:bg-amber-500 transition-all disabled:opacity-50 shadow-lg shadow-amber-600/20 mt-auto"
+          style={{ clipPath: "polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)" }}
         >
           {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
           Guardar cambios
@@ -218,26 +166,47 @@ function PanelContenido({
     );
   }
 
-  
   return (
     <>
-      <h2 className="text-primary font-black text-4xl uppercase tracking-tighter mb-6 leading-none">
-        {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
-      </h2>
-      <div className="space-y-6 flex-grow overflow-y-auto pr-1">
-        <div className="p-6 bg-primary/5 border border-primary/5" style={{ borderRadius: "var(--radius-card)" }}>
-          <p className="text-foreground text-sm italic leading-relaxed">
+      {/* Title with LoL-style decorative line */}
+      <div className="relative mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-500/40" />
+          <div className="w-1.5 h-1.5 rotate-45 bg-amber-500/60" />
+          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-500/40" />
+        </div>
+        <h2 className="text-amber-100 font-black text-3xl uppercase tracking-[0.12em] leading-none text-center"
+          style={{ fontFamily: "'Cinzel', serif", textShadow: "0 0 30px rgba(245,158,11,0.3)" }}>
+          {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
+        </h2>
+        <div className="flex items-center gap-3 mt-2">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-amber-500/40" />
+          <div className="w-1.5 h-1.5 rotate-45 bg-amber-500/60" />
+          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-amber-500/40" />
+        </div>
+      </div>
+
+      <div className="space-y-6 flex-grow overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-amber-500/20">
+        {/* Lore text */}
+        <div className="relative p-5 border border-amber-500/15"
+          style={{ background: "linear-gradient(135deg, rgba(120,53,15,0.12), rgba(0,0,0,0.3))" }}>
+          {/* Corner decorations */}
+          <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-amber-500/50" />
+          <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-amber-500/50" />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-amber-500/50" />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-amber-500/50" />
+          <p className="text-amber-100/70 text-sm italic leading-relaxed">
             "{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}"
           </p>
         </div>
 
-        {}
+        {/* Characters list */}
         {!puntoSeleccionado && personajesReino.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-px flex-1 bg-primary/10" />
-              <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Habitantes</span>
-              <div className="h-px flex-1 bg-primary/10" />
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-px flex-1 bg-amber-500/20" />
+              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-amber-500/60">Habitantes conocidos</span>
+              <div className="h-px flex-1 bg-amber-500/20" />
             </div>
             <div className="flex flex-col gap-2">
               {personajesReino.map((p: any) => {
@@ -246,51 +215,51 @@ function PanelContenido({
                   <button
                     key={p.id}
                     onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
-                    className="flex items-center gap-3 p-2.5 w-full text-left transition-all"
+                    className="flex items-center gap-3 p-2.5 w-full text-left transition-all group"
                     style={{
-                      borderRadius: "var(--radius-btn)",
-                      background: desbloqueado ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 2%, transparent)",
-                      border: `1px solid color-mix(in srgb, var(--primary) ${desbloqueado ? "12%" : "6%"}, transparent)`,
-                      opacity: desbloqueado ? 1 : 0.55,
+                      background: desbloqueado
+                        ? "linear-gradient(135deg, rgba(120,53,15,0.2), rgba(0,0,0,0.3))"
+                        : "rgba(0,0,0,0.2)",
+                      border: `1px solid ${desbloqueado ? "rgba(245,158,11,0.2)" : "rgba(245,158,11,0.07)"}`,
+                      opacity: desbloqueado ? 1 : 0.5,
                       cursor: desbloqueado ? "pointer" : "default",
                     }}
                   >
                     <div
-                      className="shrink-0 w-9 h-9 overflow-hidden flex items-center justify-center"
+                      className="shrink-0 w-9 h-9 overflow-hidden flex items-center justify-center border"
                       style={{
-                        borderRadius: "var(--radius-btn)",
-                        background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                        border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+                        borderColor: desbloqueado ? "rgba(245,158,11,0.25)" : "rgba(245,158,11,0.08)",
+                        background: "rgba(0,0,0,0.4)",
                         filter: desbloqueado ? "none" : "grayscale(100%) blur(2px)",
                       }}
                     >
                       {desbloqueado && p.img_url
                         ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                        : <UserX size={14} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />}
+                        : <UserX size={14} className="text-amber-500/30" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-black uppercase leading-tight"
                         style={{
-                          color: desbloqueado ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                          color: desbloqueado ? "rgba(253,230,138,0.9)" : "rgba(245,158,11,0.3)",
                           textDecoration: desbloqueado ? "none" : "line-through",
-                          textDecorationColor: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                          textDecorationColor: "rgba(245,158,11,0.3)",
                         }}>
                         {desbloqueado ? p.nombre : "???"}
                       </p>
                       {p.especie && (
-                        <p className="text-[9px] font-medium mt-0.5" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                        <p className="text-[9px] font-medium mt-0.5 text-amber-500/35">
                           {desbloqueado ? p.especie : "Desconocido"}
                         </p>
                       )}
                     </div>
                     {desbloqueado ? (
                       <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide flex items-center gap-1"
-                        style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                        Conocido <ChevronRight size={8} />
+                        style={{ background: "rgba(245,158,11,0.1)", color: "rgba(253,230,138,0.7)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                        Ver <ChevronRight size={8} />
                       </span>
                     ) : (
                       <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide"
-                        style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 4%, transparent)", color: "color-mix(in srgb, var(--primary) 30%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                        style={{ background: "rgba(245,158,11,0.04)", color: "rgba(245,158,11,0.25)", border: "1px solid rgba(245,158,11,0.08)" }}>
                         ???
                       </span>
                     )}
@@ -305,6 +274,398 @@ function PanelContenido({
   );
 }
 
+// ─── Canvas Map ───────────────────────────────────────────────────────────────
+interface CanvasMapProps {
+  imageSrc: string;
+  markers: any[];
+  editMode: boolean;
+  onMarkerClick: (marker: any) => void;
+  onMapClick: (x: number, y: number) => void;
+  selectedMarkerId?: string | null;
+  tipo: "global" | "reino";
+}
+
+function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo }: CanvasMapProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const animFrameRef = useRef<number>(0);
+
+  // Camera state
+  const camRef = useRef({ x: 0, y: 0, scale: 1 });
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
+  // Pinch
+  const lastPinchDist = useRef<number | null>(null);
+  // Pulse animation
+  const pulseRef = useRef(0);
+
+  // Load image
+  useEffect(() => {
+    setImgLoaded(false);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = imageSrc;
+    img.onload = () => {
+      imgRef.current = img;
+      // Center the map
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.95;
+        camRef.current = {
+          x: (canvas.width - img.width * scale) / 2,
+          y: (canvas.height - img.height * scale) / 2,
+          scale,
+        };
+      }
+      setImgLoaded(true);
+    };
+  }, [imageSrc]);
+
+  // Resize canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+    const resize = () => {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []);
+
+  // Render loop
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const draw = (t: number) => {
+      pulseRef.current = t;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Background
+      ctx.fillStyle = "#0a0806";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const { x: cx, y: cy, scale } = camRef.current;
+      const img = imgRef.current;
+
+      if (img && imgLoaded) {
+        const iw = img.width * scale;
+        const ih = img.height * scale;
+
+        // Vignette / fog border before drawing map
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        // Draw map image
+        ctx.drawImage(img, 0, 0, iw, ih);
+
+        // Subtle sepia overlay for aged look
+        ctx.fillStyle = "rgba(80, 40, 10, 0.08)";
+        ctx.fillRect(0, 0, iw, ih);
+
+        // Vignette over the map
+        const vgr = ctx.createRadialGradient(iw / 2, ih / 2, ih * 0.3, iw / 2, ih / 2, Math.max(iw, ih) * 0.72);
+        vgr.addColorStop(0, "rgba(0,0,0,0)");
+        vgr.addColorStop(1, "rgba(8,4,2,0.65)");
+        ctx.fillStyle = vgr;
+        ctx.fillRect(0, 0, iw, ih);
+
+        ctx.restore();
+
+        // Draw markers
+        for (const m of markers) {
+          const mx = cx + (m.coord_x / 100) * iw;
+          const my = cy + (m.coord_y / 100) * ih;
+          const isSelected = m.id === selectedMarkerId;
+          const pulse = (Math.sin(t * 0.002 + m.coord_x) + 1) / 2;
+
+          ctx.save();
+          ctx.translate(mx, my);
+
+          // Outer pulse ring
+          const ringR = 14 + pulse * 8;
+          ctx.beginPath();
+          ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+          ctx.strokeStyle = isSelected
+            ? `rgba(253,230,138,${0.5 * (1 - pulse)})`
+            : `rgba(180,120,30,${0.35 * (1 - pulse)})`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Inner glow
+          const grd = ctx.createRadialGradient(0, 0, 2, 0, 0, 10);
+          if (isSelected) {
+            grd.addColorStop(0, "rgba(253,230,138,0.9)");
+            grd.addColorStop(1, "rgba(245,158,11,0)");
+          } else {
+            grd.addColorStop(0, "rgba(200,140,40,0.6)");
+            grd.addColorStop(1, "rgba(180,100,20,0)");
+          }
+          ctx.beginPath();
+          ctx.arc(0, 0, 10, 0, Math.PI * 2);
+          ctx.fillStyle = grd;
+          ctx.fill();
+
+          // Diamond marker shape
+          ctx.save();
+          ctx.rotate(Math.PI / 4);
+          const d = isSelected ? 6 : 5;
+          ctx.fillStyle = isSelected ? "#fde68a" : "#c9852a";
+          ctx.shadowColor = isSelected ? "rgba(253,230,138,0.8)" : "rgba(200,140,40,0.4)";
+          ctx.shadowBlur = isSelected ? 12 : 6;
+          ctx.fillRect(-d, -d, d * 2, d * 2);
+          // Inner diamond
+          ctx.fillStyle = isSelected ? "rgba(255,255,255,0.9)" : "rgba(255,220,120,0.6)";
+          ctx.shadowBlur = 0;
+          const di = d * 0.45;
+          ctx.fillRect(-di, -di, di * 2, di * 2);
+          ctx.restore();
+
+          // Edit mode indicator
+          if (editMode) {
+            ctx.beginPath();
+            ctx.arc(6, -6, 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = "#facc15";
+            ctx.fill();
+            if (m.oculto) {
+              ctx.beginPath();
+              ctx.arc(-6, 6, 3.5, 0, Math.PI * 2);
+              ctx.fillStyle = "#f97316";
+              ctx.fill();
+            }
+          }
+
+          // Label
+          ctx.font = `bold ${scale > 0.7 ? 10 : 9}px 'Cinzel', serif`;
+          ctx.textAlign = "center";
+          const label = m.nombre;
+          const metrics = ctx.measureText(label);
+          const lw = metrics.width + 12;
+          const lh = 14;
+          const ly = -20;
+
+          // Label bg
+          ctx.fillStyle = "rgba(10,8,4,0.82)";
+          ctx.beginPath();
+          ctx.rect(-lw / 2, ly - lh / 2, lw, lh);
+          ctx.fill();
+
+          // Label border
+          ctx.strokeStyle = isSelected ? "rgba(253,230,138,0.5)" : "rgba(180,120,30,0.35)";
+          ctx.lineWidth = 0.75;
+          ctx.stroke();
+
+          // Label text
+          ctx.fillStyle = isSelected ? "#fde68a" : "#d4a84b";
+          ctx.fillText(label, 0, ly + 4);
+
+          ctx.restore();
+        }
+      } else {
+        // Loading shimmer
+        const gr = ctx.createLinearGradient(0, 0, canvas.width, 0);
+        const off = ((t * 0.001) % 1);
+        gr.addColorStop(Math.max(0, off - 0.1), "rgba(50,30,10,0.1)");
+        gr.addColorStop(off, "rgba(180,120,40,0.12)");
+        gr.addColorStop(Math.min(1, off + 0.1), "rgba(50,30,10,0.1)");
+        ctx.fillStyle = gr;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // Outer canvas vignette
+      const outerVg = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, canvas.height * 0.25,
+        canvas.width / 2, canvas.height / 2, canvas.height * 0.75
+      );
+      outerVg.addColorStop(0, "rgba(0,0,0,0)");
+      outerVg.addColorStop(1, "rgba(4,2,1,0.7)");
+      ctx.fillStyle = outerVg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      animFrameRef.current = requestAnimationFrame(draw);
+    };
+
+    animFrameRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [imgLoaded, markers, editMode, selectedMarkerId]);
+
+  // Hit test markers
+  const hitTest = useCallback((clientX: number, clientY: number): any | null => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imgRef.current) return null;
+    const rect = canvas.getBoundingClientRect();
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+    const { x: cx, y: cy, scale } = camRef.current;
+    const iw = imgRef.current.width * scale;
+    const ih = imgRef.current.height * scale;
+
+    for (const m of [...markers].reverse()) {
+      const mx = cx + (m.coord_x / 100) * iw;
+      const my = cy + (m.coord_y / 100) * ih;
+      const dist = Math.hypot(px - mx, py - my);
+      if (dist < 16) return m;
+    }
+    return null;
+  }, [markers]);
+
+  // Convert canvas coords to map %
+  const canvasToMapPct = useCallback((clientX: number, clientY: number): [number, number] => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imgRef.current) return [0, 0];
+    const rect = canvas.getBoundingClientRect();
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+    const { x: cx, y: cy, scale } = camRef.current;
+    const iw = imgRef.current.width * scale;
+    const ih = imgRef.current.height * scale;
+    const x = parseFloat(((px - cx) / iw * 100).toFixed(2));
+    const y = parseFloat(((py - cy) / ih * 100).toFixed(2));
+    return [x, y];
+  }, []);
+
+  // Zoom helper
+  const zoom = useCallback((factor: number, pivotX?: number, pivotY?: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const px = pivotX ?? canvas.width / 2;
+    const py = pivotY ?? canvas.height / 2;
+    const cam = camRef.current;
+    const newScale = Math.min(8, Math.max(0.2, cam.scale * factor));
+    const sf = newScale / cam.scale;
+    cam.x = px - sf * (px - cam.x);
+    cam.y = py - sf * (py - cam.y);
+    cam.scale = newScale;
+  }, []);
+
+  // Mouse events
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    isDragging.current = false;
+    dragStart.current = { x: e.clientX, y: e.clientY, camX: camRef.current.x, camY: camRef.current.y };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (e.buttons !== 1) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    if (Math.hypot(dx, dy) > 3) isDragging.current = true;
+    if (isDragging.current) {
+      camRef.current.x = dragStart.current.camX + dx;
+      camRef.current.y = dragStart.current.camY + dy;
+    }
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isDragging.current) {
+      if (editMode) {
+        const hit = hitTest(e.clientX, e.clientY);
+        if (hit) { onMarkerClick(hit); return; }
+        const [x, y] = canvasToMapPct(e.clientX, e.clientY);
+        onMapClick(x, y);
+      } else {
+        const hit = hitTest(e.clientX, e.clientY);
+        if (hit) onMarkerClick(hit);
+      }
+    }
+    isDragging.current = false;
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.12 : 0.9;
+    const rect = canvasRef.current!.getBoundingClientRect();
+    zoom(factor, e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  // Touch events
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      isDragging.current = false;
+      dragStart.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        camX: camRef.current.x,
+        camY: camRef.current.y,
+      };
+      lastPinchDist.current = null;
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist.current = Math.hypot(dx, dy);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const dx = e.touches[0].clientX - dragStart.current.x;
+      const dy = e.touches[0].clientY - dragStart.current.y;
+      if (Math.hypot(dx, dy) > 3) isDragging.current = true;
+      if (isDragging.current) {
+        camRef.current.x = dragStart.current.camX + dx;
+        camRef.current.y = dragStart.current.camY + dy;
+      }
+    } else if (e.touches.length === 2 && lastPinchDist.current !== null) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const pivotX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const pivotY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const rect = canvasRef.current!.getBoundingClientRect();
+      zoom(dist / lastPinchDist.current, pivotX - rect.left, pivotY - rect.top);
+      lastPinchDist.current = dist;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging.current && e.changedTouches.length === 1) {
+      const t = e.changedTouches[0];
+      const hit = hitTest(t.clientX, t.clientY);
+      if (hit) onMarkerClick(hit);
+    }
+    isDragging.current = false;
+    lastPinchDist.current = null;
+  };
+
+  return (
+    <div ref={containerRef} className="relative w-full h-full">
+      <canvas
+        ref={canvasRef}
+        className={`w-full h-full block ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      />
+      {/* Zoom controls */}
+      <div className="absolute bottom-6 right-6 flex flex-col gap-1.5 z-10">
+        {[
+          { icon: <ZoomIn size={14} />, fn: () => zoom(1.25) },
+          { icon: <ZoomOut size={14} />, fn: () => zoom(0.8) },
+        ].map((btn, i) => (
+          <button key={i} onClick={btn.fn}
+            className="w-9 h-9 flex items-center justify-center text-amber-300/70 hover:text-amber-200 transition-colors border border-amber-500/20 hover:border-amber-500/40"
+            style={{ background: "rgba(10,8,4,0.85)", clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)" }}>
+            {btn.icon}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function MapaInteractivo() {
   const isAdmin = useIsAdmin();
   const [reinos, setReinos] = useState<any[]>([]);
@@ -313,7 +674,6 @@ export default function MapaInteractivo() {
   const [reinoSeleccionado, setReinoSeleccionado] = useState<any>(null);
   const [puntoSeleccionado, setPuntoSeleccionado] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [cargandoImagen, setCargandoImagen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [modifiedDetalles, setModifiedDetalles] = useState<Set<string>>(new Set());
@@ -324,8 +684,6 @@ export default function MapaInteractivo() {
   const [personajesReino, setPersonajesReino] = useState<any[]>([]);
   const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<Set<string>>(new Set());
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
-
-  const mapRef = useRef<HTMLDivElement>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (message: string, type: ToastType) => setToast({ message, type });
@@ -335,12 +693,6 @@ export default function MapaInteractivo() {
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, []);
-
-  const onUpdate = useCallback(({ x, y, scale }: any) => {
-    if (mapRef.current) {
-      mapRef.current.style.transform = make3dTransformValue({ x, y, scale });
-    }
   }, []);
 
   useEffect(() => {
@@ -357,22 +709,18 @@ export default function MapaInteractivo() {
   }, []);
 
   const handleReinoClick = async (reino: any) => {
-    if (editMode) { setReinoSeleccionado(reino); return; }
-    setCargandoImagen(true);
+    if (editMode) { setReinoSeleccionado(reino); setPanelOpen(true); return; }
     setReinoSeleccionado(reino);
     setPersonajesReino([]);
     setPuntoSeleccionado(null);
-
     const [detallesRes, personajesRes] = await Promise.all([
       supabase.from("reino_detalles").select("*").eq("reino_id", reino.id),
       supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
     ]);
-
     if (!detallesRes.error) setDetallesReino(detallesRes.data ?? []);
     if (!personajesRes.error) setPersonajesReino(personajesRes.data ?? []);
-
     setVistaActual("reino");
-    setPanelOpen(true); 
+    setPanelOpen(true);
   };
 
   const handlePersonajeClick = (p: any) => {
@@ -391,11 +739,8 @@ export default function MapaInteractivo() {
     });
   };
 
-  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMapClick = (x: number, y: number) => {
     if (!editMode) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = parseFloat(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
-    const y = parseFloat(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
     if (puntoSeleccionado) {
       setPuntoSeleccionado({ ...puntoSeleccionado, coord_x: x, coord_y: y });
       setDetallesReino(prev => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, coord_x: x, coord_y: y } : p));
@@ -461,7 +806,6 @@ export default function MapaInteractivo() {
   };
 
   const volverAlGlobal = () => {
-    setCargandoImagen(true);
     setVistaActual("global");
     setReinoSeleccionado(null);
     setPuntoSeleccionado(null);
@@ -472,6 +816,14 @@ export default function MapaInteractivo() {
     setPanelOpen(false);
   };
 
+  const currentMarkers = vistaActual === "global"
+    ? reinos.filter(r => editMode || !r.oculto)
+    : detallesReino.filter(p => editMode || !p.oculto);
+
+  const currentImage = vistaActual === "reino" && reinoSeleccionado?.mapa_url
+    ? reinoSeleccionado.mapa_url
+    : "/dibujos/reinos/mapa.png";
+
   const panelProps = {
     editMode, reinoSeleccionado, puntoSeleccionado,
     setPuntoSeleccionado, setDetallesReino, setModifiedDetalles,
@@ -481,146 +833,187 @@ export default function MapaInteractivo() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center p-20 text-primary">
-      <Loader2 className="animate-spin mb-2" />
-      <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Desplegando Mapa...</span>
+    <div className="flex flex-col items-center justify-center p-20" style={{ background: "#0a0806", minHeight: "100dvh" }}>
+      <div className="relative">
+        <div className="w-8 h-8 border border-amber-500/40 rotate-45 animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-2 h-2 bg-amber-500/60 rotate-45" />
+        </div>
+      </div>
+      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-amber-500/40 mt-4">
+        Desplegando Cartografía...
+      </span>
     </div>
   );
 
   return (
-    <div className="relative w-full bg-bg-main" style={{ minHeight: "100dvh" }}>
+    <div className="relative w-full flex" style={{ minHeight: "100dvh", background: "#0a0806" }}>
+      {/* Google Font: Cinzel for map labels */}
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
-      {}
+      {/* Modal */}
       {modalEntidad && (
-        <ModalDetalle
-          entidad={modalEntidad}
-          onClose={() => setModalEntidad(null)}
-        />
+        <ModalDetalle entidad={modalEntidad} onClose={() => setModalEntidad(null)} />
       )}
 
-      {}
+      {/* Toast */}
       <AnimatePresence>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
-      {}
-      <div className={isMobile ? "flex flex-col w-full" : "flex w-full"}>
+      {/* ── MAP AREA ── */}
+      <div className={`relative flex-1 transition-all duration-500 ${panelOpen && !isMobile ? "" : "w-full"}`}
+        style={{ minHeight: "100dvh" }}>
 
-        {}
-        <div className={`relative ${isMobile ? "w-full" : vistaActual === "reino" ? "w-2/3" : "w-full"} transition-all duration-500`}>
-
-          {}
-          {isAdmin && (
-            <div className="absolute top-4 right-4 z-[70] flex gap-2">
-              <button
-                onClick={() => setEditMode(!editMode)}
-                className={`flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase transition-all shadow-xl border ${editMode ? "bg-red-500 text-btn-text border-red-600" : "bg-white-custom text-primary border-primary/20"}`}
-                style={{ borderRadius: "var(--radius-btn)" }}
-              >
-                {editMode ? <X size={14} /> : <Edit3 size={14} />}
-                {editMode ? "Cancelar" : "Editar Mapa"}
+        {/* Admin toolbar */}
+        {isAdmin && (
+          <div className="absolute top-4 right-4 z-[70] flex gap-2">
+            <button
+              onClick={() => setEditMode(!editMode)}
+              className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase transition-all border"
+              style={{
+                background: editMode ? "rgba(220,38,38,0.9)" : "rgba(10,8,4,0.85)",
+                borderColor: editMode ? "#dc2626" : "rgba(245,158,11,0.3)",
+                color: editMode ? "#fff" : "#d4a84b",
+                clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+              }}
+            >
+              {editMode ? <X size={14} /> : <Edit3 size={14} />}
+              {editMode ? "Cancelar" : "Editar Mapa"}
+            </button>
+            {editMode && (
+              <button onClick={handleSaveChanges} disabled={isSaving}
+                className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase disabled:opacity-50 transition-all"
+                style={{
+                  background: "rgba(5,150,105,0.9)",
+                  color: "#fff",
+                  clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+                }}>
+                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Guardar
               </button>
-              {editMode && (
-                <button onClick={handleSaveChanges} disabled={isSaving}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-btn-text text-[10px] font-black uppercase shadow-xl hover:bg-green-700 disabled:opacity-50 transition-all"
-                  style={{ borderRadius: "var(--radius-btn)" }}>
-                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  Guardar
-                </button>
-              )}
-            </div>
-          )}
-
-          {}
-          <AnimatePresence>
-            {editMode && (reinoSeleccionado || puntoSeleccionado) && (
-              <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2"
-                style={{ borderRadius: "var(--radius-btn)" }}>
-                <Move size={12} /> Clickeá el mapa para mover el marcador
-                {modifiedDetalles.size > 1 && (
-                  <span className="bg-yellow-900/20 px-1.5 py-0.5 rounded-full text-[9px]">{modifiedDetalles.size} pendientes</span>
-                )}
-              </MotionDiv>
             )}
-          </AnimatePresence>
-
-          {}
-          {cargandoImagen && (
-            <div className="absolute inset-0 z-[60] bg-bg-main flex flex-col items-center justify-center">
-              <Loader2 className="animate-spin text-primary mb-2" />
-              <span className="text-[8px] font-black uppercase tracking-widest text-primary/40">Cargando Cartografía...</span>
-            </div>
-          )}
-
-          {}
-          <AnimatePresence>
-            {vistaActual === "reino" && (
-              <MotionButton initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-                onClick={volverAlGlobal}
-                className="absolute top-4 left-4 z-50 bg-white-custom/90 backdrop-blur-md p-3 shadow-xl border border-primary/20 text-primary hover:scale-110 transition-transform"
-                style={{ borderRadius: "var(--radius-btn)" }}>
-                <ArrowLeft size={20} />
-              </MotionButton>
-            )}
-          </AnimatePresence>
-
-          {}
-          <QuickPinchZoom onUpdate={onUpdate} maxZoom={isMobile ? 10 : 5} minZoom={0.3} enabled={!editMode}>
-            <div ref={mapRef} className="origin-top-left">
-              <div
-                className={`relative ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
-                onClick={handleMapClick}
-              >
-                <img
-                  key={vistaActual === "reino" ? reinoSeleccionado?.id : "global"}
-                  src={vistaActual === "reino" ? reinoSeleccionado?.mapa_url : "/dibujos/reinos/mapa.png"}
-                  alt="Mapa"
-                  className="block pointer-events-none select-none"
-                  style={isMobile ? { width: "950px", height: "auto" } : { width: "100%", height: "auto" }}
-                  onLoad={() => { window.dispatchEvent(new Event("resize")); setCargandoImagen(false); }}
-                />
-                {!cargandoImagen && (
-                  vistaActual === "global"
-                    ? reinos.filter(r => editMode || !r.oculto).map(reino => (
-                        <Marker key={reino.id} x={reino.coord_x} y={reino.coord_y} info={reino.nombre}
-                          tipo="reino" editMode={editMode} oculto={reino.oculto}
-                          onClick={() => handleReinoClick(reino)} />
-                      ))
-                    : detallesReino.filter(p => editMode || !p.oculto).map(punto => (
-                        <Marker key={punto.id} x={punto.coord_x} y={punto.coord_y} info={punto.nombre}
-                          tipo="detalle" editMode={editMode} oculto={punto.oculto}
-                          onClick={() => { setPuntoSeleccionado(punto); setPanelOpen(true); }} />
-                      ))
-                )}
-              </div>
-            </div>
-          </QuickPinchZoom>
-        </div>
-
-        {}
-        {!isMobile && vistaActual === "reino" && reinoSeleccionado && (
-          <div className="w-1/3 bg-white-custom border-l border-primary/10 p-10 flex flex-col gap-4 shadow-[-20px_0_50px_rgba(0,0,0,0.05)] overflow-y-auto">
-            <PanelContenido {...panelProps} />
           </div>
         )}
+
+        {/* Edit mode hint */}
+        <AnimatePresence>
+          {editMode && (reinoSeleccionado || puntoSeleccionado) && (
+            <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+              className="absolute bottom-16 left-1/2 -translate-x-1/2 z-50 text-amber-900 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2"
+              style={{ background: "#fbbf24", clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)" }}>
+              <Move size={12} /> Clickeá el mapa para mover el marcador
+              {modifiedDetalles.size > 1 && (
+                <span className="bg-amber-900/20 px-1.5 py-0.5 text-[9px]">{modifiedDetalles.size} pendientes</span>
+              )}
+            </MotionDiv>
+          )}
+        </AnimatePresence>
+
+        {/* Back button */}
+        <AnimatePresence>
+          {vistaActual === "reino" && (
+            <MotionButton initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+              onClick={volverAlGlobal}
+              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase text-amber-300 hover:text-amber-100 transition-colors"
+              style={{
+                background: "rgba(10,8,4,0.9)",
+                border: "1px solid rgba(245,158,11,0.3)",
+                clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+              }}>
+              <ArrowLeft size={14} /> Volver
+            </MotionButton>
+          )}
+        </AnimatePresence>
+
+        {/* CANVAS MAP */}
+        <CanvasMap
+          imageSrc={currentImage}
+          markers={currentMarkers}
+          editMode={editMode}
+          onMarkerClick={(m) => {
+            if (vistaActual === "global") {
+              handleReinoClick(m);
+            } else {
+              setPuntoSeleccionado(m);
+              setPanelOpen(true);
+            }
+          }}
+          onMapClick={handleMapClick}
+          selectedMarkerId={puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null}
+          tipo={vistaActual}
+        />
       </div>
 
-      {}
-      {isMobile && vistaActual === "reino" && reinoSeleccionado && (
-        <div
-          style={{
-            background: "var(--white-custom, #fff)",
-            borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            padding: "1.5rem 1.5rem 3rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-          }}
-        >
-          <PanelContenido {...panelProps} />
-        </div>
-      )}
+      {/* ── SIDE PANEL (desktop) ── */}
+      <AnimatePresence>
+        {!isMobile && panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
+          <MotionDiv
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 380, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            className="relative overflow-hidden flex-shrink-0"
+            style={{
+              background: "linear-gradient(180deg, #120d06 0%, #0d0904 100%)",
+              borderLeft: "1px solid rgba(245,158,11,0.15)",
+              boxShadow: "-20px 0 60px rgba(0,0,0,0.6)",
+            }}
+          >
+            {/* Decorative top border */}
+            <div className="absolute top-0 left-0 right-0 h-px"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)" }} />
+
+            {/* Close panel btn */}
+            <button
+              onClick={() => setPanelOpen(false)}
+              className="absolute top-4 right-4 z-10 w-7 h-7 flex items-center justify-center text-amber-500/50 hover:text-amber-300 transition-colors border border-amber-500/20 hover:border-amber-500/40"
+              style={{ background: "rgba(10,8,4,0.8)", clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)" }}
+            >
+              <X size={12} />
+            </button>
+
+            <div className="p-8 pt-10 flex flex-col gap-4 h-full overflow-y-auto">
+              <PanelContenido {...panelProps} />
+            </div>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+
+      {/* ── BOTTOM PANEL (mobile) ── */}
+      <AnimatePresence>
+        {isMobile && panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
+          <MotionDiv
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-none overflow-hidden"
+            style={{
+              background: "linear-gradient(180deg, #120d06 0%, #0d0904 100%)",
+              borderTop: "1px solid rgba(245,158,11,0.2)",
+              maxHeight: "65dvh",
+              boxShadow: "0 -20px 60px rgba(0,0,0,0.7)",
+            }}
+          >
+            <div className="absolute top-0 left-0 right-0 h-px"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.6), transparent)" }} />
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-0.5 bg-amber-500/30 rounded-full" />
+            </div>
+            <button
+              onClick={() => setPanelOpen(false)}
+              className="absolute top-3 right-4 w-7 h-7 flex items-center justify-center text-amber-500/50 hover:text-amber-300 transition-colors"
+            >
+              <X size={14} />
+            </button>
+            <div className="px-6 pb-8 pt-2 overflow-y-auto flex flex-col gap-4" style={{ maxHeight: "calc(65dvh - 40px)" }}>
+              <PanelContenido {...panelProps} />
+            </div>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
