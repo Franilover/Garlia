@@ -638,9 +638,11 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     zoom(factor, e.clientX - rect.left, e.clientY - rect.top);
   };
 
-  // Touch events
-  const handleTouchStart = (e: React.TouchEvent) => {
+  // Touch events — registered manually with passive:false to avoid scroll lag
+  // and to allow preventDefault() on pinch/pan
+  const touchStartHandler = useCallback((e: TouchEvent) => {
     if (e.touches.length === 1) {
+      e.preventDefault();
       isDragging.current = false;
       dragStart.current = {
         x: e.touches[0].clientX,
@@ -650,13 +652,16 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
       };
       lastPinchDist.current = null;
     } else if (e.touches.length === 2) {
+      e.preventDefault();
+      isDragging.current = false;
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       lastPinchDist.current = Math.hypot(dx, dy);
     }
-  };
+  }, []);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const touchMoveHandler = useCallback((e: TouchEvent) => {
+    e.preventDefault();
     if (e.touches.length === 1) {
       const dx = e.touches[0].clientX - dragStart.current.x;
       const dy = e.touches[0].clientY - dragStart.current.y;
@@ -671,37 +676,65 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
       const dist = Math.hypot(dx, dy);
       const pivotX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const pivotY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-      const rect = canvasRef.current!.getBoundingClientRect();
-      zoom(dist / lastPinchDist.current, pivotX - rect.left, pivotY - rect.top);
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) zoom(dist / lastPinchDist.current, pivotX - rect.left, pivotY - rect.top);
       lastPinchDist.current = dist;
     }
-  };
+  }, [zoom]);
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!isDragging.current && e.changedTouches.length === 1) {
+  const touchEndHandler = useCallback((e: TouchEvent) => {
+    // When going from 2 fingers to 1, reset dragStart to avoid jump
+    if (e.touches.length === 1) {
+      dragStart.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        camX: camRef.current.x,
+        camY: camRef.current.y,
+      };
+      isDragging.current = false;
+      lastPinchDist.current = null;
+      return;
+    }
+    // Single tap → check marker hit
+    if (!isDragging.current && e.changedTouches.length === 1 && e.touches.length === 0) {
       const t = e.changedTouches[0];
       const hit = hitTest(t.clientX, t.clientY);
       if (hit) onMarkerClick(hit);
     }
     isDragging.current = false;
     lastPinchDist.current = null;
-  };
+  }, [hitTest, onMarkerClick]);
+
+  // Register touch handlers manually (non-passive) to prevent scroll lag
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const opts = { passive: false };
+    canvas.addEventListener("touchstart", touchStartHandler, opts);
+    canvas.addEventListener("touchmove", touchMoveHandler, opts);
+    canvas.addEventListener("touchend", touchEndHandler, opts);
+    return () => {
+      canvas.removeEventListener("touchstart", touchStartHandler);
+      canvas.removeEventListener("touchmove", touchMoveHandler);
+      canvas.removeEventListener("touchend", touchEndHandler);
+    };
+  }, [touchStartHandler, touchMoveHandler, touchEndHandler]);
 
   return (
     <div ref={containerRef} className="relative w-full h-full">
       <canvas
         ref={canvasRef}
         className={`w-full h-full block ${editMode ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+        style={{ touchAction: "none" }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       />
-      {/* Zoom controls + mobile panel button */}
-      <div className="absolute bottom-6 right-6 flex flex-col gap-1.5 z-10">
+      {/* Zoom controls + mobile panel button
+          On mobile: sit above the 56px bottom navbar → bottom-[calc(56px+1rem)]
+          On desktop (md+): normal bottom-6                                        */}
+      <div className="absolute right-4 bottom-[calc(56px+1rem)] md:bottom-6 flex flex-col gap-1.5 z-10">
         {[
           { icon: <ZoomIn size={14} />, fn: () => zoom(1.25) },
           { icon: <ZoomOut size={14} />, fn: () => zoom(0.8) },
@@ -933,11 +966,13 @@ export default function MapaInteractivo() {
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
-      {/* ── MAP AREA ── */}
-      <div className={`relative flex-1 transition-all duration-500 ${panelOpen && !isMobile ? "" : "w-full"}`}
+      {/* ── MAP AREA ──
+          pb-14 on mobile = clear the 56px bottom navbar
+          The canvas ResizeObserver will re-center the map automatically  */}
+      <div className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}
         style={{ minHeight: "100dvh" }}>
 
-        {/* Admin toolbar */}
+        {/* Admin toolbar — on mobile, top-[calc(env(safe-area-inset-top,0px)+1rem)] keeps it clear of status bars */}
         {isAdmin && (
           <div className="absolute top-4 right-4 z-[70] flex gap-2">
             <button
@@ -968,11 +1003,11 @@ export default function MapaInteractivo() {
           </div>
         )}
 
-        {/* Edit mode hint */}
+        {/* Edit mode hint — sits above mobile navbar */}
         <AnimatePresence>
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
             <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-              className="absolute bottom-16 left-1/2 -translate-x-1/2 z-50 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2"
+              className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16"
               style={{
                 background: "var(--accent)",
                 color: "var(--bg-main)",
@@ -1063,7 +1098,7 @@ export default function MapaInteractivo() {
         )}
       </AnimatePresence>
 
-      {/* ── BOTTOM PANEL (mobile) ── */}
+      {/* ── BOTTOM PANEL (mobile) — sits above the 56px bottom navbar ── */}
       <AnimatePresence>
         {isMobile && panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
           <MotionDiv
@@ -1071,11 +1106,12 @@ export default function MapaInteractivo() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
+            className="fixed left-0 right-0 z-[999] overflow-hidden"
             style={{
+              bottom: "56px",
               background: "var(--white-custom)",
               borderTop: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
-              maxHeight: "65dvh",
+              maxHeight: "60dvh",
               boxShadow: "0 -20px 60px rgba(0,0,0,0.5)",
             }}
           >
