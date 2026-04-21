@@ -902,7 +902,7 @@ export default function MapaInteractivo() {
             <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
               className="absolute bottom-16 left-1/2 -translate-x-1/2 z-50 text-amber-900 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2"
               style={{ background: "#fbbf24", clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)" }}>
-              <Move size={12} /> Clickeá el mapa para mover el marcador
+              <Move size={12} /> Clickeá para mover el marcador
               {modifiedDetalles.size > 1 && (
                 <span className="bg-amber-900/20 px-1.5 py-0.5 text-[9px]">{modifiedDetalles.size} pendientes</span>
               )}
