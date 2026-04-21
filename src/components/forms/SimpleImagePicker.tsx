@@ -20,11 +20,10 @@ function flattenImages(nodes: TreeNode[]): FileEntry[] {
 }
 
 export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePickerProps) {
-  const [tree, setTree]       = useState<TreeNode[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tree, setTree]         = useState<TreeNode[]>([]);
+  const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
-  
-  const [stack, setStack] = useState<{ name: string; nodes: TreeNode[] }[]>([]);
+  const [stack, setStack]       = useState<{ name: string; nodes: TreeNode[] }[]>([]);
 
   useEffect(() => {
     fetch("/api/dibujos")
@@ -33,7 +32,6 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
       .finally(() => setLoading(false));
   }, []);
 
-  
   const currentNodes = stack.length > 0 ? stack[stack.length - 1].nodes : tree;
 
   const folders = useMemo(
@@ -56,9 +54,10 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
   return (
     <div className="flex flex-col" style={{ maxHeight: "60vh" }}>
 
-      {}
+      {/* Breadcrumb */}
       <div className="flex items-center gap-1 px-1 pb-3 flex-wrap">
         <button
+          type="button"
           onClick={() => setStack([])}
           className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
         >
@@ -68,6 +67,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
           <React.Fragment key={i}>
             <ChevronRight size={10} className="text-muted-on-surface opacity-40" />
             <button
+              type="button"
               onClick={() => goBack(i + 1)}
               className="text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
             >
@@ -77,7 +77,7 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
         ))}
       </div>
 
-      {}
+      {/* Contenido */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-1">
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -85,11 +85,12 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
           </div>
         ) : (
           <>
-            {}
+            {/* Carpetas */}
             {folders.length > 0 && (
               <div className="grid grid-cols-2 gap-2">
                 {folders.map((folder, i) => (
                   <button
+                    type="button"
                     key={i}
                     onClick={() => openFolder(folder)}
                     className="flex items-center gap-3 px-4 py-3 bg-primary/5 hover:bg-primary/10 transition-all text-left group border border-primary/10 hover:border-primary/20"
@@ -110,11 +111,12 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
               </div>
             )}
 
-            {}
+            {/* Imágenes */}
             {images.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {images.map((img, i) => (
                   <button
+                    type="button"
                     key={i}
                     onClick={() => setSelected(img.url)}
                     className={cn(
@@ -152,15 +154,17 @@ export default function SimpleImagePicker({ onSelect, onClose }: SimpleImagePick
         )}
       </div>
 
-      {}
+      {/* Acciones */}
       <div className="pt-4 flex gap-3">
         <button
+          type="button"
           onClick={onClose}
           className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
         >
           Cancelar
         </button>
         <button
+          type="button"
           onClick={() => selected && onSelect(selected)}
           disabled={!selected}
           className="btn-brand flex-[2] py-4 text-xs uppercase tracking-widest disabled:opacity-30"
