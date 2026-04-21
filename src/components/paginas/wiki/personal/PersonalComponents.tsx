@@ -130,13 +130,6 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
               <h2 className="text-xl font-black uppercase tracking-tight leading-tight" style={{ color: "var(--primary)" }}>
                 {nombre}
               </h2>
-              {fecha && (
-                <p className="flex items-center gap-1.5 mt-1 text-[9px] font-black uppercase tracking-widest"
-                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                  <Calendar size={10} />
-                  Registrado el {new Date(fecha).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}
-                </p>
-              )}
             </div>
 
             {tags.length > 0 && (
