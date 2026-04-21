@@ -44,9 +44,8 @@ export function Vignette() {
     <div
       className="pointer-events-none fixed inset-0 z-[45]"
       style={{
-        background: `
-          radial-gradient(ellipse at center, transparent 55%, color-mix(in srgb, var(--foreground) 18%, transparent) 100%)
-        `,
+        background: `radial-gradient(ellipse at center, transparent 50%, var(--bg-main) 100%)`,
+        opacity: 0.55,
       }}
     />
   );
