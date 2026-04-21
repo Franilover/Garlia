@@ -39,7 +39,7 @@ interface ItemInventario {
 }
 
 function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
-  imagen?: string; nombre: string; sub: string;
+  imagen?: string; nombre: string; sub?: string;
   icono: React.ReactNode; onClick: () => void;
 }) {
   return (
@@ -577,7 +577,6 @@ export default function PerfilPublico() {
                     ? misPersonajes.map((d, i) => (
                       <EntidadCard key={i} imagen={d.imagen_url}
                         nombre={d.nombre ?? "Personaje"}
-                        sub={`Visto el ${new Date(d.fecha_descubrimiento).toLocaleDateString("es-ES")}`}
                         icono={<User size={20} />} onClick={() => setModalD(d)} />
                     ))
                     : <EmptyTab label="Sin personajes conocidos" />
