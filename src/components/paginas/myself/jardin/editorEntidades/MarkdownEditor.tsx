@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Eye, Edit3, Columns } from "lucide-react";
+import { Eye, Edit3, Columns, Wand2, X as XIcon } from "lucide-react";
 
 // ── Renderer ────────────────────────────────────────────────────────────────
 export function renderMarkdown(raw: string): string {
@@ -99,6 +99,7 @@ export function MarkdownEditor({
   defaultMode = "split",
 }: MarkdownEditorProps) {
   const [mode, setMode] = useState<ViewMode>(defaultMode);
+  const [toolbarOpen, setToolbarOpen] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   // En móvil, si el modo es "split" lo forzamos a "edit"
@@ -162,11 +163,52 @@ export function MarkdownEditor({
     <div className={`flex flex-col gap-2 ${className}`}>
       <style>{PROSE_STYLES}</style>
 
-      {/* Toggle modo */}
+      {/* Toolbar */}
       {toolbar && (
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          {/* Herramientas */}
-          <div className="flex flex-wrap items-center gap-1 px-2 py-1 bg-primary/5 border border-primary/10 rounded-xl flex-1">
+        <div className="flex items-center gap-2">
+
+          {/* Botón accesos rápidos — solo mobile */}
+          <div className="relative sm:hidden shrink-0">
+            <button
+              type="button"
+              onClick={() => setToolbarOpen(o => !o)}
+              title="Accesos rápidos"
+              className={`flex items-center justify-center w-8 h-8 rounded-xl border transition-all ${
+                toolbarOpen
+                  ? "bg-primary text-btn-text border-primary/40"
+                  : "bg-primary/5 border-primary/10 text-primary/50 hover:text-primary hover:bg-primary/10"
+              }`}
+            >
+              {toolbarOpen ? <XIcon size={13} /> : <Wand2 size={13} />}
+            </button>
+
+            {/* Dropdown de herramientas en mobile */}
+            {toolbarOpen && (
+              <div className="absolute top-full left-0 mt-1 z-50 bg-white-custom border border-primary/15 rounded-xl shadow-xl p-2 flex flex-col gap-0.5 min-w-[130px]">
+                {[
+                  { label: "H1", action: () => insertSnippet("\n# Título\n") },
+                  { label: "H2", action: () => insertSnippet("\n## Subtítulo\n") },
+                  { label: "H3", action: () => insertSnippet("\n### Sección\n") },
+                  { label: "Negrita", action: () => wrapSelection("**", "**") },
+                  { label: "Itálica", action: () => wrapSelection("*", "*") },
+                  { label: "Código", action: () => wrapSelection("`", "`") },
+                  { label: "Lista", action: () => insertSnippet("\n- elemento\n- elemento\n") },
+                  { label: "Separador", action: () => insertSnippet("\n---\n") },
+                  { label: "Tabla", action: () => insertSnippet("\n| Col 1 | Col 2 |\n|---|---|\n| dato | dato |\n") },
+                  { label: "Bloque", action: () => insertSnippet("\n```\ncódigo\n```\n") },
+                ].map(({ label, action }) => (
+                  <button key={label} type="button"
+                    onClick={() => { action(); setToolbarOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-[11px] font-bold text-primary/70 hover:bg-primary/8 hover:text-primary transition-all">
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Herramientas completas — solo desktop */}
+          <div className="hidden sm:flex flex-wrap items-center gap-1 px-2 py-1 bg-primary/5 border border-primary/10 rounded-xl flex-1">
             {[
               { label: "H1", snippet: "\n# Título\n" },
               { label: "H2", snippet: "\n## Subtítulo\n" },
@@ -210,12 +252,11 @@ export function MarkdownEditor({
             </button>
           </div>
 
-          {/* Modo */}
-          <div className="flex items-center gap-0.5 bg-primary/5 border border-primary/10 rounded-xl p-1 shrink-0">
+          {/* Modo vista — siempre visible */}
+          <div className="flex items-center gap-0.5 bg-primary/5 border border-primary/10 rounded-xl p-1 shrink-0 ml-auto">
             {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
               const Icon  = m === "edit" ? Edit3 : m === "preview" ? Eye : Columns;
               const title = m === "edit" ? "Editar" : m === "preview" ? "Vista" : "Dividir";
-              // Ocultar "split" en móvil
               const hideMobile = m === "split" ? "hidden sm:flex" : "flex";
               return (
                 <button key={m} type="button" onClick={() => setMode(m)} title={title}
