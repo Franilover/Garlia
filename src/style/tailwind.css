@@ -186,6 +186,14 @@
   font-family: var(--font-caveat), cursive !important;
 }
 
+/* =========================================
+   LECTOR — Literata siempre, sin importar el tema
+   ========================================= */
+[data-theme] .lector-texto,
+[data-theme] .lector-texto * {
+  font-family: var(--font-literata), Georgia, "Times New Roman", serif !important;
+}
+
 /* Textura de papel (Scribble) */
 [data-theme="scribble"] body::after {
   content: "";

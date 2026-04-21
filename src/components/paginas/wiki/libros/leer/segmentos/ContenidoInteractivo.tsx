@@ -119,9 +119,8 @@ export function ContenidoInteractivo({ texto, onNavigate }: {
 
   return (
     <div
-      className="text-primary-dark/90"
+      className="text-primary-dark/90 lector-texto"
       style={{
-        fontFamily: "var(--font-literata), Georgia, 'Times New Roman', serif",
         fontSize: "clamp(1rem, 2.5vw, 1.125rem)",
         lineHeight: 1.85,
         letterSpacing: "0.01em",
