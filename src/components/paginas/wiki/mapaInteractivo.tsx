@@ -484,48 +484,51 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 
         // ── FOG OF WAR — only for global view when not in edit mode ────────
         if (tipo === "global" && !editMode && hiddenMarkers.length > 0) {
-          // Build a fog layer: covers full map, then punch holes at visible markers
-          ctx.save();
+          // Use an OffscreenCanvas so destination-out only punches holes in the
+          // fog layer — never in the map drawn below it.
+          const fogCanvas = new OffscreenCanvas(iw, ih);
+          const fogCtx = fogCanvas.getContext("2d")!;
 
-          // Create a full-map semi-transparent fog
-          ctx.fillStyle = `${bg}cc`;
-          ctx.fillRect(0, 0, iw, ih);
+          // 1. Fill entire fog layer with semi-transparent bg color
+          fogCtx.fillStyle = `${bg}bb`;
+          fogCtx.fillRect(0, 0, iw, ih);
 
-          // Use destination-out to punch clear circles at each VISIBLE marker
-          ctx.globalCompositeOperation = "destination-out";
+          // 2. Punch transparent holes at every VISIBLE marker
+          fogCtx.globalCompositeOperation = "destination-out";
           for (const m of markers) {
             const mx = (m.coord_x / 100) * iw;
             const my = (m.coord_y / 100) * ih;
-            const fogRadius = Math.max(iw, ih) * 0.18; // radius of cleared area
-            const grad = ctx.createRadialGradient(mx, my, 0, mx, my, fogRadius);
-            grad.addColorStop(0, "rgba(0,0,0,1)");
-            grad.addColorStop(0.55, "rgba(0,0,0,0.85)");
-            grad.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(mx, my, fogRadius, 0, Math.PI * 2);
-            ctx.fill();
+            const fogRadius = Math.max(iw, ih) * 0.28;
+            const grad = fogCtx.createRadialGradient(mx, my, 0, mx, my, fogRadius);
+            grad.addColorStop(0,   "rgba(0,0,0,1)");
+            grad.addColorStop(0.6, "rgba(0,0,0,0.75)");
+            grad.addColorStop(1,   "rgba(0,0,0,0)");
+            fogCtx.fillStyle = grad;
+            fogCtx.beginPath();
+            fogCtx.arc(mx, my, fogRadius, 0, Math.PI * 2);
+            fogCtx.fill();
           }
-          ctx.globalCompositeOperation = "source-over";
+          fogCtx.globalCompositeOperation = "source-over";
 
-          // Add animated fog wisps for hidden areas
+          // 3. Animated wisps on top of the fog (still in fogCanvas)
           const fogTime = t * 0.0003;
-          ctx.globalAlpha = 0.12;
+          fogCtx.globalAlpha = 0.1;
           for (let i = 0; i < 6; i++) {
             const wx = ((Math.sin(fogTime * (0.7 + i * 0.3) + i * 1.2) + 1) / 2) * iw;
             const wy = ((Math.cos(fogTime * (0.5 + i * 0.2) + i * 0.9) + 1) / 2) * ih;
             const wr = iw * (0.08 + i * 0.02);
-            const wg = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr);
-            wg.addColorStop(0, "rgba(200,190,180,0.6)");
+            const wg = fogCtx.createRadialGradient(wx, wy, 0, wx, wy, wr);
+            wg.addColorStop(0, "rgba(200,190,180,0.5)");
             wg.addColorStop(1, "rgba(200,190,180,0)");
-            ctx.fillStyle = wg;
-            ctx.beginPath();
-            ctx.arc(wx, wy, wr, 0, Math.PI * 2);
-            ctx.fill();
+            fogCtx.fillStyle = wg;
+            fogCtx.beginPath();
+            fogCtx.arc(wx, wy, wr, 0, Math.PI * 2);
+            fogCtx.fill();
           }
-          ctx.globalAlpha = 1;
+          fogCtx.globalAlpha = 1;
 
-          ctx.restore();
+          // 4. Stamp the finished fog layer onto the main canvas
+          ctx.drawImage(fogCanvas, 0, 0);
         }
 
         // Map vignette
@@ -657,6 +660,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       }
 
       // Outer canvas vignette
+      const { bg } = cssColorsRef.current;
       const outerVg = ctx.createRadialGradient(
         canvas.width / 2, canvas.height / 2, canvas.height * 0.25,
         canvas.width / 2, canvas.height / 2, canvas.height * 0.75
