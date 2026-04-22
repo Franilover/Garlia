@@ -219,14 +219,14 @@ function PanelContenido({
               <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>Habitantes conocidos</span>
               <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {personajesReino.map((p: any) => {
                 const desbloqueado = personajesDesbloqueados.has(p.id);
                 return (
                   <button
                     key={p.id}
                     onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
-                    className="flex items-center gap-3 p-2.5 w-full text-left transition-all group"
+                    className="flex items-center gap-2 p-2 w-full text-left transition-all group"
                     style={{
                       background: desbloqueado
                         ? "color-mix(in srgb, var(--primary) 15%, transparent)"
@@ -238,7 +238,7 @@ function PanelContenido({
                   >
                     {/* Avatar — izquierda */}
                     <div
-                      className="shrink-0 w-12 h-12 overflow-hidden flex items-center justify-center border"
+                      className="shrink-0 w-10 h-10 overflow-hidden flex items-center justify-center border"
                       style={{
                         borderColor: desbloqueado ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--accent) 8%, transparent)",
                         background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
@@ -482,43 +482,70 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         ctx.fillStyle = "rgba(80, 40, 10, 0.06)";
         ctx.fillRect(0, 0, iw, ih);
 
-        // ── FOG OF WAR — only for global view when not in edit mode ────────
+        // ── FOG OF WAR — distance-based intensity ─────────────────────────
         if (tipo === "global" && !editMode && hiddenMarkers.length > 0) {
-          // Use an OffscreenCanvas so destination-out only punches holes in the
-          // fog layer — never in the map drawn below it.
+          // Build a per-pixel fog intensity map via an alpha-only OffscreenCanvas.
+          // Pixels far from every visible marker get heavy fog; close ones get none.
           const fogCanvas = new OffscreenCanvas(iw, ih);
           const fogCtx = fogCanvas.getContext("2d")!;
 
-          // 1. Fill entire fog layer with semi-transparent bg color
-          fogCtx.fillStyle = `${bg}bb`;
+          // 1. Start with maximum fog everywhere (fully opaque bg)
+          fogCtx.fillStyle = `${bg}ee`;
           fogCtx.fillRect(0, 0, iw, ih);
 
-          // 2. Punch transparent holes at every VISIBLE marker
+          // 2. Subtract fog using destination-out — near markers clear fog completely,
+          //    the gradient transition determines the distance falloff.
           fogCtx.globalCompositeOperation = "destination-out";
+          const maxDim = Math.max(iw, ih);
+          const clearRadius  = maxDim * 0.18;
+          const fadeRadius   = maxDim * 0.38;
+
           for (const m of markers) {
             const mx = (m.coord_x / 100) * iw;
             const my = (m.coord_y / 100) * ih;
-            const fogRadius = Math.max(iw, ih) * 0.28;
-            const grad = fogCtx.createRadialGradient(mx, my, 0, mx, my, fogRadius);
-            grad.addColorStop(0,   "rgba(0,0,0,1)");
-            grad.addColorStop(0.6, "rgba(0,0,0,0.75)");
-            grad.addColorStop(1,   "rgba(0,0,0,0)");
+            const grad = fogCtx.createRadialGradient(mx, my, clearRadius * 0.3, mx, my, fadeRadius);
+            grad.addColorStop(0,    "rgba(0,0,0,1)");
+            grad.addColorStop(0.35, "rgba(0,0,0,0.95)");
+            grad.addColorStop(0.65, "rgba(0,0,0,0.5)");
+            grad.addColorStop(0.85, "rgba(0,0,0,0.15)");
+            grad.addColorStop(1,    "rgba(0,0,0,0)");
             fogCtx.fillStyle = grad;
             fogCtx.beginPath();
-            fogCtx.arc(mx, my, fogRadius, 0, Math.PI * 2);
+            fogCtx.arc(mx, my, fadeRadius, 0, Math.PI * 2);
             fogCtx.fill();
           }
           fogCtx.globalCompositeOperation = "source-over";
 
-          // 3. Animated wisps on top of the fog (still in fogCanvas)
+          // 3. Extra density pass — add a second darker fog layer over already-foggy
+          //    regions to deepen the far-from-marker feel.
+          const deepCanvas = new OffscreenCanvas(iw, ih);
+          const deepCtx = deepCanvas.getContext("2d")!;
+          deepCtx.fillStyle = `${bg}77`;
+          deepCtx.fillRect(0, 0, iw, ih);
+          deepCtx.globalCompositeOperation = "destination-out";
+          for (const m of markers) {
+            const mx = (m.coord_x / 100) * iw;
+            const my = (m.coord_y / 100) * ih;
+            const grad2 = deepCtx.createRadialGradient(mx, my, 0, mx, my, fadeRadius * 0.55);
+            grad2.addColorStop(0,   "rgba(0,0,0,1)");
+            grad2.addColorStop(0.7, "rgba(0,0,0,0.6)");
+            grad2.addColorStop(1,   "rgba(0,0,0,0)");
+            deepCtx.fillStyle = grad2;
+            deepCtx.beginPath();
+            deepCtx.arc(mx, my, fadeRadius * 0.55, 0, Math.PI * 2);
+            deepCtx.fill();
+          }
+          deepCtx.globalCompositeOperation = "source-over";
+
+          // 4. Animated wisps — soft and slow
           const fogTime = t * 0.0003;
-          fogCtx.globalAlpha = 0.1;
-          for (let i = 0; i < 6; i++) {
+          fogCtx.globalAlpha = 0.13;
+          for (let i = 0; i < 8; i++) {
             const wx = ((Math.sin(fogTime * (0.7 + i * 0.3) + i * 1.2) + 1) / 2) * iw;
             const wy = ((Math.cos(fogTime * (0.5 + i * 0.2) + i * 0.9) + 1) / 2) * ih;
-            const wr = iw * (0.08 + i * 0.02);
+            const wr = iw * (0.06 + i * 0.025);
             const wg = fogCtx.createRadialGradient(wx, wy, 0, wx, wy, wr);
-            wg.addColorStop(0, "rgba(200,190,180,0.5)");
+            wg.addColorStop(0, "rgba(200,190,180,0.6)");
             wg.addColorStop(1, "rgba(200,190,180,0)");
             fogCtx.fillStyle = wg;
             fogCtx.beginPath();
@@ -527,8 +554,9 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           }
           fogCtx.globalAlpha = 1;
 
-          // 4. Stamp the finished fog layer onto the main canvas
+          // 5. Stamp base fog, then deep fog layer on top
           ctx.drawImage(fogCanvas, 0, 0);
+          ctx.drawImage(deepCanvas, 0, 0);
         }
 
         // Map vignette
