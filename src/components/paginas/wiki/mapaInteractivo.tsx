@@ -219,14 +219,14 @@ function PanelContenido({
               <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>Habitantes conocidos</span>
               <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               {personajesReino.map((p: any) => {
                 const desbloqueado = personajesDesbloqueados.has(p.id);
                 return (
                   <button
                     key={p.id}
                     onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
-                    className="flex flex-col items-center gap-2 p-3 w-full text-center transition-all group"
+                    className="flex items-center gap-3 p-2.5 w-full text-left transition-all group"
                     style={{
                       background: desbloqueado
                         ? "color-mix(in srgb, var(--primary) 15%, transparent)"
@@ -236,23 +236,23 @@ function PanelContenido({
                       cursor: desbloqueado ? "pointer" : "default",
                     }}
                   >
-                    {/* Avatar */}
+                    {/* Avatar — izquierda */}
                     <div
-                      className="w-14 h-14 overflow-hidden flex items-center justify-center border"
+                      className="shrink-0 w-12 h-12 overflow-hidden flex items-center justify-center border"
                       style={{
                         borderColor: desbloqueado ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--accent) 8%, transparent)",
                         background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
                         filter: desbloqueado ? "none" : "grayscale(100%) blur(2px)",
-                        clipPath: "polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)",
+                        clipPath: "polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)",
                       }}
                     >
                       {desbloqueado && p.img_url
                         ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                        : <UserX size={18} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
+                        : <UserX size={16} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
                     </div>
-                    {/* Name */}
-                    <div className="w-full">
-                      <p className="text-[10px] font-black uppercase leading-tight truncate"
+                    {/* Nombre + especie — derecha */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-black uppercase leading-tight truncate"
                         style={{
                           color: desbloqueado ? "var(--foreground)" : "color-mix(in srgb, var(--accent) 30%, transparent)",
                           textDecoration: desbloqueado ? "none" : "line-through",
@@ -261,7 +261,7 @@ function PanelContenido({
                         {desbloqueado ? p.nombre : "???"}
                       </p>
                       {p.especie && (
-                        <p className="text-[8px] font-medium mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
+                        <p className="text-[9px] font-medium mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
                           {desbloqueado ? p.especie : "Desconocido"}
                         </p>
                       )}
@@ -490,7 +490,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           const fogCtx = fogCanvas.getContext("2d")!;
 
           // 1. Fill entire fog layer with semi-transparent bg color
-          fogCtx.fillStyle = `${bg}ee`;
+          fogCtx.fillStyle = `${bg}bb`;
           fogCtx.fillRect(0, 0, iw, ih);
 
           // 2. Punch transparent holes at every VISIBLE marker
@@ -498,7 +498,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           for (const m of markers) {
             const mx = (m.coord_x / 100) * iw;
             const my = (m.coord_y / 100) * ih;
-            const fogRadius = Math.max(iw, ih) * 0.10;
+            const fogRadius = Math.max(iw, ih) * 0.28;
             const grad = fogCtx.createRadialGradient(mx, my, 0, mx, my, fogRadius);
             grad.addColorStop(0,   "rgba(0,0,0,1)");
             grad.addColorStop(0.6, "rgba(0,0,0,0.75)");
@@ -660,6 +660,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       }
 
       // Outer canvas vignette
+      const { bg } = cssColorsRef.current;
       const outerVg = ctx.createRadialGradient(
         canvas.width / 2, canvas.height / 2, canvas.height * 0.25,
         canvas.width / 2, canvas.height / 2, canvas.height * 0.75
@@ -1082,7 +1083,7 @@ export default function MapaInteractivo() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center p-20" style={{ background: "var(--bg-main)", minHeight: "100dvh" }}>
+    <div className="fixed inset-0 flex flex-col items-center justify-center" style={{ background: "var(--bg-main)" }}>
       <div className="relative">
         <div className="w-8 h-8 rotate-45 animate-spin border" style={{ borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
         <div className="absolute inset-0 flex items-center justify-center">
@@ -1096,7 +1097,7 @@ export default function MapaInteractivo() {
   );
 
   return (
-    <div className="relative w-full flex" style={{ minHeight: "100dvh", background: "var(--bg-main)" }}>
+    <div className="fixed inset-0 flex overflow-hidden" style={{ background: "var(--bg-main)" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
       {modalEntidad && (
@@ -1108,8 +1109,7 @@ export default function MapaInteractivo() {
       </AnimatePresence>
 
       {/* ── MAP AREA ── */}
-      <div className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}
-        style={{ minHeight: "100dvh" }}>
+      <div className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}>
 
         {isAdmin && (
           <div className="absolute top-4 right-4 z-[70] flex gap-2">
