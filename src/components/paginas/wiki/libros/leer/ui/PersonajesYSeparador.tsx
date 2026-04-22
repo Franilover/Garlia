@@ -160,21 +160,6 @@ export function FinCapituloSeparador({ cap, onVisible }: {
           transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
         />
       </div>
-
-      {/* Texto "Fin del capítulo" que aparece sutil */}
-      <motion.p
-        className="font-black uppercase"
-        style={{
-          fontSize: "0.55rem",
-          letterSpacing: "0.45em",
-          color: "color-mix(in srgb, var(--primary) 22%, transparent)",
-        }}
-        initial={{ opacity: 0, y: 4 }}
-        animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 4 }}
-        transition={{ duration: 0.5, delay: 0.75 }}
-      >
-        — fin del capítulo —
-      </motion.p>
     </div>
   );
 }
