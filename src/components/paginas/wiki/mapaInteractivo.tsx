@@ -7,6 +7,7 @@ import {
 import {
   X, MapPin, Loader2, ChevronRight, ArrowLeft, House,
   Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, UserX, ZoomIn, ZoomOut, User,
+  BookOpen, BookMarked,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
@@ -18,7 +19,6 @@ type EntidadModal =
   | { tipo: "criatura";  data: any }
   | { tipo: "item";      data: any }
   | { tipo: "item_inv";  data: any };
-
 type ToastType = "success" | "error";
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -48,6 +48,7 @@ function PanelContenido({
   setReinoSeleccionado, personajesReino, personajesDesbloqueados,
   handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
   isUploadingImg, handleImageUpload, imgInputRef,
+  librosReino, capitulosReino,
 }: any) {
   if (editMode) {
     return (
@@ -201,7 +202,6 @@ function PanelContenido({
         {/* Lore text */}
         <div className="relative p-5 border"
           style={{ borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          {/* Corner decorations */}
           <div className="absolute top-0 left-0 w-3 h-3 border-t border-l" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
           <div className="absolute top-0 right-0 w-3 h-3 border-t border-r" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
           <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
@@ -211,7 +211,7 @@ function PanelContenido({
           </p>
         </div>
 
-        {/* Characters list */}
+        {/* Characters grid — 2 per row, no "ver" button */}
         {!puntoSeleccionado && personajesReino.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -219,14 +219,14 @@ function PanelContenido({
               <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>Habitantes conocidos</span>
               <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {personajesReino.map((p: any) => {
                 const desbloqueado = personajesDesbloqueados.has(p.id);
                 return (
                   <button
                     key={p.id}
                     onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
-                    className="flex items-center gap-3 p-2.5 w-full text-left transition-all group"
+                    className="flex flex-col items-center gap-2 p-3 w-full text-center transition-all group"
                     style={{
                       background: desbloqueado
                         ? "color-mix(in srgb, var(--primary) 15%, transparent)"
@@ -236,20 +236,23 @@ function PanelContenido({
                       cursor: desbloqueado ? "pointer" : "default",
                     }}
                   >
+                    {/* Avatar */}
                     <div
-                      className="shrink-0 w-9 h-9 overflow-hidden flex items-center justify-center border"
+                      className="w-14 h-14 overflow-hidden flex items-center justify-center border"
                       style={{
                         borderColor: desbloqueado ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--accent) 8%, transparent)",
                         background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
                         filter: desbloqueado ? "none" : "grayscale(100%) blur(2px)",
+                        clipPath: "polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)",
                       }}
                     >
                       {desbloqueado && p.img_url
                         ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                        : <UserX size={14} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
+                        : <UserX size={18} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-black uppercase leading-tight"
+                    {/* Name */}
+                    <div className="w-full">
+                      <p className="text-[10px] font-black uppercase leading-tight truncate"
                         style={{
                           color: desbloqueado ? "var(--foreground)" : "color-mix(in srgb, var(--accent) 30%, transparent)",
                           textDecoration: desbloqueado ? "none" : "line-through",
@@ -258,25 +261,90 @@ function PanelContenido({
                         {desbloqueado ? p.nombre : "???"}
                       </p>
                       {p.especie && (
-                        <p className="text-[9px] font-medium mt-0.5" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
+                        <p className="text-[8px] font-medium mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
                           {desbloqueado ? p.especie : "Desconocido"}
                         </p>
                       )}
                     </div>
-                    {desbloqueado ? (
-                      <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide flex items-center gap-1"
-                        style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)" }}>
-                        Ver <ChevronRight size={8} />
-                      </span>
-                    ) : (
-                      <span className="shrink-0 text-[7px] font-black uppercase px-1.5 py-0.5 tracking-wide"
-                        style={{ background: "color-mix(in srgb, var(--accent) 4%, transparent)", color: "color-mix(in srgb, var(--accent) 25%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 8%, transparent)" }}>
-                        ???
-                      </span>
-                    )}
                   </button>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Books of this kingdom */}
+        {!puntoSeleccionado && librosReino && librosReino.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+              <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                <BookOpen size={9} /> Libros en este reino
+              </span>
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+            </div>
+            <div className="flex flex-col gap-2">
+              {librosReino.map((libro: any) => (
+                <div key={libro.id}
+                  className="flex items-center gap-3 p-3 border"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                  }}>
+                  {libro.portada_url && (
+                    <img src={libro.portada_url} alt={libro.titulo} className="w-10 h-12 object-cover shrink-0"
+                      style={{ filter: "brightness(0.9)" }} />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-black uppercase leading-tight truncate" style={{ color: "var(--foreground)" }}>
+                      {libro.titulo}
+                    </p>
+                    {libro.estado && (
+                      <p className="text-[8px] font-bold uppercase mt-0.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                        {libro.estado}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Chapters that take place in this kingdom */}
+        {!puntoSeleccionado && capitulosReino && capitulosReino.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+              <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                <BookMarked size={9} /> Capítulos aquí
+              </span>
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {capitulosReino.map((cap: any) => (
+                <div key={cap.id}
+                  className="flex items-center gap-2 px-3 py-2.5 border"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                  }}>
+                  <span className="text-[8px] font-black shrink-0 px-1.5 py-0.5"
+                    style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>
+                    #{cap.orden}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black uppercase truncate" style={{ color: "var(--foreground)" }}>
+                      {cap.titulo_capitulo}
+                    </p>
+                    {cap.libro_titulo && (
+                      <p className="text-[8px] mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
+                        {cap.libro_titulo}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -289,6 +357,7 @@ function PanelContenido({
 interface CanvasMapProps {
   imageSrc: string;
   markers: any[];
+  hiddenMarkers: any[]; // markers that are hidden (fog covered)
   editMode: boolean;
   onMarkerClick: (marker: any) => void;
   onMapClick: (x: number, y: number) => void;
@@ -296,13 +365,12 @@ interface CanvasMapProps {
   tipo: "global" | "reino";
 }
 
-function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo, onOpenPanel }: CanvasMapProps & { onOpenPanel?: () => void }) {
+function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo, onOpenPanel }: CanvasMapProps & { onOpenPanel?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const animFrameRef = useRef<number>(0);
-
   // Camera state
   const camRef = useRef({ x: 0, y: 0, scale: 1 });
   const isDragging = useRef(false);
@@ -314,7 +382,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
   // Theme CSS vars read at draw time
   const cssColorsRef = useRef({ primary: "#888", accent: "#aaa", bg: "#0a0806", fg: "#fff" });
 
-  // Read CSS vars once mounted and on theme change
   useEffect(() => {
     const read = () => {
       const s = getComputedStyle(document.documentElement);
@@ -331,7 +398,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     return () => obs.disconnect();
   }, []);
 
-  // Helper: fit image to canvas
   const centerImage = useCallback(() => {
     const canvas = canvasRef.current;
     const img = imgRef.current;
@@ -344,7 +410,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     };
   }, []);
 
-  // Load image
   useEffect(() => {
     setImgLoaded(false);
     imgRef.current = null;
@@ -357,7 +422,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
       setImgLoaded(true);
     };
     img.onerror = () => {
-      // Retry once after 800ms in case of transient CDN/network error
       setTimeout(() => {
         const retry = new Image();
         retry.crossOrigin = "anonymous";
@@ -367,7 +431,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     };
   }, [imageSrc, centerImage]);
 
-  // Resize canvas — re-center image on each resize
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -377,7 +440,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
       const prevH = canvas.height;
       canvas.width = container.clientWidth;
       canvas.height = container.clientHeight;
-      // Re-center only if image is loaded and canvas actually changed size
       if (imgRef.current && (prevW !== canvas.width || prevH !== canvas.height)) {
         centerImage();
       }
@@ -388,7 +450,7 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     return () => ro.disconnect();
   }, [centerImage]);
 
-  // Render loop
+  // ── Render loop with fog effect ──────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -398,10 +460,8 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     const draw = (t: number) => {
       pulseRef.current = t;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       const { primary, accent, bg } = cssColorsRef.current;
 
-      // Background
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -412,18 +472,63 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
         const iw = img.width * scale;
         const ih = img.height * scale;
 
-        // Vignette / fog border before drawing map
         ctx.save();
         ctx.translate(cx, cy);
 
-        // Draw map image
+        // ── Draw base map ──────────────────────────────────────────────────
         ctx.drawImage(img, 0, 0, iw, ih);
 
-        // Subtle overlay for aged look
+        // Subtle aged overlay
         ctx.fillStyle = "rgba(80, 40, 10, 0.06)";
         ctx.fillRect(0, 0, iw, ih);
 
-        // Vignette over the map
+        // ── FOG OF WAR — only for global view when not in edit mode ────────
+        if (tipo === "global" && !editMode && hiddenMarkers.length > 0) {
+          // Build a fog layer: covers full map, then punch holes at visible markers
+          ctx.save();
+
+          // Create a full-map semi-transparent fog
+          ctx.fillStyle = `${bg}cc`;
+          ctx.fillRect(0, 0, iw, ih);
+
+          // Use destination-out to punch clear circles at each VISIBLE marker
+          ctx.globalCompositeOperation = "destination-out";
+          for (const m of markers) {
+            const mx = (m.coord_x / 100) * iw;
+            const my = (m.coord_y / 100) * ih;
+            const fogRadius = Math.max(iw, ih) * 0.18; // radius of cleared area
+            const grad = ctx.createRadialGradient(mx, my, 0, mx, my, fogRadius);
+            grad.addColorStop(0, "rgba(0,0,0,1)");
+            grad.addColorStop(0.55, "rgba(0,0,0,0.85)");
+            grad.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(mx, my, fogRadius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalCompositeOperation = "source-over";
+
+          // Add animated fog wisps for hidden areas
+          const fogTime = t * 0.0003;
+          ctx.globalAlpha = 0.12;
+          for (let i = 0; i < 6; i++) {
+            const wx = ((Math.sin(fogTime * (0.7 + i * 0.3) + i * 1.2) + 1) / 2) * iw;
+            const wy = ((Math.cos(fogTime * (0.5 + i * 0.2) + i * 0.9) + 1) / 2) * ih;
+            const wr = iw * (0.08 + i * 0.02);
+            const wg = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr);
+            wg.addColorStop(0, "rgba(200,190,180,0.6)");
+            wg.addColorStop(1, "rgba(200,190,180,0)");
+            ctx.fillStyle = wg;
+            ctx.beginPath();
+            ctx.arc(wx, wy, wr, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+
+          ctx.restore();
+        }
+
+        // Map vignette
         const vgr = ctx.createRadialGradient(iw / 2, ih / 2, ih * 0.3, iw / 2, ih / 2, Math.max(iw, ih) * 0.72);
         vgr.addColorStop(0, "rgba(0,0,0,0)");
         vgr.addColorStop(1, `${bg}aa`);
@@ -432,7 +537,7 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
 
         ctx.restore();
 
-        // Draw markers
+        // ── Draw visible markers ──────────────────────────────────────────
         for (const m of markers) {
           const mx = cx + (m.coord_x / 100) * iw;
           const my = cy + (m.coord_y / 100) * ih;
@@ -442,7 +547,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
           ctx.save();
           ctx.translate(mx, my);
 
-          // Outer pulse ring
           const ringR = 14 + pulse * 8;
           ctx.beginPath();
           ctx.arc(0, 0, ringR, 0, Math.PI * 2);
@@ -452,7 +556,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
           ctx.lineWidth = 1.5;
           ctx.stroke();
 
-          // Inner glow
           const grd = ctx.createRadialGradient(0, 0, 2, 0, 0, 10);
           if (isSelected) {
             grd.addColorStop(0, `${accent}e6`);
@@ -466,7 +569,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
           ctx.fillStyle = grd;
           ctx.fill();
 
-          // Diamond marker shape
           ctx.save();
           ctx.rotate(Math.PI / 4);
           const d = isSelected ? 6 : 5;
@@ -474,14 +576,12 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
           ctx.shadowColor = isSelected ? `${accent}cc` : `${primary}66`;
           ctx.shadowBlur = isSelected ? 12 : 6;
           ctx.fillRect(-d, -d, d * 2, d * 2);
-          // Inner diamond highlight
           ctx.fillStyle = isSelected ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)";
           ctx.shadowBlur = 0;
           const di = d * 0.45;
           ctx.fillRect(-di, -di, di * 2, di * 2);
           ctx.restore();
 
-          // Edit mode indicator
           if (editMode) {
             ctx.beginPath();
             ctx.arc(6, -6, 3.5, 0, Math.PI * 2);
@@ -495,7 +595,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
             }
           }
 
-          // Label
           ctx.font = `bold ${scale > 0.7 ? 10 : 9}px 'Cinzel', serif`;
           ctx.textAlign = "center";
           const label = m.nombre;
@@ -503,28 +602,53 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
           const lw = metrics.width + 12;
           const lh = 14;
           const ly = -20;
-
-          // Label bg
           ctx.fillStyle = `${bg}d4`;
           ctx.beginPath();
           ctx.rect(-lw / 2, ly - lh / 2, lw, lh);
           ctx.fill();
-
-          // Label border
           ctx.strokeStyle = isSelected ? `${accent}80` : `${primary}59`;
           ctx.lineWidth = 0.75;
           ctx.stroke();
-
-          // Label text
           ctx.fillStyle = isSelected ? accent : primary;
           ctx.fillText(label, 0, ly + 4);
 
           ctx.restore();
         }
+
+        // ── Draw hidden markers (admin only, faded) ───────────────────────
+        if (editMode) {
+          for (const m of hiddenMarkers) {
+            const mx = cx + (m.coord_x / 100) * iw;
+            const my = cy + (m.coord_y / 100) * ih;
+            ctx.save();
+            ctx.globalAlpha = 0.35;
+            ctx.translate(mx, my);
+            ctx.save();
+            ctx.rotate(Math.PI / 4);
+            ctx.fillStyle = "#f97316";
+            ctx.shadowColor = "#f9731666";
+            ctx.shadowBlur = 6;
+            ctx.fillRect(-4, -4, 8, 8);
+            ctx.restore();
+            ctx.font = `bold 9px 'Cinzel', serif`;
+            ctx.textAlign = "center";
+            const label = m.nombre;
+            const metrics = ctx.measureText(label);
+            const lw = metrics.width + 12;
+            ctx.fillStyle = `${bg}cc`;
+            ctx.beginPath();
+            ctx.rect(-lw / 2, -27, lw, 14);
+            ctx.fill();
+            ctx.fillStyle = "#f97316";
+            ctx.fillText(label, 0, -17);
+            ctx.restore();
+          }
+        }
+
       } else {
-        // Loading shimmer using theme accent
         const gr = ctx.createLinearGradient(0, 0, canvas.width, 0);
         const off = ((t * 0.001) % 1);
+        const { primary, accent } = cssColorsRef.current;
         gr.addColorStop(Math.max(0, off - 0.1), `${primary}1a`);
         gr.addColorStop(off, `${accent}20`);
         gr.addColorStop(Math.min(1, off + 0.1), `${primary}1a`);
@@ -533,6 +657,7 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
       }
 
       // Outer canvas vignette
+      const { bg } = cssColorsRef.current;
       const outerVg = ctx.createRadialGradient(
         canvas.width / 2, canvas.height / 2, canvas.height * 0.25,
         canvas.width / 2, canvas.height / 2, canvas.height * 0.75
@@ -544,12 +669,10 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
 
       animFrameRef.current = requestAnimationFrame(draw);
     };
-
     animFrameRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [imgLoaded, markers, editMode, selectedMarkerId]);
+  }, [imgLoaded, markers, hiddenMarkers, editMode, selectedMarkerId, tipo]);
 
-  // Hit test markers
   const hitTest = useCallback((clientX: number, clientY: number): any | null => {
     const canvas = canvasRef.current;
     if (!canvas || !imgRef.current) return null;
@@ -559,7 +682,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     const { x: cx, y: cy, scale } = camRef.current;
     const iw = imgRef.current.width * scale;
     const ih = imgRef.current.height * scale;
-
     for (const m of [...markers].reverse()) {
       const mx = cx + (m.coord_x / 100) * iw;
       const my = cy + (m.coord_y / 100) * ih;
@@ -569,7 +691,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     return null;
   }, [markers]);
 
-  // Convert canvas coords to map %
   const canvasToMapPct = useCallback((clientX: number, clientY: number): [number, number] => {
     const canvas = canvasRef.current;
     if (!canvas || !imgRef.current) return [0, 0];
@@ -584,7 +705,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     return [x, y];
   }, []);
 
-  // Zoom helper
   const zoom = useCallback((factor: number, pivotX?: number, pivotY?: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -598,13 +718,11 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     cam.scale = newScale;
   }, []);
 
-  // Mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     isDragging.current = false;
     dragStart.current = { x: e.clientX, y: e.clientY, camX: camRef.current.x, camY: camRef.current.y };
   };
-
   const handleMouseMove = (e: React.MouseEvent) => {
     if (e.buttons !== 1) return;
     const dx = e.clientX - dragStart.current.x;
@@ -615,7 +733,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
       camRef.current.y = dragStart.current.camY + dy;
     }
   };
-
   const handleMouseUp = (e: React.MouseEvent) => {
     if (!isDragging.current) {
       if (editMode) {
@@ -630,7 +747,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     }
     isDragging.current = false;
   };
-
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.12 : 0.9;
@@ -638,8 +754,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     zoom(factor, e.clientX - rect.left, e.clientY - rect.top);
   };
 
-  // Touch events — registered manually with passive:false to avoid scroll lag
-  // and to allow preventDefault() on pinch/pan
   const touchStartHandler = useCallback((e: TouchEvent) => {
     if (e.touches.length === 1) {
       e.preventDefault();
@@ -683,7 +797,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
   }, [zoom]);
 
   const touchEndHandler = useCallback((e: TouchEvent) => {
-    // When going from 2 fingers to 1, reset dragStart to avoid jump
     if (e.touches.length === 1) {
       dragStart.current = {
         x: e.touches[0].clientX,
@@ -695,7 +808,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
       lastPinchDist.current = null;
       return;
     }
-    // Single tap → check marker hit
     if (!isDragging.current && e.changedTouches.length === 1 && e.touches.length === 0) {
       const t = e.changedTouches[0];
       const hit = hitTest(t.clientX, t.clientY);
@@ -705,7 +817,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
     lastPinchDist.current = null;
   }, [hitTest, onMarkerClick]);
 
-  // Register touch handlers manually (non-passive) to prevent scroll lag
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -731,9 +842,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
       />
-      {/* Zoom controls + mobile panel button
-          On mobile: sit above the 56px bottom navbar → bottom-[calc(56px+1rem)]
-          On desktop (md+): normal bottom-6                                        */}
       <div className="absolute right-4 bottom-[calc(56px+1rem)] md:bottom-6 flex flex-col gap-1.5 z-10">
         {[
           { icon: <ZoomIn size={14} />, fn: () => zoom(1.25) },
@@ -750,7 +858,6 @@ function CanvasMap({ imageSrc, markers, editMode, onMarkerClick, onMapClick, sel
             {btn.icon}
           </button>
         ))}
-        {/* Mobile-only: open details panel button */}
         {onOpenPanel && (
           <button
             onClick={onOpenPanel}
@@ -789,8 +896,11 @@ export default function MapaInteractivo() {
   const [personajesReino, setPersonajesReino] = useState<any[]>([]);
   const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<Set<string>>(new Set());
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
-  const imgInputRef = useRef<HTMLInputElement>(null);
+  // Books & chapters
+  const [librosReino, setLibrosReino] = useState<any[]>([]);
+  const [capitulosReino, setCapitulosReino] = useState<any[]>([]);
 
+  const imgInputRef = useRef<HTMLInputElement>(null);
   const showToast = (message: string, type: ToastType) => setToast({ message, type });
 
   useEffect(() => {
@@ -817,13 +927,34 @@ export default function MapaInteractivo() {
     if (editMode) { setReinoSeleccionado(reino); setPanelOpen(true); return; }
     setReinoSeleccionado(reino);
     setPersonajesReino([]);
+    setLibrosReino([]);
+    setCapitulosReino([]);
     setPuntoSeleccionado(null);
-    const [detallesRes, personajesRes] = await Promise.all([
+
+    const [detallesRes, personajesRes, librosRes, capitulosRes] = await Promise.all([
       supabase.from("reino_detalles").select("*").eq("reino_id", reino.id),
       supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
+      // Books whose main kingdom is this one
+      supabase.from("libros").select("id, titulo, portada_url, estado").eq("reino_id", reino.id).eq("visibilidad", "publico"),
+      // Chapters that take place in this kingdom (join with libro for title)
+      supabase.from("capitulos")
+        .select("id, titulo_capitulo, orden, libro_id, libros(titulo)")
+        .eq("reino_id", reino.id)
+        .eq("visibilidad", "publico")
+        .order("orden", { ascending: true }),
     ]);
+
     if (!detallesRes.error) setDetallesReino(detallesRes.data ?? []);
     if (!personajesRes.error) setPersonajesReino(personajesRes.data ?? []);
+    if (!librosRes.error) setLibrosReino(librosRes.data ?? []);
+    if (!capitulosRes.error) {
+      const caps = (capitulosRes.data ?? []).map((c: any) => ({
+        ...c,
+        libro_titulo: c.libros?.titulo ?? null,
+      }));
+      setCapitulosReino(caps);
+    }
+
     setVistaActual("reino");
     setPanelOpen(true);
   };
@@ -916,14 +1047,24 @@ export default function MapaInteractivo() {
     setPuntoSeleccionado(null);
     setDetallesReino([]);
     setPersonajesReino([]);
+    setLibrosReino([]);
+    setCapitulosReino([]);
     setModifiedDetalles(new Set());
     setEditMode(false);
     setPanelOpen(false);
   };
 
-  const currentMarkers = vistaActual === "global"
-    ? reinos.filter(r => editMode || !r.oculto)
-    : detallesReino.filter(p => editMode || !p.oculto);
+  // Visible markers (shown to users) vs hidden (fog-covered, shown only to admin)
+  const visibleMarkers = vistaActual === "global"
+    ? reinos.filter(r => !r.oculto)
+    : detallesReino.filter(p => !p.oculto);
+
+  const hiddenMarkers = vistaActual === "global"
+    ? reinos.filter(r => r.oculto)
+    : detallesReino.filter(p => p.oculto);
+
+  // What the canvas actually draws: all if admin in edit mode, otherwise only visible
+  const currentMarkers = editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers;
 
   const currentImage = vistaActual === "reino" && reinoSeleccionado?.mapa_url
     ? reinoSeleccionado.mapa_url
@@ -935,6 +1076,7 @@ export default function MapaInteractivo() {
     setReinoSeleccionado, personajesReino, personajesDesbloqueados,
     handlePersonajeClick, modifiedDetalles, isSaving, handleSaveChanges,
     isUploadingImg, handleImageUpload, imgInputRef,
+    librosReino, capitulosReino,
   };
 
   if (loading) return (
@@ -953,26 +1095,20 @@ export default function MapaInteractivo() {
 
   return (
     <div className="relative w-full flex" style={{ minHeight: "100dvh", background: "var(--bg-main)" }}>
-      {/* Google Font: Cinzel for map labels */}
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
-      {/* Modal */}
       {modalEntidad && (
         <ModalDetalle entidad={modalEntidad} onClose={() => setModalEntidad(null)} />
       )}
 
-      {/* Toast */}
       <AnimatePresence>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
-      {/* ── MAP AREA ──
-          pb-14 on mobile = clear the 56px bottom navbar
-          The canvas ResizeObserver will re-center the map automatically  */}
+      {/* ── MAP AREA ── */}
       <div className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}
         style={{ minHeight: "100dvh" }}>
 
-        {/* Admin toolbar — on mobile, top-[calc(env(safe-area-inset-top,0px)+1rem)] keeps it clear of status bars */}
         {isAdmin && (
           <div className="absolute top-4 right-4 z-[70] flex gap-2">
             <button
@@ -1003,7 +1139,6 @@ export default function MapaInteractivo() {
           </div>
         )}
 
-        {/* Edit mode hint — sits above mobile navbar */}
         <AnimatePresence>
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
             <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
@@ -1021,7 +1156,6 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
-        {/* Back button */}
         <AnimatePresence>
           {vistaActual === "reino" && (
             <MotionButton initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
@@ -1038,10 +1172,10 @@ export default function MapaInteractivo() {
           )}
         </AnimatePresence>
 
-        {/* CANVAS MAP */}
         <CanvasMap
           imageSrc={currentImage}
-          markers={currentMarkers}
+          markers={editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers}
+          hiddenMarkers={hiddenMarkers}
           editMode={editMode}
           onMarkerClick={(m) => {
             if (vistaActual === "global") {
@@ -1073,11 +1207,8 @@ export default function MapaInteractivo() {
               boxShadow: "-20px 0 60px rgba(0,0,0,0.4)",
             }}
           >
-            {/* Decorative top border */}
             <div className="absolute top-0 left-0 right-0 h-px"
               style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 50%, transparent), transparent)" }} />
-
-            {/* Close panel btn */}
             <button
               onClick={() => setPanelOpen(false)}
               className="absolute top-4 right-4 z-10 w-7 h-7 flex items-center justify-center transition-colors border"
@@ -1090,7 +1221,6 @@ export default function MapaInteractivo() {
             >
               <X size={12} />
             </button>
-
             <div className="p-8 pt-10 flex flex-col gap-4 h-full overflow-y-auto">
               <PanelContenido {...panelProps} />
             </div>
@@ -1098,7 +1228,7 @@ export default function MapaInteractivo() {
         )}
       </AnimatePresence>
 
-      {/* ── BOTTOM PANEL (mobile) — sits above the 56px bottom navbar ── */}
+      {/* ── BOTTOM PANEL (mobile) ── */}
       <AnimatePresence>
         {isMobile && panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
           <MotionDiv
@@ -1117,7 +1247,6 @@ export default function MapaInteractivo() {
           >
             <div className="absolute top-0 left-0 right-0 h-px"
               style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 60%, transparent), transparent)" }} />
-            {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-10 h-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
             </div>
