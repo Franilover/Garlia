@@ -490,7 +490,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           const fogCtx = fogCanvas.getContext("2d")!;
 
           // 1. Fill entire fog layer with semi-transparent bg color
-          fogCtx.fillStyle = `${bg}bb`;
+          fogCtx.fillStyle = `${bg}ee`;
           fogCtx.fillRect(0, 0, iw, ih);
 
           // 2. Punch transparent holes at every VISIBLE marker
@@ -498,7 +498,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           for (const m of markers) {
             const mx = (m.coord_x / 100) * iw;
             const my = (m.coord_y / 100) * ih;
-            const fogRadius = Math.max(iw, ih) * 0.28;
+            const fogRadius = Math.max(iw, ih) * 0.10;
             const grad = fogCtx.createRadialGradient(mx, my, 0, mx, my, fogRadius);
             grad.addColorStop(0,   "rgba(0,0,0,1)");
             grad.addColorStop(0.6, "rgba(0,0,0,0.75)");
