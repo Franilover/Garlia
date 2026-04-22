@@ -660,7 +660,6 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       }
 
       // Outer canvas vignette
-      const { bg } = cssColorsRef.current;
       const outerVg = ctx.createRadialGradient(
         canvas.width / 2, canvas.height / 2, canvas.height * 0.25,
         canvas.width / 2, canvas.height / 2, canvas.height * 0.75
