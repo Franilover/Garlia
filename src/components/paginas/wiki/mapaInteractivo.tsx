@@ -50,6 +50,7 @@ function PanelContenido({
   isUploadingImg, handleImageUpload, imgInputRef,
   librosReino, capitulosReino,
 }: any) {
+  const router = useRouter();
   if (editMode) {
     return (
       <div className="flex flex-col gap-4 flex-grow">
@@ -279,17 +280,20 @@ function PanelContenido({
             <div className="flex items-center gap-2 mb-3">
               <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
               <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                <BookOpen size={9} /> Relatos en este reino
+                <BookOpen size={9} /> Relatos de este reino
               </span>
               <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
             </div>
             <div className="flex flex-col gap-2">
               {librosReino.map((libro: any) => (
-                <div key={libro.id}
-                  className="flex items-center gap-3 p-3 border"
+                <button
+                  key={libro.id}
+                  onClick={() => router.push(`/wiki/libros/${libro.id}`)}
+                  className="flex items-center gap-3 p-3 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
                   style={{
                     background: "color-mix(in srgb, var(--primary) 10%, transparent)",
                     borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                    cursor: "pointer",
                   }}>
                   {libro.portada_url && (
                     <img src={libro.portada_url} alt={libro.titulo} className="w-10 h-12 object-cover shrink-0"
@@ -305,7 +309,7 @@ function PanelContenido({
                       </p>
                     )}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -323,11 +327,14 @@ function PanelContenido({
             </div>
             <div className="flex flex-col gap-1.5">
               {capitulosReino.map((cap: any) => (
-                <div key={cap.id}
-                  className="flex items-center gap-2 px-3 py-2.5 border"
+                <button
+                  key={cap.id}
+                  onClick={() => router.push(`/wiki/libros/${cap.libro_id}/leer/${cap.id}`)}
+                  className="flex items-center gap-2 px-3 py-2.5 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
                   style={{
                     background: "color-mix(in srgb, var(--primary) 8%, transparent)",
                     borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                    cursor: "pointer",
                   }}>
                   <span className="text-[8px] font-black shrink-0 px-1.5 py-0.5"
                     style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>
@@ -343,7 +350,7 @@ function PanelContenido({
                       </p>
                     )}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
