@@ -39,7 +39,7 @@ export default function EstudioLetras() {
     idiomas:      unique(canciones.map(c => c.idioma     || "")),
     cantantes:    unique(canciones.map(c => c.cantante   || "")),
     compositores: unique(canciones.map(c => c.compositor || "")),
-    personajes:   unique(canciones.map(c => c.personaje  || "")),
+    personajes:   unique(canciones.map(c => { const p = c.personaje; return (Array.isArray(p) ? p[0]?.nombre : p?.nombre) || ""; })),
   }), [canciones]);
 
   const filtradas = useMemo(() => canciones.filter(c => {
@@ -47,7 +47,7 @@ export default function EstudioLetras() {
       const q = normalize(busqueda);
       if (
         !normalize(c.titulo).includes(q) &&
-        !normalize(c.personaje  || "").includes(q) &&
+        !normalize((Array.isArray(c.personaje) ? c.personaje[0]?.nombre : c.personaje?.nombre) || "").includes(q) &&
         !normalize(c.cantante   || "").includes(q) &&
         !normalize(c.compositor || "").includes(q)
       ) return false;
@@ -57,7 +57,7 @@ export default function EstudioLetras() {
     if (filtros.idioma     && c.idioma      !== filtros.idioma)        return false;
     if (filtros.cantante   && c.cantante    !== filtros.cantante)      return false;
     if (filtros.compositor && c.compositor  !== filtros.compositor)    return false;
-    if (filtros.personaje  && c.personaje   !== filtros.personaje)     return false;
+    if (filtros.personaje  && ((Array.isArray(c.personaje) ? c.personaje[0]?.nombre : c.personaje?.nombre) !== filtros.personaje)) return false;
     return true;
   }), [canciones, busqueda, filtros]);
 

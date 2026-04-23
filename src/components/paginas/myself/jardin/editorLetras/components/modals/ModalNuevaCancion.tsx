@@ -17,7 +17,7 @@ export const ModalNuevaCancion = ({
   onClose: () => void;
 }) => {
   const [titulo,     setTitulo]     = useState("");
-  const [personaje,  setPersonaje]  = useState("");
+  const [personajeId, setPersonajeId] = useState<string | null>(null);
   const [cantante,   setCantante]   = useState("");
   const [compositor, setCompositor] = useState("");
   const [idioma,     setIdioma]     = useState("");
@@ -35,7 +35,7 @@ export const ModalNuevaCancion = ({
         .from("canciones")
         .insert([{
           titulo: titulo.trim().toUpperCase(),
-          personaje:  personaje.trim()  || null,
+          personaje_id: personajeId || null,
           cantante:   cantante.trim()   || null,
           compositor: compositor.trim() || null,
           idioma:     idioma.trim()     || null,
@@ -64,7 +64,7 @@ export const ModalNuevaCancion = ({
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
-        <SelectPersonaje value={personaje} onChange={setPersonaje} />
+        <SelectPersonaje value={personajeId ?? ""} onChange={v => setPersonajeId(v || null)} />
         <div className="grid grid-cols-2 gap-3">
           <InputConSugerencias label="Cantante"   value={cantante}   onChange={setCantante}   placeholder="Cantante…"   tabla="canciones" columna="cantante" />
           <InputConSugerencias label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" tabla="canciones" columna="compositor" />

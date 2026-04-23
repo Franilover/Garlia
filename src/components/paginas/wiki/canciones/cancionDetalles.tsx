@@ -12,14 +12,26 @@ import {
   type Seccion,
 } from "@/components/paginas/wiki/canciones/CancionComponents";
 
+interface PersonajeRef {
+  id: string;
+  nombre: string;
+  img_url?: string | null;
+}
+
 interface Cancion {
   id: string;
   titulo: string;
-  personaje?: string;
+  personaje_id?: string | null;
+  personaje?: PersonajeRef | PersonajeRef[] | null;
   estado: string;
   portada_url?: string;
   visible: boolean;
   links?: { titulo: string; url: string }[];
+}
+
+function normPersonaje(v: PersonajeRef | PersonajeRef[] | null | undefined): PersonajeRef | null {
+  if (!v) return null;
+  return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
 export default function CancionDetallesPage() {
@@ -35,7 +47,9 @@ export default function CancionDetallesPage() {
   useEffect(() => {
     if (!id) return;
     Promise.all([
-      supabase.from("canciones").select("*").eq("id", id).eq("visible", true).single(),
+      supabase.from("canciones")
+        .select("*, personaje:personajes!personaje_id(id, nombre, img_url)")
+        .eq("id", id).eq("visible", true).single(),
       supabase
         .from("secciones_cancion")
         .select("id, nombre_seccion, letra_es, letra_en, letra_jp, letra_romaji, orden")
@@ -77,17 +91,30 @@ export default function CancionDetallesPage() {
             />
           </MotionDiv>
 
-          {cancion?.personaje && (
-            <MotionDiv
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10"
-            >
-              <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
-                <User size={12} /> Personaje
-              </h4>
-              <p className="text-primary font-bold text-sm italic">{cancion.personaje}</p>
-            </MotionDiv>
-          )}
+          {(() => {
+            const p = normPersonaje(cancion?.personaje);
+            if (!p) return null;
+            return (
+              <MotionDiv
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10"
+              >
+                <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-3 flex items-center gap-2 italic">
+                  <User size={12} /> Personaje
+                </h4>
+                <div className="flex items-center gap-3">
+                  {p.img_url && (
+                    <img
+                      src={p.img_url}
+                      alt={p.nombre}
+                      className="w-10 h-10 object-cover rounded-[var(--radius-btn)] border border-primary/15 shrink-0"
+                    />
+                  )}
+                  <p className="text-primary font-bold text-sm italic">{p.nombre}</p>
+                </div>
+              </MotionDiv>
+            );
+          })()}
 
           <LinkSection links={cancion?.links} />
         </aside>

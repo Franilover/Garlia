@@ -19,10 +19,17 @@ interface Seccion {
   created_at?: string;
 }
 
+interface PersonajeRef {
+  id: string;
+  nombre: string;
+  img_url?: string | null;
+}
+
 interface Cancion {
   id: string; 
   titulo: string;
-  personaje: string;
+  personaje_id?: string | null;
+  personaje?: PersonajeRef | PersonajeRef[] | null;
   cantante: string;
   compositor: string;
   idioma: string;
@@ -43,7 +50,7 @@ export const cancionesQueries = {
   getAll: async (options?: { isAdmin?: boolean }) => {
     let query = supabase
       .from('canciones')
-      .select('*')
+      .select('*, personaje:personajes!personaje_id(id, nombre, img_url)')
       .order('created_at', { ascending: false });
     
     if (!options?.isAdmin) {
@@ -65,6 +72,7 @@ export const cancionesQueries = {
       .from('canciones')
       .select(`
         *,
+        personaje:personajes!personaje_id(id, nombre, img_url),
         secciones:secciones_cancion (*)
       `)
       .eq('id', id)
@@ -119,7 +127,7 @@ export const cancionesQueries = {
     let query = supabase
       .from('canciones')
       .select('*')
-      .eq('personaje', personaje)
+      .eq('personaje_id', personaje)
       .order('titulo', { ascending: true });
 
     if (!options?.isAdmin) {

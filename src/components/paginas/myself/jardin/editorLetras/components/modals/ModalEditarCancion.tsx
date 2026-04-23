@@ -19,7 +19,9 @@ export const ModalEditarCancion = ({
   onClose: () => void;
 }) => {
   const [titulo,      setTitulo]      = useState(cancion.titulo);
-  const [personaje,   setPersonaje]   = useState(cancion.personaje  || "");
+  const [personajeId, setPersonajeId] = useState<string | null>(
+    cancion.personaje_id ?? (Array.isArray(cancion.personaje) ? cancion.personaje[0]?.id : cancion.personaje?.id) ?? null
+  );
   const [cantante,    setCantante]    = useState(cancion.cantante   || "");
   const [compositor,  setCompositor]  = useState(cancion.compositor || "");
   const [idioma,      setIdioma]      = useState(cancion.idioma     || "");
@@ -54,7 +56,7 @@ export const ModalEditarCancion = ({
     try {
       const updates: any = {
         titulo: titulo.trim().toUpperCase(),
-        personaje:  personaje.trim()  || null,
+        personaje_id: personajeId || null,
         cantante:   cantante.trim()   || null,
         compositor: compositor.trim() || null,
         idioma:     idioma.trim()     || null,
@@ -88,7 +90,7 @@ export const ModalEditarCancion = ({
 
       <div className="space-y-4 mt-4">
         <CampoInput label="Título *" value={titulo} onChange={setTitulo} placeholder="NOMBRE DE LA CANCIÓN…" autoFocus />
-        <SelectPersonaje value={personaje} onChange={setPersonaje} />
+        <SelectPersonaje value={personajeId ?? ""} onChange={v => setPersonajeId(v || null)} />
         <div className="grid grid-cols-2 gap-3">
           <InputConSugerencias label="Cantante"   value={cantante}   onChange={setCantante}   placeholder="Cantante…"   tabla="canciones" columna="cantante" />
           <InputConSugerencias label="Compositor" value={compositor} onChange={setCompositor} placeholder="Compositor…" tabla="canciones" columna="compositor" />

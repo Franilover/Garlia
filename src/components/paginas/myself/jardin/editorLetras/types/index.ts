@@ -23,10 +23,17 @@ export type Seccion = {
 
 export type CancionLink = { titulo: string; url: string };
 
+export type PersonajeRef = {
+  id: string;
+  nombre: string;
+  img_url?: string | null;
+};
+
 export type Cancion = {
   id: string;
   titulo: string;
-  personaje?: string;
+  personaje_id?: string | null;
+  personaje?: PersonajeRef | PersonajeRef[] | null;
   cantante?: string;
   compositor?: string;
   idioma?: string;

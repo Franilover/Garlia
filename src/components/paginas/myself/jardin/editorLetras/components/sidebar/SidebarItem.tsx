@@ -66,11 +66,15 @@ export const SidebarItem = ({
             {cancion.estado === "EN PROCESO" ? "WIP" : cancion.estado === "TERMINADA" ? "✓" : "…"}
           </span>
         </div>
-        {(cancion.personaje || cancion.cantante) && (
-          <p className={`text-[10px] mt-1 truncate ${selected ? "text-bg-main/70" : "text-primary/40"}`}>
-            {cancion.personaje || cancion.cantante}
-          </p>
-        )}
+        {(() => {
+          const p = cancion.personaje;
+          const nombre = (Array.isArray(p) ? p[0]?.nombre : p?.nombre) || cancion.cantante;
+          return nombre ? (
+            <p className={`text-[10px] mt-1 truncate ${selected ? "text-bg-main/70" : "text-primary/40"}`}>
+              {nombre}
+            </p>
+          ) : null;
+        })()}
       </button>
 
       {/* Toggle visible */}
