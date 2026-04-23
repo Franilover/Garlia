@@ -304,53 +304,58 @@ function SegmentoTransicion({
      no re-montar el observer en cada render.
    ───────────────────────────────────────────── */
 function useScrollLeidos(libroId: string, capIds: string[]) {
-  const prevIdsRef = useRef<string>("");
-
   useEffect(() => {
     if (!libroId || capIds.length === 0) return;
 
-    /* Evitar re-montar si la lista no cambió */
-    const key = capIds.join(",");
-    if (key === prevIdsRef.current) return;
-    prevIdsRef.current = key;
-
     const lastId = capIds[capIds.length - 1];
+    let obsNormal: IntersectionObserver | null = null;
+    let obsUltimo: IntersectionObserver | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
-    /* Observer normal (40%) para todos menos el último */
-    const obsNormal = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting)
-            guardarLeido(libroId, entry.target.id.replace("cap-", ""));
-        }
-      },
-      { threshold: 0.4 }
-    );
+    const montar = () => {
+      /* Si aún no están los elementos en el DOM, reintentamos */
+      const primero = document.getElementById(`cap-${capIds[0]}`);
+      if (!primero) {
+        timer = setTimeout(montar, 120);
+        return;
+      }
 
-    /* Observer laxo (15%) solo para el último cap —
-       se activa en cuanto el usuario llega al pie del segmento */
-    const obsUltimo = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting)
-            guardarLeido(libroId, entry.target.id.replace("cap-", ""));
-        }
-      },
-      { threshold: 0.15 }
-    );
+      obsNormal = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries)
+            if (entry.isIntersecting)
+              guardarLeido(libroId, entry.target.id.replace("cap-", ""));
+        },
+        { threshold: 0.4 }
+      );
 
-    for (const capId of capIds) {
-      const el = document.getElementById(`cap-${capId}`);
-      if (!el) continue;
-      if (capId === lastId) obsUltimo.observe(el);
-      else obsNormal.observe(el);
-    }
+      obsUltimo = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries)
+            if (entry.isIntersecting)
+              guardarLeido(libroId, entry.target.id.replace("cap-", ""));
+        },
+        { threshold: 0.15 }
+      );
+
+      for (const capId of capIds) {
+        const el = document.getElementById(`cap-${capId}`);
+        if (!el) continue;
+        if (capId === lastId) obsUltimo.observe(el);
+        else obsNormal.observe(el);
+      }
+    };
+
+    /* Pequeño delay para dejar que React pinte los bloques */
+    timer = setTimeout(montar, 80);
 
     return () => {
-      obsNormal.disconnect();
-      obsUltimo.disconnect();
+      if (timer) clearTimeout(timer);
+      obsNormal?.disconnect();
+      obsUltimo?.disconnect();
     };
-  }, [libroId, capIds]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [libroId, capIds.join(",")]);
 }
 
 /* ─────────────────────────────────────────────

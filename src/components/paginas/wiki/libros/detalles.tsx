@@ -109,12 +109,30 @@ export default function LibroDetalle() {
   const [leidos, setLeidos]                   = useState<Set<string>>(new Set());
 
   // ── Cargar capítulos leídos desde localStorage ──
+  // Se re-lee al montar Y cada vez que la página vuelve a ser visible
+  // (el usuario regresa del lector donde el observer pudo haber guardado más)
   useEffect(() => {
     if (!id) return;
-    try {
-      const raw = localStorage.getItem(`leidos:${id}`);
-      if (raw) setLeidos(new Set(JSON.parse(raw) as string[]));
-    } catch { /* localStorage bloqueado o datos corruptos */ }
+
+    const leer = () => {
+      try {
+        const raw = localStorage.getItem(`leidos:${id}`);
+        setLeidos(new Set(raw ? (JSON.parse(raw) as string[]) : []));
+      } catch { }
+    };
+
+    leer(); // carga inicial
+
+    const onVisible = () => { if (document.visibilityState === "visible") leer(); };
+    document.addEventListener("visibilitychange", onVisible);
+    /* También al recibir foco en caso de que el lector
+       abra en la misma pestaña y Next.js no desmonte */
+    window.addEventListener("focus", leer);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", leer);
+    };
   }, [id]);
 
   const marcarLeido = (capId: string) => {
