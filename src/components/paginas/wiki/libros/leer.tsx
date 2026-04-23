@@ -146,7 +146,7 @@ function NarradorTransicion({
 
                 {/* Derecha: siguiente */}
                 <div className="flex-1 p-6">
-                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 mb-3 italic">Continúa con</p>
+                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 mb-3 italic">Continúa</p>
                   <div className="flex items-center gap-3">
                     {imgSig ? (
                       <img src={imgSig} alt={nombreSig}
