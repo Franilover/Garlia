@@ -193,7 +193,7 @@ export function SelectPersonaje({
         >
           <option value="">{loading ? "Cargando…" : placeholder}</option>
           {personajes.map(p => (
-            <option key={p.id} value={p.nombre}>{p.nombre}</option>
+            <option key={p.id} value={p.id}>{p.nombre}</option>
           ))}
         </select>
         {}
