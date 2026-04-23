@@ -13,48 +13,107 @@ import { IndexPanel }          from "./leer/ui/IndexPanel";
 import { CapituloScrollBlock } from "./leer/CapituloScrollBlock";
 import { Vignette }            from "./leer/ui/LectorOrnamentos";
 
-/* ─── Tipos ─── */
+/* ─────────────────────────────────────────────
+   Tipos
+   ───────────────────────────────────────────── */
 interface NarradorInfo {
   id: string;
   nombre: string;
   img_url?: string | null;
 }
 
-interface GrupoNarrador {
+interface ReinoInfo {
+  id: string;
+  nombre: string;
+  imagen_reino?: string | null;
+}
+
+/** Un segmento es una secuencia continua de caps con la misma
+ *  combinación (reino_id | null, narrador_id | null).
+ *  La prioridad de agrupación es: reino > narrador.
+ */
+interface Segmento {
+  reino:    ReinoInfo | null;
   narrador: NarradorInfo | null;
   capitulos: CapituloScrollItem[];
 }
 
 /* ─────────────────────────────────────────────
-   Barra de progreso acotada al grupo actual.
-   Mide desde el primer cap del grupo hasta el
-   último, ignorando el resto del DOM.
+   Helpers para normalizar joins de Supabase
    ───────────────────────────────────────────── */
-function NarradorProgressBar({ capIds }: { capIds: string[] }) {
+function normOne<T>(v: T | T[] | null | undefined): T | null {
+  if (!v) return null;
+  return Array.isArray(v) ? (v[0] ?? null) : v;
+}
+
+/* ─────────────────────────────────────────────
+   Construir segmentos en orden de aparición.
+   Clave = "reinoId::narradorId" (o "null")
+   Capítulos consecutivos con la misma clave
+   se fusionan en un segmento.
+   ───────────────────────────────────────────── */
+function buildSegmentos(caps: (CapituloScrollItem & { _reino?: ReinoInfo | null; _narrador?: NarradorInfo | null })[]): Segmento[] {
+  const segs: Segmento[] = [];
+
+  for (const cap of caps) {
+    const reino    = cap._reino    ?? null;
+    const narrador = cap._narrador ?? null;
+    const key      = `${reino?.id ?? "null"}::${narrador?.id ?? "null"}`;
+
+    const last = segs[segs.length - 1];
+    const lastKey = last
+      ? `${last.reino?.id ?? "null"}::${last.narrador?.id ?? "null"}`
+      : null;
+
+    if (last && lastKey === key) {
+      last.capitulos.push(cap);
+    } else {
+      segs.push({ reino, narrador, capitulos: [cap] });
+    }
+  }
+
+  return segs;
+}
+
+/* ─────────────────────────────────────────────
+   Label del segmento para la navbar y transición
+   ───────────────────────────────────────────── */
+function segLabel(seg: Segmento): string {
+  if (seg.reino && seg.narrador) return `${seg.reino.nombre} · ${seg.narrador.nombre}`;
+  if (seg.reino)    return seg.reino.nombre;
+  if (seg.narrador) return seg.narrador.nombre;
+  return "";
+}
+
+function segImgUrl(seg: Segmento): string | null | undefined {
+  // Prioridad: imagen del reino → avatar del narrador
+  return seg.reino?.imagen_reino ?? seg.narrador?.img_url ?? null;
+}
+
+/* ─────────────────────────────────────────────
+   Barra de progreso acotada al segmento actual
+   ───────────────────────────────────────────── */
+function SegmentoProgressBar({ capIds }: { capIds: string[] }) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     if (capIds.length === 0) return;
-
-    const calcular = () => {
-      const firstEl = document.getElementById(`cap-${capIds[0]}`);
-      const lastEl  = document.getElementById(`cap-${capIds[capIds.length - 1]}`);
-      if (!firstEl || !lastEl) return;
-
-      const top     = firstEl.getBoundingClientRect().top + window.scrollY;
-      const bottom  = lastEl.getBoundingClientRect().bottom + window.scrollY;
+    const calc = () => {
+      const first = document.getElementById(`cap-${capIds[0]}`);
+      const last  = document.getElementById(`cap-${capIds[capIds.length - 1]}`);
+      if (!first || !last) return;
+      const top     = first.getBoundingClientRect().top + window.scrollY;
+      const bottom  = last.getBoundingClientRect().bottom + window.scrollY;
       const total   = bottom - top;
       const scrolled = window.scrollY + window.innerHeight - top;
-      const pct = Math.min(100, Math.max(0, (scrolled / total) * 100));
-      setProgress(pct);
+      setProgress(Math.min(100, Math.max(0, (scrolled / total) * 100)));
     };
-
-    calcular();
-    window.addEventListener("scroll", calcular, { passive: true });
-    window.addEventListener("resize", calcular, { passive: true });
+    calc();
+    window.addEventListener("scroll", calc, { passive: true });
+    window.addEventListener("resize", calc, { passive: true });
     return () => {
-      window.removeEventListener("scroll", calcular);
-      window.removeEventListener("resize", calcular);
+      window.removeEventListener("scroll", calc);
+      window.removeEventListener("resize", calc);
     };
   }, [capIds]);
 
@@ -71,16 +130,15 @@ function NarradorProgressBar({ capIds }: { capIds: string[] }) {
 }
 
 /* ─────────────────────────────────────────────
-   Tarjeta de transición al siguiente narrador.
-   El botón hace router.push → lector fresco.
+   Tarjeta de transición entre segmentos
    ───────────────────────────────────────────── */
-function NarradorTransicion({
-  grupoActual,
-  grupoSiguiente,
+function SegmentoTransicion({
+  actual,
+  siguiente,
   onIr,
 }: {
-  grupoActual: GrupoNarrador;
-  grupoSiguiente: GrupoNarrador;
+  actual: Segmento;
+  siguiente: Segmento;
   onIr: () => void;
 }) {
   const [visible, setVisible] = useState(false);
@@ -88,17 +146,31 @@ function NarradorTransicion({
 
   useEffect(() => {
     const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
+      ([e]) => { if (e.isIntersecting) setVisible(true); },
       { threshold: 0.25 }
     );
     if (ref.current) obs.observe(ref.current);
     return () => obs.disconnect();
   }, []);
 
-  const nombreActual = grupoActual.narrador?.nombre    ?? "Narrador";
-  const nombreSig    = grupoSiguiente.narrador?.nombre ?? "Narrador";
-  const imgActual    = grupoActual.narrador?.img_url;
-  const imgSig       = grupoSiguiente.narrador?.img_url;
+  const labelActual  = segLabel(actual)   || "Capítulos";
+  const labelSig     = segLabel(siguiente) || "Capítulos";
+  const imgActual    = segImgUrl(actual);
+  const imgSig       = segImgUrl(siguiente);
+
+  const Avatar = ({ label, img, dim }: { label: string; img?: string | null; dim?: boolean }) => (
+    img ? (
+      <img src={img} alt={label}
+        className={`w-9 h-9 rounded-full object-cover border flex-shrink-0 ${dim ? "border-primary/10 grayscale opacity-50" : "border-primary/20 shadow-sm"}`} />
+    ) : (
+      <div className={`w-9 h-9 rounded-full border flex-shrink-0 flex items-center justify-center text-xs font-black ${dim ? "border-primary/10 bg-primary/5 text-primary/25" : "border-primary/20 bg-primary/8 text-primary/60"}`}>
+        {label.charAt(0)}
+      </div>
+    )
+  );
+
+  /* Mostrar chip extra si el siguiente tiene reino Y narrador */
+  const tieneReinoYNarrador = siguiente.reino && siguiente.narrador;
 
   return (
     <div ref={ref} className="max-w-2xl mx-auto px-6 py-20">
@@ -116,26 +188,17 @@ function NarradorTransicion({
               <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 25%, transparent))" }} />
             </div>
 
-            <div
-              className="rounded-2xl border border-primary/10 overflow-hidden"
+            <div className="rounded-2xl border border-primary/10 overflow-hidden"
               style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 4%, transparent), color-mix(in srgb, var(--accent) 3%, transparent))" }}
             >
-              {/* Cabecera actual → siguiente */}
               <div className="flex items-stretch divide-x divide-primary/8">
-                {/* Izquierda: terminado */}
+                {/* Actual (terminado) */}
                 <div className="flex-1 p-6">
                   <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 mb-3 italic">Fin de</p>
                   <div className="flex items-center gap-3">
-                    {imgActual ? (
-                      <img src={imgActual} alt={nombreActual}
-                        className="w-9 h-9 rounded-full object-cover border border-primary/10 flex-shrink-0 grayscale opacity-50" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full border border-primary/10 bg-primary/5 flex items-center justify-center text-xs font-black text-primary/25 flex-shrink-0">
-                        {nombreActual.charAt(0)}
-                      </div>
-                    )}
+                    <Avatar label={labelActual} img={imgActual} dim />
                     <p className="text-primary/40 font-black text-xs uppercase tracking-wide line-through decoration-primary/20">
-                      {nombreActual}
+                      {labelActual}
                     </p>
                   </div>
                 </div>
@@ -144,35 +207,35 @@ function NarradorTransicion({
                   <ChevronRight size={14} className="text-primary/15" />
                 </div>
 
-                {/* Derecha: siguiente */}
+                {/* Siguiente */}
                 <div className="flex-1 p-6">
-                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 mb-3 italic">Continúa</p>
+                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 mb-3 italic">Continúa con</p>
                   <div className="flex items-center gap-3">
-                    {imgSig ? (
-                      <img src={imgSig} alt={nombreSig}
-                        className="w-9 h-9 rounded-full object-cover border border-primary/20 flex-shrink-0 shadow-sm" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full border border-primary/20 bg-primary/8 flex items-center justify-center text-xs font-black text-primary/60 flex-shrink-0">
-                        {nombreSig.charAt(0)}
-                      </div>
-                    )}
-                    <p className="text-primary font-black text-xs uppercase tracking-wide">{nombreSig}</p>
+                    <Avatar label={labelSig} img={imgSig} />
+                    <div>
+                      <p className="text-primary font-black text-xs uppercase tracking-wide">{siguiente.reino?.nombre ?? siguiente.narrador?.nombre}</p>
+                      {tieneReinoYNarrador && (
+                        <p className="text-primary/40 font-bold text-[9px] uppercase tracking-widest italic mt-0.5">
+                          {siguiente.narrador!.nombre}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Botón → nueva URL, lector fresco */}
+              {/* Botón */}
               <div className="px-6 pb-6 pt-2">
                 <button
                   onClick={onIr}
                   className="w-full flex items-center justify-between p-4 rounded-xl border border-primary/15 bg-primary/5 hover:bg-primary hover:text-white hover:border-primary transition-all group"
                 >
                   <span className="font-black text-[11px] uppercase tracking-widest text-primary group-hover:text-white transition-colors">
-                    Leer capítulos de {nombreSig}
+                    Continuar → {labelSig}
                   </span>
                   <div className="flex items-center gap-1.5">
                     {imgSig && (
-                      <img src={imgSig} alt={nombreSig}
+                      <img src={imgSig} alt={labelSig}
                         className="w-5 h-5 rounded-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
                     )}
                     <ChevronRight size={14} className="text-primary/50 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
@@ -188,7 +251,7 @@ function NarradorTransicion({
 }
 
 /* ─────────────────────────────────────────────
-   Componente principal
+   Componente principal del lector
    ───────────────────────────────────────────── */
 export default function Lector() {
   const params = useParams();
@@ -198,8 +261,8 @@ export default function Lector() {
 
   const [capitulos,      setCapitulos]      = useState<CapituloScrollItem[]>([]);
   const [listaCapitulos, setListaCapitulos] = useState<CapituloLista[]>([]);
-  const [grupos,         setGrupos]         = useState<GrupoNarrador[]>([]);
-  const [grupoActivo,    setGrupoActivo]    = useState(0);
+  const [segmentos,      setSegmentos]      = useState<Segmento[]>([]);
+  const [segActivo,      setSegActivo]      = useState(0);
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState<string | null>(null);
   const [showIndex,      setShowIndex]      = useState(false);
@@ -241,8 +304,9 @@ export default function Lector() {
           contenido: string;
           fecha_publicacion: string;
           personajes_ids: string[];
-          libros: { titulo: string } | { titulo: string }[] | null;
-          narrador: NarradorInfo | NarradorInfo[] | null;
+          libros:   { titulo: string }   | { titulo: string }[]   | null;
+          narrador: NarradorInfo         | NarradorInfo[]         | null;
+          reino:    ReinoInfo            | ReinoInfo[]            | null;
         };
 
         const { data: contenidos } = await supabase
@@ -250,60 +314,41 @@ export default function Lector() {
           .select(`
             id, orden, titulo_capitulo, contenido, fecha_publicacion, personajes_ids,
             libros(titulo),
-            narrador:personajes!narrador_id(id, nombre, img_url)
+            narrador:personajes!narrador_id(id, nombre, img_url),
+            reino:reinos!reino_id(id, nombre, imagen_reino)
           `)
           .in("id", listaRaw.map(c => c.id))
           .eq("visibilidad", "publico")
           .not("titulo_capitulo", "like", "[Ruta]%")
           .order("orden", { ascending: true });
 
-        const normalizeNarrador = (n: NarradorInfo | NarradorInfo[] | null): NarradorInfo | null => {
-          if (!n) return null;
-          return Array.isArray(n) ? (n[0] ?? null) : n;
-        };
-        const normalizeLibros = (l: { titulo: string } | { titulo: string }[] | null) => {
-          if (!l) return undefined;
-          return Array.isArray(l) ? (l[0] ?? undefined) : l;
-        };
-
         const rawList = (contenidos as unknown as CapRaw[]) ?? [];
-        const capsValidas: (CapituloScrollItem & { narrador?: NarradorInfo | null })[] = rawList.map(c => ({
-          id: c.id,
-          orden: c.orden,
-          titulo_capitulo: c.titulo_capitulo,
-          contenido: c.contenido,
+
+        const capsValidas = rawList.map(c => ({
+          id:               c.id,
+          orden:            c.orden,
+          titulo_capitulo:  c.titulo_capitulo,
+          contenido:        c.contenido,
           fecha_publicacion: c.fecha_publicacion,
-          personajes_ids: c.personajes_ids,
-          libros: normalizeLibros(c.libros),
-          narrador: normalizeNarrador(c.narrador),
+          personajes_ids:   c.personajes_ids,
+          libros:           normOne(c.libros) ?? undefined,
+          _narrador:        normOne(c.narrador),
+          _reino:           normOne(c.reino),
         }));
 
         const idsValidos    = new Set(capsValidas.map(c => c.id));
         const listaFiltrada = listaRaw.filter(c => idsValidos.has(c.id));
 
         setListaCapitulos(listaFiltrada);
-        setCapitulos(capsValidas);
+        setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
 
-        /* ── Armar grupos por narrador en orden de aparición ── */
-        const gruposResult: GrupoNarrador[] = [];
-        const visto = new Map<string | null, number>();
+        /* Construir segmentos */
+        const segs = buildSegmentos(capsValidas as any);
+        setSegmentos(segs);
 
-        for (const cap of capsValidas) {
-          const narr = (cap as any).narrador as NarradorInfo | null;
-          const key  = narr?.id ?? null;
-          if (visto.has(key)) {
-            gruposResult[visto.get(key)!].capitulos.push(cap);
-          } else {
-            visto.set(key, gruposResult.length);
-            gruposResult.push({ narrador: narr, capitulos: [cap] });
-          }
-        }
-
-        setGrupos(gruposResult);
-
-        /* ── Detectar grupo del capId actual ── */
-        const gi = gruposResult.findIndex(g => g.capitulos.some(c => c.id === capId));
-        setGrupoActivo(gi !== -1 ? gi : 0);
+        /* ¿En qué segmento cae el capId actual? */
+        const si = segs.findIndex(s => s.capitulos.some(c => c.id === capId));
+        setSegActivo(si !== -1 ? si : 0);
       })
       .catch((err) => { console.error("Error crítico en Lector:", err); setError("Error al abrir el pergamino"); })
       .finally(() => setLoading(false));
@@ -320,9 +365,9 @@ export default function Lector() {
   }, [id, router]);
 
   const handleChapterSelect = useCallback((newCapId: string) => {
-    /* Si el cap es de otro grupo → nueva URL (lector fresco con ese narrador) */
-    const gi = grupos.findIndex(g => g.capitulos.some(c => c.id === newCapId));
-    if (gi !== -1 && gi !== grupoActivo) {
+    const si = segmentos.findIndex(s => s.capitulos.some(c => c.id === newCapId));
+    /* Si el cap es de otro segmento → nueva URL */
+    if (si !== -1 && si !== segActivo) {
       router.push(`/wiki/libros/${id}/leer/${newCapId}`);
       return;
     }
@@ -333,14 +378,13 @@ export default function Lector() {
     } else {
       router.push(`/wiki/libros/${id}/leer/${newCapId}`);
     }
-  }, [id, router, grupos, grupoActivo]);
+  }, [id, router, segmentos, segActivo]);
 
-  /* Ir al primer cap del siguiente grupo → nueva URL */
-  const irAlSiguienteGrupo = useCallback((gi: number) => {
-    const siguiente = grupos[gi + 1];
-    if (!siguiente?.capitulos[0]) return;
-    router.push(`/wiki/libros/${id}/leer/${siguiente.capitulos[0].id}`);
-  }, [grupos, id, router]);
+  const irAlSiguienteSegmento = useCallback((si: number) => {
+    const sig = segmentos[si + 1];
+    if (!sig?.capitulos[0]) return;
+    router.push(`/wiki/libros/${id}/leer/${sig.capitulos[0].id}`);
+  }, [segmentos, id, router]);
 
   if (loading) return <LectorSkeleton />;
   if (error || capitulos.length === 0) return (
@@ -354,20 +398,18 @@ export default function Lector() {
     </div>
   );
 
-  const tieneGrupos    = grupos.length > 1 && grupos.some(g => g.narrador !== null);
-  const grupoActualObj = tieneGrupos ? grupos[grupoActivo] ?? null : null;
-  const grupoSiguiente = tieneGrupos ? grupos[grupoActivo + 1] ?? null : null;
-
-  /* Solo mostrar los caps del narrador activo (o todos si no hay grupos) */
-  const capsParaMostrar = tieneGrupos
-    ? (grupoActualObj?.capitulos ?? [])
-    : capitulos;
+  const usaSegmentos   = segmentos.length > 1;
+  const segActualObj   = usaSegmentos ? segmentos[segActivo]     ?? null : null;
+  const segSiguiente   = usaSegmentos ? segmentos[segActivo + 1] ?? null : null;
+  const capsParaMostrar = usaSegmentos ? (segActualObj?.capitulos ?? []) : capitulos;
+  const navLabel        = segActualObj ? segLabel(segActualObj) : null;
+  const navImg          = segActualObj ? segImgUrl(segActualObj) : null;
 
   return (
     <div className="min-h-screen bg-bg-main text-primary-dark pb-24">
 
-      {/* Barra de progreso acotada al narrador activo; key fuerza reset al cambiar */}
-      <NarradorProgressBar key={`prog-${grupoActivo}`} capIds={capsParaMostrar.map(c => c.id)} />
+      {/* Barra de progreso — se reinicia con key al cambiar de segmento */}
+      <SegmentoProgressBar key={`prog-${segActivo}`} capIds={capsParaMostrar.map(c => c.id)} />
 
       <Vignette />
 
@@ -390,22 +432,19 @@ export default function Lector() {
             <ChevronLeft size={20} />
           </button>
 
-          {/* Indicador del narrador activo */}
-          {grupoActualObj?.narrador ? (
+          {/* Indicador del segmento activo */}
+          {navLabel ? (
             <div className="flex items-center gap-2">
-              {grupoActualObj.narrador.img_url && (
-                <img
-                  src={grupoActualObj.narrador.img_url}
-                  alt={grupoActualObj.narrador.nombre}
-                  className="w-5 h-5 rounded-full object-cover border border-primary/20"
-                />
+              {navImg && (
+                <img src={navImg} alt={navLabel}
+                  className="w-5 h-5 rounded-full object-cover border border-primary/20" />
               )}
               <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 italic">
-                {grupoActualObj.narrador.nombre}
+                {navLabel}
               </span>
-              {grupos.length > 1 && (
+              {segmentos.length > 1 && (
                 <span className="text-[8px] font-black text-primary/20 uppercase tracking-widest">
-                  · {grupoActivo + 1}/{grupos.length}
+                  · {segActivo + 1}/{segmentos.length}
                 </span>
               )}
             </div>
@@ -420,17 +459,17 @@ export default function Lector() {
         </div>
       </nav>
 
-      {/* ── Solo los capítulos del narrador activo ── */}
+      {/* ── Capítulos del segmento activo ── */}
       {capsParaMostrar.map((cap) => (
         <CapituloScrollBlock key={cap.id} cap={cap} onNavigate={handleNavigate} />
       ))}
 
-      {/* ── Al terminar: transición al siguiente narrador o fin del libro ── */}
-      {grupoSiguiente ? (
-        <NarradorTransicion
-          grupoActual={grupoActualObj!}
-          grupoSiguiente={grupoSiguiente}
-          onIr={() => irAlSiguienteGrupo(grupoActivo)}
+      {/* ── Transición al siguiente segmento o fin del libro ── */}
+      {segSiguiente ? (
+        <SegmentoTransicion
+          actual={segActualObj!}
+          siguiente={segSiguiente}
+          onIr={() => irAlSiguienteSegmento(segActivo)}
         />
       ) : (
         <footer className="max-w-2xl mx-auto px-6 pb-20 pt-4 flex flex-col items-center gap-6">
