@@ -11,7 +11,7 @@ import {
   Trash2, WifiOff, X, Check, CheckCircle2, AlertCircle,
   Eye, EyeOff, Maximize2, Minimize2, Clock, Hash,
   AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal, Globe, Lock, Timer, Zap,
-  Mic2,
+  Mic2, MapPin,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/api/client/supabase";
@@ -38,6 +38,7 @@ type Libro = {
   visibilidad?: "publico" | "programado" | "oculto";
   fecha_publicacion?: string;
   fecha_proximo_capitulo?: string;
+  reino_id?: string | null;
 };
 
 type Capitulo = {
@@ -49,7 +50,7 @@ type Capitulo = {
   fecha_publicacion: string;
   visibilidad?: "publico" | "programado" | "oculto";
   personajes_ids?: string[];
-  
+  reino_id?: string | null;
   narrador_id?: string | null;
   status?: "pending" | "synced";
   deleted?: boolean;
@@ -773,7 +774,123 @@ const SelectorNarrador = ({
   );
 };
 
-type DialogSnippet = {
+// ─── SelectorReino ────────────────────────────────────────────────────────────
+type Reino = { id: string; nombre: string };
+
+function useReinos() {
+  const [reinos, setReinos] = useState<Reino[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    supabase
+      .from("reinos")
+      .select("id, nombre")
+      .eq("oculto", false)
+      .order("nombre", { ascending: true })
+      .then(({ data }) => {
+        setReinos((data ?? []) as Reino[]);
+        setLoading(false);
+      });
+  }, []);
+  return { reinos, loading };
+}
+
+const SelectorReino = ({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (id: string | null) => void;
+}) => {
+  const { reinos, loading } = useReinos();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const selected = reinos.find(r => r.id === value) ?? null;
+
+  return (
+    <div className="space-y-1.5" ref={ref}>
+      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-2">
+        <MapPin size={10} />
+        Reino / Ubicación
+      </label>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          color: selected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+        }}
+      >
+        <span className="flex items-center gap-2">
+          <MapPin size={12} className="opacity-50 shrink-0" />
+          <span className="font-black uppercase truncate">
+            {selected ? selected.nombre : loading ? "Cargando…" : "Sin reino asignado"}
+          </span>
+        </span>
+        <ChevronDown size={12} className={`transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div
+          className="border rounded-[var(--radius-btn)] overflow-hidden"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+            background: "var(--bg-main)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => { onChange(null); setOpen(false); }}
+            className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
+            style={{ color: !value ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+          >
+            <span className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                <X size={9} className="opacity-50" />
+              </span>
+              Ninguno
+            </span>
+            {!value && <Check size={11} style={{ color: "var(--primary)" }} />}
+          </button>
+          <div className="h-px mx-3" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+          <div className="max-h-48 overflow-y-auto">
+            {reinos.length === 0 ? (
+              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">Sin reinos</p>
+            ) : reinos.map(r => {
+              const sel = value === r.id;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => { onChange(r.id); setOpen(false); }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
+                  style={{ color: sel ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+                >
+                  <span className="flex items-center gap-2">
+                    <MapPin size={10} className="opacity-40 shrink-0" />
+                    {r.nombre}
+                  </span>
+                  {sel && <Check size={11} style={{ color: "var(--primary)" }} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
   label: string;
   title: string;
   insert: string | ((sel: string) => string);
@@ -1502,6 +1619,7 @@ const ModalEditarCapitulo = ({
   const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">(cap.visibilidad ?? "oculto");
   const [personajesIds, setPersonajesIds] = useState<string[]>(cap.personajes_ids ?? []);
   const [narradorId,    setNarradorId]    = useState<string | null>(cap.narrador_id ?? null);
+  const [reinoId,       setReinoId]       = useState<string | null>(cap.reino_id ?? null);
   const [saving,        setSaving]        = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1516,6 +1634,7 @@ const ModalEditarCapitulo = ({
         visibilidad,
         personajes_ids: personajesIds,
         narrador_id: narradorId,
+        reino_id: reinoId,
       };
       await capUpdateMeta(cap.id, fields);
       onSaved({ ...cap, ...fields });
@@ -1547,6 +1666,7 @@ const ModalEditarCapitulo = ({
         />
         {}
         <SelectorNarrador value={narradorId} onChange={setNarradorId} />
+        <SelectorReino value={reinoId} onChange={setReinoId} />
         <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
         <BotonSubmit
           loading={saving}
@@ -1572,6 +1692,7 @@ const ModalNuevoCapitulo = ({
   const [visibilidad,   setVisibilidad]   = useState<"publico" | "programado" | "oculto">("oculto");
   const [personajesIds, setPersonajesIds] = useState<string[]>([]);
   const [narradorId,    setNarradorId]    = useState<string | null>(null);
+  const [reinoId,       setReinoId]       = useState<string | null>(null);
   const [saving,        setSaving]        = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1580,9 +1701,12 @@ const ModalNuevoCapitulo = ({
     setSaving(true);
     try {
       const nuevo = await capCreate(libroId, titulo, ordenSiguiente, visibilidad, fecha || undefined, narradorId);
-      if (personajesIds.length > 0) {
-        await capUpdateMeta(nuevo.id, { personajes_ids: personajesIds });
-        Object.assign(nuevo, { personajes_ids: personajesIds });
+      const extraFields: Partial<Capitulo> = {};
+      if (personajesIds.length > 0) extraFields.personajes_ids = personajesIds;
+      if (reinoId) extraFields.reino_id = reinoId;
+      if (Object.keys(extraFields).length > 0) {
+        await capUpdateMeta(nuevo.id, extraFields);
+        Object.assign(nuevo, extraFields);
       }
       onCreated(nuevo);
       onClose();
@@ -1609,6 +1733,7 @@ const ModalNuevoCapitulo = ({
           label="Visibilidad del Capítulo"
         />
         <SelectorNarrador value={narradorId} onChange={setNarradorId} />
+        <SelectorReino value={reinoId} onChange={setReinoId} />
         <SelectorPersonajesCapitulo value={personajesIds} onChange={setPersonajesIds} />
         <BotonSubmit
           loading={saving}
@@ -1742,6 +1867,7 @@ const ModalEditarLibro = ({
   const [estado,      setEstado]      = useState(libro.estado ?? "BORRADOR");
   const [visibilidad, setVisibilidad] = useState<"publico" | "programado" | "oculto">(libro.visibilidad ?? "oculto");
   const [fechaLibro,  setFechaLibro]  = useState(libro.fecha_publicacion ?? "");
+  const [reinoId,     setReinoId]     = useState<string | null>(libro.reino_id ?? null);
   const [saving,      setSaving]      = useState(false);
 
   const ESTADOS = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
@@ -1757,7 +1883,7 @@ const ModalEditarLibro = ({
         portada_url: portada.trim(),
         estado,
         visibilidad,
-        
+        reino_id: reinoId,
         fecha_publicacion: visibilidad === "programado" ? (fechaLibro || null) : null,
       };
       await libroUpdateMeta(libro.id, fields);
@@ -1810,6 +1936,7 @@ const ModalEditarLibro = ({
           onFechaChange={setFechaLibro}
           label="Visibilidad del Libro"
         />
+        <SelectorReino value={reinoId} onChange={setReinoId} />
         <div className="pt-2">
           <BotonSubmit
             loading={saving}
