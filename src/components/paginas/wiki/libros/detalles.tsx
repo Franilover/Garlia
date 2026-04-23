@@ -13,6 +13,12 @@ interface Narrador {
   img_url?: string;
 }
 
+interface Reino {
+  id: string;
+  nombre: string;
+  imagen_reino?: string | null;
+}
+
 interface Capitulo {
   id: string;
   titulo_capitulo: string;
@@ -20,7 +26,9 @@ interface Capitulo {
   fecha_publicacion: string | null;
   libro_id: string;
   narrador_id: string | null;
+  reino_id: string | null;
   narrador?: Narrador | null;
+  reino?: Reino | null;
 }
 
 interface Libro {
@@ -35,9 +43,57 @@ interface CapituloProximo {
   fecha_publicacion: string;
 }
 
-interface GrupoNarrador {
+/** Igual que en leer.tsx: prioridad reino > narrador */
+interface GrupoSegmento {
+  reino:    Reino    | null;
   narrador: Narrador | null;
   capitulos: Capitulo[];
+}
+
+/* ── Helper: normaliza joins que Supabase puede devolver como array o null ── */
+function normOne<T>(v: T | T[] | null | undefined): T | null {
+  if (!v) return null;
+  return Array.isArray(v) ? (v[0] ?? null) : v;
+}
+
+/* ── Construye grupos con la misma lógica que buildSegmentos en leer.tsx ──
+   Clave = "reinoId::narradorId". Capítulos consecutivos con la misma clave
+   se fusionan en un grupo. Si el libro no usa reinos en ningún capítulo,
+   la clave degrada a solo narrador_id, replicando el comportamiento original. */
+function buildGrupos(caps: Capitulo[]): GrupoSegmento[] {
+  const grupos: GrupoSegmento[] = [];
+
+  for (const cap of caps) {
+    const reino    = cap.reino    ?? null;
+    const narrador = cap.narrador ?? null;
+    const key      = `${reino?.id ?? "null"}::${narrador?.id ?? "null"}`;
+
+    const last    = grupos[grupos.length - 1];
+    const lastKey = last
+      ? `${last.reino?.id ?? "null"}::${last.narrador?.id ?? "null"}`
+      : null;
+
+    if (last && lastKey === key) {
+      last.capitulos.push(cap);
+    } else {
+      grupos.push({ reino, narrador, capitulos: [cap] });
+    }
+  }
+
+  return grupos;
+}
+
+/** Etiqueta del grupo: reino · narrador / solo reino / solo narrador */
+function grupoLabel(g: GrupoSegmento): string {
+  if (g.reino && g.narrador) return `${g.reino.nombre} · ${g.narrador.nombre}`;
+  if (g.reino)    return g.reino.nombre;
+  if (g.narrador) return g.narrador.nombre;
+  return "";
+}
+
+/** Imagen de cabecera: imagen del reino tiene prioridad sobre avatar del narrador */
+function grupoImg(g: GrupoSegmento): string | null | undefined {
+  return g.reino?.imagen_reino ?? g.narrador?.img_url ?? null;
 }
 
 export default function LibroDetalle() {
@@ -61,7 +117,11 @@ export default function LibroDetalle() {
       supabase.from("libros").select("*").eq("id", id).single(),
       supabase
         .from("capitulos")
-        .select("*, narrador:personajes!narrador_id(id, nombre, img_url)")
+        .select(`
+          *,
+          narrador:personajes!narrador_id(id, nombre, img_url),
+          reino:reinos!reino_id(id, nombre, imagen_reino)
+        `)
         .eq("libro_id", id)
         .eq("visibilidad", "publico")
         .not("titulo_capitulo", "like", "[Ruta]%")
@@ -78,7 +138,15 @@ export default function LibroDetalle() {
     ]).then(([libroRes, capsRes, proximoRes]) => {
       if (!libroRes.data) { setNotFound(true); return; }
       setLibro(libroRes.data);
-      setCapitulos((capsRes.data as Capitulo[]) ?? []);
+
+      // Normalizar joins que Supabase puede devolver como array o null
+      const capsNorm = ((capsRes.data as any[]) ?? []).map((c) => ({
+        ...c,
+        narrador: normOne(c.narrador),
+        reino:    normOne(c.reino),
+      })) as Capitulo[];
+
+      setCapitulos(capsNorm);
       setCapituloProximo(proximoRes.data ?? false);
     }).finally(() => setLoading(false));
   }, [id]);
@@ -91,28 +159,20 @@ export default function LibroDetalle() {
     </div>
   );
 
-  // ── Agrupar capítulos por narrador ──
-  const grupos: GrupoNarrador[] = [];
-  const visto = new Map<string | null, number>();
+  // ── Construir grupos (reino > narrador) ──
+  const grupos = buildGrupos(capitulos);
 
-  for (const cap of capitulos) {
-    const key = cap.narrador_id ?? null;
-    if (visto.has(key)) {
-      grupos[visto.get(key)!].capitulos.push(cap);
-    } else {
-      visto.set(key, grupos.length);
-      grupos.push({ narrador: cap.narrador ?? null, capitulos: [cap] });
-    }
-  }
-
+  // ¿Algún capítulo usa reino o narrador?
+  const tieneReinos    = grupos.some(g => g.reino    !== null);
   const tieneNarradores = grupos.some(g => g.narrador !== null);
+  const tieneAgrupacion = tieneReinos || tieneNarradores;
 
-  // Colores de acento por grupo
+  // Colores de acento por grupo (igual que antes)
   const acentos = [
-    { bg: "bg-primary/5", border: "border-primary/15", dot: "bg-primary/40" },
-    { bg: "bg-[var(--accent)]/5", border: "border-[var(--accent)]/20", dot: "bg-[var(--accent)]/50" },
-    { bg: "bg-primary/8", border: "border-primary/20", dot: "bg-primary/60" },
-    { bg: "bg-[var(--accent)]/8", border: "border-[var(--accent)]/25", dot: "bg-[var(--accent)]/70" },
+    { bg: "bg-primary/5",             border: "border-primary/15",           dot: "bg-primary/40" },
+    { bg: "bg-[var(--accent)]/5",     border: "border-[var(--accent)]/20",   dot: "bg-[var(--accent)]/50" },
+    { bg: "bg-primary/8",             border: "border-primary/20",           dot: "bg-primary/60" },
+    { bg: "bg-[var(--accent)]/8",     border: "border-[var(--accent)]/25",   dot: "bg-[var(--accent)]/70" },
   ];
 
   return (
@@ -149,31 +209,46 @@ export default function LibroDetalle() {
             )}
           </div>
 
-          {/* ── Resumen de narradores (sidebar) ── */}
-          {tieneNarradores && grupos.length > 1 && (
+          {/* ── Resumen de grupos en sidebar (reinos o narradores) ── */}
+          {tieneAgrupacion && grupos.length > 1 && (
             <div className="mt-6 p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10">
               <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-4 flex items-center gap-2 italic">
-                <BookOpen size={12} /> Protagonistas
+                <BookOpen size={12} /> {tieneReinos ? "Reinos" : "Protagonistas"}
               </h4>
               <div className="flex flex-col gap-3">
-                {grupos.map((g, i) => (
-                  g.narrador && (
-                    <div key={g.narrador.id} className="flex items-center gap-3">
-                      {g.narrador.img_url ? (
-                        <img src={g.narrador.img_url} alt={g.narrador.nombre}
-                          className="w-8 h-8 rounded-full object-cover border border-primary/10 flex-shrink-0" />
+                {grupos.map((g, i) => {
+                  const label = grupoLabel(g);
+                  const img   = grupoImg(g);
+                  if (!label) return null;
+                  return (
+                    <div key={i} className="flex items-center gap-3">
+                      {img ? (
+                        <img
+                          src={img}
+                          alt={label}
+                          className="w-8 h-8 rounded-full object-cover border border-primary/10 flex-shrink-0"
+                        />
                       ) : (
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-primary/50 border border-primary/10 flex-shrink-0 ${acentos[i % acentos.length].bg}`}>
-                          {g.narrador.nombre.charAt(0)}
+                          {label.charAt(0)}
                         </div>
                       )}
                       <div>
-                        <p className="text-primary font-black text-[11px] uppercase tracking-wide">{g.narrador.nombre}</p>
-                        <p className="text-primary/40 font-bold text-[9px] italic">{g.capitulos.length} cap{g.capitulos.length !== 1 ? "ítulos" : "ítulo"}</p>
+                        <p className="text-primary font-black text-[11px] uppercase tracking-wide">
+                          {g.reino?.nombre ?? g.narrador?.nombre}
+                        </p>
+                        {g.reino && g.narrador && (
+                          <p className="text-primary/40 font-bold text-[9px] italic uppercase tracking-wide">
+                            {g.narrador.nombre}
+                          </p>
+                        )}
+                        <p className="text-primary/40 font-bold text-[9px] italic">
+                          {g.capitulos.length} cap{g.capitulos.length !== 1 ? "ítulos" : "ítulo"}
+                        </p>
                       </div>
                     </div>
-                  )
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -202,39 +277,52 @@ export default function LibroDetalle() {
               <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
                 Aún no hay capítulos publicados
               </p>
-            ) : tieneNarradores ? (
-              /* ── Vista agrupada por narrador ── */
+            ) : tieneAgrupacion ? (
+              /* ── Vista agrupada por reino (o narrador como fallback) ── */
               <div className="flex flex-col gap-10">
                 {grupos.map((grupo, gi) => {
-                  const acento = acentos[gi % acentos.length];
+                  const acento   = acentos[gi % acentos.length];
+                  const label    = grupoLabel(grupo);
+                  const img      = grupoImg(grupo);
                   const primerCapId = capitulos[0]?.id;
 
                   return (
                     <div key={gi}>
-                      {/* Cabecera del narrador */}
-                      {grupo.narrador && (
+                      {/* Cabecera del grupo */}
+                      {label && (
                         <div className="flex items-center gap-4 mb-4">
-                          {grupo.narrador.img_url ? (
+                          {img ? (
                             <img
-                              src={grupo.narrador.img_url}
-                              alt={grupo.narrador.nombre}
+                              src={img}
+                              alt={label}
                               className="w-10 h-10 rounded-full object-cover border border-primary/10 flex-shrink-0 shadow-md"
                             />
                           ) : (
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black text-primary/60 border border-primary/15 flex-shrink-0 ${acento.bg}`}>
-                              {grupo.narrador.nombre.charAt(0)}
+                              {label.charAt(0)}
                             </div>
                           )}
                           <div>
-                            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 italic mb-0.5">Narrador</p>
-                            <p className="text-primary font-black uppercase text-sm tracking-tight">{grupo.narrador.nombre}</p>
+                            {/* Etiqueta encima: "Reino" o "Narrador" */}
+                            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 italic mb-0.5">
+                              {grupo.reino ? "Reino" : "Narrador"}
+                            </p>
+                            <p className="text-primary font-black uppercase text-sm tracking-tight">
+                              {grupo.reino?.nombre ?? grupo.narrador?.nombre}
+                            </p>
+                            {/* Si hay reino Y narrador, mostrar narrador debajo */}
+                            {grupo.reino && grupo.narrador && (
+                              <p className="text-primary/40 font-bold text-[10px] uppercase tracking-wide italic">
+                                {grupo.narrador.nombre}
+                              </p>
+                            )}
                           </div>
                           <div className="flex-1 h-px ml-2" style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 12%, transparent), transparent)" }} />
                         </div>
                       )}
 
                       {/* Lista de capítulos del grupo */}
-                      <div className={`grid gap-2 pl-0 border-l-2 ${acento.border} pl-4`}>
+                      <div className={`grid gap-2 border-l-2 ${acento.border} pl-4`}>
                         {grupo.capitulos.map((cap) => {
                           const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
                           return (
@@ -266,7 +354,7 @@ export default function LibroDetalle() {
                 })}
               </div>
             ) : (
-              /* ── Vista plana (sin narradores) ── */
+              /* ── Vista plana (sin reinos ni narradores) ── */
               <div className="grid gap-3">
                 {capitulos.map((cap) => {
                   const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
