@@ -12,12 +12,21 @@ interface Cancion {
   id: string;
   titulo: string;
   personaje?: string;
+  personaje_img?: string;   // URL de foto del personaje (si existe en la tabla)
   cantante?: string;
   compositor?: string;
   idioma?: string;
   portada_url?: string;
   visible?: boolean;
 }
+
+// Igual que en detalles.tsx — rotación de acentos por grupo
+const ACENTOS = [
+  { bg: "bg-primary/5",           borderLeft: "color-mix(in srgb, var(--primary) 18%, transparent)" },
+  { bg: "bg-[var(--accent)]/5",   borderLeft: "color-mix(in srgb, var(--accent) 22%, transparent)"  },
+  { bg: "bg-primary/8",           borderLeft: "color-mix(in srgb, var(--primary) 25%, transparent)" },
+  { bg: "bg-[var(--accent)]/8",   borderLeft: "color-mix(in srgb, var(--accent) 28%, transparent)"  },
+];
 
 const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }) => (
   <MotionDiv
@@ -32,7 +41,14 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
         className="cursor-pointer h-full flex flex-col"
       >
-        <div className="relative aspect-square rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10 bg-gradient-to-br from-primary/10 to-primary/5 group-hover:shadow-[0_20px_40px_rgba(107,94,112,0.15)] transition-all duration-500">
+        <div
+          className="relative aspect-square overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 transition-all duration-500"
+          style={{
+            borderRadius: "var(--radius-card)",
+            border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            boxShadow: "var(--shadow-card)",
+          }}
+        >
           <SmartImage
             src={cancion.portada_url || "/placeholder-cover.jpg"}
             alt={cancion.titulo}
@@ -40,7 +56,10 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
           />
           <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
-            <div className="bg-white-custom/90 p-5 rounded-full shadow-2xl backdrop-blur-sm border border-primary/10">
+            <div
+              className="bg-white-custom/90 p-5 rounded-full backdrop-blur-sm"
+              style={{ boxShadow: "var(--shadow-card)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            >
               <ChevronRight size={32} className="text-primary ml-1" />
             </div>
           </div>
@@ -67,9 +86,20 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
     transition={{ delay: index * 0.03 }}
   >
     <Link href={`/wiki/canciones/${cancion.id}`}>
-      <div className="group flex items-center justify-between gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm border border-primary/10 hover:border-primary/20 rounded-[var(--radius-btn)] px-6 py-4 transition-all duration-300 cursor-pointer">
+      <div
+        className="group flex items-center justify-between gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm px-6 py-4 transition-all duration-300 cursor-pointer"
+        style={{
+          borderRadius: "var(--radius-btn)",
+          border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
+      >
         <div className="flex items-center gap-4 min-w-0">
-          <div className="w-10 h-10 rounded-[var(--radius-btn)] overflow-hidden shrink-0 border border-primary/10">
+          <div
+            className="w-10 h-10 overflow-hidden shrink-0"
+            style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
+          >
             <SmartImage src={cancion.portada_url || "/placeholder-cover.jpg"} alt={cancion.titulo} className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0">
@@ -89,24 +119,58 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
   </MotionDiv>
 );
 
-// ─── Encabezado de bloque por personaje ───────────────────────────────────────
-const PersonajeHeader = ({ nombre, count }: { nombre: string; count: number }) => (
+// ─── Encabezado de bloque por personaje (igual que grupos en detalles.tsx) ─────
+const PersonajeHeader = ({
+  nombre,
+  count,
+  imgUrl,
+}: {
+  nombre: string;
+  count: number;
+  imgUrl?: string;
+}) => (
   <MotionDiv
     initial={{ opacity: 0, x: -16 }}
     animate={{ opacity: 1, x: 0 }}
     transition={{ duration: 0.4 }}
     className="flex items-center gap-4 mb-6"
   >
-    <div className="flex items-center gap-2 bg-primary/10 border border-primary/15 rounded-full px-4 py-2">
-      <User size={14} className="text-primary/60" />
-      <span className="text-primary font-black uppercase tracking-widest text-xs italic">
+    {imgUrl ? (
+      <img
+        src={imgUrl}
+        alt={nombre}
+        className="w-10 h-10 object-cover flex-shrink-0"
+        style={{
+          borderRadius: "var(--radius-btn)",
+          border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
+        }}
+      />
+    ) : (
+      <div
+        className="w-10 h-10 flex items-center justify-center bg-primary/5 flex-shrink-0"
+        style={{
+          borderRadius: "var(--radius-btn)",
+          border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)",
+        }}
+      >
+        <User size={14} className="text-primary/40" />
+      </div>
+    )}
+    <div>
+      <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 italic mb-0.5">
+        Personaje
+      </p>
+      <p className="text-primary font-black uppercase text-sm tracking-tight flex items-center gap-2">
         {nombre}
-      </span>
-      <span className="text-primary/30 font-bold text-[10px] ml-1">
-        {count}
-      </span>
+        <span className="text-primary/30 font-bold text-[10px] normal-case tracking-normal">
+          {count} {count !== 1 ? "canciones" : "canción"}
+        </span>
+      </p>
     </div>
-    <div className="flex-1 h-px bg-primary/10" />
+    <div
+      className="flex-1 h-px ml-2"
+      style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 12%, transparent), transparent)" }}
+    />
   </MotionDiv>
 );
 
@@ -116,11 +180,13 @@ const PersonajeBloque = ({
   canciones,
   vistaFila,
   globalOffset,
+  imgUrl,
 }: {
   personaje: string;
   canciones: Cancion[];
   vistaFila: boolean;
   globalOffset: number;
+  imgUrl?: string;
 }) => (
   <MotionDiv
     initial={{ opacity: 0, y: 24 }}
@@ -128,7 +194,7 @@ const PersonajeBloque = ({
     transition={{ duration: 0.5 }}
     className="mb-16"
   >
-    <PersonajeHeader nombre={personaje} count={canciones.length} />
+    <PersonajeHeader nombre={personaje} count={canciones.length} imgUrl={imgUrl} />
 
     {vistaFila ? (
       <div className="flex flex-col gap-3">
@@ -173,12 +239,16 @@ export default function CancionesPage() {
   // Agrupar por personaje manteniendo el orden de aparición
   const grupos = useMemo(() => {
     const SIN_PERSONAJE = "Sin personaje";
-    const mapa = new Map<string, Cancion[]>();
+    const mapa = new Map<string, { canciones: Cancion[]; imgUrl?: string }>();
 
     for (const c of filtradas) {
       const key = c.personaje?.trim() || SIN_PERSONAJE;
-      if (!mapa.has(key)) mapa.set(key, []);
-      mapa.get(key)!.push(c);
+      if (!mapa.has(key)) mapa.set(key, { canciones: [], imgUrl: c.personaje_img });
+      mapa.get(key)!.canciones.push(c);
+      // Guardar la primera img que aparezca para este personaje
+      if (!mapa.get(key)!.imgUrl && c.personaje_img) {
+        mapa.get(key)!.imgUrl = c.personaje_img;
+      }
     }
 
     // "Sin personaje" siempre al final
@@ -222,17 +292,18 @@ export default function CancionesPage() {
             No hay canciones disponibles
           </p>
         ) : (
-          grupos.map(([personaje, lista]) => {
+          grupos.map(([personaje, { canciones: cancionesList, imgUrl }]) => {
             const bloque = (
               <PersonajeBloque
                 key={personaje}
                 personaje={personaje}
-                canciones={lista}
+                canciones={cancionesList}
                 vistaFila={vistaFila}
                 globalOffset={offset}
+                imgUrl={imgUrl}
               />
             );
-            offset += lista.length;
+            offset += cancionesList.length;
             return bloque;
           })
         )}
