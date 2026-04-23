@@ -453,25 +453,6 @@ export default function PerfilPublico() {
                                   {cancion.titulo ?? `Canción ${i + 1}`}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                {cancion.cantante && (
-                                  <span className="font-serif italic text-[8px]"
-                                    style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
-                                    {cancion.cantante}
-                                  </span>
-                                )}
-                                {cancion.idioma && (
-                                  <span className="font-serif italic text-[8px] px-1.5 py-px"
-                                    style={{
-                                      background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                                      borderRadius: "var(--radius-btn)",
-                                      color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                                    }}>
-                                    {cancion.idioma}
-                                  </span>
-                                )}
-                              </div>
                             </div>
                           </div>
                           {cancion.info_cancion && (
