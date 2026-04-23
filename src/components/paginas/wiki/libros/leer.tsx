@@ -293,35 +293,63 @@ function SegmentoTransicion({
 
 /* ─────────────────────────────────────────────
    Hook: observa qué capítulos son visibles
-   y los marca como leídos en localStorage
+   y los marca como leídos en localStorage.
+
+   - Threshold 0.15 para el ÚLTIMO cap del segmento:
+     el usuario llega al final y ve la tarjeta de
+     transición antes de que el bloque sea 40% visible.
+   - Threshold 0.4 para el resto: evita marcar
+     caps por scroll rápido de paso.
+   - Se estabiliza la lista de IDs con useRef para
+     no re-montar el observer en cada render.
    ───────────────────────────────────────────── */
 function useScrollLeidos(libroId: string, capIds: string[]) {
+  const prevIdsRef = useRef<string>("");
+
   useEffect(() => {
     if (!libroId || capIds.length === 0) return;
 
-    const obs = new IntersectionObserver(
+    /* Evitar re-montar si la lista no cambió */
+    const key = capIds.join(",");
+    if (key === prevIdsRef.current) return;
+    prevIdsRef.current = key;
+
+    const lastId = capIds[capIds.length - 1];
+
+    /* Observer normal (40%) para todos menos el último */
+    const obsNormal = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) {
-            /* Extraemos el capId del id del elemento: "cap-{id}" */
-            const capId = entry.target.id.replace("cap-", "");
-            guardarLeido(libroId, capId);
-          }
+          if (entry.isIntersecting)
+            guardarLeido(libroId, entry.target.id.replace("cap-", ""));
         }
       },
-      {
-        /* Se considera "leído" cuando al menos el 40% del bloque
-           es visible — evita marcar por scroll rápido */
-        threshold: 0.4,
-      }
+      { threshold: 0.4 }
+    );
+
+    /* Observer laxo (15%) solo para el último cap —
+       se activa en cuanto el usuario llega al pie del segmento */
+    const obsUltimo = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting)
+            guardarLeido(libroId, entry.target.id.replace("cap-", ""));
+        }
+      },
+      { threshold: 0.15 }
     );
 
     for (const capId of capIds) {
       const el = document.getElementById(`cap-${capId}`);
-      if (el) obs.observe(el);
+      if (!el) continue;
+      if (capId === lastId) obsUltimo.observe(el);
+      else obsNormal.observe(el);
     }
 
-    return () => obs.disconnect();
+    return () => {
+      obsNormal.disconnect();
+      obsUltimo.disconnect();
+    };
   }, [libroId, capIds]);
 }
 
