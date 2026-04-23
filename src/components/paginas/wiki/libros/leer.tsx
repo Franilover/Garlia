@@ -28,10 +28,6 @@ interface ReinoInfo {
   imagen_reino?: string | null;
 }
 
-/** Un segmento es una secuencia continua de caps con la misma
- *  combinación (reino_id | null, narrador_id | null).
- *  La prioridad de agrupación es: reino > narrador.
- */
 interface Segmento {
   reino:    ReinoInfo | null;
   narrador: NarradorInfo | null;
@@ -39,45 +35,27 @@ interface Segmento {
 }
 
 /* ─────────────────────────────────────────────
-   Helpers para normalizar joins de Supabase
+   Helpers
    ───────────────────────────────────────────── */
 function normOne<T>(v: T | T[] | null | undefined): T | null {
   if (!v) return null;
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
-/* ─────────────────────────────────────────────
-   Construir segmentos en orden de aparición.
-   Clave = "reinoId::narradorId" (o "null")
-   Capítulos consecutivos con la misma clave
-   se fusionan en un segmento.
-   ───────────────────────────────────────────── */
 function buildSegmentos(caps: (CapituloScrollItem & { _reino?: ReinoInfo | null; _narrador?: NarradorInfo | null })[]): Segmento[] {
   const segs: Segmento[] = [];
-
   for (const cap of caps) {
     const reino    = cap._reino    ?? null;
     const narrador = cap._narrador ?? null;
     const key      = `${reino?.id ?? "null"}::${narrador?.id ?? "null"}`;
-
-    const last = segs[segs.length - 1];
-    const lastKey = last
-      ? `${last.reino?.id ?? "null"}::${last.narrador?.id ?? "null"}`
-      : null;
-
-    if (last && lastKey === key) {
-      last.capitulos.push(cap);
-    } else {
-      segs.push({ reino, narrador, capitulos: [cap] });
-    }
+    const last     = segs[segs.length - 1];
+    const lastKey  = last ? `${last.reino?.id ?? "null"}::${last.narrador?.id ?? "null"}` : null;
+    if (last && lastKey === key) last.capitulos.push(cap);
+    else segs.push({ reino, narrador, capitulos: [cap] });
   }
-
   return segs;
 }
 
-/* ─────────────────────────────────────────────
-   Label del segmento para la navbar y transición
-   ───────────────────────────────────────────── */
 function segLabel(seg: Segmento): string {
   if (seg.reino && seg.narrador) return `${seg.reino.nombre} · ${seg.narrador.nombre}`;
   if (seg.reino)    return seg.reino.nombre;
@@ -86,12 +64,30 @@ function segLabel(seg: Segmento): string {
 }
 
 function segImgUrl(seg: Segmento): string | null | undefined {
-  // Prioridad: imagen del reino → avatar del narrador
   return seg.reino?.imagen_reino ?? seg.narrador?.img_url ?? null;
 }
 
 /* ─────────────────────────────────────────────
-   Barra de progreso acotada al segmento actual
+   localStorage helpers — misma clave que detalles.tsx
+   ───────────────────────────────────────────── */
+function cargarLeidos(libroId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(`leidos:${libroId}`);
+    if (raw) return new Set(JSON.parse(raw) as string[]);
+  } catch { }
+  return new Set();
+}
+
+function guardarLeido(libroId: string, capId: string): void {
+  try {
+    const set = cargarLeidos(libroId);
+    set.add(capId);
+    localStorage.setItem(`leidos:${libroId}`, JSON.stringify([...set]));
+  } catch { }
+}
+
+/* ─────────────────────────────────────────────
+   Barra de progreso
    ───────────────────────────────────────────── */
 function SegmentoProgressBar({ capIds }: { capIds: string[] }) {
   const [progress, setProgress] = useState(0);
@@ -130,7 +126,7 @@ function SegmentoProgressBar({ capIds }: { capIds: string[] }) {
 }
 
 /* ─────────────────────────────────────────────
-   Tarjeta de transición entre segmentos
+   Tarjeta de transición — con temas dinámicos
    ───────────────────────────────────────────── */
 function SegmentoTransicion({
   actual,
@@ -153,24 +149,36 @@ function SegmentoTransicion({
     return () => obs.disconnect();
   }, []);
 
-  const labelActual  = segLabel(actual)   || "Capítulos";
-  const labelSig     = segLabel(siguiente) || "Capítulos";
-  const imgActual    = segImgUrl(actual);
-  const imgSig       = segImgUrl(siguiente);
+  const labelActual = segLabel(actual)   || "Capítulos";
+  const labelSig    = segLabel(siguiente) || "Capítulos";
+  const imgActual   = segImgUrl(actual);
+  const imgSig      = segImgUrl(siguiente);
+  const tieneReinoYNarrador = siguiente.reino && siguiente.narrador;
 
+  /* Avatar respeta border-radius del tema */
   const Avatar = ({ label, img, dim }: { label: string; img?: string | null; dim?: boolean }) => (
     img ? (
-      <img src={img} alt={label}
-        className={`w-9 h-9 rounded-full object-cover border flex-shrink-0 ${dim ? "border-primary/10 grayscale opacity-50" : "border-primary/20 shadow-sm"}`} />
+      <img
+        src={img} alt={label}
+        className={`w-9 h-9 object-cover flex-shrink-0 ${dim ? "grayscale opacity-50" : "shadow-sm"}`}
+        style={{
+          borderRadius: "var(--radius-btn)",
+          border: `var(--border-width) solid color-mix(in srgb, var(--primary) ${dim ? "10" : "20"}%, transparent)`,
+        }}
+      />
     ) : (
-      <div className={`w-9 h-9 rounded-full border flex-shrink-0 flex items-center justify-center text-xs font-black ${dim ? "border-primary/10 bg-primary/5 text-primary/25" : "border-primary/20 bg-primary/8 text-primary/60"}`}>
+      <div
+        className={`w-9 h-9 flex-shrink-0 flex items-center justify-center text-xs font-black ${dim ? "text-primary/25" : "text-primary/60"}`}
+        style={{
+          borderRadius: "var(--radius-btn)",
+          border: `var(--border-width) solid color-mix(in srgb, var(--primary) ${dim ? "10" : "20"}%, transparent)`,
+          background: `color-mix(in srgb, var(--primary) ${dim ? "5" : "8"}%, transparent)`,
+        }}
+      >
         {label.charAt(0)}
       </div>
     )
   );
-
-  /* Mostrar chip extra si el siguiente tiene reino Y narrador */
-  const tieneReinoYNarrador = siguiente.reino && siguiente.narrador;
 
   return (
     <div ref={ref} className="max-w-2xl mx-auto px-6 py-20">
@@ -188,10 +196,19 @@ function SegmentoTransicion({
               <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 25%, transparent))" }} />
             </div>
 
-            <div className="rounded-2xl border border-primary/10 overflow-hidden"
-              style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 4%, transparent), color-mix(in srgb, var(--accent) 3%, transparent))" }}
+            {/* Tarjeta principal */}
+            <div
+              style={{
+                borderRadius: "var(--radius-card)",
+                border: `var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)`,
+                background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 4%, var(--white-custom)), color-mix(in srgb, var(--accent) 3%, var(--white-custom)))",
+                overflow: "hidden",
+                boxShadow: "var(--shadow-card)",
+              }}
             >
-              <div className="flex items-stretch divide-x divide-primary/8">
+              {/* Dos columnas: actual → siguiente */}
+              <div className="flex items-stretch" style={{ borderBottom: `var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
+
                 {/* Actual (terminado) */}
                 <div className="flex-1 p-6">
                   <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 mb-3 italic">Fin de</p>
@@ -203,7 +220,11 @@ function SegmentoTransicion({
                   </div>
                 </div>
 
-                <div className="flex items-center px-3">
+                {/* Separador vertical */}
+                <div
+                  className="flex items-center px-3"
+                  style={{ borderLeft: `var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)` }}
+                >
                   <ChevronRight size={14} className="text-primary/15" />
                 </div>
 
@@ -213,7 +234,9 @@ function SegmentoTransicion({
                   <div className="flex items-center gap-3">
                     <Avatar label={labelSig} img={imgSig} />
                     <div>
-                      <p className="text-primary font-black text-xs uppercase tracking-wide">{siguiente.reino?.nombre ?? siguiente.narrador?.nombre}</p>
+                      <p className="text-primary font-black text-xs uppercase tracking-wide">
+                        {siguiente.reino?.nombre ?? siguiente.narrador?.nombre}
+                      </p>
                       {tieneReinoYNarrador && (
                         <p className="text-primary/40 font-bold text-[9px] uppercase tracking-widest italic mt-0.5">
                           {siguiente.narrador!.nombre}
@@ -224,21 +247,39 @@ function SegmentoTransicion({
                 </div>
               </div>
 
-              {/* Botón */}
-              <div className="px-6 pb-6 pt-2">
+              {/* Botón continuar */}
+              <div className="px-6 pb-6 pt-4">
                 <button
                   onClick={onIr}
-                  className="w-full flex items-center justify-between p-4 rounded-xl border border-primary/15 bg-primary/5 hover:bg-primary hover:text-white hover:border-primary transition-all group"
+                  className="w-full flex items-center justify-between p-4 transition-all group"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    border: `var(--border-width) solid color-mix(in srgb, var(--primary) 18%, transparent)`,
+                    background: `color-mix(in srgb, var(--primary) 5%, transparent)`,
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = "var(--primary)";
+                    e.currentTarget.style.borderColor = "var(--primary)";
+                    e.currentTarget.style.color = "var(--btn-text)";
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = `color-mix(in srgb, var(--primary) 5%, transparent)`;
+                    e.currentTarget.style.borderColor = `color-mix(in srgb, var(--primary) 18%, transparent)`;
+                    e.currentTarget.style.color = "";
+                  }}
                 >
-                  <span className="font-black text-[11px] uppercase tracking-widest text-primary group-hover:text-white transition-colors">
+                  <span className="font-black text-[11px] uppercase tracking-widest text-primary group-hover:text-[var(--btn-text)] transition-colors">
                     Continuar → {labelSig}
                   </span>
                   <div className="flex items-center gap-1.5">
                     {imgSig && (
-                      <img src={imgSig} alt={labelSig}
-                        className="w-5 h-5 rounded-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
+                      <img
+                        src={imgSig} alt={labelSig}
+                        className="w-5 h-5 object-cover opacity-70 group-hover:opacity-100 transition-opacity"
+                        style={{ borderRadius: "var(--radius-btn)" }}
+                      />
                     )}
-                    <ChevronRight size={14} className="text-primary/50 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                    <ChevronRight size={14} className="text-primary/50 group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </button>
               </div>
@@ -248,6 +289,40 @@ function SegmentoTransicion({
       </AnimatePresence>
     </div>
   );
+}
+
+/* ─────────────────────────────────────────────
+   Hook: observa qué capítulos son visibles
+   y los marca como leídos en localStorage
+   ───────────────────────────────────────────── */
+function useScrollLeidos(libroId: string, capIds: string[]) {
+  useEffect(() => {
+    if (!libroId || capIds.length === 0) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            /* Extraemos el capId del id del elemento: "cap-{id}" */
+            const capId = entry.target.id.replace("cap-", "");
+            guardarLeido(libroId, capId);
+          }
+        }
+      },
+      {
+        /* Se considera "leído" cuando al menos el 40% del bloque
+           es visible — evita marcar por scroll rápido */
+        threshold: 0.4,
+      }
+    );
+
+    for (const capId of capIds) {
+      const el = document.getElementById(`cap-${capId}`);
+      if (el) obs.observe(el);
+    }
+
+    return () => obs.disconnect();
+  }, [libroId, capIds]);
 }
 
 /* ─────────────────────────────────────────────
@@ -269,6 +344,17 @@ export default function Lector() {
 
   const libroTitulo = capitulos[0]?.libros?.titulo;
   const hasScrolled = useRef(false);
+
+  /* ── IDs de los caps visibles en el segmento activo ── */
+  const usaSegmentos    = segmentos.length > 1;
+  const segActualObj    = usaSegmentos ? segmentos[segActivo]     ?? null : null;
+  const segSiguiente    = usaSegmentos ? segmentos[segActivo + 1] ?? null : null;
+  const capsParaMostrar = usaSegmentos ? (segActualObj?.capitulos ?? []) : capitulos;
+  const navLabel        = segActualObj ? segLabel(segActualObj) : null;
+  const navImg          = segActualObj ? segImgUrl(segActualObj) : null;
+
+  /* ── Marcar como leídos los caps que el usuario scrollea ── */
+  useScrollLeidos(id, capsParaMostrar.map(c => c.id));
 
   /* ── Scroll inicial ── */
   useEffect(() => {
@@ -342,11 +428,9 @@ export default function Lector() {
         setListaCapitulos(listaFiltrada);
         setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
 
-        /* Construir segmentos */
         const segs = buildSegmentos(capsValidas as any);
         setSegmentos(segs);
 
-        /* ¿En qué segmento cae el capId actual? */
         const si = segs.findIndex(s => s.capitulos.some(c => c.id === capId));
         setSegActivo(si !== -1 ? si : 0);
       })
@@ -366,7 +450,6 @@ export default function Lector() {
 
   const handleChapterSelect = useCallback((newCapId: string) => {
     const si = segmentos.findIndex(s => s.capitulos.some(c => c.id === newCapId));
-    /* Si el cap es de otro segmento → nueva URL */
     if (si !== -1 && si !== segActivo) {
       router.push(`/wiki/libros/${id}/leer/${newCapId}`);
       return;
@@ -398,17 +481,10 @@ export default function Lector() {
     </div>
   );
 
-  const usaSegmentos   = segmentos.length > 1;
-  const segActualObj   = usaSegmentos ? segmentos[segActivo]     ?? null : null;
-  const segSiguiente   = usaSegmentos ? segmentos[segActivo + 1] ?? null : null;
-  const capsParaMostrar = usaSegmentos ? (segActualObj?.capitulos ?? []) : capitulos;
-  const navLabel        = segActualObj ? segLabel(segActualObj) : null;
-  const navImg          = segActualObj ? segImgUrl(segActualObj) : null;
-
   return (
     <div className="min-h-screen bg-bg-main text-primary-dark pb-24">
 
-      {/* Barra de progreso — se reinicia con key al cambiar de segmento */}
+      {/* Barra de progreso */}
       <SegmentoProgressBar key={`prog-${segActivo}`} capIds={capsParaMostrar.map(c => c.id)} />
 
       <Vignette />
@@ -423,7 +499,13 @@ export default function Lector() {
       />
 
       {/* ── Navbar ── */}
-      <nav className="sticky top-0 z-50 bg-bg-main/80 backdrop-blur-md border-b border-primary/5 px-6 py-3">
+      <nav
+        className="sticky top-0 z-50 backdrop-blur-md px-6 py-3"
+        style={{
+          background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+          borderBottom: `var(--border-width) solid color-mix(in srgb, var(--primary) 6%, transparent)`,
+        }}
+      >
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button
             onClick={() => router.push(`/wiki/libros/${id}`)}
@@ -436,8 +518,14 @@ export default function Lector() {
           {navLabel ? (
             <div className="flex items-center gap-2">
               {navImg && (
-                <img src={navImg} alt={navLabel}
-                  className="w-5 h-5 rounded-full object-cover border border-primary/20" />
+                <img
+                  src={navImg} alt={navLabel}
+                  className="w-5 h-5 object-cover"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    border: `var(--border-width) solid color-mix(in srgb, var(--primary) 20%, transparent)`,
+                  }}
+                />
               )}
               <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 italic">
                 {navLabel}
