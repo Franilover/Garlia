@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { MotionDiv } from "@/components/ui/Motion";
 import {
-  User, Sword, Cat ,Package, Calendar, X, Tag, Loader2, Users} from "lucide-react";
+  User, Sword, Cat, X, Tag, Loader2, Music2 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 
 interface PerfilData {
@@ -175,6 +175,9 @@ export default function PerfilPublico() {
   const [notFound, setNotFound]       = useState(false);
   const [tab, setTab]                 = useState<"items" | "criaturas" | "personajes">("items");
   const [modalD, setModalD]           = useState<Descubrimiento | null>(null);
+  const [modalPersonaje, setModalPersonaje] = useState<Descubrimiento | null>(null);
+  const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
+  const [cargandoCanciones, setCargandoCanciones] = useState(false);
 
   useEffect(() => {
     if (!username) return;
@@ -254,6 +257,25 @@ export default function PerfilPublico() {
   const misCriaturas  = descubrimientos.filter(d => d.tipo === "criatura");
   const misItemsDesc  = descubrimientos.filter(d => d.tipo === "item");
 
+  const handleOpenPersonajeModal = async (d: Descubrimiento) => {
+    setCancionesPersonaje([]);
+    setModalPersonaje(d);
+    if (!d.entidad_id) return;
+    setCargandoCanciones(true);
+    try {
+      const { data, error } = await supabase
+        .from("canciones")
+        .select("id, titulo, portada_url, info_cancion, links, cantante, idioma, duracion_segundos")
+        .eq("personaje_id", d.entidad_id);
+      if (!error && data) setCancionesPersonaje(data);
+      else console.warn("[PerfilPublico] Error canciones:", error);
+    } catch (err) {
+      console.warn("[PerfilPublico] Error cargando canciones:", err);
+    } finally {
+      setCargandoCanciones(false);
+    }
+  };
+
   const tabs = [
     { id: "items",      label: "Inventario", icon: Sword },
     { id: "criaturas",  label: "Bestiario",  icon: Cat   },
@@ -284,6 +306,208 @@ export default function PerfilPublico() {
   return (
     <>
       {modalD && <ModalDetalle d={modalD} onClose={() => setModalD(null)} />}
+
+      {/* Modal custom de personaje con canciones */}
+      <AnimatePresence>
+        {modalPersonaje && (
+          <>
+            <MotionDiv
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => { setModalPersonaje(null); setCancionesPersonaje([]); }}
+              className="fixed inset-0 z-40 backdrop-blur-sm"
+              style={{ background: "rgba(0,0,0,0.45)" }}
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              transition={{ type: "spring", stiffness: 340, damping: 30 }}
+              className="pointer-events-auto w-full max-w-sm"
+              style={{
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                boxShadow: "var(--shadow-card)",
+                maxHeight: "85dvh",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              {/* Header imagen */}
+              {modalPersonaje.imagen_url && (
+                <div className="w-full h-36 shrink-0 overflow-hidden relative"
+                  style={{ background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))" }}>
+                  <img src={modalPersonaje.imagen_url} alt={modalPersonaje.nombre}
+                    className="w-full h-full object-contain" />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, var(--white-custom) 0%, transparent 60%)" }} />
+                </div>
+              )}
+
+              {/* Botón cerrar */}
+              <button
+                onClick={() => { setModalPersonaje(null); setCancionesPersonaje([]); }}
+                className="absolute top-3 right-3 z-10 p-1.5 transition-opacity hover:opacity-100"
+                style={{
+                  color: "var(--primary)", opacity: 0.45,
+                  background: "color-mix(in srgb, var(--white-custom) 80%, transparent)",
+                  borderRadius: "var(--radius-btn)",
+                  backdropFilter: "blur(4px)",
+                }}>
+                <X size={14} />
+              </button>
+
+              {/* Contenido scrollable */}
+              <div className="overflow-y-auto flex-1 px-5 pb-6" style={{ paddingTop: modalPersonaje.imagen_url ? "0.75rem" : "1.25rem" }}>
+
+                {/* Nombre y meta */}
+                <div className="mb-3">
+                  <h2 className="font-serif italic capitalize leading-tight"
+                    style={{ fontSize: "1.1rem", color: "var(--primary)" }}>
+                    {modalPersonaje.nombre ?? "Personaje"}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {modalPersonaje.reino && (
+                      <span className="font-serif italic text-[9px] px-2 py-0.5"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                          borderRadius: "var(--radius-btn)",
+                          color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                        }}>
+                        {modalPersonaje.reino}
+                      </span>
+                    )}
+                    {modalPersonaje.especie && (
+                      <span className="font-serif italic text-[9px] px-2 py-0.5"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                          borderRadius: "var(--radius-btn)",
+                          color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                        }}>
+                        {modalPersonaje.especie}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Descripción */}
+                {modalPersonaje.descripcion && (
+                  <p className="font-serif italic leading-relaxed mb-4"
+                    style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--foreground) 72%, transparent)" }}>
+                    {modalPersonaje.descripcion}
+                  </p>
+                )}
+
+                {/* Divisor */}
+                <div className="flex items-center gap-2 my-4">
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                  <Music2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                </div>
+
+                {/* Canciones */}
+                <div>
+                  <p className="font-serif italic text-[9px] mb-3"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    Canciones
+                  </p>
+
+                  {cargandoCanciones ? (
+                    <div className="flex items-center gap-2 py-4 justify-center">
+                      <Loader2 size={13} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                      <span className="font-serif italic text-[9px]"
+                        style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                        Cargando canciones…
+                      </span>
+                    </div>
+                  ) : cancionesPersonaje.length === 0 ? (
+                    <p className="font-serif italic text-[10px] py-3 text-center"
+                      style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                      "Este personaje no tiene canciones aún…"
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {cancionesPersonaje.map((cancion, i) => (
+                        <div key={cancion.id ?? i}
+                          className="flex flex-col gap-2 px-3 py-2.5"
+                          style={{
+                            background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                            border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                            borderRadius: "var(--radius-btn)",
+                          }}>
+                          <div className="flex items-center gap-2.5">
+                            {cancion.portada_url && !cancion.portada_url.includes("placeholder") && (
+                              <div className="w-10 h-10 shrink-0 overflow-hidden"
+                                style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                                <img src={cancion.portada_url} alt={cancion.titulo} className="w-full h-full object-cover" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <Music2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+                                <span className="font-serif italic text-[11px] truncate"
+                                  style={{ color: "var(--primary)" }}>
+                                  {cancion.titulo ?? `Canción ${i + 1}`}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                {cancion.cantante && (
+                                  <span className="font-serif italic text-[8px]"
+                                    style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
+                                    {cancion.cantante}
+                                  </span>
+                                )}
+                                {cancion.idioma && (
+                                  <span className="font-serif italic text-[8px] px-1.5 py-px"
+                                    style={{
+                                      background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                                      borderRadius: "var(--radius-btn)",
+                                      color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                                    }}>
+                                    {cancion.idioma}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          {cancion.links && cancion.links.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-0.5">
+                              {cancion.links.map((link: { url: string; titulo: string }, li: number) => (
+                                <a key={li} href={link.url.trim()} target="_blank" rel="noopener noreferrer"
+                                  className="font-serif italic text-[8px] px-2 py-1 transition-opacity hover:opacity-70"
+                                  style={{
+                                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                                    borderRadius: "var(--radius-btn)",
+                                    color: "var(--primary)",
+                                  }}>
+                                  ♪ {link.titulo}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                          {cancion.info_cancion && (
+                            <p className="font-serif italic text-[8px] leading-relaxed"
+                              style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
+                              {cancion.info_cancion}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </MotionDiv>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
 
       {}
       <Link href="/wiki/personal"
@@ -577,7 +801,7 @@ export default function PerfilPublico() {
                     ? misPersonajes.map((d, i) => (
                       <EntidadCard key={i} imagen={d.imagen_url}
                         nombre={d.nombre ?? "Personaje"}
-                        icono={<User size={20} />} onClick={() => setModalD(d)} />
+                        icono={<User size={20} />} onClick={() => handleOpenPersonajeModal(d)} />
                     ))
                     : <EmptyTab label="Sin personajes conocidos" />
                 )}
