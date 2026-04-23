@@ -261,7 +261,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
               className="sm:hidden overflow-hidden"
             >
               <div className="flex flex-wrap gap-3 px-4 pt-1 pb-2 text-[10px] font-black uppercase text-primary/40 tracking-widest">
-                {cancion.personaje  && <span className="flex items-center gap-1"><User    size={11} strokeWidth={3} /> {cancion.personaje}</span>}
+                {cancion.personaje  && <span className="flex items-center gap-1"><User    size={11} strokeWidth={3} /> {Array.isArray(cancion.personaje) ? cancion.personaje.map((p: { nombre: string }) => p.nombre).join(", ") : (cancion.personaje as { nombre: string }).nombre}</span>}
                 {cancion.cantante   && <span className="flex items-center gap-1"><Mic2    size={11} strokeWidth={3} /> {cancion.cantante}</span>}
                 {cancion.compositor && <span className="flex items-center gap-1"><PenLine size={11} strokeWidth={3} /> {cancion.compositor}</span>}
                 {cancion.idioma     && <span className="flex items-center gap-1"><Globe   size={11} strokeWidth={3} /> {cancion.idioma}</span>}
@@ -272,7 +272,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 
         {/* Detalles siempre visibles en desktop */}
         <div className="hidden sm:flex flex-wrap gap-4 px-8 mt-1.5 text-[10px] font-black uppercase text-primary/40 tracking-widest items-center">
-          {cancion.personaje  && <span className="flex items-center gap-1"><User    size={12} strokeWidth={3} /> {cancion.personaje}</span>}
+          {cancion.personaje  && <span className="flex items-center gap-1"><User    size={12} strokeWidth={3} /> {Array.isArray(cancion.personaje) ? cancion.personaje.map((p: { nombre: string }) => p.nombre).join(", ") : (cancion.personaje as { nombre: string }).nombre}</span>}
           {cancion.cantante   && <span className="flex items-center gap-1"><Mic2    size={12} strokeWidth={3} /> {cancion.cantante}</span>}
           {cancion.compositor && <span className="flex items-center gap-1"><PenLine size={12} strokeWidth={3} /> {cancion.compositor}</span>}
           {cancion.idioma     && <span className="flex items-center gap-1"><Globe   size={12} strokeWidth={3} /> {cancion.idioma}</span>}
