@@ -153,7 +153,7 @@ export default function LibroDetalle() {
           {tieneNarradores && grupos.length > 1 && (
             <div className="mt-6 p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10">
               <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-4 flex items-center gap-2 italic">
-                <BookOpen size={12} /> Voces narrativas
+                <BookOpen size={12} /> Protagonistas
               </h4>
               <div className="flex flex-col gap-3">
                 {grupos.map((g, i) => (
