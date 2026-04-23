@@ -317,7 +317,7 @@ function PanelContenido({
             <div className="flex items-center gap-2 mb-3">
               <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
               <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                <BookMarked size={9} /> Capítulos aquí
+                <BookMarked size={9} /> One shots
               </span>
               <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
             </div>
@@ -331,7 +331,7 @@ function PanelContenido({
                   }}>
                   <span className="text-[8px] font-black shrink-0 px-1.5 py-0.5"
                     style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>
-                    #{cap.orden}
+                    {cap.orden}
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-black uppercase truncate" style={{ color: "var(--foreground)" }}>
