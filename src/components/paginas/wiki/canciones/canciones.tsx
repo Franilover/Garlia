@@ -1,23 +1,35 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { MotionDiv } from '@/components/ui/Motion';
 import Link from "next/link";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { supabase } from "@/lib/api/client/supabase";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, PageHeader } from "@/components/ui";
 import { Music, User, Mic2, PenTool, Globe, ChevronRight, List, LayoutGrid } from "lucide-react";
 
+interface Personaje {
+  id: string;
+  nombre: string;
+  img_url?: string;
+}
+
 interface Cancion {
   id: string;
   titulo: string;
-  personaje?: string;
-  personaje_img?: string;   // URL de foto del personaje (si existe en la tabla)
+  personaje_id?: string | null;
+  personaje?: Personaje | Personaje[] | null;
   cantante?: string;
   compositor?: string;
   idioma?: string;
   portada_url?: string;
   visible?: boolean;
+}
+
+// Normaliza el join que Supabase puede devolver como array o objeto
+function normPersonaje(v: Personaje | Personaje[] | null | undefined): Personaje | null {
+  if (!v) return null;
+  return Array.isArray(v) ? (v[0] ?? null) : v;
 }
 
 // Igual que en detalles.tsx — rotación de acentos por grupo
@@ -214,9 +226,22 @@ const PersonajeBloque = ({
 
 // ─── Página principal ──────────────────────────────────────────────────────────
 export default function CancionesPage() {
-  const { data: canciones, loading } = useSupabaseData<Cancion>("canciones", {
-    order: { campo: "created_at", asc: false },
-  });
+  const [canciones, setCanciones] = useState<Cancion[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("canciones")
+      .select(`
+        *,
+        personaje:personajes!personaje_id(id, nombre, img_url)
+      `)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setCanciones((data as Cancion[]) ?? []);
+        setLoading(false);
+      });
+  }, []);
   const [vistaFila, setVistaFila] = useState(false);
   const [busqueda, setBusqueda] = useState("");
 
@@ -230,7 +255,7 @@ export default function CancionesPage() {
         return (
           c.titulo.toLowerCase().includes(q) ||
           c.cantante?.toLowerCase().includes(q) ||
-          c.personaje?.toLowerCase().includes(q)
+          normPersonaje(c.personaje)?.nombre.toLowerCase().includes(q)
         );
       }),
     [canciones, busqueda]
@@ -242,12 +267,12 @@ export default function CancionesPage() {
     const mapa = new Map<string, { canciones: Cancion[]; imgUrl?: string }>();
 
     for (const c of filtradas) {
-      const key = c.personaje?.trim() || SIN_PERSONAJE;
-      if (!mapa.has(key)) mapa.set(key, { canciones: [], imgUrl: c.personaje_img });
+      const p = normPersonaje(c.personaje);
+      const key = p?.nombre?.trim() || SIN_PERSONAJE;
+      if (!mapa.has(key)) mapa.set(key, { canciones: [], imgUrl: p?.img_url });
       mapa.get(key)!.canciones.push(c);
-      // Guardar la primera img que aparezca para este personaje
-      if (!mapa.get(key)!.imgUrl && c.personaje_img) {
-        mapa.get(key)!.imgUrl = c.personaje_img;
+      if (!mapa.get(key)!.imgUrl && p?.img_url) {
+        mapa.get(key)!.imgUrl = p.img_url;
       }
     }
 
