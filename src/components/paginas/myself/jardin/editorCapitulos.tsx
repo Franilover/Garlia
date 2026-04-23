@@ -891,6 +891,8 @@ const SelectorReino = ({
     </div>
   );
 };
+
+type DialogSnippet = {
   label: string;
   title: string;
   insert: string | ((sel: string) => string);
