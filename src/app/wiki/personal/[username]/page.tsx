@@ -474,22 +474,6 @@ export default function PerfilPublico() {
                               </div>
                             </div>
                           </div>
-                          {cancion.links && cancion.links.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-0.5">
-                              {cancion.links.map((link: { url: string; titulo: string }, li: number) => (
-                                <a key={li} href={link.url.trim()} target="_blank" rel="noopener noreferrer"
-                                  className="font-serif italic text-[8px] px-2 py-1 transition-opacity hover:opacity-70"
-                                  style={{
-                                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                                    borderRadius: "var(--radius-btn)",
-                                    color: "var(--primary)",
-                                  }}>
-                                  ♪ {link.titulo}
-                                </a>
-                              ))}
-                            </div>
-                          )}
                           {cancion.info_cancion && (
                             <p className="font-serif italic text-[8px] leading-relaxed"
                               style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
