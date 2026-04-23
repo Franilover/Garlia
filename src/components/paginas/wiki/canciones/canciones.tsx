@@ -16,7 +16,7 @@ interface Cancion {
   compositor?: string;
   idioma?: string;
   portada_url?: string;
-  visible?: boolean; 
+  visible?: boolean;
 }
 
 const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }) => (
@@ -39,12 +39,6 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          {cancion.personaje && (
-            <div className="absolute bottom-6 right-6 z-20 bg-white-custom/95 backdrop-blur-md px-4 py-2 rounded-full border border-primary/20 flex items-center gap-2 shadow-lg">
-              <User size={11} className="text-primary" />
-              <span className="text-[9px] font-black text-primary uppercase italic tracking-tighter">{cancion.personaje}</span>
-            </div>
-          )}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
             <div className="bg-white-custom/90 p-5 rounded-full shadow-2xl backdrop-blur-sm border border-primary/10">
               <ChevronRight size={32} className="text-primary ml-1" />
@@ -82,35 +76,88 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
             <h2 className="text-primary font-black uppercase text-sm group-hover:text-[var(--accent)] transition-colors tracking-tighter italic truncate">
               {cancion.titulo}
             </h2>
-            {(cancion.cantante || cancion.personaje) && (
+            {cancion.cantante && (
               <p className="text-primary/40 text-[10px] font-bold uppercase tracking-widest truncate mt-0.5">
-                {cancion.cantante || cancion.personaje}
+                {cancion.cantante}
               </p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <ChevronRight size={16} className="text-primary/30 group-hover:text-primary transition-colors" />
-        </div>
+        <ChevronRight size={16} className="text-primary/30 group-hover:text-primary transition-colors shrink-0" />
       </div>
     </Link>
   </MotionDiv>
 );
 
+// ─── Encabezado de bloque por personaje ───────────────────────────────────────
+const PersonajeHeader = ({ nombre, count }: { nombre: string; count: number }) => (
+  <MotionDiv
+    initial={{ opacity: 0, x: -16 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ duration: 0.4 }}
+    className="flex items-center gap-4 mb-6"
+  >
+    <div className="flex items-center gap-2 bg-primary/10 border border-primary/15 rounded-full px-4 py-2">
+      <User size={14} className="text-primary/60" />
+      <span className="text-primary font-black uppercase tracking-widest text-xs italic">
+        {nombre}
+      </span>
+      <span className="text-primary/30 font-bold text-[10px] ml-1">
+        {count}
+      </span>
+    </div>
+    <div className="flex-1 h-px bg-primary/10" />
+  </MotionDiv>
+);
+
+// ─── Bloque de un personaje ────────────────────────────────────────────────────
+const PersonajeBloque = ({
+  personaje,
+  canciones,
+  vistaFila,
+  globalOffset,
+}: {
+  personaje: string;
+  canciones: Cancion[];
+  vistaFila: boolean;
+  globalOffset: number;
+}) => (
+  <MotionDiv
+    initial={{ opacity: 0, y: 24 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+    className="mb-16"
+  >
+    <PersonajeHeader nombre={personaje} count={canciones.length} />
+
+    {vistaFila ? (
+      <div className="flex flex-col gap-3">
+        {canciones.map((c, i) => (
+          <CancionCardFila key={c.id} cancion={c} index={globalOffset + i} />
+        ))}
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+        {canciones.map((c, i) => (
+          <CancionCardGrid key={c.id} cancion={c} index={globalOffset + i} />
+        ))}
+      </div>
+    )}
+  </MotionDiv>
+);
+
+// ─── Página principal ──────────────────────────────────────────────────────────
 export default function CancionesPage() {
   const { data: canciones, loading } = useSupabaseData<Cancion>("canciones", {
     order: { campo: "created_at", asc: false },
-    
-    
-    
   });
   const [vistaFila, setVistaFila] = useState(false);
-  const [busqueda,  setBusqueda]  = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
-  
+  // Filtrar visibles y por búsqueda
   const filtradas = useMemo(() =>
     canciones
-      .filter(c => c.visible !== false) 
+      .filter(c => c.visible !== false)
       .filter(c => {
         if (!busqueda) return true;
         const q = busqueda.toLowerCase();
@@ -123,12 +170,35 @@ export default function CancionesPage() {
     [canciones, busqueda]
   );
 
+  // Agrupar por personaje manteniendo el orden de aparición
+  const grupos = useMemo(() => {
+    const SIN_PERSONAJE = "Sin personaje";
+    const mapa = new Map<string, Cancion[]>();
+
+    for (const c of filtradas) {
+      const key = c.personaje?.trim() || SIN_PERSONAJE;
+      if (!mapa.has(key)) mapa.set(key, []);
+      mapa.get(key)!.push(c);
+    }
+
+    // "Sin personaje" siempre al final
+    const entries = [...mapa.entries()];
+    const sinPersonaje = entries.filter(([k]) => k === SIN_PERSONAJE);
+    const conPersonaje = entries.filter(([k]) => k !== SIN_PERSONAJE);
+
+    return [...conPersonaje, ...sinPersonaje];
+  }, [filtradas]);
+
   if (loading) return <Loading text="Cargando" />;
+
+  // Offset acumulado para los índices de animación stagger
+  let offset = 0;
 
   return (
     <div className="min-h-screen bg-bg-main pb-20">
       <div className="max-w-6xl mx-auto pt-16 px-6">
         <PageHeader title="Soliloquios" icon={<Music size={32} />} />
+
         <div className="flex items-center gap-3 mb-10">
           <input
             value={busqueda}
@@ -147,18 +217,24 @@ export default function CancionesPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6">
-        {filtradas.length === 0 ? (
+        {grupos.length === 0 ? (
           <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-24 italic">
             No hay canciones disponibles
           </p>
-        ) : vistaFila ? (
-          <div className="flex flex-col gap-3">
-            {filtradas.map((c, i) => <CancionCardFila key={c.id} cancion={c} index={i} />)}
-          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
-            {filtradas.map((c, i) => <CancionCardGrid key={c.id} cancion={c} index={i} />)}
-          </div>
+          grupos.map(([personaje, lista]) => {
+            const bloque = (
+              <PersonajeBloque
+                key={personaje}
+                personaje={personaje}
+                canciones={lista}
+                vistaFila={vistaFila}
+                globalOffset={offset}
+              />
+            );
+            offset += lista.length;
+            return bloque;
+          })
         )}
       </div>
     </div>
