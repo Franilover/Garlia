@@ -279,7 +279,7 @@ function PanelContenido({
             <div className="flex items-center gap-2 mb-3">
               <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
               <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                <BookOpen size={9} /> Libros en este reino
+                <BookOpen size={9} /> Relatos en este reino
               </span>
               <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
             </div>
