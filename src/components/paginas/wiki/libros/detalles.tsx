@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
-import { Play, ListOrdered, Calendar, Clock, BookOpen } from "lucide-react";
+import { Play, ListOrdered, Calendar, Clock, BookOpen, CheckCircle2 } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, BackBtn } from "@/components/ui";
 
@@ -106,6 +106,25 @@ export default function LibroDetalle() {
   const [capitulos, setCapitulos]             = useState<Capitulo[]>([]);
   const [capituloProximo, setCapituloProximo] = useState<CapituloProximo | null | false>(null);
   const [notFound, setNotFound]               = useState(false);
+  const [leidos, setLeidos]                   = useState<Set<string>>(new Set());
+
+  // ── Cargar capítulos leídos desde localStorage ──
+  useEffect(() => {
+    if (!id) return;
+    try {
+      const raw = localStorage.getItem(`leidos:${id}`);
+      if (raw) setLeidos(new Set(JSON.parse(raw) as string[]));
+    } catch { /* localStorage bloqueado o datos corruptos */ }
+  }, [id]);
+
+  const marcarLeido = (capId: string) => {
+    setLeidos(prev => {
+      const next = new Set(prev);
+      next.add(capId);
+      try { localStorage.setItem(`leidos:${id}`, JSON.stringify([...next])); } catch { }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -182,7 +201,10 @@ export default function LibroDetalle() {
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[320px_1fr] gap-16 mt-4">
         {/* ── Portada y sidebar ── */}
         <aside>
-          <div className="aspect-3/4 rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10 bg-white-custom relative">
+          <div
+            className="aspect-3/4 rounded-[var(--radius-card)] overflow-hidden bg-white-custom relative"
+            style={{ border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)", boxShadow: "var(--shadow-card)" }}
+          >
             <SmartImage
               src={libro.portada_url || "/placeholder-cover.jpg"}
               alt={libro.titulo}
@@ -190,7 +212,7 @@ export default function LibroDetalle() {
             />
           </div>
 
-          <div className="mt-8 p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10">
+          <div className="card-main mt-8 p-6">
             <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
               <Calendar size={12} /> Próximo Capítulo
             </h4>
@@ -211,7 +233,7 @@ export default function LibroDetalle() {
 
           {/* ── Resumen de grupos en sidebar (reinos o narradores) ── */}
           {tieneAgrupacion && grupos.length > 1 && (
-            <div className="mt-6 p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10">
+            <div className="card-main mt-6 p-6">
               <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-4 flex items-center gap-2 italic">
                 <BookOpen size={12} /> {tieneReinos ? "Reinos" : "Protagonistas"}
               </h4>
@@ -226,10 +248,14 @@ export default function LibroDetalle() {
                         <img
                           src={img}
                           alt={label}
-                          className="w-8 h-8 rounded-full object-cover border border-primary/10 flex-shrink-0"
+                          className="w-8 h-8 object-cover flex-shrink-0"
+                          style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
                         />
                       ) : (
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-primary/50 border border-primary/10 flex-shrink-0 ${acentos[i % acentos.length].bg}`}>
+                        <div
+                          className={`w-8 h-8 flex items-center justify-center text-[10px] font-black text-primary/50 flex-shrink-0 ${acentos[i % acentos.length].bg}`}
+                          style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
+                        >
                           {label.charAt(0)}
                         </div>
                       )}
@@ -267,10 +293,16 @@ export default function LibroDetalle() {
 
           {/* ── Índice agrupado ── */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between mb-8 border-b border-primary/10 pb-4">
+            <div className="flex items-center justify-between mb-8 pb-4" style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
               <h3 className="text-primary font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
                 <ListOrdered size={16} /> Índice
               </h3>
+              {leidos.size > 0 && (
+                <span className="flex items-center gap-1.5 text-primary/40 font-bold text-[9px] uppercase tracking-widest italic">
+                  <CheckCircle2 size={11} className="text-primary/30" />
+                  {leidos.size}/{capitulos.length} leídos
+                </span>
+              )}
             </div>
 
             {capitulos.length === 0 ? (
@@ -295,10 +327,14 @@ export default function LibroDetalle() {
                             <img
                               src={img}
                               alt={label}
-                              className="w-10 h-10 rounded-full object-cover border border-primary/10 flex-shrink-0 shadow-md"
+                              className="w-10 h-10 object-cover flex-shrink-0 shadow-md"
+                              style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
                             />
                           ) : (
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black text-primary/60 border border-primary/15 flex-shrink-0 ${acento.bg}`}>
+                            <div
+                              className={`w-10 h-10 flex items-center justify-center text-sm font-black text-primary/60 flex-shrink-0 ${acento.bg}`}
+                              style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
+                            >
                               {label.charAt(0)}
                             </div>
                           )}
@@ -322,20 +358,43 @@ export default function LibroDetalle() {
                       )}
 
                       {/* Lista de capítulos del grupo */}
-                      <div className={`grid gap-2 border-l-2 ${acento.border} pl-4`}>
+                      <div
+                        className={`grid gap-2 pl-4`}
+                        style={{ borderLeft: `calc(var(--border-width) * 2) solid color-mix(in srgb, var(--primary) ${gi % 2 === 0 ? "18" : "25"}%, transparent)` }}
+                      >
                         {grupo.capitulos.map((cap) => {
-                          const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
+                          const esRuta  = cap.titulo_capitulo?.startsWith("[Ruta]");
+                          const leido   = leidos.has(cap.id);
                           return (
                             <button
                               key={cap.id}
-                              onClick={() => router.push(`/wiki/libros/${id}/leer/${primerCapId}#cap-${cap.id}`)}
-                              className={`w-full flex items-center justify-between p-5 border rounded-[var(--radius-card)] hover:border-primary/20 transition-all text-left group ${esRuta ? "bg-blue-50/60 border-blue-100" : `${acento.bg} border-primary/5`}`}
+                              onClick={() => {
+                                marcarLeido(cap.id);
+                                router.push(`/wiki/libros/${id}/leer/${primerCapId}#cap-${cap.id}`);
+                              }}
+                              className={`w-full flex items-center justify-between p-5 transition-all text-left group ${
+                                esRuta  ? "bg-blue-50/60"  :
+                                leido   ? "bg-primary/[0.03]" :
+                                acento.bg
+                              }`}
+                              style={{
+                                borderRadius: "var(--radius-card)",
+                                border: `var(--border-width) solid ${
+                                  esRuta ? "rgb(219 234 254)" :
+                                  leido  ? "color-mix(in srgb, var(--primary) 5%, transparent)" :
+                                  "color-mix(in srgb, var(--primary) 8%, transparent)"
+                                }`,
+                                boxShadow: leido ? "none" : "var(--shadow-card)",
+                                opacity:   leido ? 0.55 : 1,
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
+                              onMouseLeave={e => { e.currentTarget.style.opacity = leido ? "0.55" : "1"; e.currentTarget.style.borderColor = esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
                             >
                               <div className="flex flex-col gap-1">
                                 {esRuta && (
                                   <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>
                                 )}
-                                <span className="text-primary font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform">
+                                <span className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}>
                                   {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
                                 </span>
                                 {cap.fecha_publicacion && (
@@ -344,7 +403,10 @@ export default function LibroDetalle() {
                                   </span>
                                 )}
                               </div>
-                              <Play size={14} fill="currentColor" className="text-primary/40 group-hover:text-primary transition-colors flex-shrink-0" />
+                              {leido
+                                ? <CheckCircle2 size={14} className="text-primary/25 flex-shrink-0" />
+                                : <Play size={14} fill="currentColor" className="text-primary/40 group-hover:text-primary transition-colors flex-shrink-0" />
+                              }
                             </button>
                           );
                         })}
@@ -358,17 +420,37 @@ export default function LibroDetalle() {
               <div className="grid gap-3">
                 {capitulos.map((cap) => {
                   const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
+                  const leido  = leidos.has(cap.id);
                   return (
                     <button
                       key={cap.id}
-                      onClick={() => router.push(`/wiki/libros/${id}/leer/${capitulos[0]?.id ?? cap.id}#cap-${cap.id}`)}
-                      className={`w-full flex items-center justify-between p-6 border rounded-[var(--radius-card)] hover:border-primary/20 transition-all text-left group ${esRuta ? "bg-blue-50/60 border-blue-100" : "bg-white-custom border-primary/5"}`}
+                      onClick={() => {
+                        marcarLeido(cap.id);
+                        router.push(`/wiki/libros/${id}/leer/${capitulos[0]?.id ?? cap.id}#cap-${cap.id}`);
+                      }}
+                      className={`w-full flex items-center justify-between p-6 transition-all text-left group ${
+                        esRuta ? "bg-blue-50/60" :
+                        leido  ? "bg-primary/[0.03]" :
+                        "bg-white-custom"
+                      }`}
+                      style={{
+                        borderRadius: "var(--radius-card)",
+                        border: `var(--border-width) solid ${
+                          esRuta ? "rgb(219 234 254)" :
+                          leido  ? "color-mix(in srgb, var(--primary) 5%, transparent)" :
+                          "color-mix(in srgb, var(--primary) 8%, transparent)"
+                        }`,
+                        boxShadow: leido ? "none" : "var(--shadow-card)",
+                        opacity:   leido ? 0.55 : 1,
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.opacity = leido ? "0.55" : "1"; e.currentTarget.style.borderColor = esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
                     >
                       <div className="flex flex-col gap-1">
                         {esRuta && (
                           <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>
                         )}
-                        <span className="text-primary font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform">
+                        <span className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}>
                           {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
                         </span>
                         {cap.fecha_publicacion && (
@@ -377,7 +459,10 @@ export default function LibroDetalle() {
                           </span>
                         )}
                       </div>
-                      <Play size={14} fill="currentColor" className="text-primary" />
+                      {leido
+                        ? <CheckCircle2 size={14} className="text-primary/25 flex-shrink-0" />
+                        : <Play size={14} fill="currentColor" className="text-primary flex-shrink-0" />
+                      }
                     </button>
                   );
                 })}
