@@ -313,9 +313,11 @@ function useScrollLeidos(libroId: string, capIds: string[]) {
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const montar = () => {
-      /* Si aún no están los elementos en el DOM, reintentamos */
-      const primero = document.getElementById(`cap-${capIds[0]}`);
-      if (!primero) {
+      /* Si aún no están TODOS los elementos en el DOM, reintentamos.
+         Antes solo chequeaba el primero — si el cap-2 tardaba en
+         pintarse quedaba sin observar silenciosamente. */
+      const faltantes = capIds.filter(cid => !document.getElementById(`cap-${cid}`));
+      if (faltantes.length > 0) {
         timer = setTimeout(montar, 120);
         return;
       }
@@ -499,6 +501,17 @@ export default function Lector() {
   const irAlSiguienteSegmento = useCallback((si: number) => {
     const sig = segmentos[si + 1];
     if (!sig?.capitulos[0]) return;
+
+    /* ✅ Fix: guardar todos los caps del segmento actual como leídos
+       antes de navegar. El router.push desmonta los observers y el
+       cap-2 (u otros caps intermedios) podían quedar sin registrarse. */
+    const segActual = segmentos[si];
+    if (segActual) {
+      for (const cap of segActual.capitulos) {
+        guardarLeido(id, cap.id);
+      }
+    }
+
     router.push(`/wiki/libros/${id}/leer/${sig.capitulos[0].id}`);
   }, [segmentos, id, router]);
 
