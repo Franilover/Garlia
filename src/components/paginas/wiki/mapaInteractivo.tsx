@@ -1170,7 +1170,6 @@ export default function MapaInteractivo() {
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
-      {/* ── MAP AREA ── */}
       <div className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}>
 
         {isAdmin && (
