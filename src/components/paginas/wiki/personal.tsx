@@ -3,7 +3,7 @@ import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, Moti
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Cat, Star, Sword, User, Loader2, X, Users, Music2 } from "lucide-react";
+import { Cat, Star, Sword, User, Loader2, X, Users, Music2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/api/client/supabase";
 import {
@@ -261,8 +261,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     try {
       const { data, error } = await supabase
         .from("canciones")
-        .select("id, titulo, letra, audio_url, personaje_id")
-        .eq("personaje_id", d.entidad_id);
+        .select("id, titulo, portada_url, info_cancion, personaje_id")
+        .eq("personaje_id", d.entidad_id)
+        .eq("visible", true);
       if (!error && data) setCancionesPersonaje(data);
     } catch (err) {
       console.warn("[Personal] Error cargando canciones:", err);
@@ -418,35 +419,38 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   ) : (
                     <div className="flex flex-col gap-2">
                       {cancionesPersonaje.map((cancion, i) => (
-                        <div key={cancion.id ?? i}
-                          className="flex flex-col gap-1.5 px-3 py-2.5"
+                        <Link key={cancion.id ?? i} href={`/wiki/canciones/${cancion.id}`}
+                          className="group flex items-center gap-2.5 px-3 py-2.5 transition-all"
                           style={{
                             background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
                             border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                             borderRadius: "var(--radius-btn)",
+                          }}
+                          onMouseEnter={e => {
+                            (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+                            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))";
+                          }}
+                          onMouseLeave={e => {
+                            (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
+                            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                           }}>
-                          <div className="flex items-center gap-2">
-                            <Music2 size={11} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)", flexShrink: 0 }} />
-                            <span className="font-serif italic text-[11px] capitalize"
+                          {cancion.portada_url && !cancion.portada_url.includes("placeholder") && (
+                            <div className="w-10 h-10 shrink-0 overflow-hidden"
+                              style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                              <img src={cancion.portada_url} alt={cancion.titulo}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                            <Music2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+                            <span className="font-serif italic text-[11px] truncate group-hover:underline"
                               style={{ color: "var(--primary)" }}>
                               {cancion.titulo ?? `Canción ${i + 1}`}
                             </span>
                           </div>
-                          {cancion.audio_url && (
-                            <audio
-                              controls
-                              src={cancion.audio_url}
-                              className="w-full mt-1"
-                              style={{ height: 28, borderRadius: "var(--radius-btn)" }}
-                            />
-                          )}
-                          {cancion.letra && (
-                            <p className="font-serif italic text-[9px] leading-relaxed mt-1 whitespace-pre-line"
-                              style={{ color: "color-mix(in srgb, var(--foreground) 55%, transparent)" }}>
-                              {cancion.letra}
-                            </p>
-                          )}
-                        </div>
+                          <ChevronRight size={12} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }}
+                            className="group-hover:translate-x-0.5 transition-transform" />
+                        </Link>
                       ))}
                     </div>
                   )}
