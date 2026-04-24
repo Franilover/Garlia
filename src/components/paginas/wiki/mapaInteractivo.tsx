@@ -586,16 +586,16 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           ctx.save();
           ctx.translate(mx, my);
 
-          const ringR = 14 + pulse * 8;
+          const ringR = 8 + pulse * 4;
           ctx.beginPath();
           ctx.arc(0, 0, ringR, 0, Math.PI * 2);
           ctx.strokeStyle = isSelected
-            ? `${accent}${Math.round(0.5 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`
-            : `${primary}${Math.round(0.35 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`;
-          ctx.lineWidth = 1.5;
+            ? `${accent}${Math.round(0.45 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`
+            : `${primary}${Math.round(0.28 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`;
+          ctx.lineWidth = 1;
           ctx.stroke();
 
-          const grd = ctx.createRadialGradient(0, 0, 2, 0, 0, 10);
+          const grd = ctx.createRadialGradient(0, 0, 1, 0, 0, 6);
           if (isSelected) {
             grd.addColorStop(0, `${accent}e6`);
             grd.addColorStop(1, `${accent}00`);
@@ -604,7 +604,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             grd.addColorStop(1, `${primary}00`);
           }
           ctx.beginPath();
-          ctx.arc(0, 0, 10, 0, Math.PI * 2);
+          ctx.arc(0, 0, 6, 0, Math.PI * 2);
           ctx.fillStyle = grd;
           ctx.fill();
 
@@ -613,7 +613,7 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           const d = isSelected ? 6 : 5;
           ctx.fillStyle = isSelected ? accent : primary;
           ctx.shadowColor = isSelected ? `${accent}cc` : `${primary}66`;
-          ctx.shadowBlur = isSelected ? 12 : 6;
+          ctx.shadowBlur = isSelected ? 6 : 3;
           ctx.fillRect(-d, -d, d * 2, d * 2);
           ctx.fillStyle = isSelected ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)";
           ctx.shadowBlur = 0;
@@ -695,15 +695,42 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      // Outer canvas vignette
-      const outerVg = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2, canvas.height * 0.25,
-        canvas.width / 2, canvas.height / 2, canvas.height * 0.75
-      );
-      outerVg.addColorStop(0, "rgba(0,0,0,0)");
-      outerVg.addColorStop(1, `${bg}b3`);
-      ctx.fillStyle = outerVg;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // ── Edge fog — blends canvas borders into the page background ─────────
+      // Top edge
+      const topFog = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.28);
+      topFog.addColorStop(0, `${bg}ff`);
+      topFog.addColorStop(0.4, `${bg}cc`);
+      topFog.addColorStop(0.75, `${bg}55`);
+      topFog.addColorStop(1, `${bg}00`);
+      ctx.fillStyle = topFog;
+      ctx.fillRect(0, 0, canvas.width, canvas.height * 0.28);
+
+      // Bottom edge
+      const botFog = ctx.createLinearGradient(0, canvas.height * 0.72, 0, canvas.height);
+      botFog.addColorStop(0, `${bg}00`);
+      botFog.addColorStop(0.25, `${bg}55`);
+      botFog.addColorStop(0.6, `${bg}cc`);
+      botFog.addColorStop(1, `${bg}ff`);
+      ctx.fillStyle = botFog;
+      ctx.fillRect(0, canvas.height * 0.72, canvas.width, canvas.height * 0.28);
+
+      // Left edge
+      const leftFog = ctx.createLinearGradient(0, 0, canvas.width * 0.25, 0);
+      leftFog.addColorStop(0, `${bg}ff`);
+      leftFog.addColorStop(0.4, `${bg}bb`);
+      leftFog.addColorStop(0.75, `${bg}44`);
+      leftFog.addColorStop(1, `${bg}00`);
+      ctx.fillStyle = leftFog;
+      ctx.fillRect(0, 0, canvas.width * 0.25, canvas.height);
+
+      // Right edge
+      const rightFog = ctx.createLinearGradient(canvas.width * 0.75, 0, canvas.width, 0);
+      rightFog.addColorStop(0, `${bg}00`);
+      rightFog.addColorStop(0.25, `${bg}44`);
+      rightFog.addColorStop(0.6, `${bg}bb`);
+      rightFog.addColorStop(1, `${bg}ff`);
+      ctx.fillStyle = rightFog;
+      ctx.fillRect(canvas.width * 0.75, 0, canvas.width * 0.25, canvas.height);
 
       animFrameRef.current = requestAnimationFrame(draw);
     };
