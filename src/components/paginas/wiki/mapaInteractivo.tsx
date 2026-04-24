@@ -389,6 +389,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
   const pulseRef = useRef(0);
   // Theme CSS vars read at draw time
   const cssColorsRef = useRef({ primary: "#888", accent: "#aaa", bg: "#0a0806", fg: "#fff" });
+  // Fog cache — rebuilt only when markers/size change, not every frame
+  const fogCacheRef = useRef<{ canvas: OffscreenCanvas; deep: OffscreenCanvas; iw: number; ih: number; bg: string } | null>(null);
 
   useEffect(() => {
     const read = () => {
@@ -490,132 +492,138 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         ctx.fillStyle = "rgba(80, 40, 10, 0.06)";
         ctx.fillRect(0, 0, iw, ih);
 
-        // ── FOG OF WAR — distance-based intensity ─────────────────────────
+        // ── FOG OF WAR — cached, rebuilt only when markers/bg changes ─────
         if (tipo === "global" && !editMode && hiddenMarkers.length > 0) {
-          // Build a per-pixel fog intensity map via an alpha-only OffscreenCanvas.
-          // Pixels far from every visible marker get heavy fog; close ones get none.
-          const fogCanvas = new OffscreenCanvas(iw, ih);
-          const fogCtx = fogCanvas.getContext("2d")!;
+          const cache = fogCacheRef.current;
+          // Use a fixed internal resolution for the fog — independent of zoom scale.
+          // This avoids recreating huge OffscreenCanvases on every zoom level.
+          const FOG_W = Math.min(img.width, 1200);
+          const FOG_H = Math.round(FOG_W * (img.height / img.width));
 
-          // 1. Start with maximum fog everywhere (fully opaque bg)
-          fogCtx.fillStyle = `${bg}ee`;
-          fogCtx.fillRect(0, 0, iw, ih);
+          const needsRebuild =
+            !cache ||
+            cache.iw !== FOG_W ||
+            cache.ih !== FOG_H ||
+            cache.bg !== bg;
 
-          // 2. Subtract fog using destination-out — near markers clear fog completely,
-          //    the gradient transition determines the distance falloff.
-          fogCtx.globalCompositeOperation = "destination-out";
-          const maxDim = Math.max(iw, ih);
-          const clearRadius  = maxDim * 0.18;
-          const fadeRadius   = maxDim * 0.38;
+          if (needsRebuild) {
+            const fogCanvas = new OffscreenCanvas(FOG_W, FOG_H);
+            const fogCtx = fogCanvas.getContext("2d")!;
+            fogCtx.fillStyle = `${bg}ee`;
+            fogCtx.fillRect(0, 0, FOG_W, FOG_H);
 
-          for (const m of markers) {
-            const mx = (m.coord_x / 100) * iw;
-            const my = (m.coord_y / 100) * ih;
-            const grad = fogCtx.createRadialGradient(mx, my, clearRadius * 0.3, mx, my, fadeRadius);
-            grad.addColorStop(0,    "rgba(0,0,0,1)");
-            grad.addColorStop(0.35, "rgba(0,0,0,0.95)");
-            grad.addColorStop(0.65, "rgba(0,0,0,0.5)");
-            grad.addColorStop(0.85, "rgba(0,0,0,0.15)");
-            grad.addColorStop(1,    "rgba(0,0,0,0)");
-            fogCtx.fillStyle = grad;
-            fogCtx.beginPath();
-            fogCtx.arc(mx, my, fadeRadius, 0, Math.PI * 2);
-            fogCtx.fill();
+            fogCtx.globalCompositeOperation = "destination-out";
+            const maxDim = Math.max(FOG_W, FOG_H);
+            const clearRadius = maxDim * 0.18;
+            const fadeRadius  = maxDim * 0.38;
+            for (const m of markers) {
+              const mx = (m.coord_x / 100) * FOG_W;
+              const my = (m.coord_y / 100) * FOG_H;
+              const grad = fogCtx.createRadialGradient(mx, my, clearRadius * 0.3, mx, my, fadeRadius);
+              grad.addColorStop(0,    "rgba(0,0,0,1)");
+              grad.addColorStop(0.35, "rgba(0,0,0,0.95)");
+              grad.addColorStop(0.65, "rgba(0,0,0,0.5)");
+              grad.addColorStop(0.85, "rgba(0,0,0,0.15)");
+              grad.addColorStop(1,    "rgba(0,0,0,0)");
+              fogCtx.fillStyle = grad;
+              fogCtx.beginPath();
+              fogCtx.arc(mx, my, fadeRadius, 0, Math.PI * 2);
+              fogCtx.fill();
+            }
+            fogCtx.globalCompositeOperation = "source-over";
+
+            const deepCanvas = new OffscreenCanvas(FOG_W, FOG_H);
+            const deepCtx = deepCanvas.getContext("2d")!;
+            deepCtx.fillStyle = `${bg}77`;
+            deepCtx.fillRect(0, 0, FOG_W, FOG_H);
+            deepCtx.globalCompositeOperation = "destination-out";
+            for (const m of markers) {
+              const mx = (m.coord_x / 100) * FOG_W;
+              const my = (m.coord_y / 100) * FOG_H;
+              const grad2 = deepCtx.createRadialGradient(mx, my, 0, mx, my, fadeRadius * 0.55);
+              grad2.addColorStop(0,   "rgba(0,0,0,1)");
+              grad2.addColorStop(0.7, "rgba(0,0,0,0.6)");
+              grad2.addColorStop(1,   "rgba(0,0,0,0)");
+              deepCtx.fillStyle = grad2;
+              deepCtx.beginPath();
+              deepCtx.arc(mx, my, fadeRadius * 0.55, 0, Math.PI * 2);
+              deepCtx.fill();
+            }
+            deepCtx.globalCompositeOperation = "source-over";
+
+            fogCacheRef.current = { canvas: fogCanvas, deep: deepCanvas, iw: FOG_W, ih: FOG_H, bg };
           }
-          fogCtx.globalCompositeOperation = "source-over";
 
-          // 3. Extra density pass — add a second darker fog layer over already-foggy
-          //    regions to deepen the far-from-marker feel.
-          const deepCanvas = new OffscreenCanvas(iw, ih);
-          const deepCtx = deepCanvas.getContext("2d")!;
-          deepCtx.fillStyle = `${bg}77`;
-          deepCtx.fillRect(0, 0, iw, ih);
-          deepCtx.globalCompositeOperation = "destination-out";
-          for (const m of markers) {
-            const mx = (m.coord_x / 100) * iw;
-            const my = (m.coord_y / 100) * ih;
-            const grad2 = deepCtx.createRadialGradient(mx, my, 0, mx, my, fadeRadius * 0.55);
-            grad2.addColorStop(0,   "rgba(0,0,0,1)");
-            grad2.addColorStop(0.7, "rgba(0,0,0,0.6)");
-            grad2.addColorStop(1,   "rgba(0,0,0,0)");
-            deepCtx.fillStyle = grad2;
-            deepCtx.beginPath();
-            deepCtx.arc(mx, my, fadeRadius * 0.55, 0, Math.PI * 2);
-            deepCtx.fill();
-          }
-          deepCtx.globalCompositeOperation = "source-over";
+          // Stamp cached fog stretched to current scaled image size
+          const fc = fogCacheRef.current!;
+          ctx.drawImage(fc.canvas, 0, 0, iw, ih);
+          ctx.drawImage(fc.deep,   0, 0, iw, ih);
 
-          // 4. Animated wisps — soft and slow
+          // Animated wisps drawn directly (lightweight, no OffscreenCanvas)
           const fogTime = t * 0.0003;
-          fogCtx.globalAlpha = 0.13;
-          for (let i = 0; i < 8; i++) {
+          ctx.globalAlpha = 0.09;
+          for (let i = 0; i < 6; i++) {
             const wx = ((Math.sin(fogTime * (0.7 + i * 0.3) + i * 1.2) + 1) / 2) * iw;
             const wy = ((Math.cos(fogTime * (0.5 + i * 0.2) + i * 0.9) + 1) / 2) * ih;
-            const wr = iw * (0.06 + i * 0.025);
-            const wg = fogCtx.createRadialGradient(wx, wy, 0, wx, wy, wr);
-            wg.addColorStop(0, "rgba(200,190,180,0.6)");
+            const wr = iw * (0.05 + i * 0.02);
+            const wg = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr);
+            wg.addColorStop(0, "rgba(200,190,180,0.5)");
             wg.addColorStop(1, "rgba(200,190,180,0)");
-            fogCtx.fillStyle = wg;
-            fogCtx.beginPath();
-            fogCtx.arc(wx, wy, wr, 0, Math.PI * 2);
-            fogCtx.fill();
+            ctx.fillStyle = wg;
+            ctx.beginPath();
+            ctx.arc(wx, wy, wr, 0, Math.PI * 2);
+            ctx.fill();
           }
-          fogCtx.globalAlpha = 1;
-
-          // 5. Stamp base fog, then deep fog layer on top
-          ctx.drawImage(fogCanvas, 0, 0);
-          ctx.drawImage(deepCanvas, 0, 0);
+          ctx.globalAlpha = 1;
         }
 
-        // Map vignette
-        const vgr = ctx.createRadialGradient(iw / 2, ih / 2, ih * 0.3, iw / 2, ih / 2, Math.max(iw, ih) * 0.72);
-        vgr.addColorStop(0, "rgba(0,0,0,0)");
-        vgr.addColorStop(1, `${bg}aa`);
-        ctx.fillStyle = vgr;
-        ctx.fillRect(0, 0, iw, ih);
+        // No internal map vignette — edge fog handles blending instead
 
         ctx.restore();
 
         // ── Draw visible markers ──────────────────────────────────────────
         for (const m of markers) {
-          const mx = cx + (m.coord_x / 100) * iw;
-          const my = cy + (m.coord_y / 100) * ih;
+          const mx = cx + (m.coord_x / 100) * (img.width * scale);
+          const my = cy + (m.coord_y / 100) * (img.height * scale);
           const isSelected = m.id === selectedMarkerId;
           const pulse = (Math.sin(t * 0.002 + m.coord_x) + 1) / 2;
 
           ctx.save();
           ctx.translate(mx, my);
 
-          const ringR = 8 + pulse * 4;
+          // Subtle outer ring (small)
+          const ringR = 7 + pulse * 3;
           ctx.beginPath();
           ctx.arc(0, 0, ringR, 0, Math.PI * 2);
           ctx.strokeStyle = isSelected
-            ? `${accent}${Math.round(0.45 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`
-            : `${primary}${Math.round(0.28 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`;
-          ctx.lineWidth = 1;
+            ? `${accent}${Math.round(0.35 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`
+            : `${primary}${Math.round(0.2 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`;
+          ctx.lineWidth = 0.8;
           ctx.stroke();
 
-          const grd = ctx.createRadialGradient(0, 0, 1, 0, 0, 6);
+          // Very subtle glow (minimal radius, low opacity)
+          const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 5);
           if (isSelected) {
-            grd.addColorStop(0, `${accent}e6`);
+            grd.addColorStop(0, `${accent}55`);
             grd.addColorStop(1, `${accent}00`);
           } else {
-            grd.addColorStop(0, `${primary}99`);
+            grd.addColorStop(0, `${primary}33`);
             grd.addColorStop(1, `${primary}00`);
           }
           ctx.beginPath();
-          ctx.arc(0, 0, 6, 0, Math.PI * 2);
+          ctx.arc(0, 0, 5, 0, Math.PI * 2);
           ctx.fillStyle = grd;
           ctx.fill();
 
+          // Diamond marker
           ctx.save();
           ctx.rotate(Math.PI / 4);
           const d = isSelected ? 6 : 5;
           ctx.fillStyle = isSelected ? accent : primary;
-          ctx.shadowColor = isSelected ? `${accent}cc` : `${primary}66`;
-          ctx.shadowBlur = isSelected ? 6 : 3;
+          ctx.shadowColor = isSelected ? `${accent}99` : `${primary}44`;
+          ctx.shadowBlur = isSelected ? 4 : 2;
           ctx.fillRect(-d, -d, d * 2, d * 2);
-          ctx.fillStyle = isSelected ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)";
+          ctx.fillStyle = isSelected ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.25)";
           ctx.shadowBlur = 0;
           const di = d * 0.45;
           ctx.fillRect(-di, -di, di * 2, di * 2);
@@ -657,8 +665,8 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         // ── Draw hidden markers (admin only, faded) ───────────────────────
         if (editMode) {
           for (const m of hiddenMarkers) {
-            const mx = cx + (m.coord_x / 100) * iw;
-            const my = cy + (m.coord_y / 100) * ih;
+            const mx = cx + (m.coord_x / 100) * (img.width * scale);
+            const my = cy + (m.coord_y / 100) * (img.height * scale);
             ctx.save();
             ctx.globalAlpha = 0.35;
             ctx.translate(mx, my);
@@ -743,6 +751,9 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     animFrameRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [imgLoaded, markers, hiddenMarkers, editMode, selectedMarkerId, tipo]);
+
+  // Invalidate fog cache when markers or edit mode changes
+  useEffect(() => { fogCacheRef.current = null; }, [markers, editMode, tipo]);
 
   const hitTest = useCallback((clientX: number, clientY: number): any | null => {
     const canvas = canvasRef.current;
