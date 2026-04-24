@@ -36,7 +36,7 @@ const Biblioteca = () => {
   return (
     <div className="min-h-screen bg-bg-main pb-20">
       <br />
-      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-12">
         {librosVisibles.length === 0 ? (
           <p className="col-span-full text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-24 italic">
             No hay libros disponibles por el momento
