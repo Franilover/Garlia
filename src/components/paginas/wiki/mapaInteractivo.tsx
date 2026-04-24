@@ -696,41 +696,47 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
       }
 
       // ── Edge fog — blends canvas borders into the page background ─────────
+      const eT = canvas.height * 0.45;
+      const eS = canvas.width * 0.45;
       // Top edge
-      const topFog = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.28);
-      topFog.addColorStop(0, `${bg}ff`);
-      topFog.addColorStop(0.4, `${bg}cc`);
-      topFog.addColorStop(0.75, `${bg}55`);
-      topFog.addColorStop(1, `${bg}00`);
+      const topFog = ctx.createLinearGradient(0, 0, 0, eT);
+      topFog.addColorStop(0,    `${bg}ff`);
+      topFog.addColorStop(0.15, `${bg}ff`);
+      topFog.addColorStop(0.5,  `${bg}dd`);
+      topFog.addColorStop(0.8,  `${bg}77`);
+      topFog.addColorStop(1,    `${bg}00`);
       ctx.fillStyle = topFog;
-      ctx.fillRect(0, 0, canvas.width, canvas.height * 0.28);
+      ctx.fillRect(0, 0, canvas.width, eT);
 
       // Bottom edge
-      const botFog = ctx.createLinearGradient(0, canvas.height * 0.72, 0, canvas.height);
-      botFog.addColorStop(0, `${bg}00`);
-      botFog.addColorStop(0.25, `${bg}55`);
-      botFog.addColorStop(0.6, `${bg}cc`);
-      botFog.addColorStop(1, `${bg}ff`);
+      const botFog = ctx.createLinearGradient(0, canvas.height - eT, 0, canvas.height);
+      botFog.addColorStop(0,    `${bg}00`);
+      botFog.addColorStop(0.2,  `${bg}77`);
+      botFog.addColorStop(0.5,  `${bg}dd`);
+      botFog.addColorStop(0.85, `${bg}ff`);
+      botFog.addColorStop(1,    `${bg}ff`);
       ctx.fillStyle = botFog;
-      ctx.fillRect(0, canvas.height * 0.72, canvas.width, canvas.height * 0.28);
+      ctx.fillRect(0, canvas.height - eT, canvas.width, eT);
 
       // Left edge
-      const leftFog = ctx.createLinearGradient(0, 0, canvas.width * 0.25, 0);
-      leftFog.addColorStop(0, `${bg}ff`);
-      leftFog.addColorStop(0.4, `${bg}bb`);
-      leftFog.addColorStop(0.75, `${bg}44`);
-      leftFog.addColorStop(1, `${bg}00`);
+      const leftFog = ctx.createLinearGradient(0, 0, eS, 0);
+      leftFog.addColorStop(0,    `${bg}ff`);
+      leftFog.addColorStop(0.15, `${bg}ff`);
+      leftFog.addColorStop(0.5,  `${bg}dd`);
+      leftFog.addColorStop(0.8,  `${bg}66`);
+      leftFog.addColorStop(1,    `${bg}00`);
       ctx.fillStyle = leftFog;
-      ctx.fillRect(0, 0, canvas.width * 0.25, canvas.height);
+      ctx.fillRect(0, 0, eS, canvas.height);
 
       // Right edge
-      const rightFog = ctx.createLinearGradient(canvas.width * 0.75, 0, canvas.width, 0);
-      rightFog.addColorStop(0, `${bg}00`);
-      rightFog.addColorStop(0.25, `${bg}44`);
-      rightFog.addColorStop(0.6, `${bg}bb`);
-      rightFog.addColorStop(1, `${bg}ff`);
+      const rightFog = ctx.createLinearGradient(canvas.width - eS, 0, canvas.width, 0);
+      rightFog.addColorStop(0,    `${bg}00`);
+      rightFog.addColorStop(0.2,  `${bg}66`);
+      rightFog.addColorStop(0.5,  `${bg}dd`);
+      rightFog.addColorStop(0.85, `${bg}ff`);
+      rightFog.addColorStop(1,    `${bg}ff`);
       ctx.fillStyle = rightFog;
-      ctx.fillRect(canvas.width * 0.75, 0, canvas.width * 0.25, canvas.height);
+      ctx.fillRect(canvas.width - eS, 0, eS, canvas.height);
 
       animFrameRef.current = requestAnimationFrame(draw);
     };
@@ -1170,6 +1176,7 @@ export default function MapaInteractivo() {
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
+      {/* ── MAP AREA ── */}
       <div className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}>
 
         {isAdmin && (
