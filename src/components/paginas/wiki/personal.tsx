@@ -307,154 +307,223 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               style={{ background: "rgba(0,0,0,0.45)" }}
             />
             <MotionDiv
-              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              initial={{ opacity: 0, scale: 0.94, y: 24 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              exit={{ opacity: 0, scale: 0.94, y: 24 }}
               transition={{ type: "spring", stiffness: 340, damping: 30 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-x-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[26rem]"
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-x-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[30rem]"
               style={{
                 background: "var(--white-custom)",
                 borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                boxShadow: "var(--shadow-card)",
-                maxHeight: "85dvh",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                boxShadow: "0 24px 64px color-mix(in srgb, var(--primary) 18%, transparent), 0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)",
+                maxHeight: "88dvh",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
               }}
             >
-              {/* Header imagen */}
-              {modalEntidad.data.imagen_url && (
-                <div className="w-full h-36 shrink-0 overflow-hidden relative"
-                  style={{ background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))" }}>
-                  <img src={modalEntidad.data.imagen_url} alt={modalEntidad.data.nombre}
-                    className="w-full h-full object-contain" />
-                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, var(--white-custom) 0%, transparent 60%)" }} />
-                </div>
-              )}
-
-              {/* Botón cerrar */}
-              <button
-                onClick={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
-                className="absolute top-3 right-3 z-10 p-1.5 transition-opacity hover:opacity-100"
+              {/* Hero imagen — más alta, con gradiente elegante */}
+              <div className="w-full shrink-0 overflow-hidden relative"
                 style={{
-                  color: "var(--primary)", opacity: 0.45,
-                  background: "color-mix(in srgb, var(--white-custom) 80%, transparent)",
-                  borderRadius: "var(--radius-btn)",
-                  backdropFilter: "blur(4px)",
+                  height: modalEntidad.data.imagen_url ? "220px" : "80px",
+                  background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
                 }}>
-                <X size={14} />
-              </button>
+                {modalEntidad.data.imagen_url && (
+                  <img src={modalEntidad.data.imagen_url} alt={modalEntidad.data.nombre}
+                    className="w-full h-full object-contain transition-transform duration-700 hover:scale-105" />
+                )}
+                {/* Gradiente pronunciado hacia abajo para que el nombre flote sobre la imagen */}
+                <div className="absolute inset-0" style={{
+                  background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 30%, transparent) 45%, transparent 100%)"
+                }} />
 
-              {/* Contenido scrollable */}
-              <div className="overflow-y-auto flex-1 px-5 pb-6" style={{ paddingTop: modalEntidad.data.imagen_url ? "0.75rem" : "1.25rem" }}>
+                {/* Botón cerrar flotante */}
+                <button
+                  onClick={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
+                  className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
+                  style={{
+                    color: "var(--primary)",
+                    background: "color-mix(in srgb, var(--white-custom) 85%, transparent)",
+                    borderRadius: "var(--radius-btn)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    backdropFilter: "blur(6px)",
+                  }}>
+                  <X size={13} />
+                </button>
 
-                {/* Nombre y meta */}
-                <div className="mb-3">
-                  <h2 className="font-serif italic capitalize leading-tight"
-                    style={{ fontSize: "1.1rem", color: "var(--primary)" }}>
-                    {modalEntidad.data.nombre ?? "Personaje"}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {modalEntidad.data.reino && (
-                      <span className="font-serif italic text-[9px] px-2 py-0.5"
-                        style={{
-                          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                          borderRadius: "var(--radius-btn)",
-                          color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-                        }}>
-                        {modalEntidad.data.reino}
-                      </span>
-                    )}
-                    {modalEntidad.data.especie && (
-                      <span className="font-serif italic text-[9px] px-2 py-0.5"
-                        style={{
-                          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                          borderRadius: "var(--radius-btn)",
-                          color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-                        }}>
-                        {modalEntidad.data.especie}
-                      </span>
+                {/* Tipo badge */}
+                <div className="absolute top-3 left-3 px-2.5 py-1 text-[8px] font-black uppercase tracking-widest"
+                  style={{
+                    background: "color-mix(in srgb, var(--white-custom) 85%, transparent)",
+                    borderRadius: "var(--radius-btn)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                    backdropFilter: "blur(6px)",
+                  }}>
+                  Personaje
+                </div>
+
+                {/* Nombre superpuesto sobre el gradiente */}
+                {modalEntidad.data.imagen_url && (
+                  <div className="absolute bottom-0 left-0 right-0 px-6 pb-4">
+                    <h2 className="font-serif italic capitalize leading-tight"
+                      style={{ fontSize: "1.75rem", color: "var(--primary)", lineHeight: 1.15 }}>
+                      {modalEntidad.data.nombre ?? "Personaje"}
+                    </h2>
+                    {(modalEntidad.data.reino || modalEntidad.data.especie) && (
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        {modalEntidad.data.reino && (
+                          <span className="font-serif italic text-[9px] px-2 py-0.5"
+                            style={{
+                              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                              borderRadius: "var(--radius-btn)",
+                              color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                            }}>
+                            {modalEntidad.data.reino}
+                          </span>
+                        )}
+                        {modalEntidad.data.especie && (
+                          <span className="font-serif italic text-[9px] px-2 py-0.5"
+                            style={{
+                              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                              borderRadius: "var(--radius-btn)",
+                              color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                            }}>
+                            {modalEntidad.data.especie}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
-                </div>
+                )}
+              </div>
+
+              {/* Contenido scrollable */}
+              <div className="overflow-y-auto flex-1 px-6 pb-6" style={{ paddingTop: "1.25rem" }}>
+
+                {/* Nombre y tags si NO hay imagen */}
+                {!modalEntidad.data.imagen_url && (
+                  <div className="mb-4">
+                    <h2 className="font-serif italic capitalize leading-tight mb-2"
+                      style={{ fontSize: "1.75rem", color: "var(--primary)" }}>
+                      {modalEntidad.data.nombre ?? "Personaje"}
+                    </h2>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {modalEntidad.data.reino && (
+                        <span className="font-serif italic text-[9px] px-2 py-0.5"
+                          style={{
+                            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                            borderRadius: "var(--radius-btn)",
+                            color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                          }}>
+                          {modalEntidad.data.reino}
+                        </span>
+                      )}
+                      {modalEntidad.data.especie && (
+                        <span className="font-serif italic text-[9px] px-2 py-0.5"
+                          style={{
+                            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                            borderRadius: "var(--radius-btn)",
+                            color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                          }}>
+                          {modalEntidad.data.especie}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Descripción */}
                 {modalEntidad.data.descripcion && (
-                  <p className="font-serif italic leading-relaxed mb-4"
-                    style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--foreground) 72%, transparent)" }}>
+                  <p className="font-serif italic leading-relaxed mb-5"
+                    style={{ fontSize: "0.88rem", color: "color-mix(in srgb, var(--foreground) 68%, transparent)", lineHeight: 1.7 }}>
                     {modalEntidad.data.descripcion}
                   </p>
                 )}
 
-                {/* Divisor */}
-                <div className="flex items-center gap-2 my-4">
+                {/* Divisor canciones */}
+                <div className="flex items-center gap-3 mb-4">
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                  <Music2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
+                  <div className="flex items-center gap-1.5">
+                    <Music2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
+                    <span className="font-serif italic text-[9px] font-black uppercase tracking-widest"
+                      style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                      Canciones
+                    </span>
+                  </div>
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                 </div>
 
                 {/* Canciones */}
-                <div>
-                  <p className="font-serif italic text-[9px] mb-3"
-                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                    Canciones
+                {cargandoCanciones ? (
+                  <div className="flex items-center gap-2 py-5 justify-center">
+                    <Loader2 size={13} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                    <span className="font-serif italic text-[9px]"
+                      style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                      Cargando canciones…
+                    </span>
+                  </div>
+                ) : cancionesPersonaje.length === 0 ? (
+                  <p className="font-serif italic text-[10px] py-4 text-center"
+                    style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                    "Este personaje no tiene canciones aún…"
                   </p>
-
-                  {cargandoCanciones ? (
-                    <div className="flex items-center gap-2 py-4 justify-center">
-                      <Loader2 size={13} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                      <span className="font-serif italic text-[9px]"
-                        style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                        Cargando canciones…
-                      </span>
-                    </div>
-                  ) : cancionesPersonaje.length === 0 ? (
-                    <p className="font-serif italic text-[10px] py-3 text-center"
-                      style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                      "Este personaje no tiene canciones aún…"
-                    </p>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      {cancionesPersonaje.map((cancion, i) => (
-                        <Link key={cancion.id ?? i} href={`/wiki/canciones/${cancion.id}`}
-                          className="group flex items-center gap-2.5 px-3 py-2.5 transition-all"
-                          style={{
-                            background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                            border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                            borderRadius: "var(--radius-btn)",
-                          }}
-                          onMouseEnter={e => {
-                            (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
-                            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))";
-                          }}
-                          onMouseLeave={e => {
-                            (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
-                            (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
-                          }}>
-                          {cancion.portada_url && !cancion.portada_url.includes("placeholder") && (
-                            <div className="w-10 h-10 shrink-0 overflow-hidden"
-                              style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                              <img src={cancion.portada_url} alt={cancion.titulo}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                            <Music2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
-                            <span className="font-serif italic text-[11px] truncate group-hover:underline"
-                              style={{ color: "var(--primary)" }}>
-                              {cancion.titulo ?? `Canción ${i + 1}`}
-                            </span>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {cancionesPersonaje.map((cancion, i) => (
+                      <Link key={cancion.id ?? i} href={`/wiki/canciones/${cancion.id}`}
+                        className="group flex items-center gap-3 px-3 py-3 transition-all"
+                        style={{
+                          background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                          border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                          borderRadius: "var(--radius-btn)",
+                        }}
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))";
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
+                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
+                        }}>
+                        {cancion.portada_url && !cancion.portada_url.includes("placeholder") ? (
+                          <div className="w-11 h-11 shrink-0 overflow-hidden"
+                            style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                            <img src={cancion.portada_url} alt={cancion.titulo}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                           </div>
-                          <ChevronRight size={12} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }}
-                            className="group-hover:translate-x-0.5 transition-transform" />
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        ) : (
+                          <div className="w-11 h-11 shrink-0 flex items-center justify-center"
+                            style={{
+                              borderRadius: "var(--radius-btn)",
+                              background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                            }}>
+                            <Music2 size={14} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <span className="font-serif italic text-[12px] truncate block group-hover:underline"
+                            style={{ color: "var(--primary)" }}>
+                            {cancion.titulo ?? `Canción ${i + 1}`}
+                          </span>
+                          {cancion.info_cancion && (
+                            <span className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
+                              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                              {cancion.info_cancion}
+                            </span>
+                          )}
+                        </div>
+                        <ChevronRight size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }}
+                          className="group-hover:translate-x-0.5 transition-transform" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
 
               </div>
             </MotionDiv>
