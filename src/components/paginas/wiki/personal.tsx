@@ -845,54 +845,65 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
               }}>
 
-              {/* Avatar zone */}
-              <div className="relative pt-7 pb-5 px-5 text-center"
+              {/* Avatar zone — redesigned: photo left + name/class right on desktop, stacked on mobile */}
+              <div className="relative overflow-hidden"
                 style={{
-                  background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))",
+                  background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
                   borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                 }}>
 
-                <div className="flex justify-center mb-4">
+                {/* Main layout: avatar + text side by side */}
+                <div className="flex items-end gap-0">
+
+                  {/* Avatar — tall, flush left */}
                   <button onClick={() => setShowAvatarPicker(true)}
-                    className="group relative overflow-hidden flex items-center justify-center transition-all duration-200"
+                    className="group relative shrink-0 overflow-hidden transition-all duration-200"
                     style={{
-                      width: 96, height: 96,
-                      borderRadius: "var(--radius-btn)",
-                      background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
-                      border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+                      width: 110, height: 130,
+                      background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
+                      borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                     }}
                     title="Cambiar imagen">
                     {perfil?.avatar_url
                       ? <img src={perfil.avatar_url} alt={perfil?.username} className="w-full h-full object-contain" />
-                      : <User size={32} style={{ color: "color-mix(in srgb, var(--primary) 16%, transparent)" }} />}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ background: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-                      <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text)" }}>Cambiar</span>
+                      : <User size={40} className="m-auto mt-8" style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
+                    <div className="absolute inset-0 flex items-end justify-center pb-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                      <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text)" }}>Cambiar</span>
                     </div>
                   </button>
-                </div>
 
-                {/* Título */}
-                {perfil?.titulo && (
-                  <div className="inline-flex items-center gap-1.5 mb-2 px-2.5 py-0.5 text-[7px] font-black uppercase tracking-[0.2em]"
-                    style={{
-                      border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
-                      borderRadius: "2px",
-                      color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                      background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                    }}>
-                    {perfil.titulo}
+                  {/* Name + class */}
+                  <div className="flex-1 min-w-0 px-4 pb-4 pt-5 flex flex-col justify-end gap-1">
+                    {/* Título / clase */}
+                    {perfil?.titulo && (
+                      <div className="inline-flex w-fit items-center gap-1 px-2 py-0.5 mb-1"
+                        style={{
+                          border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                          borderRadius: "2px",
+                          background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                        }}>
+                        <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                        <span className="text-[7px] font-black uppercase tracking-[0.2em]"
+                          style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                          {perfil.titulo}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Username — big */}
+                    <h1 className="font-serif italic leading-none capitalize"
+                      style={{ fontSize: "1.55rem", color: "var(--primary)", letterSpacing: "0.01em" }}>
+                      {perfil?.username ?? "…"}
+                    </h1>
+
+                    {/* Status */}
+                    <p className="font-serif italic text-[10px] mt-0.5"
+                      style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
+                      {perfil?.status ?? "Enciclopedia"}
+                    </p>
                   </div>
-                )}
-
-                <h1 className="font-serif italic leading-tight"
-                  style={{ fontSize: "1.3rem", color: "var(--primary)", letterSpacing: "0.01em", textTransform: "capitalize" }}>
-                  {perfil?.username ?? "…"}
-                </h1>
-                <p className="font-serif italic text-[9px] mt-1"
-                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                  {perfil?.status ?? "Enciclopedia"}
-                </p>
+                </div>
               </div>
 
               {/* Stats HUD */}
@@ -1137,27 +1148,40 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           </div>
         </div>
 
-        {/* ── Mobile tab bar ── */}
+        {/* ── Mobile tab bar + inventory (unified block) ── */}
         <div className="md:hidden mb-5 mx-4">
-          <div className="flex gap-1 p-1"
+          {/* Tabs flush on top */}
+          <div className="flex"
             style={{
-              background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "var(--radius-btn)",
+              borderBottom: "none",
             }}>
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
-                style={{
-                  borderRadius: "calc(var(--radius-btn) - 2px)",
-                  background: tab === t.id ? "var(--primary)" : "transparent",
-                  color: tab === t.id ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                  boxShadow: tab === t.id ? "0 2px 8px color-mix(in srgb, var(--primary) 22%, transparent)" : "none",
-                }}>
-                <t.icon size={12} />
-                <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
-              </button>
-            ))}
+            {tabs.map(t => {
+              const isActive = tab === t.id;
+              return (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
+                  style={{
+                    background: isActive
+                      ? tab === "items"
+                        ? "color-mix(in srgb, var(--primary) 5%, var(--bg-main))"
+                        : tab === "criaturas"
+                        ? "color-mix(in srgb, var(--primary) 6%, var(--bg-main))"
+                        : "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
+                      : "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                    color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    borderBottom: isActive ? "1px solid transparent" : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    borderRadius: isActive ? "var(--radius-btn) var(--radius-btn) 0 0" : "var(--radius-btn) var(--radius-btn) 0 0",
+                    marginBottom: isActive ? "-1px" : "0",
+                    zIndex: isActive ? 1 : 0,
+                    position: "relative",
+                  }}>
+                  {isActive && <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />}
+                  <t.icon size={11} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -1165,7 +1189,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         <div className="flex gap-6 items-start">
 
           {/* Grid area — tinted background changes per active tab, like a game inventory */}
-          <div className="flex-1 min-w-0 pt-2 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+          <div className="flex-1 min-w-0 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
             {/* Desktop tabs */}
             <div className="hidden md:flex items-center justify-between mb-0">
@@ -1209,10 +1233,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             </div>
 
             {/* Inventory panel — background tinted per tab */}
-            <div className="rounded-b-[var(--radius-card)] md:rounded-tl-none md:rounded-tr-[var(--radius-card)]"
+            <div
               style={{
                 border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                 borderTop: "none",
+                borderRadius: "0 0 var(--radius-card) var(--radius-card)",
                 background: tab === "items"
                   ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
                   : tab === "criaturas"
