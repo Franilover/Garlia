@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Map, MapPin, Plus, Check, X, Trash2, Save,
-  Eye, EyeOff, Loader2, ChevronDown, Globe, Landmark, Coins, Mountain,
+  Eye, EyeOff, Loader2, ChevronDown, Globe, Landmark, Coins, Mountain, Users, UserCircle2, ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -11,15 +11,14 @@ import { type Reino, type ReinoDetalle, type SaveStatus, INPUT_CLS } from "./typ
 import { useReinoDetalles, usePersonajesDelReino } from "./hooks";
 import { SelectorImagen, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
-import { PanelPersonajes } from "./PanelPersonajes";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
-type InnerTab = "mapa" | "lore" | "politica";
+type InnerTab = "mapa" | "lore" | "personajes";
 
 const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
   { key: "mapa",    label: "Mapa",    Icon: Map      },
   { key: "lore",    label: "Lore",    Icon: Globe    },
-  { key: "politica",label: "Sociedad",Icon: Landmark },
+  { key: "personajes", label: "Personajes", Icon: Users },
 ];
 
 // ─── Campo colapsable ─────────────────────────────────────────────────────────
@@ -339,6 +338,12 @@ export function EditorReino({ item, onSaved, onDeleted }: {
                   {detalles.length}
                 </span>
               )}
+              {key === "personajes" && personajes.length > 0 && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black"
+                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                  {personajes.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -413,23 +418,53 @@ export function EditorReino({ item, onSaved, onDeleted }: {
                 placeholder="Paisajes, clima, fronteras, ciudades principales…" rows={7} />
               <CampoLore label="Cultura" icon={Globe} value={form.cultura ?? ""} onChange={v => setForm(f => ({ ...f, cultura: v }))}
                 placeholder="Tradiciones, religión, idioma, costumbres, arte…" rows={7} />
-            </div>
-          )}
-
-          {/* SOCIEDAD */}
-          {tab === "politica" && (
-            <div className="p-4 space-y-3">
               <CampoLore label="Política" icon={Landmark} value={form.politica ?? ""} onChange={v => setForm(f => ({ ...f, politica: v }))}
                 placeholder="Sistema de gobierno, facciones, líderes, leyes…" rows={7} />
               <CampoLore label="Economía" icon={Coins} value={form.economia ?? ""} onChange={v => setForm(f => ({ ...f, economia: v }))}
                 placeholder="Recursos, comercio, moneda, riqueza…" rows={7} />
             </div>
           )}
+
+          {/* PERSONAJES */}
+          {tab === "personajes" && (
+            <div className="p-4 space-y-2">
+              {loadingPersonajes ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 size={16} className="animate-spin text-primary/20" />
+                </div>
+              ) : personajes.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-12 text-primary/20">
+                  <Users size={28} strokeWidth={1} />
+                  <p className="text-[9px] font-black uppercase tracking-widest">Sin personajes en este reino</p>
+                </div>
+              ) : (
+                personajes.map(p => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-transparent"
+                    style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                  >
+                    <div className="shrink-0 w-9 h-9 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                      {p.img_url
+                        ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                        : <UserCircle2 size={14} className="text-primary/20" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-primary/80 truncate">{p.nombre}</p>
+                      {(p.especie || p.sobre) && (
+                        <p className="text-[9px] text-primary/35 truncate mt-0.5">
+                          {[p.especie, p.sobre?.slice(0, 50)].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Panel personajes del reino */}
-      <PanelPersonajes personajes={personajes} loading={loadingPersonajes} setPersonajes={setPersonajes} titulo="Personajes" />
     </div>
   );
 }
