@@ -9,22 +9,14 @@ import {
   type TabKey, type MundoSectionKey, type Personaje, type Criatura, type Item, type Reino,
 } from "./editorEntidades/types";
 import { useMundoSecciones } from "./editorEntidades/hooks";
-import { GlobalSearchBar, TabNav } from "./editorEntidades/SidebarComponents";
+import { GlobalSearchBar, type AllItems } from "./editorEntidades/SidebarComponents";
 import { EditorPersonaje } from "./editorEntidades/EditorPersonaje";
 import { EditorCriatura }  from "./editorEntidades/EditorCriatura";
 import { EditorItem }      from "./editorEntidades/EditorItem";
 import { EditorReino }     from "./editorEntidades/EditorReino";
 import { EditorMundo }     from "./editorEntidades/EditorMundo";
 
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-type AllItems = {
-  personajes: Personaje[];
-  criaturas:  Criatura[];
-  items:      Item[];
-  reinos:     Reino[];
-};
-
-// ─── Hook: carga todas las categorías en paralelo ────────────────────────────
+// ─── Hook: carga todas las categorías en paralelo ─────────────────────────────
 function useAllEntidades() {
   const [allItems,   setAllItems]   = useState<AllItems>({ personajes: [], criaturas: [], items: [], reinos: [] });
   const [loadingAll, setLoadingAll] = useState(true);
@@ -58,18 +50,18 @@ function useAllEntidades() {
     return () => window.removeEventListener("online", h);
   }, [load]);
 
-  return { allItems, setAllItems, loadingAll, isOffline, refetch: load };
+  return { allItems, setAllItems, loadingAll, isOffline };
 }
 
 // ─── Modal nueva entrada ──────────────────────────────────────────────────────
 function ModalNueva({ tab, onCreated, onClose }: {
-  tab: TabKey; onCreated: (item: any) => void; onClose: () => void;
+  tab: Exclude<TabKey, "mundo">; onCreated: (item: any) => void; onClose: () => void;
 }) {
   const [nombre,  setNombre]  = useState("");
   const [loading, setLoading] = useState(false);
 
   const create = async () => {
-    if (!nombre.trim() || tab === "mundo") return;
+    if (!nombre.trim()) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -83,7 +75,7 @@ function ModalNueva({ tab, onCreated, onClose }: {
   return (
     <ModalBase onClose={onClose}>
       <h3 className="text-xs font-black uppercase tracking-[0.3em] text-primary/50 mb-4">
-        Nueva entrada · {tab === "mundo" ? "Mundo" : TAB_CONFIG[tab].label}
+        Nueva entrada · {TAB_CONFIG[tab].label}
       </h3>
       <input
         autoFocus value={nombre}
@@ -139,14 +131,7 @@ export default function EditorEntidades() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, selectedId })); } catch {}
   }, [tab, selectedId]);
 
-  // Limpiar selección al cambiar de tab (no en el primer mount)
-  const isFirstMount = useRef(true);
-  useEffect(() => {
-    if (isFirstMount.current) { isFirstMount.current = false; return; }
-    setSelectedId(null);
-  }, [tab]);
-
-  // Item seleccionado en el tab activo
+  // Item seleccionado
   const selected = useMemo(() => {
     if (tab === "mundo") return null;
     return allItems[tab as Exclude<TabKey, "mundo">].find(i => i.id === selectedId) ?? null;
@@ -154,10 +139,14 @@ export default function EditorEntidades() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleSelect = useCallback((item: any, itemTab: Exclude<TabKey, "mundo">) => {
-    // Si viene de otra categoría, cambia el tab primero
-    if (itemTab !== tab) setTab(itemTab);
+    setTab(itemTab);
     setSelectedId(item.id);
-  }, [tab]);
+  }, []);
+
+  const handleMundo = useCallback(() => {
+    setTab("mundo");
+    setSelectedId(null);
+  }, []);
 
   const handleCreated = (item: any) => {
     const t = tab as Exclude<TabKey, "mundo">;
@@ -174,7 +163,6 @@ export default function EditorEntidades() {
     const t = tab as Exclude<TabKey, "mundo">;
     setAllItems(prev => ({ ...prev, [t]: prev[t].filter(i => i.id !== id) }));
     setSelectedId(null);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, selectedId: null })); } catch {}
   };
 
   const handleToggleOcultoReino = useCallback((id: string, oculto: boolean) => {
@@ -185,8 +173,6 @@ export default function EditorEntidades() {
   }, [setAllItems]);
 
   const isMundo = tab === "mundo";
-  const Icon    = isMundo ? Globe : TAB_CONFIG[tab].Icon;
-  const label   = isMundo ? "Mundo" : TAB_CONFIG[tab].label;
 
   return (
     <>
@@ -194,10 +180,7 @@ export default function EditorEntidades() {
         className="flex flex-col w-full h-full min-h-0 overflow-hidden"
         style={{ background: "var(--bg-main)" }}
       >
-        {/* ── Fila 1: tabs de categoría ──────────────────────────────────── */}
-        <TabNav tab={tab} onChange={setTab} />
-
-        {/* ── Fila 2: buscador global unificado ───────────────────────────── */}
+        {/* ── Buscador global + botón Mundo ───────────────────────────────── */}
         <GlobalSearchBar
           allItems={allItems}
           loadingAll={loadingAll}
@@ -206,6 +189,7 @@ export default function EditorEntidades() {
           selectedId={selectedId}
           onSelect={handleSelect}
           onAdd={() => setShowNueva(true)}
+          onMundo={handleMundo}
           onToggleOculto={handleToggleOcultoReino}
           activeSection={mundoSection}
           onSectionChange={setMundoSection}
@@ -221,7 +205,7 @@ export default function EditorEntidades() {
           </div>
         )}
 
-        {/* ── Área del editor ─────────────────────────────────────────────── */}
+        {/* ── Editor ──────────────────────────────────────────────────────── */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
           {isMundo ? (
             <EditorMundo
@@ -239,19 +223,23 @@ export default function EditorEntidades() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-primary/15 select-none">
-              <Icon size={48} strokeWidth={1} />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">{label}</p>
+              <Globe size={48} strokeWidth={1} />
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">Worldbuilding</p>
               <p className="text-[10px] text-primary/20 tracking-widest">
-                {loadingAll ? "Cargando…" : "Usá el buscador de arriba para seleccionar"}
+                {loadingAll ? "Cargando…" : "Buscá cualquier entidad arriba"}
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Modal nueva entrada ─────────────────────────────────────────────── */}
+      {/* Modal nueva entrada */}
       {showNueva && !isMundo && (
-        <ModalNueva tab={tab} onCreated={handleCreated} onClose={() => setShowNueva(false)} />
+        <ModalNueva
+          tab={tab as Exclude<TabKey, "mundo">}
+          onCreated={handleCreated}
+          onClose={() => setShowNueva(false)}
+        />
       )}
     </>
   );
