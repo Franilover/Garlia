@@ -495,8 +495,6 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         // ── FOG OF WAR — cached, rebuilt only when markers/bg changes ─────
         if (tipo === "global" && !editMode && hiddenMarkers.length > 0) {
           const cache = fogCacheRef.current;
-          // Use a fixed internal resolution for the fog — independent of zoom scale.
-          // This avoids recreating huge OffscreenCanvases on every zoom level.
           const FOG_W = Math.min(img.width, 1200);
           const FOG_H = Math.round(FOG_W * (img.height / img.width));
 
@@ -507,24 +505,34 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             cache.bg !== bg;
 
           if (needsRebuild) {
+            const maxDim = Math.max(FOG_W, FOG_H);
+            // Clear zone around the marker center (fully revealed)
+            const clearRadius = maxDim * 0.10;
+            // Soft fade zone — where fog transitions to clear
+            const fadeRadius  = maxDim * 0.22;
+
+            // ── Layer 1: main opaque fog with reveal holes ────────────────
             const fogCanvas = new OffscreenCanvas(FOG_W, FOG_H);
             const fogCtx = fogCanvas.getContext("2d")!;
-            fogCtx.fillStyle = `${bg}ee`;
-            fogCtx.fillRect(0, 0, FOG_W, FOG_H);
 
+            // Start fully opaque — parse bg hex to get an rgb version
+            // bg is a hex like "#1a1a2e"; use it with full opacity
+            fogCtx.fillStyle = bg;
+            fogCtx.globalAlpha = 0.92;
+            fogCtx.fillRect(0, 0, FOG_W, FOG_H);
+            fogCtx.globalAlpha = 1;
+
+            // Punch holes around each visible marker with a smooth gradient
             fogCtx.globalCompositeOperation = "destination-out";
-            const maxDim = Math.max(FOG_W, FOG_H);
-            const clearRadius = maxDim * 0.18;
-            const fadeRadius  = maxDim * 0.38;
             for (const m of markers) {
               const mx = (m.coord_x / 100) * FOG_W;
               const my = (m.coord_y / 100) * FOG_H;
-              const grad = fogCtx.createRadialGradient(mx, my, clearRadius * 0.3, mx, my, fadeRadius);
-              grad.addColorStop(0,    "rgba(0,0,0,1)");
-              grad.addColorStop(0.35, "rgba(0,0,0,0.95)");
-              grad.addColorStop(0.65, "rgba(0,0,0,0.5)");
-              grad.addColorStop(0.85, "rgba(0,0,0,0.15)");
-              grad.addColorStop(1,    "rgba(0,0,0,0)");
+              const grad = fogCtx.createRadialGradient(mx, my, clearRadius * 0.2, mx, my, fadeRadius);
+              grad.addColorStop(0,    "rgba(0,0,0,1)");   // fully clear at center
+              grad.addColorStop(0.45, "rgba(0,0,0,0.98)"); // still very clear
+              grad.addColorStop(0.72, "rgba(0,0,0,0.7)");  // starting to fog
+              grad.addColorStop(0.88, "rgba(0,0,0,0.25)"); // mostly fogged
+              grad.addColorStop(1,    "rgba(0,0,0,0)");    // full fog
               fogCtx.fillStyle = grad;
               fogCtx.beginPath();
               fogCtx.arc(mx, my, fadeRadius, 0, Math.PI * 2);
@@ -532,21 +540,27 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             }
             fogCtx.globalCompositeOperation = "source-over";
 
+            // ── Layer 2: semi-transparent overlay for depth ───────────────
+            // Adds a slight extra tint on top of the fogged zones so they
+            // feel heavier / more "sealed" without being pitch black.
             const deepCanvas = new OffscreenCanvas(FOG_W, FOG_H);
             const deepCtx = deepCanvas.getContext("2d")!;
-            deepCtx.fillStyle = `${bg}77`;
+            deepCtx.fillStyle = bg;
+            deepCtx.globalAlpha = 0.45;
             deepCtx.fillRect(0, 0, FOG_W, FOG_H);
+            deepCtx.globalAlpha = 1;
             deepCtx.globalCompositeOperation = "destination-out";
             for (const m of markers) {
               const mx = (m.coord_x / 100) * FOG_W;
               const my = (m.coord_y / 100) * FOG_H;
-              const grad2 = deepCtx.createRadialGradient(mx, my, 0, mx, my, fadeRadius * 0.55);
+              // Slightly larger clear radius so the deep layer fully reveals the center
+              const grad2 = deepCtx.createRadialGradient(mx, my, clearRadius * 0.5, mx, my, fadeRadius * 0.7);
               grad2.addColorStop(0,   "rgba(0,0,0,1)");
-              grad2.addColorStop(0.7, "rgba(0,0,0,0.6)");
+              grad2.addColorStop(0.6, "rgba(0,0,0,0.85)");
               grad2.addColorStop(1,   "rgba(0,0,0,0)");
               deepCtx.fillStyle = grad2;
               deepCtx.beginPath();
-              deepCtx.arc(mx, my, fadeRadius * 0.55, 0, Math.PI * 2);
+              deepCtx.arc(mx, my, fadeRadius * 0.7, 0, Math.PI * 2);
               deepCtx.fill();
             }
             deepCtx.globalCompositeOperation = "source-over";
@@ -554,27 +568,44 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
             fogCacheRef.current = { canvas: fogCanvas, deep: deepCanvas, iw: FOG_W, ih: FOG_H, bg };
           }
 
-          // Stamp cached fog stretched to current scaled image size
+          // Stamp cached fog layers
           const fc = fogCacheRef.current!;
           ctx.drawImage(fc.canvas, 0, 0, iw, ih);
           ctx.drawImage(fc.deep,   0, 0, iw, ih);
 
-          // Animated wisps drawn directly (lightweight, no OffscreenCanvas)
-          const fogTime = t * 0.0003;
-          ctx.globalAlpha = 0.09;
-          for (let i = 0; i < 6; i++) {
-            const wx = ((Math.sin(fogTime * (0.7 + i * 0.3) + i * 1.2) + 1) / 2) * iw;
-            const wy = ((Math.cos(fogTime * (0.5 + i * 0.2) + i * 0.9) + 1) / 2) * ih;
-            const wr = iw * (0.05 + i * 0.02);
+          // ── Animated wisps — only in fogged regions ───────────────────
+          // We clip wisps away from marker centers so they never cover revealed areas
+          const fogTime = t * 0.00025;
+          const maxDim = Math.max(iw, ih);
+          const clearR = maxDim * 0.10;
+
+          ctx.save();
+          // Build a clipping region that excludes the revealed zones
+          ctx.beginPath();
+          ctx.rect(0, 0, iw, ih);
+          for (const m of markers) {
+            const mx = (m.coord_x / 100) * iw;
+            const my = (m.coord_y / 100) * ih;
+            // Clip out a circle around each marker center (anticlockwise = subtract)
+            ctx.arc(mx, my, clearR * 1.8, 0, Math.PI * 2, true);
+          }
+          ctx.clip("evenodd");
+
+          ctx.globalAlpha = 0.07;
+          for (let i = 0; i < 5; i++) {
+            const wx = ((Math.sin(fogTime * (0.6 + i * 0.25) + i * 1.3) + 1) / 2) * iw;
+            const wy = ((Math.cos(fogTime * (0.45 + i * 0.18) + i * 1.0) + 1) / 2) * ih;
+            const wr = iw * (0.06 + i * 0.025);
             const wg = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr);
-            wg.addColorStop(0, "rgba(200,190,180,0.5)");
-            wg.addColorStop(1, "rgba(200,190,180,0)");
+            wg.addColorStop(0, "rgba(210,200,190,0.55)");
+            wg.addColorStop(1, "rgba(210,200,190,0)");
             ctx.fillStyle = wg;
             ctx.beginPath();
             ctx.arc(wx, wy, wr, 0, Math.PI * 2);
             ctx.fill();
           }
           ctx.globalAlpha = 1;
+          ctx.restore();
         }
 
         // No internal map vignette — edge fog handles blending instead
