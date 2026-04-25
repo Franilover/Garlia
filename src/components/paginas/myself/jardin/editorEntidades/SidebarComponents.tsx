@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
-  Loader2, Eye, EyeOff, Plus, Globe, Search, X, SlidersHorizontal,
+  Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { TAB_CONFIG, MUNDO_SECTIONS, type TabKey, type MundoSectionKey } from "./types";
@@ -98,6 +98,51 @@ function EntidadCard({
             {toggling ? <Loader2 size={9} className="animate-spin" /> : item.oculto ? <EyeOff size={9} /> : <Eye size={9} />}
           </button>
         )}
+      </div>
+    </button>
+  );
+}
+
+// ─── MundoSectionCard ─────────────────────────────────────────────────────────
+function MundoSectionCard({
+  section, selected, onClick,
+}: {
+  section: typeof MUNDO_SECTIONS[number]; selected: boolean; onClick: () => void;
+}) {
+  const { label, Icon } = section;
+  return (
+    <button onClick={onClick} className="group relative w-full text-left transition-all duration-150">
+      <div className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
+        selected
+          ? "bg-primary/12 border border-primary/20"
+          : "border border-transparent hover:bg-primary/6 hover:border-primary/10"
+      }`}>
+        <div
+          className="shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+            borderColor: selected
+              ? "color-mix(in srgb, var(--primary) 25%, transparent)"
+              : "color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        >
+          <Icon size={13} className="text-primary/40" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-[11px] font-bold truncate transition-colors ${
+            selected ? "text-primary" : "text-primary/70 group-hover:text-primary/90"
+          }`}>{label}</p>
+          <p className="text-[9px] text-primary/30 truncate mt-0.5">Worldbuilding</p>
+        </div>
+        <span
+          className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+          }}
+        >
+          Mun
+        </span>
       </div>
     </button>
   );
@@ -199,51 +244,6 @@ function AddMenu({ onAdd }: { onAdd: (tab: Exclude<TabKey, "mundo">) => void }) 
   );
 }
 
-// ─── MundoSectionCard ─────────────────────────────────────────────────────────
-function MundoSectionCard({
-  section, selected, onClick,
-}: {
-  section: typeof MUNDO_SECTIONS[number]; selected: boolean; onClick: () => void;
-}) {
-  const { label, Icon } = section;
-  return (
-    <button onClick={onClick} className="group relative w-full text-left transition-all duration-150">
-      <div className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
-        selected
-          ? "bg-primary/12 border border-primary/20"
-          : "border border-transparent hover:bg-primary/6 hover:border-primary/10"
-      }`}>
-        <div
-          className="shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            borderColor: selected
-              ? "color-mix(in srgb, var(--primary) 25%, transparent)"
-              : "color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
-        >
-          <Icon size={13} className="text-primary/40" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-[11px] font-bold truncate transition-colors ${
-            selected ? "text-primary" : "text-primary/70 group-hover:text-primary/90"
-          }`}>{label}</p>
-          <p className="text-[9px] text-primary/30 truncate mt-0.5">Worldbuilding · Mundo</p>
-        </div>
-        <span
-          className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-          }}
-        >
-          Mun
-        </span>
-      </div>
-    </button>
-  );
-}
-
 // ─── GlobalSearchBar ──────────────────────────────────────────────────────────
 export function GlobalSearchBar({
   allItems,
@@ -251,26 +251,22 @@ export function GlobalSearchBar({
   isOffline,
   activeTab,
   selectedId,
+  activeMundoSection,
   onSelect,
   onAdd,
-  onMundo,
-  onMundoSection,
+  onSelectMundoSection,
   onToggleOculto,
-  activeSection,
-  onSectionChange,
 }: {
   allItems: AllItems;
   loadingAll: boolean;
   isOffline: boolean;
   activeTab: TabKey;
   selectedId: string | null;
+  activeMundoSection: MundoSectionKey | null;
   onSelect: (item: any, tab: Exclude<TabKey, "mundo">) => void;
   onAdd: (tab: Exclude<TabKey, "mundo">) => void;
-  onMundo: () => void;
-  onMundoSection?: (s: MundoSectionKey) => void;
+  onSelectMundoSection: (s: MundoSectionKey) => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
-  activeSection?: MundoSectionKey;
-  onSectionChange?: (s: MundoSectionKey) => void;
 }) {
   const [query,   setQuery]   = useState("");
   const [open,    setOpen]    = useState(false);
@@ -303,8 +299,8 @@ export function GlobalSearchBar({
 
   const mundoResults = useMemo(() => {
     const q = normalize(query.trim());
-    if (!q) return MUNDO_SECTIONS;
-    return MUNDO_SECTIONS.filter(s =>
+    if (!q) return [...MUNDO_SECTIONS];
+    return [...MUNDO_SECTIONS].filter(s =>
       normalize(s.label).includes(q) || normalize(s.key).includes(q)
     );
   }, [query]);
@@ -322,12 +318,10 @@ export function GlobalSearchBar({
   }, [onSelect, close]);
 
   const handleMundoSection = useCallback((key: MundoSectionKey) => {
-    onMundo();
-    onSectionChange?.(key);
-    onMundoSection?.(key);
+    onSelectMundoSection(key);
     close();
     inputRef.current?.blur();
-  }, [onMundo, onSectionChange, onMundoSection, close]);
+  }, [onSelectMundoSection, close]);
 
   useEffect(() => {
     if (!open) return;
@@ -353,18 +347,24 @@ export function GlobalSearchBar({
     return () => document.removeEventListener("keydown", k);
   }, []);
 
+  // Placeholder muestra la sección activa de Mundo, el item seleccionado, o el total
+  const activeMundoLabel = isMundo && activeMundoSection
+    ? MUNDO_SECTIONS.find(s => s.key === activeMundoSection)?.label
+    : null;
+
   const placeholder = focused
     ? "Buscar personajes, criaturas, items, reinos, mundo…"
-    : isMundo
-      ? (MUNDO_SECTIONS.find(s => s.key === activeSection)?.label ?? "Mundo")
-      : selectedItem?.nombre ?? (loadingAll ? "Cargando…" : `${totalCount} entidades`);
+    : activeMundoLabel
+      ?? selectedItem?.nombre
+      ?? (loadingAll ? "Cargando…" : `${totalCount} entidades`);
+
+  const totalResults = globalResults.length + mundoResults.length;
 
   return (
     <div
       className="shrink-0 flex flex-col border-b"
       style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
     >
-      {/* Fila: input + Mundo + añadir */}
       <div ref={wrapRef} className="flex items-center gap-2 px-3 py-2 relative">
 
         {/* Input */}
@@ -378,11 +378,22 @@ export function GlobalSearchBar({
             borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
           }}
         >
-          {selectedItem && !focused ? (
+          {/* Icono contextual: sección Mundo activa, thumbnail item, o lupa */}
+          {!focused && activeMundoLabel ? (
+            (() => {
+              const sec = MUNDO_SECTIONS.find(s => s.key === activeMundoSection);
+              return sec
+                ? <sec.Icon size={11} className="shrink-0 text-primary/40" />
+                : <Search size={11} className="shrink-0 text-primary/30" />;
+            })()
+          ) : selectedItem && !focused ? (
             <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/15 bg-primary/8 flex items-center justify-center">
               {(selectedItem.img_url || selectedItem.imagen_url)
                 ? <img src={selectedItem.img_url || selectedItem.imagen_url} alt={selectedItem.nombre} className="w-full h-full object-cover" />
-                : (() => { const Icon = TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">].Icon; return <Icon size={9} className="text-primary/40" />; })()}
+                : (() => {
+                    const Icon = TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">].Icon;
+                    return <Icon size={9} className="text-primary/40" />;
+                  })()}
             </div>
           ) : (
             <Search size={11} className="shrink-0 text-primary/30" />
@@ -404,29 +415,8 @@ export function GlobalSearchBar({
               : null}
         </div>
 
-        {/* Botón Mundo */}
-        <button
-          onClick={onMundo}
-          title="Editor de Mundo"
-          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border"
-          style={isMundo ? {
-            background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-            color: "var(--primary)",
-            borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
-          } : {
-            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-            color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
-        >
-          <Globe size={11} />
-          <span className="hidden sm:inline">Mundo</span>
-        </button>
-
-        {/* Botón añadir con menú flotante */}
-        {!isMundo && (
-          <AddMenu onAdd={(tab) => { onAdd(tab); close(); }} />
-        )}
+        {/* Botón añadir */}
+        <AddMenu onAdd={(tab) => { onAdd(tab); close(); }} />
 
         {/* Dropdown */}
         {open && focused && (
@@ -446,7 +436,7 @@ export function GlobalSearchBar({
                 {loadingAll
                   ? "Cargando…"
                   : query.trim()
-                    ? `${globalResults.length + mundoResults.length} resultado${(globalResults.length + mundoResults.length) !== 1 ? "s" : ""}`
+                    ? `${totalResults} resultado${totalResults !== 1 ? "s" : ""}`
                     : `${totalCount} entidades · Mundo`}
               </span>
               {isOffline && <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">Offline</span>}
@@ -458,13 +448,12 @@ export function GlobalSearchBar({
                   <Loader2 size={16} className="animate-spin text-primary/20" />
                 </div>
               ) : query.trim() ? (
-                globalResults.length > 0 || mundoResults.length > 0 ? (
+                totalResults > 0 ? (
                   <>
                     {globalResults.map(({ item, tab }) => (
                       <EntidadCard
                         key={`${tab}-${item.id}`}
-                        item={item}
-                        tab={tab}
+                        item={item} tab={tab}
                         selected={selectedId === item.id && activeTab === tab}
                         onClick={() => handleSelect(item, tab)}
                         onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
@@ -481,7 +470,7 @@ export function GlobalSearchBar({
                           <MundoSectionCard
                             key={section.key}
                             section={section}
-                            selected={isMundo && activeSection === section.key}
+                            selected={isMundo && activeMundoSection === section.key}
                             onClick={() => handleMundoSection(section.key as MundoSectionKey)}
                           />
                         ))}
@@ -504,14 +493,12 @@ export function GlobalSearchBar({
                     .map(({ item, tab }) => (
                       <EntidadCard
                         key={`${tab}-${item.id}`}
-                        item={item}
-                        tab={tab}
+                        item={item} tab={tab}
                         selected={selectedId === item.id && activeTab === tab}
                         onClick={() => handleSelect(item, tab)}
                         onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
                       />
                     ))}
-                  {/* Secciones de Mundo siempre al final */}
                   <div className="px-2 pt-2 pb-1">
                     <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
                   </div>
@@ -519,7 +506,7 @@ export function GlobalSearchBar({
                     <MundoSectionCard
                       key={section.key}
                       section={section}
-                      selected={isMundo && activeSection === section.key}
+                      selected={isMundo && activeMundoSection === section.key}
                       onClick={() => handleMundoSection(section.key as MundoSectionKey)}
                     />
                   ))}
@@ -527,48 +514,23 @@ export function GlobalSearchBar({
               )}
             </div>
 
-            {!isMundo && (
-              <div className="p-2 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-                <p className="text-[8px] font-black uppercase tracking-widest text-primary/20 px-2 pb-1.5">Añadir nueva</p>
-                <div className="grid grid-cols-2 gap-1">
-                  {(Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][]).map(([key, cfg]) => (
-                    <button
-                      key={key}
-                      onClick={() => { onAdd(key); close(); }}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border border-dashed border-primary/15 text-primary/35 hover:text-primary hover:border-primary/35 hover:bg-primary/4"
-                    >
-                      <cfg.Icon size={9} /> {cfg.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="p-2 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+              <p className="text-[8px] font-black uppercase tracking-widest text-primary/20 px-2 pb-1.5">Añadir nueva</p>
+              <div className="grid grid-cols-2 gap-1">
+                {(Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][]).map(([key, cfg]) => (
+                  <button
+                    key={key}
+                    onClick={() => { onAdd(key); close(); }}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border border-dashed border-primary/15 text-primary/35 hover:text-primary hover:border-primary/35 hover:bg-primary/4"
+                  >
+                    <cfg.Icon size={9} /> {cfg.label}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
-
-      {/* Section pills de Mundo */}
-      {isMundo && (
-        <div className="flex items-center gap-1 px-3 pb-2 overflow-x-auto">
-          {MUNDO_SECTIONS.map(({ key, label, Icon }) => (
-            <button
-              key={key}
-              onClick={() => onSectionChange?.(key as MundoSectionKey)}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
-              style={activeSection === key ? {
-                background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                color: "var(--primary)",
-                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-              } : {
-                color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                border: "1px solid transparent",
-              }}
-            >
-              <Icon size={10} /><span>{label}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

@@ -187,12 +187,15 @@ export default function EditorEntidades() {
           isOffline={isOffline}
           activeTab={tab}
           selectedId={selectedId}
+          activeMundoSection={tab === "mundo" ? mundoSection : null}
           onSelect={handleSelect}
           onAdd={(chosenTab) => { setTab(chosenTab); setShowNueva(chosenTab); }}
-          onMundo={handleMundo}
+          onSelectMundoSection={(section) => {
+            setTab("mundo");
+            setSelectedId(null);
+            setMundoSection(section);
+          }}
           onToggleOculto={handleToggleOcultoReino}
-          activeSection={mundoSection}
-          onSectionChange={setMundoSection}
         />
 
         {/* ── Indicador offline ────────────────────────────────────────────── */}
