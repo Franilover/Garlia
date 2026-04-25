@@ -315,10 +315,6 @@ export function EditorCriatura({
                 <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
                   placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit" />
               </div>
-
-              {/* Relación */}
-              <CampoLore label="Relación" icon={Users} value={form.relacion ?? ""} onChange={v => setForm(f => ({ ...f, relacion: v }))}
-                placeholder="Vínculo con otras especies, personajes o facciones…" rows={5} />
             </div>
           )}
 
@@ -331,6 +327,8 @@ export function EditorCriatura({
                 placeholder="Hábitos, instintos, patrones de caza o defensa…" rows={7} />
               <CampoLore label="Magia" icon={Wand2} value={form.magia ?? ""} onChange={v => setForm(f => ({ ...f, magia: v }))}
                 placeholder="Poderes, habilidades mágicas, debilidades…" rows={7} />
+              <CampoLore label="Relación" icon={Users} value={form.relacion ?? ""} onChange={v => setForm(f => ({ ...f, relacion: v }))}
+                placeholder="Vínculo con otras especies, personajes o facciones…" rows={5} />
             </div>
           )}
 

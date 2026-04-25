@@ -93,10 +93,9 @@ function MapaPuntosReino({ mapaUrl, detalles, onDetallesChange }: {
       )}
       <div
         className={`relative w-full overflow-hidden rounded-xl border select-none ${selectedId ? "cursor-crosshair border-primary/40" : "cursor-default border-primary/15"}`}
-        style={{ aspectRatio: "16/9" }}
         onClick={handleMapClick}
       >
-        <img src={mapaUrl} alt="Mapa" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+        <img src={mapaUrl} alt="Mapa" className="w-full h-auto object-contain pointer-events-none" draggable={false} />
         {detalles.map(d => {
           const isSelected = selectedId === d.id;
           return (
@@ -351,7 +350,7 @@ export function EditorReino({ item, onSaved, onDeleted }: {
           {tab === "mapa" && (
             <div className="p-4 space-y-4">
               <SelectorImagen label="Imagen del mapa" value={form.mapa_url ?? ""}
-                onChange={url => setForm(f => ({ ...f, mapa_url: url }))} aspect="video"
+                onChange={url => setForm(f => ({ ...f, mapa_url: url }))} aspect="landscape"
                 placeholder={<Map size={24} className="opacity-20" />} />
 
               <MapaPuntosReino mapaUrl={form.mapa_url ?? ""} detalles={detalles} onDetallesChange={handleDetallesMapChange} />
