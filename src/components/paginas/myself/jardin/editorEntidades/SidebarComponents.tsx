@@ -360,11 +360,22 @@ export function CommandBar({
 // ─── NavBar de tabs (reemplaza el tab switcher principal si era sidebar-driven) ─
 // Se mantiene como componente auxiliar para el padre
 export function TabNav({
-  tab, onChange,
+  tab,
+  onChange,
+  onTabChange,
+  mundoSection,
+  onMundoSectionChange,
 }: {
   tab: TabKey;
-  onChange: (t: TabKey) => void;
+  onChange?: (t: TabKey) => void;
+  onTabChange?: (t: TabKey) => void;
+  mundoSection?: string;
+  onMundoSectionChange?: (s: any) => void;
 }) {
+  const handleChange = (t: TabKey) => {
+    onChange?.(t);
+    onTabChange?.(t);
+  };
   const allTabs: { key: TabKey; label: string; Icon: React.ElementType }[] = [
     ...Object.entries(TAB_CONFIG).map(([key, cfg]) => ({ key: key as TabKey, label: cfg.label, Icon: cfg.Icon })),
     { key: "mundo" as TabKey, label: "Mundo", Icon: Globe },
@@ -378,7 +389,7 @@ export function TabNav({
       {allTabs.map(({ key, label, Icon }) => (
         <button
           key={key}
-          onClick={() => onChange(key)}
+          onClick={() => handleChange(key)}
           className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap"
           style={tab === key ? {
             background: "color-mix(in srgb, var(--primary) 10%, transparent)",
