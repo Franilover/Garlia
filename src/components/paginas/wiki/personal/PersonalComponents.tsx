@@ -2,7 +2,7 @@
 import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Sword, Package, ShieldCheck, X, Calendar, Tag } from "lucide-react";
+import { User, Sword, Package, ShieldCheck, X, Star } from "lucide-react";
 
 export interface Descubrimiento {
   tipo: "item" | "criatura" | "personaje";
@@ -53,8 +53,6 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
     ? (entidad.data as ItemInventario).items.imagen_url
     : ((entidad.data as Descubrimiento).imagen_url ?? (entidad.data as Descubrimiento).img_url);
 
-  const fecha = isItemInv ? null : (entidad.data as Descubrimiento).fecha_descubrimiento;
-
   const tags: string[] = [];
   if (isItemInv) {
     const d = (entidad.data as ItemInventario).items;
@@ -82,70 +80,49 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
       />
       <MotionDiv
         key="modal"
-        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        initial={{ opacity: 0, scale: 0.94, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 20 }}
-        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        exit={{ opacity: 0, scale: 0.94, y: 16 }}
+        transition={{ type: "spring", stiffness: 380, damping: 32 }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
       >
         <div
-          className="pointer-events-auto w-full max-w-sm overflow-hidden relative"
+          className="pointer-events-auto w-full max-w-sm overflow-hidden"
           style={{
             background: "var(--white-custom)",
             borderRadius: "var(--radius-card)",
-            border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
-            boxShadow: "0 0 0 1px color-mix(in srgb, var(--primary) 6%, transparent), 0 24px 60px color-mix(in srgb, var(--primary) 18%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
+            boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Corner decorations */}
-          <svg width="18" height="18" viewBox="0 0 18 18" style={{ position: "absolute", top: 0, left: 0, zIndex: 10, color: "color-mix(in srgb, var(--primary) 50%, transparent)", pointerEvents: "none" }}>
-            <path d="M2 16 L2 2 L16 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="square"/>
-          </svg>
-          <svg width="18" height="18" viewBox="0 0 18 18" style={{ position: "absolute", bottom: 0, right: 0, zIndex: 10, color: "color-mix(in srgb, var(--primary) 50%, transparent)", pointerEvents: "none", transform: "rotate(180deg)" }}>
-            <path d="M2 16 L2 2 L16 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="square"/>
-          </svg>
-
           {/* Hero image */}
           <div className="relative h-44 flex items-center justify-center overflow-hidden"
-            style={{ background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))" }}>
-
-            {/* Scan lines */}
-            <div className="absolute inset-0 pointer-events-none" style={{
-              backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, color-mix(in srgb, var(--primary) 3%, transparent) 3px, color-mix(in srgb, var(--primary) 3%, transparent) 4px)",
-            }} />
+            style={{ background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))" }}>
 
             {imagen
               ? <img src={imagen} alt={nombre} className="w-full h-full object-cover" />
-              : (
-                <div className="flex flex-col items-center gap-2">
-                  <IconComp size={48} style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }} />
-                </div>
-              )
+              : <IconComp size={48} style={{ color: "color-mix(in srgb, var(--primary) 12%, transparent)" }} />
             }
 
-            {/* Bottom gradient */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
-              style={{ background: "linear-gradient(to top, color-mix(in srgb, var(--white-custom) 80%, transparent), transparent)" }} />
+            {/* Fade so bottom content is readable */}
+            <div className="absolute bottom-0 left-0 right-0 h-14 pointer-events-none"
+              style={{ background: "linear-gradient(to top, var(--white-custom), transparent)" }} />
 
             {/* Close btn */}
             <button onClick={onClose}
-              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center transition-opacity hover:opacity-70"
               style={{
-                background: "color-mix(in srgb, var(--white-custom) 85%, transparent)",
+                background: "var(--white-custom)",
                 borderRadius: "var(--radius-btn)",
-                border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
-                backdropFilter: "blur(4px)",
+                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
               }}>
               <X size={14} style={{ color: "var(--primary)" }} />
             </button>
 
-            {/* Type badge — bottom left, styled as HUD element */}
+            {/* Type badge */}
             <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1"
-              style={{
-                background: "color-mix(in srgb, var(--primary) 90%, transparent)",
-                borderRadius: "2px",
-              }}>
+              style={{ background: "var(--primary)", borderRadius: "2px" }}>
               <IconComp size={9} style={{ color: "var(--btn-text, white)" }} />
               <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text, white)" }}>
                 {isItem ? "objeto" : isCriatura ? "criatura" : "contacto"}
@@ -156,17 +133,15 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
           {/* Content */}
           <div className="p-5 space-y-4">
 
-            {/* Name + divider */}
-            <div>
-              <div className="flex items-start gap-2">
-                <div className="w-1 h-5 shrink-0 mt-0.5" style={{ background: "var(--primary)", borderRadius: "1px" }} />
-                <h2 className="text-xl font-black uppercase tracking-tight leading-tight" style={{ color: "var(--primary)" }}>
-                  {nombre}
-                </h2>
-              </div>
+            {/* Name */}
+            <div className="flex items-start gap-2">
+              <div className="w-0.5 h-5 shrink-0 mt-0.5 rounded-full" style={{ background: "var(--primary)" }} />
+              <h2 className="text-xl font-black uppercase tracking-tight leading-tight" style={{ color: "var(--primary)" }}>
+                {nombre}
+              </h2>
             </div>
 
-            {/* Tags — pill style with leading diamond */}
+            {/* Tags */}
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {tags.map((tag, i) => (
@@ -174,13 +149,13 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
                     className="flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider"
                     style={{
                       background: i === 0
-                        ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-                        : "color-mix(in srgb, var(--primary) 5%, transparent)",
-                      color: "color-mix(in srgb, var(--primary) 75%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                        ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 4%, transparent)",
+                      color: "color-mix(in srgb, var(--primary) 68%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                       borderRadius: "2px",
                     }}>
-                    <span style={{ fontSize: "6px", lineHeight: 1 }}>◆</span>
+                    <Star size={7} />
                     {tag}
                   </span>
                 ))}
@@ -188,15 +163,13 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
             )}
 
             {/* Description */}
-            <div className="pt-3 relative" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+            <div className="pt-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
               {descripcion
-                ? <p className="text-[11px] leading-relaxed" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>{descripcion}</p>
-                : (
-                  <p className="text-[10px] italic font-black uppercase tracking-wider flex items-center gap-2"
+                ? <p className="text-[11px] leading-relaxed" style={{ color: "color-mix(in srgb, var(--primary) 58%, transparent)" }}>{descripcion}</p>
+                : <p className="text-[10px] italic font-black uppercase tracking-wider flex items-center gap-2"
                     style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>
-                    <span>—</span> Sin descripción disponible
+                    — Sin descripción disponible
                   </p>
-                )
               }
             </div>
 
@@ -204,13 +177,13 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
             {isItemInv && (entidad.data as ItemInventario).equipado && (
               <div className="flex items-center gap-2 px-3 py-2"
                 style={{
-                  background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                  borderRadius: "var(--radius-btn)",
+                  background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderRadius: "2px",
                 }}>
-                <ShieldCheck size={13} style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }} />
+                <ShieldCheck size={13} style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }} />
                 <span className="text-[8px] font-black uppercase tracking-widest"
-                  style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                  style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
                   Actualmente equipado
                 </span>
               </div>
@@ -219,24 +192,6 @@ export function ModalDetalle({ entidad, onClose }: { entidad: EntidadModal; onCl
         </div>
       </MotionDiv>
     </AnimatePresence>
-  );
-}
-
-// Corner decoration SVG for RPG card aesthetic
-function CardCorner({ flip }: { flip?: boolean }) {
-  return (
-    <svg
-      width="14" height="14" viewBox="0 0 14 14"
-      style={{
-        position: "absolute",
-        ...(flip
-          ? { bottom: 0, right: 0, transform: "rotate(180deg)" }
-          : { top: 0, left: 0 }),
-        color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-      }}
-    >
-      <path d="M1 13 L1 1 L13 1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="square"/>
-    </svg>
   );
 }
 
@@ -254,108 +209,62 @@ export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="group text-left cursor-pointer w-full overflow-hidden relative"
+      className="text-left cursor-pointer w-full overflow-hidden"
       style={{
-        background: hovered
-          ? "color-mix(in srgb, var(--primary) 6%, var(--white-custom))"
-          : "var(--white-custom)",
+        background: "var(--white-custom)",
         border: `1px solid ${hovered
-          ? "color-mix(in srgb, var(--primary) 40%, transparent)"
-          : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+          ? "color-mix(in srgb, var(--primary) 28%, transparent)"
+          : "color-mix(in srgb, var(--primary) 9%, transparent)"}`,
         borderRadius: "var(--radius-card)",
-        boxShadow: hovered
-          ? "0 0 0 1px color-mix(in srgb, var(--primary) 12%, transparent), 0 12px 32px color-mix(in srgb, var(--primary) 16%, transparent), inset 0 1px 0 color-mix(in srgb, var(--primary) 8%, transparent)"
-          : "0 2px 8px color-mix(in srgb, var(--primary) 6%, transparent)",
-        transform: hovered ? "translateY(-3px) scale(1.01)" : "translateY(0) scale(1)",
-        transition: "all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        transform: hovered ? "translateY(-2px)" : "translateY(0)",
+        transition: "all 0.16s ease",
       }}
     >
-      {/* Corner decorations */}
-      <CardCorner />
-      <CardCorner flip />
-
       {/* Desktop image area */}
       <div
-        className="hidden md:flex w-full items-center justify-center overflow-hidden relative"
+        className="hidden md:flex w-full items-center justify-center overflow-hidden"
         style={{
-          height: "130px",
+          height: "115px",
           background: hovered
-            ? "color-mix(in srgb, var(--primary) 8%, var(--bg-main))"
-            : "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
-          transition: "background 0.22s ease",
+            ? "color-mix(in srgb, var(--primary) 6%, var(--bg-main))"
+            : "color-mix(in srgb, var(--primary) 3%, var(--bg-main))",
+          transition: "background 0.16s ease",
         }}
       >
-        {/* Scan lines overlay */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, color-mix(in srgb, var(--primary) 3%, transparent) 3px, color-mix(in srgb, var(--primary) 3%, transparent) 4px)",
-            opacity: hovered ? 0.6 : 0.3,
-            transition: "opacity 0.22s ease",
-          }}
-        />
-        {/* Glow from bottom on hover */}
-        {hovered && (
-          <div
-            className="absolute bottom-0 left-0 right-0 h-12 pointer-events-none"
-            style={{
-              background: "linear-gradient(to top, color-mix(in srgb, var(--primary) 12%, transparent), transparent)",
-            }}
-          />
-        )}
-
         {imagen ? (
           <img
             src={imagen} alt={nombre}
-            className="w-full h-full object-contain p-3 transition-transform duration-400"
-            style={{ transform: hovered ? "scale(1.08)" : "scale(1)" }}
+            className="w-full h-full object-contain p-3"
+            style={{
+              transform: hovered ? "scale(1.04)" : "scale(1)",
+              transition: "transform 0.16s ease",
+            }}
           />
         ) : (
-          <div
-            style={{
-              color: hovered
-                ? "color-mix(in srgb, var(--primary) 45%, transparent)"
-                : "color-mix(in srgb, var(--primary) 18%, transparent)",
-              transition: "color 0.22s ease, transform 0.22s ease",
-              transform: hovered ? "scale(1.1)" : "scale(1)",
-            }}
-          >
+          <div style={{
+            color: hovered
+              ? "color-mix(in srgb, var(--primary) 30%, transparent)"
+              : "color-mix(in srgb, var(--primary) 13%, transparent)",
+            transition: "color 0.16s ease",
+          }}>
             {icono}
           </div>
         )}
-
-        {/* Top-right ID slash */}
-        <div
-          className="absolute top-2 right-2 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5"
-          style={{
-            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 5%, var(--white-custom))",
-            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            borderRadius: "2px",
-            fontVariantNumeric: "tabular-nums",
-            opacity: hovered ? 1 : 0,
-            transition: "opacity 0.15s ease",
-          }}
-        >
-          ◆
-        </div>
       </div>
 
       {/* Bottom info strip */}
       <div
-        className="flex md:flex-col items-center md:items-start gap-3 md:gap-0 p-3 md:px-3 md:pt-2.5 md:pb-3 relative"
-        style={{
-          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
+        className="flex md:flex-col items-center md:items-start gap-3 md:gap-0 p-3 md:px-3 md:pt-2.5 md:pb-3"
+        style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
       >
         {/* Mobile thumbnail */}
         <div
-          className="md:hidden w-10 h-10 flex items-center justify-center shrink-0 overflow-hidden relative"
+          className="md:hidden w-10 h-10 flex items-center justify-center shrink-0 overflow-hidden"
           style={{
-            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
             borderRadius: "var(--radius-btn)",
-            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 28%, transparent)",
           }}
         >
           {imagen
@@ -365,29 +274,14 @@ export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
         </div>
 
         <div className="flex-1 min-w-0 md:w-full">
-          {/* Name */}
-          <p
-            className="text-[11px] font-black uppercase tracking-tight truncate leading-tight"
-            style={{ color: "var(--primary)" }}
-          >
+          <p className="text-[11px] font-black uppercase tracking-tight truncate leading-tight"
+            style={{ color: "var(--primary)" }}>
             {nombre}
           </p>
-
-          {/* Sub + decorative line */}
-          <div className="flex items-center gap-1.5 mt-1">
-            <div
-              className="w-1.5 h-1.5 rounded-none rotate-45 shrink-0"
-              style={{
-                background: hovered
-                  ? "color-mix(in srgb, var(--primary) 50%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 20%, transparent)",
-                transition: "background 0.2s ease",
-              }}
-            />
-            <p
-              className="text-[8px] font-black uppercase tracking-widest truncate"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-            >
+          <div className="flex items-center gap-1 mt-1">
+            <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)", flexShrink: 0 }} />
+            <p className="text-[8px] font-black uppercase tracking-widest truncate"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
               {sub ?? "—"}
             </p>
           </div>
@@ -400,21 +294,15 @@ export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
 export function EmptyTab({ label }: { label: string }) {
   return (
     <div className="col-span-full py-20 text-center flex flex-col items-center gap-3">
-      {/* Diamond decoration */}
       <div className="flex items-center gap-2">
-        <div className="w-12 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-        <div className="w-2 h-2 rotate-45" style={{ background: "color-mix(in srgb, var(--primary) 15%, transparent)" }} />
-        <div className="w-12 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+        <div className="w-10 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+        <Star size={10} style={{ color: "color-mix(in srgb, var(--primary) 16%, transparent)" }} />
+        <div className="w-10 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
       </div>
-      <p className="text-[9px] font-black uppercase tracking-[0.35em] italic"
-        style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
+      <p className="text-[9px] font-black uppercase tracking-[0.3em] italic"
+        style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
         {label}
       </p>
-      <div className="flex items-center gap-2">
-        <div className="w-12 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-        <div className="w-2 h-2 rotate-45" style={{ background: "color-mix(in srgb, var(--primary) 15%, transparent)" }} />
-        <div className="w-12 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-      </div>
     </div>
   );
 }

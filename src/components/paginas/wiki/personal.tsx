@@ -814,24 +814,21 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
         {/* ── HUD strip ── */}
         <div className="flex items-center gap-4 py-6 px-2">
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 15%, transparent))" }} />
-          <div className="flex items-center gap-2.5 px-4 py-1.5 relative"
+          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+          <div className="flex items-center gap-2 px-4 py-1.5"
             style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
               borderRadius: "2px",
               background: "color-mix(in srgb, var(--primary) 3%, transparent)",
             }}>
-            {/* tiny corner accents */}
-            {[["top-0 left-0"], ["top-0 right-0"], ["bottom-0 left-0"], ["bottom-0 right-0"]].map(([pos], i) => (
-              <div key={i} className={`absolute ${pos} w-1.5 h-1.5 pointer-events-none`}
-                style={{ background: "color-mix(in srgb, var(--primary) 35%, transparent)", clipPath: i < 2 ? "polygon(0 0,100% 0,0 100%)" : "polygon(100% 100%,0 100%,100% 0)" }} />
-            ))}
-            <span className="text-[8px] font-black uppercase tracking-[0.3em] tabular-nums select-none"
-              style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-              ◆ {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos ◆
+            <Star size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+            <span className="text-[8px] font-black uppercase tracking-[0.28em] tabular-nums select-none"
+              style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+              {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos
             </span>
+            <Star size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
           </div>
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 15%, transparent))" }} />
+          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
         </div>
 
         {}
@@ -845,24 +842,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               style={{
                 background: "var(--white-custom)",
                 borderRadius: "var(--radius-card)",
-                boxShadow: "0 0 0 1px color-mix(in srgb, var(--primary) 12%, transparent), 0 8px 32px color-mix(in srgb, var(--primary) 8%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
               }}>
-
-              {/* SVG corner accents */}
-              {([["0 0", "0"], ["100% 0", "90deg"], ["0 100%", "-90deg"], ["100% 100%", "180deg"]] as [string, string][]).map(([pos, rot], i) => (
-                <svg key={i} width="16" height="16" viewBox="0 0 16 16"
-                  style={{
-                    position: "absolute",
-                    left: pos.startsWith("0") ? 0 : "auto", right: pos.startsWith("100%") ? 0 : "auto",
-                    top: pos.endsWith("0") ? 0 : "auto", bottom: pos.endsWith("100%") ? 0 : "auto",
-                    transform: `rotate(${rot})`,
-                    color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                    pointerEvents: "none", zIndex: 2,
-                  }}>
-                  <path d="M2 14 L2 2 L14 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="square"/>
-                </svg>
-              ))}
 
               {/* Avatar zone */}
               <div className="relative pt-7 pb-5 px-5 text-center"
@@ -871,27 +852,21 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                 }}>
 
-                {/* Scan-line texture on avatar zone */}
-                <div className="absolute inset-0 pointer-events-none" style={{
-                  backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 4px, color-mix(in srgb, var(--primary) 2%, transparent) 4px, color-mix(in srgb, var(--primary) 2%, transparent) 5px)",
-                }} />
-
                 <div className="flex justify-center mb-4">
                   <button onClick={() => setShowAvatarPicker(true)}
-                    className="group relative overflow-hidden flex items-center justify-center transition-all duration-300"
+                    className="group relative overflow-hidden flex items-center justify-center transition-all duration-200"
                     style={{
                       width: 96, height: 96,
                       borderRadius: "var(--radius-btn)",
-                      background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
-                      border: "2px solid color-mix(in srgb, var(--primary) 25%, transparent)",
-                      boxShadow: "0 0 20px color-mix(in srgb, var(--primary) 12%, transparent), inset 0 0 12px color-mix(in srgb, var(--primary) 4%, transparent)",
+                      background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
+                      border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
                     }}
                     title="Cambiar imagen">
                     {perfil?.avatar_url
-                      ? <img src={perfil.avatar_url} alt={perfil?.username} className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" />
-                      : <User size={32} style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }} />}
+                      ? <img src={perfil.avatar_url} alt={perfil?.username} className="w-full h-full object-contain" />
+                      : <User size={32} style={{ color: "color-mix(in srgb, var(--primary) 16%, transparent)" }} />}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ background: "color-mix(in srgb, var(--primary) 55%, transparent)", backdropFilter: "blur(2px)" }}>
+                      style={{ background: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
                       <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text)" }}>Cambiar</span>
                     </div>
                   </button>
@@ -901,14 +876,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 {perfil?.titulo && (
                   <div className="inline-flex items-center gap-1.5 mb-2 px-2.5 py-0.5 text-[7px] font-black uppercase tracking-[0.2em]"
                     style={{
-                      border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
                       borderRadius: "2px",
-                      color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-                      background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                      color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      background: "color-mix(in srgb, var(--primary) 4%, transparent)",
                     }}>
-                    <span style={{ fontSize: "5px" }}>◆</span>
                     {perfil.titulo}
-                    <span style={{ fontSize: "5px" }}>◆</span>
                   </div>
                 )}
 
@@ -973,22 +946,14 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             <div className="relative overflow-hidden" style={{
               background: "var(--white-custom)",
               borderRadius: "var(--radius-card)",
-              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-              boxShadow: "0 4px 20px color-mix(in srgb, var(--primary) 6%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
             }}>
-              {/* SVG corners */}
-              <svg width="14" height="14" viewBox="0 0 14 14" style={{ position: "absolute", top: 0, left: 0, color: "color-mix(in srgb, var(--primary) 40%, transparent)", pointerEvents: "none" }}>
-                <path d="M2 12 L2 2 L12 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="square"/>
-              </svg>
-              <svg width="14" height="14" viewBox="0 0 14 14" style={{ position: "absolute", bottom: 0, right: 0, color: "color-mix(in srgb, var(--primary) 40%, transparent)", pointerEvents: "none", transform: "rotate(180deg)" }}>
-                <path d="M2 12 L2 2 L12 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="square"/>
-              </svg>
 
               {/* Panel header */}
               <div className="flex items-center justify-between px-5 pt-4 pb-3"
                 style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                 <div className="flex items-center gap-2">
-                  <span className="text-[8px]" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>◆</span>
+                  <Star size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
                   <p className="text-[9px] font-black uppercase tracking-[0.22em]"
                     style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
                     Sobre mí
@@ -1049,26 +1014,18 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               <div className="grid grid-cols-2"
                 style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
-                {/* Personaje favorito */}
-                <div className="px-5 py-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[7px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>◆</span>
-                      <p className="text-[8px] font-black uppercase tracking-[0.2em]"
-                        style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                        Personaje Favorito
-                      </p>
-                    </div>
-                    <button onClick={() => setShowPersonajePicker(true)}
-                      className="text-[7px] font-black uppercase tracking-wider px-2 py-1 transition-all hover:opacity-80"
-                      style={{
-                        color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                        borderRadius: "2px",
-                        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                      }}>
-                      {perfil?.personaje_favorito ? "Cambiar" : "Elegir"}
-                    </button>
+                {/* Personaje favorito — toda la celda es el botón */}
+                <button
+                  onClick={() => setShowPersonajePicker(true)}
+                  className="text-left px-5 py-4 transition-colors hover:bg-primary/5 group"
+                  style={{ borderRadius: 0 }}
+                >
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
+                    <p className="text-[8px] font-black uppercase tracking-[0.2em]"
+                      style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                      Personaje Favorito
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     {perfil?.personaje_favorito ? (
@@ -1076,13 +1033,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         <div className="w-11 h-11 shrink-0 overflow-hidden"
                           style={{
                             borderRadius: "var(--radius-btn)",
-                            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                            border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                            boxShadow: "0 0 12px color-mix(in srgb, var(--primary) 10%, transparent)",
+                            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                           }}>
                           {perfil.personaje_favorito.img_url
                             ? <img src={perfil.personaje_favorito.img_url} alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" />
-                            : <User size={18} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                            : <User size={18} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
                         </div>
                         <p className="font-serif italic text-[12px] leading-tight capitalize"
                           style={{ color: "var(--primary)" }}>
@@ -1096,29 +1052,23 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       </p>
                     )}
                   </div>
-                </div>
+                </button>
 
-                {/* Mascota */}
-                <div className="px-5 py-4"
-                  style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[7px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>◆</span>
-                      <p className="text-[8px] font-black uppercase tracking-[0.2em]"
-                        style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                        Mascota
-                      </p>
-                    </div>
-                    <button onClick={() => setShowMascotaPicker(true)}
-                      className="text-[7px] font-black uppercase tracking-wider px-2 py-1 transition-all hover:opacity-80"
-                      style={{
-                        color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                        borderRadius: "2px",
-                        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                      }}>
-                      {perfil?.mascota ? "Cambiar" : "Elegir"}
-                    </button>
+                {/* Mascota — toda la celda es el botón */}
+                <button
+                  onClick={() => setShowMascotaPicker(true)}
+                  className="text-left px-5 py-4 transition-colors hover:bg-primary/5 group"
+                  style={{
+                    borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                    borderRadius: 0,
+                  }}
+                >
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
+                    <p className="text-[8px] font-black uppercase tracking-[0.2em]"
+                      style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                      Mascota
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     {perfil?.mascota ? (
@@ -1126,13 +1076,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         <div className="w-11 h-11 shrink-0 overflow-hidden"
                           style={{
                             borderRadius: "var(--radius-btn)",
-                            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                            border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                            boxShadow: "0 0 12px color-mix(in srgb, var(--primary) 10%, transparent)",
+                            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                           }}>
                           {perfil.mascota.imagen_url
                             ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
-                            : <Cat size={18} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                            : <Cat size={18} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
                         </div>
                         <p className="font-serif italic text-[12px] leading-tight capitalize"
                           style={{ color: "var(--primary)" }}>
@@ -1146,7 +1095,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       </p>
                     )}
                   </div>
-                </div>
+                </button>
 
               </div>
             </div>
@@ -1215,38 +1164,29 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         {/* ── Collection grid + sidebar ── */}
         <div className="flex gap-6 items-start">
 
-          {/* Grid area */}
+          {/* Grid area — tinted background changes per active tab, like a game inventory */}
           <div className="flex-1 min-w-0 pt-2 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
             {/* Desktop tabs */}
-            <div className="hidden md:flex items-center justify-between mb-6">
-              {/* Tab group with angled active indicator */}
-              <div className="flex items-end gap-0 relative"
-                style={{
-                  borderBottom: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                }}>
+            <div className="hidden md:flex items-center justify-between mb-0">
+              <div className="flex items-end gap-0"
+                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                 {tabs.map(t => {
                   const isActive = tab === t.id;
                   return (
                     <button key={t.id} onClick={() => setTab(t.id)}
                       className="relative flex items-center gap-2 px-5 py-2.5 transition-all duration-200"
                       style={{
-                        background: isActive
-                          ? "var(--white-custom)"
-                          : "transparent",
-                        color: isActive
-                          ? "var(--primary)"
-                          : "color-mix(in srgb, var(--primary) 38%, transparent)",
-                        borderTop: isActive ? "1px solid color-mix(in srgb, var(--primary) 18%, transparent)" : "1px solid transparent",
-                        borderLeft: isActive ? "1px solid color-mix(in srgb, var(--primary) 18%, transparent)" : "1px solid transparent",
-                        borderRight: isActive ? "1px solid color-mix(in srgb, var(--primary) 18%, transparent)" : "1px solid transparent",
+                        background: isActive ? "var(--white-custom)" : "transparent",
+                        color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        borderTop: isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                        borderLeft: isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
+                        borderRight: isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
                         borderBottom: isActive ? "1px solid var(--white-custom)" : "1px solid transparent",
                         borderRadius: "4px 4px 0 0",
                         marginBottom: isActive ? "-1px" : "0",
                       }}>
-                      {isActive && (
-                        <span className="text-[7px]" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>◆</span>
-                      )}
+                      {isActive && <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />}
                       <t.icon size={11} />
                       <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
                     </button>
@@ -1254,65 +1194,76 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 })}
               </div>
 
-              {/* Entry count — styled as HUD readout */}
-              <div className="flex items-center gap-2 px-3 py-1.5 relative"
+              <div className="flex items-center gap-1.5 px-3 py-1.5"
                 style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                   borderRadius: "2px",
                   background: "color-mix(in srgb, var(--primary) 3%, transparent)",
                 }}>
-                <div className="w-1.5 h-1.5 rotate-45 shrink-0"
-                  style={{ background: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
-                <span className="text-[8px] font-black uppercase tracking-[0.25em] tabular-nums"
-                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                <span className="text-[8px] font-black uppercase tracking-[0.22em] tabular-nums"
+                  style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
                   {tab === "items" ? inventario.length + misItemsDesc.length : tab === "criaturas" ? misCriaturas.length : misPersonajes.length} entradas
                 </span>
               </div>
             </div>
 
-            {/* Grid */}
-            <AnimatePresence mode="wait">
-              <MotionDiv key={tab}
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18 }}
-                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            {/* Inventory panel — background tinted per tab */}
+            <div className="rounded-b-[var(--radius-card)] md:rounded-tl-none md:rounded-tr-[var(--radius-card)]"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderTop: "none",
+                background: tab === "items"
+                  ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
+                  : tab === "criaturas"
+                  ? "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
+                  : "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
+                transition: "background 0.25s ease",
+                padding: "16px",
+              }}>
+              <AnimatePresence mode="wait">
+                <MotionDiv key={tab}
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.16 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
 
-                {tab === "items" && (
-                  <>
-                    {inventario.map((item, i) => (
-                      <EntidadCard key={`inv-${i}`} imagen={item.items.imagen_url} nombre={item.items.nombre}
-                        sub={item.items.categoria} icono={<Sword size={20} />}
-                        onClick={() => setModalEntidad({ tipo: "item_inv", data: item })} />
-                    ))}
-                    {misItemsDesc.map((d, i) => (
-                      <EntidadCard key={`desc-${i}`} imagen={d.imagen_url} nombre={d.nombre ?? "Objeto"}
-                        sub={d.categoria ?? "Item"} icono={<Sword size={20} />}
-                        onClick={() => setModalEntidad({ tipo: "item", data: d })} />
-                    ))}
-                    {inventario.length === 0 && misItemsDesc.length === 0 && <EmptyTab label="Sin items registrados aún" />}
-                  </>
-                )}
+                  {tab === "items" && (
+                    <>
+                      {inventario.map((item, i) => (
+                        <EntidadCard key={`inv-${i}`} imagen={item.items.imagen_url} nombre={item.items.nombre}
+                          sub={item.items.categoria} icono={<Sword size={20} />}
+                          onClick={() => setModalEntidad({ tipo: "item_inv", data: item })} />
+                      ))}
+                      {misItemsDesc.map((d, i) => (
+                        <EntidadCard key={`desc-${i}`} imagen={d.imagen_url} nombre={d.nombre ?? "Objeto"}
+                          sub={d.categoria ?? "Item"} icono={<Sword size={20} />}
+                          onClick={() => setModalEntidad({ tipo: "item", data: d })} />
+                      ))}
+                      {inventario.length === 0 && misItemsDesc.length === 0 && <EmptyTab label="Sin items registrados aún" />}
+                    </>
+                  )}
 
-                {tab === "criaturas" && (
-                  misCriaturas.length > 0
-                    ? misCriaturas.map((d, i) => (
-                      <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Criatura"}
-                        icono={<Cat size={20} />} onClick={() => setModalEntidad({ tipo: "criatura", data: d })} />
-                    ))
-                    : <EmptyTab label="Sin registros en el bestiario" />
-                )}
+                  {tab === "criaturas" && (
+                    misCriaturas.length > 0
+                      ? misCriaturas.map((d, i) => (
+                        <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Criatura"}
+                          icono={<Cat size={20} />} onClick={() => setModalEntidad({ tipo: "criatura", data: d })} />
+                      ))
+                      : <EmptyTab label="Sin registros en el bestiario" />
+                  )}
 
-                {tab === "personajes" && (
-                  misPersonajes.length > 0
-                    ? misPersonajes.map((d, i) => (
-                      <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Contacto"}
-                        icono={<User size={20} />} onClick={() => handleOpenPersonajeModal(d)} />
-                    ))
-                    : <EmptyTab label="Sin registros en la agenda" />
-                )}
+                  {tab === "personajes" && (
+                    misPersonajes.length > 0
+                      ? misPersonajes.map((d, i) => (
+                        <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Contacto"}
+                          icono={<User size={20} />} onClick={() => handleOpenPersonajeModal(d)} />
+                      ))
+                      : <EmptyTab label="Sin registros en la agenda" />
+                  )}
 
-              </MotionDiv>
-            </AnimatePresence>
+                </MotionDiv>
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Desktop sidebar - Exploradores */}
@@ -1322,10 +1273,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               {/* Sidebar header */}
               <div className="flex items-center gap-2 mb-3 px-1">
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                <p className="text-[7px] font-black uppercase tracking-[0.3em] flex items-center gap-1"
-                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                  <Users size={7} /> Exploradores
-                </p>
+                <div className="flex items-center gap-1">
+                  <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
+                  <p className="text-[7px] font-black uppercase tracking-[0.3em]"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    Exploradores
+                  </p>
+                </div>
                 <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
               </div>
 
@@ -1335,7 +1289,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                   borderRadius: "var(--radius-card)",
                   background: "var(--white-custom)",
-                  boxShadow: "0 2px 12px color-mix(in srgb, var(--primary) 5%, transparent)",
                 }}>
                 {otrosPerfiles.map((p, idx) => (
                   <Link key={p.id} href={`/wiki/personal/${p.username}`}>
