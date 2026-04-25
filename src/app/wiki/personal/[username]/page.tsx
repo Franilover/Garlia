@@ -652,9 +652,10 @@ export default function PerfilPublico() {
           {/* ── Colección: tabs + grid ── */}
           <div className="flex-1 min-w-0">
 
-            {/* Mobile tabs — estilo pestaña */}
-            <div className="md:hidden mb-5 mx-4">
-              <div className="flex">
+            <div className="px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+
+              {/* Mobile tabs — dentro del mismo contenedor que el panel para que el borde se fusione */}
+              <div className="flex md:hidden">
                 {tabs.map(t => {
                   const isActive = tab === t.id;
                   return (
@@ -681,9 +682,6 @@ export default function PerfilPublico() {
                   );
                 })}
               </div>
-            </div>
-
-            <div className="px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
               {/* Desktop tabs — estilo borde inferior activo */}
               <div className="hidden md:flex items-center justify-between mb-0">
