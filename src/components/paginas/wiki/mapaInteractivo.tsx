@@ -467,7 +467,25 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Cap to ~30fps on mobile to avoid lag and battery drain
+    const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    const FRAME_MS = isMobileDevice ? 34 : 16;
+    let lastFrameTime = 0;
+
+    // Cache vignette so it's not rebuilt every frame
+    let vignetteCanvas: OffscreenCanvas | null = null;
+    let vignetteW = 0;
+    let vignetteH = 0;
+    let vignetteBg = "";
+
     const draw = (t: number) => {
+      // Throttle frame rate on mobile
+      if (t - lastFrameTime < FRAME_MS) {
+        animFrameRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      lastFrameTime = t;
+
       pulseRef.current = t;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const { primary, accent, bg } = cssColorsRef.current;
@@ -591,8 +609,10 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
           }
           ctx.clip("evenodd");
 
+          // Fewer wisps on mobile to save GPU
+          const wispCount = isMobileDevice ? 2 : 5;
           ctx.globalAlpha = 0.07;
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < wispCount; i++) {
             const wx = ((Math.sin(fogTime * (0.6 + i * 0.25) + i * 1.3) + 1) / 2) * iw;
             const wy = ((Math.cos(fogTime * (0.45 + i * 0.18) + i * 1.0) + 1) / 2) * ih;
             const wr = iw * (0.06 + i * 0.025);
@@ -734,48 +754,53 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      // ── Edge fog — blends canvas borders into the page background ─────────
-      const eT = canvas.height * 0.45;
-      const eS = canvas.width * 0.45;
-      // Top edge
-      const topFog = ctx.createLinearGradient(0, 0, 0, eT);
-      topFog.addColorStop(0,    `${bg}ff`);
-      topFog.addColorStop(0.15, `${bg}ff`);
-      topFog.addColorStop(0.5,  `${bg}dd`);
-      topFog.addColorStop(0.8,  `${bg}77`);
-      topFog.addColorStop(1,    `${bg}00`);
-      ctx.fillStyle = topFog;
-      ctx.fillRect(0, 0, canvas.width, eT);
+      // ── Edge vignette — subtle fade at canvas borders ─────────────────
+      // Rebuild only when canvas size or bg color changes
+      const { bg: bgNow } = cssColorsRef.current;
+      if (
+        !vignetteCanvas ||
+        vignetteW !== canvas.width ||
+        vignetteH !== canvas.height ||
+        vignetteBg !== bgNow
+      ) {
+        vignetteW = canvas.width;
+        vignetteH = canvas.height;
+        vignetteBg = bgNow;
+        vignetteCanvas = new OffscreenCanvas(vignetteW, vignetteH);
+        const vc = vignetteCanvas.getContext("2d")!;
+        // Smaller fade zones — 18% of each dimension instead of 45%
+        const eT = vignetteH * 0.18;
+        const eS = vignetteW * 0.18;
 
-      // Bottom edge
-      const botFog = ctx.createLinearGradient(0, canvas.height - eT, 0, canvas.height);
-      botFog.addColorStop(0,    `${bg}00`);
-      botFog.addColorStop(0.2,  `${bg}77`);
-      botFog.addColorStop(0.5,  `${bg}dd`);
-      botFog.addColorStop(0.85, `${bg}ff`);
-      botFog.addColorStop(1,    `${bg}ff`);
-      ctx.fillStyle = botFog;
-      ctx.fillRect(0, canvas.height - eT, canvas.width, eT);
+        const topFog = vc.createLinearGradient(0, 0, 0, eT);
+        topFog.addColorStop(0,   `${bgNow}cc`);
+        topFog.addColorStop(0.4, `${bgNow}55`);
+        topFog.addColorStop(1,   `${bgNow}00`);
+        vc.fillStyle = topFog;
+        vc.fillRect(0, 0, vignetteW, eT);
 
-      // Left edge
-      const leftFog = ctx.createLinearGradient(0, 0, eS, 0);
-      leftFog.addColorStop(0,    `${bg}ff`);
-      leftFog.addColorStop(0.15, `${bg}ff`);
-      leftFog.addColorStop(0.5,  `${bg}dd`);
-      leftFog.addColorStop(0.8,  `${bg}66`);
-      leftFog.addColorStop(1,    `${bg}00`);
-      ctx.fillStyle = leftFog;
-      ctx.fillRect(0, 0, eS, canvas.height);
+        const botFog = vc.createLinearGradient(0, vignetteH - eT, 0, vignetteH);
+        botFog.addColorStop(0,   `${bgNow}00`);
+        botFog.addColorStop(0.6, `${bgNow}55`);
+        botFog.addColorStop(1,   `${bgNow}cc`);
+        vc.fillStyle = botFog;
+        vc.fillRect(0, vignetteH - eT, vignetteW, eT);
 
-      // Right edge
-      const rightFog = ctx.createLinearGradient(canvas.width - eS, 0, canvas.width, 0);
-      rightFog.addColorStop(0,    `${bg}00`);
-      rightFog.addColorStop(0.2,  `${bg}66`);
-      rightFog.addColorStop(0.5,  `${bg}dd`);
-      rightFog.addColorStop(0.85, `${bg}ff`);
-      rightFog.addColorStop(1,    `${bg}ff`);
-      ctx.fillStyle = rightFog;
-      ctx.fillRect(canvas.width - eS, 0, eS, canvas.height);
+        const leftFog = vc.createLinearGradient(0, 0, eS, 0);
+        leftFog.addColorStop(0,   `${bgNow}cc`);
+        leftFog.addColorStop(0.4, `${bgNow}44`);
+        leftFog.addColorStop(1,   `${bgNow}00`);
+        vc.fillStyle = leftFog;
+        vc.fillRect(0, 0, eS, vignetteH);
+
+        const rightFog = vc.createLinearGradient(vignetteW - eS, 0, vignetteW, 0);
+        rightFog.addColorStop(0,   `${bgNow}00`);
+        rightFog.addColorStop(0.6, `${bgNow}44`);
+        rightFog.addColorStop(1,   `${bgNow}cc`);
+        vc.fillStyle = rightFog;
+        vc.fillRect(vignetteW - eS, 0, eS, vignetteH);
+      }
+      ctx.drawImage(vignetteCanvas, 0, 0);
 
       animFrameRef.current = requestAnimationFrame(draw);
     };
