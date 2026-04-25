@@ -1148,48 +1148,42 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           </div>
         </div>
 
-        {/* ── Mobile tab bar + inventory (unified block) ── */}
-        <div className="md:hidden mb-5 mx-4">
-          {/* Tabs flush on top */}
-          <div className="flex"
-            style={{
-              borderBottom: "none",
-            }}>
-            {tabs.map(t => {
-              const isActive = tab === t.id;
-              return (
-                <button key={t.id} onClick={() => setTab(t.id)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
-                  style={{
-                    background: isActive
-                      ? tab === "items"
-                        ? "color-mix(in srgb, var(--primary) 5%, var(--bg-main))"
-                        : tab === "criaturas"
-                        ? "color-mix(in srgb, var(--primary) 6%, var(--bg-main))"
-                        : "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
-                      : "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                    color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    borderBottom: isActive ? "1px solid transparent" : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    borderRadius: isActive ? "var(--radius-btn) var(--radius-btn) 0 0" : "var(--radius-btn) var(--radius-btn) 0 0",
-                    marginBottom: isActive ? "-1px" : "0",
-                    zIndex: isActive ? 1 : 0,
-                    position: "relative",
-                  }}>
-                  {isActive && <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />}
-                  <t.icon size={11} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* ── Collection grid + sidebar ── */}
         <div className="flex gap-6 items-start">
 
           {/* Grid area — tinted background changes per active tab, like a game inventory */}
           <div className="flex-1 min-w-0 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+
+            {/* Mobile tabs — dentro del mismo contenedor que el panel para que el borde se fusione */}
+            <div className="flex md:hidden">
+              {tabs.map(t => {
+                const isActive = tab === t.id;
+                return (
+                  <button key={t.id} onClick={() => setTab(t.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
+                    style={{
+                      background: isActive
+                        ? tab === "items"
+                          ? "color-mix(in srgb, var(--primary) 5%, var(--bg-main))"
+                          : tab === "criaturas"
+                          ? "color-mix(in srgb, var(--primary) 6%, var(--bg-main))"
+                          : "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
+                        : "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
+                      color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      borderBottom: isActive ? "1px solid transparent" : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                      borderRadius: "var(--radius-btn) var(--radius-btn) 0 0",
+                      marginBottom: isActive ? "-1px" : "0",
+                      zIndex: isActive ? 1 : 0,
+                      position: "relative",
+                    }}>
+                    {isActive && <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />}
+                    <t.icon size={11} />
+                    <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Desktop tabs */}
             <div className="hidden md:flex items-center justify-between mb-0">
