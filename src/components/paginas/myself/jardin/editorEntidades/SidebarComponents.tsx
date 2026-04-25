@@ -199,6 +199,51 @@ function AddMenu({ onAdd }: { onAdd: (tab: Exclude<TabKey, "mundo">) => void }) 
   );
 }
 
+// ─── MundoSectionCard ─────────────────────────────────────────────────────────
+function MundoSectionCard({
+  section, selected, onClick,
+}: {
+  section: typeof MUNDO_SECTIONS[number]; selected: boolean; onClick: () => void;
+}) {
+  const { label, Icon } = section;
+  return (
+    <button onClick={onClick} className="group relative w-full text-left transition-all duration-150">
+      <div className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
+        selected
+          ? "bg-primary/12 border border-primary/20"
+          : "border border-transparent hover:bg-primary/6 hover:border-primary/10"
+      }`}>
+        <div
+          className="shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+            borderColor: selected
+              ? "color-mix(in srgb, var(--primary) 25%, transparent)"
+              : "color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        >
+          <Icon size={13} className="text-primary/40" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`text-[11px] font-bold truncate transition-colors ${
+            selected ? "text-primary" : "text-primary/70 group-hover:text-primary/90"
+          }`}>{label}</p>
+          <p className="text-[9px] text-primary/30 truncate mt-0.5">Worldbuilding · Mundo</p>
+        </div>
+        <span
+          className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+          }}
+        >
+          Mun
+        </span>
+      </div>
+    </button>
+  );
+}
+
 // ─── GlobalSearchBar ──────────────────────────────────────────────────────────
 export function GlobalSearchBar({
   allItems,
@@ -209,6 +254,7 @@ export function GlobalSearchBar({
   onSelect,
   onAdd,
   onMundo,
+  onMundoSection,
   onToggleOculto,
   activeSection,
   onSectionChange,
@@ -221,6 +267,7 @@ export function GlobalSearchBar({
   onSelect: (item: any, tab: Exclude<TabKey, "mundo">) => void;
   onAdd: (tab: Exclude<TabKey, "mundo">) => void;
   onMundo: () => void;
+  onMundoSection?: (s: MundoSectionKey) => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
   activeSection?: MundoSectionKey;
   onSectionChange?: (s: MundoSectionKey) => void;
@@ -254,6 +301,14 @@ export function GlobalSearchBar({
     );
   }, [allItems, query]);
 
+  const mundoResults = useMemo(() => {
+    const q = normalize(query.trim());
+    if (!q) return MUNDO_SECTIONS;
+    return MUNDO_SECTIONS.filter(s =>
+      normalize(s.label).includes(q) || normalize(s.key).includes(q)
+    );
+  }, [query]);
+
   const close = useCallback(() => {
     setOpen(false);
     setFocused(false);
@@ -265,6 +320,14 @@ export function GlobalSearchBar({
     close();
     inputRef.current?.blur();
   }, [onSelect, close]);
+
+  const handleMundoSection = useCallback((key: MundoSectionKey) => {
+    onMundo();
+    onSectionChange?.(key);
+    onMundoSection?.(key);
+    close();
+    inputRef.current?.blur();
+  }, [onMundo, onSectionChange, onMundoSection, close]);
 
   useEffect(() => {
     if (!open) return;
@@ -291,9 +354,9 @@ export function GlobalSearchBar({
   }, []);
 
   const placeholder = focused
-    ? "Buscar personajes, criaturas, items, reinos…"
+    ? "Buscar personajes, criaturas, items, reinos, mundo…"
     : isMundo
-      ? "Mundo"
+      ? (MUNDO_SECTIONS.find(s => s.key === activeSection)?.label ?? "Mundo")
       : selectedItem?.nombre ?? (loadingAll ? "Cargando…" : `${totalCount} entidades`);
 
   return (
@@ -383,8 +446,8 @@ export function GlobalSearchBar({
                 {loadingAll
                   ? "Cargando…"
                   : query.trim()
-                    ? `${globalResults.length} resultado${globalResults.length !== 1 ? "s" : ""}`
-                    : `${totalCount} entidades`}
+                    ? `${globalResults.length + mundoResults.length} resultado${(globalResults.length + mundoResults.length) !== 1 ? "s" : ""}`
+                    : `${totalCount} entidades · Mundo`}
               </span>
               {isOffline && <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">Offline</span>}
             </div>
@@ -395,17 +458,36 @@ export function GlobalSearchBar({
                   <Loader2 size={16} className="animate-spin text-primary/20" />
                 </div>
               ) : query.trim() ? (
-                globalResults.length > 0 ? (
-                  globalResults.map(({ item, tab }) => (
-                    <EntidadCard
-                      key={`${tab}-${item.id}`}
-                      item={item}
-                      tab={tab}
-                      selected={selectedId === item.id && activeTab === tab}
-                      onClick={() => handleSelect(item, tab)}
-                      onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
-                    />
-                  ))
+                globalResults.length > 0 || mundoResults.length > 0 ? (
+                  <>
+                    {globalResults.map(({ item, tab }) => (
+                      <EntidadCard
+                        key={`${tab}-${item.id}`}
+                        item={item}
+                        tab={tab}
+                        selected={selectedId === item.id && activeTab === tab}
+                        onClick={() => handleSelect(item, tab)}
+                        onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
+                      />
+                    ))}
+                    {mundoResults.length > 0 && (
+                      <>
+                        {globalResults.length > 0 && (
+                          <div className="px-2 pt-2 pb-1">
+                            <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
+                          </div>
+                        )}
+                        {mundoResults.map(section => (
+                          <MundoSectionCard
+                            key={section.key}
+                            section={section}
+                            selected={isMundo && activeSection === section.key}
+                            onClick={() => handleMundoSection(section.key as MundoSectionKey)}
+                          />
+                        ))}
+                      </>
+                    )}
+                  </>
                 ) : (
                   <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
                     <SlidersHorizontal size={16} />
@@ -413,21 +495,35 @@ export function GlobalSearchBar({
                   </div>
                 )
               ) : (
-                Object.entries(allItems)
-                  .flatMap(([tab, items]) =>
-                    items.map(item => ({ item, tab: tab as Exclude<TabKey, "mundo"> }))
-                  )
-                  .slice(0, 30)
-                  .map(({ item, tab }) => (
-                    <EntidadCard
-                      key={`${tab}-${item.id}`}
-                      item={item}
-                      tab={tab}
-                      selected={selectedId === item.id && activeTab === tab}
-                      onClick={() => handleSelect(item, tab)}
-                      onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
+                <>
+                  {Object.entries(allItems)
+                    .flatMap(([tab, items]) =>
+                      items.map(item => ({ item, tab: tab as Exclude<TabKey, "mundo"> }))
+                    )
+                    .slice(0, 27)
+                    .map(({ item, tab }) => (
+                      <EntidadCard
+                        key={`${tab}-${item.id}`}
+                        item={item}
+                        tab={tab}
+                        selected={selectedId === item.id && activeTab === tab}
+                        onClick={() => handleSelect(item, tab)}
+                        onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
+                      />
+                    ))}
+                  {/* Secciones de Mundo siempre al final */}
+                  <div className="px-2 pt-2 pb-1">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
+                  </div>
+                  {MUNDO_SECTIONS.map(section => (
+                    <MundoSectionCard
+                      key={section.key}
+                      section={section}
+                      selected={isMundo && activeSection === section.key}
+                      onClick={() => handleMundoSection(section.key as MundoSectionKey)}
                     />
-                  ))
+                  ))}
+                </>
               )}
             </div>
 
