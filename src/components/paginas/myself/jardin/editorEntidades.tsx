@@ -8,13 +8,58 @@ import {
   TAB_CONFIG, MUNDO_SECTIONS,
   type TabKey, type MundoSectionKey, type Personaje, type Criatura, type Item, type Reino,
 } from "./editorEntidades/types";
-import { useEntidades, useMundoSecciones } from "./editorEntidades/hooks";
-import { CommandBar, TabNav } from "./editorEntidades/SidebarComponents";
+import { useMundoSecciones } from "./editorEntidades/hooks";
+import { GlobalSearchBar, TabNav } from "./editorEntidades/SidebarComponents";
 import { EditorPersonaje } from "./editorEntidades/EditorPersonaje";
 import { EditorCriatura }  from "./editorEntidades/EditorCriatura";
 import { EditorItem }      from "./editorEntidades/EditorItem";
 import { EditorReino }     from "./editorEntidades/EditorReino";
 import { EditorMundo }     from "./editorEntidades/EditorMundo";
+
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+type AllItems = {
+  personajes: Personaje[];
+  criaturas:  Criatura[];
+  items:      Item[];
+  reinos:     Reino[];
+};
+
+// ─── Hook: carga todas las categorías en paralelo ────────────────────────────
+function useAllEntidades() {
+  const [allItems,   setAllItems]   = useState<AllItems>({ personajes: [], criaturas: [], items: [], reinos: [] });
+  const [loadingAll, setLoadingAll] = useState(true);
+  const [isOffline,  setIsOffline]  = useState(false);
+
+  const load = useCallback(async () => {
+    if (!navigator.onLine) { setIsOffline(true); setLoadingAll(false); return; }
+    setIsOffline(false);
+    setLoadingAll(true);
+    try {
+      const [p, c, i, r] = await Promise.all([
+        supabase.from("personajes").select("*").order("nombre"),
+        supabase.from("criaturas") .select("*").order("nombre"),
+        supabase.from("items")     .select("*").order("nombre"),
+        supabase.from("reinos")    .select("*").order("nombre"),
+      ]);
+      setAllItems({
+        personajes: (p.data ?? []) as Personaje[],
+        criaturas:  (c.data ?? []) as Criatura[],
+        items:      (i.data ?? []) as Item[],
+        reinos:     (r.data ?? []) as Reino[],
+      });
+    } catch { setIsOffline(true); }
+    setLoadingAll(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+    const h = () => { setIsOffline(false); load(); };
+    window.addEventListener("online", h);
+    return () => window.removeEventListener("online", h);
+  }, [load]);
+
+  return { allItems, setAllItems, loadingAll, isOffline, refetch: load };
+}
 
 // ─── Modal nueva entrada ──────────────────────────────────────────────────────
 function ModalNueva({ tab, onCreated, onClose }: {
@@ -87,33 +132,57 @@ export default function EditorEntidades() {
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>("magia");
 
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
-  const { items, setItems, loading, isOffline, refetch } = useEntidades<any>(tab);
+  const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
 
   // Persistir sesión
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, selectedId })); } catch {}
   }, [tab, selectedId]);
 
-  // Limpiar selección al cambiar de tab
+  // Limpiar selección al cambiar de tab (no en el primer mount)
   const isFirstMount = useRef(true);
   useEffect(() => {
     if (isFirstMount.current) { isFirstMount.current = false; return; }
     setSelectedId(null);
   }, [tab]);
 
-  const selected = useMemo(() => items.find(i => i.id === selectedId) ?? null, [items, selectedId]);
+  // Item seleccionado en el tab activo
+  const selected = useMemo(() => {
+    if (tab === "mundo") return null;
+    return allItems[tab as Exclude<TabKey, "mundo">].find(i => i.id === selectedId) ?? null;
+  }, [allItems, selectedId, tab]);
 
-  const handleCreated = (item: any) => { setItems(prev => [item, ...prev]); setSelectedId(item.id); };
-  const handleSaved   = (item: any) => setItems(prev => prev.map(i => i.id === item.id ? item : i));
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  const handleSelect = useCallback((item: any, itemTab: Exclude<TabKey, "mundo">) => {
+    // Si viene de otra categoría, cambia el tab primero
+    if (itemTab !== tab) setTab(itemTab);
+    setSelectedId(item.id);
+  }, [tab]);
+
+  const handleCreated = (item: any) => {
+    const t = tab as Exclude<TabKey, "mundo">;
+    setAllItems(prev => ({ ...prev, [t]: [item, ...prev[t]] }));
+    setSelectedId(item.id);
+  };
+
+  const handleSaved = (item: any) => {
+    const t = tab as Exclude<TabKey, "mundo">;
+    setAllItems(prev => ({ ...prev, [t]: prev[t].map(i => i.id === item.id ? item : i) }));
+  };
+
   const handleDeleted = (id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
+    const t = tab as Exclude<TabKey, "mundo">;
+    setAllItems(prev => ({ ...prev, [t]: prev[t].filter(i => i.id !== id) }));
     setSelectedId(null);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, selectedId: null })); } catch {}
   };
 
   const handleToggleOcultoReino = useCallback((id: string, oculto: boolean) => {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, oculto } : i));
-  }, [setItems]);
+    setAllItems(prev => ({
+      ...prev,
+      reinos: prev.reinos.map(i => i.id === id ? { ...i, oculto } : i),
+    }));
+  }, [setAllItems]);
 
   const isMundo = tab === "mundo";
   const Icon    = isMundo ? Globe : TAB_CONFIG[tab].Icon;
@@ -121,7 +190,6 @@ export default function EditorEntidades() {
 
   return (
     <>
-      {/* ── Shell principal: ocupa toda la pantalla disponible ─────────────── */}
       <div
         className="flex flex-col w-full h-full min-h-0 overflow-hidden"
         style={{ background: "var(--bg-main)" }}
@@ -129,32 +197,19 @@ export default function EditorEntidades() {
         {/* ── Fila 1: tabs de categoría ──────────────────────────────────── */}
         <TabNav tab={tab} onChange={setTab} />
 
-        {/* ── Fila 2: command bar (búsqueda/selector + botón añadir) ──────── */}
-        {isMundo ? (
-          // Para "mundo" el CommandBar interno renderiza los section-tabs
-          <CommandBar
-            tab={tab}
-            items={[]}
-            loading={false}
-            isOffline={isOffline}
-            selectedId={null}
-            onSelect={() => {}}
-            onAdd={() => {}}
-            activeSection={mundoSection}
-            onSectionChange={setMundoSection}
-          />
-        ) : (
-          <CommandBar
-            tab={tab}
-            items={items}
-            loading={loading}
-            isOffline={isOffline}
-            selectedId={selectedId}
-            onSelect={(item) => setSelectedId(item.id)}
-            onAdd={() => setShowNueva(true)}
-            onToggleOculto={tab === "reinos" ? handleToggleOcultoReino : undefined}
-          />
-        )}
+        {/* ── Fila 2: buscador global unificado ───────────────────────────── */}
+        <GlobalSearchBar
+          allItems={allItems}
+          loadingAll={loadingAll}
+          isOffline={isOffline}
+          activeTab={tab}
+          selectedId={selectedId}
+          onSelect={handleSelect}
+          onAdd={() => setShowNueva(true)}
+          onToggleOculto={handleToggleOcultoReino}
+          activeSection={mundoSection}
+          onSectionChange={setMundoSection}
+        />
 
         {/* ── Indicador offline ────────────────────────────────────────────── */}
         {isOffline && (
@@ -183,12 +238,11 @@ export default function EditorEntidades() {
               {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} />}
             </>
           ) : (
-            // Estado vacío: nada seleccionado
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-primary/15 select-none">
               <Icon size={48} strokeWidth={1} />
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">{label}</p>
               <p className="text-[10px] text-primary/20 tracking-widest">
-                {loading ? "Cargando…" : "Usá el buscador de arriba para seleccionar"}
+                {loadingAll ? "Cargando…" : "Usá el buscador de arriba para seleccionar"}
               </p>
             </div>
           )}

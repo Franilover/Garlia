@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
-  Loader2, Eye, EyeOff, Plus, Globe, Search, X, SlidersHorizontal,
+  Loader2, Eye, EyeOff, Plus, Globe, Search, X, SlidersHorizontal, Zap,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { TAB_CONFIG, MUNDO_SECTIONS, type TabKey, type MundoSectionKey } from "./types";
@@ -83,18 +83,45 @@ export function EntidadCard({
   );
 }
 
-// ─── CommandBar — input único unificado ───────────────────────────────────────
-// En reposo muestra el nombre seleccionado. Al enfocar se convierte en buscador.
-// Sin botón separado, sin dos pasos, sin espacio duplicado.
-export function CommandBar({
-  tab, items, loading, isOffline, selectedId,
-  onSelect, onAdd, onToggleOculto,
-  activeSection, onSectionChange,
+// ─── Tipos para búsqueda global ───────────────────────────────────────────────
+type AllItems = {
+  personajes: any[];
+  criaturas:  any[];
+  items:      any[];
+  reinos:     any[];
+};
+
+type SearchResult = {
+  item: any;
+  tab: Exclude<TabKey, "mundo">;
+};
+
+// ─── GlobalSearchBar ──────────────────────────────────────────────────────────
+// Buscador único que filtra en TODAS las categorías simultáneamente.
+// Muestra resultados agrupados por categoría, al seleccionar cambia el tab y abre el editor.
+export function GlobalSearchBar({
+  allItems,
+  loadingAll,
+  isOffline,
+  activeTab,
+  selectedId,
+  onSelect,
+  onAdd,
+  onToggleOculto,
+  // Para el modo "mundo": tab section pills
+  activeSection,
+  onSectionChange,
 }: {
-  tab: TabKey; items: any[]; loading: boolean; isOffline: boolean;
-  selectedId: string | null; onSelect: (item: any) => void; onAdd: () => void;
+  allItems: AllItems;
+  loadingAll: boolean;
+  isOffline: boolean;
+  activeTab: TabKey;
+  selectedId: string | null;
+  onSelect: (item: any, tab: Exclude<TabKey, "mundo">) => void;
+  onAdd: () => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
-  activeSection?: MundoSectionKey; onSectionChange?: (s: MundoSectionKey) => void;
+  activeSection?: MundoSectionKey;
+  onSectionChange?: (s: MundoSectionKey) => void;
 }) {
   const [query,   setQuery]   = useState("");
   const [open,    setOpen]    = useState(false);
@@ -102,19 +129,66 @@ export function CommandBar({
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef  = useRef<HTMLDivElement>(null);
 
-  const label   = tab === "mundo" ? "Mundo" : TAB_CONFIG[tab as Exclude<TabKey, "mundo">].label;
-  const TabIcon = tab === "mundo" ? Globe   : TAB_CONFIG[tab as Exclude<TabKey, "mundo">].Icon;
-  const selectedItem = items.find(i => i.id === selectedId);
+  const isMundo = activeTab === "mundo";
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return items;
+  // Item seleccionado actualmente (en cualquier categoría)
+  const selectedItem = useMemo(() => {
+    if (isMundo || !selectedId) return null;
+    const tab = activeTab as Exclude<TabKey, "mundo">;
+    return allItems[tab]?.find((i: any) => i.id === selectedId) ?? null;
+  }, [allItems, selectedId, activeTab, isMundo]);
+
+  // Total de items en el tab activo
+  const activeItems = useMemo(() => {
+    if (isMundo) return [];
+    return allItems[activeTab as Exclude<TabKey, "mundo">] ?? [];
+  }, [allItems, activeTab, isMundo]);
+
+  // Resultados de búsqueda global agrupados
+  const globalResults = useMemo((): Record<Exclude<TabKey, "mundo">, SearchResult[]> => {
+    if (!query.trim()) {
+      // Sin query: muestra solo el tab activo
+      return {
+        personajes: [],
+        criaturas:  [],
+        items:      [],
+        reinos:     [],
+      };
+    }
     const q = normalize(query);
-    return items.filter(i => normalize(i.nombre ?? "").includes(q));
-  }, [items, query]);
+    const tabs: Exclude<TabKey, "mundo">[] = ["personajes", "criaturas", "items", "reinos"];
+    const result: Record<Exclude<TabKey, "mundo">, SearchResult[]> = {
+      personajes: [], criaturas: [], items: [], reinos: [],
+    };
+    tabs.forEach(tab => {
+      result[tab] = (allItems[tab] ?? [])
+        .filter((i: any) => normalize(i.nombre ?? "").includes(q))
+        .map(item => ({ item, tab }));
+    });
+    return result;
+  }, [allItems, query]);
 
-  const close = () => { setOpen(false); setFocused(false); setQuery(""); };
+  // Si no hay query, muestra el tab activo filtrado localmente
+  const activeFiltered = useMemo(() => {
+    if (query.trim()) return [];
+    const q = normalize(query);
+    return activeItems.filter((i: any) => normalize(i.nombre ?? "").includes(q));
+  }, [activeItems, query]);
 
-  const handleSelect = (item: any) => { onSelect(item); close(); inputRef.current?.blur(); };
+  const hasGlobalResults = query.trim() && Object.values(globalResults).some(g => g.length > 0);
+  const totalGlobalCount = Object.values(globalResults).reduce((a, g) => a + g.length, 0);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setFocused(false);
+    setQuery("");
+  }, []);
+
+  const handleSelect = useCallback((item: any, tab: Exclude<TabKey, "mundo">) => {
+    onSelect(item, tab);
+    close();
+    inputRef.current?.blur();
+  }, [onSelect, close]);
 
   useEffect(() => {
     if (!open) return;
@@ -123,12 +197,11 @@ export function CommandBar({
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") { close(); inputRef.current?.blur(); }
-      if (e.key === "Enter" && filtered.length > 0) handleSelect(filtered[0]);
     };
     document.addEventListener("mousedown", onMouse);
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onMouse); document.removeEventListener("keydown", onKey); };
-  }, [open, filtered]);
+  }, [open, close]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -138,13 +211,13 @@ export function CommandBar({
     return () => document.removeEventListener("keydown", k);
   }, []);
 
-  // Mundo: solo section pills
-  if (tab === "mundo") {
+  // ── Mundo: solo section pills ────────────────────────────────────────────────
+  if (isMundo) {
     return (
       <div className="shrink-0 flex items-center gap-1 px-3 py-2 border-b overflow-x-auto"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <Globe size={12} className="text-primary/30 shrink-0 mr-1" />
-        {MUNDO_SECTIONS.map(({ key, label: sLabel, Icon }) => (
+        {MUNDO_SECTIONS.map(({ key, label, Icon }) => (
           <button key={key} onClick={() => onSectionChange?.(key as MundoSectionKey)}
             className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
             style={activeSection === key ? {
@@ -152,18 +225,20 @@ export function CommandBar({
               color: "var(--primary)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
             } : { color: "color-mix(in srgb, var(--primary) 35%, transparent)", border: "1px solid transparent" }}
           >
-            <Icon size={10} /><span>{sLabel}</span>
+            <Icon size={10} /><span>{label}</span>
           </button>
         ))}
       </div>
     );
   }
 
+  const activeLabel = TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">].label;
+
   return (
     <div ref={wrapRef} className="shrink-0 flex items-center gap-2 px-3 py-2 border-b relative"
       style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
-      {/* Input único: selector en reposo → buscador al enfocar */}
+      {/* Input unificado */}
       <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all border"
         style={focused ? {
           background: "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -173,12 +248,15 @@ export function CommandBar({
           borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
         }}
       >
+        {/* Icono: thumbnail si hay seleccionado y no está enfocado, si no buscar */}
         {selectedItem && !focused ? (
           <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/15 bg-primary/8 flex items-center justify-center">
             {(selectedItem.img_url || selectedItem.imagen_url)
               ? <img src={selectedItem.img_url || selectedItem.imagen_url} alt={selectedItem.nombre} className="w-full h-full object-cover" />
-              : <TabIcon size={9} className="text-primary/40" />}
+              : (() => { const Icon = TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">].Icon; return <Icon size={9} className="text-primary/40" />; })()}
           </div>
+        ) : focused && query ? (
+          <Zap size={11} className="shrink-0 text-primary/40" />
         ) : (
           <Search size={11} className="shrink-0 text-primary/30" />
         )}
@@ -190,8 +268,10 @@ export function CommandBar({
           onFocus={() => { setFocused(true); setOpen(true); setQuery(""); }}
           placeholder={
             focused
-              ? `Buscar en ${label.toLowerCase()}…`
-              : selectedItem?.nombre ?? (loading ? "Cargando…" : `${items.length} ${label.toLowerCase()}`)
+              ? query
+                ? `${totalGlobalCount} resultados en todo…`
+                : "Buscar en todo el worldbuilding…"
+              : selectedItem?.nombre ?? (loadingAll ? "Cargando…" : `${activeItems.length} ${activeLabel.toLowerCase()}`)
           }
           className="flex-1 min-w-0 bg-transparent text-[12px] font-medium text-primary outline-none placeholder:text-primary/40"
         />
@@ -205,7 +285,7 @@ export function CommandBar({
       </div>
 
       {/* Botón añadir */}
-      <button onClick={onAdd} title={`Añadir ${label.slice(0, -1)}`}
+      <button onClick={onAdd} title={`Añadir ${activeLabel.slice(0, -1)}`}
         className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all border border-dashed border-primary/20 text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5">
         <Plus size={13} />
       </button>
@@ -218,33 +298,98 @@ export function CommandBar({
             border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
             boxShadow: "0 12px 40px color-mix(in srgb, var(--primary) 18%, transparent)",
           }}>
+
+          {/* Header del dropdown */}
           <div className="px-3 py-1.5 flex items-center justify-between border-b"
             style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
             <span className="text-[9px] font-black uppercase tracking-widest text-primary/25">
-              {loading ? "Cargando…" : `${filtered.length} de ${items.length}`}
+              {loadingAll
+                ? "Cargando…"
+                : query.trim()
+                  ? `${totalGlobalCount} resultado${totalGlobalCount !== 1 ? "s" : ""} en todo`
+                  : `${activeItems.length} ${activeLabel.toLowerCase()}`}
             </span>
             {isOffline && <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">Offline</span>}
           </div>
 
-          <div className="max-h-64 overflow-y-auto p-2 space-y-0.5">
-            {loading ? (
+          <div className="max-h-72 overflow-y-auto">
+            {loadingAll ? (
               <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
-            ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
-                <SlidersHorizontal size={16} />
-                <p className="text-[9px] font-black uppercase tracking-widest">{query ? "Sin coincidencias" : `Sin ${label.toLowerCase()} aún`}</p>
+
+            ) : query.trim() ? (
+              /* BÚSQUEDA GLOBAL: resultados agrupados por categoría */
+              hasGlobalResults ? (
+                <div className="p-2 space-y-1">
+                  {(Object.entries(globalResults) as [Exclude<TabKey, "mundo">, SearchResult[]][])
+                    .filter(([, results]) => results.length > 0)
+                    .map(([tab, results]) => {
+                      const cfg = TAB_CONFIG[tab];
+                      const isActive = tab === activeTab;
+                      return (
+                        <div key={tab}>
+                          {/* Separador de categoría */}
+                          <div className="flex items-center gap-2 px-2 py-1.5">
+                            <cfg.Icon size={9} className="text-primary/30" />
+                            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30">{cfg.label}</span>
+                            <span className="text-[8px] font-black text-primary/20 bg-primary/8 px-1 py-0.5 rounded-full">{results.length}</span>
+                            {isActive && (
+                              <span className="text-[8px] font-black uppercase tracking-widest text-primary/20">· activo</span>
+                            )}
+                          </div>
+                          {/* Items de la categoría */}
+                          <div className="space-y-0.5 pl-1">
+                            {results.map(({ item, tab: itemTab }) => (
+                              <EntidadCard
+                                key={item.id}
+                                item={item}
+                                tab={itemTab}
+                                selected={selectedId === item.id && activeTab === itemTab}
+                                onClick={() => handleSelect(item, itemTab)}
+                                onToggleOculto={itemTab === "reinos" ? onToggleOculto : undefined}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })
+                  }
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
+                  <SlidersHorizontal size={16} />
+                  <p className="text-[9px] font-black uppercase tracking-widest">Sin coincidencias en ninguna categoría</p>
+                </div>
+              )
+
+            ) : (
+              /* SIN QUERY: muestra tab activo */
+              <div className="p-2 space-y-0.5">
+                {activeFiltered.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 py-8 text-primary/20">
+                    <SlidersHorizontal size={16} />
+                    <p className="text-[9px] font-black uppercase tracking-widest">Sin {activeLabel.toLowerCase()} aún</p>
+                  </div>
+                ) : (
+                  activeFiltered.map(item => (
+                    <EntidadCard
+                      key={item.id}
+                      item={item}
+                      tab={activeTab as Exclude<TabKey, "mundo">}
+                      selected={selectedId === item.id}
+                      onClick={() => handleSelect(item, activeTab as Exclude<TabKey, "mundo">)}
+                      onToggleOculto={activeTab === "reinos" ? onToggleOculto : undefined}
+                    />
+                  ))
+                )}
               </div>
-            ) : filtered.map(item => (
-              <EntidadCard key={item.id} item={item} tab={tab}
-                selected={selectedId === item.id} onClick={() => handleSelect(item)}
-                onToggleOculto={onToggleOculto} />
-            ))}
+            )}
           </div>
 
+          {/* Footer: añadir */}
           <div className="p-2 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
             <button onClick={() => { onAdd(); close(); }}
               className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-dashed border-primary/15 text-primary/35 hover:text-primary hover:border-primary/35 hover:bg-primary/4">
-              <Plus size={10} /> Añadir {label.slice(0, -1) || label}
+              <Plus size={10} /> Añadir {activeLabel.slice(0, -1) || activeLabel}
             </button>
           </div>
         </div>
@@ -253,9 +398,44 @@ export function CommandBar({
   );
 }
 
+// ─── CommandBar — wrapper de compatibilidad (por si se usa en otros lados) ────
+// Mantiene la firma anterior para no romper nada.
+export function CommandBar({
+  tab, items, loading, isOffline, selectedId,
+  onSelect, onAdd, onToggleOculto,
+  activeSection, onSectionChange,
+}: {
+  tab: TabKey; items: any[]; loading: boolean; isOffline: boolean;
+  selectedId: string | null; onSelect: (item: any) => void; onAdd: () => void;
+  onToggleOculto?: (id: string, oculto: boolean) => void;
+  activeSection?: MundoSectionKey; onSectionChange?: (s: MundoSectionKey) => void;
+}) {
+  const allItems: AllItems = {
+    personajes: tab === "personajes" ? items : [],
+    criaturas:  tab === "criaturas"  ? items : [],
+    items:      tab === "items"      ? items : [],
+    reinos:     tab === "reinos"     ? items : [],
+  };
+
+  return (
+    <GlobalSearchBar
+      allItems={allItems}
+      loadingAll={loading}
+      isOffline={isOffline}
+      activeTab={tab}
+      selectedId={selectedId}
+      onSelect={(item) => onSelect(item)}
+      onAdd={onAdd}
+      onToggleOculto={onToggleOculto}
+      activeSection={activeSection}
+      onSectionChange={onSectionChange}
+    />
+  );
+}
+
 // ─── TabNav ───────────────────────────────────────────────────────────────────
 export function TabNav({
-  tab, onChange, onTabChange, mundoSection, onMundoSectionChange,
+  tab, onChange, onTabChange,
 }: {
   tab: TabKey;
   onChange?: (t: TabKey) => void;
