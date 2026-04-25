@@ -814,21 +814,24 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
         {/* ── HUD strip ── */}
         <div className="flex items-center gap-4 py-6 px-2">
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
-          <div className="flex items-center gap-3 px-4 py-1.5"
+          <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 15%, transparent))" }} />
+          <div className="flex items-center gap-2.5 px-4 py-1.5 relative"
             style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
-              borderRadius: "var(--radius-btn)",
-              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
             }}>
-            <Star size={9} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
-            <span className="text-[9px] font-black uppercase tracking-[0.25em] select-none"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-              {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos
+            {/* tiny corner accents */}
+            {[["top-0 left-0"], ["top-0 right-0"], ["bottom-0 left-0"], ["bottom-0 right-0"]].map(([pos], i) => (
+              <div key={i} className={`absolute ${pos} w-1.5 h-1.5 pointer-events-none`}
+                style={{ background: "color-mix(in srgb, var(--primary) 35%, transparent)", clipPath: i < 2 ? "polygon(0 0,100% 0,0 100%)" : "polygon(100% 100%,0 100%,100% 0)" }} />
+            ))}
+            <span className="text-[8px] font-black uppercase tracking-[0.3em] tabular-nums select-none"
+              style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+              ◆ {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos ◆
             </span>
-            <Star size={9} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
           </div>
-          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
+          <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 15%, transparent))" }} />
         </div>
 
         {}
@@ -846,15 +849,33 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
               }}>
 
-              {/* Corner accents */}
-              {[["top-0 left-0","border-t-2 border-l-2"],["top-0 right-0","border-t-2 border-r-2"],["bottom-0 left-0","border-b-2 border-l-2"],["bottom-0 right-0","border-b-2 border-r-2"]].map(([pos, borders], i) => (
-                <div key={i} className={`absolute ${pos} w-4 h-4 ${borders} pointer-events-none`}
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 35%, transparent)", borderRadius: "2px" }} />
+              {/* SVG corner accents */}
+              {([["0 0", "0"], ["100% 0", "90deg"], ["0 100%", "-90deg"], ["100% 100%", "180deg"]] as [string, string][]).map(([pos, rot], i) => (
+                <svg key={i} width="16" height="16" viewBox="0 0 16 16"
+                  style={{
+                    position: "absolute",
+                    left: pos.startsWith("0") ? 0 : "auto", right: pos.startsWith("100%") ? 0 : "auto",
+                    top: pos.endsWith("0") ? 0 : "auto", bottom: pos.endsWith("100%") ? 0 : "auto",
+                    transform: `rotate(${rot})`,
+                    color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    pointerEvents: "none", zIndex: 2,
+                  }}>
+                  <path d="M2 14 L2 2 L14 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="square"/>
+                </svg>
               ))}
 
               {/* Avatar zone */}
-              <div className="relative pt-6 pb-4 px-5 text-center"
-                style={{ background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <div className="relative pt-7 pb-5 px-5 text-center"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))",
+                  borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}>
+
+                {/* Scan-line texture on avatar zone */}
+                <div className="absolute inset-0 pointer-events-none" style={{
+                  backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 4px, color-mix(in srgb, var(--primary) 2%, transparent) 4px, color-mix(in srgb, var(--primary) 2%, transparent) 5px)",
+                }} />
+
                 <div className="flex justify-center mb-4">
                   <button onClick={() => setShowAvatarPicker(true)}
                     className="group relative overflow-hidden flex items-center justify-center transition-all duration-300"
@@ -862,8 +883,8 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       width: 96, height: 96,
                       borderRadius: "var(--radius-btn)",
                       background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
-                      border: "2px solid color-mix(in srgb, var(--primary) 22%, transparent)",
-                      boxShadow: "0 0 16px color-mix(in srgb, var(--primary) 10%, transparent)",
+                      border: "2px solid color-mix(in srgb, var(--primary) 25%, transparent)",
+                      boxShadow: "0 0 20px color-mix(in srgb, var(--primary) 12%, transparent), inset 0 0 12px color-mix(in srgb, var(--primary) 4%, transparent)",
                     }}
                     title="Cambiar imagen">
                     {perfil?.avatar_url
@@ -878,14 +899,16 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
                 {/* Título */}
                 {perfil?.titulo && (
-                  <div className="inline-block mb-2 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.2em]"
+                  <div className="inline-flex items-center gap-1.5 mb-2 px-2.5 py-0.5 text-[7px] font-black uppercase tracking-[0.2em]"
                     style={{
                       border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-                      borderRadius: "var(--radius-btn)",
-                      color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      borderRadius: "2px",
+                      color: "color-mix(in srgb, var(--primary) 50%, transparent)",
                       background: "color-mix(in srgb, var(--primary) 5%, transparent)",
                     }}>
+                    <span style={{ fontSize: "5px" }}>◆</span>
                     {perfil.titulo}
+                    <span style={{ fontSize: "5px" }}>◆</span>
                   </div>
                 )}
 
@@ -900,35 +923,42 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               </div>
 
               {/* Stats HUD */}
-              <div className="px-4 py-4 space-y-2.5">
-                <p className="text-[8px] font-black uppercase tracking-[0.3em] mb-3"
-                  style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                  Registro
-                </p>
+              <div className="px-4 py-4 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                  <p className="text-[7px] font-black uppercase tracking-[0.3em]"
+                    style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                    Registro
+                  </p>
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                </div>
                 {[
-                  { icon: <Sword size={11} />, label: "Objetos",   count: inventario.length + misItemsDesc.length, max: 50 },
-                  { icon: <Cat size={11} />,   label: "Criaturas", count: misCriaturas.length, max: 30 },
-                  { icon: <User size={11} />,  label: "Aliados",   count: misPersonajes.length, max: 20 },
+                  { icon: <Sword size={10} />, label: "Objetos",   count: inventario.length + misItemsDesc.length, max: 50 },
+                  { icon: <Cat size={10} />,   label: "Criaturas", count: misCriaturas.length, max: 30 },
+                  { icon: <User size={10} />,  label: "Aliados",   count: misPersonajes.length, max: 20 },
                 ].map(({ icon, label, count, max }) => (
                   <div key={label}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5"
-                        style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                        style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
                         {icon}
-                        <span className="text-[9px] font-black uppercase tracking-wider">{label}</span>
+                        <span className="text-[8px] font-black uppercase tracking-wider">{label}</span>
                       </div>
-                      <span className="font-serif italic text-[13px] tabular-nums font-bold" style={{ color: "var(--primary)" }}>
+                      <span className="text-[12px] font-black tabular-nums font-bold" style={{ color: "var(--primary)" }}>
                         {count}
                       </span>
                     </div>
-                    {/* Progress bar */}
-                    <div className="w-full h-1 rounded-full overflow-hidden"
-                      style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                      <div className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${Math.min(100, (count / max) * 100)}%`,
-                          background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 35%, transparent), color-mix(in srgb, var(--primary) 55%, transparent))",
-                        }} />
+                    {/* Segmented progress bar */}
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 10 }).map((_, i) => (
+                        <div key={i} className="flex-1 h-1 transition-all duration-700"
+                          style={{
+                            background: i < Math.round((count / max) * 10)
+                              ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+                              : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                            borderRadius: "1px",
+                          }} />
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -946,11 +976,19 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
               boxShadow: "0 4px 20px color-mix(in srgb, var(--primary) 6%, transparent)",
             }}>
+              {/* SVG corners */}
+              <svg width="14" height="14" viewBox="0 0 14 14" style={{ position: "absolute", top: 0, left: 0, color: "color-mix(in srgb, var(--primary) 40%, transparent)", pointerEvents: "none" }}>
+                <path d="M2 12 L2 2 L12 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="square"/>
+              </svg>
+              <svg width="14" height="14" viewBox="0 0 14 14" style={{ position: "absolute", bottom: 0, right: 0, color: "color-mix(in srgb, var(--primary) 40%, transparent)", pointerEvents: "none", transform: "rotate(180deg)" }}>
+                <path d="M2 12 L2 2 L12 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="square"/>
+              </svg>
+
               {/* Panel header */}
               <div className="flex items-center justify-between px-5 pt-4 pb-3"
                 style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                 <div className="flex items-center gap-2">
-                  <div className="w-1 h-4 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
+                  <span className="text-[8px]" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>◆</span>
                   <p className="text-[9px] font-black uppercase tracking-[0.22em]"
                     style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
                     Sobre mí
@@ -959,11 +997,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 {!editingDesc ? (
                   <button
                     onClick={() => { setDescDraft(perfil?.descripcion ?? ''); setEditingDesc(true); }}
-                    className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 transition-all hover:opacity-80"
+                    className="text-[8px] font-black uppercase tracking-wider px-3 py-1.5 transition-all hover:opacity-80"
                     style={{
                       color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                      borderRadius: "var(--radius-btn)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                      borderRadius: "2px",
+                      border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                       background: "color-mix(in srgb, var(--primary) 4%, transparent)",
                     }}>
                     Editar
@@ -971,13 +1009,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 ) : (
                   <div className="flex items-center gap-2">
                     <button onClick={() => setEditingDesc(false)}
-                      className="text-[9px] font-black uppercase tracking-wider px-2 py-1"
+                      className="text-[8px] font-black uppercase tracking-wider px-2 py-1"
                       style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
                       Cancelar
                     </button>
                     <button onClick={handleSaveDesc} disabled={savingDesc}
-                      className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 disabled:opacity-50 transition-opacity"
-                      style={{ background: "var(--primary)", color: "var(--btn-text)", borderRadius: "var(--radius-btn)" }}>
+                      className="text-[8px] font-black uppercase tracking-wider px-3 py-1.5 disabled:opacity-50 transition-opacity"
+                      style={{ background: "var(--primary)", color: "var(--btn-text)", borderRadius: "2px" }}>
                       {savingDesc ? "Guardando…" : "Guardar"}
                     </button>
                   </div>
@@ -1015,17 +1053,17 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 <div className="px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-0.5 h-3 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                      <span className="text-[7px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>◆</span>
                       <p className="text-[8px] font-black uppercase tracking-[0.2em]"
                         style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
                         Personaje Favorito
                       </p>
                     </div>
                     <button onClick={() => setShowPersonajePicker(true)}
-                      className="text-[8px] font-black uppercase tracking-wider px-2 py-1 transition-all hover:opacity-80"
+                      className="text-[7px] font-black uppercase tracking-wider px-2 py-1 transition-all hover:opacity-80"
                       style={{
                         color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                        borderRadius: "var(--radius-btn)",
+                        borderRadius: "2px",
                         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                         background: "color-mix(in srgb, var(--primary) 3%, transparent)",
                       }}>
@@ -1040,7 +1078,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             borderRadius: "var(--radius-btn)",
                             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
                             border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                            boxShadow: "0 2px 8px color-mix(in srgb, var(--primary) 8%, transparent)",
+                            boxShadow: "0 0 12px color-mix(in srgb, var(--primary) 10%, transparent)",
                           }}>
                           {perfil.personaje_favorito.img_url
                             ? <img src={perfil.personaje_favorito.img_url} alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" />
@@ -1065,17 +1103,17 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   style={{ borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-0.5 h-3 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                      <span className="text-[7px]" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>◆</span>
                       <p className="text-[8px] font-black uppercase tracking-[0.2em]"
                         style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
                         Mascota
                       </p>
                     </div>
                     <button onClick={() => setShowMascotaPicker(true)}
-                      className="text-[8px] font-black uppercase tracking-wider px-2 py-1 transition-all hover:opacity-80"
+                      className="text-[7px] font-black uppercase tracking-wider px-2 py-1 transition-all hover:opacity-80"
                       style={{
                         color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                        borderRadius: "var(--radius-btn)",
+                        borderRadius: "2px",
                         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                         background: "color-mix(in srgb, var(--primary) 3%, transparent)",
                       }}>
@@ -1090,7 +1128,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             borderRadius: "var(--radius-btn)",
                             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
                             border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                            boxShadow: "0 2px 8px color-mix(in srgb, var(--primary) 8%, transparent)",
+                            boxShadow: "0 0 12px color-mix(in srgb, var(--primary) 10%, transparent)",
                           }}>
                           {perfil.mascota.imagen_url
                             ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
@@ -1116,12 +1154,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             {/* Mobile explorers */}
             {otrosPerfiles.length > 0 && (
               <div className="lg:hidden">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-0.5 h-3 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                  <p className="text-[8px] font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
-                    style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                    <Users size={9} /> Exploradores
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                  <p className="text-[7px] font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    <Users size={8} /> Exploradores
                   </p>
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {otrosPerfiles.map(p => (
@@ -1130,7 +1169,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         style={{
                           background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
                           border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                          borderRadius: "var(--radius-btn)",
+                          borderRadius: "2px",
                         }}>
                         <div className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center"
                           style={{ borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
@@ -1138,7 +1177,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
                             : <User size={9} style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-wide capitalize" style={{ color: "var(--primary)" }}>{p.username}</span>
+                        <span className="text-[9px] font-black uppercase tracking-wide capitalize" style={{ color: "var(--primary)" }}>{p.username}</span>
                       </div>
                     </Link>
                   ))}

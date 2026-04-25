@@ -316,9 +316,8 @@ export function EntidadCard({ imagen, nombre, sub, icono, onClick }: {
               color: hovered
                 ? "color-mix(in srgb, var(--primary) 45%, transparent)"
                 : "color-mix(in srgb, var(--primary) 18%, transparent)",
-              transition: "color 0.22s ease",
+              transition: "color 0.22s ease, transform 0.22s ease",
               transform: hovered ? "scale(1.1)" : "scale(1)",
-              transition2: "transform 0.22s ease",
             }}
           >
             {icono}
