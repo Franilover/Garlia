@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Map, MapPin, Plus, Check, X, Trash2, Save,
-  Eye, EyeOff, Loader2, ChevronDown, Globe, Landmark, Coins, Mountain, Users, UserCircle2, ChevronRight,
+  Eye, EyeOff, Loader2, ChevronDown, Globe, Landmark, Coins, Mountain, Users, UserCircle2, ChevronRight, Image as ImageIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Reino, type ReinoDetalle, type SaveStatus, INPUT_CLS } from "./types";
 import { useReinoDetalles, usePersonajesDelReino } from "./hooks";
-import { SelectorImagen, SaveIndicator } from "./UIComponents";
+import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
@@ -59,11 +59,17 @@ function CampoLore({
   );
 }
 
-// ─── Mapa interactivo con puntos ───────────────────────────────────────────────
-function MapaPuntosReino({ mapaUrl, detalles, onDetallesChange }: {
-  mapaUrl: string; detalles: ReinoDetalle[]; onDetallesChange: (d: ReinoDetalle[]) => void;
+// ─── Mapa unificado con puntos + botón de cambiar imagen ──────────────────────
+function MapaConPuntos({ mapaUrl, onMapaChange, detalles, onDetallesChange }: {
+  mapaUrl: string;
+  onMapaChange: (url: string) => void;
+  detalles: ReinoDetalle[];
+  onDetallesChange: (d: ReinoDetalle[]) => void;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId,  setSelectedId]  = useState<string | null>(null);
+  const [pickerOpen,  setPickerOpen]  = useState(false);
+  // Import lazily to avoid circular deps — use the same SimpleImagePicker pattern
+  // We'll just call onMapaChange from within an inline modal
 
   const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!selectedId) return;
@@ -74,44 +80,126 @@ function MapaPuntosReino({ mapaUrl, detalles, onDetallesChange }: {
     setSelectedId(null);
   };
 
-  if (!mapaUrl) return (
-    <div className="flex flex-col items-center justify-center gap-2 h-32 rounded-xl border border-dashed border-primary/15 text-primary/25">
-      <Map size={18} />
-      <span className="text-[9px] font-black uppercase tracking-widest">Sin imagen de mapa</span>
-    </div>
-  );
-
   return (
-    <div className="space-y-1.5">
-      {selectedId && (
-        <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary/60"
-          style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-          <span>Clickeá el mapa para mover el punto</span>
-          <button onClick={() => setSelectedId(null)} className="text-primary/40 hover:text-primary transition-colors"><X size={11} /></button>
-        </div>
-      )}
+    <>
       <div
-        className={`relative w-full overflow-hidden rounded-xl border select-none ${selectedId ? "cursor-crosshair border-primary/40" : "cursor-default border-primary/15"}`}
+        className={`relative w-full overflow-hidden rounded-2xl border select-none group ${
+          selectedId
+            ? "cursor-crosshair border-primary/40"
+            : "cursor-default border-primary/15"
+        }`}
+        style={{ minHeight: "180px", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}
         onClick={handleMapClick}
       >
-        <img src={mapaUrl} alt="Mapa" className="w-full h-auto object-contain pointer-events-none" draggable={false} />
-        {detalles.map(d => {
+        {mapaUrl ? (
+          <img
+            src={mapaUrl}
+            alt="Mapa"
+            className="w-full h-auto object-contain pointer-events-none block"
+            draggable={false}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-primary/20">
+            <Map size={28} strokeWidth={1} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Sin imagen de mapa</span>
+            <button
+              onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
+              className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 transition-all"
+            >
+              <ImageIcon size={10} /> Elegir imagen
+            </button>
+          </div>
+        )}
+
+        {/* Puntos sobre el mapa */}
+        {mapaUrl && detalles.map(d => {
           const isSelected = selectedId === d.id;
           return (
-            <div key={d.id} className="absolute z-10 flex flex-col items-center"
-              style={{ top: `${d.coord_y ?? 0}%`, left: `${d.coord_x ?? 0}%`, transform: "translate(-50%, -100%)" }}>
+            <div
+              key={d.id}
+              className="absolute z-10 flex flex-col items-center pointer-events-none"
+              style={{ top: `${d.coord_y ?? 50}%`, left: `${d.coord_x ?? 50}%`, transform: "translate(-50%, -100%)" }}
+            >
               <div className={`mb-1 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md whitespace-nowrap shadow-md transition-all ${
-                isSelected ? "bg-primary text-btn-text scale-110" : "bg-bg-main/90 text-primary border border-primary/20"
+                isSelected ? "bg-primary text-btn-text scale-110" : "bg-black/60 text-white/90 backdrop-blur-sm"
               }`}>{d.nombre}</div>
-              <button onClick={e => { e.stopPropagation(); setSelectedId(prev => prev === d.id ? null : d.id); }}
-                className={`w-3 h-3 rounded-full border-2 border-white shadow-md transition-all ${
+              <button
+                onClick={e => { e.stopPropagation(); setSelectedId(prev => prev === d.id ? null : d.id); }}
+                className={`pointer-events-auto w-3 h-3 rounded-full border-2 border-white shadow-md transition-all ${
                   isSelected ? "bg-yellow-400 scale-125 ring-2 ring-yellow-400/50" : "bg-primary hover:scale-110"
-                }`} />
-              <div className={`w-px h-2 ${isSelected ? "bg-yellow-400" : "bg-primary/50"}`} />
+                }`}
+              />
+              <div className={`w-px h-2 ${isSelected ? "bg-yellow-400" : "bg-white/60"}`} />
             </div>
           );
         })}
-        {selectedId && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
+
+        {/* Overlay hint cuando hay punto seleccionado */}
+        {selectedId && (
+          <div
+            className="absolute inset-0 bg-primary/5 pointer-events-none flex items-end justify-center pb-3"
+          >
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white pointer-events-auto"
+              style={{ background: "color-mix(in srgb, var(--foreground) 70%, transparent)", backdropFilter: "blur(8px)" }}
+            >
+              <MapPin size={10} /> Clickeá para mover el punto
+              <button onClick={e => { e.stopPropagation(); setSelectedId(null); }} className="ml-1 opacity-60 hover:opacity-100 transition-opacity">
+                <X size={10} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Botón cambiar imagen — esquina superior derecha */}
+        {mapaUrl && (
+          <button
+            onClick={e => { e.stopPropagation(); setPickerOpen(true); }}
+            className="absolute top-2 right-2 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all opacity-0 group-hover:opacity-100"
+            style={{
+              background: "color-mix(in srgb, var(--foreground) 65%, transparent)",
+              color: "white",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <ImageIcon size={10} /> Cambiar
+          </button>
+        )}
+      </div>
+
+      {/* Picker modal */}
+      {pickerOpen && <ImagePickerModal onSelect={url => { onMapaChange(url); setPickerOpen(false); }} onClose={() => setPickerOpen(false)} />}
+    </>
+  );
+}
+
+// ─── Mini modal de imagen (sin depender de SelectorImagen) ────────────────────
+function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => void; onClose: () => void }) {
+  // Lazy import of SimpleImagePicker
+  const [SimpleImagePicker, setComponent] = useState<React.ComponentType<any> | null>(null);
+  useEffect(() => {
+    import("@/components/forms/SimpleImagePicker").then(m => setComponent(() => m.default));
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+            <ImageIcon size={11} /> Imagen del mapa
+          </h3>
+          <button onClick={onClose} className="text-primary/30 hover:text-primary transition-colors"><X size={16} /></button>
+        </div>
+        {SimpleImagePicker
+          ? <SimpleImagePicker onSelect={onSelect} onClose={onClose} />
+          : <div className="flex items-center justify-center py-12"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+        }
       </div>
     </div>
   );
@@ -353,21 +441,25 @@ export function EditorReino({ item, onSaved, onDeleted }: {
 
           {/* MAPA */}
           {tab === "mapa" && (
-            <div className="p-4 space-y-4">
-              <SelectorImagen label="Imagen del mapa" value={form.mapa_url ?? ""}
-                onChange={url => setForm(f => ({ ...f, mapa_url: url }))} aspect="landscape"
-                placeholder={<Map size={24} className="opacity-20" />} />
+            <div className="flex flex-col min-h-0">
+              {/* Mapa unificado — imagen + puntos + botón cambiar */}
+              <MapaConPuntos
+                mapaUrl={form.mapa_url ?? ""}
+                onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
+                detalles={detalles}
+                onDetallesChange={handleDetallesMapChange}
+              />
 
-              <MapaPuntosReino mapaUrl={form.mapa_url ?? ""} detalles={detalles} onDetallesChange={handleDetallesMapChange} />
-
-              {/* Puntos de interés */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <MapPin size={11} className="text-primary/40" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/40">Puntos de Interés</span>
-                  {detalles.length > 0 && (
-                    <span className="text-[9px] font-black text-primary/30 bg-primary/8 px-1.5 py-0.5 rounded-full ml-1">{detalles.length}</span>
-                  )}
+              {/* Puntos de interés — lista debajo del mapa */}
+              <div className="p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin size={11} className="text-primary/40" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary/40">Puntos de Interés</span>
+                    {detalles.length > 0 && (
+                      <span className="text-[9px] font-black text-primary/30 bg-primary/8 px-1.5 py-0.5 rounded-full">{detalles.length}</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -379,7 +471,7 @@ export function EditorReino({ item, onSaved, onDeleted }: {
                 </div>
 
                 {detalles.length === 0 && !addingPoint && (
-                  <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-5 border border-dashed border-primary/15 rounded-xl italic">
+                  <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 border border-dashed border-primary/15 rounded-xl italic">
                     Sin puntos registrados
                   </p>
                 )}
