@@ -120,7 +120,7 @@ export default function EditorEntidades() {
 
   const [tab,          setTab]          = useState<TabKey>(session.current.tab);
   const [selectedId,   setSelectedId]   = useState<string | null>(session.current.selectedId);
-  const [showNueva,    setShowNueva]    = useState(false);
+  const [showNueva,    setShowNueva]    = useState<Exclude<TabKey, "mundo"> | null>(null);
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>("magia");
 
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
@@ -148,8 +148,8 @@ export default function EditorEntidades() {
     setSelectedId(null);
   }, []);
 
-  const handleCreated = (item: any) => {
-    const t = tab as Exclude<TabKey, "mundo">;
+  const handleCreated = (item: any, chosenTab?: Exclude<TabKey, "mundo">) => {
+    const t = chosenTab ?? tab as Exclude<TabKey, "mundo">;
     setAllItems(prev => ({ ...prev, [t]: [item, ...prev[t]] }));
     setSelectedId(item.id);
   };
@@ -188,7 +188,7 @@ export default function EditorEntidades() {
           activeTab={tab}
           selectedId={selectedId}
           onSelect={handleSelect}
-          onAdd={() => setShowNueva(true)}
+          onAdd={(chosenTab) => { setTab(chosenTab); setShowNueva(chosenTab); }}
           onMundo={handleMundo}
           onToggleOculto={handleToggleOcultoReino}
           activeSection={mundoSection}
@@ -236,9 +236,9 @@ export default function EditorEntidades() {
       {/* Modal nueva entrada */}
       {showNueva && !isMundo && (
         <ModalNueva
-          tab={tab as Exclude<TabKey, "mundo">}
-          onCreated={handleCreated}
-          onClose={() => setShowNueva(false)}
+          tab={showNueva}
+          onCreated={(item) => handleCreated(item, showNueva)}
+          onClose={() => setShowNueva(null)}
         />
       )}
     </>

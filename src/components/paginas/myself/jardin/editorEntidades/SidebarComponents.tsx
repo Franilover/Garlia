@@ -103,6 +103,102 @@ function EntidadCard({
   );
 }
 
+// ─── AddMenu ──────────────────────────────────────────────────────────────────
+function AddMenu({ onAdd }: { onAdd: (tab: Exclude<TabKey, "mundo">) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const tabs = Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][];
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        onClick={() => setOpen(o => !o)}
+        title="Añadir entidad"
+        className="w-8 h-8 rounded-xl flex items-center justify-center transition-all border"
+        style={open ? {
+          background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+          color: "var(--primary)",
+          borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
+        } : {
+          borderStyle: "dashed",
+          borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
+          color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+        }}
+      >
+        <Plus size={13} style={{ transform: open ? "rotate(45deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-2 z-50 rounded-2xl overflow-hidden"
+          style={{
+            background: "var(--bg-main)",
+            border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+            boxShadow: "0 12px 32px color-mix(in srgb, var(--primary) 20%, transparent)",
+            minWidth: "160px",
+            animation: "popIn 120ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+            transformOrigin: "top right",
+          }}
+        >
+          <div
+            className="px-3 py-2 border-b"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            }}
+          >
+            <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30">Nueva entrada</p>
+          </div>
+          <div className="p-1.5 space-y-0.5">
+            {tabs.map(([key, cfg]) => (
+              <button
+                key={key}
+                onClick={() => { onAdd(key); setOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all group"
+                style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 55%, transparent)";
+                }}
+              >
+                <span
+                  className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
+                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                >
+                  <cfg.Icon size={11} />
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-widest">{cfg.label}</span>
+                <Plus size={8} className="ml-auto opacity-40" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes popIn {
+          from { opacity: 0; transform: scale(0.88); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── GlobalSearchBar ──────────────────────────────────────────────────────────
 export function GlobalSearchBar({
   allItems,
@@ -123,7 +219,7 @@ export function GlobalSearchBar({
   activeTab: TabKey;
   selectedId: string | null;
   onSelect: (item: any, tab: Exclude<TabKey, "mundo">) => void;
-  onAdd: () => void;
+  onAdd: (tab: Exclude<TabKey, "mundo">) => void;
   onMundo: () => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
   activeSection?: MundoSectionKey;
@@ -264,15 +360,9 @@ export function GlobalSearchBar({
           <span className="hidden sm:inline">Mundo</span>
         </button>
 
-        {/* Botón añadir */}
+        {/* Botón añadir con menú flotante */}
         {!isMundo && (
-          <button
-            onClick={onAdd}
-            title="Añadir entidad"
-            className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all border border-dashed border-primary/20 text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5"
-          >
-            <Plus size={13} />
-          </button>
+          <AddMenu onAdd={(tab) => { onAdd(tab); close(); }} />
         )}
 
         {/* Dropdown */}
@@ -343,12 +433,18 @@ export function GlobalSearchBar({
 
             {!isMundo && (
               <div className="p-2 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-                <button
-                  onClick={() => { onAdd(); close(); }}
-                  className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-dashed border-primary/15 text-primary/35 hover:text-primary hover:border-primary/35 hover:bg-primary/4"
-                >
-                  <Plus size={10} /> Nueva entidad
-                </button>
+                <p className="text-[8px] font-black uppercase tracking-widest text-primary/20 px-2 pb-1.5">Añadir nueva</p>
+                <div className="grid grid-cols-2 gap-1">
+                  {(Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][]).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      onClick={() => { onAdd(key); close(); }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border border-dashed border-primary/15 text-primary/35 hover:text-primary hover:border-primary/35 hover:bg-primary/4"
+                    >
+                      <cfg.Icon size={9} /> {cfg.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
