@@ -79,7 +79,7 @@ function useEntidadesMagicas(modo: Modo) {
     setLoading(true);
     const { data } = await supabase
       .from(CONFIG[modo].tabla)
-      .select("*, criatura:criaturas!hechizos_criatura_id_fkey(id, nombre, imagen_url)")
+      .select("*, criatura:criaturas!criatura_id(id, nombre, imagen_url)")
       .order("nombre");
     setItems(data ?? []);
     setLoading(false);
@@ -375,7 +375,7 @@ export function EditorHechizos({ modo }: { modo: Modo }) {
       const { data, error } = await supabase
         .from(cfg.tabla)
         .insert([{ nombre: `Nuevo ${cfg.labelSing}` }])
-        .select("*, criatura:criaturas!hechizos_criatura_id_fkey(id, nombre, imagen_url)")
+        .select("*, criatura:criaturas!criatura_id(id, nombre, imagen_url)")
         .single();
       if (error) throw error;
       setItems(prev => [data, ...prev]);
