@@ -401,19 +401,37 @@ export function FormularioPersonaje({
 
         {/* ── Right column: full-body image (desktop only) ─────────────────── */}
         {!compacto && (
-          <div className="hidden sm:flex w-36 shrink-0 border-l flex-col overflow-hidden"
+          <div className="hidden sm:flex w-28 shrink-0 border-l flex-col"
             style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-            <div className="flex-1 min-h-0">
-              <SelectorImagen
-                label=""
-                value={form.img_cuerpo_url ?? ""}
-                onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-                aspect="full"
-                placeholder={<Maximize2 size={20} className="opacity-20" />}
-              />
-            </div>
-            <div className="shrink-0 px-2 py-1.5 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            <div className="shrink-0 px-2 py-1.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
               <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 block text-center">Cuerpo</span>
+            </div>
+            <div className="flex-1 flex items-center justify-center p-1.5 overflow-hidden"
+              style={{ background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+              {form.img_cuerpo_url ? (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <img
+                    src={form.img_cuerpo_url}
+                    alt="Cuerpo"
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                    style={{ display: "block" }}
+                  />
+                  <button
+                    onClick={() => setForm(f => ({ ...f, img_cuerpo_url: "" }))}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center bg-black/40 text-white/70 hover:bg-black/70 hover:text-white transition-all"
+                  >
+                    <X size={10} />
+                  </button>
+                  <button
+                    onClick={() => {/* PickerCuerpo trigger: reuse same flow */}}
+                    className="absolute bottom-1 inset-x-1 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider text-center text-primary/40 bg-primary/8 hover:bg-primary/15 transition-all"
+                  >
+                    Cambiar
+                  </button>
+                </div>
+              ) : (
+                <PickerCuerpoInline onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))} />
+              )}
             </div>
           </div>
         )}
