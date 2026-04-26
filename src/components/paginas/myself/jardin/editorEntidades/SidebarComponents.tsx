@@ -62,7 +62,7 @@ function EntidadCard({
       className="group relative w-full text-left transition-all duration-150"
     >
       <div
-        className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-150 ${
+        className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all duration-150 ${
           selected
             ? "bg-primary/12 border border-primary/20"
             : "border border-transparent hover:bg-primary/6 hover:border-primary/10"
@@ -70,7 +70,7 @@ function EntidadCard({
       >
         {/* Avatar */}
         <div
-          className="shrink-0 w-9 h-9 rounded-lg overflow-hidden border flex items-center justify-center"
+          className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border flex items-center justify-center"
           style={{
             background: img ? "transparent" : "color-mix(in srgb, var(--primary) 7%, transparent)",
             borderColor: selected
@@ -510,7 +510,7 @@ export function GlobalSearchBar({
                 totalResults > 0 ? (
                   <>
                     {/* Search results — grid de 3 columnas */}
-                    <div className="grid grid-cols-3 gap-1">
+                    <div className="grid grid-cols-6 gap-1">
                       {globalResults.map(({ item, tab }) => (
                         <EntidadCard
                           key={`${tab}-${item.id}`}
@@ -548,7 +548,7 @@ export function GlobalSearchBar({
               ) : (
                 <>
                   {/* All items — grid de 3 columnas */}
-                  <div className="grid grid-cols-3 gap-1">
+                  <div className="grid grid-cols-6 gap-1">
                     {Object.entries(allItems)
                       .flatMap(([tab, items]) =>
                         items.map(item => ({ item, tab: tab as Exclude<TabKey, "mundo"> }))
