@@ -62,17 +62,18 @@ export function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
   );
 }
 
-// ─── PanelPersonajes — ahora como chip + drawer lateral compacto ──────────────
-// Desktop: chip flotante en top-right del editor → drawer slide-in desde la derecha
-// Mobile: igual que antes (pantalla completa)
-export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "Personajes" }: {
+// ─── PanelPersonajes ──────────────────────────────────────────────────────────
+// inline=false → chip + drawer lateral (comportamiento original)
+// inline=true  → lista directa para embeber en una tab
+export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "Personajes", inline = false }: {
   personajes: Personaje[];
   loading: boolean;
   setPersonajes: React.Dispatch<React.SetStateAction<Personaje[]>>;
   titulo?: string;
+  inline?: boolean;
 }) {
-  const [editando,    setEditando]    = useState<Personaje | null>(null);
-  const [drawerOpen,  setDrawerOpen]  = useState(false);
+  const [editando,   setEditando]  = useState<Personaje | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleSaved = (updated: Personaje) => {
     setPersonajes(prev => prev.map(p => p.id === updated.id ? updated : p));
@@ -99,6 +100,35 @@ export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "
     </button>
   );
 
+  // ── Modo inline (tab Especie) ─────────────────────────────────────────────
+  if (inline) {
+    return (
+      <div className="relative">
+        {editando && (
+          <OverlayEditorPersonaje
+            personaje={editando}
+            onSaved={handleSaved}
+            onClose={() => setEditando(null)}
+          />
+        )}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 size={16} className="animate-spin text-primary/20" />
+          </div>
+        ) : personajes.length === 0 ? (
+          <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-8 border border-dashed border-primary/15 rounded-xl italic">
+            Sin personajes de esta especie
+          </p>
+        ) : (
+          <div className="space-y-0.5">
+            {personajes.map(p => <PersonajeRow key={p.id} p={p} />)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Modo chip + drawer lateral (comportamiento original) ──────────────────
   return (
     <>
       {/* Overlay editor de personaje */}
