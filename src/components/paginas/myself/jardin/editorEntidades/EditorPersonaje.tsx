@@ -24,7 +24,7 @@ const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
   { key: "notas",     label: "Notas",     Icon: FileEdit },
 ];
 
-// ─── Campo colapsable con preview ─────────────────────────────────────────────
+// ─── Campo colapsable con preview — más compacto ──────────────────────────────
 function CampoLore({
   label, value, onChange, placeholder, rows = 5,
   accent = false,
@@ -33,11 +33,11 @@ function CampoLore({
   placeholder?: string; rows?: number; accent?: boolean;
 }) {
   const [open, setOpen] = useState(!!value);
-  const preview = value.replace(/[#*`_~\[\]]/g, "").trim().slice(0, 80);
+  const preview = value.replace(/[#*`_~\[\]]/g, "").trim().slice(0, 60);
 
   return (
     <div
-      className="rounded-2xl overflow-hidden transition-all"
+      className="rounded-xl overflow-hidden transition-all"
       style={{
         border: `1px solid ${accent
           ? "color-mix(in srgb, var(--accent) 20%, transparent)"
@@ -50,31 +50,31 @@ function CampoLore({
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/3"
+        className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-primary/3"
       >
         <div className="flex-1 min-w-0">
           <p
-            className="text-[10px] font-black uppercase tracking-[0.25em]"
+            className="text-[9px] font-black uppercase tracking-[0.25em]"
             style={{ color: accent ? "color-mix(in srgb, var(--accent) 70%, transparent)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
           >
             {accent && "🔒 "}{label}
           </p>
           {!open && preview && (
-            <p className="text-[11px] text-primary/40 truncate mt-0.5 font-medium italic">{preview}…</p>
+            <p className="text-[10px] text-primary/40 truncate mt-0.5 italic">{preview}…</p>
           )}
           {!open && !preview && (
-            <p className="text-[10px] text-primary/20 mt-0.5 italic">{placeholder?.slice(0, 50)}…</p>
+            <p className="text-[9px] text-primary/20 mt-0.5 italic">{placeholder?.slice(0, 40)}…</p>
           )}
         </div>
         <ChevronDown
-          size={13}
+          size={11}
           className="shrink-0 text-primary/30 transition-transform duration-200"
           style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
         />
       </button>
 
       {open && (
-        <div className="px-4 pb-4 pt-1">
+        <div className="px-3 pb-3 pt-1">
           <MarkdownEditor
             value={value}
             onChange={onChange}
@@ -163,7 +163,7 @@ function SeccionMagia({ personajeId, especie }: { personajeId: string; especie?:
 
   return (
     <div
-      className="rounded-2xl overflow-hidden transition-all"
+      className="rounded-xl overflow-hidden transition-all"
       style={{
         border:     `1px solid color-mix(in srgb, ${COLOR} 20%, transparent)`,
         background: `color-mix(in srgb, ${COLOR} 3%, transparent)`,
@@ -172,24 +172,24 @@ function SeccionMagia({ personajeId, especie }: { personajeId: string; especie?:
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/3"
+        className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-primary/3"
       >
-        <Sparkles size={12} style={{ color: `color-mix(in srgb, ${COLOR} 70%, transparent)` }} />
+        <Sparkles size={11} style={{ color: `color-mix(in srgb, ${COLOR} 70%, transparent)` }} />
         <div className="flex-1 min-w-0">
           <p
-            className="text-[10px] font-black uppercase tracking-[0.25em]"
+            className="text-[9px] font-black uppercase tracking-[0.25em]"
             style={{ color: `color-mix(in srgb, ${COLOR} 70%, transparent)` }}
           >
             Magia
           </p>
           {!open && (
-            <p className="text-[10px] text-primary/20 mt-0.5 italic">
+            <p className="text-[9px] text-primary/20 mt-0.5 italic">
               {especie?.trim() ? `Don y hechizos de ${especie}` : "Don y hechizos del personaje…"}
             </p>
           )}
         </div>
         <ChevronDown
-          size={13}
+          size={11}
           className="shrink-0 transition-transform duration-200"
           style={{
             color:     `color-mix(in srgb, ${COLOR} 40%, transparent)`,
@@ -230,16 +230,16 @@ export function FormularioPersonaje({
 
       {/* ── Fixed header ───────────────────────────────────────────────────── */}
       <div
-        className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+        className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
           background: "color-mix(in srgb, var(--primary) 3%, transparent)",
         }}
       >
-        <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
+        <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.img_url
             ? <img src={form.img_url} alt={form.nombre} className="w-full h-full object-cover" />
-            : <UserCircle2 size={18} className="text-primary/25" />}
+            : <UserCircle2 size={16} className="text-primary/25" />}
         </div>
 
         <input
@@ -250,12 +250,12 @@ export function FormularioPersonaje({
           style={{ letterSpacing: "0.02em" }}
         />
 
-        <div className="shrink-0 flex items-center gap-2">
+        <div className="shrink-0 flex items-center gap-1.5">
           <SaveIndicator status={status} />
           {!compacto && (
             <button
               onClick={onDelete}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
             >
               <Trash2 size={10} />
             </button>
@@ -263,23 +263,23 @@ export function FormularioPersonaje({
           <button
             onClick={onSave}
             disabled={status === "saving"}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
           >
-            <Save size={11} /> Guardar
+            <Save size={10} /> Guardar
           </button>
         </div>
       </div>
 
-      {/* ── Inner tabs ─────────────────────────────────────────────────────── */}
+      {/* ── Inner tabs — solo íconos en compacto, label en full ────────────── */}
       <div
-        className="shrink-0 flex items-center gap-1 px-4 py-2 border-b"
+        className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
       >
         {TABS.map(({ key, label, Icon }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all"
             style={tab === key ? {
               background: "color-mix(in srgb, var(--primary) 12%, transparent)",
               color:       "var(--primary)",
@@ -289,7 +289,7 @@ export function FormularioPersonaje({
               border: "1px solid transparent",
             }}
           >
-            <Icon size={11} /> <span className="hidden sm:inline">{label}</span>
+            <Icon size={10} /> <span className="hidden sm:inline">{label}</span>
           </button>
         ))}
       </div>
@@ -301,18 +301,18 @@ export function FormularioPersonaje({
 
           {/* IDENTIDAD */}
           {tab === "identidad" && (
-            <div className="p-4 space-y-4">
-              <div className="flex gap-4">
-                <div className="shrink-0 w-24">
+            <div className="p-3 space-y-3">
+              <div className="flex gap-3">
+                <div className="shrink-0 w-20">
                   <SelectorImagen
                     label="Cara"
                     value={form.img_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, img_url: url }))}
                     aspect="square"
-                    placeholder={<UserCircle2 size={22} className="opacity-25" />}
+                    placeholder={<UserCircle2 size={20} className="opacity-25" />}
                   />
                 </div>
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 content-start">
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 content-start">
                   <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
                   <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
                   <div className="sm:hidden col-span-full">
@@ -321,42 +321,62 @@ export function FormularioPersonaje({
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
                 <MarkdownEditor
                   value={form.sobre ?? ""}
                   onChange={v => setForm(f => ({ ...f, sobre: v }))}
                   placeholder="Biografía, personalidad, historia…"
-                  rows={6}
+                  rows={5}
                   toolbar
                   defaultMode="edit"
                 />
               </div>
 
               <div
-                className="rounded-2xl overflow-hidden"
+                className="rounded-xl overflow-hidden"
                 style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
               >
-                <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-                  <Mic2 size={12} className="text-primary/40" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/40">Capítulos narrados</span>
+                <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+                  <Mic2 size={10} className="text-primary/40" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos narrados</span>
                 </div>
                 <BloqueCapsNarrados personajeId={form.id} />
               </div>
             </div>
           )}
 
-          {/* LORE */}
+          {/* LORE — grid 2×2 + Magia abajo a ancho completo */}
           {tab === "lore" && !compacto && (
-            <div className="p-4 space-y-3">
-              <CampoLore label="Deseo" value={form.deseo ?? ""} onChange={v => setForm(f => ({ ...f, deseo: v }))}
-                placeholder="Qué busca, qué quiere lograr, motivaciones profundas…" rows={6} />
-              <CampoLore label="Historia" value={form.historia ?? ""} onChange={v => setForm(f => ({ ...f, historia: v }))}
-                placeholder="Pasado, eventos clave, origen…" rows={6} />
-              <CampoLore label="Características" value={form.caracteristicas ?? ""} onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
-                placeholder="Rasgos físicos, personalidad, habilidades destacadas…" rows={6} />
+            <div className="p-3 space-y-2">
+              {/* Dos columnas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <CampoLore
+                  label="Deseo"
+                  value={form.deseo ?? ""}
+                  onChange={v => setForm(f => ({ ...f, deseo: v }))}
+                  placeholder="Qué busca, motivaciones profundas…"
+                  rows={5}
+                />
+                <CampoLore
+                  label="Historia"
+                  value={form.historia ?? ""}
+                  onChange={v => setForm(f => ({ ...f, historia: v }))}
+                  placeholder="Pasado, eventos clave, origen…"
+                  rows={5}
+                />
+                <CampoLore
+                  label="Características"
+                  value={form.caracteristicas ?? ""}
+                  onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
+                  placeholder="Rasgos físicos, personalidad, habilidades…"
+                  rows={5}
+                />
+                {/* Celda vacía para mantener el grid si Magia va abajo */}
+                <div className="hidden sm:block" />
+              </div>
 
-              {/* ── Magia: sección colapsable dentro de Lore ── */}
+              {/* Magia a ancho completo */}
               <SeccionMagia personajeId={form.id} especie={form.especie} />
             </div>
           )}
@@ -370,13 +390,13 @@ export function FormularioPersonaje({
 
           {/* NOTAS */}
           {tab === "notas" && !compacto && (
-            <div className="p-4 space-y-3">
+            <div className="p-3 space-y-2">
               <div
-                className="flex items-center gap-2 px-3 py-2 rounded-xl mb-1"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
                 style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)" }}
               >
-                <Lock size={11} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} />
-                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                <Lock size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} />
+                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
                   Solo visible para el creador
                 </span>
               </div>
@@ -399,21 +419,54 @@ export function FormularioPersonaje({
           )}
         </div>
 
-        {/* ── Right column: full-body image (desktop only) ─────────────────── */}
+        {/* ── Right column: imagen cuerpo completo sin cortes (desktop) ────── */}
         {!compacto && (
-          <div className="hidden sm:flex w-36 shrink-0 border-l flex-col overflow-hidden"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-            <div className="flex-1 min-h-0">
-              <SelectorImagen
-                label=""
-                value={form.img_cuerpo_url ?? ""}
-                onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-                aspect="full"
-                placeholder={<Maximize2 size={20} className="opacity-20" />}
-              />
+          <div
+            className="hidden sm:flex w-28 shrink-0 border-l flex-col"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+          >
+            {/* Contenedor que ocupa todo el alto disponible */}
+            <div className="flex-1 min-h-0 relative overflow-hidden">
+              {form.img_cuerpo_url ? (
+                <>
+                  {/* Imagen sin recortar: contain dentro del área */}
+                  <img
+                    src={form.img_cuerpo_url}
+                    alt="Cuerpo completo"
+                    className="absolute inset-0 w-full h-full object-contain"
+                    style={{ objectPosition: "top center" }}
+                  />
+                  {/* Botón cambiar imagen — aparece al hacer hover */}
+                  <label
+                    className="absolute inset-0 flex flex-col items-center justify-end pb-2 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                    style={{ background: "linear-gradient(to top, color-mix(in srgb, var(--bg-main) 80%, transparent) 0%, transparent 50%)" }}
+                  >
+                    <SelectorImagen
+                      label=""
+                      value={form.img_cuerpo_url}
+                      onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
+                      aspect="full"
+                      placeholder={null}
+                    />
+                  </label>
+                </>
+              ) : (
+                /* Sin imagen: selector normal */
+                <SelectorImagen
+                  label=""
+                  value=""
+                  onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
+                  aspect="full"
+                  placeholder={<Maximize2 size={18} className="opacity-20" />}
+                />
+              )}
             </div>
-            <div className="shrink-0 px-2 py-1.5 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 block text-center">Cuerpo</span>
+            {/* Label mínimo */}
+            <div
+              className="shrink-0 px-2 py-1 border-t text-center"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+            >
+              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">Cuerpo</span>
             </div>
           </div>
         )}
