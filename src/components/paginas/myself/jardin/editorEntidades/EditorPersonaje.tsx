@@ -9,19 +9,18 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Personaje, type SaveStatus } from "./types";
-import { useUniqueValues, useCapitulosNarrados, useNombresDeTabla } from "./hooks";
+import { useCapitulosNarrados, useNombresDeTabla } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { BloqueHechizos } from "./BloqueHechizos";
 
 // ─── Tabs internas ────────────────────────────────────────────────────────────
-type InnerTab = "identidad" | "lore" | "magia" | "notas";
+type InnerTab = "identidad" | "lore" | "notas";
 
 const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
   { key: "identidad", label: "Identidad", Icon: User     },
   { key: "lore",      label: "Lore",      Icon: Scroll   },
-  { key: "magia",     label: "Magia",     Icon: Sparkles },
   { key: "notas",     label: "Notas",     Icon: FileEdit },
 ];
 
@@ -157,6 +156,57 @@ function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: stri
   );
 }
 
+// ─── Sección Magia colapsable (para el tab Lore) ─────────────────────────────
+function SeccionMagia({ personajeId, especie }: { personajeId: string; especie?: string }) {
+  const [open, setOpen] = useState(false);
+  const COLOR = "oklch(0.65 0.18 290)";
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden transition-all"
+      style={{
+        border:     `1px solid color-mix(in srgb, ${COLOR} 20%, transparent)`,
+        background: `color-mix(in srgb, ${COLOR} 3%, transparent)`,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/3"
+      >
+        <Sparkles size={12} style={{ color: `color-mix(in srgb, ${COLOR} 70%, transparent)` }} />
+        <div className="flex-1 min-w-0">
+          <p
+            className="text-[10px] font-black uppercase tracking-[0.25em]"
+            style={{ color: `color-mix(in srgb, ${COLOR} 70%, transparent)` }}
+          >
+            Magia
+          </p>
+          {!open && (
+            <p className="text-[10px] text-primary/20 mt-0.5 italic">
+              {especie?.trim() ? `Don y hechizos de ${especie}` : "Don y hechizos del personaje…"}
+            </p>
+          )}
+        </div>
+        <ChevronDown
+          size={13}
+          className="shrink-0 transition-transform duration-200"
+          style={{
+            color:     `color-mix(in srgb, ${COLOR} 40%, transparent)`,
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
+
+      {open && (
+        <div className="border-t" style={{ borderColor: `color-mix(in srgb, ${COLOR} 15%, transparent)` }}>
+          <BloqueHechizos personajeId={personajeId} especie={especie} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
   form, setForm, status, onSave, onDelete, compacto = false,
@@ -168,9 +218,7 @@ export function FormularioPersonaje({
   onDelete: () => void;
   compacto?: boolean;
 }) {
-  // Especie: lista desde tabla criaturas (todas las entidades reales)
   const especies = useNombresDeTabla("criaturas");
-  // Reino: lista desde tabla reinos (todas las entidades reales)
   const reinos   = useNombresDeTabla("reinos");
   const [tab, setTab] = useState<InnerTab>("identidad");
 
@@ -233,15 +281,11 @@ export function FormularioPersonaje({
             onClick={() => setTab(key)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
             style={tab === key ? {
-              background: key === "magia"
-                ? "color-mix(in srgb, oklch(0.65 0.18 290) 12%, transparent)"
-                : "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: key === "magia" ? "oklch(0.65 0.18 290)" : "var(--primary)",
-              border: `1px solid ${key === "magia"
-                ? "color-mix(in srgb, oklch(0.65 0.18 290) 25%, transparent)"
-                : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
+              background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              color:       "var(--primary)",
+              border:      "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
             } : {
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+              color:  "color-mix(in srgb, var(--primary) 35%, transparent)",
               border: "1px solid transparent",
             }}
           >
@@ -311,24 +355,15 @@ export function FormularioPersonaje({
                 placeholder="Pasado, eventos clave, origen…" rows={6} />
               <CampoLore label="Características" value={form.caracteristicas ?? ""} onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
                 placeholder="Rasgos físicos, personalidad, habilidades destacadas…" rows={6} />
+
+              {/* ── Magia: sección colapsable dentro de Lore ── */}
+              <SeccionMagia personajeId={form.id} especie={form.especie} />
             </div>
           )}
 
           {tab === "lore" && compacto && (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-primary/20">
               <Scroll size={24} />
-              <p className="text-[10px] font-black uppercase tracking-widest">Vista reducida activa</p>
-            </div>
-          )}
-
-          {/* MAGIA — Don + Hechizos del personaje */}
-          {tab === "magia" && !compacto && (
-            <BloqueHechizos personajeId={form.id} especie={form.especie} />
-          )}
-
-          {tab === "magia" && compacto && (
-            <div className="flex flex-col items-center justify-center gap-2 py-16 text-primary/20">
-              <Sparkles size={24} />
               <p className="text-[10px] font-black uppercase tracking-widest">Vista reducida activa</p>
             </div>
           )}
