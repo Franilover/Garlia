@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Mic2, Loader2,
-  ChevronDown, ImageIcon, X, Save, Trash2, Lock,
-  User, Scroll, FileEdit,
+  ChevronDown, X, Save, Trash2, Lock,
+  User, Scroll, FileEdit, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -13,13 +13,15 @@ import { useUniqueValues, useCapitulosNarrados } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
+import { BloqueHechizos } from "./BloqueHechizos";
 
 // ─── Tabs internas ────────────────────────────────────────────────────────────
-type InnerTab = "identidad" | "lore" | "notas";
+type InnerTab = "identidad" | "lore" | "magia" | "notas";
 
 const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
   { key: "identidad", label: "Identidad", Icon: User     },
   { key: "lore",      label: "Lore",      Icon: Scroll   },
+  { key: "magia",     label: "Magia",     Icon: Sparkles },
   { key: "notas",     label: "Notas",     Icon: FileEdit },
 ];
 
@@ -46,7 +48,6 @@ function CampoLore({
           : "color-mix(in srgb, var(--primary) 2%, transparent)",
       }}
     >
-      {/* Header row — always visible */}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -73,7 +74,6 @@ function CampoLore({
         />
       </button>
 
-      {/* Editor */}
       {open && (
         <div className="px-4 pb-4 pt-1">
           <MarkdownEditor
@@ -186,14 +186,12 @@ export function FormularioPersonaje({
           background: "color-mix(in srgb, var(--primary) 3%, transparent)",
         }}
       >
-        {/* Avatar thumbnail */}
         <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.img_url
             ? <img src={form.img_url} alt={form.nombre} className="w-full h-full object-cover" />
             : <UserCircle2 size={18} className="text-primary/25" />}
         </div>
 
-        {/* Name (editable inline) */}
         <input
           value={form.nombre ?? ""}
           onChange={field("nombre")}
@@ -202,7 +200,6 @@ export function FormularioPersonaje({
           style={{ letterSpacing: "0.02em" }}
         />
 
-        {/* Actions */}
         <div className="shrink-0 flex items-center gap-2">
           <SaveIndicator status={status} />
           {!compacto && (
@@ -234,9 +231,13 @@ export function FormularioPersonaje({
             onClick={() => setTab(key)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
             style={tab === key ? {
-              background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: "var(--primary)",
-              border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+              background: key === "magia"
+                ? "color-mix(in srgb, oklch(0.65 0.18 290) 12%, transparent)"
+                : "color-mix(in srgb, var(--primary) 12%, transparent)",
+              color: key === "magia" ? "oklch(0.65 0.18 290)" : "var(--primary)",
+              border: `1px solid ${key === "magia"
+                ? "color-mix(in srgb, oklch(0.65 0.18 290) 25%, transparent)"
+                : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
             } : {
               color: "color-mix(in srgb, var(--primary) 35%, transparent)",
               border: "1px solid transparent",
@@ -250,13 +251,11 @@ export function FormularioPersonaje({
       {/* ── Tab content ─────────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-hidden flex">
 
-        {/* Main content area */}
         <div className="flex-1 overflow-y-auto min-h-0">
 
           {/* IDENTIDAD */}
           {tab === "identidad" && (
             <div className="p-4 space-y-4">
-              {/* Image + quick fields */}
               <div className="flex gap-4">
                 <div className="shrink-0 w-24">
                   <SelectorImagen
@@ -270,14 +269,12 @@ export function FormularioPersonaje({
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 content-start">
                   <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
                   <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
-                  {/* Mobile: cuerpo picker */}
                   <div className="sm:hidden col-span-full">
                     <PickerCuerpo value={form.img_cuerpo_url ?? ""} onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))} />
                   </div>
                 </div>
               </div>
 
-              {/* Sobre */}
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
                 <MarkdownEditor
@@ -290,7 +287,6 @@ export function FormularioPersonaje({
                 />
               </div>
 
-              {/* Capítulos narrados */}
               <div
                 className="rounded-2xl overflow-hidden"
                 style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
@@ -316,10 +312,21 @@ export function FormularioPersonaje({
             </div>
           )}
 
-          {/* LORE — compacto (sin los campos extras) */}
           {tab === "lore" && compacto && (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-primary/20">
               <Scroll size={24} />
+              <p className="text-[10px] font-black uppercase tracking-widest">Vista reducida activa</p>
+            </div>
+          )}
+
+          {/* MAGIA — Don + Hechizos del personaje */}
+          {tab === "magia" && !compacto && (
+            <BloqueHechizos personajeId={form.id} />
+          )}
+
+          {tab === "magia" && compacto && (
+            <div className="flex flex-col items-center justify-center gap-2 py-16 text-primary/20">
+              <Sparkles size={24} />
               <p className="text-[10px] font-black uppercase tracking-widest">Vista reducida activa</p>
             </div>
           )}

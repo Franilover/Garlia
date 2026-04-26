@@ -1,4 +1,4 @@
-
+import { Users, Bug, Package, Map, Sparkles, Mountain, ScrollText, Star } from "lucide-react";
 
 export type Personaje = {
   id: string;
@@ -77,16 +77,34 @@ export type CapituloNarrado = {
   libro_titulo?: string;
 };
 
-export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo";
+// ─── Hechizos y Dones ─────────────────────────────────────────────────────────
+export type Hechizo = {
+  id: string;
+  nombre: string;
+  explicacion?: string;
+  quien?: string;   // etiqueta corta: "Magos", "Todos", "Elfos"…
+};
+
+export type Don = {
+  id: string;
+  nombre: string;
+  explicacion?: string;
+  quien?: string;
+};
+
+// ─── Tab keys ─────────────────────────────────────────────────────────────────
+// "hechizos" y "dones" son tabs propios con su editor de catálogo
+export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo" | "hechizos" | "dones";
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-import { Users, Bug, Package, Map, Sparkles, Mountain, ScrollText } from "lucide-react";
-
+// TAB_CONFIG solo para tabs que tienen tabla propia de entidades listables en el sidebar
 export const TAB_CONFIG: Record<Exclude<TabKey, "mundo">, { emoji: string; label: string; tabla: string; Icon: React.ElementType }> = {
-  personajes: { emoji: "🧑", label: "Personajes", tabla: "personajes", Icon: Users   },
-  criaturas:  { emoji: "🐛", label: "Criaturas",  tabla: "criaturas",  Icon: Bug     },
-  items:      { emoji: "📦", label: "Items",      tabla: "items",      Icon: Package },
-  reinos:     { emoji: "🗺️", label: "Mapas",      tabla: "reinos",     Icon: Map     },
+  personajes: { emoji: "🧑", label: "Personajes", tabla: "personajes", Icon: Users    },
+  criaturas:  { emoji: "🐛", label: "Criaturas",  tabla: "criaturas",  Icon: Bug      },
+  items:      { emoji: "📦", label: "Items",      tabla: "items",      Icon: Package  },
+  reinos:     { emoji: "🗺️", label: "Mapas",      tabla: "reinos",     Icon: Map      },
+  hechizos:   { emoji: "✨", label: "Hechizos",   tabla: "hechizos",   Icon: Sparkles },
+  dones:      { emoji: "⭐", label: "Dones",      tabla: "dones",      Icon: Star     },
 };
 
 export const MUNDO_SECTIONS = [

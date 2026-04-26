@@ -16,6 +16,8 @@ export type AllItems = {
   criaturas:  any[];
   items:      any[];
   reinos:     any[];
+  hechizos:   any[];   // ← nuevo
+  dones:      any[];   // ← nuevo
 };
 
 type SearchResult = {
@@ -38,7 +40,10 @@ function EntidadCard({
     tab === "personajes" ? [item.especie, item.reino].filter(Boolean).join(" · ") :
     tab === "criaturas"  ? item.habitat :
     tab === "items"      ? item.categoria :
-    tab === "reinos"     ? (item.oculto ? "Oculto" : "") : "";
+    tab === "reinos"     ? (item.oculto ? "Oculto" : "") :
+    // hechizos y dones muestran el campo "quien"
+    tab === "hechizos"   ? item.quien :
+    tab === "dones"      ? item.quien : "";
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -278,7 +283,8 @@ export function GlobalSearchBar({
 
   const selectedItem = useMemo(() => {
     if (isMundo || !selectedId) return null;
-    const tab = activeTab as Exclude<TabKey, "mundo">;
+    if (activeTab === "hechizos" || activeTab === "dones") return null; // su propio estado interno
+    const tab = activeTab as Exclude<TabKey, "mundo" | "hechizos" | "dones">;
     return allItems[tab]?.find((i: any) => i.id === selectedId) ?? null;
   }, [allItems, selectedId, activeTab, isMundo]);
 
@@ -286,10 +292,11 @@ export function GlobalSearchBar({
     Object.values(allItems).reduce((a, arr) => a + arr.length, 0),
   [allItems]);
 
+  // Búsqueda global en todas las categorías (incluyendo hechizos y dones)
   const globalResults = useMemo((): SearchResult[] => {
     const q = normalize(query.trim());
     if (!q) return [];
-    const tabs: Exclude<TabKey, "mundo">[] = ["personajes", "criaturas", "items", "reinos"];
+    const tabs: Exclude<TabKey, "mundo">[] = ["personajes", "criaturas", "items", "reinos", "hechizos", "dones"];
     return tabs.flatMap(tab =>
       (allItems[tab] ?? [])
         .filter((i: any) => normalize(i.nombre ?? "").includes(q))
@@ -347,14 +354,19 @@ export function GlobalSearchBar({
     return () => document.removeEventListener("keydown", k);
   }, []);
 
-  // Placeholder muestra la sección activa de Mundo, el item seleccionado, o el total
   const activeMundoLabel = isMundo && activeMundoSection
     ? MUNDO_SECTIONS.find(s => s.key === activeMundoSection)?.label
     : null;
 
+  // Placeholder contextual: muestra tab activo de hechizos/dones si corresponde
+  const activeTabLabel =
+    activeTab === "hechizos" ? "Hechizos" :
+    activeTab === "dones"    ? "Dones"    : null;
+
   const placeholder = focused
-    ? "Buscar personajes, criaturas, items, reinos, mundo…"
+    ? "Buscar personajes, criaturas, items, reinos, hechizos, dones, mundo…"
     : activeMundoLabel
+      ?? activeTabLabel
       ?? selectedItem?.nombre
       ?? (loadingAll ? "Cargando…" : `${totalCount} entidades`);
 
@@ -378,13 +390,18 @@ export function GlobalSearchBar({
             borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
           }}
         >
-          {/* Icono contextual: sección Mundo activa, thumbnail item, o lupa */}
+          {/* Icono contextual */}
           {!focused && activeMundoLabel ? (
             (() => {
               const sec = MUNDO_SECTIONS.find(s => s.key === activeMundoSection);
               return sec
                 ? <sec.Icon size={11} className="shrink-0 text-primary/40" />
                 : <Search size={11} className="shrink-0 text-primary/30" />;
+            })()
+          ) : !focused && activeTabLabel ? (
+            (() => {
+              const cfg = TAB_CONFIG[activeTab as Exclude<TabKey, "mundo">];
+              return <cfg.Icon size={11} className="shrink-0 text-primary/40" />;
             })()
           ) : selectedItem && !focused ? (
             <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/15 bg-primary/8 flex items-center justify-center">
