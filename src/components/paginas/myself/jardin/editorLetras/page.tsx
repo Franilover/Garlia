@@ -204,6 +204,8 @@ export default function EstudioLetras() {
     personajes:   unique(canciones.map(c => { const p = c.personaje; return (Array.isArray(p) ? p[0]?.nombre : p?.nombre) || ""; })),
   }), [canciones]);
 
+  const ORDEN_ESTADO: Record<string, number> = { TERMINADA: 0, "EN PROCESO": 1, PENDIENTE: 2 };
+
   const filtradas = useMemo(() => canciones.filter(c => {
     if (busqueda) {
       const q = normalize(busqueda);
@@ -221,6 +223,13 @@ export default function EstudioLetras() {
     if (filtros.compositor && c.compositor  !== filtros.compositor)    return false;
     if (filtros.personaje  && ((Array.isArray(c.personaje) ? c.personaje[0]?.nombre : c.personaje?.nombre) !== filtros.personaje)) return false;
     return true;
+  }).sort((a, b) => {
+    const estadoA = ORDEN_ESTADO[a.estado] ?? 9;
+    const estadoB = ORDEN_ESTADO[b.estado] ?? 9;
+    if (estadoA !== estadoB) return estadoA - estadoB;
+    // Dentro de TERMINADA: visibles primero
+    if (a.estado === "TERMINADA") return (b.visible ? 1 : 0) - (a.visible ? 1 : 0);
+    return 0;
   }), [canciones, busqueda, filtros]);
 
   const numFiltros = Object.values(filtros).filter(Boolean).length;
