@@ -204,7 +204,7 @@ export function BloqueHechizos({
                     ? <img src={h.criatura.imagen_url} alt="" className="w-full h-full object-cover" />
                     : <Sparkles size={9} style={{ color: COLOR_HECHIZO }} />}
                 </div>
-                <span className="flex-1 text-[11px] font-bold text-primary/80 truncate">✨ {h.nombre}</span>
+                <span className="flex-1 text-[11px] font-bold text-primary/80 truncate">{h.nombre}</span>
                 {h.criatura ? (
                   <span
                     className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-black"

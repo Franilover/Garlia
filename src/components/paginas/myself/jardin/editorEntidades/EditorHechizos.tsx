@@ -24,6 +24,8 @@ export type Hechizo = {
   explicacion?: string;
   criatura_id?: string | null;
   criatura?: { id: string; nombre: string; imagen_url?: string } | null;
+  variante_id?: string | null;
+  variante?: { id: string; tipo: string } | null;
 };
 
 export type Don = {
@@ -32,6 +34,8 @@ export type Don = {
   explicacion?: string;
   criatura_id?: string | null;
   criatura?: { id: string; nombre: string; imagen_url?: string } | null;
+  variante_id?: string | null;
+  variante?: { id: string; tipo: string } | null;
 };
 
 type EntidadMagica = Hechizo | Don;
@@ -44,12 +48,12 @@ const CONFIG: Record<Modo, {
 }> = {
   hechizos: {
     tabla: "hechizos", label: "Hechizos", labelSing: "Hechizo",
-    Icon: Sparkles, color: "oklch(0.65 0.18 290)", emoji: "✨",
+    Icon: Sparkles, color: "oklch(0.65 0.18 290)", emoji: "",
     placeholder: "Qué hace este hechizo, cómo se lanza, sus efectos…",
   },
   dones: {
     tabla: "dones", label: "Dones", labelSing: "Don",
-    Icon: Star, color: "oklch(0.7 0.16 55)", emoji: "⭐",
+    Icon: Star, color: "oklch(0.7 0.16 55)", emoji: "",
     placeholder: "Qué otorga este don, su origen, sus limitaciones…",
   },
 };
@@ -68,6 +72,28 @@ function useCriaturas() {
   }, []);
 
   return { criaturas, loading };
+}
+
+
+// ─── Hook: variantes de una criatura ─────────────────────────────────────────
+type VarianteMin = { id: string; tipo: string };
+
+function useCriaturaVariantes(criaturaId: string | null) {
+  const [variantes, setVariantes] = useState<VarianteMin[]>([]);
+  const [loading,   setLoading]   = useState(false);
+
+  useEffect(() => {
+    if (!criaturaId) { setVariantes([]); return; }
+    setLoading(true);
+    supabase
+      .from("criatura_variantes")
+      .select("id, tipo")
+      .eq("criatura_id", criaturaId)
+      .order("tipo")
+      .then(({ data }) => { setVariantes(data ?? []); setLoading(false); });
+  }, [criaturaId]);
+
+  return { variantes, loading };
 }
 
 // ─── Hook: hechizos/dones con join a criaturas ────────────────────────────────
@@ -215,7 +241,7 @@ function SelectorCriatura({
                         ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" />
                         : <Bug size={10} className="text-primary/20" />}
                     </div>
-                    {c.id === value && <span style={{ color }} className="text-[10px] shrink-0">✓</span>}
+                    
                     <span className="flex-1 text-[11px] font-medium text-primary/80 truncate">{c.nombre}</span>
                   </button>
                 ))}
@@ -228,6 +254,74 @@ function SelectorCriatura({
       <p className="text-[9px] text-primary/25 italic">
         Solo personajes de esta especie podrán tenerlo asignado
       </p>
+    </div>
+  );
+}
+
+// ─── Selector de variante ────────────────────────────────────────────────────
+function SelectorVariante({
+  variantes, loading, value, onChange, color,
+}: {
+  variantes: VarianteMin[];
+  loading: boolean;
+  value: string | null;
+  onChange: (id: string | null, variante: VarianteMin | null) => void;
+  color: string;
+}) {
+  const selected = variantes.find(v => v.id === value) ?? null;
+
+  if (loading) return (
+    <div className="space-y-1.5">
+      <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
+        <Bug size={9} /> Variante
+      </label>
+      <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-primary/10">
+        <Loader2 size={10} className="animate-spin text-primary/25" />
+        <span className="text-[10px] text-primary/25">Cargando variantes…</span>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
+        <Bug size={9} /> Variante (opcional)
+      </label>
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => onChange(null, null)}
+          className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all"
+          style={!value ? {
+            background:  `color-mix(in srgb, ${color} 12%, transparent)`,
+            borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
+            color:        color,
+          } : {
+            borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+            color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
+          }}
+        >
+          Todas
+        </button>
+        {variantes.map(v => (
+          <button
+            key={v.id}
+            type="button"
+            onClick={() => onChange(v.id, v)}
+            className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all"
+            style={value === v.id ? {
+              background:  `color-mix(in srgb, ${color} 12%, transparent)`,
+              borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
+              color:        color,
+            } : {
+              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
+            }}
+          >
+            {v.tipo}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -247,6 +341,8 @@ function FormularioMagico({
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
   const cfg = CONFIG[modo];
+  const criaturaId = (form as Hechizo).criatura_id ?? null;
+  const { variantes, loading: loadingVariantes } = useCriaturaVariantes(criaturaId);
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
@@ -261,6 +357,7 @@ function FormularioMagico({
           nombre:      form.nombre,
           explicacion: form.explicacion || null,
           criatura_id: (form as Hechizo).criatura_id ?? null,
+          variante_id: (form as Hechizo).variante_id ?? null,
         })
         .eq("id", form.id);
       if (error) throw error;
@@ -331,10 +428,20 @@ function FormularioMagico({
           loadingCriaturas={loadingCriaturas}
           value={(form as Hechizo).criatura_id ?? null}
           onChange={(id, criatura) =>
-            setForm(f => ({ ...f, criatura_id: id, criatura: criatura ?? null }))
+            setForm(f => ({ ...f, criatura_id: id, criatura: criatura ?? null, variante_id: null, variante: null }))
           }
           color={cfg.color}
         />
+
+        {criaturaId && variantes.length > 0 && (
+          <SelectorVariante
+            variantes={variantes}
+            loading={loadingVariantes}
+            value={(form as Hechizo).variante_id ?? null}
+            onChange={(id, variante) => setForm(f => ({ ...f, variante_id: id, variante: variante ?? null }))}
+            color={cfg.color}
+          />
+        )}
 
         <div className="space-y-1.5">
           <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
@@ -453,7 +560,7 @@ export function EditorHechizos({ modo }: { modo: Modo }) {
                 }`}
               >
                 <p className={`text-[11px] font-bold truncate ${selectedId === item.id ? "text-primary" : "text-primary/70"}`}>
-                  {cfg.emoji} {item.nombre}
+                  {item.nombre}
                 </p>
                 {criatura && (
                   <span
