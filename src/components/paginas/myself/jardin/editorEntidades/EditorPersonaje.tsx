@@ -9,7 +9,7 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Personaje, type SaveStatus } from "./types";
-import { useUniqueValues, useCapitulosNarrados } from "./hooks";
+import { useUniqueValues, useCapitulosNarrados, useNombresDeTabla } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
@@ -168,8 +168,10 @@ export function FormularioPersonaje({
   onDelete: () => void;
   compacto?: boolean;
 }) {
-  const reinos   = useUniqueValues("personajes", "reino");
-  const especies = useUniqueValues("personajes", "especie");
+  // Especie: lista desde tabla criaturas (todas las entidades reales)
+  const especies = useNombresDeTabla("criaturas");
+  // Reino: lista desde tabla reinos (todas las entidades reales)
+  const reinos   = useNombresDeTabla("reinos");
   const [tab, setTab] = useState<InnerTab>("identidad");
 
   const field = (k: keyof Personaje) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>

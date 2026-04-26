@@ -49,6 +49,28 @@ export function useUniqueValues(tabla: string, columna: string) {
   return valores;
 }
 
+/**
+ * Lee la columna `nombre` directamente de una tabla de entidades (criaturas, reinos, etc.)
+ * para poblar selectores con TODAS las entidades reales, no solo las usadas en otras tablas.
+ */
+export function useNombresDeTabla(tabla: string) {
+  const [nombres, setNombres] = useState<string[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from(tabla)
+      .select("nombre")
+      .not("nombre", "is", null)
+      .order("nombre")
+      .then(({ data }) => {
+        if (!data) return;
+        setNombres(data.map((r: any) => r.nombre as string).filter(Boolean));
+      });
+  }, [tabla]);
+
+  return nombres;
+}
+
 export function useCapitulosNarrados(personajeId: string | null) {
   const [caps,    setCaps]    = useState<CapituloNarrado[]>([]);
   const [loading, setLoading] = useState(false);
