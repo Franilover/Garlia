@@ -3,26 +3,24 @@
 import React, { useState, useEffect } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Mic2, Loader2,
-  ChevronDown, X, Save, Trash2, Lock,
-  User, Scroll, FileEdit, Sparkles,
+  ChevronDown, X, Save, Trash2,
+  User, Scroll, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Personaje, type SaveStatus } from "./types";
 import { useCapitulosNarrados, useNombresDeTabla } from "./hooks";
-import { type Don } from "./types";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { BloqueHechizos } from "./BloqueHechizos";
 
 // ─── Tabs internas ────────────────────────────────────────────────────────────
-type InnerTab = "identidad" | "lore" | "notas";
+type InnerTab = "identidad" | "lore";
 
 const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
-  { key: "identidad", label: "Identidad", Icon: User     },
-  { key: "lore",      label: "Lore",      Icon: Scroll   },
-  { key: "notas",     label: "Notas",     Icon: FileEdit },
+  { key: "identidad", label: "Identidad", Icon: User   },
+  { key: "lore",      label: "Lore",      Icon: Scroll },
 ];
 
 
@@ -94,53 +92,30 @@ function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: stri
   );
 }
 
-// ─── Sección Magia colapsable (para el tab Lore) ─────────────────────────────
-function SeccionMagia({ personajeId, especie }: { personajeId: string; especie?: string }) {
-  const [open, setOpen] = useState(false);
+// ─── Sección Hechizos inline (sin colapsable) ────────────────────────────────
+function SeccionHechizos({ personajeId, especie }: { personajeId: string; especie?: string }) {
   const COLOR = "oklch(0.65 0.18 290)";
-
   return (
     <div
-      className="rounded-xl overflow-hidden transition-all"
+      className="rounded-xl overflow-hidden"
       style={{
-        border:     `1px solid color-mix(in srgb, ${COLOR} 20%, transparent)`,
+        border:     `1px solid color-mix(in srgb, ${COLOR} 18%, transparent)`,
         background: `color-mix(in srgb, ${COLOR} 3%, transparent)`,
       }}
     >
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-primary/3"
+      <div
+        className="flex items-center gap-2 px-3 py-2 border-b"
+        style={{ borderColor: `color-mix(in srgb, ${COLOR} 12%, transparent)`, background: `color-mix(in srgb, ${COLOR} 5%, transparent)` }}
       >
-        <Sparkles size={11} style={{ color: `color-mix(in srgb, ${COLOR} 70%, transparent)` }} />
-        <div className="flex-1 min-w-0">
-          <p
-            className="text-[9px] font-black uppercase tracking-[0.25em]"
-            style={{ color: `color-mix(in srgb, ${COLOR} 70%, transparent)` }}
-          >
-            Magia
-          </p>
-          {!open && (
-            <p className="text-[9px] text-primary/20 mt-0.5 italic">
-              {especie?.trim() ? `Don y hechizos de ${especie}` : "Don y hechizos del personaje…"}
-            </p>
-          )}
-        </div>
-        <ChevronDown
-          size={11}
-          className="shrink-0 transition-transform duration-200"
-          style={{
-            color:     `color-mix(in srgb, ${COLOR} 40%, transparent)`,
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-          }}
-        />
-      </button>
-
-      {open && (
-        <div className="border-t" style={{ borderColor: `color-mix(in srgb, ${COLOR} 15%, transparent)` }}>
-          <BloqueHechizos personajeId={personajeId} especie={especie} />
-        </div>
-      )}
+        <Sparkles size={10} style={{ color: `color-mix(in srgb, ${COLOR} 70%, transparent)` }} />
+        <span
+          className="text-[9px] font-black uppercase tracking-[0.25em]"
+          style={{ color: `color-mix(in srgb, ${COLOR} 65%, transparent)` }}
+        >
+          Hechizos
+        </span>
+      </div>
+      <BloqueHechizos personajeId={personajeId} especie={especie} />
     </div>
   );
 }
@@ -286,57 +261,31 @@ export function FormularioPersonaje({
             </div>
           )}
 
-          {/* LORE — solo Características + Magia */}
+          {/* LORE — Características izquierda, Hechizos derecha */}
           {tab === "lore" && !compacto && (
-            <div className="p-3 space-y-2">
-              <div className="space-y-1">
+            <div className="p-3 flex gap-3 min-h-0">
+              {/* Columna izquierda: Características */}
+              <div className="flex-1 min-w-0 space-y-1">
                 <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Características</label>
                 <MarkdownEditor
                   value={form.caracteristicas ?? ""}
                   onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
                   placeholder="Rasgos físicos, personalidad, habilidades…"
-                  rows={8}
+                  rows={12}
                   toolbar
                   defaultMode="edit"
                 />
               </div>
-              <SeccionMagia personajeId={form.id} especie={form.especie} />
+              {/* Columna derecha: Hechizos */}
+              <div className="w-56 shrink-0">
+                <SeccionHechizos personajeId={form.id} especie={form.especie} />
+              </div>
             </div>
           )}
 
           {tab === "lore" && compacto && (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-primary/20">
               <Scroll size={24} />
-              <p className="text-[10px] font-black uppercase tracking-widest">Vista reducida activa</p>
-            </div>
-          )}
-
-          {/* NOTAS */}
-          {tab === "notas" && !compacto && (
-            <div className="p-3 space-y-2">
-              <div
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)" }}
-              >
-                <Lock size={10} style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }} />
-                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                  Solo visible para el creador
-                </span>
-              </div>
-              <MarkdownEditor
-                value={form.notas_creador ?? ""}
-                onChange={v => setForm(f => ({ ...f, notas_creador: v }))}
-                rows={16}
-                placeholder="Ideas, pendientes, inspiración, spoilers… solo para ti."
-                toolbar
-                defaultMode="edit"
-              />
-            </div>
-          )}
-
-          {tab === "notas" && compacto && (
-            <div className="flex flex-col items-center justify-center gap-2 py-16 text-primary/20">
-              <Lock size={24} />
               <p className="text-[10px] font-black uppercase tracking-widest">Vista reducida activa</p>
             </div>
           )}
@@ -421,7 +370,6 @@ export function EditorPersonaje({
         reino:           form.reino,
         especie:         form.especie,
         don:             form.don            || null,
-        notas_creador:   form.notas_creador  || null,
         caracteristicas: form.caracteristicas || null,
       }).eq("id", form.id);
       if (error) throw error;

@@ -9,7 +9,6 @@ export type Personaje = {
   reino?: string;
   especie?: string;
   don?: string;
-  notas_creador?: string;
   caracteristicas?: string;
 };
 
