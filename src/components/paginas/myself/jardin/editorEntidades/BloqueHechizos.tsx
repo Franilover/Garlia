@@ -41,8 +41,8 @@ function useCatalogoMagico() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from("hechizos").select("*, criatura:criaturas(id, nombre, imagen_url)").order("nombre"),
-      supabase.from("dones")   .select("*, criatura:criaturas(id, nombre, imagen_url)").order("nombre"),
+      supabase.from("hechizos").select("*, criatura:criaturas!hechizos_criatura_id_fkey(id, nombre, imagen_url)").order("nombre"),
+      supabase.from("dones")   .select("*, criatura:criaturas!dones_criatura_id_fkey(id, nombre, imagen_url)").order("nombre"),
     ]).then(([h, d]) => {
       setHechizos(h.data ?? []);
       setDones(d.data ?? []);
