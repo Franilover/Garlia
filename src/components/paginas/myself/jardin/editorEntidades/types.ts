@@ -78,26 +78,28 @@ export type CapituloNarrado = {
 };
 
 // ─── Hechizos y Dones ─────────────────────────────────────────────────────────
+// criatura_id → FK a criaturas.id (qué especie/criatura puede usarlo)
 export type Hechizo = {
   id: string;
   nombre: string;
   explicacion?: string;
-  quien?: string;   // etiqueta corta: "Magos", "Todos", "Elfos"…
+  criatura_id?: string | null;
+  // join expandido al hacer select con criaturas(id,nombre,imagen_url)
+  criatura?: { id: string; nombre: string; imagen_url?: string } | null;
 };
 
 export type Don = {
   id: string;
   nombre: string;
   explicacion?: string;
-  quien?: string;
+  criatura_id?: string | null;
+  criatura?: { id: string; nombre: string; imagen_url?: string } | null;
 };
 
-// ─── Tab keys ─────────────────────────────────────────────────────────────────
-// "hechizos" y "dones" son tabs propios con su editor de catálogo
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
 export type TabKey = "personajes" | "criaturas" | "items" | "reinos" | "mundo" | "hechizos" | "dones";
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-// TAB_CONFIG solo para tabs que tienen tabla propia de entidades listables en el sidebar
 export const TAB_CONFIG: Record<Exclude<TabKey, "mundo">, { emoji: string; label: string; tabla: string; Icon: React.ElementType }> = {
   personajes: { emoji: "🧑", label: "Personajes", tabla: "personajes", Icon: Users    },
   criaturas:  { emoji: "🐛", label: "Criaturas",  tabla: "criaturas",  Icon: Bug      },
