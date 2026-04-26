@@ -323,7 +323,7 @@ export function FormularioPersonaje({
 
           {/* MAGIA — Don + Hechizos del personaje */}
           {tab === "magia" && !compacto && (
-            <BloqueHechizos personajeId={form.id} />
+            <BloqueHechizos personajeId={form.id} especie={form.especie} />
           )}
 
           {tab === "magia" && compacto && (
