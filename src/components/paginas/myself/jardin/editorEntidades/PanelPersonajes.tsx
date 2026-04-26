@@ -22,6 +22,7 @@ export function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
         nombre: form.nombre, img_url: form.img_url || null,
         img_cuerpo_url: form.img_cuerpo_url || null,
         sobre: form.sobre, reino: form.reino, especie: form.especie,
+        variante_id: (form as any).variante_id || null,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");

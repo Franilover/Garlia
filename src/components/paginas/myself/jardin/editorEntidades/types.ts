@@ -10,6 +10,7 @@ export type Personaje = {
   especie?: string;
   don?: string;
   caracteristicas?: string;
+  variante_id?: string | null;
 };
 
 export type Criatura = {
@@ -82,6 +83,8 @@ export type Hechizo = {
   explicacion?: string;
   criatura_id?: string | null;
   criatura?: { id: string; nombre: string; imagen_url?: string } | null;
+  variante_id?: string | null;
+  variante?: { id: string; tipo: string } | null;
 };
 
 export type Don = {
@@ -90,6 +93,8 @@ export type Don = {
   explicacion?: string;
   criatura_id?: string | null;
   criatura?: { id: string; nombre: string; imagen_url?: string } | null;
+  variante_id?: string | null;
+  variante?: { id: string; tipo: string } | null;
 };
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────

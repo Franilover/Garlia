@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Mic2, Loader2,
   ChevronDown, X, Save, Trash2,
@@ -120,6 +120,33 @@ function SeccionHechizos({ personajeId, especie }: { personajeId: string; especi
   );
 }
 
+// ─── Hook: variantes de una criatura por nombre ───────────────────────────────
+type VarianteMin = { id: string; tipo: string };
+
+function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined) {
+  const [variantes, setVariantes] = useState<VarianteMin[]>([]);
+
+  const load = useCallback(async () => {
+    if (!nombreEspecie?.trim()) { setVariantes([]); return; }
+    const { data: criatura } = await supabase
+      .from("criaturas")
+      .select("id")
+      .ilike("nombre", nombreEspecie.trim())
+      .single();
+    if (!criatura) { setVariantes([]); return; }
+    const { data } = await supabase
+      .from("criatura_variantes")
+      .select("id, tipo")
+      .eq("criatura_id", criatura.id)
+      .order("tipo");
+    setVariantes(data ?? []);
+  }, [nombreEspecie]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return variantes;
+}
+
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
   form, setForm, status, onSave, onDelete, compacto = false,
@@ -135,6 +162,7 @@ export function FormularioPersonaje({
   const reinos   = useNombresDeTabla("reinos");
   const dones    = useNombresDeTabla("dones");
   const [tab, setTab] = useState<InnerTab>("identidad");
+  const variantes = useCriaturaVariantesPorNombre(form.especie);
 
   const field = (k: keyof Personaje) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -227,7 +255,47 @@ export function FormularioPersonaje({
                   />
                 </div>
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 content-start">
-                  <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
+                  <div className="col-span-full sm:col-span-1 space-y-1">
+                    <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v, variante_id: null }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
+                    {variantes.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, variante_id: null }))}
+                          className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
+                          style={!form.variante_id ? {
+                            background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
+                            borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
+                            color:       "var(--primary)",
+                          } : {
+                            borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                            color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
+                          }}
+                        >
+                          Todas
+                        </button>
+                        {variantes.map(v => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
+                            className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
+                            style={form.variante_id === v.id ? {
+                              background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
+                              borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
+                              color:       "var(--primary)",
+                            } : {
+                              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                              color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
+                            }}
+                          >
+                            {v.tipo}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <SelectorTexto label="Reino"   value={form.reino   ?? ""} onChange={v => setForm(f => ({ ...f, reino:   v }))} opciones={reinos}   placeholder="Reino, grupo, nación…" />
                   <SelectorTexto label="Don"     value={form.don     ?? ""} onChange={v => setForm(f => ({ ...f, don:     v }))} opciones={dones}    placeholder="Don del personaje…" />
                   <div className="sm:hidden col-span-full">
@@ -371,6 +439,7 @@ export function EditorPersonaje({
         especie:         form.especie,
         don:             form.don            || null,
         caracteristicas: form.caracteristicas || null,
+        variante_id:     (form as any).variante_id    || null,
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved");

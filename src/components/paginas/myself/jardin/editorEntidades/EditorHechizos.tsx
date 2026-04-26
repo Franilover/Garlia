@@ -268,60 +268,44 @@ function SelectorVariante({
   onChange: (id: string | null, variante: VarianteMin | null) => void;
   color: string;
 }) {
-  const selected = variantes.find(v => v.id === value) ?? null;
-
-  if (loading) return (
-    <div className="space-y-1.5">
-      <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
-        <Bug size={9} /> Variante
-      </label>
-      <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-primary/10">
-        <Loader2 size={10} className="animate-spin text-primary/25" />
-        <span className="text-[10px] text-primary/25">Cargando variantes…</span>
-      </div>
-    </div>
-  );
+  if (loading) return <Loader2 size={10} className="animate-spin text-primary/20" />;
 
   return (
-    <div className="space-y-1.5">
-      <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
-        <Bug size={9} /> Variante (opcional)
-      </label>
-      <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap items-center gap-1 pt-1">
+      <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-1">Variante</span>
+      <button
+        type="button"
+        onClick={() => onChange(null, null)}
+        className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
+        style={!value ? {
+          background:  `color-mix(in srgb, ${color} 10%, transparent)`,
+          borderColor: `color-mix(in srgb, ${color} 25%, transparent)`,
+          color:        color,
+        } : {
+          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+          color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
+        }}
+      >
+        Todas
+      </button>
+      {variantes.map(v => (
         <button
+          key={v.id}
           type="button"
-          onClick={() => onChange(null, null)}
-          className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all"
-          style={!value ? {
-            background:  `color-mix(in srgb, ${color} 12%, transparent)`,
-            borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
+          onClick={() => onChange(v.id, v)}
+          className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
+          style={value === v.id ? {
+            background:  `color-mix(in srgb, ${color} 10%, transparent)`,
+            borderColor: `color-mix(in srgb, ${color} 25%, transparent)`,
             color:        color,
           } : {
-            borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-            color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
+            borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+            color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
           }}
         >
-          Todas
-        </button>
-        {variantes.map(v => (
-          <button
-            key={v.id}
-            type="button"
-            onClick={() => onChange(v.id, v)}
-            className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all"
-            style={value === v.id ? {
-              background:  `color-mix(in srgb, ${color} 12%, transparent)`,
-              borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
-              color:        color,
-            } : {
-              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
-            }}
-          >
             {v.tipo}
           </button>
         ))}
-      </div>
     </div>
   );
 }
