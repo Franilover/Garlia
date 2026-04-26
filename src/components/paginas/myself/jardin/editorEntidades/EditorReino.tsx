@@ -441,63 +441,67 @@ export function EditorReino({ item, onSaved, onDeleted }: {
 
           {/* MAPA */}
           {tab === "mapa" && (
-            <div className="flex flex-col min-h-0">
-              {/* Mapa unificado — imagen + puntos + botón cambiar */}
-              <MapaConPuntos
-                mapaUrl={form.mapa_url ?? ""}
-                onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
-                detalles={detalles}
-                onDetallesChange={handleDetallesMapChange}
-              />
+            <div className="flex gap-0 min-h-0 h-full">
 
-              {/* Puntos de interés — lista debajo del mapa */}
-              <div className="p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MapPin size={11} className="text-primary/40" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary/40">Puntos de Interés</span>
-                    {detalles.length > 0 && (
-                      <span className="text-[9px] font-black text-primary/30 bg-primary/8 px-1.5 py-0.5 rounded-full">{detalles.length}</span>
-                    )}
-                  </div>
+              {/* Columna izquierda — Mapa */}
+              <div className="w-[55%] shrink-0 p-3 border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <MapaConPuntos
+                  mapaUrl={form.mapa_url ?? ""}
+                  onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
+                  detalles={detalles}
+                  onDetallesChange={handleDetallesMapChange}
+                />
+              </div>
+
+              {/* Columna derecha — Puntos de interés */}
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                {/* Header columna derecha */}
+                <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <MapPin size={11} className="text-primary/40" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/40">Puntos de Interés</span>
+                  {detalles.length > 0 && (
+                    <span className="text-[9px] font-black text-primary/30 bg-primary/8 px-1.5 py-0.5 rounded-full">{detalles.length}</span>
+                  )}
                 </div>
 
-                <div className="space-y-2">
+                {/* Lista scrollable */}
+                <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-2">
                   {detalles.map(det => (
                     <DetalleEditor key={det.id} detalle={det}
                       onSaved={updated => setDetalles(prev => prev.map(d => d.id === updated.id ? updated : d))}
                       onDeleted={id => setDetalles(prev => prev.filter(d => d.id !== id))} />
                   ))}
+
+                  {detalles.length === 0 && !addingPoint && (
+                    <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-6 border border-dashed border-primary/15 rounded-xl italic">
+                      Sin puntos registrados
+                    </p>
+                  )}
+
+                  {addingPoint ? (
+                    <div className="flex gap-2 p-3 rounded-xl border border-primary/15"
+                      style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                      <input autoFocus value={newPointName} onChange={e => setNewPointName(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleAddPoint(); if (e.key === "Escape") setAddingPoint(false); }}
+                        className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
+                        placeholder="NOMBRE DEL LUGAR..." />
+                      <button onClick={handleAddPoint} disabled={!newPointName.trim()}
+                        className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40">
+                        <Check size={13} />
+                      </button>
+                      <button onClick={() => setAddingPoint(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all">
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setAddingPoint(true)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
+                      <Plus size={11} /> Añadir Punto
+                    </button>
+                  )}
                 </div>
-
-                {detalles.length === 0 && !addingPoint && (
-                  <p className="text-[10px] font-bold text-primary/25 uppercase tracking-widest text-center py-4 border border-dashed border-primary/15 rounded-xl italic">
-                    Sin puntos registrados
-                  </p>
-                )}
-
-                {addingPoint ? (
-                  <div className="flex gap-2 p-3 rounded-xl border border-primary/15"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                    <input autoFocus value={newPointName} onChange={e => setNewPointName(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") handleAddPoint(); if (e.key === "Escape") setAddingPoint(false); }}
-                      className="flex-1 bg-bg-main border border-primary/20 rounded-lg px-3 py-2 text-xs font-black uppercase text-primary outline-none focus:border-primary/50 tracking-widest"
-                      placeholder="NOMBRE DEL LUGAR..." />
-                    <button onClick={handleAddPoint} disabled={!newPointName.trim()}
-                      className="bg-primary text-btn-text px-3 py-2 rounded-lg font-black hover:bg-primary/90 transition-all disabled:opacity-40">
-                      <Check size={13} />
-                    </button>
-                    <button onClick={() => setAddingPoint(false)} className="px-2.5 py-2 rounded-lg text-primary/40 hover:text-primary transition-all">
-                      <X size={13} />
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={() => setAddingPoint(true)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
-                    <Plus size={11} /> Añadir Punto de Interés
-                  </button>
-                )}
               </div>
+
             </div>
           )}
 
