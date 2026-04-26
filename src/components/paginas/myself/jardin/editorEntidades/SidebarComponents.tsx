@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
-  Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal,
+  Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { TAB_CONFIG, MUNDO_SECTIONS, type TabKey, type MundoSectionKey } from "./types";
@@ -26,6 +26,7 @@ type SearchResult = {
 };
 
 // ─── EntidadCard ──────────────────────────────────────────────────────────────
+// Compact card for grid/column layout
 function EntidadCard({
   item, tab, selected, onClick, onToggleOculto,
 }: {
@@ -41,7 +42,6 @@ function EntidadCard({
     tab === "criaturas"  ? item.habitat :
     tab === "items"      ? item.categoria :
     tab === "reinos"     ? (item.oculto ? "Oculto" : "") :
-    // hechizos y dones muestran el campo "quien"
     tab === "hechizos"   ? item.quien :
     tab === "dones"      ? item.quien : "";
 
@@ -57,14 +57,20 @@ function EntidadCard({
   };
 
   return (
-    <button onClick={onClick} className="group relative w-full text-left transition-all duration-150">
-      <div className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
-        selected
-          ? "bg-primary/12 border border-primary/20"
-          : "border border-transparent hover:bg-primary/6 hover:border-primary/10"
-      }`}>
+    <button
+      onClick={onClick}
+      className="group relative w-full text-left transition-all duration-150"
+    >
+      <div
+        className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-150 ${
+          selected
+            ? "bg-primary/12 border border-primary/20"
+            : "border border-transparent hover:bg-primary/6 hover:border-primary/10"
+        }`}
+      >
+        {/* Avatar */}
         <div
-          className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border flex items-center justify-center"
+          className="shrink-0 w-9 h-9 rounded-lg overflow-hidden border flex items-center justify-center"
           style={{
             background: img ? "transparent" : "color-mix(in srgb, var(--primary) 7%, transparent)",
             borderColor: selected
@@ -76,33 +82,41 @@ function EntidadCard({
             ? <img src={img} alt={item.nombre} className="w-full h-full object-cover" />
             : <TabIcon size={13} className="text-primary/30" />}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-[11px] font-bold truncate transition-colors ${
+
+        {/* Name + subtitle */}
+        <div className="w-full min-w-0 text-center">
+          <p className={`text-[10px] font-bold truncate transition-colors leading-tight ${
             selected ? "text-primary" : "text-primary/70 group-hover:text-primary/90"
           }`}>{item.nombre}</p>
-          {subtitle && <p className="text-[9px] text-primary/35 truncate mt-0.5">{subtitle}</p>}
+          {subtitle && (
+            <p className="text-[8px] text-primary/35 truncate mt-0.5 leading-tight">{subtitle}</p>
+          )}
         </div>
-        <span
-          className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-          }}
-        >
-          {TAB_CONFIG[tab].label.slice(0, 3)}
-        </span>
-        {tab === "reinos" && onToggleOculto && (
-          <button
-            onClick={handleToggle}
-            className={`shrink-0 w-5 h-5 rounded-md flex items-center justify-center transition-all border ${
-              item.oculto
-                ? "text-orange-400 bg-orange-400/10 border-orange-400/20"
-                : "text-primary/20 bg-transparent border-transparent group-hover:text-primary/30 group-hover:bg-primary/5 group-hover:border-primary/10"
-            } ${toggling ? "opacity-40 pointer-events-none" : ""}`}
+
+        {/* Tag + toggle */}
+        <div className="flex items-center gap-1">
+          <span
+            className="text-[7px] font-black uppercase tracking-widest px-1 py-0.5 rounded-md"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+            }}
           >
-            {toggling ? <Loader2 size={9} className="animate-spin" /> : item.oculto ? <EyeOff size={9} /> : <Eye size={9} />}
-          </button>
-        )}
+            {TAB_CONFIG[tab].label.slice(0, 3)}
+          </span>
+          {tab === "reinos" && onToggleOculto && (
+            <button
+              onClick={handleToggle}
+              className={`w-4 h-4 rounded-md flex items-center justify-center transition-all border ${
+                item.oculto
+                  ? "text-orange-400 bg-orange-400/10 border-orange-400/20"
+                  : "text-primary/20 bg-transparent border-transparent group-hover:text-primary/30 group-hover:bg-primary/5 group-hover:border-primary/10"
+              } ${toggling ? "opacity-40 pointer-events-none" : ""}`}
+            >
+              {toggling ? <Loader2 size={8} className="animate-spin" /> : item.oculto ? <EyeOff size={8} /> : <Eye size={8} />}
+            </button>
+          )}
+        </div>
       </div>
     </button>
   );
@@ -153,96 +167,96 @@ function MundoSectionCard({
   );
 }
 
-// ─── AddMenu ──────────────────────────────────────────────────────────────────
-function AddMenu({ onAdd }: { onAdd: (tab: Exclude<TabKey, "mundo">) => void }) {
-  const [open, setOpen] = useState(false);
+// ─── AddCommandMenu ───────────────────────────────────────────────────────────
+// Floating menu triggered when user types "add" and presses Enter
+function AddCommandMenu({
+  open,
+  anchorRef,
+  onAdd,
+  onClose,
+}: {
+  open: boolean;
+  anchorRef: React.RefObject<HTMLDivElement | null>;
+  onAdd: (tab: Exclude<TabKey, "mundo">) => void;
+  onClose: () => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
+  const tabs = Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][];
 
   useEffect(() => {
     if (!open) return;
     const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (
+        ref.current && !ref.current.contains(e.target as Node) &&
+        anchorRef.current && !anchorRef.current.contains(e.target as Node)
+      ) onClose();
     };
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
+    document.addEventListener("keydown", k);
+    return () => { document.removeEventListener("mousedown", h); document.removeEventListener("keydown", k); };
+  }, [open, onClose, anchorRef]);
 
-  const tabs = Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][];
+  if (!open) return null;
 
   return (
-    <div ref={ref} className="relative shrink-0">
-      <button
-        onClick={() => setOpen(o => !o)}
-        title="Añadir entidad"
-        className="w-8 h-8 rounded-xl flex items-center justify-center transition-all border"
-        style={open ? {
-          background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-          color: "var(--primary)",
-          borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
-        } : {
-          borderStyle: "dashed",
-          borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
-          color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+    <div
+      ref={ref}
+      className="absolute left-3 right-3 top-full mt-1.5 z-50 rounded-2xl overflow-hidden"
+      style={{
+        background: "var(--bg-main)",
+        border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+        boxShadow: "0 12px 40px color-mix(in srgb, var(--primary) 22%, transparent)",
+        animation: "popIn 140ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        transformOrigin: "top center",
+      }}
+    >
+      <div
+        className="px-3 py-2 flex items-center gap-2 border-b"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <Plus size={13} style={{ transform: open ? "rotate(45deg)" : "rotate(0deg)", transition: "transform 180ms ease" }} />
-      </button>
-
-      {open && (
-        <div
-          className="absolute right-0 top-full mt-2 z-50 rounded-2xl overflow-hidden"
-          style={{
-            background: "var(--bg-main)",
-            border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-            boxShadow: "0 12px 32px color-mix(in srgb, var(--primary) 20%, transparent)",
-            minWidth: "160px",
-            animation: "popIn 120ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-            transformOrigin: "top right",
-          }}
-        >
-          <div
-            className="px-3 py-2 border-b"
+        <Sparkles size={10} className="text-primary/30" />
+        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30">Añadir nueva entrada</p>
+      </div>
+      <div className="p-2 grid grid-cols-2 gap-1">
+        {tabs.map(([key, cfg]) => (
+          <button
+            key={key}
+            onClick={() => { onAdd(key); onClose(); }}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all group border border-dashed"
             style={{
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
+              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.background = "transparent";
+              (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 45%, transparent)";
+              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 15%, transparent)";
             }}
           >
-            <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30">Nueva entrada</p>
-          </div>
-          <div className="p-1.5 space-y-0.5">
-            {tabs.map(([key, cfg]) => (
-              <button
-                key={key}
-                onClick={() => { onAdd(key); setOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all group"
-                style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 55%, transparent)";
-                }}
-              >
-                <span
-                  className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
-                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-                >
-                  <cfg.Icon size={11} />
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-widest">{cfg.label}</span>
-                <Plus size={8} className="ml-auto opacity-40" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
+            <span
+              className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
+              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+            >
+              <cfg.Icon size={11} />
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest">{cfg.label}</span>
+            <Plus size={8} className="ml-auto opacity-40" />
+          </button>
+        ))}
+      </div>
       <style>{`
         @keyframes popIn {
-          from { opacity: 0; transform: scale(0.88); }
-          to   { opacity: 1; transform: scale(1); }
+          from { opacity: 0; transform: scale(0.92) translateY(-4px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
     </div>
@@ -273,11 +287,15 @@ export function GlobalSearchBar({
   onSelectMundoSection: (s: MundoSectionKey) => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
 }) {
-  const [query,   setQuery]   = useState("");
-  const [open,    setOpen]    = useState(false);
-  const [focused, setFocused] = useState(false);
+  const [query,       setQuery]       = useState("");
+  const [open,        setOpen]        = useState(false);
+  const [focused,     setFocused]     = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef  = useRef<HTMLDivElement>(null);
+
+  // Detect "add" command
+  const isAddCommand = normalize(query.trim()) === "add";
 
   const isMundo = activeTab === "mundo";
 
@@ -316,6 +334,7 @@ export function GlobalSearchBar({
     setOpen(false);
     setFocused(false);
     setQuery("");
+    setAddMenuOpen(false);
   }, []);
 
   const handleSelect = useCallback((item: any, tab: Exclude<TabKey, "mundo">) => {
@@ -337,14 +356,22 @@ export function GlobalSearchBar({
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") { close(); inputRef.current?.blur(); }
-      if (e.key === "Enter" && globalResults.length > 0) {
-        handleSelect(globalResults[0].item, globalResults[0].tab);
+      if (e.key === "Enter") {
+        if (isAddCommand) {
+          e.preventDefault();
+          setOpen(false);
+          setAddMenuOpen(true);
+          return;
+        }
+        if (globalResults.length > 0) {
+          handleSelect(globalResults[0].item, globalResults[0].tab);
+        }
       }
     };
     document.addEventListener("mousedown", onMouse);
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onMouse); document.removeEventListener("keydown", onKey); };
-  }, [open, globalResults, close, handleSelect]);
+  }, [open, globalResults, close, handleSelect, isAddCommand]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -432,11 +459,18 @@ export function GlobalSearchBar({
               : null}
         </div>
 
-        {/* Botón añadir */}
-        <AddMenu onAdd={(tab) => { onAdd(tab); close(); }} />
+        {/* Botón añadir — eliminado, ahora se activa con "add" + Enter */}
 
-        {/* Dropdown */}
-        {open && focused && (
+        {/* AddCommandMenu — aparece cuando el usuario escribe "add" y presiona Enter */}
+        <AddCommandMenu
+          open={addMenuOpen}
+          anchorRef={wrapRef}
+          onAdd={(tab) => { onAdd(tab); close(); }}
+          onClose={() => { setAddMenuOpen(false); setQuery(""); setFocused(false); inputRef.current?.blur(); }}
+        />
+
+        {/* Dropdown de búsqueda */}
+        {open && focused && !addMenuOpen && (
           <div
             className="absolute left-3 right-3 top-full mt-1.5 z-50 rounded-2xl overflow-hidden"
             style={{
@@ -452,45 +486,56 @@ export function GlobalSearchBar({
               <span className="text-[9px] font-black uppercase tracking-widest text-primary/25">
                 {loadingAll
                   ? "Cargando…"
-                  : query.trim()
-                    ? `${totalResults} resultado${totalResults !== 1 ? "s" : ""}`
-                    : `${totalCount} entidades · Mundo`}
+                  : isAddCommand
+                    ? "Presiona Enter para añadir"
+                    : query.trim()
+                      ? `${totalResults} resultado${totalResults !== 1 ? "s" : ""}`
+                      : `${totalCount} entidades · Mundo`}
               </span>
               {isOffline && <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">Offline</span>}
             </div>
 
-            <div className="max-h-72 overflow-y-auto p-2 space-y-0.5">
+            <div className="max-h-80 overflow-y-auto p-2">
               {loadingAll ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 size={16} className="animate-spin text-primary/20" />
                 </div>
+              ) : isAddCommand ? (
+                /* "add" command hint */
+                <div className="flex flex-col items-center gap-2 py-6 text-primary/25">
+                  <Sparkles size={18} />
+                  <p className="text-[9px] font-black uppercase tracking-widest">Presiona Enter para abrir el menú de añadir</p>
+                </div>
               ) : query.trim() ? (
                 totalResults > 0 ? (
                   <>
-                    {globalResults.map(({ item, tab }) => (
-                      <EntidadCard
-                        key={`${tab}-${item.id}`}
-                        item={item} tab={tab}
-                        selected={selectedId === item.id && activeTab === tab}
-                        onClick={() => handleSelect(item, tab)}
-                        onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
-                      />
-                    ))}
+                    {/* Search results — grid de 3 columnas */}
+                    <div className="grid grid-cols-3 gap-1">
+                      {globalResults.map(({ item, tab }) => (
+                        <EntidadCard
+                          key={`${tab}-${item.id}`}
+                          item={item} tab={tab}
+                          selected={selectedId === item.id && activeTab === tab}
+                          onClick={() => handleSelect(item, tab)}
+                          onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
+                        />
+                      ))}
+                    </div>
                     {mundoResults.length > 0 && (
                       <>
-                        {globalResults.length > 0 && (
-                          <div className="px-2 pt-2 pb-1">
-                            <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
-                          </div>
-                        )}
-                        {mundoResults.map(section => (
-                          <MundoSectionCard
-                            key={section.key}
-                            section={section}
-                            selected={isMundo && activeMundoSection === section.key}
-                            onClick={() => handleMundoSection(section.key as MundoSectionKey)}
-                          />
-                        ))}
+                        <div className="px-2 pt-3 pb-1">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          {mundoResults.map(section => (
+                            <MundoSectionCard
+                              key={section.key}
+                              section={section}
+                              selected={isMundo && activeMundoSection === section.key}
+                              onClick={() => handleMundoSection(section.key as MundoSectionKey)}
+                            />
+                          ))}
+                        </div>
                       </>
                     )}
                   </>
@@ -502,48 +547,46 @@ export function GlobalSearchBar({
                 )
               ) : (
                 <>
-                  {Object.entries(allItems)
-                    .flatMap(([tab, items]) =>
-                      items.map(item => ({ item, tab: tab as Exclude<TabKey, "mundo"> }))
-                    )
-                    .slice(0, 27)
-                    .map(({ item, tab }) => (
-                      <EntidadCard
-                        key={`${tab}-${item.id}`}
-                        item={item} tab={tab}
-                        selected={selectedId === item.id && activeTab === tab}
-                        onClick={() => handleSelect(item, tab)}
-                        onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
-                      />
-                    ))}
-                  <div className="px-2 pt-2 pb-1">
+                  {/* All items — grid de 3 columnas */}
+                  <div className="grid grid-cols-3 gap-1">
+                    {Object.entries(allItems)
+                      .flatMap(([tab, items]) =>
+                        items.map(item => ({ item, tab: tab as Exclude<TabKey, "mundo"> }))
+                      )
+                      .slice(0, 30)
+                      .map(({ item, tab }) => (
+                        <EntidadCard
+                          key={`${tab}-${item.id}`}
+                          item={item} tab={tab}
+                          selected={selectedId === item.id && activeTab === tab}
+                          onClick={() => handleSelect(item, tab)}
+                          onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
+                        />
+                      ))}
+                  </div>
+                  <div className="px-2 pt-3 pb-1">
                     <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
                   </div>
-                  {MUNDO_SECTIONS.map(section => (
-                    <MundoSectionCard
-                      key={section.key}
-                      section={section}
-                      selected={isMundo && activeMundoSection === section.key}
-                      onClick={() => handleMundoSection(section.key as MundoSectionKey)}
-                    />
-                  ))}
+                  <div className="space-y-0.5">
+                    {MUNDO_SECTIONS.map(section => (
+                      <MundoSectionCard
+                        key={section.key}
+                        section={section}
+                        selected={isMundo && activeMundoSection === section.key}
+                        onClick={() => handleMundoSection(section.key as MundoSectionKey)}
+                      />
+                    ))}
+                  </div>
+                  {/* Add hint at the bottom */}
+                  <div className="mt-2 px-2 py-1.5 rounded-xl border border-dashed flex items-center gap-2"
+                    style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                    <Sparkles size={9} className="text-primary/20 shrink-0" />
+                    <p className="text-[8px] font-black uppercase tracking-widest text-primary/20">
+                      Escribe <span className="text-primary/40">add</span> + Enter para añadir nueva entrada
+                    </p>
+                  </div>
                 </>
               )}
-            </div>
-
-            <div className="p-2 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-              <p className="text-[8px] font-black uppercase tracking-widest text-primary/20 px-2 pb-1.5">Añadir nueva</p>
-              <div className="grid grid-cols-2 gap-1">
-                {(Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][]).map(([key, cfg]) => (
-                  <button
-                    key={key}
-                    onClick={() => { onAdd(key); close(); }}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border border-dashed border-primary/15 text-primary/35 hover:text-primary hover:border-primary/35 hover:bg-primary/4"
-                  >
-                    <cfg.Icon size={9} /> {cfg.label}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
         )}
