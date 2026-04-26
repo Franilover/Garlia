@@ -388,6 +388,7 @@ export function EditorCriatura({
                 loading={loadingPersonajes}
                 setPersonajes={setPersonajes}
                 titulo="De esta especie"
+                inline
               />
             </div>
           )}
