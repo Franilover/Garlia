@@ -8,9 +8,8 @@ export type Personaje = {
   sobre?: string;
   reino?: string;
   especie?: string;
+  don?: string;
   notas_creador?: string;
-  deseo?: string;
-  historia?: string;
   caracteristicas?: string;
 };
 
@@ -78,13 +77,11 @@ export type CapituloNarrado = {
 };
 
 // ─── Hechizos y Dones ─────────────────────────────────────────────────────────
-// criatura_id → FK a criaturas.id (qué especie/criatura puede usarlo)
 export type Hechizo = {
   id: string;
   nombre: string;
   explicacion?: string;
   criatura_id?: string | null;
-  // join expandido al hacer select con criaturas(id,nombre,imagen_url)
   criatura?: { id: string; nombre: string; imagen_url?: string } | null;
 };
 

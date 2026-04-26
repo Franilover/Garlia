@@ -10,6 +10,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Personaje, type SaveStatus } from "./types";
 import { useCapitulosNarrados, useNombresDeTabla } from "./hooks";
+import { type Don } from "./types";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
@@ -24,70 +25,7 @@ const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
   { key: "notas",     label: "Notas",     Icon: FileEdit },
 ];
 
-// ─── Campo colapsable con preview — más compacto ──────────────────────────────
-function CampoLore({
-  label, value, onChange, placeholder, rows = 5,
-  accent = false,
-}: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; rows?: number; accent?: boolean;
-}) {
-  const [open, setOpen] = useState(!!value);
-  const preview = value.replace(/[#*`_~\[\]]/g, "").trim().slice(0, 60);
 
-  return (
-    <div
-      className="rounded-xl overflow-hidden transition-all"
-      style={{
-        border: `1px solid ${accent
-          ? "color-mix(in srgb, var(--accent) 20%, transparent)"
-          : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
-        background: accent
-          ? "color-mix(in srgb, var(--accent) 3%, transparent)"
-          : "color-mix(in srgb, var(--primary) 2%, transparent)",
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-primary/3"
-      >
-        <div className="flex-1 min-w-0">
-          <p
-            className="text-[9px] font-black uppercase tracking-[0.25em]"
-            style={{ color: accent ? "color-mix(in srgb, var(--accent) 70%, transparent)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-          >
-            {accent && "🔒 "}{label}
-          </p>
-          {!open && preview && (
-            <p className="text-[10px] text-primary/40 truncate mt-0.5 italic">{preview}…</p>
-          )}
-          {!open && !preview && (
-            <p className="text-[9px] text-primary/20 mt-0.5 italic">{placeholder?.slice(0, 40)}…</p>
-          )}
-        </div>
-        <ChevronDown
-          size={11}
-          className="shrink-0 text-primary/30 transition-transform duration-200"
-          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
-        />
-      </button>
-
-      {open && (
-        <div className="px-3 pb-3 pt-1">
-          <MarkdownEditor
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-            rows={rows}
-            toolbar
-            defaultMode="edit"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Bloque capítulos narrados ────────────────────────────────────────────────
 function BloqueCapsNarrados({ personajeId }: { personajeId: string }) {
@@ -220,6 +158,7 @@ export function FormularioPersonaje({
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
+  const dones    = useNombresDeTabla("dones");
   const [tab, setTab] = useState<InnerTab>("identidad");
 
   const field = (k: keyof Personaje) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -314,7 +253,8 @@ export function FormularioPersonaje({
                 </div>
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 content-start">
                   <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
-                  <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
+                  <SelectorTexto label="Reino"   value={form.reino   ?? ""} onChange={v => setForm(f => ({ ...f, reino:   v }))} opciones={reinos}   placeholder="Reino, grupo, nación…" />
+                  <SelectorTexto label="Don"     value={form.don     ?? ""} onChange={v => setForm(f => ({ ...f, don:     v }))} opciones={dones}    placeholder="Don del personaje…" />
                   <div className="sm:hidden col-span-full">
                     <PickerCuerpo value={form.img_cuerpo_url ?? ""} onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))} />
                   </div>
@@ -326,7 +266,7 @@ export function FormularioPersonaje({
                 <MarkdownEditor
                   value={form.sobre ?? ""}
                   onChange={v => setForm(f => ({ ...f, sobre: v }))}
-                  placeholder="Biografía, personalidad, historia…"
+                  placeholder="Biografía, personalidad…"
                   rows={5}
                   toolbar
                   defaultMode="edit"
@@ -346,37 +286,20 @@ export function FormularioPersonaje({
             </div>
           )}
 
-          {/* LORE — grid 2×2 + Magia abajo a ancho completo */}
+          {/* LORE — solo Características + Magia */}
           {tab === "lore" && !compacto && (
             <div className="p-3 space-y-2">
-              {/* Dos columnas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <CampoLore
-                  label="Deseo"
-                  value={form.deseo ?? ""}
-                  onChange={v => setForm(f => ({ ...f, deseo: v }))}
-                  placeholder="Qué busca, motivaciones profundas…"
-                  rows={5}
-                />
-                <CampoLore
-                  label="Historia"
-                  value={form.historia ?? ""}
-                  onChange={v => setForm(f => ({ ...f, historia: v }))}
-                  placeholder="Pasado, eventos clave, origen…"
-                  rows={5}
-                />
-                <CampoLore
-                  label="Características"
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Características</label>
+                <MarkdownEditor
                   value={form.caracteristicas ?? ""}
                   onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
                   placeholder="Rasgos físicos, personalidad, habilidades…"
-                  rows={5}
+                  rows={8}
+                  toolbar
+                  defaultMode="edit"
                 />
-                {/* Celda vacía para mantener el grid si Magia va abajo */}
-                <div className="hidden sm:block" />
               </div>
-
-              {/* Magia a ancho completo */}
               <SeccionMagia personajeId={form.id} especie={form.especie} />
             </div>
           )}
@@ -497,9 +420,8 @@ export function EditorPersonaje({
         sobre:           form.sobre,
         reino:           form.reino,
         especie:         form.especie,
+        don:             form.don            || null,
         notas_creador:   form.notas_creador  || null,
-        deseo:           form.deseo          || null,
-        historia:        form.historia       || null,
         caracteristicas: form.caracteristicas || null,
       }).eq("id", form.id);
       if (error) throw error;
