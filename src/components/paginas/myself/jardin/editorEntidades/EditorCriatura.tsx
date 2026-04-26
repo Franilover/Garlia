@@ -14,12 +14,13 @@ import { MarkdownEditor } from "./MarkdownEditor";
 import { PanelPersonajes } from "./PanelPersonajes";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
-type InnerTab = "base" | "biologia" | "variantes";
+type InnerTab = "base" | "biologia" | "variantes" | "especie";
 
 const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
   { key: "base",      label: "Base",      Icon: Brain     },
   { key: "biologia",  label: "Biología",  Icon: Dna       },
   { key: "variantes", label: "Variantes", Icon: GitBranch },
+  { key: "especie",   label: "Especie",   Icon: Users     },
 ];
 
 // ─── Campo colapsable ─────────────────────────────────────────────────────────
@@ -285,6 +286,12 @@ export function EditorCriatura({
                   {variantes.length}
                 </span>
               )}
+              {key === "especie" && personajes.length > 0 && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black"
+                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                  {personajes.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -373,11 +380,20 @@ export function EditorCriatura({
               )}
             </div>
           )}
+          {/* ESPECIE */}
+          {tab === "especie" && (
+            <div className="p-4">
+              <PanelPersonajes
+                personajes={personajes}
+                loading={loadingPersonajes}
+                setPersonajes={setPersonajes}
+                titulo="De esta especie"
+                inline
+              />
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Panel personajes de esta especie */}
-      <PanelPersonajes personajes={personajes} loading={loadingPersonajes} setPersonajes={setPersonajes} titulo="De esta especie" />
     </div>
   );
 }
