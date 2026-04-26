@@ -327,15 +327,27 @@ export function EditorCriatura({
 
           {/* BIOLOGÍA */}
           {tab === "biologia" && (
-            <div className="p-4 space-y-3">
-              <CampoLore label="Biología" icon={Dna} value={form.biologia ?? ""} onChange={v => setForm(f => ({ ...f, biologia: v }))}
-                placeholder="Anatomía, fisiología, ciclo de vida, reproducción…" rows={7} />
-              <CampoLore label="Comportamiento" icon={Brain} value={form.comportamiento ?? ""} onChange={v => setForm(f => ({ ...f, comportamiento: v }))}
-                placeholder="Hábitos, instintos, patrones de caza o defensa…" rows={7} />
-              <CampoLore label="Magia" icon={Wand2} value={form.magia ?? ""} onChange={v => setForm(f => ({ ...f, magia: v }))}
-                placeholder="Poderes, habilidades mágicas, debilidades…" rows={7} />
-              <CampoLore label="Relación" icon={Users} value={form.relacion ?? ""} onChange={v => setForm(f => ({ ...f, relacion: v }))}
-                placeholder="Vínculo con otras especies, personajes o facciones…" rows={5} />
+            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Biología</label>
+                <MarkdownEditor value={form.biologia ?? ""} onChange={v => setForm(f => ({ ...f, biologia: v }))}
+                  placeholder="Anatomía, fisiología, ciclo de vida, reproducción…" rows={10} toolbar defaultMode="edit" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Comportamiento</label>
+                <MarkdownEditor value={form.comportamiento ?? ""} onChange={v => setForm(f => ({ ...f, comportamiento: v }))}
+                  placeholder="Hábitos, instintos, patrones de caza o defensa…" rows={10} toolbar defaultMode="edit" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Magia</label>
+                <MarkdownEditor value={form.magia ?? ""} onChange={v => setForm(f => ({ ...f, magia: v }))}
+                  placeholder="Poderes, habilidades mágicas, debilidades…" rows={10} toolbar defaultMode="edit" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Relación</label>
+                <MarkdownEditor value={form.relacion ?? ""} onChange={v => setForm(f => ({ ...f, relacion: v }))}
+                  placeholder="Vínculo con otras especies, personajes o facciones…" rows={10} toolbar defaultMode="edit" />
+              </div>
             </div>
           )}
 
