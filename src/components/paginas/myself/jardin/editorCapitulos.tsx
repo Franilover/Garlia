@@ -1952,13 +1952,106 @@ const ModalEditarLibro = ({
   );
 };
 
+// ─── LibroColumna ─────────────────────────────────────────────────────────────
+// Each book is rendered as a vertical column in the horizontal browser
+const LibroColumna = ({
+  libro, selectedCapId, onSelectCap, onEditCap, onDeleteCap, onEditLibro, onNuevoCap,
+}: {
+  libro: Libro;
+  selectedCapId: string | null;
+  onSelectCap: (libroId: string, capId: string) => void;
+  onEditCap: (cap: Capitulo) => void;
+  onDeleteCap: (id: string, libroId: string) => void;
+  onEditLibro: (libro: Libro) => void;
+  onNuevoCap: (libroId: string) => void;
+}) => {
+  const { capitulos, loading } = useCapitulos(libro.id);
+  const isSelected = capitulos.some(c => c.id === selectedCapId);
+
+  return (
+    <div
+      className="shrink-0 w-44 flex flex-col border-r overflow-hidden transition-all"
+      style={{
+        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        background: isSelected
+          ? "color-mix(in srgb, var(--primary) 3%, transparent)"
+          : "transparent",
+      }}
+    >
+      {/* Cabecera del libro */}
+      <div
+        className="group/libhdr px-3 py-2 border-b flex items-center gap-1.5 shrink-0"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        {libro.portada_url ? (
+          <img src={libro.portada_url} alt="" className="w-5 h-5 rounded object-cover shrink-0 border border-primary/10" />
+        ) : (
+          <BookMarked size={10} className="text-primary/25 shrink-0" />
+        )}
+        <span
+          className="flex-1 text-[9px] font-black uppercase italic tracking-tight text-primary/70 truncate leading-tight"
+          title={libro.titulo}
+        >
+          {libro.titulo}
+        </span>
+        {libro.estado && (
+          <span className={`shrink-0 text-[7px] font-black uppercase px-1 py-0.5 rounded-full border ${ESTADO_COLOR[libro.estado] || ESTADO_COLOR.BORRADOR}`}>
+            {libro.estado === "EN PROCESO" ? "WIP" : libro.estado === "FINALIZADO" ? "✓" : "…"}
+          </span>
+        )}
+        <button
+          onClick={() => onEditLibro(libro)}
+          className="opacity-0 group-hover/libhdr:opacity-100 shrink-0 p-0.5 rounded text-primary/25 hover:text-primary transition-all"
+          title="Editar libro"
+        >
+          <Pencil size={9} />
+        </button>
+      </div>
+
+      {/* Lista de capítulos */}
+      <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+        {loading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 size={12} className="animate-spin text-primary/20" />
+          </div>
+        ) : capitulos.length === 0 ? (
+          <p className="text-[8px] text-primary/20 font-black uppercase tracking-widest px-1.5 py-3 text-center">
+            Sin capítulos
+          </p>
+        ) : capitulos.map(cap => (
+          <CapituloItem
+            key={cap.id}
+            cap={cap}
+            selected={selectedCapId === cap.id}
+            onClick={() => onSelectCap(libro.id, cap.id)}
+            onEdit={onEditCap}
+            onDelete={id => onDeleteCap(id, libro.id)}
+          />
+        ))}
+      </div>
+
+      {/* Footer: nuevo capítulo */}
+      <div
+        className="shrink-0 p-1.5 border-t"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
+      >
+        <button
+          onClick={() => onNuevoCap(libro.id)}
+          className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-dashed border-primary/12 text-[8px] font-black uppercase tracking-widest text-primary/20 hover:text-primary/60 hover:border-primary/30 hover:bg-primary/3 transition-all"
+        >
+          <Plus size={9} /> Cap
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function EstudioCapitulos() {
   const { libros, setLibros, loading: loadingLibros, isOffline: listaOffline, refetch } = useLibros();
 
   const [lastCapId,   setLastCapId]   = useLastOpenedId("estudio-caps-last-cap");
   const [lastLibroId, setLastLibroId] = useLastOpenedId("estudio-caps-last-libro");
 
-  const [expandedLibros, setExpandedLibros]     = useState<Set<string>>(new Set());
   const [selectedLibroId, _setSelectedLibroId]  = useState<string | null>(lastLibroId);
   const [selectedCapId,   _setSelectedCapId]    = useState<string | null>(lastCapId);
 
@@ -1975,23 +2068,10 @@ export default function EstudioCapitulos() {
 
   const { capitulos, setCapitulos, reload: reloadCaps } = useCapitulos(selectedLibroId);
 
-  useEffect(() => {
-    if (lastLibroId) setExpandedLibros(new Set([lastLibroId]));
-  }, []); 
-
   const librosFiltrados = useMemo(() =>
     libros.filter(l => !busqueda || normalize(l.titulo).includes(normalize(busqueda))),
     [libros, busqueda]
   );
-
-  const toggleExpanded = (libroId: string) => {
-    setExpandedLibros(prev => {
-      const next = new Set(prev);
-      if (next.has(libroId)) next.delete(libroId);
-      else next.add(libroId);
-      return next;
-    });
-  };
 
   const handleSelectCap = (libroId: string, capId: string) => {
     setSelectedLibroId(libroId);
@@ -2019,7 +2099,6 @@ export default function EstudioCapitulos() {
 
   const handleLibroCreado = (libro: Libro) => {
     setLibros(prev => [libro, ...prev]);
-    setExpandedLibros(prev => new Set([...prev, libro.id]));
     setSelectedLibroId(libro.id);
     setShowNuevoLibro(false);
   };
@@ -2032,52 +2111,161 @@ export default function EstudioCapitulos() {
     } catch {}
   };
 
-  const sidebarContent = (
-    <>
-      <div className="px-2 pb-3">
-        <button onClick={() => setShowNuevoLibro(true)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-primary/20 text-[10px] font-black uppercase text-primary/35 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all tracking-widest">
-          <Plus size={12}/> Nuevo Libro
-        </button>
-      </div>
-      {loadingLibros ? (
-        <div className="flex items-center justify-center py-12 text-primary/30"><Loader2 className="animate-spin" size={20}/></div>
-      ) : librosFiltrados.length === 0 ? (
-        <div className="text-center py-10 text-primary/25"><p className="text-xs font-black uppercase tracking-widest">Sin resultados</p></div>
-      ) : librosFiltrados.map(libro => (
-        <LibroItem key={libro.id + capRefreshKey} libro={libro} selectedCapId={selectedCapId}
-          onSelectCap={handleSelectCap} expanded={expandedLibros.has(libro.id)}
-          onToggle={() => toggleExpanded(libro.id)} onEditCap={setEditandoCap}
-          onDeleteCap={handleCapEliminada} onEditLibro={setEditandoLibro}
-          onNuevoCap={(libroId) => { setSelectedLibroId(libroId); setShowNuevoCap(true); }} />
-      ))}
-    </>
-  );
+  const bibliotecaAbierta = !selectedCapId || sidebarOpen;
 
   return (
     <>
-      <EstudioLayout
-        titulo="Estudio de Capítulos" icono={<BookOpen size={12}/>}
-        colapsadoLabel="Biblioteca" onRefetch={refetch}
-        busqueda={busqueda} onBusquedaChange={setBusqueda}
-        busquedaPlaceholder="Buscar libro…"
-        sidebarContent={sidebarContent} isOffline={listaOffline}
-        footerLeft={`${libros.length} libros`}
-        footerRight={selectedCapId ? (
-          <button onClick={() => setFocusMode(m => !m)} title="Modo foco" className="text-primary/25 hover:text-primary transition-colors">
-            {focusMode ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
+      <div className="flex flex-col h-screen bg-bg-main overflow-hidden">
+
+        {/* ── Topbar ── */}
+        <div
+          className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        >
+          <BookOpen size={12} className="text-primary/40 shrink-0" />
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40 italic">
+            Estudio de Capítulos
+          </span>
+          {listaOffline && (
+            <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-orange-400 border border-orange-400/30 bg-orange-400/8 px-2 py-0.5 rounded-full">
+              <WifiOff size={8} /> Offline
+            </span>
+          )}
+          <div className="flex-1" />
+          {/* Buscador */}
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              minWidth: "200px",
+            }}
+          >
+            <Search size={11} className="text-primary/30 shrink-0" />
+            <input
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              placeholder="Buscar libro…"
+              className="flex-1 bg-transparent text-[11px] font-medium text-primary outline-none placeholder:text-primary/30 min-w-0"
+            />
+            {busqueda && (
+              <button onClick={() => setBusqueda("")} className="text-primary/25 hover:text-primary transition-colors">
+                <X size={10} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={refetch}
+            title="Recargar"
+            className="p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all"
+          >
+            <RefreshCw size={12} />
           </button>
-        ) : undefined}
-        sidebarOpen={sidebarOpen} onSidebarOpenChange={setSidebarOpen}
-      >
-        {selectedCapId && selectedLibroId ? (
-          <PanelEditor key={selectedCapId} capId={selectedCapId} libroId={selectedLibroId}
-            onCapitulosChange={() => setCapRefreshKey(k => k + 1)}
-            focusMode={focusMode} onToggleFocus={() => setFocusMode(m => !m)} />
-        ) : (
-          <EmptyEstudio icono={<BookOpen size={52} strokeWidth={1}/>} titulo="Estudio de Capítulos" subtitulo="Expande un libro y selecciona un capítulo" />
-        )}
-      </EstudioLayout>
+          {selectedCapId && (
+            <button
+              onClick={() => setFocusMode(m => !m)}
+              title="Modo foco"
+              className="p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all"
+            >
+              {focusMode ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            </button>
+          )}
+          {selectedCapId && (
+            <button
+              onClick={() => setSidebarOpen(o => !o)}
+              title={sidebarOpen ? "Ocultar biblioteca" : "Mostrar biblioteca"}
+              className="p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all"
+            >
+              {sidebarOpen ? <PanelLeftClose size={12} /> : <PanelLeftOpen size={12} />}
+            </button>
+          )}
+        </div>
+
+        {/* ── Biblioteca de columnas (se colapsa cuando hay un cap abierto y sidebarOpen=false) ── */}
+        <AnimatePresence initial={false}>
+          {bibliotecaAbierta && (
+            <motion.div
+              key="biblioteca"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: "easeInOut" }}
+              className="shrink-0 overflow-hidden border-b"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+            >
+              <div className="flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "220px" : "340px" }}>
+
+                {/* Columna: Nuevo libro */}
+                <div
+                  className="shrink-0 w-44 flex flex-col border-r"
+                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                >
+                  <div
+                    className="px-3 py-2 border-b flex items-center justify-between"
+                    style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
+                  >
+                    <span className="text-[8px] font-black uppercase tracking-widest text-primary/25">
+                      {libros.length} libros
+                    </span>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center p-3">
+                    <button
+                      onClick={() => setShowNuevoLibro(true)}
+                      className="w-full flex flex-col items-center justify-center gap-2 py-5 rounded-xl border border-dashed border-primary/20 text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
+                    >
+                      <Plus size={14} />
+                      <span className="text-[8px] font-black uppercase tracking-widest">Nuevo Libro</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Columnas de libros */}
+                {loadingLibros ? (
+                  <div className="flex items-center justify-center px-12 py-8 text-primary/25">
+                    <Loader2 size={18} className="animate-spin" />
+                  </div>
+                ) : librosFiltrados.length === 0 ? (
+                  <div className="flex items-center justify-center px-12 py-8 text-primary/20">
+                    <p className="text-[9px] font-black uppercase tracking-widest">Sin resultados</p>
+                  </div>
+                ) : librosFiltrados.map(libro => (
+                  <LibroColumna
+                    key={libro.id + capRefreshKey}
+                    libro={libro}
+                    selectedCapId={selectedCapId}
+                    onSelectCap={handleSelectCap}
+                    onEditCap={setEditandoCap}
+                    onDeleteCap={handleCapEliminada}
+                    onEditLibro={setEditandoLibro}
+                    onNuevoCap={(libroId) => { setSelectedLibroId(libroId); setShowNuevoCap(true); }}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Editor ── */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {selectedCapId && selectedLibroId ? (
+            <PanelEditor
+              key={selectedCapId}
+              capId={selectedCapId}
+              libroId={selectedLibroId}
+              onCapitulosChange={() => setCapRefreshKey(k => k + 1)}
+              focusMode={focusMode}
+              onToggleFocus={() => setFocusMode(m => !m)}
+            />
+          ) : (
+            <EmptyEstudio
+              icono={<BookOpen size={52} strokeWidth={1} />}
+              titulo="Estudio de Capítulos"
+              subtitulo="Selecciona un capítulo de la biblioteca"
+            />
+          )}
+        </div>
+      </div>
+
       {showNuevoLibro && <ModalNuevoLibro onCreated={handleLibroCreado} onClose={() => setShowNuevoLibro(false)} />}
       {showNuevoCap && selectedLibroId && <ModalNuevoCapitulo libroId={selectedLibroId} ordenSiguiente={capitulos.length + 1} onCreated={handleCapCreada} onClose={() => setShowNuevoCap(false)} />}
       {editandoLibro && <ModalEditarLibro libro={editandoLibro} onSaved={handleLibroEditado} onClose={() => setEditandoLibro(null)} />}
