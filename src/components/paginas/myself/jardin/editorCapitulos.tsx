@@ -1954,6 +1954,88 @@ const ModalEditarLibro = ({
 
 // ─── LibroColumna ─────────────────────────────────────────────────────────────
 // Each book is rendered as a vertical column in the horizontal browser
+
+// ─── LibroCard (mobile grid view) ────────────────────────────────────────────
+const LibroCard = ({
+  libro, selectedCapId, onSelectCap, onEditCap, onDeleteCap, onEditLibro, onNuevoCap,
+}: {
+  libro: Libro;
+  selectedCapId: string | null;
+  onSelectCap: (libroId: string, capId: string) => void;
+  onEditCap: (cap: Capitulo) => void;
+  onDeleteCap: (id: string, libroId: string) => void;
+  onEditLibro: (libro: Libro) => void;
+  onNuevoCap: (libroId: string) => void;
+}) => {
+  const { capitulos, loading } = useCapitulos(libro.id);
+  const isSelected = capitulos.some(c => c.id === selectedCapId);
+
+  return (
+    <div
+      className="flex flex-col rounded-xl border overflow-hidden transition-all"
+      style={{
+        borderColor: isSelected
+          ? "color-mix(in srgb, var(--primary) 25%, transparent)"
+          : "color-mix(in srgb, var(--primary) 10%, transparent)",
+        background: isSelected
+          ? "color-mix(in srgb, var(--primary) 5%, transparent)"
+          : "color-mix(in srgb, var(--primary) 2%, transparent)",
+      }}
+    >
+      {/* Cabecera */}
+      <div className="flex items-center gap-1.5 px-2.5 py-2 border-b shrink-0"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        {libro.portada_url ? (
+          <img src={libro.portada_url} alt="" className="w-4 h-4 rounded object-cover shrink-0 border border-primary/10" />
+        ) : (
+          <BookMarked size={9} className="text-primary/25 shrink-0" />
+        )}
+        <span className="flex-1 text-[8px] font-black uppercase italic tracking-tight text-primary/70 truncate leading-tight" title={libro.titulo}>
+          {libro.titulo}
+        </span>
+        <button
+          onClick={() => onEditLibro(libro)}
+          className="shrink-0 p-0.5 rounded text-primary/20 hover:text-primary transition-all"
+        >
+          <Pencil size={8} />
+        </button>
+      </div>
+
+      {/* Lista de capítulos (máx 4 visibles, scroll) */}
+      <div className="flex-1 overflow-y-auto max-h-28 p-1 space-y-0.5">
+        {loading ? (
+          <div className="flex justify-center py-3"><Loader2 size={11} className="animate-spin text-primary/20" /></div>
+        ) : capitulos.length === 0 ? (
+          <p className="text-[8px] text-primary/20 font-black uppercase tracking-widest px-1 py-2 text-center">Sin caps</p>
+        ) : capitulos.map(cap => (
+          <button
+            key={cap.id}
+            onClick={() => onSelectCap(libro.id, cap.id)}
+            className={`w-full text-left px-2 py-1 rounded-md text-[9px] font-bold truncate transition-all border ${
+              selectedCapId === cap.id
+                ? "bg-primary text-bg-main border-primary"
+                : "border-transparent text-primary/60 hover:bg-primary/8 hover:text-primary"
+            }`}
+          >
+            {cap.orden}. {cap.titulo_capitulo}
+          </button>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="shrink-0 p-1 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+        <button
+          onClick={() => onNuevoCap(libro.id)}
+          className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed border-primary/12 text-[8px] font-black uppercase tracking-widest text-primary/20 hover:text-primary/50 hover:border-primary/25 hover:bg-primary/3 transition-all"
+        >
+          <Plus size={8} /> Cap
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const LibroColumna = ({
   libro, selectedCapId, onSelectCap, onEditCap, onDeleteCap, onEditLibro, onNuevoCap,
 }: {
@@ -2196,11 +2278,45 @@ export default function EstudioCapitulos() {
               className="shrink-0 overflow-hidden border-b"
               style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
-              <div className="flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "180px" : "280px" }}>
+              {/* ── Mobile: grid de 2 columnas ── */}
+              <div className="sm:hidden overflow-y-auto p-2" style={{ maxHeight: selectedCapId ? "240px" : "360px" }}>
+                {/* Botón nuevo libro */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setShowNuevoLibro(true)}
+                    className="flex items-center justify-center gap-1.5 py-3 rounded-xl border border-dashed border-primary/20 text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all text-[8px] font-black uppercase tracking-widest"
+                  >
+                    <Plus size={12} /> Nuevo Libro
+                  </button>
+                  {loadingLibros ? (
+                    <div className="flex items-center justify-center py-3 text-primary/25">
+                      <Loader2 size={16} className="animate-spin" />
+                    </div>
+                  ) : librosFiltrados.length === 0 ? (
+                    <div className="flex items-center justify-center py-3 text-primary/20">
+                      <p className="text-[8px] font-black uppercase tracking-widest">Sin resultados</p>
+                    </div>
+                  ) : librosFiltrados.map(libro => (
+                    <LibroCard
+                      key={libro.id + capRefreshKey}
+                      libro={libro}
+                      selectedCapId={selectedCapId}
+                      onSelectCap={handleSelectCap}
+                      onEditCap={setEditandoCap}
+                      onDeleteCap={handleCapEliminada}
+                      onEditLibro={setEditandoLibro}
+                      onNuevoCap={(libroId) => { setSelectedLibroId(libroId); setShowNuevoCap(true); }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Desktop: scroll horizontal de columnas ── */}
+              <div className="hidden sm:flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "220px" : "340px" }}>
 
                 {/* Columna: Nuevo libro */}
                 <div
-                  className="shrink-0 w-36 sm:w-44 flex flex-col border-r"
+                  className="shrink-0 w-44 flex flex-col border-r"
                   style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
                 >
                   <div
@@ -2214,7 +2330,7 @@ export default function EstudioCapitulos() {
                   <div className="flex-1 flex items-center justify-center p-3">
                     <button
                       onClick={() => setShowNuevoLibro(true)}
-                      className="w-full flex flex-col items-center justify-center gap-2 py-3 sm:py-5 rounded-xl border border-dashed border-primary/20 text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
+                      className="w-full flex flex-col items-center justify-center gap-2 py-5 rounded-xl border border-dashed border-primary/20 text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
                     >
                       <Plus size={14} />
                       <span className="text-[8px] font-black uppercase tracking-widest">Nuevo Libro</span>
