@@ -1199,7 +1199,7 @@ const PanelEditor = ({
       {isOffline && <BannerOffline color="blue" mensaje="Sin conexión — los cambios se guardan localmente" />}
 
       {saveStatus === "pending" && !isOffline && (
-        <div className="shrink-0 flex items-center gap-2 px-8 py-2 bg-blue-500/8 border-b border-blue-500/15 text-[9px] font-black uppercase tracking-widest text-blue-400/70">
+        <div className="shrink-0 flex items-center gap-2 px-4 sm:px-8 py-2 bg-blue-500/8 border-b border-blue-500/15 text-[9px] font-black uppercase tracking-widest text-blue-400/70">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-400"/>
           Cambios pendientes de sincronizar
         </div>
@@ -1323,7 +1323,7 @@ const PanelEditor = ({
           {}
           {/* Meta row — compact on mobile */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-primary/30 tracking-widest flex-wrap min-w-0">
+            <div className="flex items-center gap-1 text-[9px] font-black uppercase text-primary/30 tracking-widest flex-wrap min-w-0 overflow-x-auto">
               <span className="flex items-center gap-1 shrink-0">
                 <Hash size={9}/> {cap.orden}
               </span>
@@ -1393,7 +1393,7 @@ const PanelEditor = ({
       )}
 
       {focusMode && (
-        <div className="shrink-0 flex items-center justify-between px-4 sm:px-8 py-3 border-b border-primary/5">
+        <div className="shrink-0 flex items-center justify-between px-3 sm:px-8 py-2 sm:py-3 border-b border-primary/5">
           <span className="text-xs font-black uppercase italic tracking-tight text-primary/40 truncate max-w-[180px] sm:max-w-xs">
             {cap.titulo_capitulo}
           </span>
@@ -1475,7 +1475,7 @@ const PanelEditor = ({
       </div>
 
       {!focusMode && (
-        <div className="shrink-0 px-4 sm:px-8 py-2.5 border-t border-primary/5 flex items-center justify-between">
+        <div className="shrink-0 px-3 sm:px-8 py-2 sm:py-2.5 border-t border-primary/5 flex items-center justify-between">
           <EstadisticasEscritura texto={contenido}/>
           <span className="hidden sm:block text-[9px] font-black uppercase text-primary/20 tracking-widest">Ctrl+S para guardar</span>
         </div>
@@ -1970,7 +1970,7 @@ const LibroColumna = ({
 
   return (
     <div
-      className="shrink-0 w-44 flex flex-col border-r overflow-hidden transition-all"
+      className="shrink-0 w-36 sm:w-44 flex flex-col border-r overflow-hidden transition-all"
       style={{
         borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         background: isSelected
@@ -2119,41 +2119,48 @@ export default function EstudioCapitulos() {
 
         {/* ── Topbar ── */}
         <div
-          className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
+          className="shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 border-b"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
         >
-          <BookOpen size={12} className="text-primary/40 shrink-0" />
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40 italic">
-            Estudio de Capítulos
-          </span>
+          {/* Icono + título: solo visible en desktop */}
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            <BookOpen size={12} className="text-primary/40" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40 italic">
+              Estudio de Capítulos
+            </span>
+          </div>
+          {/* Solo ícono en mobile */}
+          <BookOpen size={13} className="sm:hidden text-primary/40 shrink-0" />
+
           {listaOffline && (
-            <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-orange-400 border border-orange-400/30 bg-orange-400/8 px-2 py-0.5 rounded-full">
-              <WifiOff size={8} /> Offline
+            <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-orange-400 border border-orange-400/30 bg-orange-400/8 px-2 py-0.5 rounded-full shrink-0">
+              <WifiOff size={8} /><span className="hidden sm:inline ml-1">Offline</span>
             </span>
           )}
-          <div className="flex-1" />
-          {/* Buscador */}
-          <div className="relative" style={{ minWidth: "200px" }}>
+
+          {/* Buscador — ocupa todo el espacio disponible en mobile */}
+          <div className="relative flex-1 sm:flex-none sm:w-52">
             <input
               type="text"
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Buscar libro…"
-              className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-2 text-[11px] font-medium text-primary placeholder:text-primary/25 outline-none focus:border-primary/40 focus:bg-primary/8 transition-all"
+              className="w-full bg-primary/5 border border-primary/15 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] font-medium text-primary placeholder:text-primary/25 outline-none focus:border-primary/40 focus:bg-primary/8 transition-all"
             />
             {busqueda && (
               <button
                 onClick={() => setBusqueda("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
               >
                 <X size={11} />
               </button>
             )}
           </div>
+
           <button
             onClick={refetch}
             title="Recargar"
-            className="p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all"
+            className="p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all shrink-0"
           >
             <RefreshCw size={12} />
           </button>
@@ -2161,7 +2168,7 @@ export default function EstudioCapitulos() {
             <button
               onClick={() => setFocusMode(m => !m)}
               title="Modo foco"
-              className="p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all"
+              className="hidden sm:block p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all"
             >
               {focusMode ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
             </button>
@@ -2170,7 +2177,7 @@ export default function EstudioCapitulos() {
             <button
               onClick={() => setSidebarOpen(o => !o)}
               title={sidebarOpen ? "Ocultar biblioteca" : "Mostrar biblioteca"}
-              className="p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all"
+              className="p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all shrink-0"
             >
               {sidebarOpen ? <PanelLeftClose size={12} /> : <PanelLeftOpen size={12} />}
             </button>
@@ -2189,11 +2196,11 @@ export default function EstudioCapitulos() {
               className="shrink-0 overflow-hidden border-b"
               style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
-              <div className="flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "220px" : "340px" }}>
+              <div className="flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "180px" : "280px" }}>
 
                 {/* Columna: Nuevo libro */}
                 <div
-                  className="shrink-0 w-44 flex flex-col border-r"
+                  className="shrink-0 w-36 sm:w-44 flex flex-col border-r"
                   style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
                 >
                   <div
@@ -2207,7 +2214,7 @@ export default function EstudioCapitulos() {
                   <div className="flex-1 flex items-center justify-center p-3">
                     <button
                       onClick={() => setShowNuevoLibro(true)}
-                      className="w-full flex flex-col items-center justify-center gap-2 py-5 rounded-xl border border-dashed border-primary/20 text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
+                      className="w-full flex flex-col items-center justify-center gap-2 py-3 sm:py-5 rounded-xl border border-dashed border-primary/20 text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
                     >
                       <Plus size={14} />
                       <span className="text-[8px] font-black uppercase tracking-widest">Nuevo Libro</span>
