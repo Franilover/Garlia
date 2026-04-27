@@ -253,7 +253,7 @@ export function BloqueDones({
         </p>
       ) : (
         <div className="space-y-1.5">
-          {donesAsignados.map(h => (
+          {donesAsignados.map(d => (
             <div
               key={d.id}
               className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl group"
@@ -263,13 +263,13 @@ export function BloqueDones({
               }}
             >
               <div className="shrink-0 w-5 h-5 rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center mt-0.5">
-                {h.criatura?.imagen_url
-                  ? <img src={h.criatura.imagen_url} alt="" className="w-full h-full object-cover" />
+                {d.criatura?.imagen_url
+                  ? <img src={d.criatura.imagen_url} alt="" className="w-full h-full object-cover" />
                   : <Sparkles size={9} style={{ color: COLOR_DON }} />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold text-primary/80">{h.nombre}</p>
-                {h.criatura ? (
+                <p className="text-[11px] font-bold text-primary/80">{d.nombre}</p>
+                {d.criatura ? (
                   <span
                     className="inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-black"
                     style={{ background: `color-mix(in srgb, ${COLOR_DON} 10%, transparent)`, color: COLOR_DON }}
@@ -279,14 +279,14 @@ export function BloqueDones({
                 ) : (
                   <span className="text-[8px] text-primary/20 italic">universal</span>
                 )}
-                {h.explicacion && (
+                {d.explicacion && (
                   <p className="text-[10px] text-primary/35 mt-1 leading-relaxed line-clamp-2 italic">
-                    {h.explicacion.replace(/[#*`_~\[\]]/g, "").trim()}
+                    {d.explicacion.replace(/[#*`_~\[\]]/g, "").trim()}
                   </p>
                 )}
               </div>
               <button
-                onClick={() => removeDon(h.id)}
+                onClick={() => removeDon(d.id)}
                 className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 text-primary/30 hover:text-red-400 hover:bg-red-400/10 transition-all"
               >
                 <X size={9} />
