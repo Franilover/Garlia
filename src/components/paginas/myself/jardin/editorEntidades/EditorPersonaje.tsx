@@ -93,7 +93,7 @@ function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: stri
 }
 
 // ─── Sección Hechizos inline (sin colapsable) ────────────────────────────────
-function SeccionHechizos({ personajeId, especie }: { personajeId: string; especie?: string }) {
+function SeccionHechizos({ personajeId, especie, varianteId }: { personajeId: string; especie?: string; varianteId?: string | null }) {
   const COLOR = "oklch(0.65 0.18 290)";
   return (
     <div
@@ -115,7 +115,7 @@ function SeccionHechizos({ personajeId, especie }: { personajeId: string; especi
           Hechizos
         </span>
       </div>
-      <BloqueHechizos personajeId={personajeId} especie={especie} />
+      <BloqueHechizos personajeId={personajeId} especie={especie} varianteId={varianteId} />
     </div>
   );
 }
@@ -346,7 +346,7 @@ export function FormularioPersonaje({
               </div>
               {/* Columna derecha: Hechizos */}
               <div className="w-56 shrink-0">
-                <SeccionHechizos personajeId={form.id} especie={form.especie} />
+                <SeccionHechizos personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
               </div>
             </div>
           )}

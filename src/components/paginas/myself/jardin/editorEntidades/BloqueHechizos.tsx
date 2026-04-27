@@ -15,16 +15,24 @@ import type { Hechizo } from "./EditorHechizos";
 
 const COLOR_HECHIZO = "oklch(0.65 0.18 290)";
 
-// ─── Compatibilidad especie ───────────────────────────────────────────────────
+// ─── Compatibilidad especie + variante ───────────────────────────────────────
 function esCompatible(
-  item: { criatura_id?: string | null; criatura?: { nombre: string } | null },
+  item: { criatura_id?: string | null; criatura?: { nombre: string } | null; variante_id?: string | null },
   especie: string | null | undefined,
+  varianteId: string | null | undefined,
 ): boolean {
+  // Universal: sin criatura asignada → disponible para todos
   if (!item.criatura_id) return true;
-  if (!especie?.trim())  return false;
+  // Requiere especie: si el personaje no tiene especie no puede tenerlo
+  if (!especie?.trim()) return false;
   const criNombre = (item.criatura?.nombre ?? "").toLowerCase().trim();
   const esp       = especie.toLowerCase().trim();
-  return esp.includes(criNombre) || criNombre.includes(esp);
+  const especieMatch = esp.includes(criNombre) || criNombre.includes(esp);
+  if (!especieMatch) return false;
+  // Si el hechizo requiere variante específica, el personaje debe tener esa variante
+  if (item.variante_id) return item.variante_id === varianteId;
+  // Sin variante requerida → disponible para toda la especie
+  return true;
 }
 
 // ─── Hook: catálogo hechizos ──────────────────────────────────────────────────
@@ -35,7 +43,7 @@ function useCatalogoHechizos() {
   useEffect(() => {
     supabase
       .from("hechizos")
-      .select("*, criatura:criaturas!criatura_id(id, nombre, imagen_url)")
+      .select("*, criatura:criaturas!criatura_id(id, nombre, imagen_url), variante:criatura_variantes!variante_id(id, tipo)")
       .order("nombre")
       .then(({ data }) => { setHechizos(data ?? []); setLoading(false); });
   }, []);
@@ -77,9 +85,11 @@ function usePersonajeHechizos(personajeId: string) {
 export function BloqueHechizos({
   personajeId,
   especie,
+  varianteId,
 }: {
   personajeId: string;
   especie?: string | null;
+  varianteId?: string | null;
 }) {
   const { hechizos, loading } = useCatalogoHechizos();
   const { ids: hechizoIds, add: addHechizo, remove: removeHechizo } = usePersonajeHechizos(personajeId);
@@ -89,7 +99,7 @@ export function BloqueHechizos({
 
   const noEspecie = !especie?.trim();
 
-  const hechizosCompatibles = useMemo(() => hechizos.filter(h => esCompatible(h, especie)), [hechizos, especie]);
+  const hechizosCompatibles = useMemo(() => hechizos.filter(h => esCompatible(h, especie, varianteId)), [hechizos, especie, varianteId]);
   const hechizosAsignados   = hechizosCompatibles.filter(h => hechizoIds.includes(h.id));
   const hechizosDisponibles = hechizosCompatibles.filter(h => !hechizoIds.includes(h.id));
 
@@ -124,6 +134,21 @@ export function BloqueHechizos({
         >
           <Bug size={10} />
           Asigná una especie para ver hechizos disponibles
+        </div>
+      )}
+
+      {/* Aviso sin variante cuando hay hechizos que la requieren */}
+      {!noEspecie && !varianteId && hechizos.some(h => h.criatura_id && h.variante_id) && (
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold"
+          style={{
+            background: `color-mix(in srgb, ${COLOR_HECHIZO} 5%, transparent)`,
+            border:     `1px solid color-mix(in srgb, ${COLOR_HECHIZO} 12%, transparent)`,
+            color:      `color-mix(in srgb, ${COLOR_HECHIZO} 50%, transparent)`,
+          }}
+        >
+          <Bug size={10} />
+          Algunos hechizos requieren una variante específica
         </div>
       )}
 
@@ -210,7 +235,7 @@ export function BloqueHechizos({
                     className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-black"
                     style={{ background: `color-mix(in srgb, ${COLOR_HECHIZO} 10%, transparent)`, color: COLOR_HECHIZO }}
                   >
-                    <Bug size={7} /> {h.criatura.nombre}
+                    <Bug size={7} /> {h.criatura.nombre}{h.variante ? ` · ${h.variante.tipo}` : ""}
                   </span>
                 ) : (
                   <span className="shrink-0 text-[8px] text-primary/20 italic">universal</span>
@@ -249,7 +274,7 @@ export function BloqueHechizos({
                     className="inline-flex items-center gap-0.5 mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-black"
                     style={{ background: `color-mix(in srgb, ${COLOR_HECHIZO} 10%, transparent)`, color: COLOR_HECHIZO }}
                   >
-                    <Bug size={7} /> {h.criatura.nombre}
+                    <Bug size={7} /> {h.criatura.nombre}{h.variante ? ` · ${h.variante.tipo}` : ""}
                   </span>
                 ) : (
                   <span className="text-[8px] text-primary/20 italic">universal</span>
