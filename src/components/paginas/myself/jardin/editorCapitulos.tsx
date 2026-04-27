@@ -2294,26 +2294,22 @@ export default function EstudioCapitulos() {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.22, ease: "easeInOut" }}
-              className="shrink-0 overflow-hidden border-b"
+              className={`overflow-hidden border-b ${selectedCapId ? "shrink-0" : "flex-1 sm:shrink-0 sm:flex-none"}`}
               style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
               {/* ── Mobile: grid de 2 columnas ── */}
-              <div className="sm:hidden overflow-y-auto p-2" style={{ maxHeight: selectedCapId ? "240px" : "360px" }}>
-                {/* Botón nuevo libro */}
+              <div
+                className="sm:hidden overflow-y-auto p-2"
+                style={{ height: selectedCapId ? "240px" : "100%" }}
+              >
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setShowNuevoLibro(true)}
-                    className="flex items-center justify-center gap-1.5 py-3 rounded-xl border border-dashed border-primary/20 text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all text-[8px] font-black uppercase tracking-widest"
-                  >
-                    <Plus size={12} /> Nuevo Libro
-                  </button>
                   {loadingLibros ? (
-                    <div className="flex items-center justify-center py-3 text-primary/25">
+                    <div className="col-span-2 flex items-center justify-center py-8 text-primary/25">
                       <Loader2 size={16} className="animate-spin" />
                     </div>
                   ) : librosFiltrados.length === 0 ? (
-                    <div className="flex items-center justify-center py-3 text-primary/20">
-                      <p className="text-[8px] font-black uppercase tracking-widest">Sin resultados</p>
+                    <div className="col-span-2 flex items-center justify-center py-8 text-primary/20">
+                      <p className="text-[8px] font-black uppercase tracking-widest">Sin resultados · escribe «add» para crear</p>
                     </div>
                   ) : librosFiltrados.map(libro => (
                     <LibroCard
@@ -2334,29 +2330,6 @@ export default function EstudioCapitulos() {
               <div className="hidden sm:flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "220px" : "340px" }}>
 
                 {/* Columna: Nuevo libro */}
-                <div
-                  className="shrink-0 w-44 flex flex-col border-r"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-                >
-                  <div
-                    className="px-3 py-2 border-b flex items-center justify-between"
-                    style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
-                  >
-                    <span className="text-[8px] font-black uppercase tracking-widest text-primary/25">
-                      {libros.length} libros
-                    </span>
-                  </div>
-                  <div className="flex-1 flex items-center justify-center p-3">
-                    <button
-                      onClick={() => setShowNuevoLibro(true)}
-                      className="w-full flex flex-col items-center justify-center gap-2 py-5 rounded-xl border border-dashed border-primary/20 text-primary/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
-                    >
-                      <Plus size={14} />
-                      <span className="text-[8px] font-black uppercase tracking-widest">Nuevo Libro</span>
-                    </button>
-                  </div>
-                </div>
-
                 {/* Columnas de libros */}
                 {loadingLibros ? (
                   <div className="flex items-center justify-center px-12 py-8 text-primary/25">
