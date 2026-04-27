@@ -7,8 +7,6 @@ import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS } from "./types";
 import type { Hechizo } from "./EditorHechizos";
 
-const COLOR = "oklch(0.65 0.18 290)";
-
 function esCompatible(
   item: { criatura_id?: string | null; criatura?: { nombre: string } | null; variante_id?: string | null },
   especie: string | null | undefined,
@@ -89,7 +87,11 @@ export function BloqueHechizos({ personajeId, especie, varianteId }: {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  if (loading) return <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-primary/20" /></div>;
+  if (loading) return (
+    <div className="flex justify-center py-4">
+      <Loader2 size={14} className="animate-spin text-primary/20" />
+    </div>
+  );
 
   return (
     <div className="space-y-2">
@@ -121,11 +123,15 @@ export function BloqueHechizos({ personajeId, especie, varianteId }: {
                 <div className="shrink-0 w-5 h-5 rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                   {h.criatura?.imagen_url
                     ? <img src={h.criatura.imagen_url} alt="" className="w-full h-full object-cover" />
-                    : <Sparkles size={9} style={{ color: COLOR }} />}
+                    : <Sparkles size={9} className="text-primary/40" />}
                 </div>
                 <span className="flex-1 text-xs font-medium text-primary/70 truncate">{h.nombre}</span>
                 {h.criatura
-                  ? <span className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: `color-mix(in srgb, ${COLOR} 10%, transparent)`, color: COLOR }}>{h.criatura.nombre}{h.variante ? ` · ${h.variante.tipo}` : ""}</span>
+                  ? (
+                    <span className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded bg-primary/8 text-primary/50">
+                      {h.criatura.nombre}{h.variante ? ` · ${h.variante.tipo}` : ""}
+                    </span>
+                  )
                   : <span className="shrink-0 text-[8px] text-primary/20 italic">universal</span>}
               </button>
             ))}
@@ -136,16 +142,22 @@ export function BloqueHechizos({ personajeId, especie, varianteId }: {
       {asignados.length > 0 && (
         <div className="space-y-1">
           {asignados.map(h => (
-            <div key={h.id} className="flex items-center gap-2.5 px-3 py-2 rounded-xl group"
-              style={{ border: `1px solid color-mix(in srgb, ${COLOR} 12%, transparent)`, background: `color-mix(in srgb, ${COLOR} 3%, transparent)` }}>
+            <div
+              key={h.id}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl group border border-primary/10 bg-primary/3"
+            >
               <div className="shrink-0 w-5 h-5 rounded overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
                 {h.criatura?.imagen_url
                   ? <img src={h.criatura.imagen_url} alt="" className="w-full h-full object-cover" />
-                  : <Sparkles size={9} style={{ color: COLOR }} />}
+                  : <Sparkles size={9} className="text-primary/40" />}
               </div>
               <span className="flex-1 text-xs font-medium text-primary/70 truncate">{h.nombre}</span>
               {h.criatura
-                ? <span className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: `color-mix(in srgb, ${COLOR} 10%, transparent)`, color: COLOR }}>{h.criatura.nombre}{h.variante ? ` · ${h.variante.tipo}` : ""}</span>
+                ? (
+                  <span className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded bg-primary/8 text-primary/50">
+                    {h.criatura.nombre}{h.variante ? ` · ${h.variante.tipo}` : ""}
+                  </span>
+                )
                 : <span className="shrink-0 text-[8px] text-primary/20 italic">universal</span>}
               <button onClick={() => remove(h.id)}
                 className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-primary/25 hover:text-red-400 hover:bg-red-400/10 transition-all">
