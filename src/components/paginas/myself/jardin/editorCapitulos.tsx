@@ -5,7 +5,7 @@ import React, {
   useState, useEffect, useCallback, useRef, useMemo,
 } from "react";
 import {
-  BookOpen, ChevronDown, ChevronRight, UserCircle2,
+  ArrowLeft, BookOpen, ChevronDown, ChevronRight, UserCircle2,
   Loader2, PanelLeftClose, PanelLeftOpen,
   Plus, RefreshCw, Save, Search,
   Trash2, WifiOff, X, Check, CheckCircle2, AlertCircle,
@@ -2204,15 +2204,26 @@ export default function EstudioCapitulos() {
           className="shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 border-b"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
         >
-          {/* Icono + título: solo visible en desktop */}
+          {/* Desktop: icono + título */}
           <div className="hidden sm:flex items-center gap-2 shrink-0">
             <BookOpen size={12} className="text-primary/40" />
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40 italic">
               Estudio de Capítulos
             </span>
           </div>
-          {/* Solo ícono en mobile */}
-          <BookOpen size={13} className="sm:hidden text-primary/40 shrink-0" />
+
+          {/* Mobile: botón volver (solo cuando hay cap abierto) */}
+          {selectedCapId ? (
+            <button
+              onClick={() => { setSelectedCapId(null); setSidebarOpen(true); }}
+              className="sm:hidden flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-primary/50 hover:text-primary hover:bg-primary/8 transition-all shrink-0"
+            >
+              <ArrowLeft size={13} />
+              Volver
+            </button>
+          ) : (
+            <BookOpen size={13} className="sm:hidden text-primary/40 shrink-0" />
+          )}
 
           {listaOffline && (
             <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-orange-400 border border-orange-400/30 bg-orange-400/8 px-2 py-0.5 rounded-full shrink-0">
@@ -2220,13 +2231,21 @@ export default function EstudioCapitulos() {
             </span>
           )}
 
-          {/* Buscador — ocupa todo el espacio disponible en mobile */}
+          {/* Buscador con comando "add" */}
           <div className="relative flex-1 sm:flex-none sm:w-52">
             <input
               type="text"
               value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
-              placeholder="Buscar libro…"
+              onChange={e => {
+                const v = e.target.value;
+                if (v.trim().toLowerCase() === "add") {
+                  setBusqueda("");
+                  setShowNuevoLibro(true);
+                } else {
+                  setBusqueda(v);
+                }
+              }}
+              placeholder="Buscar libro… · escribe «add»"
               className="w-full bg-primary/5 border border-primary/15 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] font-medium text-primary placeholder:text-primary/25 outline-none focus:border-primary/40 focus:bg-primary/8 transition-all"
             />
             {busqueda && (
@@ -2259,7 +2278,7 @@ export default function EstudioCapitulos() {
             <button
               onClick={() => setSidebarOpen(o => !o)}
               title={sidebarOpen ? "Ocultar biblioteca" : "Mostrar biblioteca"}
-              className="p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all shrink-0"
+              className="hidden sm:block p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all shrink-0"
             >
               {sidebarOpen ? <PanelLeftClose size={12} /> : <PanelLeftOpen size={12} />}
             </button>
@@ -2376,11 +2395,11 @@ export default function EstudioCapitulos() {
               onToggleFocus={() => setFocusMode(m => !m)}
             />
           ) : (
-            <EmptyEstudio
-              icono={<BookOpen size={52} strokeWidth={1} />}
-              titulo="Estudio de Capítulos"
-              subtitulo="Selecciona un capítulo de la biblioteca"
-            />
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">
+                Selecciona un capítulo
+              </p>
+            </div>
           )}
         </div>
       </div>
