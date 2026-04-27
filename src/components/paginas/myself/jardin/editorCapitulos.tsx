@@ -2133,24 +2133,20 @@ export default function EstudioCapitulos() {
           )}
           <div className="flex-1" />
           {/* Buscador */}
-          <div
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-              minWidth: "200px",
-            }}
-          >
-            <Search size={11} className="text-primary/30 shrink-0" />
+          <div className="relative" style={{ minWidth: "200px" }}>
             <input
+              type="text"
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Buscar libro…"
-              className="flex-1 bg-transparent text-[11px] font-medium text-primary outline-none placeholder:text-primary/30 min-w-0"
+              className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-2 text-[11px] font-medium text-primary placeholder:text-primary/25 outline-none focus:border-primary/40 focus:bg-primary/8 transition-all"
             />
             {busqueda && (
-              <button onClick={() => setBusqueda("")} className="text-primary/25 hover:text-primary transition-colors">
-                <X size={10} />
+              <button
+                onClick={() => setBusqueda("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
+              >
+                <X size={11} />
               </button>
             )}
           </div>
