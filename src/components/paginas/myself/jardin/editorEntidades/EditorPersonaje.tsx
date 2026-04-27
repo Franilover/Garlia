@@ -14,6 +14,7 @@ import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { BloqueHechizos } from "./BloqueHechizos";
+import { BloqueDones } from "./BloqueDones";
 
 // ─── Tabs internas ────────────────────────────────────────────────────────────
 type InnerTab = "identidad" | "lore";
@@ -160,7 +161,6 @@ export function FormularioPersonaje({
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
-  const dones    = useNombresDeTabla("dones");
   const [tab, setTab] = useState<InnerTab>("identidad");
   const variantes = useCriaturaVariantesPorNombre(form.especie);
 
@@ -297,7 +297,10 @@ export function FormularioPersonaje({
                     )}
                   </div>
                   <SelectorTexto label="Reino"   value={form.reino   ?? ""} onChange={v => setForm(f => ({ ...f, reino:   v }))} opciones={reinos}   placeholder="Reino, grupo, nación…" />
-                  <SelectorTexto label="Don"     value={form.don     ?? ""} onChange={v => setForm(f => ({ ...f, don:     v }))} opciones={dones}    placeholder="Don del personaje…" />
+                  <div className="col-span-full space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Don</label>
+                    <BloqueDones personajeId={form.id} especie={form.especie} varianteId={(form as any).variante_id} />
+                  </div>
                   <div className="sm:hidden col-span-full">
                     <PickerCuerpo value={form.img_cuerpo_url ?? ""} onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))} />
                   </div>
@@ -437,7 +440,6 @@ export function EditorPersonaje({
         sobre:           form.sobre,
         reino:           form.reino,
         especie:         form.especie,
-        don:             form.don            || null,
         caracteristicas: form.caracteristicas || null,
         variante_id:     (form as any).variante_id    || null,
       }).eq("id", form.id);
