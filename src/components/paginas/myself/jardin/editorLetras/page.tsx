@@ -299,8 +299,8 @@ export default function EstudioLetras() {
         {/* ── Header ── */}
         <header className="sticky top-0 z-30 bg-bg-main border-b border-primary/10">
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-3">
-            {/* Icono + título */}
-            <div className="flex items-center gap-2 shrink-0">
+            {/* Icono + título — oculto en móvil */}
+            <div className="hidden sm:flex items-center gap-2 shrink-0">
               <span className="text-primary/30"><Music size={14} /></span>
               <span className="text-[10px] font-black uppercase tracking-widest text-primary/50">
                 Canciones
@@ -311,8 +311,16 @@ export default function EstudioLetras() {
               <input
                 type="text"
                 value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
-                placeholder="Buscar por título, cantante, compositor…"
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val.toLowerCase() === "add") {
+                    setBusqueda("");
+                    setShowNueva(true);
+                  } else {
+                    setBusqueda(val);
+                  }
+                }}
+                placeholder="Buscar… (escribe «add» para añadir)"
                 className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-2.5 text-sm font-medium text-primary placeholder:text-primary/25 outline-none focus:border-primary/40 focus:bg-primary/8 transition-all"
               />
               {busqueda && (
@@ -342,14 +350,6 @@ export default function EstudioLetras() {
                 </span>
               )}
               <ChevronDown size={10} className={`transition-transform duration-200 ${showFiltros ? "rotate-180" : ""}`} />
-            </button>
-
-            {/* Nueva canción */}
-            <button
-              onClick={() => setShowNueva(true)}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-bg-main hover:bg-primary/90 transition-all shrink-0"
-            >
-              <Plus size={11} /> Nueva
             </button>
 
             {/* Offline / refetch */}
