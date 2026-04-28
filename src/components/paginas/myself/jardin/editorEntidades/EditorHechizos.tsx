@@ -275,7 +275,7 @@ function SelectorCriaturas({
     };
     setAsignaciones(prev => [...prev, nueva]);
     setSearch("");
-    setOpen(false);
+    // No cerramos el dropdown — permite seguir agregando criaturas
   };
 
   const quitar = async (asig: AsignacionCriatura) => {
