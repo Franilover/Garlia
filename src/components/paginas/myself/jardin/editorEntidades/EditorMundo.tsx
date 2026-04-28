@@ -12,6 +12,7 @@ import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { EditorReino } from "./EditorReino";
 import { FormularioPersonaje } from "./EditorPersonaje";
+import { EditorCriatura } from "./EditorCriatura";
 
 // ─── Types locales ────────────────────────────────────────────────────────────
 type EntidadMagica = {
@@ -905,38 +906,84 @@ function PanelHistoria({
   );
 }
 
-// ─── Panel Geografía con tabs (texto + lista de reinos) ──────────────────────
-function PanelGeografia({
+// ─── Helper: lista con buscador reutilizable ──────────────────────────────────
+function ListaConBuscador({ search, onSearch, placeholder, loading, emptyText, children }: {
+  search: string; onSearch: (v: string) => void; placeholder: string;
+  loading: boolean; emptyText: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="shrink-0 px-3 pt-3 pb-2"
+        style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+        <div className="relative">
+          <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
+          <input value={search} onChange={e => onSearch(e.target.value)} placeholder={placeholder}
+            className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" />
+          {search && (
+            <button onClick={() => onSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
+              <X size={9} />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto min-h-0 px-2 py-2 space-y-0.5">
+        {loading
+          ? <div className="flex justify-center py-12"><Loader2 size={16} className="animate-spin text-primary/20" /></div>
+          : React.Children.count(children) === 0
+            ? <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-12 italic">{search ? "Sin resultados" : emptyText}</p>
+            : children}
+      </div>
+    </div>
+  );
+}
+
+// ─── Hook: lista de criaturas (para PanelMundo) ───────────────────────────────
+function useCriaturasList() {
+  const [criaturas, setCriaturas] = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    supabase.from("criaturas").select("id, nombre, imagen_url, habitat").order("nombre")
+      .then(({ data }) => { setCriaturas(data ?? []); setLoading(false); });
+  }, []);
+  return { criaturas, setCriaturas, loading };
+}
+
+type MundoGeoTab = "texto" | "reinos" | "criaturas";
+
+// ─── Panel Mundo con tabs (texto + reinos + criaturas) ────────────────────────
+function PanelMundo({
   texto, onChange, onSave, status, initialGeoTab,
 }: {
   texto: string;
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
   status: SaveStatus;
-  initialGeoTab?: GeoTab;
+  initialGeoTab?: MundoGeoTab;
 }) {
-  const [geoTab, setGeoTab] = useState<GeoTab>(initialGeoTab ?? "texto");
+  const [geoTab, setGeoTab] = useState<MundoGeoTab>(initialGeoTab ?? "texto");
   const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
-  const { reinos, setReinos, loading } = useReinos();
+  const { reinos, setReinos, loading: loadingReinos } = useReinos();
+  const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturasList();
   const [selectedReino, setSelectedReino] = useState<Reino | null>(null);
+  const [selectedCriatura, setSelectedCriatura] = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
   const [search, setSearch] = useState("");
+
+  // Reset search when switching tabs
+  useEffect(() => { setSearch(""); }, [geoTab]);
 
   const handleSave = async () => {
     setLocalStatus("saving");
-    try {
-      await onSave();
-      setLocalStatus("saved");
-      setTimeout(() => setLocalStatus("idle"), 2000);
-    } catch { setLocalStatus("error"); }
+    try { await onSave(); setLocalStatus("saved"); setTimeout(() => setLocalStatus("idle"), 2000); }
+    catch { setLocalStatus("error"); }
   };
 
-  const filtered = reinos.filter(r =>
-    r.nombre.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredReinos = reinos.filter(r => r.nombre.toLowerCase().includes(search.toLowerCase()));
+  const filteredCriaturas = criaturas.filter(c => c.nombre.toLowerCase().includes(search.toLowerCase()));
 
-  const GEO_TABS: { key: GeoTab; label: string; Icon: React.ElementType }[] = [
-    { key: "texto",   label: "Texto",   Icon: FileText },
-    { key: "reinos",  label: "Reinos",  Icon: Map      },
+  const GEO_TABS: { key: MundoGeoTab; label: string; Icon: React.ElementType; count?: number }[] = [
+    { key: "texto",    label: "Texto",    Icon: FileText },
+    { key: "reinos",   label: "Reinos",   Icon: Map,  count: reinos.length },
+    { key: "criaturas",label: "Criaturas",Icon: Bug,  count: criaturas.length },
   ];
 
   return (
@@ -948,6 +995,7 @@ function PanelGeografia({
       >
         {GEO_TABS.map(tab => {
           const active = geoTab === tab.key;
+          const loading = tab.key === "reinos" ? loadingReinos : tab.key === "criaturas" ? loadingCriaturas : false;
           return (
             <button
               key={tab.key}
@@ -957,19 +1005,15 @@ function PanelGeografia({
             >
               <tab.Icon size={10} />
               {tab.label}
-              {tab.key === "reinos" && !loading && reinos.length > 0 && (
-                <span
-                  className="px-1.5 py-0.5 rounded-full text-[8px] font-black"
-                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-                >
-                  {reinos.length}
+              {tab.count !== undefined && !loading && tab.count > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[8px] font-black"
+                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                  {tab.count}
                 </span>
               )}
               {active && (
-                <span
-                  className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full"
-                  style={{ background: "var(--primary)" }}
-                />
+                <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full"
+                  style={{ background: "var(--primary)" }} />
               )}
             </button>
           );
@@ -979,22 +1023,14 @@ function PanelGeografia({
       {/* Tab: Texto */}
       {geoTab === "texto" && (
         <div className="flex-1 flex flex-col min-h-0 p-5 gap-4 overflow-y-auto">
-          <MarkdownEditor
-            value={texto}
-            onChange={onChange}
+          <MarkdownEditor value={texto} onChange={onChange}
             placeholder="Continentes, mares, climas, fronteras del mundo…"
-            rows={22}
-            toolbar
-            defaultMode="split"
-          />
+            rows={22} toolbar defaultMode="split" />
           <div className="flex items-center justify-end gap-3">
             <SaveIndicator status={localStatus} />
-            <button
-              onClick={handleSave}
-              disabled={localStatus === "saving"}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
-            >
-              <Mountain size={11} /> Guardar Geografía
+            <button onClick={handleSave} disabled={localStatus === "saving"}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+              <Mountain size={11} /> Guardar Mundo
             </button>
           </div>
         </div>
@@ -1003,100 +1039,90 @@ function PanelGeografia({
       {/* Tab: Reinos */}
       {geoTab === "reinos" && (
         <div className="flex-1 flex min-h-0 overflow-hidden relative">
-          {/* Overlay editor de reino */}
           {selectedReino && (
-            <div
-              className="absolute inset-0 z-10 flex flex-col"
-              style={{ background: "var(--bg-main)" }}
-            >
-              {/* Back button */}
-              <div
-                className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-primary/10"
-                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
-              >
-                <button
-                  onClick={() => setSelectedReino(null)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
-                >
+            <div className="absolute inset-0 z-10 flex flex-col" style={{ background: "var(--bg-main)" }}>
+              <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-primary/10"
+                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+                <button onClick={() => setSelectedReino(null)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all">
                   <ChevronRight size={12} className="rotate-180" /> Volver a Reinos
                 </button>
-                <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">
-                  {selectedReino.nombre}
-                </span>
+                <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">{selectedReino.nombre}</span>
               </div>
               <div className="flex-1 flex min-h-0 overflow-hidden">
-                <EditorReino
-                  key={selectedReino.id}
-                  item={selectedReino}
-                  onSaved={updated => {
-                    setReinos(prev => prev.map(r => r.id === updated.id ? updated : r));
-                    setSelectedReino(updated);
-                  }}
-                  onDeleted={id => {
-                    setReinos(prev => prev.filter(r => r.id !== id));
-                    setSelectedReino(null);
-                  }}
+                <EditorReino key={selectedReino.id} item={selectedReino}
+                  onSaved={updated => { setReinos(prev => prev.map(r => r.id === updated.id ? updated : r)); setSelectedReino(updated); }}
+                  onDeleted={id => { setReinos(prev => prev.filter(r => r.id !== id)); setSelectedReino(null); }} />
+              </div>
+            </div>
+          )}
+          <ListaConBuscador
+            search={search} onSearch={setSearch} placeholder="Buscar reino…"
+            loading={loadingReinos} emptyText="Sin reinos aún"
+          >
+            {filteredReinos.map(reino => (
+              <button key={reino.id} onClick={() => setSelectedReino(reino)}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                  {reino.mapa_url ? <img src={reino.mapa_url} alt={reino.nombre} className="w-full h-full object-cover" /> : <Map size={13} className="text-primary/20" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-primary/80 truncate">{reino.nombre}</p>
+                  {reino.oculto && <p className="text-[9px] text-primary/30 italic">Oculto en mapa</p>}
+                </div>
+                <ChevronRight size={10} className="text-primary/20 shrink-0 group-hover:text-primary/40 transition-colors" />
+              </button>
+            ))}
+          </ListaConBuscador>
+        </div>
+      )}
+
+      {/* Tab: Criaturas */}
+      {geoTab === "criaturas" && (
+        <div className="flex-1 flex min-h-0 overflow-hidden relative">
+          {selectedCriatura && (
+            <div className="absolute inset-0 z-10 flex flex-col" style={{ background: "var(--bg-main)" }}>
+              <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-primary/10"
+                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+                <button onClick={() => setSelectedCriatura(null)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all">
+                  <ChevronRight size={12} className="rotate-180" /> Volver a Criaturas
+                </button>
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center shrink-0">
+                    {selectedCriatura.imagen_url ? <img src={selectedCriatura.imagen_url} alt={selectedCriatura.nombre} className="w-full h-full object-cover" /> : <Bug size={12} className="text-primary/25" />}
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/70 truncate">{selectedCriatura.nombre}</span>
+                </div>
+              </div>
+              <div className="flex-1 flex min-h-0 overflow-hidden">
+                <EditorCriatura
+                  key={selectedCriatura.id}
+                  item={selectedCriatura as any}
+                  onSaved={updated => { setCriaturas(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c)); setSelectedCriatura({ ...selectedCriatura, ...updated }); }}
+                  onDeleted={id => { setCriaturas(prev => prev.filter(c => c.id !== id)); setSelectedCriatura(null); }}
                 />
               </div>
             </div>
           )}
-
-          {/* Lista de reinos */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            {/* Buscador */}
-            <div
-              className="shrink-0 px-3 pt-3 pb-2"
-              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
-            >
-              <div className="relative">
-                <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Buscar reino…"
-                  className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
-                />
-                {search && (
-                  <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
-                    <X size={9} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Lista */}
-            <div className="flex-1 overflow-y-auto min-h-0 px-2 py-2 space-y-0.5">
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 size={16} className="animate-spin text-primary/20" />
+          <ListaConBuscador
+            search={search} onSearch={setSearch} placeholder="Buscar criatura…"
+            loading={loadingCriaturas} emptyText="Sin criaturas aún"
+          >
+            {filteredCriaturas.map(c => (
+              <button key={c.id} onClick={() => setSelectedCriatura(c)}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                  {c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={13} className="text-primary/20" />}
                 </div>
-              ) : filtered.length === 0 ? (
-                <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-12 italic">
-                  {search ? "Sin resultados" : "Sin reinos aún"}
-                </p>
-              ) : filtered.map(reino => (
-                <button
-                  key={reino.id}
-                  onClick={() => setSelectedReino(reino)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
-                >
-                  {/* Miniatura del mapa o ícono */}
-                  <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                    {reino.mapa_url
-                      ? <img src={reino.mapa_url} alt={reino.nombre} className="w-full h-full object-cover" />
-                      : <Map size={13} className="text-primary/20" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold text-primary/80 truncate">{reino.nombre}</p>
-                    {reino.oculto && (
-                      <p className="text-[9px] text-primary/30 italic">Oculto en mapa</p>
-                    )}
-                  </div>
-                  <ChevronRight size={10} className="text-primary/20 shrink-0 group-hover:text-primary/40 transition-colors" />
-                </button>
-              ))}
-            </div>
-          </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-primary/80 truncate">{c.nombre}</p>
+                  {c.habitat && <p className="text-[9px] text-primary/35 truncate">{c.habitat}</p>}
+                </div>
+                <ChevronRight size={10} className="text-primary/20 shrink-0 group-hover:text-primary/40 transition-colors" />
+              </button>
+            ))}
+          </ListaConBuscador>
         </div>
       )}
     </div>
@@ -1195,16 +1221,18 @@ export function EditorMundo({
       />
     );
   }
-
-  // ── Vista Geografía con tabs (texto + lista de reinos) ────────────────────
+  // ── Vista Mundo con tabs (texto + reinos + criaturas) ────────────────────
   if (activeSection === "geografia") {
+    const geoTab = initialMundoTab === "reinos" ? "reinos"
+      : initialMundoTab === "criaturas" ? "criaturas"
+      : "texto";
     return (
-      <PanelGeografia
+      <PanelMundo
         texto={textos.geografia}
         onChange={v => onTextoChange("geografia", v)}
         onSave={() => onSave("geografia")}
         status={saveStatus}
-        initialGeoTab={initialMundoTab === "reinos" ? "reinos" : "texto"}
+        initialGeoTab={geoTab as MundoGeoTab}
       />
     );
   }

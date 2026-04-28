@@ -111,7 +111,7 @@ export const TAB_CONFIG: Record<Exclude<TabKey, "mundo">, { emoji: string; label
 
 export const MUNDO_SECTIONS = [
   { key: "magia",     label: "Magia",     Icon: Sparkles   },
-  { key: "geografia", label: "Geografía", Icon: Mountain   },
+  { key: "geografia", label: "Mundo",    Icon: Mountain   },
   { key: "historia",  label: "Historia",  Icon: ScrollText },
 ] as const;
 

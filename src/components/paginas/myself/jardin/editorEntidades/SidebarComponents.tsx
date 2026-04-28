@@ -19,8 +19,11 @@ const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[] }[] = 
 // Secciones del Mundo navegables directamente desde el buscador
 // subTab opcional: si existe, se pasa a onSelectMundoSubTab para abrir una subtab interna
 const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab?: string; aliases: string[] }[] = [
-  { section: "geografia", label: "Reinos",   subTab: "reinos",  aliases: ["reino", "reinos", "mapa", "mapas", "geografia", "geografía"] },
-  { section: "historia",  label: "Historia", aliases: ["historia"] },
+  { section: "geografia", label: "Mundo",     subTab: "texto",     aliases: ["mundo", "world", "geografia", "geografía"] },
+  { section: "geografia", label: "Reinos",    subTab: "reinos",    aliases: ["reino", "reinos", "mapa", "mapas"] },
+  { section: "geografia", label: "Criaturas", subTab: "criaturas", aliases: ["criatura", "criaturas", "bestia", "bestias", "monstruo"] },
+  { section: "historia",  label: "Historia",  aliases: ["historia"] },
+  { section: "historia",  label: "Personajes", subTab: "personajes", aliases: ["personaje", "personajes", "character", "characters"] },
 ];
 
 function normalize(s: string) {
@@ -347,14 +350,15 @@ export function GlobalSearchBar({
     );
   }, [allItems, query]);
 
-  // Navegación directa a tabs principales (personajes, criaturas, items) — excluye reinos que vive en Mundo > Geografía
+  // Navegación directa a tabs principales — excluye los que viven en Mundo
   const tabNavResults = useMemo((): TabNavResult[] => {
     const q = normalize(query.trim());
     if (!q) return [];
     const tabs = Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][];
     return tabs
       .filter(([key, cfg]) =>
-        key !== "reinos" && (normalize(cfg.label).includes(q) || normalize(key).includes(q))
+        key !== "reinos" && key !== "criaturas" && key !== "personajes" &&
+        (normalize(cfg.label).includes(q) || normalize(key).includes(q))
       )
       .map(([tab]) => ({ tab }));
   }, [query]);
