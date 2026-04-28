@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
-  Leaf, Dna, Brain, Wand2, GitBranch, Users,
+  Dna, Brain, GitBranch, Users, Sparkles, Star, Loader2,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -156,6 +156,226 @@ function VarianteEditor({
             </button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Hechizos/Dones de criatura (via tablas join) ────────────────────────────
+// Las tablas join son:
+//   hechizo_criaturas: id, hechizo_id, criatura_id, variante_id
+//   don_criaturas:     id, don_id,     criatura_id, variante_id
+// La FK de la entidad mágica en cada join:
+const JOIN_TABLA: Record<string, string> = { hechizos: "hechizo_criaturas", dones: "don_criaturas" };
+const JOIN_FK:    Record<string, string> = { hechizos: "hechizo_id",        dones: "don_id"        };
+
+type EntidadMin = { id: string; nombre: string };
+
+// Fila de la tabla join enriquecida con el nombre del hechizo/don
+type FilaJoin = { joinId: string; entidadId: string; nombre: string };
+
+// Hook: carga las filas join para esta criatura + todos los hechizos/dones del catálogo
+function useMagicoDeCriatura(criaturaId: string, tablaEntidad: string) {
+  const [asignados, setAsignados] = useState<FilaJoin[]>([]);
+  const [catalogo,  setCatalogo]  = useState<EntidadMin[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const tablaJoin = JOIN_TABLA[tablaEntidad];
+  const fk        = JOIN_FK[tablaEntidad];
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [joinRes, catRes] = await Promise.all([
+      supabase.from(tablaJoin)
+        .select(`id, ${fk}, entidad:${tablaEntidad}!${fk}(id, nombre)`)
+        .eq("criatura_id", criaturaId),
+      supabase.from(tablaEntidad).select("id, nombre").order("nombre"),
+    ]);
+    const filas: FilaJoin[] = (joinRes.data ?? []).map((r: any) => {
+      const ent = Array.isArray(r.entidad) ? r.entidad[0] : r.entidad;
+      return { joinId: r.id, entidadId: r[fk], nombre: ent?.nombre ?? "?" };
+    });
+    setAsignados(filas.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    setCatalogo(catRes.data ?? []);
+    setLoading(false);
+  }, [criaturaId, tablaJoin, fk, tablaEntidad]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const asignar = async (entidad: EntidadMin) => {
+    const { data, error } = await supabase.from(tablaJoin)
+      .insert([{ [fk]: entidad.id, criatura_id: criaturaId }])
+      .select("id")
+      .single();
+    if (error || !data) return;
+    setAsignados(prev =>
+      [...prev, { joinId: data.id, entidadId: entidad.id, nombre: entidad.nombre }]
+        .sort((a, b) => a.nombre.localeCompare(b.nombre))
+    );
+  };
+
+  const quitar = async (joinId: string) => {
+    await supabase.from(tablaJoin).delete().eq("id", joinId);
+    setAsignados(prev => prev.filter(f => f.joinId !== joinId));
+  };
+
+  const crear = async (nombre: string): Promise<EntidadMin | null> => {
+    // Crea el hechizo/don en su tabla principal y lo asigna a la vez
+    const { data: entData, error: entErr } = await supabase
+      .from(tablaEntidad).insert([{ nombre: nombre.trim() }]).select("id, nombre").single();
+    if (entErr || !entData) return null;
+    await asignar(entData);
+    setCatalogo(prev => [...prev, entData].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    return entData;
+  };
+
+  return { asignados, catalogo, loading, asignar, quitar, crear };
+}
+
+function PanelMagicoCriatura({ criaturaId, tabla, label, color, Icon }: {
+  criaturaId: string;
+  tabla: string;
+  label: string;
+  color: string;
+  Icon: React.ElementType;
+}) {
+  const { asignados, catalogo, loading, asignar, quitar, crear } = useMagicoDeCriatura(criaturaId, tabla);
+  const [search,    setSearch]    = useState("");
+  const [open,      setOpen]      = useState(false);
+  const [addingNew, setAddingNew] = useState(false);
+  const [newNombre, setNewNombre] = useState("");
+  const [creating,  setCreating]  = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const asignadosIds = asignados.map(a => a.entidadId);
+  const disponibles  = useMemo(
+    () => catalogo.filter(e =>
+      !asignadosIds.includes(e.id) &&
+      e.nombre.toLowerCase().includes(search.toLowerCase())
+    ),
+    [catalogo, asignadosIds, search]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setSearch(""); }
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const handleCrear = async () => {
+    if (!newNombre.trim()) return;
+    setCreating(true);
+    await crear(newNombre);
+    setNewNombre(""); setAddingNew(false); setCreating(false);
+  };
+
+  if (loading) return (
+    <div className="flex items-center gap-2 py-2">
+      <Loader2 size={11} className="animate-spin text-primary/20" />
+      <span className="text-[10px] text-primary/25 italic">Cargando {label.toLowerCase()}…</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-2">
+      {/* Lista de asignados */}
+      {asignados.length === 0 ? (
+        <p className="text-[9px] text-primary/20 italic text-center py-3 border border-dashed border-primary/10 rounded-xl">
+          Sin {label.toLowerCase()} asignados
+        </p>
+      ) : (
+        <div className="space-y-1">
+          {asignados.map(h => (
+            <div key={h.joinId}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl border group transition-all"
+              style={{ borderColor: `color-mix(in srgb, ${color} 15%, transparent)`, background: `color-mix(in srgb, ${color} 4%, transparent)` }}>
+              <Icon size={10} style={{ color }} className="shrink-0" />
+              <span className="flex-1 text-[11px] font-bold text-primary/80 truncate">{h.nombre}</span>
+              <button
+                onClick={() => quitar(h.joinId)}
+                className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-primary/25 hover:text-red-400 hover:bg-red-400/10 transition-all"
+              >
+                <Trash2 size={9} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Selector: asignar existente */}
+      <div className="relative" ref={ref}>
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
+          style={{ borderColor: `color-mix(in srgb, ${color} 20%, transparent)`, color: `color-mix(in srgb, ${color} 50%, transparent)` }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = color; (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${color} 6%, transparent)`; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = `color-mix(in srgb, ${color} 50%, transparent)`; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+        >
+          <Plus size={9} /> Asignar {label.slice(0, -1).toLowerCase()} existente
+        </button>
+
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setSearch(""); }} />
+            <div className="absolute z-50 bottom-full left-0 right-0 mb-1.5 rounded-xl border overflow-hidden shadow-xl"
+              style={{ background: "var(--bg-main)", borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+              <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <div className="relative">
+                  <Search size={9} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
+                  <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+                    placeholder={`Buscar ${label.toLowerCase()}…`}
+                    className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" />
+                </div>
+              </div>
+              <div className="max-h-44 overflow-y-auto p-1">
+                {disponibles.length === 0 ? (
+                  <p className="text-[9px] text-primary/25 text-center py-3 italic">
+                    {catalogo.length === asignadosIds.length ? "Todos asignados" : "Sin resultados"}
+                  </p>
+                ) : disponibles.map(e => (
+                  <button key={e.id}
+                    onMouseDown={() => { asignar(e); setSearch(""); /* sin cerrar — permite asignar varios */ }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left hover:bg-primary/6 transition-colors">
+                    <Icon size={9} style={{ color }} className="shrink-0" />
+                    <span className="flex-1 text-[11px] font-medium text-primary/75 truncate">{e.nombre}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Crear nuevo directamente */}
+      {addingNew ? (
+        <div className="flex gap-2 p-2.5 rounded-xl border"
+          style={{ borderColor: `color-mix(in srgb, ${color} 20%, transparent)`, background: `color-mix(in srgb, ${color} 4%, transparent)` }}>
+          <input autoFocus value={newNombre} onChange={e => setNewNombre(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") handleCrear(); if (e.key === "Escape") setAddingNew(false); }}
+            placeholder={`Nombre del ${label.slice(0, -1).toLowerCase()}…`}
+            className="flex-1 bg-transparent text-xs font-bold text-primary outline-none placeholder:text-primary/25" />
+          <button onClick={handleCrear} disabled={!newNombre.trim() || creating}
+            className="px-2.5 py-1 rounded-lg text-[9px] font-black transition-all disabled:opacity-40"
+            style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
+            {creating ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />}
+          </button>
+          <button onClick={() => { setAddingNew(false); setNewNombre(""); }}
+            className="w-6 h-6 rounded-lg flex items-center justify-center text-primary/30 hover:text-primary transition-colors">
+            <X size={11} />
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => setAddingNew(true)}
+          className="w-full flex items-center justify-center gap-1.5 py-1 text-[9px] font-black uppercase tracking-widest transition-colors"
+          style={{ color: `color-mix(in srgb, ${color} 35%, transparent)` }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = color}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = `color-mix(in srgb, ${color} 35%, transparent)`}
+        >
+          <Plus size={8} /> Crear nuevo {label.slice(0, -1).toLowerCase()}
+        </button>
       )}
     </div>
   );
@@ -327,26 +547,75 @@ export function EditorCriatura({
 
           {/* BIOLOGÍA */}
           {tab === "biologia" && (
-            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Biología</label>
-                <MarkdownEditor value={form.biologia ?? ""} onChange={v => setForm(f => ({ ...f, biologia: v }))}
-                  placeholder="Anatomía, fisiología, ciclo de vida, reproducción…" rows={10} toolbar defaultMode="edit" />
+            <div className="p-3 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Biología</label>
+                  <MarkdownEditor value={form.biologia ?? ""} onChange={v => setForm(f => ({ ...f, biologia: v }))}
+                    placeholder="Anatomía, fisiología, ciclo de vida, reproducción…" rows={10} toolbar defaultMode="edit" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Comportamiento</label>
+                  <MarkdownEditor value={form.comportamiento ?? ""} onChange={v => setForm(f => ({ ...f, comportamiento: v }))}
+                    placeholder="Hábitos, instintos, patrones de caza o defensa…" rows={10} toolbar defaultMode="edit" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Magia</label>
+                  <MarkdownEditor value={form.magia ?? ""} onChange={v => setForm(f => ({ ...f, magia: v }))}
+                    placeholder="Poderes, habilidades mágicas, debilidades…" rows={10} toolbar defaultMode="edit" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Relación</label>
+                  <MarkdownEditor value={form.relacion ?? ""} onChange={v => setForm(f => ({ ...f, relacion: v }))}
+                    placeholder="Vínculo con otras especies, personajes o facciones…" rows={10} toolbar defaultMode="edit" />
+                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Comportamiento</label>
-                <MarkdownEditor value={form.comportamiento ?? ""} onChange={v => setForm(f => ({ ...f, comportamiento: v }))}
-                  placeholder="Hábitos, instintos, patrones de caza o defensa…" rows={10} toolbar defaultMode="edit" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Magia</label>
-                <MarkdownEditor value={form.magia ?? ""} onChange={v => setForm(f => ({ ...f, magia: v }))}
-                  placeholder="Poderes, habilidades mágicas, debilidades…" rows={10} toolbar defaultMode="edit" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Relación</label>
-                <MarkdownEditor value={form.relacion ?? ""} onChange={v => setForm(f => ({ ...f, relacion: v }))}
-                  placeholder="Vínculo con otras especies, personajes o facciones…" rows={10} toolbar defaultMode="edit" />
+
+              {/* ── Hechizos y Dones de esta criatura ──────────────────────── */}
+              <div
+                className="rounded-2xl p-4 space-y-4 border"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+                }}
+              >
+                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/30">
+                  Catálogo mágico · {form.nombre || "esta criatura"}
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Hechizos */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles size={11} style={{ color: "oklch(0.65 0.18 290)" }} />
+                      <span className="text-[10px] font-black uppercase tracking-widest"
+                        style={{ color: "oklch(0.65 0.18 290)" }}>Hechizos</span>
+                    </div>
+                    <PanelMagicoCriatura
+                      criaturaId={form.id}
+                      tabla="hechizos"
+                      label="Hechizos"
+                      color="oklch(0.65 0.18 290)"
+                      Icon={Sparkles}
+                    />
+                  </div>
+
+                  {/* Dones */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <Star size={11} style={{ color: "oklch(0.7 0.16 55)" }} />
+                      <span className="text-[10px] font-black uppercase tracking-widest"
+                        style={{ color: "oklch(0.7 0.16 55)" }}>Dones</span>
+                    </div>
+                    <PanelMagicoCriatura
+                      criaturaId={form.id}
+                      tabla="dones"
+                      label="Dones"
+                      color="oklch(0.7 0.16 55)"
+                      Icon={Star}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}
