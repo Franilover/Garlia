@@ -12,6 +12,8 @@ import { useUniqueValues, useCriaturaVariantes, usePersonajesDeEspecie } from ".
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { PanelPersonajes } from "./PanelPersonajes";
+import { BloqueHechizos } from "./BloqueHechizos";
+import { BloqueDones } from "./BloqueDones";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
 type InnerTab = "base" | "biologia" | "variantes" | "especie";
@@ -328,20 +330,41 @@ export function EditorCriatura({
           {/* BIOLOGÍA */}
           {tab === "biologia" && (
             <div className="p-3 space-y-3">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Biología</label>
-                <MarkdownEditor value={form.biologia ?? ""} onChange={v => setForm(f => ({ ...f, biologia: v }))}
-                  placeholder="Anatomía, fisiología, ciclo de vida, reproducción…" rows={8} toolbar defaultMode="edit" />
+              {/* Biología + Comportamiento en 2 columnas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Biología</label>
+                  <MarkdownEditor value={form.biologia ?? ""} onChange={v => setForm(f => ({ ...f, biologia: v }))}
+                    placeholder="Anatomía, fisiología, ciclo de vida, reproducción…" rows={10} toolbar defaultMode="edit" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Comportamiento</label>
+                  <MarkdownEditor value={form.comportamiento ?? ""} onChange={v => setForm(f => ({ ...f, comportamiento: v }))}
+                    placeholder="Hábitos, instintos, patrones de caza o defensa…" rows={10} toolbar defaultMode="edit" />
+                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Comportamiento</label>
-                <MarkdownEditor value={form.comportamiento ?? ""} onChange={v => setForm(f => ({ ...f, comportamiento: v }))}
-                  placeholder="Hábitos, instintos, patrones de caza o defensa…" rows={8} toolbar defaultMode="edit" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Catálogo Mágico</label>
-                <MarkdownEditor value={form.magia ?? ""} onChange={v => setForm(f => ({ ...f, magia: v }))}
-                  placeholder="Poderes, habilidades mágicas, debilidades…" rows={8} toolbar defaultMode="edit" />
+
+              {/* Catálogo Mágico: hechizos y dones asignados a esta criatura */}
+              <div
+                className="rounded-2xl p-4 space-y-4"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+                }}
+              >
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
+                  Catálogo Mágico
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Hechizos</p>
+                    <BloqueHechizos personajeId={form.id} especie={form.nombre} varianteId={null} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Dones</p>
+                    <BloqueDones personajeId={form.id} especie={form.nombre} varianteId={null} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
