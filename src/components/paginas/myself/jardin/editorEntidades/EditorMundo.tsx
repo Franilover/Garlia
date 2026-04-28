@@ -830,9 +830,10 @@ function PanelHistoria({
               <div className="flex-1 flex min-h-0 overflow-hidden">
                 <FormularioPersonaje
                   form={selectedPersonaje}
-                  setForm={updated => {
-                    setSelectedPersonaje(updated);
-                    setPersonajes(prev => prev.map(p => p.id === updated.id ? updated : p));
+                  setForm={(updated) => {
+                    const p = typeof updated === "function" ? updated(selectedPersonaje) : updated;
+                    setSelectedPersonaje(p);
+                    setPersonajes(prev => prev.map(x => x.id === p.id ? p : x));
                   }}
                   status={personajeStatus}
                   onSave={handleSavePersonaje}
