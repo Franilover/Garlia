@@ -2052,13 +2052,12 @@ const LibroColumna = ({
 
   return (
     <div
-      className="w-full flex flex-col border-r border-b overflow-hidden transition-all"
+      className="shrink-0 w-52 flex flex-col border-r overflow-hidden transition-all"
       style={{
         borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         background: isSelected
           ? "color-mix(in srgb, var(--primary) 3%, transparent)"
           : "transparent",
-        minHeight: 0,
       }}
     >
       {/* Cabecera del libro */}
@@ -2327,8 +2326,8 @@ export default function EstudioCapitulos() {
                 </div>
               </div>
 
-              {/* ── Desktop: cuadrícula de 2 filas con scroll horizontal ── */}
-              <div className="hidden sm:grid overflow-x-auto" style={{ maxHeight: selectedCapId ? "280px" : "420px", gridTemplateRows: "1fr 1fr", gridAutoFlow: "column", gridAutoColumns: "200px", alignItems: "start" }}>
+              {/* ── Desktop: scroll horizontal de columnas ── */}
+              <div className="hidden sm:flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "220px" : "340px" }}>
 
                 {/* Columna: Nuevo libro */}
                 {/* Columnas de libros */}
