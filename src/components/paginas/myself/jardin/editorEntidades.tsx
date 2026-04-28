@@ -176,7 +176,7 @@ export default function EditorEntidades() {
   return (
     <>
       <div
-        className="flex flex-col w-full h-full min-h-0 overflow-hidden"
+        className="flex flex-col w-full overflow-hidden h-[calc(100svh-56px-49px)] md:h-[calc(100svh-49px)]"
         style={{ background: "var(--bg-main)" }}
       >
         {/* ── Buscador global ──────────────────────────────────────────────── */}
