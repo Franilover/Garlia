@@ -16,6 +16,12 @@ const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[] }[] = 
   { key: "runas",    label: "Runas",    aliases: ["runa", "runas", "rune", "runes"] },
 ];
 
+// Secciones del Mundo navegables directamente desde el buscador
+const MUNDO_NAV: { section: MundoSectionKey; label: string; aliases: string[] }[] = [
+  { section: "geografia", label: "Reinos", aliases: ["reino", "reinos", "mapa", "mapas", "geografia", "geografía"] },
+  { section: "historia",  label: "Historia", aliases: ["historia"] },
+];
+
 function normalize(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
@@ -340,14 +346,14 @@ export function GlobalSearchBar({
     );
   }, [allItems, query]);
 
-  // Navegación directa a tabs principales (e.g. "reinos", "personajes")
+  // Navegación directa a tabs principales (personajes, criaturas, items) — excluye reinos que vive en Mundo > Geografía
   const tabNavResults = useMemo((): TabNavResult[] => {
     const q = normalize(query.trim());
     if (!q) return [];
     const tabs = Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][];
     return tabs
       .filter(([key, cfg]) =>
-        normalize(cfg.label).includes(q) || normalize(key).includes(q)
+        key !== "reinos" && (normalize(cfg.label).includes(q) || normalize(key).includes(q))
       )
       .map(([tab]) => ({ tab }));
   }, [query]);
@@ -359,6 +365,15 @@ export function GlobalSearchBar({
     return MUNDO_SUBTABS
       .filter(st => st.aliases.some(a => normalize(a).includes(q) || q.includes(normalize(a))))
       .map(st => ({ section: "magia" as MundoSectionKey, subTab: st.key, label: st.label }));
+  }, [query]);
+
+  // Navegación directa a secciones del Mundo (Reinos → Geografía, Historia)
+  const mundoNavResults = useMemo(() => {
+    const q = normalize(query.trim());
+    if (!q) return [];
+    return MUNDO_NAV.filter(n =>
+      n.aliases.some(a => normalize(a).includes(q) || q.includes(normalize(a)))
+    );
   }, [query]);
 
   const mundoResults = useMemo(() => {
@@ -419,6 +434,8 @@ export function GlobalSearchBar({
           handleSelect(globalResults[0].item, globalResults[0].tab);
         } else if (mundoSubTabResults.length > 0) {
           handleMundoSubTab(mundoSubTabResults[0].section, mundoSubTabResults[0].subTab);
+        } else if (mundoNavResults.length > 0) {
+          handleMundoSection(mundoNavResults[0].section);
         } else if (tabNavResults.length > 0) {
           handleTabNav(tabNavResults[0].tab);
         } else if (mundoResults.length > 0 && query.trim()) {
@@ -449,7 +466,7 @@ export function GlobalSearchBar({
       ?? selectedItem?.nombre
       ?? (loadingAll ? "Cargando…" : `${totalCount} entidades`);
 
-  const totalResults = globalResults.length + mundoResults.length + tabNavResults.length + mundoSubTabResults.length;
+  const totalResults = globalResults.length + mundoResults.length + tabNavResults.length + mundoSubTabResults.length + mundoNavResults.length;
 
   return (
     <div
@@ -587,6 +604,45 @@ export function GlobalSearchBar({
                                 <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
                                   style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
                                   Tab
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Mundo section navigation (Reinos → Geografía, Historia) */}
+                    {mundoNavResults.length > 0 && (
+                      <>
+                        <div className="px-2 pt-2 pb-1">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
+                        </div>
+                        <div className="space-y-0.5 mb-1">
+                          {mundoNavResults.map(({ section, label }) => {
+                            const sec = MUNDO_SECTIONS.find(s => s.key === section);
+                            const SecIcon = sec?.Icon;
+                            return (
+                              <button
+                                key={section + label}
+                                onMouseDown={() => handleMundoSection(section)}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
+                                  isMundo && activeMundoSection === section
+                                    ? "bg-primary/12 border-primary/20"
+                                    : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                                }`}
+                              >
+                                <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                  style={{
+                                    background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                    borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                  }}>
+                                  {SecIcon && <SecIcon size={12} className="text-primary/40" />}
+                                </div>
+                                <span className="flex-1 text-[11px] font-bold text-primary/70">{label}</span>
+                                <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                                  Mundo
                                 </span>
                               </button>
                             );
