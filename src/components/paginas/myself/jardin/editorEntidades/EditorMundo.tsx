@@ -52,20 +52,24 @@ function useReinos() {
 }
 
 // ─── Configuración por subtab mágico ─────────────────────────────────────────
+// Los colores usan variables CSS del tema activo en lugar de valores hardcodeados.
+// --accent      → color de acento del tema
+// --primary     → color primario del tema
+// color-mix     → variaciones derivadas del accent/primary
 const MAGIC_CONFIG = {
   hechizos: {
     tabla: "hechizos", label: "Hechizos", labelSing: "Hechizo",
-    Icon: Sparkles, color: "oklch(0.65 0.18 290)", emoji: "✨",
+    Icon: Sparkles, color: "var(--accent)", emoji: "✨",
     placeholder: "Qué hace este hechizo, cómo se lanza, sus efectos…",
   },
   dones: {
     tabla: "dones", label: "Dones", labelSing: "Don",
-    Icon: Star, color: "oklch(0.7 0.16 55)", emoji: "⭐",
+    Icon: Star, color: "color-mix(in srgb, var(--accent) 70%, var(--primary))", emoji: "⭐",
     placeholder: "Qué otorga este don, su origen, sus limitaciones…",
   },
   runas: {
     tabla: "runas", label: "Runas", labelSing: "Runa",
-    Icon: ScrollText, color: "oklch(0.62 0.16 160)", emoji: "ᚱ",
+    Icon: ScrollText, color: "var(--primary)", emoji: "ᚱ",
     placeholder: "Qué significa esta runa, cómo se activa, su poder…",
   },
 } as const;
@@ -899,10 +903,10 @@ function PanelMagia({
 
 // ─── TABS internas del módulo Magia ──────────────────────────────────────────
 const MUNDO_TABS: { key: MundoTab; label: string; Icon: React.ElementType; color?: string }[] = [
-  { key: "magia",    label: "Magia",    Icon: Sparkles,    color: "oklch(0.65 0.18 290)" },
-  { key: "hechizos", label: "Hechizos", Icon: Sparkles,    color: "oklch(0.65 0.18 290)" },
-  { key: "dones",    label: "Dones",    Icon: Star,        color: "oklch(0.7 0.16 55)"   },
-  { key: "runas",    label: "Runas",    Icon: ScrollText,  color: "oklch(0.62 0.16 160)" },
+  { key: "magia",    label: "Magia",    Icon: Sparkles,    color: "var(--accent)" },
+  { key: "hechizos", label: "Hechizos", Icon: Sparkles,    color: "var(--accent)" },
+  { key: "dones",    label: "Dones",    Icon: Star,        color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
+  { key: "runas",    label: "Runas",    Icon: ScrollText,  color: "var(--primary)" },
 ];
 
 // ─── EditorMundo (rediseñado) ─────────────────────────────────────────────────
@@ -999,8 +1003,8 @@ export function EditorMundo({
         <div className="flex items-center gap-2.5 py-3 pr-4 mr-2 border-r"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "color-mix(in srgb, oklch(0.65 0.18 290) 12%, transparent)", border: "1px solid color-mix(in srgb, oklch(0.65 0.18 290) 25%, transparent)" }}>
-            <Sparkles size={14} style={{ color: "oklch(0.65 0.18 290)" }} />
+            style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)" }}>
+            <Sparkles size={14} style={{ color: "var(--accent)" }} />
           </div>
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary leading-tight">Magia</p>
