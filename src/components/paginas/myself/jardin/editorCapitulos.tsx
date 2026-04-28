@@ -2052,7 +2052,7 @@ const LibroColumna = ({
 
   return (
     <div
-      className="shrink-0 w-52 flex flex-col border-r overflow-hidden transition-all"
+      className="shrink-0 w-72 flex flex-col border-r overflow-hidden transition-all"
       style={{
         borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         background: isSelected
