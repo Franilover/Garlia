@@ -265,13 +265,15 @@ function SelectorCriaturas({
       .select("id, criatura_id, variante_id, criatura:criaturas!criatura_id(id, nombre, imagen_url), variante:criatura_variantes!variante_id(id, tipo)")
       .single();
     if (error || !data) return;
-    setAsignaciones(prev => [...prev, {
-      id: data.id,
-      criatura_id: data.criatura_id,
-      criatura: data.criatura,
+    const row = data as any;
+    const nueva: AsignacionCriatura = {
+      id: row.id,
+      criatura_id: row.criatura_id,
+      criatura: Array.isArray(row.criatura) ? row.criatura[0] : row.criatura,
       variante_id: null,
       variante: null,
-    }]);
+    };
+    setAsignaciones(prev => [...prev, nueva]);
     setSearch("");
     setOpen(false);
   };
