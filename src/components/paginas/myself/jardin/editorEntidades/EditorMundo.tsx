@@ -915,16 +915,25 @@ export function EditorMundo({
   textos,
   onTextoChange,
   onSave,
+  initialMundoTab,
 }: {
   activeSection: MundoSectionKey;
   textos: Record<MundoSectionKey, string>;
   onTextoChange: (section: MundoSectionKey, value: string) => void;
   onSave: (section: MundoSectionKey) => Promise<void>;
+  initialMundoTab?: string;
 }) {
   // Para Geografía e Historia, seguimos usando el panel de texto igual que antes.
   // Para Magia, mostramos tabs internas: Magia (texto) | Hechizos | Dones
   const [mundoTab, setMundoTab] = useState<MundoTab>("magia");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+
+  // Sync initialMundoTab from outside (e.g. search navigation)
+  useEffect(() => {
+    if (initialMundoTab && ["magia", "hechizos", "dones", "runas"].includes(initialMundoTab)) {
+      setMundoTab(initialMundoTab as MundoTab);
+    }
+  }, [initialMundoTab]);
 
   // Si el activeSection cambia a no-magia, salimos a la vista simple
   const isMagiaSection = activeSection === "magia";

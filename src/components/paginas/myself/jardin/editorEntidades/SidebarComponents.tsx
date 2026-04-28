@@ -7,6 +7,15 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { TAB_CONFIG, MUNDO_SECTIONS, type TabKey, type MundoSectionKey } from "./types";
 
+// Subtabs internos del módulo Magia
+type MundoSubTab = "magia" | "hechizos" | "dones" | "runas";
+const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[] }[] = [
+  { key: "magia",    label: "Magia",    aliases: ["magia", "magic"] },
+  { key: "hechizos", label: "Hechizos", aliases: ["hechizo", "hechizos", "spell", "spells"] },
+  { key: "dones",    label: "Dones",    aliases: ["don", "dones", "gift", "gifts"] },
+  { key: "runas",    label: "Runas",    aliases: ["runa", "runas", "rune", "runes"] },
+];
+
 function normalize(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
@@ -21,6 +30,16 @@ export type AllItems = {
 type SearchResult = {
   item: any;
   tab: Exclude<TabKey, "mundo">;
+};
+
+type TabNavResult = {
+  tab: Exclude<TabKey, "mundo">;
+};
+
+type MundoSubTabResult = {
+  section: MundoSectionKey;
+  subTab: MundoSubTab;
+  label: string;
 };
 
 // ─── EntidadCard ──────────────────────────────────────────────────────────────
@@ -270,6 +289,7 @@ export function GlobalSearchBar({
   onSelect,
   onAdd,
   onSelectMundoSection,
+  onSelectMundoSubTab,
   onToggleOculto,
 }: {
   allItems: AllItems;
@@ -281,6 +301,7 @@ export function GlobalSearchBar({
   onSelect: (item: any, tab: Exclude<TabKey, "mundo">) => void;
   onAdd: (tab: Exclude<TabKey, "mundo">) => void;
   onSelectMundoSection: (s: MundoSectionKey) => void;
+  onSelectMundoSubTab?: (section: MundoSectionKey, subTab: string) => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
 }) {
   const [query,       setQuery]       = useState("");
@@ -317,6 +338,27 @@ export function GlobalSearchBar({
     );
   }, [allItems, query]);
 
+  // Navegación directa a tabs principales (e.g. "reinos", "personajes")
+  const tabNavResults = useMemo((): TabNavResult[] => {
+    const q = normalize(query.trim());
+    if (!q) return [];
+    const tabs = Object.entries(TAB_CONFIG) as [Exclude<TabKey, "mundo">, typeof TAB_CONFIG[Exclude<TabKey, "mundo">]][];
+    return tabs
+      .filter(([key, cfg]) =>
+        normalize(cfg.label).includes(q) || normalize(key).includes(q)
+      )
+      .map(([tab]) => ({ tab }));
+  }, [query]);
+
+  // Navegación a subtabs del Mundo/Magia (hechizos, dones, runas, magia)
+  const mundoSubTabResults = useMemo((): MundoSubTabResult[] => {
+    const q = normalize(query.trim());
+    if (!q) return [];
+    return MUNDO_SUBTABS
+      .filter(st => st.aliases.some(a => normalize(a).includes(q) || q.includes(normalize(a))))
+      .map(st => ({ section: "magia" as MundoSectionKey, subTab: st.key, label: st.label }));
+  }, [query]);
+
   const mundoResults = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return [...MUNDO_SECTIONS];
@@ -344,6 +386,20 @@ export function GlobalSearchBar({
     inputRef.current?.blur();
   }, [onSelectMundoSection, close]);
 
+  const handleTabNav = useCallback((tab: Exclude<TabKey, "mundo">) => {
+    // Navigate to the tab by selecting no specific item — parent handles tab switch
+    onSelect(allItems[tab]?.[0] ?? null, tab);
+    close();
+    inputRef.current?.blur();
+  }, [onSelect, allItems, close]);
+
+  const handleMundoSubTab = useCallback((section: MundoSectionKey, subTab: string) => {
+    onSelectMundoSection(section);
+    onSelectMundoSubTab?.(section, subTab);
+    close();
+    inputRef.current?.blur();
+  }, [onSelectMundoSection, onSelectMundoSubTab, close]);
+
   useEffect(() => {
     if (!open) return;
     const onMouse = (e: MouseEvent) => {
@@ -360,6 +416,10 @@ export function GlobalSearchBar({
         }
         if (globalResults.length > 0) {
           handleSelect(globalResults[0].item, globalResults[0].tab);
+        } else if (mundoSubTabResults.length > 0) {
+          handleMundoSubTab(mundoSubTabResults[0].section, mundoSubTabResults[0].subTab);
+        } else if (tabNavResults.length > 0) {
+          handleTabNav(tabNavResults[0].tab);
         } else if (mundoResults.length > 0 && query.trim()) {
           handleMundoSection(mundoResults[0].key as MundoSectionKey);
         }
@@ -388,7 +448,7 @@ export function GlobalSearchBar({
       ?? selectedItem?.nombre
       ?? (loadingAll ? "Cargando…" : `${totalCount} entidades`);
 
-  const totalResults = globalResults.length + mundoResults.length;
+  const totalResults = globalResults.length + mundoResults.length + tabNavResults.length + mundoSubTabResults.length;
 
   return (
     <div
@@ -495,18 +555,90 @@ export function GlobalSearchBar({
               ) : query.trim() ? (
                 totalResults > 0 ? (
                   <>
+                    {/* Tab navigation results */}
+                    {tabNavResults.length > 0 && (
+                      <>
+                        <div className="px-2 pt-2 pb-1">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Ir a sección</p>
+                        </div>
+                        <div className="space-y-0.5 mb-1">
+                          {tabNavResults.map(({ tab }) => {
+                            const cfg = TAB_CONFIG[tab];
+                            const TabIcon = cfg.Icon;
+                            return (
+                              <button
+                                key={tab}
+                                onMouseDown={() => handleTabNav(tab)}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
+                                  activeTab === tab
+                                    ? "bg-primary/12 border-primary/20"
+                                    : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                                }`}
+                              >
+                                <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                  style={{
+                                    background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                    borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                  }}>
+                                  <TabIcon size={12} className="text-primary/40" />
+                                </div>
+                                <span className="flex-1 text-[11px] font-bold text-primary/70">{cfg.label}</span>
+                                <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                                  Tab
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Mundo subtab results (hechizos, dones, runas) */}
+                    {mundoSubTabResults.length > 0 && (
+                      <>
+                        <div className="px-2 pt-2 pb-1">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Magia</p>
+                        </div>
+                        <div className="space-y-0.5 mb-1">
+                          {mundoSubTabResults.map(({ section, subTab, label }) => (
+                            <button
+                              key={subTab}
+                              onMouseDown={() => handleMundoSubTab(section, subTab)}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
+                            >
+                              <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                style={{
+                                  background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                                  borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                                }}>
+                                <Sparkles size={12} style={{ color: "var(--accent)" }} className="opacity-60" />
+                              </div>
+                              <span className="flex-1 text-[11px] font-bold text-primary/70">{label}</span>
+                              <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                                Mundo
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
                     {/* Search results — grid de 3 columnas */}
-                    <div className="grid grid-cols-6 gap-1">
-                      {globalResults.map(({ item, tab }) => (
-                        <EntidadCard
-                          key={`${tab}-${item.id}`}
-                          item={item} tab={tab}
-                          selected={selectedId === item.id && activeTab === tab}
-                          onClick={() => handleSelect(item, tab)}
-                          onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
-                        />
-                      ))}
-                    </div>
+                    {globalResults.length > 0 && (
+                      <div className="grid grid-cols-6 gap-1">
+                        {globalResults.map(({ item, tab }) => (
+                          <EntidadCard
+                            key={`${tab}-${item.id}`}
+                            item={item} tab={tab}
+                            selected={selectedId === item.id && activeTab === tab}
+                            onClick={() => handleSelect(item, tab)}
+                            onToggleOculto={tab === "reinos" ? onToggleOculto : undefined}
+                          />
+                        ))}
+                      </div>
+                    )}
                     {mundoResults.length > 0 && (
                       <>
                         <div className="px-2 pt-3 pb-1">
