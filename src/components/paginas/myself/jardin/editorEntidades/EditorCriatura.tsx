@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
+  Bug, Search, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
   Dna, Brain, GitBranch, Users, Sparkles, Star, Loader2,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
