@@ -160,7 +160,7 @@ export function MarkdownEditor({
   const html = renderMarkdown(value);
 
   return (
-    <div className={`flex flex-col gap-2 ${className}`}>
+    <div className={`flex flex-col flex-1 min-h-0 gap-2 ${className}`}>
       <style>{PROSE_STYLES}</style>
 
       {/* Toolbar */}
@@ -272,7 +272,7 @@ export function MarkdownEditor({
       )}
 
       {/* Área */}
-      <div className={`flex gap-3 ${mode === "split" ? "flex-row" : "flex-col"}`} style={{ minHeight: minH }}>
+      <div className={`flex gap-3 flex-1 min-h-0 ${mode === "split" ? "flex-row" : "flex-col"}`}>
         {(mode === "edit" || mode === "split") && (
           <textarea
             ref={taRef}
@@ -281,7 +281,7 @@ export function MarkdownEditor({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className={baseCls}
-            style={{ minHeight: minH }}
+            style={{ minHeight: minH, overflowY: "auto" }}
           />
         )}
         {(mode === "preview" || mode === "split") && (
