@@ -3,14 +3,15 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, Search, X, Bug,
-  ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText,
+  ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText, Users, UserCircle2,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino } from "./types";
+import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje } from "./types";
 import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { EditorReino } from "./EditorReino";
+import { FormularioPersonaje } from "./EditorPersonaje";
 
 // ─── Types locales ────────────────────────────────────────────────────────────
 type EntidadMagica = {
@@ -661,6 +662,248 @@ function PanelMagico({ modo }: { modo: "hechizos" | "dones" }) {
   );
 }
 
+// ─── Hook: lista de personajes ────────────────────────────────────────────────
+function usePersonajes() {
+  const [personajes, setPersonajes] = useState<Personaje[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").order("nombre")
+      .then(({ data }) => { setPersonajes(data ?? []); setLoading(false); });
+  }, []);
+
+  return { personajes, setPersonajes, loading };
+}
+
+type HistoriaTab = "texto" | "personajes";
+
+// ─── Panel Historia con tabs (texto + lista de personajes) ────────────────────
+function PanelHistoria({
+  texto, onChange, onSave, status, initialHistoriaTab,
+}: {
+  texto: string;
+  onChange: (v: string) => void;
+  onSave: () => Promise<void>;
+  status: SaveStatus;
+  initialHistoriaTab?: HistoriaTab;
+}) {
+  const [historiaTab, setHistoriaTab] = useState<HistoriaTab>(initialHistoriaTab ?? "texto");
+  const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
+  const { personajes, setPersonajes, loading } = usePersonajes();
+  const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
+  const [search, setSearch] = useState("");
+
+  const handleSave = async () => {
+    setLocalStatus("saving");
+    try { await onSave(); setLocalStatus("saved"); setTimeout(() => setLocalStatus("idle"), 2000); }
+    catch { setLocalStatus("error"); }
+  };
+
+  const filtered = personajes.filter(p =>
+    p.nombre.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const [personajeStatus, setPersonajeStatus] = useState<SaveStatus>("idle");
+
+  const handleSavePersonaje = async () => {
+    if (!selectedPersonaje) return;
+    setPersonajeStatus("saving");
+    try {
+      const { error } = await supabase.from("personajes").update({
+        nombre: selectedPersonaje.nombre,
+        img_url: selectedPersonaje.img_url || null,
+        img_cuerpo_url: (selectedPersonaje as any).img_cuerpo_url || null,
+        sobre: selectedPersonaje.sobre,
+        reino: selectedPersonaje.reino,
+        especie: selectedPersonaje.especie,
+      }).eq("id", selectedPersonaje.id);
+      if (error) throw error;
+      setPersonajes(prev => prev.map(p => p.id === selectedPersonaje.id ? selectedPersonaje : p));
+      setPersonajeStatus("saved");
+      setTimeout(() => setPersonajeStatus("idle"), 2000);
+    } catch { setPersonajeStatus("error"); }
+  };
+
+  const handleDeletePersonaje = async () => {
+    if (!selectedPersonaje) return;
+    await supabase.from("personajes").delete().eq("id", selectedPersonaje.id);
+    setPersonajes(prev => prev.filter(p => p.id !== selectedPersonaje.id));
+    setSelectedPersonaje(null);
+  };
+
+  const HISTORIA_TABS: { key: HistoriaTab; label: string; Icon: React.ElementType }[] = [
+    { key: "texto",      label: "Texto",      Icon: ScrollText },
+    { key: "personajes", label: "Personajes", Icon: Users },
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Tab bar */}
+      <div
+        className="shrink-0 flex items-center gap-0 border-b px-4"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        {HISTORIA_TABS.map(tab => {
+          const active = historiaTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setHistoriaTab(tab.key)}
+              className="relative flex items-center gap-1.5 px-3.5 py-3 text-[10px] font-black uppercase tracking-widest transition-all"
+              style={{ color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+            >
+              <tab.Icon size={10} />
+              {tab.label}
+              {tab.key === "personajes" && !loading && personajes.length > 0 && (
+                <span
+                  className="px-1.5 py-0.5 rounded-full text-[8px] font-black"
+                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+                >
+                  {personajes.length}
+                </span>
+              )}
+              {active && (
+                <span
+                  className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full"
+                  style={{ background: "var(--primary)" }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab: Texto */}
+      {historiaTab === "texto" && (
+        <div className="flex-1 flex flex-col min-h-0 p-5 gap-4 overflow-y-auto">
+          <MarkdownEditor
+            value={texto}
+            onChange={onChange}
+            placeholder="Grandes eras, eventos fundacionales, cronología del mundo…"
+            rows={22}
+            toolbar
+            defaultMode="split"
+          />
+          <div className="flex items-center justify-end gap-3">
+            <SaveIndicator status={localStatus} />
+            <button
+              onClick={handleSave}
+              disabled={localStatus === "saving"}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+            >
+              <ScrollText size={11} /> Guardar Historia
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Personajes */}
+      {historiaTab === "personajes" && (
+        <div className="flex-1 flex min-h-0 overflow-hidden relative">
+          {/* Overlay editor de personaje */}
+          {selectedPersonaje && (
+            <div
+              className="absolute inset-0 z-10 flex flex-col"
+              style={{ background: "var(--bg-main)" }}
+            >
+              <div
+                className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-primary/10"
+                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+              >
+                <button
+                  onClick={() => setSelectedPersonaje(null)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
+                >
+                  <ChevronRight size={12} className="rotate-180" /> Volver a Personajes
+                </button>
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center shrink-0">
+                    {selectedPersonaje.img_url
+                      ? <img src={selectedPersonaje.img_url} alt={selectedPersonaje.nombre} className="w-full h-full object-cover" />
+                      : <UserCircle2 size={12} className="text-primary/25" />}
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/70 truncate">
+                    {selectedPersonaje.nombre}
+                  </span>
+                </div>
+              </div>
+              <div className="flex-1 flex min-h-0 overflow-hidden">
+                <FormularioPersonaje
+                  form={selectedPersonaje}
+                  setForm={updated => {
+                    setSelectedPersonaje(updated);
+                    setPersonajes(prev => prev.map(p => p.id === updated.id ? updated : p));
+                  }}
+                  status={personajeStatus}
+                  onSave={handleSavePersonaje}
+                  onDelete={handleDeletePersonaje}
+                  compacto
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Lista de personajes */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Buscador */}
+            <div
+              className="shrink-0 px-3 pt-3 pb-2"
+              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
+            >
+              <div className="relative">
+                <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar personaje…"
+                  className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+                />
+                {search && (
+                  <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
+                    <X size={9} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Lista */}
+            <div className="flex-1 overflow-y-auto min-h-0 px-2 py-2 space-y-0.5">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 size={16} className="animate-spin text-primary/20" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-12 italic">
+                  {search ? "Sin resultados" : "Sin personajes aún"}
+                </p>
+              ) : filtered.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedPersonaje(p)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
+                >
+                  <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    {p.img_url
+                      ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
+                      : <UserCircle2 size={13} className="text-primary/20" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-primary/80 truncate">{p.nombre}</p>
+                    <p className="text-[9px] text-primary/35 truncate">
+                      {[p.especie, p.reino].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                  <ChevronRight size={10} className="text-primary/20 shrink-0 group-hover:text-primary/40 transition-colors" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Panel Geografía con tabs (texto + lista de reinos) ──────────────────────
 function PanelGeografia({
   texto, onChange, onSave, status, initialGeoTab,
@@ -939,52 +1182,16 @@ export function EditorMundo({
   // Si el activeSection cambia a no-magia, salimos a la vista simple
   const isMagiaSection = activeSection === "magia";
 
-  // ── Vista simple (historia) ───────────────────────────────────────────────
+  // ── Vista Historia con tabs (texto + personajes) ──────────────────────────
   if (activeSection === "historia") {
-    const current = MUNDO_SECTIONS.find(s => s.key === activeSection)!;
-    const SectionIcon = current.Icon;
-
-    const handleSave = async () => {
-      setSaveStatus("saving");
-      try {
-        await onSave(activeSection);
-        setSaveStatus("saved");
-        setTimeout(() => setSaveStatus("idle"), 2000);
-      } catch { setSaveStatus("error"); }
-    };
-
     return (
-      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-6 gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-primary/8 border border-primary/15">
-            <SectionIcon size={18} className="text-primary/60" />
-          </div>
-          <div>
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-primary">{current.label}</h2>
-            <p className="text-[10px] text-primary/35">Worldbuilding · {current.label}</p>
-          </div>
-        </div>
-
-        <MarkdownEditor
-          value={textos[activeSection]}
-          onChange={v => onTextoChange(activeSection, v)}
-          placeholder="Grandes eras, eventos fundacionales, cronología del mundo…"
-          rows={24}
-          toolbar
-          defaultMode="split"
-        />
-
-        <div className="flex items-center justify-end gap-3 flex-wrap">
-          <SaveIndicator status={saveStatus} />
-          <button
-            onClick={handleSave}
-            disabled={saveStatus === "saving"}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
-          >
-            <SectionIcon size={11} /> Guardar {current.label}
-          </button>
-        </div>
-      </div>
+      <PanelHistoria
+        texto={textos.historia}
+        onChange={v => onTextoChange("historia", v)}
+        onSave={() => onSave("historia")}
+        status={saveStatus}
+        initialHistoriaTab={initialMundoTab === "personajes" ? "personajes" : "texto"}
+      />
     );
   }
 
