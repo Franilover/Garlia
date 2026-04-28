@@ -23,6 +23,13 @@ type EntidadMagica = {
   variante?: { id: string; tipo: string } | null;
 };
 
+// EntidadMagica sin campos de criatura (para runas)
+type Runa = {
+  id: string;
+  nombre: string;
+  explicacion?: string;
+};
+
 type CriaturaMin = { id: string; nombre: string; imagen_url?: string };
 type VarianteMin = { id: string; tipo: string };
 type MundoTab = "magia" | "hechizos" | "dones" | "runas";
@@ -98,6 +105,22 @@ function useEntidadesMagicas(tabla: string) {
     setItems(data ?? []);
     setLoading(false);
   }, [tabla]);
+  useEffect(() => { load(); }, [load]);
+  return { items, setItems, loading };
+}
+
+function useRunas() {
+  const [items, setItems] = useState<Runa[]>([]);
+  const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("runas")
+      .select("id, nombre, explicacion")
+      .order("nombre");
+    setItems(data ?? []);
+    setLoading(false);
+  }, []);
   useEffect(() => { load(); }, [load]);
   return { items, setItems, loading };
 }
@@ -344,8 +367,177 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
   );
 }
 
+// ─── Formulario de edición de runa (sin criatura) ────────────────────────────
+function FormularioRuna({ item, onSaved, onDeleted }: {
+  item: Runa;
+  onSaved: (i: Runa) => void;
+  onDeleted: (id: string) => void;
+}) {
+  const [form, setForm] = useState<Runa>(item);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const { confirm, ConfirmModal } = useConfirm();
+  const cfg = MAGIC_CONFIG.runas;
+
+  useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
+
+  const save = async () => {
+    setStatus("saving");
+    try {
+      const { error } = await supabase.from("runas").update({
+        nombre: form.nombre,
+        explicacion: form.explicacion || null,
+      }).eq("id", form.id);
+      if (error) throw error;
+      setStatus("saved");
+      onSaved(form);
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch { setStatus("error"); }
+  };
+
+  const del = async () => {
+    const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
+    if (!ok) return;
+    await supabase.from("runas").delete().eq("id", form.id);
+    onDeleted(form.id);
+  };
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <ConfirmModal />
+      {/* Header */}
+      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+        <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center border"
+          style={{ background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)` }}>
+          <cfg.Icon size={16} style={{ color: cfg.color }} />
+        </div>
+        <input
+          value={form.nombre ?? ""}
+          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+          placeholder="Nombre de la runa…"
+          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+        />
+        <div className="shrink-0 flex items-center gap-2">
+          <SaveIndicator status={status} />
+          <button onClick={del}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+            <Trash2 size={10} />
+          </button>
+          <button onClick={save} disabled={status === "saving"}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+            <Save size={11} /> Guardar
+          </button>
+        </div>
+      </div>
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Explicación</label>
+          <MarkdownEditor
+            value={form.explicacion ?? ""}
+            onChange={v => setForm(f => ({ ...f, explicacion: v }))}
+            rows={14}
+            placeholder={cfg.placeholder}
+            toolbar
+            defaultMode="edit"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Panel Runas (sin criatura) ───────────────────────────────────────────────
+function PanelRunas() {
+  const cfg = MAGIC_CONFIG.runas;
+  const { items, setItems, loading } = useRunas();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const selected = items.find(i => i.id === selectedId) ?? null;
+  const filtered = items.filter(i => i.nombre.toLowerCase().includes(search.toLowerCase()));
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.from("runas")
+        .insert([{ nombre: "Nueva Runa" }])
+        .select("id, nombre, explicacion")
+        .single();
+      if (error) throw error;
+      setItems(prev => [data, ...prev]);
+      setSelectedId(data.id);
+    } finally { setCreating(false); }
+  };
+
+  return (
+    <div className="flex-1 flex min-h-0 overflow-hidden">
+      {/* Lista lateral */}
+      <div className="w-52 shrink-0 flex flex-col border-r min-h-0"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+        <div className="shrink-0 px-2 pt-2 pb-2 space-y-1.5">
+          <div className="relative">
+            <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar…"
+              className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25" />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
+                <X size={9} />
+              </button>
+            )}
+          </div>
+          <button onClick={handleCreate} disabled={creating}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
+            style={{ borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`, color: `color-mix(in srgb, ${cfg.color} 60%, transparent)` }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${cfg.color} 6%, transparent)`; (e.currentTarget as HTMLElement).style.color = cfg.color; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = `color-mix(in srgb, ${cfg.color} 60%, transparent)`; }}
+          >
+            {creating ? <Loader2 size={9} className="animate-spin" /> : <Plus size={9} />}
+            Nueva Runa
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
+          {loading ? (
+            <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+          ) : filtered.length === 0 ? (
+            <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-8 italic">
+              {search ? "Sin resultados" : "Sin runas aún"}
+            </p>
+          ) : filtered.map(item => (
+            <button key={item.id} onClick={() => setSelectedId(item.id)}
+              className={`w-full text-left px-2.5 py-2 rounded-xl transition-all border ${
+                selectedId === item.id ? "border-primary/20 bg-primary/10" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+              }`}>
+              <p className={`text-[11px] font-bold truncate ${selectedId === item.id ? "text-primary" : "text-primary/70"}`}>
+                {item.nombre}
+              </p>
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Editor */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+        {selected ? (
+          <FormularioRuna
+            key={selected.id} item={selected}
+            onSaved={updated => setItems(prev => prev.map(i => i.id === updated.id ? updated : i))}
+            onDeleted={id => { setItems(prev => prev.filter(i => i.id !== id)); setSelectedId(null); }}
+          />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 select-none">
+            <cfg.Icon size={36} strokeWidth={1} style={{ color: cfg.color, opacity: 0.2 }} />
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">{cfg.label}</p>
+            <p className="text-[10px] text-primary/20 tracking-widest">Seleccioná o creá una runa</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Panel de lista + editor para hechizos o dones ───────────────────────────
-function PanelMagico({ modo }: { modo: "hechizos" | "dones" | "runas" }) {
+function PanelMagico({ modo }: { modo: "hechizos" | "dones" }) {
   const cfg = MAGIC_CONFIG[modo];
   const { items, setItems, loading } = useEntidadesMagicas(cfg.tabla);
   const { criaturas, loading: loadingCriaturas } = useCriaturas();
@@ -854,7 +1046,7 @@ export function EditorMundo({
         )}
         {mundoTab === "hechizos" && <PanelMagico modo="hechizos" />}
         {mundoTab === "dones"    && <PanelMagico modo="dones" />}
-        {mundoTab === "runas"    && <PanelMagico modo="runas" />}
+        {mundoTab === "runas"    && <PanelRunas />}
       </div>
     </div>
   );
