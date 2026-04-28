@@ -25,7 +25,7 @@ type EntidadMagica = {
 
 type CriaturaMin = { id: string; nombre: string; imagen_url?: string };
 type VarianteMin = { id: string; tipo: string };
-type MundoTab = "magia" | "hechizos" | "dones";
+type MundoTab = "magia" | "hechizos" | "dones" | "runas";
 type GeoTab = "texto" | "reinos";
 
 // ─── Hook: lista de reinos ─────────────────────────────────────────────────────
@@ -55,6 +55,11 @@ const MAGIC_CONFIG = {
     tabla: "dones", label: "Dones", labelSing: "Don",
     Icon: Star, color: "oklch(0.7 0.16 55)", emoji: "⭐",
     placeholder: "Qué otorga este don, su origen, sus limitaciones…",
+  },
+  runas: {
+    tabla: "runas", label: "Runas", labelSing: "Runa",
+    Icon: ScrollText, color: "oklch(0.62 0.16 160)", emoji: "ᚱ",
+    placeholder: "Qué significa esta runa, cómo se activa, su poder…",
   },
 } as const;
 
@@ -230,7 +235,7 @@ function SelectorVariante({ variantes, loading, value, onChange, color }: {
 // ─── Formulario de edición de hechizo/don ────────────────────────────────────
 function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, onDeleted }: {
   item: EntidadMagica;
-  modo: "hechizos" | "dones";
+  modo: "hechizos" | "dones" | "runas";
   criaturas: CriaturaMin[];
   loadingCriaturas: boolean;
   onSaved: (i: EntidadMagica) => void;
@@ -340,7 +345,7 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
 }
 
 // ─── Panel de lista + editor para hechizos o dones ───────────────────────────
-function PanelMagico({ modo }: { modo: "hechizos" | "dones" }) {
+function PanelMagico({ modo }: { modo: "hechizos" | "dones" | "runas" }) {
   const cfg = MAGIC_CONFIG[modo];
   const { items, setItems, loading } = useEntidadesMagicas(cfg.tabla);
   const { criaturas, loading: loadingCriaturas } = useCriaturas();
@@ -702,9 +707,10 @@ function PanelMagia({
 
 // ─── TABS internas del módulo Magia ──────────────────────────────────────────
 const MUNDO_TABS: { key: MundoTab; label: string; Icon: React.ElementType; color?: string }[] = [
-  { key: "magia",    label: "Magia",    Icon: Sparkles, color: "oklch(0.65 0.18 290)" },
-  { key: "hechizos", label: "Hechizos", Icon: Sparkles, color: "oklch(0.65 0.18 290)" },
-  { key: "dones",    label: "Dones",    Icon: Star,     color: "oklch(0.7 0.16 55)"   },
+  { key: "magia",    label: "Magia",    Icon: Sparkles,    color: "oklch(0.65 0.18 290)" },
+  { key: "hechizos", label: "Hechizos", Icon: Sparkles,    color: "oklch(0.65 0.18 290)" },
+  { key: "dones",    label: "Dones",    Icon: Star,        color: "oklch(0.7 0.16 55)"   },
+  { key: "runas",    label: "Runas",    Icon: ScrollText,  color: "oklch(0.62 0.16 160)" },
 ];
 
 // ─── EditorMundo (rediseñado) ─────────────────────────────────────────────────
@@ -848,6 +854,7 @@ export function EditorMundo({
         )}
         {mundoTab === "hechizos" && <PanelMagico modo="hechizos" />}
         {mundoTab === "dones"    && <PanelMagico modo="dones" />}
+        {mundoTab === "runas"    && <PanelMagico modo="runas" />}
       </div>
     </div>
   );
