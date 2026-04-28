@@ -16,13 +16,11 @@ import { EditorCriatura }  from "./editorEntidades/EditorCriatura";
 import { EditorItem }      from "./editorEntidades/EditorItem";
 import { EditorReino }     from "./editorEntidades/EditorReino";
 import { EditorMundo }     from "./editorEntidades/EditorMundo";
-// ──  Nuevos editores de catálogos mágicos
-import { EditorHechizos }  from "./editorEntidades/EditorHechizos";
 
 // ─── Hook: carga todas las categorías en paralelo ─────────────────────────────
 function useAllEntidades() {
-  const [allItems,   setAllItems]   = useState<AllItems>({
-    personajes: [], criaturas: [], items: [], reinos: [], hechizos: [], dones: [],
+  const [allItems, setAllItems] = useState<AllItems>({
+    personajes: [], criaturas: [], items: [], reinos: [],
   });
   const [loadingAll, setLoadingAll] = useState(true);
   const [isOffline,  setIsOffline]  = useState(false);
@@ -32,21 +30,17 @@ function useAllEntidades() {
     setIsOffline(false);
     setLoadingAll(true);
     try {
-      const [p, c, i, r, h, d] = await Promise.all([
+      const [p, c, i, r] = await Promise.all([
         supabase.from("personajes").select("*").order("nombre"),
         supabase.from("criaturas") .select("*").order("nombre"),
         supabase.from("items")     .select("*").order("nombre"),
         supabase.from("reinos")    .select("*").order("nombre"),
-        supabase.from("hechizos")  .select("*").order("nombre"),
-        supabase.from("dones")     .select("*").order("nombre"),
       ]);
       setAllItems({
         personajes: (p.data ?? []) as Personaje[],
         criaturas:  (c.data ?? []) as Criatura[],
         items:      (i.data ?? []) as Item[],
         reinos:     (r.data ?? []) as Reino[],
-        hechizos:   (h.data ?? []) as any[],
-        dones:      (d.data ?? []) as any[],
       });
     } catch { setIsOffline(true); }
     setLoadingAll(false);
@@ -63,10 +57,8 @@ function useAllEntidades() {
 }
 
 // ─── Modal nueva entrada ──────────────────────────────────────────────────────
-// Solo para tabs con formulario modal (personajes, criaturas, items, reinos).
-// Hechizos y Dones crean entradas inline desde su propio editor.
 function ModalNueva({ tab, onCreated, onClose }: {
-  tab: Exclude<TabKey, "mundo" | "hechizos" | "dones">;
+  tab: Exclude<TabKey, "mundo">;
   onCreated: (item: any) => void;
   onClose: () => void;
 }) {
@@ -133,7 +125,7 @@ export default function EditorEntidades() {
 
   const [tab,          setTab]          = useState<TabKey>(session.current.tab);
   const [selectedId,   setSelectedId]   = useState<string | null>(session.current.selectedId);
-  const [showNueva,    setShowNueva]    = useState<Exclude<TabKey, "mundo" | "hechizos" | "dones"> | null>(null);
+  const [showNueva,    setShowNueva]    = useState<Exclude<TabKey, "mundo"> | null>(null);
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>("magia");
 
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
@@ -144,10 +136,9 @@ export default function EditorEntidades() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, selectedId })); } catch {}
   }, [tab, selectedId]);
 
-  // Item seleccionado (no aplica a mundo, hechizos ni dones — tienen su propio estado interno)
   const selected = useMemo(() => {
-    if (tab === "mundo" || tab === "hechizos" || tab === "dones") return null;
-    return allItems[tab as Exclude<TabKey, "mundo" | "hechizos" | "dones">].find(i => i.id === selectedId) ?? null;
+    if (tab === "mundo") return null;
+    return allItems[tab as Exclude<TabKey, "mundo">].find(i => i.id === selectedId) ?? null;
   }, [allItems, selectedId, tab]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -156,19 +147,19 @@ export default function EditorEntidades() {
     setSelectedId(item.id);
   }, []);
 
-  const handleCreated = (item: any, chosenTab?: Exclude<TabKey, "mundo" | "hechizos" | "dones">) => {
-    const t = chosenTab ?? tab as Exclude<TabKey, "mundo" | "hechizos" | "dones">;
+  const handleCreated = (item: any, chosenTab?: Exclude<TabKey, "mundo">) => {
+    const t = chosenTab ?? tab as Exclude<TabKey, "mundo">;
     setAllItems(prev => ({ ...prev, [t]: [item, ...prev[t as keyof typeof prev]] }));
     setSelectedId(item.id);
   };
 
   const handleSaved = (item: any) => {
-    const t = tab as Exclude<TabKey, "mundo" | "hechizos" | "dones">;
+    const t = tab as Exclude<TabKey, "mundo">;
     setAllItems(prev => ({ ...prev, [t]: (prev[t as keyof typeof prev] as any[]).map(i => i.id === item.id ? item : i) }));
   };
 
   const handleDeleted = (id: string) => {
-    const t = tab as Exclude<TabKey, "mundo" | "hechizos" | "dones">;
+    const t = tab as Exclude<TabKey, "mundo">;
     setAllItems(prev => ({ ...prev, [t]: (prev[t as keyof typeof prev] as any[]).filter(i => i.id !== id) }));
     setSelectedId(null);
   };
@@ -180,9 +171,7 @@ export default function EditorEntidades() {
     }));
   }, [setAllItems]);
 
-  const isMundo    = tab === "mundo";
-  const isHechizos = tab === "hechizos";
-  const isDones    = tab === "dones";
+  const isMundo = tab === "mundo";
 
   return (
     <>
@@ -200,14 +189,8 @@ export default function EditorEntidades() {
           activeMundoSection={tab === "mundo" ? mundoSection : null}
           onSelect={handleSelect}
           onAdd={(chosenTab) => {
-            // Hechizos y Dones no usan modal — activan su tab directamente
-            if (chosenTab === "hechizos" || chosenTab === "dones") {
-              setTab(chosenTab);
-              setSelectedId(null);
-            } else {
-              setTab(chosenTab);
-              setShowNueva(chosenTab as Exclude<TabKey, "mundo" | "hechizos" | "dones">);
-            }
+            setTab(chosenTab);
+            setShowNueva(chosenTab as Exclude<TabKey, "mundo">);
           }}
           onSelectMundoSection={(section) => {
             setTab("mundo");
@@ -236,11 +219,6 @@ export default function EditorEntidades() {
               onTextoChange={(section, value) => setMundoTextos(t => ({ ...t, [section]: value }))}
               onSave={(section) => saveMundo(section, mundoTextos[section])}
             />
-          ) : isHechizos ? (
-            // EditorHechizos maneja su propia lista + selección internamente
-            <EditorHechizos modo="hechizos" />
-          ) : isDones ? (
-            <EditorHechizos modo="dones" />
           ) : selected ? (
             <>
               {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} />}
@@ -260,8 +238,8 @@ export default function EditorEntidades() {
         </div>
       </div>
 
-      {/* Modal nueva entrada (solo para tabs con modal) */}
-      {showNueva && !isMundo && !isHechizos && !isDones && (
+      {/* Modal nueva entrada */}
+      {showNueva && !isMundo && (
         <ModalNueva
           tab={showNueva}
           onCreated={(item) => handleCreated(item, showNueva)}
