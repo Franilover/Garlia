@@ -360,6 +360,8 @@ export function GlobalSearchBar({
         }
         if (globalResults.length > 0) {
           handleSelect(globalResults[0].item, globalResults[0].tab);
+        } else if (mundoResults.length > 0 && query.trim()) {
+          handleMundoSection(mundoResults[0].key as MundoSectionKey);
         }
       }
     };
