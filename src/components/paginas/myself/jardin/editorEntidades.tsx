@@ -195,7 +195,8 @@ export default function EditorEntidades() {
           }}
           onNavigateTab={(chosenTab) => {
             setTab(chosenTab);
-            setSelectedId(null);
+            const first = allItems[chosenTab]?.[0];
+            setSelectedId(first?.id ?? null);
           }}
           onSelectMundoSection={(section) => {
             setTab("mundo");
