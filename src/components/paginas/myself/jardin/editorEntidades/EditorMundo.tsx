@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, Search, X, Bug,
-  ChevronDown, Mountain, ScrollText,
+  ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus } from "./types";
+import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino } from "./types";
 import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
+import { EditorReino } from "./EditorReino";
 
 // ─── Types locales ────────────────────────────────────────────────────────────
 type EntidadMagica = {
@@ -25,6 +26,23 @@ type EntidadMagica = {
 type CriaturaMin = { id: string; nombre: string; imagen_url?: string };
 type VarianteMin = { id: string; tipo: string };
 type MundoTab = "magia" | "hechizos" | "dones";
+type GeoTab = "texto" | "reinos";
+
+// ─── Hook: lista de reinos ─────────────────────────────────────────────────────
+function useReinos() {
+  const [reinos, setReinos] = useState<Reino[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from("reinos").select("*").order("nombre");
+    setReinos(data ?? []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+  return { reinos, setReinos, loading };
+}
 
 // ─── Configuración por subtab mágico ─────────────────────────────────────────
 const MAGIC_CONFIG = {
@@ -442,6 +460,203 @@ function PanelMagico({ modo }: { modo: "hechizos" | "dones" }) {
   );
 }
 
+// ─── Panel Geografía con tabs (texto + lista de reinos) ──────────────────────
+function PanelGeografia({
+  texto, onChange, onSave, status,
+}: {
+  texto: string;
+  onChange: (v: string) => void;
+  onSave: () => Promise<void>;
+  status: SaveStatus;
+}) {
+  const [geoTab, setGeoTab] = useState<GeoTab>("texto");
+  const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
+  const { reinos, setReinos, loading } = useReinos();
+  const [selectedReino, setSelectedReino] = useState<Reino | null>(null);
+  const [search, setSearch] = useState("");
+
+  const handleSave = async () => {
+    setLocalStatus("saving");
+    try {
+      await onSave();
+      setLocalStatus("saved");
+      setTimeout(() => setLocalStatus("idle"), 2000);
+    } catch { setLocalStatus("error"); }
+  };
+
+  const filtered = reinos.filter(r =>
+    r.nombre.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const GEO_TABS: { key: GeoTab; label: string; Icon: React.ElementType }[] = [
+    { key: "texto",   label: "Texto",   Icon: FileText },
+    { key: "reinos",  label: "Reinos",  Icon: Map      },
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Tab bar */}
+      <div
+        className="shrink-0 flex items-center gap-0 border-b px-4"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        {GEO_TABS.map(tab => {
+          const active = geoTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setGeoTab(tab.key)}
+              className="relative flex items-center gap-1.5 px-3.5 py-3 text-[10px] font-black uppercase tracking-widest transition-all"
+              style={{ color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+            >
+              <tab.Icon size={10} />
+              {tab.label}
+              {tab.key === "reinos" && !loading && reinos.length > 0 && (
+                <span
+                  className="px-1.5 py-0.5 rounded-full text-[8px] font-black"
+                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+                >
+                  {reinos.length}
+                </span>
+              )}
+              {active && (
+                <span
+                  className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full"
+                  style={{ background: "var(--primary)" }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab: Texto */}
+      {geoTab === "texto" && (
+        <div className="flex-1 flex flex-col min-h-0 p-5 gap-4 overflow-y-auto">
+          <MarkdownEditor
+            value={texto}
+            onChange={onChange}
+            placeholder="Continentes, mares, climas, fronteras del mundo…"
+            rows={22}
+            toolbar
+            defaultMode="split"
+          />
+          <div className="flex items-center justify-end gap-3">
+            <SaveIndicator status={localStatus} />
+            <button
+              onClick={handleSave}
+              disabled={localStatus === "saving"}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+            >
+              <Mountain size={11} /> Guardar Geografía
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Reinos */}
+      {geoTab === "reinos" && (
+        <div className="flex-1 flex min-h-0 overflow-hidden relative">
+          {/* Overlay editor de reino */}
+          {selectedReino && (
+            <div
+              className="absolute inset-0 z-10 flex flex-col"
+              style={{ background: "var(--bg-main)" }}
+            >
+              {/* Back button */}
+              <div
+                className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-primary/10"
+                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+              >
+                <button
+                  onClick={() => setSelectedReino(null)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
+                >
+                  <ChevronRight size={12} className="rotate-180" /> Volver a Reinos
+                </button>
+                <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">
+                  {selectedReino.nombre}
+                </span>
+              </div>
+              <div className="flex-1 flex min-h-0 overflow-hidden">
+                <EditorReino
+                  key={selectedReino.id}
+                  item={selectedReino}
+                  onSaved={updated => {
+                    setReinos(prev => prev.map(r => r.id === updated.id ? updated : r));
+                    setSelectedReino(updated);
+                  }}
+                  onDeleted={id => {
+                    setReinos(prev => prev.filter(r => r.id !== id));
+                    setSelectedReino(null);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Lista de reinos */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Buscador */}
+            <div
+              className="shrink-0 px-3 pt-3 pb-2"
+              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
+            >
+              <div className="relative">
+                <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/25" />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar reino…"
+                  className="w-full bg-primary/4 border border-primary/10 rounded-lg pl-7 pr-6 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+                />
+                {search && (
+                  <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary">
+                    <X size={9} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Lista */}
+            <div className="flex-1 overflow-y-auto min-h-0 px-2 py-2 space-y-0.5">
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 size={16} className="animate-spin text-primary/20" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest text-center py-12 italic">
+                  {search ? "Sin resultados" : "Sin reinos aún"}
+                </p>
+              ) : filtered.map(reino => (
+                <button
+                  key={reino.id}
+                  onClick={() => setSelectedReino(reino)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group"
+                >
+                  {/* Miniatura del mapa o ícono */}
+                  <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    {reino.mapa_url
+                      ? <img src={reino.mapa_url} alt={reino.nombre} className="w-full h-full object-cover" />
+                      : <Map size={13} className="text-primary/20" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-primary/80 truncate">{reino.nombre}</p>
+                    {reino.oculto && (
+                      <p className="text-[9px] text-primary/30 italic">Oculto en mapa</p>
+                    )}
+                  </div>
+                  <ChevronRight size={10} className="text-primary/20 shrink-0 group-hover:text-primary/40 transition-colors" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Panel de texto Magia (markdown) ─────────────────────────────────────────
 function PanelMagia({
   texto, onChange, onSave, status,
@@ -512,8 +727,8 @@ export function EditorMundo({
   // Si el activeSection cambia a no-magia, salimos a la vista simple
   const isMagiaSection = activeSection === "magia";
 
-  // ── Vista simple (geografía / historia) ──────────────────────────────────
-  if (!isMagiaSection) {
+  // ── Vista simple (historia) ───────────────────────────────────────────────
+  if (activeSection === "historia") {
     const current = MUNDO_SECTIONS.find(s => s.key === activeSection)!;
     const SectionIcon = current.Icon;
 
@@ -541,11 +756,7 @@ export function EditorMundo({
         <MarkdownEditor
           value={textos[activeSection]}
           onChange={v => onTextoChange(activeSection, v)}
-          placeholder={
-            activeSection === "geografia"
-              ? "Continentes, mares, climas, fronteras del mundo…"
-              : "Grandes eras, eventos fundacionales, cronología del mundo…"
-          }
+          placeholder="Grandes eras, eventos fundacionales, cronología del mundo…"
           rows={24}
           toolbar
           defaultMode="split"
@@ -562,6 +773,18 @@ export function EditorMundo({
           </button>
         </div>
       </div>
+    );
+  }
+
+  // ── Vista Geografía con tabs (texto + lista de reinos) ────────────────────
+  if (activeSection === "geografia") {
+    return (
+      <PanelGeografia
+        texto={textos.geografia}
+        onChange={v => onTextoChange("geografia", v)}
+        onSave={() => onSave("geografia")}
+        status={saveStatus}
+      />
     );
   }
 
