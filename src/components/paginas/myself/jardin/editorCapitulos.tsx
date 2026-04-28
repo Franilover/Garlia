@@ -2052,12 +2052,13 @@ const LibroColumna = ({
 
   return (
     <div
-      className="shrink-0 w-36 sm:w-44 flex flex-col border-r overflow-hidden transition-all"
+      className="w-full flex flex-col border-r border-b overflow-hidden transition-all"
       style={{
         borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         background: isSelected
           ? "color-mix(in srgb, var(--primary) 3%, transparent)"
           : "transparent",
+        minHeight: 0,
       }}
     >
       {/* Cabecera del libro */}
@@ -2071,7 +2072,7 @@ const LibroColumna = ({
           <BookMarked size={10} className="text-primary/25 shrink-0" />
         )}
         <span
-          className="flex-1 text-[9px] font-black uppercase italic tracking-tight text-primary/70 truncate leading-tight"
+          className="flex-1 text-[10px] font-black uppercase italic tracking-tight text-primary/80 leading-tight line-clamp-2"
           title={libro.titulo}
         >
           {libro.titulo}
@@ -2232,7 +2233,7 @@ export default function EstudioCapitulos() {
           )}
 
           {/* Buscador con comando "add" */}
-          <div className="relative flex-1 sm:flex-none sm:w-52">
+          <div className="relative flex-1">
             <input
               type="text"
               value={busqueda}
@@ -2326,8 +2327,8 @@ export default function EstudioCapitulos() {
                 </div>
               </div>
 
-              {/* ── Desktop: scroll horizontal de columnas ── */}
-              <div className="hidden sm:flex overflow-x-auto" style={{ maxHeight: selectedCapId ? "220px" : "340px" }}>
+              {/* ── Desktop: cuadrícula de 2 filas con scroll horizontal ── */}
+              <div className="hidden sm:grid overflow-x-auto" style={{ maxHeight: selectedCapId ? "280px" : "420px", gridTemplateRows: "1fr 1fr", gridAutoFlow: "column", gridAutoColumns: "200px", alignItems: "start" }}>
 
                 {/* Columna: Nuevo libro */}
                 {/* Columnas de libros */}
