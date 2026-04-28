@@ -17,8 +17,9 @@ const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[] }[] = 
 ];
 
 // Secciones del Mundo navegables directamente desde el buscador
-const MUNDO_NAV: { section: MundoSectionKey; label: string; aliases: string[] }[] = [
-  { section: "geografia", label: "Reinos", aliases: ["reino", "reinos", "mapa", "mapas", "geografia", "geografía"] },
+// subTab opcional: si existe, se pasa a onSelectMundoSubTab para abrir una subtab interna
+const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab?: string; aliases: string[] }[] = [
+  { section: "geografia", label: "Reinos",   subTab: "reinos",  aliases: ["reino", "reinos", "mapa", "mapas", "geografia", "geografía"] },
   { section: "historia",  label: "Historia", aliases: ["historia"] },
 ];
 
@@ -375,7 +376,6 @@ export function GlobalSearchBar({
       n.aliases.some(a => normalize(a).includes(q) || q.includes(normalize(a)))
     );
   }, [query]);
-
   const mundoResults = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return [...MUNDO_SECTIONS];
@@ -435,7 +435,9 @@ export function GlobalSearchBar({
         } else if (mundoSubTabResults.length > 0) {
           handleMundoSubTab(mundoSubTabResults[0].section, mundoSubTabResults[0].subTab);
         } else if (mundoNavResults.length > 0) {
-          handleMundoSection(mundoNavResults[0].section);
+          const first = mundoNavResults[0];
+          if (first.subTab) handleMundoSubTab(first.section, first.subTab);
+          else handleMundoSection(first.section);
         } else if (tabNavResults.length > 0) {
           handleTabNav(tabNavResults[0].tab);
         } else if (mundoResults.length > 0 && query.trim()) {
@@ -619,13 +621,19 @@ export function GlobalSearchBar({
                           <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
                         </div>
                         <div className="space-y-0.5 mb-1">
-                          {mundoNavResults.map(({ section, label }) => {
+                          {mundoNavResults.map(({ section, label, subTab }) => {
                             const sec = MUNDO_SECTIONS.find(s => s.key === section);
                             const SecIcon = sec?.Icon;
                             return (
                               <button
                                 key={section + label}
-                                onMouseDown={() => handleMundoSection(section)}
+                                onMouseDown={() => {
+                                  if (subTab) {
+                                    handleMundoSubTab(section, subTab);
+                                  } else {
+                                    handleMundoSection(section);
+                                  }
+                                }}
                                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
                                   isMundo && activeMundoSection === section
                                     ? "bg-primary/12 border-primary/20"

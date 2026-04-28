@@ -663,14 +663,15 @@ function PanelMagico({ modo }: { modo: "hechizos" | "dones" }) {
 
 // ─── Panel Geografía con tabs (texto + lista de reinos) ──────────────────────
 function PanelGeografia({
-  texto, onChange, onSave, status,
+  texto, onChange, onSave, status, initialGeoTab,
 }: {
   texto: string;
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
   status: SaveStatus;
+  initialGeoTab?: GeoTab;
 }) {
-  const [geoTab, setGeoTab] = useState<GeoTab>("texto");
+  const [geoTab, setGeoTab] = useState<GeoTab>(initialGeoTab ?? "texto");
   const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
   const { reinos, setReinos, loading } = useReinos();
   const [selectedReino, setSelectedReino] = useState<Reino | null>(null);
@@ -995,6 +996,7 @@ export function EditorMundo({
         onChange={v => onTextoChange("geografia", v)}
         onSave={() => onSave("geografia")}
         status={saveStatus}
+        initialGeoTab={initialMundoTab === "reinos" ? "reinos" : "texto"}
       />
     );
   }
