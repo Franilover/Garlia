@@ -288,6 +288,7 @@ export function GlobalSearchBar({
   activeMundoSection,
   onSelect,
   onAdd,
+  onNavigateTab,
   onSelectMundoSection,
   onSelectMundoSubTab,
   onToggleOculto,
@@ -300,6 +301,7 @@ export function GlobalSearchBar({
   activeMundoSection: MundoSectionKey | null;
   onSelect: (item: any, tab: Exclude<TabKey, "mundo">) => void;
   onAdd: (tab: Exclude<TabKey, "mundo">) => void;
+  onNavigateTab?: (tab: Exclude<TabKey, "mundo">) => void;
   onSelectMundoSection: (s: MundoSectionKey) => void;
   onSelectMundoSubTab?: (section: MundoSectionKey, subTab: string) => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
@@ -387,11 +389,10 @@ export function GlobalSearchBar({
   }, [onSelectMundoSection, close]);
 
   const handleTabNav = useCallback((tab: Exclude<TabKey, "mundo">) => {
-    // Navigate to the tab by selecting no specific item — parent handles tab switch
-    onSelect(allItems[tab]?.[0] ?? null, tab);
+    onNavigateTab?.(tab);
     close();
     inputRef.current?.blur();
-  }, [onSelect, allItems, close]);
+  }, [onNavigateTab, close]);
 
   const handleMundoSubTab = useCallback((section: MundoSectionKey, subTab: string) => {
     onSelectMundoSection(section);

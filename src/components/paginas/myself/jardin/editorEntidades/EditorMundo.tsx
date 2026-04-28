@@ -930,10 +930,10 @@ export function EditorMundo({
 
   // Sync initialMundoTab from outside (e.g. search navigation)
   useEffect(() => {
-    if (initialMundoTab && ["magia", "hechizos", "dones", "runas"].includes(initialMundoTab)) {
+    if (activeSection === "magia" && initialMundoTab && ["magia", "hechizos", "dones", "runas"].includes(initialMundoTab)) {
       setMundoTab(initialMundoTab as MundoTab);
     }
-  }, [initialMundoTab]);
+  }, [initialMundoTab, activeSection]);
 
   // Si el activeSection cambia a no-magia, salimos a la vista simple
   const isMagiaSection = activeSection === "magia";

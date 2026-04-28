@@ -127,6 +127,7 @@ export default function EditorEntidades() {
   const [selectedId,   setSelectedId]   = useState<string | null>(session.current.selectedId);
   const [showNueva,    setShowNueva]    = useState<Exclude<TabKey, "mundo"> | null>(null);
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>("magia");
+  const [requestedSubTab, setRequestedSubTab] = useState<string | undefined>(undefined);
 
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
   const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
@@ -192,10 +193,20 @@ export default function EditorEntidades() {
             setTab(chosenTab);
             setShowNueva(chosenTab as Exclude<TabKey, "mundo">);
           }}
+          onNavigateTab={(chosenTab) => {
+            setTab(chosenTab);
+            setSelectedId(null);
+          }}
           onSelectMundoSection={(section) => {
             setTab("mundo");
             setSelectedId(null);
             setMundoSection(section);
+          }}
+          onSelectMundoSubTab={(section, subTab) => {
+            setTab("mundo");
+            setSelectedId(null);
+            setMundoSection(section);
+            setRequestedSubTab(subTab);
           }}
           onToggleOculto={handleToggleOcultoReino}
         />
@@ -218,6 +229,7 @@ export default function EditorEntidades() {
               textos={mundoTextos}
               onTextoChange={(section, value) => setMundoTextos(t => ({ ...t, [section]: value }))}
               onSave={(section) => saveMundo(section, mundoTextos[section])}
+              initialMundoTab={requestedSubTab}
             />
           ) : selected ? (
             <>
