@@ -533,7 +533,6 @@ export function GlobalSearchBar({
                 )
               ) : (
                 <>
-                  {/* All items — grid de 3 columnas */}
                   <div className="grid grid-cols-6 gap-1">
                     {Object.entries(allItems)
                       .flatMap(([tab, items]) =>
