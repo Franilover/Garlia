@@ -342,6 +342,15 @@ export function EditorCriatura({
           {/* BASE */}
           {tab === "base" && (
             <div className="p-4 space-y-4">
+
+              {/* Drops base — minimalista */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+                  <Package size={9} /> Drops base
+                </span>
+                <BloqueDrops criaturaId={form.id} varianteId={null} />
+              </div>
+
               <div className="flex gap-5">
                 {/* Columna izquierda: imagen */}
                 <div className="shrink-0 w-96">
@@ -350,7 +359,7 @@ export function EditorCriatura({
                     placeholder={<Bug size={20} className="opacity-20" />} />
                 </div>
 
-                {/* Columna derecha: selectores en fila + descripción */}
+                {/* Columna central: selectores + descripción */}
                 <div className="flex-1 min-w-0 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => setForm(f => ({ ...f, habitat: v }))} opciones={habitats} placeholder="Bosque, océano, volcán…" />
@@ -363,41 +372,19 @@ export function EditorCriatura({
                       placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit" />
                   </div>
                 </div>
-              </div>
 
-              {/* Drops base */}
-              <div
-                className="rounded-2xl p-4 space-y-3"
-                style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-                }}
-              >
-                <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
-                  <Package size={10} /> Drops base · {form.nombre}
-                </p>
-                <BloqueDrops criaturaId={form.id} varianteId={null} />
-              </div>
-
-              {/* Catálogo Mágico */}
-              <div
-                className="rounded-2xl p-4 space-y-4"
-                style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-                }}
-              >
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
-                  Catálogo Mágico
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Hechizos</p>
-                    <BloqueHechizos personajeId={form.id} especie={form.nombre} varianteId={null} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Dones</p>
-                    <BloqueDones personajeId={form.id} especie={form.nombre} varianteId={null} />
+                {/* Columna derecha: Catálogo Mágico */}
+                <div className="shrink-0 w-64 space-y-3">
+                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Catálogo Mágico</p>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25">Hechizos</p>
+                      <BloqueHechizos personajeId={form.id} especie={form.nombre} varianteId={null} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25">Dones</p>
+                      <BloqueDones personajeId={form.id} especie={form.nombre} varianteId={null} />
+                    </div>
                   </div>
                 </div>
               </div>
