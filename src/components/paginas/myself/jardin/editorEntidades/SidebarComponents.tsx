@@ -22,6 +22,7 @@ const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab?: string; ali
   { section: "geografia", label: "Mundo",     subTab: "texto",     aliases: ["mundo", "world", "geografia", "geografía"] },
   { section: "geografia", label: "Reinos",    subTab: "reinos",    aliases: ["reino", "reinos", "mapa", "mapas"] },
   { section: "geografia", label: "Criaturas", subTab: "criaturas", aliases: ["criatura", "criaturas", "bestia", "bestias", "monstruo"] },
+  { section: "geografia", label: "Objetos",   subTab: "objetos",   aliases: ["objeto", "objetos", "item", "items", "arma", "reliquia"] },
   { section: "historia",  label: "Historia",  aliases: ["historia"] },
   { section: "historia",  label: "Personajes", subTab: "personajes", aliases: ["personaje", "personajes", "character", "characters"] },
 ];

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Sparkles, Star, Globe, Plus, Trash2, Save, Loader2, Search, X, Bug,
-  ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText, Users, UserCircle2,
+  ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText, Users, UserCircle2, Package,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -13,6 +13,7 @@ import { MarkdownEditor } from "./MarkdownEditor";
 import { EditorReino } from "./EditorReino";
 import { FormularioPersonaje } from "./EditorPersonaje";
 import { EditorCriatura } from "./EditorCriatura";
+import { EditorItem } from "./EditorItem";
 
 // ─── Types locales ────────────────────────────────────────────────────────────
 type EntidadMagica = {
@@ -948,7 +949,17 @@ function useCriaturasList() {
   return { criaturas, setCriaturas, loading };
 }
 
-type MundoGeoTab = "texto" | "reinos" | "criaturas";
+function useObjetosList() {
+  const [objetos, setObjetos] = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre")
+      .then(({ data }) => { setObjetos(data ?? []); setLoading(false); });
+  }, []);
+  return { objetos, setObjetos, loading };
+}
+
+type MundoGeoTab = "texto" | "reinos" | "criaturas" | "objetos";
 
 // ─── Panel Mundo con tabs (texto + reinos + criaturas) ────────────────────────
 function PanelMundo({
@@ -964,8 +975,10 @@ function PanelMundo({
   const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
   const { reinos, setReinos, loading: loadingReinos } = useReinos();
   const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturasList();
+  const { objetos, setObjetos, loading: loadingObjetos } = useObjetosList();
   const [selectedReino, setSelectedReino] = useState<Reino | null>(null);
   const [selectedCriatura, setSelectedCriatura] = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
+  const [selectedObjeto, setSelectedObjeto] = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string } | null>(null);
   const [search, setSearch] = useState("");
 
   // Reset search when switching tabs
@@ -979,11 +992,13 @@ function PanelMundo({
 
   const filteredReinos = reinos.filter(r => r.nombre.toLowerCase().includes(search.toLowerCase()));
   const filteredCriaturas = criaturas.filter(c => c.nombre.toLowerCase().includes(search.toLowerCase()));
+  const filteredObjetos = objetos.filter(o => o.nombre.toLowerCase().includes(search.toLowerCase()));
 
   const GEO_TABS: { key: MundoGeoTab; label: string; Icon: React.ElementType; count?: number }[] = [
     { key: "texto",    label: "Texto",    Icon: FileText },
-    { key: "reinos",   label: "Reinos",   Icon: Map,  count: reinos.length },
-    { key: "criaturas",label: "Criaturas",Icon: Bug,  count: criaturas.length },
+    { key: "reinos",   label: "Reinos",   Icon: Map,     count: reinos.length },
+    { key: "criaturas",label: "Criaturas",Icon: Bug,     count: criaturas.length },
+    { key: "objetos",  label: "Objetos",  Icon: Package, count: objetos.length },
   ];
 
   return (
@@ -995,7 +1010,7 @@ function PanelMundo({
       >
         {GEO_TABS.map(tab => {
           const active = geoTab === tab.key;
-          const loading = tab.key === "reinos" ? loadingReinos : tab.key === "criaturas" ? loadingCriaturas : false;
+          const loading = tab.key === "reinos" ? loadingReinos : tab.key === "criaturas" ? loadingCriaturas : tab.key === "objetos" ? loadingObjetos : false;
           return (
             <button
               key={tab.key}
@@ -1125,11 +1140,67 @@ function PanelMundo({
           </ListaConBuscador>
         </div>
       )}
+      {/* Tab: Objetos */}
+      {geoTab === "objetos" && (
+        <div className="flex-1 flex min-h-0 overflow-hidden relative">
+          {selectedObjeto && (
+            <div className="absolute inset-0 z-10 flex flex-col" style={{ background: "var(--bg-main)" }}>
+              <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-primary/10"
+                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+                <button onClick={() => setSelectedObjeto(null)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all">
+                  <ChevronRight size={12} className="rotate-180" /> Volver a Objetos
+                </button>
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center shrink-0">
+                    {selectedObjeto.imagen_url
+                      ? <img src={selectedObjeto.imagen_url} alt={selectedObjeto.nombre} className="w-full h-full object-cover" />
+                      : <Package size={12} className="text-primary/25" />}
+                  </div>
+                  <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/70 truncate">{selectedObjeto.nombre}</span>
+                </div>
+              </div>
+              <div className="flex-1 flex min-h-0 overflow-hidden">
+                <EditorItem
+                  key={selectedObjeto.id}
+                  item={selectedObjeto as any}
+                  onSaved={updated => {
+                    setObjetos(prev => prev.map(o => o.id === updated.id ? { ...o, ...updated } : o));
+                    setSelectedObjeto({ ...selectedObjeto, ...updated });
+                  }}
+                  onDeleted={id => {
+                    setObjetos(prev => prev.filter(o => o.id !== id));
+                    setSelectedObjeto(null);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          <ListaConBuscador
+            search={search} onSearch={setSearch} placeholder="Buscar objeto…"
+            loading={loadingObjetos} emptyText="Sin objetos aún"
+          >
+            {filteredObjetos.map(o => (
+              <button key={o.id} onClick={() => setSelectedObjeto(o)}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                  {o.imagen_url
+                    ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" />
+                    : <Package size={13} className="text-primary/20" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-primary/80 truncate">{o.nombre}</p>
+                  {o.categoria && <p className="text-[9px] text-primary/35 truncate">{o.categoria}</p>}
+                </div>
+                <ChevronRight size={10} className="text-primary/20 shrink-0 group-hover:text-primary/40 transition-colors" />
+              </button>
+            ))}
+          </ListaConBuscador>
+        </div>
+      )}
     </div>
   );
 }
-
-// ─── Panel de texto Magia (markdown) ─────────────────────────────────────────
 function PanelMagia({
   texto, onChange, onSave, status,
 }: {
@@ -1225,6 +1296,7 @@ export function EditorMundo({
   if (activeSection === "geografia") {
     const geoTab = initialMundoTab === "reinos" ? "reinos"
       : initialMundoTab === "criaturas" ? "criaturas"
+      : initialMundoTab === "objetos" ? "objetos"
       : "texto";
     return (
       <PanelMundo
