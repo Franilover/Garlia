@@ -9,11 +9,11 @@ import { TAB_CONFIG, MUNDO_SECTIONS, type TabKey, type MundoSectionKey } from ".
 
 // Subtabs internos del módulo Magia
 type MundoSubTab = "magia" | "hechizos" | "dones" | "runas";
-const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[] }[] = [
-  { key: "magia",    label: "Magia",    aliases: ["magia", "magic"] },
-  { key: "hechizos", label: "Hechizos", aliases: ["hechizo", "hechizos", "spell", "spells"] },
-  { key: "dones",    label: "Dones",    aliases: ["don", "dones", "gift", "gifts"] },
-  { key: "runas",    label: "Runas",    aliases: ["runa", "runas", "rune", "runes"] },
+const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[]; section: MundoSectionKey }[] = [
+  { key: "magia",    label: "Magia",    section: "magia",    aliases: ["magia", "magic", "sistema de magia"] },
+  { key: "hechizos", label: "Hechizos", section: "magia",    aliases: ["hechizo", "hechizos", "spell", "spells"] },
+  { key: "dones",    label: "Dones",    section: "magia",    aliases: ["don", "dones", "gift", "gifts"] },
+  { key: "runas",    label: "Runas",    section: "magia",    aliases: ["runa", "runas", "rune", "runes"] },
 ];
 
 // Secciones del Mundo navegables directamente desde el buscador
@@ -23,7 +23,11 @@ const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab?: string; ali
   { section: "geografia", label: "Reinos",    subTab: "reinos",    aliases: ["reino", "reinos", "mapa", "mapas"] },
   { section: "geografia", label: "Criaturas", subTab: "criaturas", aliases: ["criatura", "criaturas", "bestia", "bestias", "monstruo"] },
   { section: "geografia", label: "Objetos",   subTab: "objetos",   aliases: ["objeto", "objetos", "item", "items", "arma", "reliquia"] },
-  { section: "historia",  label: "Historia",  aliases: ["historia"] },
+  { section: "magia",     label: "Magia",     subTab: "magia",     aliases: ["magia", "magic", "sistema"] },
+  { section: "magia",     label: "Hechizos",  subTab: "hechizos",  aliases: ["hechizo", "hechizos", "spell", "spells"] },
+  { section: "magia",     label: "Dones",     subTab: "dones",     aliases: ["don", "dones", "gift", "gifts"] },
+  { section: "magia",     label: "Runas",     subTab: "runas",     aliases: ["runa", "runas", "rune", "runes"] },
+  { section: "historia",  label: "Historia",  subTab: "texto",     aliases: ["historia", "history", "lore"] },
   { section: "historia",  label: "Personajes", subTab: "personajes", aliases: ["personaje", "personajes", "character", "characters"] },
 ];
 
@@ -364,13 +368,15 @@ export function GlobalSearchBar({
       .map(([tab]) => ({ tab }));
   }, [query]);
 
-  // Navegación a subtabs del Mundo/Magia (hechizos, dones, runas, magia)
+  // Navegación a subtabs del Mundo/Magia/Historia — sub-tabs internos únicamente (hechizos, dones, runas, personajes)
   const mundoSubTabResults = useMemo((): MundoSubTabResult[] => {
     const q = normalize(query.trim());
     if (!q) return [];
-    return MUNDO_SUBTABS
+    // Solo los subtabs "hijos" (no los que abren una sección entera)
+    const SUB_ONLY = MUNDO_SUBTABS.filter(st => st.key !== "magia");
+    return SUB_ONLY
       .filter(st => st.aliases.some(a => normalize(a).includes(q) || q.includes(normalize(a))))
-      .map(st => ({ section: "magia" as MundoSectionKey, subTab: st.key, label: st.label }));
+      .map(st => ({ section: st.section as MundoSectionKey, subTab: st.key, label: st.label }));
   }, [query]);
 
   // Navegación directa a secciones del Mundo (Reinos → Geografía, Historia)
@@ -755,7 +761,8 @@ export function GlobalSearchBar({
                     <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
                   </div>
                   <div className="space-y-0.5">
-                    {MUNDO_SECTIONS.map(section => (
+                    {/* Geografía — sección principal */}
+                    {MUNDO_SECTIONS.filter(s => s.key === "geografia").map(section => (
                       <MundoSectionCard
                         key={section.key}
                         section={section}
@@ -763,6 +770,18 @@ export function GlobalSearchBar({
                         onClick={() => handleMundoSection(section.key as MundoSectionKey)}
                       />
                     ))}
+                    {/* Magia e Historia — sub-secciones dentro de Mundo */}
+                    <div className="pl-3 space-y-0.5 border-l ml-4"
+                      style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                      {MUNDO_SECTIONS.filter(s => s.key === "magia" || s.key === "historia").map(section => (
+                        <MundoSectionCard
+                          key={section.key}
+                          section={section}
+                          selected={isMundo && activeMundoSection === section.key}
+                          onClick={() => handleMundoSection(section.key as MundoSectionKey)}
+                        />
+                      ))}
+                    </div>
                   </div>
                   {/* Add hint at the bottom */}
                   <div className="mt-2 px-2 py-1.5 rounded-xl border border-dashed flex items-center gap-2"
