@@ -17,12 +17,13 @@ import { BloqueDones } from "./BloqueDones";
 import { BloqueDrops } from "./BloqueDrops";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
-type InnerTab = "base" | "biologia" | "variantes" | "especie";
+type InnerTab = "base" | "biologia" | "variantes" | "especie" | "drops";
 
 const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
   { key: "base",      label: "Base",      Icon: Brain     },
   { key: "biologia",  label: "Biología",  Icon: Dna       },
   { key: "variantes", label: "Variantes", Icon: GitBranch },
+  { key: "drops",     label: "Drops",     Icon: Package   },
   { key: "especie",   label: "Especie",   Icon: Users     },
 ];
 
@@ -76,9 +77,10 @@ function VarianteEditor({
   onSaved: (v: CriaturaVariante) => void;
   onDeleted: (id: string) => void;
 }) {
-  const [form,     setForm]     = useState(variante);
-  const [expanded, setExpanded] = useState(false);
-  const [status,   setStatus]   = useState<SaveStatus>("idle");
+  const [form,       setForm]       = useState(variante);
+  const [expanded,   setExpanded]   = useState(false);
+  const [dropsOpen,  setDropsOpen]  = useState(false);
+  const [status,     setStatus]     = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
 
   const handleSave = async () => {
@@ -151,18 +153,33 @@ function VarianteEditor({
                 rows={3} placeholder="Ideas, pendientes, inspiración…" toolbar defaultMode="edit" />
             </div>
 
-            {/* ── Drops de esta variante ──────────────────────────────────── */}
+            {/* ── Drops de variante ──────────────────────────────────────── */}
             <div
-              className="rounded-xl p-3 space-y-2"
+              className="rounded-xl overflow-hidden"
               style={{
                 border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                 background: "color-mix(in srgb, var(--primary) 2%, transparent)",
               }}
             >
-              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
-                <Package size={9} /> Drops exclusivos de esta variante
-              </p>
-              <BloqueDrops criaturaId={criaturaId} varianteId={form.id} />
+              <button
+                type="button"
+                onClick={() => setDropsOpen(o => !o)}
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-primary/3 transition-colors"
+              >
+                <Package size={11} className="shrink-0 text-primary/30" />
+                <span className="flex-1 text-[10px] font-black uppercase tracking-[0.25em] text-primary/40">
+                  Drops de esta variante
+                </span>
+                <ChevronDown size={12} className="shrink-0 text-primary/20 transition-transform duration-200"
+                  style={{ transform: dropsOpen ? "rotate(180deg)" : undefined }} />
+              </button>
+              {dropsOpen && (
+                <div className="px-3 pb-3 pt-0 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+                  <div className="mt-3">
+                    <BloqueDrops criaturaId={criaturaId} varianteId={form.id} />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -343,20 +360,6 @@ export function EditorCriatura({
                 <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
                   placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit" />
               </div>
-
-              {/* ── Drops ─────────────────────────────────────────────────── */}
-              <div
-                className="rounded-2xl p-4 space-y-3"
-                style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-                }}
-              >
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
-                  <Package size={10} /> Drops
-                </label>
-                <BloqueDrops criaturaId={form.id} varianteId={null} />
-              </div>
             </div>
           )}
 
@@ -377,7 +380,7 @@ export function EditorCriatura({
                 </div>
               </div>
 
-              {/* Catálogo Mágico: hechizos y dones asignados a esta criatura */}
+              {/* Catálogo Mágico */}
               <div
                 className="rounded-2xl p-4 space-y-4"
                 style={{
@@ -448,6 +451,41 @@ export function EditorCriatura({
             </div>
           )}
 
+          {/* DROPS */}
+          {tab === "drops" && (
+            <div className="p-4 space-y-4">
+              {/* Drops base de la criatura */}
+              <div
+                className="rounded-2xl p-4 space-y-3"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Package size={12} className="text-primary/35" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/40">
+                    Drops base
+                  </p>
+                  <span className="text-[9px] text-primary/25 italic ml-1">— sin variante específica</span>
+                </div>
+                <BloqueDrops criaturaId={form.id} varianteId={null} />
+              </div>
+
+              {/* Drops por variante */}
+              {variantes.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/25 px-1">
+                    Drops por variante
+                  </p>
+                  {variantes.map(v => (
+                    <VarianteDropsPanel key={v.id} variante={v} criaturaId={form.id} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ESPECIE */}
           {tab === "especie" && (
             <div className="p-4">
@@ -462,6 +500,46 @@ export function EditorCriatura({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Panel drops colapsable para una variante (en tab Drops) ─────────────────
+function VarianteDropsPanel({ variante, criaturaId }: { variante: CriaturaVariante; criaturaId: string }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{
+        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+        background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-primary/3 transition-colors"
+      >
+        {variante.imagen_url && (
+          <div className="w-6 h-6 rounded-md overflow-hidden border border-primary/10 shrink-0">
+            <img src={variante.imagen_url} alt={variante.tipo} className="w-full h-full object-cover" />
+          </div>
+        )}
+        <GitBranch size={11} className="shrink-0 text-primary/30" />
+        <span className="flex-1 text-[11px] font-black uppercase tracking-widest text-primary/70 truncate">
+          {variante.tipo}
+        </span>
+        <ChevronDown size={12} className="shrink-0 text-primary/20 transition-transform duration-200"
+          style={{ transform: open ? "rotate(180deg)" : undefined }} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 pt-0 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+          <div className="mt-3">
+            <BloqueDrops criaturaId={criaturaId} varianteId={variante.id} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
