@@ -186,9 +186,6 @@ export function MarkdownEditor({
             {toolbarOpen && (
               <div className="absolute top-full left-0 mt-1 z-50 bg-white-custom border border-primary/15 rounded-xl shadow-xl p-2 flex flex-col gap-0.5 min-w-[130px]">
                 {[
-                  { label: "H1", action: () => insertSnippet("\n# Título\n") },
-                  { label: "H2", action: () => insertSnippet("\n## Subtítulo\n") },
-                  { label: "H3", action: () => insertSnippet("\n### Sección\n") },
                   { label: "Negrita", action: () => wrapSelection("**", "**") },
                   { label: "Itálica", action: () => wrapSelection("*", "*") },
                   { label: "Código", action: () => wrapSelection("`", "`") },
@@ -209,17 +206,6 @@ export function MarkdownEditor({
 
           {/* Herramientas completas — solo desktop */}
           <div className="hidden sm:flex flex-wrap items-center gap-1 px-2 py-1 bg-primary/5 border border-primary/10 rounded-xl flex-1">
-            {[
-              { label: "H1", snippet: "\n# Título\n" },
-              { label: "H2", snippet: "\n## Subtítulo\n" },
-              { label: "H3", snippet: "\n### Sección\n" },
-            ].map(({ label, snippet }) => (
-              <button key={label} type="button" onClick={() => insertSnippet(snippet)}
-                className="px-2 py-1 rounded-lg text-[10px] font-black text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-                {label}
-              </button>
-            ))}
-            <span className="w-px h-4 bg-primary/15 mx-0.5" />
             <button type="button" onClick={() => wrapSelection("**", "**")} title="Negrita (Ctrl+B)"
               className="px-2 py-1 rounded-lg text-[10px] font-black text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
               <strong>B</strong>
