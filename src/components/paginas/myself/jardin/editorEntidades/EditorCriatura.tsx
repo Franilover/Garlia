@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  Bug, Plus, Check, X, Trash2, Save, ChevronDown,
+  Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
   Leaf, Dna, Brain, Wand2, GitBranch, Users, Package,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
@@ -131,29 +131,28 @@ function VarianteEditor({
 
       {expanded && (
         <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-          <div className="mt-3 grid grid-cols-2 gap-4 items-start">
-            {/* Columna izquierda: imagen */}
-            <div className="space-y-3">
-              <SelectorImagen label="Imagen" value={form.imagen_url ?? ""} onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-                aspect="portrait" placeholder={<Bug size={16} className="opacity-20" />} />
+          <div className="mt-3 space-y-3">
+            <div>
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo / Nombre</label>
+              <input value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
+                className={INPUT_CLS + " mt-1"} placeholder="Joven, Adulto, Albino, Nocturno…" />
+            </div>
+            <SelectorImagen label="Imagen" value={form.imagen_url ?? ""} onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+              aspect="landscape" placeholder={<Bug size={16} className="opacity-20" />} />
+            <div>
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
+              <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+                rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" />
+            </div>
+            <div>
+              <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5 mb-1"
+                style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                <Lock size={9} /> Notas de creador
+              </label>
+              <MarkdownEditor value={form.notas ?? ""} onChange={v => setForm(f => ({ ...f, notas: v }))}
+                rows={3} placeholder="Ideas, pendientes, inspiración…" toolbar defaultMode="edit" />
             </div>
 
-            {/* Columna derecha: detalles */}
-            <div className="space-y-3">
-              <div>
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo / Nombre</label>
-                <input value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
-                  className={INPUT_CLS + " mt-1"} placeholder="Joven, Adulto, Albino, Nocturno…" />
-              </div>
-              <div>
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
-                <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                  rows={5} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
             {/* ── Drops de variante ──────────────────────────────────────── */}
             <div
               className="rounded-xl overflow-hidden"
@@ -340,26 +339,26 @@ export function EditorCriatura({
 
           {/* BASE */}
           {tab === "base" && (
-            <div className="p-4 space-y-4">
-              {/* Image + meta fields */}
-              <div className="flex gap-4">
-                <div className="shrink-0 w-24">
-                  <SelectorImagen label="Ilustración" value={form.imagen_url ?? ""}
-                    onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
-                    placeholder={<Bug size={20} className="opacity-20" />} />
-                </div>
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 content-start">
+            <div className="p-4 grid grid-cols-2 gap-4 items-start">
+              {/* Columna izquierda — Imagen */}
+              <div>
+                <SelectorImagen label="Ilustración" value={form.imagen_url ?? ""}
+                  onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="portrait"
+                  placeholder={<Bug size={28} className="opacity-20" />} />
+              </div>
+
+              {/* Columna derecha — Dropdowns + Descripción */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-3">
                   <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => setForm(f => ({ ...f, habitat: v }))} opciones={habitats} placeholder="Bosque, océano, volcán…" />
                   <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
                   <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
                 </div>
-              </div>
-
-              {/* Descripción */}
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
-                <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                  placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit" />
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
+                  <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+                    placeholder="Aspecto físico general…" rows={8} toolbar defaultMode="edit" />
+                </div>
               </div>
             </div>
           )}
