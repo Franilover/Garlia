@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
+  Bug, Plus, Check, X, Trash2, Save, ChevronDown,
   Leaf, Dna, Brain, Wand2, GitBranch, Users, Package,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
@@ -131,28 +131,29 @@ function VarianteEditor({
 
       {expanded && (
         <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-          <div className="mt-3 space-y-3">
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo / Nombre</label>
-              <input value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
-                className={INPUT_CLS + " mt-1"} placeholder="Joven, Adulto, Albino, Nocturno…" />
-            </div>
-            <SelectorImagen label="Imagen" value={form.imagen_url ?? ""} onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-              aspect="landscape" placeholder={<Bug size={16} className="opacity-20" />} />
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
-              <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" />
-            </div>
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5 mb-1"
-                style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                <Lock size={9} /> Notas de creador
-              </label>
-              <MarkdownEditor value={form.notas ?? ""} onChange={v => setForm(f => ({ ...f, notas: v }))}
-                rows={3} placeholder="Ideas, pendientes, inspiración…" toolbar defaultMode="edit" />
+          <div className="mt-3 grid grid-cols-2 gap-4 items-start">
+            {/* Columna izquierda: imagen */}
+            <div className="space-y-3">
+              <SelectorImagen label="Imagen" value={form.imagen_url ?? ""} onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+                aspect="portrait" placeholder={<Bug size={16} className="opacity-20" />} />
             </div>
 
+            {/* Columna derecha: detalles */}
+            <div className="space-y-3">
+              <div>
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo / Nombre</label>
+                <input value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
+                  className={INPUT_CLS + " mt-1"} placeholder="Joven, Adulto, Albino, Nocturno…" />
+              </div>
+              <div>
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
+                <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+                  rows={5} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
             {/* ── Drops de variante ──────────────────────────────────────── */}
             <div
               className="rounded-xl overflow-hidden"
