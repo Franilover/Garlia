@@ -17,12 +17,11 @@ import { BloqueDones } from "./BloqueDones";
 import { BloqueDrops } from "./BloqueDrops";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
-type InnerTab = "base" | "biologia" | "especie";
+type InnerTab = "base" | "especie";
 
 const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
-  { key: "base",      label: "Base",      Icon: Brain    },
-  { key: "biologia",  label: "Biología",  Icon: Dna      },
-  { key: "especie",   label: "Especie",   Icon: Users    },
+  { key: "base",    label: "Base",    Icon: Brain },
+  { key: "especie", label: "Especie", Icon: Users },
 ];
 
 // ─── Campo colapsable ─────────────────────────────────────────────────────────
@@ -380,6 +379,29 @@ export function EditorCriatura({
                 <BloqueDrops criaturaId={form.id} varianteId={null} />
               </div>
 
+              {/* Catálogo Mágico */}
+              <div
+                className="rounded-2xl p-4 space-y-4"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+                }}
+              >
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
+                  Catálogo Mágico
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Hechizos</p>
+                    <BloqueHechizos personajeId={form.id} especie={form.nombre} varianteId={null} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Dones</p>
+                    <BloqueDones personajeId={form.id} especie={form.nombre} varianteId={null} />
+                  </div>
+                </div>
+              </div>
+
               {/* Variantes */}
               <div className="space-y-3">
                 <div className="space-y-2">
@@ -422,33 +444,6 @@ export function EditorCriatura({
                     <Plus size={11} /> Añadir Variante
                   </button>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* BIOLOGÍA */}
-          {tab === "biologia" && (
-            <div className="p-3 space-y-3">
-              <div
-                className="rounded-2xl p-4 space-y-4"
-                style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-                }}
-              >
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
-                  Catálogo Mágico
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Hechizos</p>
-                    <BloqueHechizos personajeId={form.id} especie={form.nombre} varianteId={null} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Dones</p>
-                    <BloqueDones personajeId={form.id} especie={form.nombre} varianteId={null} />
-                  </div>
-                </div>
               </div>
             </div>
           )}
