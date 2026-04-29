@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Package, Save, Trash2 } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Package, Save, Trash2, Bug, Loader2, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Item, type SaveStatus } from "./types";
@@ -9,6 +9,50 @@ import { useUniqueValues } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "./MarkdownEditor";
 
+// ─── Types locales ─────────────────────────────────────────────────────────────
+type DropSource = {
+  criatura_id: string;
+  criatura_nombre: string;
+  criatura_imagen?: string | null;
+  variante_id: string | null;
+  variante_tipo: string | null;
+};
+
+// ─── Hook: fuentes de drop para un item ───────────────────────────────────────
+function useFuentesDrops(itemId: string) {
+  const [fuentes, setFuentes] = useState<DropSource[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("criatura_drops")
+      .select(`
+        criatura_id,
+        variante_id,
+        criatura:criaturas!criatura_id(nombre, imagen_url),
+        variante:criatura_variantes!variante_id(tipo)
+      `)
+      .eq("item_id", itemId);
+
+    const rows: DropSource[] = (data ?? []).map((r: any) => ({
+      criatura_id:      r.criatura_id,
+      criatura_nombre:  (Array.isArray(r.criatura) ? r.criatura[0]?.nombre : r.criatura?.nombre) ?? "—",
+      criatura_imagen:  (Array.isArray(r.criatura) ? r.criatura[0]?.imagen_url : r.criatura?.imagen_url) ?? null,
+      variante_id:      r.variante_id ?? null,
+      variante_tipo:    (Array.isArray(r.variante) ? r.variante[0]?.tipo : r.variante?.tipo) ?? null,
+    }));
+
+    setFuentes(rows);
+    setLoading(false);
+  }, [itemId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return { fuentes, loading };
+}
+
+// ─── EditorItem ───────────────────────────────────────────────────────────────
 export function EditorItem({
   item, onSaved, onDeleted,
 }: {
@@ -19,6 +63,7 @@ export function EditorItem({
   const { confirm, ConfirmModal } = useConfirm();
 
   const categorias = useUniqueValues("items", "categoria");
+  const { fuentes, loading: loadingFuentes } = useFuentesDrops(item.id);
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
 
@@ -114,6 +159,82 @@ export function EditorItem({
             toolbar
             defaultMode="edit"
           />
+        </div>
+
+        {/* ── Criaturas que sueltan este item ─────────────────────────────── */}
+        <div
+          className="rounded-2xl p-4 space-y-3"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+          }}
+        >
+          <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
+            <Bug size={10} /> Criaturas que lo sueltan
+          </label>
+
+          {loadingFuentes ? (
+            <div className="flex justify-center py-3">
+              <Loader2 size={13} className="animate-spin text-primary/20" />
+            </div>
+          ) : fuentes.length === 0 ? (
+            <p className="text-[10px] text-primary/20 italic text-center py-2">
+              Ninguna criatura tiene este item como drop
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {fuentes.map((f, i) => (
+                <div
+                  key={`${f.criatura_id}-${f.variante_id ?? "base"}-${i}`}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-primary/10 bg-primary/3"
+                >
+                  {/* Thumbnail criatura */}
+                  <div className="shrink-0 w-6 h-6 rounded-lg overflow-hidden bg-primary/8 border border-primary/10 flex items-center justify-center">
+                    {f.criatura_imagen
+                      ? <img src={f.criatura_imagen} alt={f.criatura_nombre} className="w-full h-full object-cover" />
+                      : <Bug size={9} className="text-primary/30" />}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-primary/70 truncate">{f.criatura_nombre}</p>
+                    {f.variante_tipo && (
+                      <p className="text-[9px] text-primary/35 truncate">
+                        Variante: {f.variante_tipo}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Badge si es variante */}
+                  {f.variante_tipo ? (
+                    <span
+                      className="shrink-0 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider"
+                      style={{
+                        background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                        color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      }}
+                    >
+                      variante
+                    </span>
+                  ) : (
+                    <span
+                      className="shrink-0 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider"
+                      style={{
+                        background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                        color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                      }}
+                    >
+                      base
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="text-[9px] text-primary/20 italic">
+            Editá los drops desde cada criatura.
+          </p>
         </div>
       </div>
     </div>

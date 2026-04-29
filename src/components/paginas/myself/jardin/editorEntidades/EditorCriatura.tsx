@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
-  Leaf, Dna, Brain, Wand2, GitBranch, Users,
+  Leaf, Dna, Brain, Wand2, GitBranch, Users, Package,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -14,6 +14,7 @@ import { MarkdownEditor } from "./MarkdownEditor";
 import { PanelPersonajes } from "./PanelPersonajes";
 import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";
+import { BloqueDrops } from "./BloqueDrops";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
 type InnerTab = "base" | "biologia" | "variantes" | "especie";
@@ -68,9 +69,12 @@ function CampoLore({
 
 // ─── VarianteEditor ────────────────────────────────────────────────────────────
 function VarianteEditor({
-  variante, onSaved, onDeleted,
+  variante, criaturaId, onSaved, onDeleted,
 }: {
-  variante: CriaturaVariante; onSaved: (v: CriaturaVariante) => void; onDeleted: (id: string) => void;
+  variante: CriaturaVariante;
+  criaturaId: string;
+  onSaved: (v: CriaturaVariante) => void;
+  onDeleted: (id: string) => void;
 }) {
   const [form,     setForm]     = useState(variante);
   const [expanded, setExpanded] = useState(false);
@@ -146,7 +150,22 @@ function VarianteEditor({
               <MarkdownEditor value={form.notas ?? ""} onChange={v => setForm(f => ({ ...f, notas: v }))}
                 rows={3} placeholder="Ideas, pendientes, inspiración…" toolbar defaultMode="edit" />
             </div>
+
+            {/* ── Drops de esta variante ──────────────────────────────────── */}
+            <div
+              className="rounded-xl p-3 space-y-2"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+              }}
+            >
+              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+                <Package size={9} /> Drops exclusivos de esta variante
+              </p>
+              <BloqueDrops criaturaId={criaturaId} varianteId={form.id} />
+            </div>
           </div>
+
           <div className="flex items-center justify-between pt-1">
             <button onClick={handleDelete}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
@@ -324,6 +343,20 @@ export function EditorCriatura({
                 <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
                   placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit" />
               </div>
+
+              {/* ── Drops ─────────────────────────────────────────────────── */}
+              <div
+                className="rounded-2xl p-4 space-y-3"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+                }}
+              >
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
+                  <Package size={10} /> Drops
+                </label>
+                <BloqueDrops criaturaId={form.id} varianteId={null} />
+              </div>
             </div>
           )}
 
@@ -374,9 +407,13 @@ export function EditorCriatura({
             <div className="p-4 space-y-3">
               <div className="space-y-2">
                 {variantes.map(v => (
-                  <VarianteEditor key={v.id} variante={v}
+                  <VarianteEditor
+                    key={v.id}
+                    variante={v}
+                    criaturaId={form.id}
                     onSaved={updated => setVariantes(prev => prev.map(x => x.id === updated.id ? updated : x))}
-                    onDeleted={id => setVariantes(prev => prev.filter(x => x.id !== id))} />
+                    onDeleted={id => setVariantes(prev => prev.filter(x => x.id !== id))}
+                  />
                 ))}
               </div>
 
@@ -410,6 +447,7 @@ export function EditorCriatura({
               )}
             </div>
           )}
+
           {/* ESPECIE */}
           {tab === "especie" && (
             <div className="p-4">
