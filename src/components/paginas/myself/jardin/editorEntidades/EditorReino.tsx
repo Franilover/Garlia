@@ -507,31 +507,52 @@ export function EditorReino({ item, onSaved, onDeleted }: {
 
           {/* LORE */}
           {tab === "lore" && (
-            <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Historia</label>
-                <MarkdownEditor value={form.historia ?? ""} onChange={v => setForm(f => ({ ...f, historia: v }))}
-                  placeholder="Origen, eventos clave, cronología del reino…" rows={10} toolbar defaultMode="edit" />
+            <div className="p-3 grid grid-cols-3 gap-3">
+              {/* Col 1 — Historia (ocupa 2 filas verticalmente) */}
+              <div className="row-span-2 space-y-1 flex flex-col">
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+                  <Globe size={9} className="opacity-50" /> Historia
+                </label>
+                <div className="flex-1">
+                  <MarkdownEditor value={form.historia ?? ""} onChange={v => setForm(f => ({ ...f, historia: v }))}
+                    placeholder="Origen, eventos clave, cronología del reino…" rows={16} toolbar defaultMode="edit" />
+                </div>
               </div>
+
+              {/* Col 2 fila 1 — Geografía */}
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Geografía</label>
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+                  <Mountain size={9} className="opacity-50" /> Geografía
+                </label>
                 <MarkdownEditor value={form.geografia ?? ""} onChange={v => setForm(f => ({ ...f, geografia: v }))}
-                  placeholder="Paisajes, clima, fronteras, ciudades principales…" rows={10} toolbar defaultMode="edit" />
+                  placeholder="Paisajes, clima, fronteras, ciudades principales…" rows={7} toolbar defaultMode="edit" />
               </div>
+
+              {/* Col 3 fila 1 — Cultura */}
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Cultura</label>
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+                  <Landmark size={9} className="opacity-50" /> Cultura
+                </label>
                 <MarkdownEditor value={form.cultura ?? ""} onChange={v => setForm(f => ({ ...f, cultura: v }))}
-                  placeholder="Tradiciones, religión, idioma, costumbres, arte…" rows={10} toolbar defaultMode="edit" />
+                  placeholder="Tradiciones, religión, idioma, costumbres, arte…" rows={7} toolbar defaultMode="edit" />
               </div>
+
+              {/* Col 2 fila 2 — Política */}
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Política</label>
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+                  <Users size={9} className="opacity-50" /> Política
+                </label>
                 <MarkdownEditor value={form.politica ?? ""} onChange={v => setForm(f => ({ ...f, politica: v }))}
-                  placeholder="Sistema de gobierno, facciones, líderes, leyes…" rows={10} toolbar defaultMode="edit" />
+                  placeholder="Sistema de gobierno, facciones, líderes, leyes…" rows={7} toolbar defaultMode="edit" />
               </div>
-              <div className="sm:col-span-2 space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Economía</label>
+
+              {/* Col 3 fila 2 — Economía */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+                  <Coins size={9} className="opacity-50" /> Economía
+                </label>
                 <MarkdownEditor value={form.economia ?? ""} onChange={v => setForm(f => ({ ...f, economia: v }))}
-                  placeholder="Recursos, comercio, moneda, riqueza…" rows={6} toolbar defaultMode="edit" />
+                  placeholder="Recursos, comercio, moneda, riqueza…" rows={7} toolbar defaultMode="edit" />
               </div>
             </div>
           )}
