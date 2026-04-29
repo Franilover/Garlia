@@ -243,9 +243,10 @@ export function FormularioPersonaje({
 
           {/* IDENTIDAD */}
           {tab === "identidad" && (
-            <div className="p-3 space-y-3">
-              <div className="flex gap-3">
-                <div className="shrink-0 w-20">
+            <div className="p-3">
+              <div className="flex gap-4">
+                {/* Columna izquierda: imagen cara */}
+                <div className="shrink-0 w-28">
                   <SelectorImagen
                     label="Cara"
                     value={form.img_url ?? ""}
@@ -254,34 +255,21 @@ export function FormularioPersonaje({
                     placeholder={<UserCircle2 size={20} className="opacity-25" />}
                   />
                 </div>
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 content-start">
-                  <div className="col-span-full sm:col-span-1 space-y-1">
-                    <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v, variante_id: null }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
-                    {variantes.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
-                        <button
-                          type="button"
-                          onClick={() => setForm(f => ({ ...f, variante_id: null }))}
-                          className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
-                          style={!form.variante_id ? {
-                            background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
-                            borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
-                            color:       "var(--primary)",
-                          } : {
-                            borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                            color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
-                          }}
-                        >
-                          Todas
-                        </button>
-                        {variantes.map(v => (
+
+                {/* Columna derecha: selectores en fila + descripción + resto */}
+                <div className="flex-1 min-w-0 space-y-3">
+                  {/* Fila de dropdowns */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v, variante_id: null }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
+                      {variantes.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
                           <button
-                            key={v.id}
                             type="button"
-                            onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
+                            onClick={() => setForm(f => ({ ...f, variante_id: null }))}
                             className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
-                            style={form.variante_id === v.id ? {
+                            style={!form.variante_id ? {
                               background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
                               borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
                               color:       "var(--primary)",
@@ -290,44 +278,68 @@ export function FormularioPersonaje({
                               color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
                             }}
                           >
-                            {v.tipo}
+                            Todas
                           </button>
-                        ))}
-                      </div>
-                    )}
+                          {variantes.map(v => (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
+                              className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
+                              style={form.variante_id === v.id ? {
+                                background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
+                                borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
+                                color:       "var(--primary)",
+                              } : {
+                                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                                color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
+                              }}
+                            >
+                              {v.tipo}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
                   </div>
-                  <SelectorTexto label="Reino"   value={form.reino   ?? ""} onChange={v => setForm(f => ({ ...f, reino:   v }))} opciones={reinos}   placeholder="Reino, grupo, nación…" />
-                  <div className="col-span-full space-y-1">
+
+                  {/* Don */}
+                  <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Don</label>
                     <BloqueDones personajeId={form.id} especie={form.especie} varianteId={(form as any).variante_id} />
                   </div>
-                  <div className="sm:hidden col-span-full">
+
+                  {/* Picker cuerpo mobile */}
+                  <div className="sm:hidden">
                     <PickerCuerpo value={form.img_cuerpo_url ?? ""} onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))} />
                   </div>
-                </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
-                <MarkdownEditor
-                  value={form.sobre ?? ""}
-                  onChange={v => setForm(f => ({ ...f, sobre: v }))}
-                  placeholder="Biografía, personalidad…"
-                  rows={5}
-                  toolbar
-                  defaultMode="edit"
-                />
-              </div>
+                  {/* Descripción */}
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
+                    <MarkdownEditor
+                      value={form.sobre ?? ""}
+                      onChange={v => setForm(f => ({ ...f, sobre: v }))}
+                      placeholder="Biografía, personalidad…"
+                      rows={5}
+                      toolbar
+                      defaultMode="edit"
+                    />
+                  </div>
 
-              <div
-                className="rounded-xl overflow-hidden"
-                style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-              >
-                <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-                  <Mic2 size={10} className="text-primary/40" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos narrados</span>
+                  {/* Capítulos narrados */}
+                  <div
+                    className="rounded-xl overflow-hidden"
+                    style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                  >
+                    <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+                      <Mic2 size={10} className="text-primary/40" />
+                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos narrados</span>
+                    </div>
+                    <BloqueCapsNarrados personajeId={form.id} />
+                  </div>
                 </div>
-                <BloqueCapsNarrados personajeId={form.id} />
               </div>
             </div>
           )}

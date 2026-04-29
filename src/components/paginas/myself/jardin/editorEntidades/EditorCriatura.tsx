@@ -350,23 +350,28 @@ export function EditorCriatura({
 
           {/* BASE */}
           {tab === "base" && (
-            <div className="p-4 space-y-4">
-              <div className="flex gap-4">
-                <div className="shrink-0 w-24">
+            <div className="p-4">
+              <div className="flex gap-5">
+                {/* Columna izquierda: imagen */}
+                <div className="shrink-0 w-32">
                   <SelectorImagen label="Ilustración" value={form.imagen_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
                     placeholder={<Bug size={20} className="opacity-20" />} />
                 </div>
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 content-start">
-                  <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => setForm(f => ({ ...f, habitat: v }))} opciones={habitats} placeholder="Bosque, océano, volcán…" />
-                  <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
-                  <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
+
+                {/* Columna derecha: selectores en fila + descripción */}
+                <div className="flex-1 min-w-0 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => setForm(f => ({ ...f, habitat: v }))} opciones={habitats} placeholder="Bosque, océano, volcán…" />
+                    <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
+                    <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
+                    <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+                      placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit" />
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
-                <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                  placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit" />
               </div>
             </div>
           )}

@@ -274,30 +274,33 @@ export function EditorItem({
 
         {/* INFO */}
         {innerTab === "info" && (
-          <div className="p-4 space-y-5">
-            <div className="flex gap-4">
-              <div className="shrink-0 w-24">
+          <div className="p-4">
+            <div className="flex gap-5">
+              {/* Columna izquierda: imagen */}
+              <div className="shrink-0 w-32">
                 <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
                   onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
                   placeholder={<Package size={20} className="opacity-20" />} />
               </div>
-              <div className="flex-1 content-start">
+
+              {/* Columna derecha: categoría + descripción */}
+              <div className="flex-1 min-w-0 space-y-4">
                 <SelectorTexto label="Categoría" value={form.categoria ?? ""}
                   onChange={v => setForm(f => ({ ...f, categoria: v }))} opciones={categorias}
                   placeholder="Arma, reliquia, objeto…" />
-              </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
-              <MarkdownEditor
-                value={form.descripcion ?? ""}
-                onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                rows={10}
-                placeholder="Qué es, qué hace, su historia…"
-                toolbar
-                defaultMode="edit"
-              />
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
+                  <MarkdownEditor
+                    value={form.descripcion ?? ""}
+                    onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+                    rows={10}
+                    placeholder="Qué es, qué hace, su historia…"
+                    toolbar
+                    defaultMode="edit"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}
