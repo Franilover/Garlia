@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Mic2, Loader2,
   ChevronDown, X, Save, Trash2,
-  User, Scroll, Sparkles,
+  User, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -17,11 +17,10 @@ import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";
 
 // ─── Tabs internas ────────────────────────────────────────────────────────────
-type InnerTab = "identidad" | "lore";
+type InnerTab = "identidad";
 
 const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
-  { key: "identidad", label: "Identidad", Icon: User   },
-  { key: "lore",      label: "Lore",      Icon: Scroll },
+  { key: "identidad", label: "Identidad", Icon: User },
 ];
 
 
@@ -328,6 +327,26 @@ export function FormularioPersonaje({
                     />
                   </div>
 
+                  {/* Características + Hechizos */}
+                  {!compacto && (
+                    <div className="flex gap-3">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Características</label>
+                        <MarkdownEditor
+                          value={form.caracteristicas ?? ""}
+                          onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
+                          placeholder="Rasgos físicos, personalidad, habilidades…"
+                          rows={10}
+                          toolbar
+                          defaultMode="edit"
+                        />
+                      </div>
+                      <div className="w-56 shrink-0">
+                        <SeccionHechizos personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Capítulos narrados */}
                   <div
                     className="rounded-xl overflow-hidden"
@@ -341,35 +360,6 @@ export function FormularioPersonaje({
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* LORE — Características izquierda, Hechizos derecha */}
-          {tab === "lore" && !compacto && (
-            <div className="p-3 flex gap-3 min-h-0">
-              {/* Columna izquierda: Características */}
-              <div className="flex-1 min-w-0 space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Características</label>
-                <MarkdownEditor
-                  value={form.caracteristicas ?? ""}
-                  onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
-                  placeholder="Rasgos físicos, personalidad, habilidades…"
-                  rows={12}
-                  toolbar
-                  defaultMode="edit"
-                />
-              </div>
-              {/* Columna derecha: Hechizos */}
-              <div className="w-56 shrink-0">
-                <SeccionHechizos personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
-              </div>
-            </div>
-          )}
-
-          {tab === "lore" && compacto && (
-            <div className="flex flex-col items-center justify-center gap-2 py-16 text-primary/20">
-              <Scroll size={24} />
-              <p className="text-[10px] font-black uppercase tracking-widest">Vista reducida activa</p>
             </div>
           )}
         </div>
