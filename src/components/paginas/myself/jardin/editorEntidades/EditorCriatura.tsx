@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Bug, Plus, Check, X, Trash2, Save, ChevronDown, Lock,
-  Leaf, Dna, Brain, Wand2, GitBranch, Users, Package,
+  Dna, Brain, Wand2, GitBranch, Users, Package,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -20,11 +20,11 @@ import { BloqueDrops } from "./BloqueDrops";
 type InnerTab = "base" | "biologia" | "variantes" | "especie" | "drops";
 
 const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
-  { key: "base",      label: "Base",      Icon: Brain     },
-  { key: "biologia",  label: "Biología",  Icon: Dna       },
+  { key: "base",      label: "Base",      Icon: Brain    },
+  { key: "biologia",  label: "Biología",  Icon: Dna      },
   { key: "variantes", label: "Variantes", Icon: GitBranch },
-  { key: "drops",     label: "Drops",     Icon: Package   },
-  { key: "especie",   label: "Especie",   Icon: Users     },
+  { key: "drops",     label: "Drops",     Icon: Package  },
+  { key: "especie",   label: "Especie",   Icon: Users    },
 ];
 
 // ─── Campo colapsable ─────────────────────────────────────────────────────────
@@ -77,10 +77,10 @@ function VarianteEditor({
   onSaved: (v: CriaturaVariante) => void;
   onDeleted: (id: string) => void;
 }) {
-  const [form,       setForm]       = useState(variante);
-  const [expanded,   setExpanded]   = useState(false);
-  const [dropsOpen,  setDropsOpen]  = useState(false);
-  const [status,     setStatus]     = useState<SaveStatus>("idle");
+  const [form,     setForm]     = useState(variante);
+  const [expanded, setExpanded] = useState(false);
+  const [innerTab, setInnerTab] = useState<"info" | "drops">("info");
+  const [status,   setStatus]   = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
 
   const handleSave = async () => {
@@ -113,8 +113,12 @@ function VarianteEditor({
       }}
     >
       <ConfirmModal />
+
       {/* Header row */}
-      <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer select-none" onClick={() => setExpanded(!expanded)}>
+      <div
+        className="flex items-center gap-2 px-3 py-2.5 cursor-pointer select-none"
+        onClick={() => setExpanded(e => !e)}
+      >
         {form.imagen_url && (
           <div className="w-7 h-7 rounded-lg overflow-hidden border border-primary/10 shrink-0">
             <img src={form.imagen_url} alt={form.tipo} className="w-full h-full object-cover" />
@@ -130,69 +134,79 @@ function VarianteEditor({
       </div>
 
       {expanded && (
-        <div className="px-3 pb-3 pt-0 border-t space-y-3" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-          <div className="mt-3 space-y-3">
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo / Nombre</label>
-              <input value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
-                className={INPUT_CLS + " mt-1"} placeholder="Joven, Adulto, Albino, Nocturno…" />
-            </div>
-            <SelectorImagen label="Imagen" value={form.imagen_url ?? ""} onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-              aspect="landscape" placeholder={<Bug size={16} className="opacity-20" />} />
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
-              <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" />
-            </div>
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5 mb-1"
-                style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                <Lock size={9} /> Notas de creador
-              </label>
-              <MarkdownEditor value={form.notas ?? ""} onChange={v => setForm(f => ({ ...f, notas: v }))}
-                rows={3} placeholder="Ideas, pendientes, inspiración…" toolbar defaultMode="edit" />
-            </div>
-
-            {/* ── Drops de variante ──────────────────────────────────────── */}
-            <div
-              className="rounded-xl overflow-hidden"
-              style={{
-                border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-              }}
-            >
+        <div
+          className="border-t"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
+        >
+          {/* Sub-tabs: Info / Drops */}
+          <div className="flex items-center gap-1 px-3 py-2 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+            {(["info", "drops"] as const).map(t => (
               <button
-                type="button"
-                onClick={() => setDropsOpen(o => !o)}
-                className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-primary/3 transition-colors"
+                key={t}
+                onClick={() => setInnerTab(t)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+                style={innerTab === t ? {
+                  background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  color: "var(--primary)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                } : {
+                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  border: "1px solid transparent",
+                }}
               >
-                <Package size={11} className="shrink-0 text-primary/30" />
-                <span className="flex-1 text-[10px] font-black uppercase tracking-[0.25em] text-primary/40">
-                  Drops de esta variante
-                </span>
-                <ChevronDown size={12} className="shrink-0 text-primary/20 transition-transform duration-200"
-                  style={{ transform: dropsOpen ? "rotate(180deg)" : undefined }} />
+                {t === "info" ? <Bug size={9} /> : <Package size={9} />}
+                {t === "info" ? "Info" : "Drops"}
               </button>
-              {dropsOpen && (
-                <div className="px-3 pb-3 pt-0 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-                  <div className="mt-3">
-                    <BloqueDrops criaturaId={criaturaId} varianteId={form.id} />
-                  </div>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <button onClick={handleDelete}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
-              <Trash2 size={10} /> Eliminar
-            </button>
-            <button onClick={handleSave}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all">
-              <Check size={10} /> Guardar
-            </button>
-          </div>
+          {/* Info */}
+          {innerTab === "info" && (
+            <div className="px-3 pb-3 pt-3 space-y-3">
+              <div>
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo / Nombre</label>
+                <input value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
+                  className={INPUT_CLS + " mt-1"} placeholder="Joven, Adulto, Albino, Nocturno…" />
+              </div>
+              <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
+                onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+                aspect="landscape" placeholder={<Bug size={16} className="opacity-20" />} />
+              <div>
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
+                <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+                  rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" />
+              </div>
+              <div>
+                <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5 mb-1"
+                  style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                  <Lock size={9} /> Notas de creador
+                </label>
+                <MarkdownEditor value={form.notas ?? ""} onChange={v => setForm(f => ({ ...f, notas: v }))}
+                  rows={3} placeholder="Ideas, pendientes, inspiración…" toolbar defaultMode="edit" />
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <button onClick={handleDelete}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
+                  <Trash2 size={10} /> Eliminar
+                </button>
+                <button onClick={handleSave}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all">
+                  <Check size={10} /> Guardar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Drops de la variante */}
+          {innerTab === "drops" && (
+            <div className="px-3 pb-3 pt-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 mb-2">
+                Drops exclusivos de esta variante
+              </p>
+              <BloqueDrops criaturaId={criaturaId} varianteId={form.id} />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -269,14 +283,12 @@ export function EditorCriatura({
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
-          {/* Thumbnail */}
           <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
             {form.imagen_url
               ? <img src={form.imagen_url} alt={form.nombre} className="w-full h-full object-cover" />
               : <Bug size={16} className="text-primary/25" />}
           </div>
 
-          {/* Name inline */}
           <input
             value={form.nombre ?? ""}
             onChange={field("nombre")}
@@ -284,7 +296,6 @@ export function EditorCriatura({
             className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
           />
 
-          {/* Actions */}
           <div className="shrink-0 flex items-center gap-2">
             <SaveIndicator status={status} />
             <button onClick={del}
@@ -339,26 +350,23 @@ export function EditorCriatura({
 
           {/* BASE */}
           {tab === "base" && (
-            <div className="p-4 grid grid-cols-2 gap-4 items-start">
-              {/* Columna izquierda — Imagen */}
-              <div>
-                <SelectorImagen label="Ilustración" value={form.imagen_url ?? ""}
-                  onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="portrait"
-                  placeholder={<Bug size={28} className="opacity-20" />} />
-              </div>
-
-              {/* Columna derecha — Dropdowns + Descripción */}
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 gap-3">
+            <div className="p-4 space-y-4">
+              <div className="flex gap-4">
+                <div className="shrink-0 w-24">
+                  <SelectorImagen label="Ilustración" value={form.imagen_url ?? ""}
+                    onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
+                    placeholder={<Bug size={20} className="opacity-20" />} />
+                </div>
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 content-start">
                   <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => setForm(f => ({ ...f, habitat: v }))} opciones={habitats} placeholder="Bosque, océano, volcán…" />
                   <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
                   <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
-                  <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                    placeholder="Aspecto físico general…" rows={8} toolbar defaultMode="edit" />
-                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
+                <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
+                  placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit" />
               </div>
             </div>
           )}
@@ -366,7 +374,6 @@ export function EditorCriatura({
           {/* BIOLOGÍA */}
           {tab === "biologia" && (
             <div className="p-3 space-y-3">
-              {/* Biología + Comportamiento en 2 columnas */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Biología</label>
@@ -380,7 +387,6 @@ export function EditorCriatura({
                 </div>
               </div>
 
-              {/* Catálogo Mágico */}
               <div
                 className="rounded-2xl p-4 space-y-4"
                 style={{
@@ -462,24 +468,39 @@ export function EditorCriatura({
                   background: "color-mix(in srgb, var(--primary) 2%, transparent)",
                 }}
               >
-                <div className="flex items-center gap-2">
-                  <Package size={12} className="text-primary/35" />
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/40">
-                    Drops base
-                  </p>
-                  <span className="text-[9px] text-primary/25 italic ml-1">— sin variante específica</span>
-                </div>
+                <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
+                  <Package size={10} /> Drops base · {form.nombre}
+                </p>
                 <BloqueDrops criaturaId={form.id} varianteId={null} />
               </div>
 
               {/* Drops por variante */}
               {variantes.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/25 px-1">
+                <div className="space-y-2">
+                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 px-1">
                     Drops por variante
                   </p>
                   {variantes.map(v => (
-                    <VarianteDropsPanel key={v.id} variante={v} criaturaId={form.id} />
+                    <div
+                      key={v.id}
+                      className="rounded-2xl p-4 space-y-3"
+                      style={{
+                        border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                        background: "color-mix(in srgb, var(--primary) 1.5%, transparent)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        {v.imagen_url && (
+                          <div className="w-5 h-5 rounded overflow-hidden border border-primary/10 shrink-0">
+                            <img src={v.imagen_url} alt={v.tipo} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/35 flex items-center gap-1.5">
+                          <Bug size={9} /> {v.tipo}
+                        </p>
+                      </div>
+                      <BloqueDrops criaturaId={form.id} varianteId={v.id} />
+                    </div>
                   ))}
                 </div>
               )}
@@ -500,46 +521,6 @@ export function EditorCriatura({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─── Panel drops colapsable para una variante (en tab Drops) ─────────────────
-function VarianteDropsPanel({ variante, criaturaId }: { variante: CriaturaVariante; criaturaId: string }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{
-        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-        background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-primary/3 transition-colors"
-      >
-        {variante.imagen_url && (
-          <div className="w-6 h-6 rounded-md overflow-hidden border border-primary/10 shrink-0">
-            <img src={variante.imagen_url} alt={variante.tipo} className="w-full h-full object-cover" />
-          </div>
-        )}
-        <GitBranch size={11} className="shrink-0 text-primary/30" />
-        <span className="flex-1 text-[11px] font-black uppercase tracking-widest text-primary/70 truncate">
-          {variante.tipo}
-        </span>
-        <ChevronDown size={12} className="shrink-0 text-primary/20 transition-transform duration-200"
-          style={{ transform: open ? "rotate(180deg)" : undefined }} />
-      </button>
-      {open && (
-        <div className="px-4 pb-4 pt-0 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-          <div className="mt-3">
-            <BloqueDrops criaturaId={criaturaId} varianteId={variante.id} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
