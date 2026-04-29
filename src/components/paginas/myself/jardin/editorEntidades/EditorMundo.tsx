@@ -681,13 +681,14 @@ type HistoriaTab = "texto" | "personajes";
 
 // ─── Panel Historia con tabs (texto + lista de personajes) ────────────────────
 function PanelHistoria({
-  texto, onChange, onSave, status, initialHistoriaTab,
+  texto, onChange, onSave, status, initialHistoriaTab, hideTabs,
 }: {
   texto: string;
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
   status: SaveStatus;
   initialHistoriaTab?: HistoriaTab;
+  hideTabs?: boolean;
 }) {
   const [historiaTab, setHistoriaTab] = useState<HistoriaTab>(initialHistoriaTab ?? "texto");
   const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
@@ -740,8 +741,8 @@ function PanelHistoria({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      {/* Tab bar */}
-      <div
+      {/* Tab bar — oculta cuando lo controla el EditorMundo unificado */}
+      {!hideTabs && <div
         className="shrink-0 flex items-center gap-0 border-b px-4"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
       >
@@ -773,7 +774,7 @@ function PanelHistoria({
             </button>
           );
         })}
-      </div>
+      </div>}
 
       {/* Tab: Texto */}
       {historiaTab === "texto" && (
@@ -963,13 +964,14 @@ type MundoGeoTab = "texto" | "reinos" | "criaturas" | "objetos";
 
 // ─── Panel Mundo con tabs (texto + reinos + criaturas) ────────────────────────
 function PanelMundo({
-  texto, onChange, onSave, status, initialGeoTab,
+  texto, onChange, onSave, status, initialGeoTab, hideTabs,
 }: {
   texto: string;
   onChange: (v: string) => void;
   onSave: () => Promise<void>;
   status: SaveStatus;
   initialGeoTab?: MundoGeoTab;
+  hideTabs?: boolean;
 }) {
   const [geoTab, setGeoTab] = useState<MundoGeoTab>(initialGeoTab ?? "texto");
   const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
@@ -1003,8 +1005,8 @@ function PanelMundo({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      {/* Tab bar */}
-      <div
+      {/* Tab bar — oculta cuando lo controla el EditorMundo unificado */}
+      {!hideTabs && <div
         className="shrink-0 flex items-center gap-0 border-b px-4"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
       >
@@ -1033,7 +1035,7 @@ function PanelMundo({
             </button>
           );
         })}
-      </div>
+      </div>}
 
       {/* Tab: Texto */}
       {geoTab === "texto" && (
@@ -1243,15 +1245,58 @@ function PanelMagia({
   );
 }
 
-// ─── TABS internas del módulo Magia ──────────────────────────────────────────
-const MUNDO_TABS: { key: MundoTab; label: string; Icon: React.ElementType; color?: string }[] = [
-  { key: "magia",    label: "Magia",    Icon: Sparkles,    color: "var(--accent)" },
-  { key: "hechizos", label: "Hechizos", Icon: Sparkles,    color: "var(--accent)" },
-  { key: "dones",    label: "Dones",    Icon: Star,        color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
-  { key: "runas",    label: "Runas",    Icon: ScrollText,  color: "var(--primary)" },
+// ─── Tab unificada de Mundo ───────────────────────────────────────────────────
+type UnifiedTab =
+  | "mundo"       // texto geografía
+  | "reinos"
+  | "criaturas"
+  | "objetos"
+  | "historia"    // texto historia
+  | "personajes"
+  | "magia"       // texto sistema de magia
+  | "hechizos"
+  | "dones"
+  | "runas";
+
+type TabGroup = {
+  key: UnifiedTab;
+  label: string;
+  Icon: React.ElementType;
+  color?: string;
+};
+
+const UNIFIED_TABS: (TabGroup | "sep")[] = [
+  { key: "mundo",      label: "Mundo",      Icon: Globe },
+  { key: "reinos",     label: "Reinos",     Icon: Map },
+  { key: "criaturas",  label: "Criaturas",  Icon: Bug },
+  { key: "objetos",    label: "Objetos",    Icon: Package },
+  "sep",
+  { key: "historia",   label: "Historia",   Icon: ScrollText },
+  { key: "personajes", label: "Personajes", Icon: Users },
+  "sep",
+  { key: "magia",      label: "Magia",      Icon: Sparkles,   color: "var(--accent)" },
+  { key: "hechizos",   label: "Hechizos",   Icon: Sparkles,   color: "var(--accent)" },
+  { key: "dones",      label: "Dones",      Icon: Star,       color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
+  { key: "runas",      label: "Runas",      Icon: ScrollText, color: "var(--primary)" },
 ];
 
-// ─── EditorMundo (rediseñado) ─────────────────────────────────────────────────
+// Mapea el activeSection + subTab que venían de antes al nuevo UnifiedTab
+function resolveInitialTab(activeSection: MundoSectionKey, initialMundoTab?: string): UnifiedTab {
+  if (activeSection === "historia") {
+    return initialMundoTab === "personajes" ? "personajes" : "historia";
+  }
+  if (activeSection === "magia") {
+    const valid: UnifiedTab[] = ["magia", "hechizos", "dones", "runas"];
+    return (valid.includes(initialMundoTab as UnifiedTab) ? initialMundoTab : "magia") as UnifiedTab;
+  }
+  // geografia
+  const geoMap: Record<string, UnifiedTab> = {
+    reinos: "reinos", criaturas: "criaturas", objetos: "objetos",
+  };
+  return geoMap[initialMundoTab ?? ""] ?? "mundo";
+}
+
+// ─── EditorMundo unificado ────────────────────────────────────────────────────
 export function EditorMundo({
   activeSection,
   textos,
@@ -1265,90 +1310,60 @@ export function EditorMundo({
   onSave: (section: MundoSectionKey) => Promise<void>;
   initialMundoTab?: string;
 }) {
-  // Para Geografía e Historia, seguimos usando el panel de texto igual que antes.
-  // Para Magia, mostramos tabs internas: Magia (texto) | Hechizos | Dones
-  const [mundoTab, setMundoTab] = useState<MundoTab>("magia");
+  const [tab, setTab] = useState<UnifiedTab>(() =>
+    resolveInitialTab(activeSection, initialMundoTab)
+  );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
-  // Sync initialMundoTab from outside (e.g. search navigation)
+  // Sync cuando cambia la sección activa o el subTab desde el buscador
   useEffect(() => {
-    if (activeSection === "magia" && initialMundoTab && ["magia", "hechizos", "dones", "runas"].includes(initialMundoTab)) {
-      setMundoTab(initialMundoTab as MundoTab);
-    }
-  }, [initialMundoTab, activeSection]);
+    setTab(resolveInitialTab(activeSection, initialMundoTab));
+  }, [activeSection, initialMundoTab]);
 
-  // Si el activeSection cambia a no-magia, salimos a la vista simple
-  const isMagiaSection = activeSection === "magia";
-
-  // ── Vista Historia con tabs (texto + personajes) ──────────────────────────
-  if (activeSection === "historia") {
-    return (
-      <PanelHistoria
-        texto={textos.historia}
-        onChange={v => onTextoChange("historia", v)}
-        onSave={() => onSave("historia")}
-        status={saveStatus}
-        initialHistoriaTab={initialMundoTab === "personajes" ? "personajes" : "texto"}
-      />
-    );
-  }
-  // ── Vista Mundo con tabs (texto + reinos + criaturas) ────────────────────
-  if (activeSection === "geografia") {
-    const geoTab = initialMundoTab === "reinos" ? "reinos"
-      : initialMundoTab === "criaturas" ? "criaturas"
-      : initialMundoTab === "objetos" ? "objetos"
-      : "texto";
-    return (
-      <PanelMundo
-        texto={textos.geografia}
-        onChange={v => onTextoChange("geografia", v)}
-        onSave={() => onSave("geografia")}
-        status={saveStatus}
-        initialGeoTab={geoTab as MundoGeoTab}
-      />
-    );
-  }
-
-  // ── Vista Magia con tabs internas ─────────────────────────────────────────
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-      {/* Cabecera con tabs */}
+      {/* ── Barra de tabs unificada ─────────────────────────────────────── */}
       <div
-        className="shrink-0 flex items-center gap-0 border-b px-4"
+        className="shrink-0 flex items-center border-b overflow-x-auto"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
       >
-        {/* Ícono sección */}
-        <div className="flex items-center gap-2.5 py-3 pr-4 mr-2 border-r"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)" }}>
-            <Sparkles size={14} style={{ color: "var(--accent)" }} />
+        {/* Ícono Mundo */}
+        <div
+          className="shrink-0 flex items-center gap-2 py-3 px-4 border-r"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        >
+          <div
+            className="w-6 h-6 rounded-lg flex items-center justify-center"
+            style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)" }}
+          >
+            <Globe size={12} className="text-primary/50" />
           </div>
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary leading-tight">Magia</p>
-            <p className="text-[9px] text-primary/30 leading-tight">Worldbuilding</p>
-          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/50 leading-tight whitespace-nowrap">Mundo</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex items-end gap-0 flex-1">
-          {MUNDO_TABS.map(tab => {
-            const active = mundoTab === tab.key;
+        <div className="flex items-end">
+          {UNIFIED_TABS.map((t, i) => {
+            if (t === "sep") return (
+              <div key={`sep-${i}`} className="w-px mx-1 self-stretch my-2"
+                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+            );
+            const active = tab === t.key;
+            const color = t.color ?? "var(--primary)";
             return (
               <button
-                key={tab.key}
-                onClick={() => setMundoTab(tab.key)}
-                className="relative flex items-center gap-1.5 px-3.5 py-3 text-[10px] font-black uppercase tracking-widest transition-all"
-                style={{ color: active ? (tab.color ?? "var(--primary)") : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className="relative flex items-center gap-1.5 px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap"
+                style={{ color: active ? color : "color-mix(in srgb, var(--primary) 28%, transparent)" }}
               >
-                <tab.Icon size={10} />
-                {tab.label}
-                {/* Indicador activo */}
+                <t.Icon size={10} />
+                {t.label}
                 {active && (
                   <span
-                    className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full"
-                    style={{ background: tab.color ?? "var(--primary)" }}
+                    className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-t-full"
+                    style={{ background: color }}
                   />
                 )}
               </button>
@@ -1357,19 +1372,84 @@ export function EditorMundo({
         </div>
       </div>
 
-      {/* Contenido del tab activo */}
+      {/* ── Contenido ───────────────────────────────────────────────────── */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        {mundoTab === "magia" && (
-          <PanelMagia
+
+        {/* Geografía — texto */}
+        {tab === "mundo" && (
+          <PanelTexto
+            texto={textos.geografia}
+            onChange={v => onTextoChange("geografia", v)}
+            onSave={() => onSave("geografia")}
+            placeholder="Continentes, mares, climas, fronteras del mundo…"
+            saveLabel="Guardar Mundo"
+            SaveIcon={Mountain}
+          />
+        )}
+
+        {/* Historia — texto */}
+        {tab === "historia" && (
+          <PanelTexto
+            texto={textos.historia}
+            onChange={v => onTextoChange("historia", v)}
+            onSave={() => onSave("historia")}
+            placeholder="Grandes eras, eventos fundacionales, cronología del mundo…"
+            saveLabel="Guardar Historia"
+            SaveIcon={ScrollText}
+          />
+        )}
+
+        {/* Magia — texto */}
+        {tab === "magia" && (
+          <PanelTexto
             texto={textos.magia}
             onChange={v => onTextoChange("magia", v)}
             onSave={() => onSave("magia")}
-            status={saveStatus}
+            placeholder="Sistema de magia, reglas, fuentes de poder, limitaciones…"
+            saveLabel="Guardar Magia"
+            SaveIcon={Sparkles}
           />
         )}
-        {mundoTab === "hechizos" && <PanelMagico modo="hechizos" />}
-        {mundoTab === "dones"    && <PanelMagico modo="dones" />}
-        {mundoTab === "runas"    && <PanelRunas />}
+
+        {/* Entidades */}
+        {tab === "reinos"     && <PanelMundo      key="reinos"     texto={textos.geografia} onChange={v => onTextoChange("geografia", v)} onSave={() => onSave("geografia")} status={saveStatus} initialGeoTab="reinos"    hideTabs />}
+        {tab === "criaturas"  && <PanelMundo      key="criaturas"  texto={textos.geografia} onChange={v => onTextoChange("geografia", v)} onSave={() => onSave("geografia")} status={saveStatus} initialGeoTab="criaturas" hideTabs />}
+        {tab === "objetos"    && <PanelMundo      key="objetos"    texto={textos.geografia} onChange={v => onTextoChange("geografia", v)} onSave={() => onSave("geografia")} status={saveStatus} initialGeoTab="objetos"   hideTabs />}
+        {tab === "personajes" && <PanelHistoria   key="personajes" texto={textos.historia}  onChange={v => onTextoChange("historia", v)}  onSave={() => onSave("historia")}  status={saveStatus} initialHistoriaTab="personajes" hideTabs />}
+        {tab === "hechizos"   && <PanelMagico     modo="hechizos" />}
+        {tab === "dones"      && <PanelMagico     modo="dones" />}
+        {tab === "runas"      && <PanelRunas />}
+      </div>
+    </div>
+  );
+}
+
+// ─── Panel de texto genérico (reemplaza PanelMagia y el texto de los demás) ──
+function PanelTexto({
+  texto, onChange, onSave, placeholder, saveLabel, SaveIcon,
+}: {
+  texto: string;
+  onChange: (v: string) => void;
+  onSave: () => Promise<void>;
+  placeholder: string;
+  saveLabel: string;
+  SaveIcon: React.ElementType;
+}) {
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const handle = async () => {
+    setStatus("saving");
+    try { await onSave(); setStatus("saved"); setTimeout(() => setStatus("idle"), 2000); }
+    catch { setStatus("error"); }
+  };
+  return (
+    <div className="flex-1 flex flex-col min-h-0 p-5 gap-4 overflow-y-auto">
+      <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="split" />
+      <div className="flex items-center justify-end gap-3">
+        <SaveIndicator status={status} />
+        <button onClick={handle} disabled={status === "saving"}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+          <SaveIcon size={11} /> {saveLabel}
+        </button>
       </div>
     </div>
   );

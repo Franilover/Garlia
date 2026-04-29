@@ -16,19 +16,19 @@ const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[]; secti
   { key: "runas",    label: "Runas",    section: "magia",    aliases: ["runa", "runas", "rune", "runes"] },
 ];
 
-// Secciones del Mundo navegables directamente desde el buscador
-// subTab opcional: si existe, se pasa a onSelectMundoSubTab para abrir una subtab interna
-const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab?: string; aliases: string[] }[] = [
-  { section: "geografia", label: "Mundo",     subTab: "texto",     aliases: ["mundo", "world", "geografia", "geografía"] },
-  { section: "geografia", label: "Reinos",    subTab: "reinos",    aliases: ["reino", "reinos", "mapa", "mapas"] },
-  { section: "geografia", label: "Criaturas", subTab: "criaturas", aliases: ["criatura", "criaturas", "bestia", "bestias", "monstruo"] },
-  { section: "geografia", label: "Objetos",   subTab: "objetos",   aliases: ["objeto", "objetos", "item", "items", "arma", "reliquia"] },
-  { section: "magia",     label: "Magia",     subTab: "magia",     aliases: ["magia", "magic", "sistema"] },
-  { section: "magia",     label: "Hechizos",  subTab: "hechizos",  aliases: ["hechizo", "hechizos", "spell", "spells"] },
-  { section: "magia",     label: "Dones",     subTab: "dones",     aliases: ["don", "dones", "gift", "gifts"] },
-  { section: "magia",     label: "Runas",     subTab: "runas",     aliases: ["runa", "runas", "rune", "runes"] },
-  { section: "historia",  label: "Historia",  subTab: "texto",     aliases: ["historia", "history", "lore"] },
+// Todas las tabs del módulo Mundo navegables desde el buscador
+// section se usa para setear mundoSection; subTab es el tab unificado dentro de EditorMundo
+const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab: string; aliases: string[] }[] = [
+  { section: "geografia", label: "Mundo",      subTab: "mundo",      aliases: ["mundo", "world", "geografia", "geografía"] },
+  { section: "geografia", label: "Reinos",     subTab: "reinos",     aliases: ["reino", "reinos", "mapa", "mapas"] },
+  { section: "geografia", label: "Criaturas",  subTab: "criaturas",  aliases: ["criatura", "criaturas", "bestia", "bestias", "monstruo"] },
+  { section: "geografia", label: "Objetos",    subTab: "objetos",    aliases: ["objeto", "objetos", "arma", "reliquia"] },
+  { section: "historia",  label: "Historia",   subTab: "historia",   aliases: ["historia", "history", "lore"] },
   { section: "historia",  label: "Personajes", subTab: "personajes", aliases: ["personaje", "personajes", "character", "characters"] },
+  { section: "magia",     label: "Magia",      subTab: "magia",      aliases: ["magia", "magic", "sistema"] },
+  { section: "magia",     label: "Hechizos",   subTab: "hechizos",   aliases: ["hechizo", "hechizos", "spell", "spells"] },
+  { section: "magia",     label: "Dones",      subTab: "dones",      aliases: ["don", "dones", "gift", "gifts"] },
+  { section: "magia",     label: "Runas",      subTab: "runas",      aliases: ["runa", "runas", "rune", "runes"] },
 ];
 
 function normalize(s: string) {
@@ -368,25 +368,17 @@ export function GlobalSearchBar({
       .map(([tab]) => ({ tab }));
   }, [query]);
 
-  // Navegación a subtabs del Mundo/Magia/Historia — sub-tabs internos únicamente (hechizos, dones, runas, personajes)
+  // Navegación a subtabs del Mundo — todo pasa por MUNDO_NAV (incluye magia, historia, geografía)
   const mundoSubTabResults = useMemo((): MundoSubTabResult[] => {
     const q = normalize(query.trim());
     if (!q) return [];
-    // Solo los subtabs "hijos" (no los que abren una sección entera)
-    const SUB_ONLY = MUNDO_SUBTABS.filter(st => st.key !== "magia");
-    return SUB_ONLY
-      .filter(st => st.aliases.some(a => normalize(a).includes(q) || q.includes(normalize(a))))
-      .map(st => ({ section: st.section as MundoSectionKey, subTab: st.key, label: st.label }));
+    return MUNDO_NAV
+      .filter(n => n.aliases.some(a => normalize(a).includes(q) || q.includes(normalize(a))))
+      .map(n => ({ section: n.section as MundoSectionKey, subTab: n.subTab as MundoSubTab, label: n.label }));
   }, [query]);
 
-  // Navegación directa a secciones del Mundo (Reinos → Geografía, Historia)
-  const mundoNavResults = useMemo(() => {
-    const q = normalize(query.trim());
-    if (!q) return [];
-    return MUNDO_NAV.filter(n =>
-      n.aliases.some(a => normalize(a).includes(q) || q.includes(normalize(a)))
-    );
-  }, [query]);
+  // mundoNavResults ya no se usa por separado — todo está en mundoSubTabResults
+  const mundoNavResults = useMemo(() => [] as typeof MUNDO_NAV, []);
   const mundoResults = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return [...MUNDO_SECTIONS];
@@ -674,29 +666,42 @@ export function GlobalSearchBar({
                     {mundoSubTabResults.length > 0 && (
                       <>
                         <div className="px-2 pt-2 pb-1">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Magia</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
                         </div>
                         <div className="space-y-0.5 mb-1">
-                          {mundoSubTabResults.map(({ section, subTab, label }) => (
-                            <button
-                              key={subTab}
-                              onMouseDown={() => handleMundoSubTab(section, subTab)}
-                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
-                            >
-                              <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
-                                style={{
-                                  background: "color-mix(in srgb, var(--accent) 8%, transparent)",
-                                  borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
-                                }}>
-                                <Sparkles size={12} style={{ color: "var(--accent)" }} className="opacity-60" />
-                              </div>
-                              <span className="flex-1 text-[11px] font-bold text-primary/70">{label}</span>
-                              <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
-                                style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                                Mundo
-                              </span>
-                            </button>
-                          ))}
+                          {mundoSubTabResults.map(({ section, subTab, label }) => {
+                            const sec = MUNDO_SECTIONS.find(s => s.key === section);
+                            const SecIcon = sec?.Icon;
+                            const isMagiaTab = ["magia", "hechizos", "dones", "runas"].includes(subTab);
+                            return (
+                              <button
+                                key={section + subTab}
+                                onMouseDown={() => handleMundoSubTab(section, subTab)}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
+                                  isMundo && activeMundoSection === section
+                                    ? "bg-primary/12 border-primary/20"
+                                    : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                                }`}
+                              >
+                                <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                  style={{
+                                    background: isMagiaTab
+                                      ? "color-mix(in srgb, var(--accent) 8%, transparent)"
+                                      : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                                    borderColor: isMagiaTab
+                                      ? "color-mix(in srgb, var(--accent) 15%, transparent)"
+                                      : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                                  }}>
+                                  {SecIcon && <SecIcon size={12} style={{ color: isMagiaTab ? "var(--accent)" : "var(--primary)", opacity: 0.5 }} />}
+                                </div>
+                                <span className="flex-1 text-[11px] font-bold text-primary/70">{label}</span>
+                                <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                                  Mundo
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
                       </>
                     )}
@@ -761,27 +766,44 @@ export function GlobalSearchBar({
                     <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Mundo</p>
                   </div>
                   <div className="space-y-0.5">
-                    {/* Geografía — sección principal */}
-                    {MUNDO_SECTIONS.filter(s => s.key === "geografia").map(section => (
-                      <MundoSectionCard
-                        key={section.key}
-                        section={section}
-                        selected={isMundo && activeMundoSection === section.key}
-                        onClick={() => handleMundoSection(section.key as MundoSectionKey)}
-                      />
-                    ))}
-                    {/* Magia e Historia — sub-secciones dentro de Mundo */}
-                    <div className="pl-3 space-y-0.5 border-l ml-4"
-                      style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                      {MUNDO_SECTIONS.filter(s => s.key === "magia" || s.key === "historia").map(section => (
-                        <MundoSectionCard
-                          key={section.key}
-                          section={section}
-                          selected={isMundo && activeMundoSection === section.key}
-                          onClick={() => handleMundoSection(section.key as MundoSectionKey)}
-                        />
-                      ))}
-                    </div>
+                    {MUNDO_NAV.map(nav => {
+                      const sec = MUNDO_SECTIONS.find(s => s.key === nav.section);
+                      const NavIcon = sec?.Icon;
+                      const isMagiaTab = ["magia", "hechizos", "dones", "runas"].includes(nav.subTab);
+                      const isActive = isMundo && activeMundoSection === nav.section;
+                      return (
+                        <button
+                          key={nav.section + nav.subTab}
+                          onMouseDown={() => handleMundoSubTab(nav.section as MundoSectionKey, nav.subTab)}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border ${
+                            isActive ? "bg-primary/12 border-primary/20" : "border-transparent hover:bg-primary/6 hover:border-primary/10"
+                          }`}
+                        >
+                          <div
+                            className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                            style={{
+                              background: isMagiaTab
+                                ? "color-mix(in srgb, var(--accent) 8%, transparent)"
+                                : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                              borderColor: isMagiaTab
+                                ? "color-mix(in srgb, var(--accent) 15%, transparent)"
+                                : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                            }}
+                          >
+                            {NavIcon && <NavIcon size={12} style={{ color: isMagiaTab ? "var(--accent)" : "var(--primary)", opacity: 0.4 }} />}
+                          </div>
+                          <span className={`flex-1 text-[11px] font-bold truncate transition-colors ${isActive ? "text-primary" : "text-primary/70 hover:text-primary/90"}`}>
+                            {nav.label}
+                          </span>
+                          <span
+                            className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                          >
+                            Mun
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                   {/* Add hint at the bottom */}
                   <div className="mt-2 px-2 py-1.5 rounded-xl border border-dashed flex items-center gap-2"
