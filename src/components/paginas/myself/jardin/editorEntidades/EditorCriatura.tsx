@@ -442,7 +442,7 @@ export function EditorCriatura({
                 personajes={personajes}
                 loading={loadingPersonajes}
                 setPersonajes={setPersonajes}
-                titulo="De esta especie"
+                titulo="De la especie"
                 inline
               />
             </div>
