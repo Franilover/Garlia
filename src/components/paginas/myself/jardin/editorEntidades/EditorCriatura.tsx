@@ -353,7 +353,7 @@ export function EditorCriatura({
             <div className="p-4">
               <div className="flex gap-5">
                 {/* Columna izquierda: imagen */}
-                <div className="shrink-0 w-32">
+                <div className="shrink-0 w-96">
                   <SelectorImagen label="Ilustración" value={form.imagen_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
                     placeholder={<Bug size={20} className="opacity-20" />} />
@@ -519,7 +519,7 @@ export function EditorCriatura({
                 personajes={personajes}
                 loading={loadingPersonajes}
                 setPersonajes={setPersonajes}
-                titulo="De la especie"
+                titulo="De esta especie"
                 inline
               />
             </div>

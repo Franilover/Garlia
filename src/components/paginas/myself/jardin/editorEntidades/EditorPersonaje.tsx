@@ -246,7 +246,7 @@ export function FormularioPersonaje({
             <div className="p-3">
               <div className="flex gap-4">
                 {/* Columna izquierda: imagen cara */}
-                <div className="shrink-0 w-28">
+                <div className="shrink-0 w-96">
                   <SelectorImagen
                     label="Cara"
                     value={form.img_url ?? ""}
