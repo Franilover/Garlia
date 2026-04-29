@@ -343,14 +343,6 @@ export function EditorCriatura({
           {tab === "base" && (
             <div className="p-4 space-y-4">
 
-              {/* Drops base — minimalista */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
-                  <Package size={9} /> Drops base
-                </span>
-                <BloqueDrops criaturaId={form.id} varianteId={null} />
-              </div>
-
               <div className="flex gap-5">
                 {/* Columna izquierda: imagen */}
                 <div className="shrink-0 w-96">
@@ -365,6 +357,12 @@ export function EditorCriatura({
                     <SelectorTexto label="Hábitat" value={form.habitat ?? ""} onChange={v => setForm(f => ({ ...f, habitat: v }))} opciones={habitats} placeholder="Bosque, océano, volcán…" />
                     <SelectorTexto label="Pensamiento" value={form.pensamiento ?? ""} onChange={v => setForm(f => ({ ...f, pensamiento: v }))} opciones={pensamientos} placeholder="¿Cómo piensa?" />
                     <SelectorTexto label="Alma" value={form.alma ?? ""} onChange={v => setForm(f => ({ ...f, alma: v }))} opciones={almas} placeholder="Naturaleza espiritual…" />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+                      <Package size={9} /> Drops base
+                    </span>
+                    <BloqueDrops criaturaId={form.id} varianteId={null} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
@@ -442,7 +440,7 @@ export function EditorCriatura({
                 personajes={personajes}
                 loading={loadingPersonajes}
                 setPersonajes={setPersonajes}
-                titulo="De la especie"
+                titulo="De esta especie"
                 inline
               />
             </div>
