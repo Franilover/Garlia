@@ -101,13 +101,13 @@ export function SelectorImagen({ label, value, onChange, aspect, placeholder }: 
         {value ? (
           <>
             <img src={value} alt={label} className={`w-full h-full ${fitCls} transition-transform duration-300 group-hover:scale-105`} />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
+            <div className="absolute inset-0 bg-black/40 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
               <ImageIcon size={18} className="text-white" />
               <span className="text-[9px] font-black uppercase text-white tracking-widest">Cambiar</span>
             </div>
             <button
               onClick={e => { e.stopPropagation(); onChange(""); }}
-              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 hover:bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 hover:bg-red-500/80 flex items-center justify-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all"
             >
               <X size={10} className="text-white" />
             </button>

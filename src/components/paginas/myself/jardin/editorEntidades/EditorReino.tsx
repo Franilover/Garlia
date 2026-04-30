@@ -390,7 +390,7 @@ export function EditorReino({ item, onSaved, onDeleted }: {
           <div className="shrink-0 flex items-center gap-2">
             <SaveIndicator status={status} />
             <button onClick={del}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all min-h-[36px] min-w-[36px] justify-center">
               <Trash2 size={10} />
             </button>
             <button onClick={save} disabled={status === "saving"}
@@ -441,10 +441,10 @@ export function EditorReino({ item, onSaved, onDeleted }: {
 
           {/* MAPA */}
           {tab === "mapa" && (
-            <div className="flex gap-0 min-h-0 h-full">
+            <div className="flex flex-col sm:flex-row gap-0 min-h-0 h-full">
 
               {/* Columna izquierda — Mapa */}
-              <div className="w-[55%] shrink-0 p-3 border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <div className="sm:w-[55%] shrink-0 p-3 border-b sm:border-b-0 sm:border-r" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                 <MapaConPuntos
                   mapaUrl={form.mapa_url ?? ""}
                   onMapaChange={url => setForm(f => ({ ...f, mapa_url: url }))}
@@ -507,9 +507,9 @@ export function EditorReino({ item, onSaved, onDeleted }: {
 
           {/* LORE */}
           {tab === "lore" && (
-            <div className="p-3 grid grid-cols-3 gap-3">
-              {/* Col 1 — Historia (ocupa 2 filas verticalmente) */}
-              <div className="row-span-2 space-y-1 flex flex-col">
+            <div className="p-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Col 1 — Historia (ocupa 2 filas verticalmente en desktop) */}
+              <div className="sm:row-span-2 space-y-1 flex flex-col">
                 <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
                   <Globe size={9} className="opacity-50" /> Historia
                 </label>

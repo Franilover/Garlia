@@ -136,9 +136,9 @@ function VarianteEditor({
           style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
         >
           {/* Layout de columnas: imagen | descripción | drops */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             {/* Imagen */}
-            <div className="shrink-0 w-48">
+            <div className="shrink-0 sm:w-48">
               <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
                 onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
                 aspect="landscape" placeholder={<Bug size={16} className="opacity-20" />} />
@@ -159,7 +159,7 @@ function VarianteEditor({
             </div>
 
             {/* Drops */}
-            <div className="shrink-0 w-52 space-y-1.5">
+            <div className="sm:shrink-0 sm:w-52 space-y-1.5">
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Drops</p>
               <BloqueDrops criaturaId={criaturaId} varianteId={form.id} />
             </div>
@@ -314,9 +314,9 @@ export function EditorCriatura({
           {tab === "base" && (
             <div className="p-4 space-y-4">
 
-              <div className="flex gap-5">
+              <div className="flex flex-col sm:flex-row gap-5">
                 {/* Columna izquierda: imagen */}
-                <div className="shrink-0 w-96">
+                <div className="shrink-0 sm:w-96 w-full max-w-xs mx-auto sm:mx-0">
                   <SelectorImagen label="Ilustración" value={form.imagen_url ?? ""}
                     onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
                     placeholder={<Bug size={20} className="opacity-20" />} />
@@ -343,7 +343,7 @@ export function EditorCriatura({
                 </div>
 
                 {/* Columna derecha: Catálogo Mágico */}
-                <div className="shrink-0 w-64 space-y-3">
+                <div className="sm:shrink-0 sm:w-64 space-y-3">
                   <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Catálogo Mágico</p>
                   <div className="space-y-3">
                     <div className="space-y-1.5">
