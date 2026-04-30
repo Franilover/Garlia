@@ -19,16 +19,17 @@ const MUNDO_SUBTABS: { key: MundoSubTab; label: string; aliases: string[]; secti
 // Todas las tabs del módulo Mundo navegables desde el buscador
 // section se usa para setear mundoSection; subTab es el tab unificado dentro de EditorMundo
 const MUNDO_NAV: { section: MundoSectionKey; label: string; subTab: string; aliases: string[] }[] = [
-  { section: "geografia", label: "Mundo",      subTab: "mundo",      aliases: ["mundo", "world", "geografia", "geografía"] },
-  { section: "geografia", label: "Reinos",     subTab: "reinos",     aliases: ["reino", "reinos", "mapa", "mapas"] },
-  { section: "geografia", label: "Criaturas",  subTab: "criaturas",  aliases: ["criatura", "criaturas", "bestia", "bestias", "monstruo"] },
-  { section: "geografia", label: "Objetos",    subTab: "objetos",    aliases: ["objeto", "objetos", "arma", "reliquia"] },
-  { section: "historia",  label: "Historia",   subTab: "historia",   aliases: ["historia", "history", "lore"] },
-  { section: "historia",  label: "Personajes", subTab: "personajes", aliases: ["personaje", "personajes", "character", "characters"] },
-  { section: "magia",     label: "Magia",      subTab: "magia",      aliases: ["magia", "magic", "sistema"] },
-  { section: "magia",     label: "Hechizos",   subTab: "hechizos",   aliases: ["hechizo", "hechizos", "spell", "spells"] },
-  { section: "magia",     label: "Dones",      subTab: "dones",      aliases: ["don", "dones", "gift", "gifts"] },
-  { section: "magia",     label: "Runas",      subTab: "runas",      aliases: ["runa", "runas", "rune", "runes"] },
+  { section: "geografia", label: "Mundo",      subTab: "mundo",    aliases: ["mundo", "world", "geografia", "geografía"] },
+  { section: "historia",  label: "Historia",   subTab: "historia", aliases: ["historia", "history", "lore"] },
+  { section: "geografia", label: "Listas",     subTab: "listas",   aliases: ["lista", "listas", "entidades"] },
+  { section: "geografia", label: "Reinos",     subTab: "listas",   aliases: ["reino", "reinos", "mapa", "mapas"] },
+  { section: "geografia", label: "Criaturas",  subTab: "listas",   aliases: ["criatura", "criaturas", "bestia", "bestias", "monstruo"] },
+  { section: "geografia", label: "Objetos",    subTab: "listas",   aliases: ["objeto", "objetos", "arma", "reliquia"] },
+  { section: "historia",  label: "Personajes", subTab: "listas",   aliases: ["personaje", "personajes", "character", "characters"] },
+  { section: "magia",     label: "Magia",      subTab: "magia",    aliases: ["magia", "magic", "sistema"] },
+  { section: "magia",     label: "Hechizos",   subTab: "hechizos", aliases: ["hechizo", "hechizos", "spell", "spells"] },
+  { section: "magia",     label: "Dones",      subTab: "dones",    aliases: ["don", "dones", "gift", "gifts"] },
+  { section: "magia",     label: "Runas",      subTab: "runas",    aliases: ["runa", "runas", "rune", "runes"] },
 ];
 
 function normalize(s: string) {

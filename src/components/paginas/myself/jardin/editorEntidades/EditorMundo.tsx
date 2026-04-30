@@ -33,7 +33,7 @@ type Runa = {
   explicacion?: string;
 };
 
-type CriaturaMin = { id: string; nombre: string; imagen_url?: string };
+type CriaturaMin = { id: string; nombre: string; imagen_url?: string; habitat?: string };
 type VarianteMin = { id: string; tipo: string };
 type MundoTab = "magia" | "hechizos" | "dones" | "runas";
 type GeoTab = "texto" | "reinos";
@@ -82,10 +82,33 @@ function useCriaturas() {
   const [criaturas, setCriaturas] = useState<CriaturaMin[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre")
+    supabase.from("criaturas").select("id, nombre, imagen_url, habitat").order("nombre")
       .then(({ data }) => { setCriaturas(data ?? []); setLoading(false); });
   }, []);
-  return { criaturas, loading };
+  return { criaturas, setCriaturas, loading };
+}
+
+// Hook full para objetos (PanelListas)
+type ObjetoMin = { id: string; nombre: string; imagen_url?: string; categoria?: string };
+function useObjetos() {
+  const [objetos, setObjetos] = useState<ObjetoMin[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre")
+      .then(({ data }) => { setObjetos(data ?? []); setLoading(false); });
+  }, []);
+  return { objetos, setObjetos, loading };
+}
+
+// Hook full para personajes (PanelListas)
+function usePersonajesList() {
+  const [personajes, setPersonajes] = useState<Personaje[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    supabase.from("personajes").select("*").order("nombre")
+      .then(({ data }) => { setPersonajes((data ?? []) as Personaje[]); setLoading(false); });
+  }, []);
+  return { personajes, setPersonajes, loading };
 }
 
 function useCriaturaVariantes(criaturaId: string | null) {
@@ -976,7 +999,7 @@ function PanelMundo({
   const [geoTab, setGeoTab] = useState<MundoGeoTab>(initialGeoTab ?? "texto");
   const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
   const { reinos, setReinos, loading: loadingReinos } = useReinos();
-  const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturasList();
+  const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
   const { objetos, setObjetos, loading: loadingObjetos } = useObjetosList();
   const [selectedReino, setSelectedReino] = useState<Reino | null>(null);
   const [selectedCriatura, setSelectedCriatura] = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
@@ -1247,13 +1270,10 @@ function PanelMagia({
 
 // ─── Tab unificada de Mundo ───────────────────────────────────────────────────
 type UnifiedTab =
-  | "mundo"       // texto geografía
-  | "reinos"
-  | "criaturas"
-  | "objetos"
-  | "historia"    // texto historia
-  | "personajes"
-  | "magia"       // texto sistema de magia
+  | "mundo"     // texto geografía
+  | "historia"  // texto historia
+  | "listas"    // columnas: reinos · criaturas · objetos · personajes
+  | "magia"     // texto sistema de magia
   | "hechizos"
   | "dones"
   | "runas";
@@ -1266,34 +1286,28 @@ type TabGroup = {
 };
 
 const UNIFIED_TABS: (TabGroup | "sep")[] = [
-  { key: "mundo",      label: "Mundo",      Icon: Globe },
-  { key: "reinos",     label: "Reinos",     Icon: Map },
-  { key: "criaturas",  label: "Criaturas",  Icon: Bug },
-  { key: "objetos",    label: "Objetos",    Icon: Package },
+  { key: "mundo",    label: "Mundo",    Icon: Globe },
+  { key: "historia", label: "Historia", Icon: ScrollText },
   "sep",
-  { key: "historia",   label: "Historia",   Icon: ScrollText },
-  { key: "personajes", label: "Personajes", Icon: Users },
+  { key: "listas",   label: "Listas",   Icon: Users },
   "sep",
-  { key: "magia",      label: "Magia",      Icon: Sparkles,   color: "var(--accent)" },
-  { key: "hechizos",   label: "Hechizos",   Icon: Sparkles,   color: "var(--accent)" },
-  { key: "dones",      label: "Dones",      Icon: Star,       color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
-  { key: "runas",      label: "Runas",      Icon: ScrollText, color: "var(--primary)" },
+  { key: "magia",    label: "Magia",    Icon: Sparkles,   color: "var(--accent)" },
+  { key: "hechizos", label: "Hechizos", Icon: Sparkles,   color: "var(--accent)" },
+  { key: "dones",    label: "Dones",    Icon: Star,       color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
+  { key: "runas",    label: "Runas",    Icon: ScrollText, color: "var(--primary)" },
 ];
 
-// Mapea el activeSection + subTab que venían de antes al nuevo UnifiedTab
+// Mapea el activeSection + subTab al nuevo UnifiedTab
 function resolveInitialTab(activeSection: MundoSectionKey, initialMundoTab?: string): UnifiedTab {
-  if (activeSection === "historia") {
-    return initialMundoTab === "personajes" ? "personajes" : "historia";
-  }
+  if (activeSection === "historia") return "historia";
   if (activeSection === "magia") {
     const valid: UnifiedTab[] = ["magia", "hechizos", "dones", "runas"];
     return (valid.includes(initialMundoTab as UnifiedTab) ? initialMundoTab : "magia") as UnifiedTab;
   }
   // geografia
-  const geoMap: Record<string, UnifiedTab> = {
-    reinos: "reinos", criaturas: "criaturas", objetos: "objetos",
-  };
-  return geoMap[initialMundoTab ?? ""] ?? "mundo";
+  const listsKeys = ["reinos", "criaturas", "objetos", "personajes"];
+  if (initialMundoTab && listsKeys.includes(initialMundoTab)) return "listas";
+  return "mundo";
 }
 
 // ─── EditorMundo unificado ────────────────────────────────────────────────────
@@ -1411,15 +1425,272 @@ export function EditorMundo({
           />
         )}
 
-        {/* Entidades */}
-        {tab === "reinos"     && <PanelMundo      key="reinos"     texto={textos.geografia} onChange={v => onTextoChange("geografia", v)} onSave={() => onSave("geografia")} status={saveStatus} initialGeoTab="reinos"    hideTabs />}
-        {tab === "criaturas"  && <PanelMundo      key="criaturas"  texto={textos.geografia} onChange={v => onTextoChange("geografia", v)} onSave={() => onSave("geografia")} status={saveStatus} initialGeoTab="criaturas" hideTabs />}
-        {tab === "objetos"    && <PanelMundo      key="objetos"    texto={textos.geografia} onChange={v => onTextoChange("geografia", v)} onSave={() => onSave("geografia")} status={saveStatus} initialGeoTab="objetos"   hideTabs />}
-        {tab === "personajes" && <PanelHistoria   key="personajes" texto={textos.historia}  onChange={v => onTextoChange("historia", v)}  onSave={() => onSave("historia")}  status={saveStatus} initialHistoriaTab="personajes" hideTabs />}
-        {tab === "hechizos"   && <PanelMagico     modo="hechizos" />}
-        {tab === "dones"      && <PanelMagico     modo="dones" />}
-        {tab === "runas"      && <PanelRunas />}
+        {tab === "listas"   && <PanelListas />}
+        {tab === "hechizos" && <PanelMagico modo="hechizos" />}
+        {tab === "dones"    && <PanelMagico modo="dones" />}
+        {tab === "runas"    && <PanelRunas />}
       </div>
+    </div>
+  );
+}
+
+
+// ─── PanelListas: 4 columnas side-by-side ────────────────────────────────────
+function PanelListas() {
+  const { reinos,    setReinos,    loading: loadingReinos    } = useReinos();
+  const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
+  const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos();
+  const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList();
+
+  const [searchR, setSearchR] = useState("");
+  const [searchC, setSearchC] = useState("");
+  const [searchO, setSearchO] = useState("");
+  const [searchP, setSearchP] = useState("");
+
+  const [selectedReino,    setSelectedReino]    = useState<Reino | null>(null);
+  const [selectedCriatura, setSelectedCriatura] = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
+  const [selectedObjeto,   setSelectedObjeto]   = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string } | null>(null);
+  const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
+  const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
+
+  // Editor overlay activo
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | null =
+    selectedReino    ? "reino"    :
+    selectedCriatura ? "criatura" :
+    selectedObjeto   ? "objeto"   :
+    selectedPersonaje? "personaje": null;
+
+  const filteredR = reinos.filter(r    => r.nombre.toLowerCase().includes(searchR.toLowerCase()));
+  const filteredC = criaturas.filter(c => c.nombre.toLowerCase().includes(searchC.toLowerCase()));
+  const filteredO = objetos.filter(o   => o.nombre.toLowerCase().includes(searchO.toLowerCase()));
+  const filteredP = personajes.filter(p => p.nombre.toLowerCase().includes(searchP.toLowerCase()));
+
+  const handleSavePersonaje = async () => {
+    if (!selectedPersonaje) return;
+    setPersonajeStatus("saving");
+    try {
+      const { error } = await supabase.from("personajes").update({
+        nombre: selectedPersonaje.nombre,
+        img_url: selectedPersonaje.img_url || null,
+        sobre: selectedPersonaje.sobre,
+        reino: selectedPersonaje.reino,
+        especie: selectedPersonaje.especie,
+      }).eq("id", selectedPersonaje.id);
+      if (error) throw error;
+      setPersonajes(prev => prev.map(p => p.id === selectedPersonaje.id ? selectedPersonaje : p));
+      setPersonajeStatus("saved");
+      setTimeout(() => setPersonajeStatus("idle"), 2000);
+    } catch { setPersonajeStatus("error"); }
+  };
+
+  const handleDeletePersonaje = async () => {
+    if (!selectedPersonaje) return;
+    await supabase.from("personajes").delete().eq("id", selectedPersonaje.id);
+    setPersonajes(prev => prev.filter(p => p.id !== selectedPersonaje.id));
+    setSelectedPersonaje(null);
+  };
+
+  const colBorder = "border-r last:border-r-0";
+  const colStyle = { borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" };
+
+  function ColHeader({ label, count, Icon }: { label: string; count: number; Icon: React.ElementType }) {
+    return (
+      <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2"
+        style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+        <Icon size={11} className="text-primary/35 shrink-0" />
+        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/50 flex-1">{label}</p>
+        {count > 0 && (
+          <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full"
+            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+            {count}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+    return (
+      <div className="shrink-0 px-2 py-1.5">
+        <div className="relative">
+          <Search size={9} className="absolute left-2 top-1/2 -translate-y-1/2 text-primary/25" />
+          <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+            className="w-full bg-primary/4 border border-primary/8 rounded-lg pl-6 pr-5 py-1 text-[10px] font-medium outline-none focus:border-primary/20 text-primary placeholder:text-primary/25" />
+          {value && (
+            <button onClick={() => onChange("")} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary">
+              <X size={8} />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex min-h-0 overflow-hidden relative">
+
+      {/* ── Editor overlay — cubre toda la sección Listas ────────────────── */}
+      {overlay && (
+        <div className="absolute inset-0 z-20 flex flex-col" style={{ background: "var(--bg-main)" }}>
+          {/* Back bar */}
+          <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+            <button
+              onClick={() => {
+                setSelectedReino(null); setSelectedCriatura(null);
+                setSelectedObjeto(null); setSelectedPersonaje(null);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
+            >
+              <ChevronRight size={12} className="rotate-180" /> Volver a Listas
+            </button>
+            <div className="flex items-center gap-2 min-w-0">
+              {overlay === "reino"    && <Map     size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "criatura" && <Bug     size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "objeto"   && <Package size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "personaje"&& <Users   size={12} className="text-primary/40 shrink-0" />}
+              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">
+                {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedPersonaje?.nombre}
+              </span>
+            </div>
+          </div>
+          {/* Editor */}
+          <div className="flex-1 flex min-h-0 overflow-hidden">
+            {overlay === "reino" && selectedReino && (
+              <EditorReino key={selectedReino.id} item={selectedReino}
+                onSaved={u => { setReinos(p => p.map(r => r.id === u.id ? u : r)); setSelectedReino(u); }}
+                onDeleted={id => { setReinos(p => p.filter(r => r.id !== id)); setSelectedReino(null); }} />
+            )}
+            {overlay === "criatura" && selectedCriatura && (
+              <EditorCriatura key={selectedCriatura.id} item={selectedCriatura as any}
+                onSaved={u => { setCriaturas(p => p.map(c => c.id === u.id ? { ...c, ...u } : c)); setSelectedCriatura({ ...selectedCriatura, ...u }); }}
+                onDeleted={id => { setCriaturas(p => p.filter(c => c.id !== id)); setSelectedCriatura(null); }} />
+            )}
+            {overlay === "objeto" && selectedObjeto && (
+              <EditorItem key={selectedObjeto.id} item={selectedObjeto as any}
+                onSaved={u => { setObjetos(p => p.map(o => o.id === u.id ? { ...o, ...u } : o)); setSelectedObjeto({ ...selectedObjeto, ...u }); }}
+                onDeleted={id => { setObjetos(p => p.filter(o => o.id !== id)); setSelectedObjeto(null); }} />
+            )}
+            {overlay === "personaje" && selectedPersonaje && (
+              <FormularioPersonaje
+                form={selectedPersonaje}
+                setForm={updated => {
+                  const p = typeof updated === "function" ? updated(selectedPersonaje) : updated;
+                  setSelectedPersonaje(p);
+                  setPersonajes(prev => prev.map(x => x.id === p.id ? p : x));
+                }}
+                status={personajeStatus}
+                onSave={handleSavePersonaje}
+                onDelete={handleDeletePersonaje}
+                compacto
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── 4 columnas ───────────────────────────────────────────────────── */}
+
+      {/* Reinos */}
+      <div className={`flex-1 flex flex-col min-h-0 ${colBorder}`} style={colStyle}>
+        <ColHeader label="Reinos" count={reinos.length} Icon={Map} />
+        <SearchInput value={searchR} onChange={setSearchR} placeholder="Buscar reino…" />
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
+          {loadingReinos
+            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+            : filteredR.length === 0
+              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchR ? "Sin resultados" : "Sin reinos"}</p>
+              : filteredR.map(r => (
+                <button key={r.id} onClick={() => setSelectedReino(r)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                  <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    {r.mapa_url ? <img src={r.mapa_url} alt={r.nombre} className="w-full h-full object-cover" /> : <Map size={11} className="text-primary/20" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-primary/80 truncate">{r.nombre}</p>
+                    {r.oculto && <p className="text-[8px] text-primary/30 italic">Oculto</p>}
+                  </div>
+                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
+                </button>
+              ))}
+        </div>
+      </div>
+
+      {/* Criaturas */}
+      <div className={`flex-1 flex flex-col min-h-0 ${colBorder}`} style={colStyle}>
+        <ColHeader label="Criaturas" count={criaturas.length} Icon={Bug} />
+        <SearchInput value={searchC} onChange={setSearchC} placeholder="Buscar criatura…" />
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
+          {loadingCriaturas
+            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+            : filteredC.length === 0
+              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchC ? "Sin resultados" : "Sin criaturas"}</p>
+              : filteredC.map(c => (
+                <button key={c.id} onClick={() => setSelectedCriatura(c)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                  <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    {c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-cover" /> : <Bug size={11} className="text-primary/20" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-primary/80 truncate">{c.nombre}</p>
+                    {c.habitat && <p className="text-[8px] text-primary/30 truncate">{c.habitat}</p>}
+                  </div>
+                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
+                </button>
+              ))}
+        </div>
+      </div>
+
+      {/* Objetos */}
+      <div className={`flex-1 flex flex-col min-h-0 ${colBorder}`} style={colStyle}>
+        <ColHeader label="Objetos" count={objetos.length} Icon={Package} />
+        <SearchInput value={searchO} onChange={setSearchO} placeholder="Buscar objeto…" />
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
+          {loadingObjetos
+            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+            : filteredO.length === 0
+              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchO ? "Sin resultados" : "Sin objetos"}</p>
+              : filteredO.map(o => (
+                <button key={o.id} onClick={() => setSelectedObjeto(o)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                  <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    {o.imagen_url ? <img src={o.imagen_url} alt={o.nombre} className="w-full h-full object-cover" /> : <Package size={11} className="text-primary/20" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-primary/80 truncate">{o.nombre}</p>
+                    {o.categoria && <p className="text-[8px] text-primary/30 truncate">{o.categoria}</p>}
+                  </div>
+                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
+                </button>
+              ))}
+        </div>
+      </div>
+
+      {/* Personajes */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <ColHeader label="Personajes" count={personajes.length} Icon={Users} />
+        <SearchInput value={searchP} onChange={setSearchP} placeholder="Buscar personaje…" />
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
+          {loadingPersonajes
+            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+            : filteredP.length === 0
+              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchP ? "Sin resultados" : "Sin personajes"}</p>
+              : filteredP.map(p => (
+                <button key={p.id} onClick={() => setSelectedPersonaje(p)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                  <div className="shrink-0 w-7 h-7 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                    {p.img_url ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" /> : <UserCircle2 size={11} className="text-primary/20" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-primary/80 truncate">{p.nombre}</p>
+                    <p className="text-[8px] text-primary/30 truncate">{[p.especie, p.reino].filter(Boolean).join(" · ")}</p>
+                  </div>
+                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
+                </button>
+              ))}
+        </div>
+      </div>
+
     </div>
   );
 }
