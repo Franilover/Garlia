@@ -502,9 +502,9 @@ function PanelRunas() {
   };
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden">
-      {/* Lista lateral */}
-      <div className="w-52 shrink-0 flex flex-col border-r min-h-0"
+    <div className="flex-1 flex min-h-0 overflow-hidden relative">
+      {/* Lista lateral — w-52 en desktop, full en mobile cuando no hay selección */}
+      <div className={`flex-col border-r min-h-0 sm:w-52 sm:shrink-0 sm:flex ${selected ? "hidden sm:flex" : "flex flex-1"}`}
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <div className="shrink-0 px-2 pt-2 pb-2 space-y-1.5">
           <div className="relative">
@@ -546,8 +546,18 @@ function PanelRunas() {
           ))}
         </div>
       </div>
-      {/* Editor */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+
+      {/* Editor — full en mobile cuando hay selección */}
+      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${selected ? "flex" : "hidden sm:flex"}`}>
+        {selected && (
+          <div className="sm:hidden shrink-0 px-3 py-2 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+            <button onClick={() => setSelectedId(null)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary transition-all">
+              <ChevronRight size={12} className="rotate-180" /> Volver
+            </button>
+          </div>
+        )}
         {selected ? (
           <FormularioRuna
             key={selected.id} item={selected}
@@ -595,9 +605,9 @@ function PanelMagico({ modo }: { modo: "hechizos" | "dones" }) {
   };
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden">
-      {/* Lista lateral */}
-      <div className="w-52 shrink-0 flex flex-col border-r min-h-0"
+    <div className="flex-1 flex min-h-0 overflow-hidden relative">
+      {/* Lista lateral — w-52 en desktop, full en mobile cuando no hay selección */}
+      <div className={`flex-col border-r min-h-0 sm:w-52 sm:shrink-0 sm:flex ${selected ? "hidden sm:flex" : "flex flex-1"}`}
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
 
         {/* Buscador + nuevo */}
@@ -664,8 +674,18 @@ function PanelMagico({ modo }: { modo: "hechizos" | "dones" }) {
         </div>
       </div>
 
-      {/* Editor */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      {/* Editor — full en mobile cuando hay selección, ocupa resto en desktop */}
+      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${selected ? "flex" : "hidden sm:flex"}`}>
+        {/* Back button — solo mobile */}
+        {selected && (
+          <div className="sm:hidden shrink-0 px-3 py-2 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+            <button onClick={() => setSelectedId(null)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary transition-all">
+              <ChevronRight size={12} className="rotate-180" /> Volver
+            </button>
+          </div>
+        )}
         {selected ? (
           <FormularioMagico
             key={selected.id} item={selected} modo={modo}
@@ -1357,7 +1377,7 @@ export function EditorMundo({
       >
         {/* Ícono Mundo */}
         <div
-          className="shrink-0 flex items-center gap-2 py-3 px-4 border-r"
+          className="shrink-0 hidden sm:flex items-center gap-2 py-3 px-4 border-r"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
         >
           <div
@@ -1382,7 +1402,7 @@ export function EditorMundo({
               <button
                 key={t.key}
                 onClick={() => handleTabChange(t.key)}
-                className="relative flex items-center gap-1.5 px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap"
+                className="relative flex items-center gap-1.5 px-2 sm:px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap"
                 style={{ color: active ? color : "color-mix(in srgb, var(--primary) 28%, transparent)" }}
               >
                 <t.Icon size={10} />
@@ -1465,6 +1485,7 @@ function PanelListas() {
   const [selectedObjeto,   setSelectedObjeto]   = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string } | null>(null);
   const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
+  const [mobileTab, setMobileTab] = useState<"reinos" | "criaturas" | "objetos" | "personajes">("reinos");
 
   // Editor overlay activo
   const overlay: "reino" | "criatura" | "objeto" | "personaje" | null =
@@ -1602,10 +1623,38 @@ function PanelListas() {
         </div>
       )}
 
-      {/* ── 4 columnas ───────────────────────────────────────────────────── */}
+      {/* ── Mobile tab switcher (hidden on sm+) ─────────────────────────── */}
+      <div className="sm:hidden shrink-0 flex border-b overflow-x-auto"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+        {([
+          { key: "reinos",    label: "Reinos",    Icon: Map,     count: reinos.length },
+          { key: "criaturas", label: "Criaturas", Icon: Bug,     count: criaturas.length },
+          { key: "objetos",   label: "Objetos",   Icon: Package, count: objetos.length },
+          { key: "personajes",label: "Personajes",Icon: Users,   count: personajes.length },
+        ] as const).map(t => (
+          <button key={t.key} onClick={() => setMobileTab(t.key)}
+            className="flex-1 flex flex-col items-center gap-1 px-3 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all relative whitespace-nowrap"
+            style={{ color: mobileTab === t.key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+            <t.Icon size={13} />
+            {t.label}
+            {t.count > 0 && (
+              <span className="text-[8px] font-black px-1 rounded-full absolute top-1.5 right-2"
+                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                {t.count}
+              </span>
+            )}
+            {mobileTab === t.key && (
+              <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full bg-current" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── 4 columnas (desktop) / 1 columna con tabs (mobile) ──────────── */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
 
       {/* Reinos */}
-      <div className={`flex-1 flex flex-col min-h-0 ${colBorder}`} style={colStyle}>
+      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "reinos" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
         <ColHeader label="Reinos" count={reinos.length} Icon={Map} />
         <SearchInput value={searchR} onChange={setSearchR} placeholder="Buscar reino…" />
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
@@ -1630,7 +1679,7 @@ function PanelListas() {
       </div>
 
       {/* Criaturas */}
-      <div className={`flex-1 flex flex-col min-h-0 ${colBorder}`} style={colStyle}>
+      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "criaturas" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
         <ColHeader label="Criaturas" count={criaturas.length} Icon={Bug} />
         <SearchInput value={searchC} onChange={setSearchC} placeholder="Buscar criatura…" />
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
@@ -1655,7 +1704,7 @@ function PanelListas() {
       </div>
 
       {/* Objetos */}
-      <div className={`flex-1 flex flex-col min-h-0 ${colBorder}`} style={colStyle}>
+      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "objetos" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
         <ColHeader label="Objetos" count={objetos.length} Icon={Package} />
         <SearchInput value={searchO} onChange={setSearchO} placeholder="Buscar objeto…" />
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
@@ -1680,7 +1729,7 @@ function PanelListas() {
       </div>
 
       {/* Personajes */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className={`flex-1 flex flex-col min-h-0 ${mobileTab !== "personajes" ? "hidden sm:flex" : "flex"}`}>
         <ColHeader label="Personajes" count={personajes.length} Icon={Users} />
         <SearchInput value={searchP} onChange={setSearchP} placeholder="Buscar personaje…" />
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
@@ -1703,6 +1752,8 @@ function PanelListas() {
               ))}
         </div>
       </div>
+
+      </div>{/* end 4-col flex wrapper */}
 
     </div>
   );
