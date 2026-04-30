@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X, Loader2, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { normalize } from "@/components/templates/EstudioTemplates";
@@ -97,6 +98,63 @@ function esCompatible(
   });
 }
 
+// ─── Dropdown portal (escapa overflow-hidden del padre) ────────────────────────
+type HItem = { id: string; nombre: string };
+
+function DropdownHechizos({ anchorRef, disponibles, filtrados, asignados, onSelect, onClose }: {
+  anchorRef: React.RefObject<HTMLDivElement | null>;
+  disponibles: HItem[];
+  filtrados: HItem[];
+  asignados: HItem[];
+  onSelect: (h: HItem) => void;
+  onClose: () => void;
+}) {
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    const update = () => {
+      if (!anchorRef.current) return;
+      const r = anchorRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + window.scrollY + 4, left: r.left + window.scrollX, width: r.width });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => { window.removeEventListener("scroll", update, true); window.removeEventListener("resize", update); };
+  }, [anchorRef]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (anchorRef.current && !anchorRef.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [anchorRef, onClose]);
+
+  return (
+    <div
+      style={{ position: "absolute", top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
+      className="bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden"
+    >
+      {disponibles.length === 0 ? (
+        <p className="px-3 py-2.5 text-[9px] text-primary/25 text-center italic">
+          {asignados.length > 0 ? "Todos los hechizos compatibles asignados" : "Sin hechizos compatibles"}
+        </p>
+      ) : (
+        <div className="max-h-48 overflow-y-auto">
+          {filtrados.map(h => (
+            <button key={h.id}
+              onMouseDown={() => onSelect(h)}
+              className="w-full px-3 py-2 text-left text-xs font-medium text-primary/70 hover:bg-primary/8 hover:text-primary transition-colors">
+              {h.nombre}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Componente principal ──────────────────────────────────────────────────────
 export function BloqueHechizos({ personajeId, especie, varianteId }: {
   personajeId: string; especie?: string | null; varianteId?: string | null;
@@ -154,7 +212,7 @@ export function BloqueHechizos({ personajeId, especie, varianteId }: {
       )}
 
       {/* Input búsqueda */}
-      <div className="relative p-2" ref={ref}>
+      <div className="p-2" ref={ref}>
         <div className="relative">
           <input
             value={input}
@@ -168,27 +226,20 @@ export function BloqueHechizos({ personajeId, especie, varianteId }: {
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors">
             <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
           </button>
-
-          {open && disponibles.length === 0 && (
-            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl px-3 py-2.5">
-              <p className="text-[9px] text-primary/25 text-center italic">
-                {asignados.length > 0 ? "Todos los hechizos compatibles asignados" : "Sin hechizos compatibles"}
-              </p>
-            </div>
-          )}
-
-          {open && filtrados.length > 0 && (
-            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-              {filtrados.map(h => (
-                <button key={h.id}
-                  onMouseDown={() => { add(h.id); setInput(""); setOpen(false); }}
-                  className="w-full px-3 py-2 text-left text-xs font-medium text-primary/70 hover:bg-primary/8 hover:text-primary transition-colors">
-                  {h.nombre}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* Dropdown en portal para escapar overflow-hidden del padre */}
+        {open && typeof window !== "undefined" && createPortal(
+          <DropdownHechizos
+            anchorRef={ref}
+            disponibles={disponibles}
+            filtrados={filtrados}
+            asignados={asignados}
+            onSelect={h => { add(h.id); setInput(""); setOpen(false); }}
+            onClose={() => setOpen(false)}
+          />,
+          document.body
+        )}
       </div>
     </div>
   );
