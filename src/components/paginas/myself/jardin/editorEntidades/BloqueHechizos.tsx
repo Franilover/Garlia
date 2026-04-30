@@ -12,7 +12,6 @@ type HechizoCatalogo = {
   nombre: string;
 };
 
-// Una fila de hechizo_criaturas: qué criaturas/variantes pueden usar cada hechizo
 type Asignacion = {
   hechizo_id: string;
   criatura_id: string;
@@ -77,10 +76,6 @@ function useAsignados(personajeId: string) {
 }
 
 // ─── Lógica de compatibilidad ──────────────────────────────────────────────────
-// Un hechizo es compatible si:
-//   - No tiene ninguna asignación en hechizo_criaturas (universal), O
-//   - Tiene al menos una asignación cuya criatura_nombre coincida con la especie del personaje
-//     Y (si esa asignación tiene variante_id) ese variante_id coincide con el varianteId del personaje
 function esCompatible(
   hechizo: HechizoCatalogo,
   asignaciones: Asignacion[],
@@ -88,7 +83,7 @@ function esCompatible(
   varianteId: string | null | undefined,
 ): boolean {
   const propias = asignaciones.filter(a => a.hechizo_id === hechizo.id);
-  if (propias.length === 0) return true; // universal
+  if (propias.length === 0) return true;
 
   if (!especie?.trim()) return false;
   const esp = especie.toLowerCase().trim();
@@ -136,65 +131,63 @@ export function BloqueHechizos({ personajeId, especie, varianteId }: {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  if (loading) return (
-    <div className="flex justify-center py-4">
-      <Loader2 size={14} className="animate-spin text-primary/20" />
-    </div>
-  );
+  if (loading) return <Loader2 size={10} className="animate-spin text-primary/20" />;
 
   return (
     <div className="space-y-2">
+      {/* Hechizos asignados: lista compacta */}
+      {asignados.length > 0 && (
+        <div className="space-y-0.5">
+          {asignados.map(h => (
+            <div key={h.id} className="flex items-center gap-1.5 group py-0.5">
+              <span className="flex-1 text-[11px] font-medium text-primary/60 truncate">{h.nombre}</span>
+              <button
+                onClick={() => remove(h.id)}
+                className="shrink-0 w-3.5 h-3.5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-primary/20 hover:text-red-400 transition-all"
+              >
+                <X size={8} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Input búsqueda */}
       <div className="relative" ref={ref}>
         <input
           value={input}
           onChange={e => { setInput(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           disabled={noEspecie}
-          placeholder={noEspecie ? "Asigná una especie primero…" : "Buscar hechizos compatibles…"}
-          className={INPUT_CLS + " pr-8 disabled:opacity-40 disabled:cursor-not-allowed"}
+          placeholder={noEspecie ? "Sin especie…" : "Añadir hechizo…"}
+          className={INPUT_CLS + " pr-7 disabled:opacity-40 disabled:cursor-not-allowed text-[11px] h-7"}
         />
         <button type="button" onClick={() => !noEspecie && setOpen(o => !o)}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors">
-          <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary transition-colors">
+          <ChevronDown size={11} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
         </button>
 
         {open && disponibles.length === 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl px-3 py-3">
+          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl px-3 py-2.5">
             <p className="text-[9px] text-primary/25 text-center italic">
-              Todos los hechizos compatibles ya están asignados
+              {asignados.length > 0 ? "Todos los hechizos compatibles asignados" : "Sin hechizos compatibles"}
             </p>
           </div>
         )}
 
         {open && filtrados.length > 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-40 overflow-y-auto">
             {filtrados.map(h => (
               <button key={h.id}
                 onMouseDown={() => { add(h.id); setInput(""); setOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/8 transition-colors">
-                <Sparkles size={9} className="shrink-0 text-primary/35" />
-                <span className="flex-1 text-xs font-medium text-primary/70 truncate">{h.nombre}</span>
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-primary/8 transition-colors">
+                <Sparkles size={8} className="shrink-0 text-primary/25" />
+                <span className="flex-1 text-[11px] font-medium text-primary/65 truncate">{h.nombre}</span>
               </button>
             ))}
           </div>
         )}
       </div>
-
-      {asignados.length > 0 && (
-        <div className="space-y-1">
-          {asignados.map(h => (
-            <div key={h.id}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl group border border-primary/10 bg-primary/3">
-              <Sparkles size={9} className="shrink-0 text-primary/40" />
-              <span className="flex-1 text-xs font-medium text-primary/70 truncate">{h.nombre}</span>
-              <button onClick={() => remove(h.id)}
-                className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-primary/25 hover:text-red-400 hover:bg-red-400/10 transition-all">
-                <X size={9} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

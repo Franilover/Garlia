@@ -6,8 +6,6 @@ import { supabase } from "@/lib/api/client/supabase";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS } from "./types";
 
-const COLOR = "oklch(0.72 0.15 55)";
-
 // ─── Types locales ─────────────────────────────────────────────────────────────
 type DonCatalogo = {
   id: string;
@@ -90,7 +88,7 @@ function esCompatible(
   varianteId: string | null | undefined,
 ): boolean {
   const propias = asignaciones.filter(a => a.don_id === don.id);
-  if (propias.length === 0) return true; // universal
+  if (propias.length === 0) return true;
 
   if (!especie?.trim()) return false;
   const esp = especie.toLowerCase().trim();
@@ -139,39 +137,26 @@ export function BloqueDones({ personajeId, especie, varianteId }: {
   }, [open]);
 
   if (loadingCatalogo || loadingAsignado) {
-    return (
-      <div className="flex items-center gap-2 py-1">
-        <Loader2 size={11} className="animate-spin text-primary/20" />
-        <span className="text-[10px] text-primary/25 italic">Cargando…</span>
-      </div>
-    );
+    return <Loader2 size={10} className="animate-spin text-primary/20" />;
   }
 
-  // ── Don asignado: solo lectura + botón quitar ─────────────────────────────
+  // ── Don asignado: badge minimalista ──────────────────────────────────────
   if (donActual) {
     return (
-      <div
-        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border w-fit"
-        style={{
-          borderColor: `color-mix(in srgb, ${COLOR} 20%, transparent)`,
-          background:  `color-mix(in srgb, ${COLOR} 5%, transparent)`,
-        }}
-      >
-        <Star size={10} style={{ color: COLOR }} className="shrink-0" />
-        <span className="text-[11px] font-bold"
-          style={{ color: `color-mix(in srgb, ${COLOR} 80%, var(--primary))` }}>
-          {donActual.nombre}
-        </span>
-        <button onClick={clear}
-          className="w-4 h-4 rounded flex items-center justify-center transition-colors text-primary/20 hover:text-red-400"
-          title="Quitar don">
-          <X size={9} />
+      <div className="flex items-center gap-1.5 group">
+        <span className="text-[11px] font-semibold text-primary/60 truncate">{donActual.nombre}</span>
+        <button
+          onClick={clear}
+          className="shrink-0 w-3.5 h-3.5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-primary/20 hover:text-red-400 transition-all"
+          title="Quitar don"
+        >
+          <X size={8} />
         </button>
       </div>
     );
   }
 
-  // ── Sin don: selector ─────────────────────────────────────────────────────
+  // ── Sin don: selector compacto ────────────────────────────────────────────
   return (
     <div className="relative" ref={ref}>
       <input
@@ -179,28 +164,28 @@ export function BloqueDones({ personajeId, especie, varianteId }: {
         onChange={e => { setInput(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         disabled={noEspecie}
-        placeholder={noEspecie ? "Asigná una especie primero…" : "Buscar don compatible…"}
-        className={INPUT_CLS + " pr-8 disabled:opacity-40 disabled:cursor-not-allowed text-xs"}
+        placeholder={noEspecie ? "Sin especie…" : "Buscar don…"}
+        className={INPUT_CLS + " pr-7 disabled:opacity-40 disabled:cursor-not-allowed text-[11px] h-7"}
       />
       <button type="button" onClick={() => !noEspecie && setOpen(o => !o)}
-        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors">
-        <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary transition-colors">
+        <ChevronDown size={11} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && disponibles.length === 0 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl px-3 py-3">
-          <p className="text-[9px] text-primary/25 text-center italic">Sin dones compatibles disponibles</p>
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl px-3 py-2.5">
+          <p className="text-[9px] text-primary/25 text-center italic">Sin dones compatibles</p>
         </div>
       )}
 
       {open && filtrados.length > 0 && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-40 overflow-y-auto">
           {filtrados.map(d => (
             <button key={d.id}
               onMouseDown={() => { assign(d.id); setInput(""); setOpen(false); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/8 transition-colors">
-              <Star size={9} style={{ color: COLOR }} className="shrink-0" />
-              <span className="flex-1 text-xs font-medium text-primary/70 truncate">{d.nombre}</span>
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-primary/8 transition-colors">
+              <Star size={8} className="shrink-0 text-primary/30" />
+              <span className="flex-1 text-[11px] font-medium text-primary/65 truncate">{d.nombre}</span>
             </button>
           ))}
         </div>
