@@ -1057,7 +1057,7 @@ const PanelEditor = ({
     const caretTop   = caretRect.top - mirrorRect.top;
 
     const targetScroll = ta.offsetTop + caretTop - container.clientHeight / 2;
-    container.scrollTop = Math.max(0, targetScroll);
+    container.scrollTo({ top: Math.max(0, targetScroll), behavior: "smooth" });
   }, []);
 
   const doSave = useCallback(async (val: string) => {
@@ -2197,7 +2197,7 @@ export default function EstudioCapitulos() {
 
   return (
     <>
-      <div className="flex flex-col h-screen bg-bg-main overflow-hidden">
+      <div className="flex flex-col h-[100dvh] bg-bg-main overflow-hidden">
 
         {/* ── Topbar ── */}
         <div
