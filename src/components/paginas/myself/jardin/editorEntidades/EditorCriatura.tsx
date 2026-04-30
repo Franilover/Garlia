@@ -76,7 +76,6 @@ function VarianteEditor({
 }) {
   const [form,     setForm]     = useState(variante);
   const [expanded, setExpanded] = useState(false);
-  const [innerTab, setInnerTab] = useState<"info" | "drops">("info");
   const [status,   setStatus]   = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
 
@@ -85,8 +84,9 @@ function VarianteEditor({
     try {
       const { error } = await supabase.from("criatura_variantes").update({
         tipo: form.tipo, descripcion: form.descripcion || null,
-        imagen_url: form.imagen_url || null, notas: form.notas || null,
+        imagen_url: form.imagen_url || null,
       }).eq("id", form.id);
+
       if (error) throw error;
       setStatus("saved");
       onSaved(form);
@@ -132,78 +132,49 @@ function VarianteEditor({
 
       {expanded && (
         <div
-          className="border-t"
+          className="border-t px-3 pb-3 pt-3"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
         >
-          {/* Sub-tabs: Info / Drops */}
-          <div className="flex items-center gap-1 px-3 py-2 border-b"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-            {(["info", "drops"] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setInnerTab(t)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
-                style={innerTab === t ? {
-                  background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                  color: "var(--primary)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-                } : {
-                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                  border: "1px solid transparent",
-                }}
-              >
-                {t === "info" ? <Bug size={9} /> : <Package size={9} />}
-                {t === "info" ? "Info" : "Drops"}
-              </button>
-            ))}
-          </div>
+          {/* Layout de columnas: imagen | descripción | drops */}
+          <div className="flex gap-4">
+            {/* Imagen */}
+            <div className="shrink-0 w-48">
+              <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
+                onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
+                aspect="landscape" placeholder={<Bug size={16} className="opacity-20" />} />
+            </div>
 
-          {/* Info */}
-          {innerTab === "info" && (
-            <div className="px-3 pb-3 pt-3 space-y-3">
+            {/* Tipo + Descripción */}
+            <div className="flex-1 min-w-0 space-y-2">
               <div>
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">Tipo / Nombre</label>
                 <input value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
                   className={INPUT_CLS + " mt-1"} placeholder="Joven, Adulto, Albino, Nocturno…" />
               </div>
-              <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
-                onChange={url => setForm(f => ({ ...f, imagen_url: url }))}
-                aspect="landscape" placeholder={<Bug size={16} className="opacity-20" />} />
               <div>
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
                 <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
                   rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" />
               </div>
-              <div>
-                <label className="text-[9px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5 mb-1"
-                  style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
-                  <Lock size={9} /> Notas de creador
-                </label>
-                <MarkdownEditor value={form.notas ?? ""} onChange={v => setForm(f => ({ ...f, notas: v }))}
-                  rows={3} placeholder="Ideas, pendientes, inspiración…" toolbar defaultMode="edit" />
-              </div>
-              <div className="flex items-center justify-between pt-1">
-                <button onClick={handleDelete}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
-                  <Trash2 size={10} /> Eliminar
-                </button>
-                <button onClick={handleSave}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all">
-                  <Check size={10} /> Guardar
-                </button>
-              </div>
             </div>
-          )}
 
-          {/* Drops de la variante */}
-          {innerTab === "drops" && (
-            <div className="px-3 pb-3 pt-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 mb-2">
-                Drops exclusivos de esta variante
-              </p>
+            {/* Drops */}
+            <div className="shrink-0 w-52 space-y-1.5">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30">Drops</p>
               <BloqueDrops criaturaId={criaturaId} varianteId={form.id} />
             </div>
-          )}
+          </div>
+
+          <div className="flex items-center justify-between pt-3">
+            <button onClick={handleDelete}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
+              <Trash2 size={10} /> Eliminar
+            </button>
+            <button onClick={handleSave}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all">
+              <Check size={10} /> Guardar
+            </button>
+          </div>
         </div>
       )}
     </div>
