@@ -21,10 +21,9 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Package, X, Loader2, ChevronDown } from "lucide-react";
+import { Package, X, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { normalize } from "@/components/templates/EstudioTemplates";
-import { INPUT_CLS } from "./types";
 
 // ─── Tipos locales ────────────────────────────────────────────────────────────
 
@@ -155,87 +154,91 @@ export function BloqueDrops({
 
   return (
     <div className="space-y-2">
-      {/* Buscador */}
-      <div className="relative" ref={ref}>
-        <input
-          value={input}
-          onChange={e => { setInput(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          placeholder="Buscar ítem para añadir…"
-          className={INPUT_CLS + " pr-8"}
-        />
-        <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
-        >
-          <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-        </button>
 
-        {open && filtrados.length === 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl px-3 py-3">
-            <p className="text-[9px] text-primary/25 text-center italic">
-              {items.length === 0
-                ? "No hay ítems en la base de datos"
-                : asignadosIds.size >= items.length
-                  ? "Todos los ítems ya están añadidos"
-                  : "Sin resultados"}
-            </p>
-          </div>
-        )}
-
-        {open && filtrados.length > 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-52 overflow-y-auto">
-            {filtrados.map(item => (
-              <button
-                key={item.id}
-                onMouseDown={() => { add(item); setInput(""); setOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/8 transition-colors"
-              >
-                <div className="shrink-0 w-6 h-6 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                  {item.imagen_url
-                    ? <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
-                    : <Package size={10} className="text-primary/20" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-primary/70 truncate">{item.nombre}</p>
-                  {item.categoria && <p className="text-[9px] text-primary/35 truncate">{item.categoria}</p>}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Lista asignada */}
-      {drops.length > 0 ? (
-        <div className="space-y-1">
-          {drops.map(drop => (
-            <div
-              key={drop.id}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl group border border-primary/10 bg-primary/3"
-            >
-              <div className="shrink-0 w-6 h-6 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
-                {drop.item?.imagen_url
-                  ? <img src={drop.item.imagen_url} alt={drop.item.nombre} className="w-full h-full object-cover" />
-                  : <Package size={10} className="text-primary/20" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-primary/70 truncate">{drop.item?.nombre ?? "—"}</p>
-                {drop.item?.categoria && <p className="text-[9px] text-primary/35 truncate">{drop.item.categoria}</p>}
-              </div>
-              <button
-                onClick={() => remove(drop.id)}
-                className="shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-primary/25 hover:text-red-400 hover:bg-red-400/10 transition-all"
-              >
-                <X size={9} />
-              </button>
+      {/* Chips de drops asignados */}
+      <div className="flex flex-wrap gap-1.5">
+        {drops.map(drop => (
+          <div
+            key={drop.id}
+            className="group flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-lg border transition-all"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+            }}
+          >
+            <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+              {drop.item?.imagen_url
+                ? <img src={drop.item.imagen_url} alt={drop.item.nombre} className="w-full h-full object-cover" />
+                : <Package size={8} className="text-primary/20" />}
             </div>
-          ))}
+            <span className="text-[10px] font-bold text-primary/60 tracking-wide leading-none">
+              {drop.item?.nombre ?? "—"}
+            </span>
+            <button
+              onClick={() => remove(drop.id)}
+              className="shrink-0 opacity-0 group-hover:opacity-100 text-primary/25 hover:text-red-400 transition-all ml-0.5"
+            >
+              <X size={8} />
+            </button>
+          </div>
+        ))}
+
+        {/* Buscador inline como chip */}
+        <div className="relative" ref={ref}>
+          <button
+            type="button"
+            onClick={() => setOpen(o => !o)}
+            className="flex items-center gap-1 pl-2 pr-2.5 py-1 rounded-lg border border-dashed transition-all text-[10px] font-bold uppercase tracking-widest"
+            style={{
+              border: "1px dashed color-mix(in srgb, var(--primary) 20%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+          >
+            <Package size={8} />
+            {drops.length === 0 ? "Añadir drop" : "+"}
+          </button>
+
+          {open && (
+            <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden"
+              style={{ background: "var(--bg-main, white)" }}>
+              <div className="p-2 border-b border-primary/8">
+                <input
+                  autoFocus
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  placeholder="Buscar ítem…"
+                  className="w-full bg-transparent text-[11px] font-medium text-primary outline-none placeholder:text-primary/25"
+                />
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {filtrados.length === 0 ? (
+                  <p className="text-[9px] text-primary/25 text-center italic py-3">
+                    {items.length === 0 ? "Sin ítems" : asignadosIds.size >= items.length ? "Todos añadidos" : "Sin resultados"}
+                  </p>
+                ) : (
+                  filtrados.map(item => (
+                    <button
+                      key={item.id}
+                      onMouseDown={() => { add(item); setInput(""); setOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/8 transition-colors"
+                    >
+                      <div className="shrink-0 w-5 h-5 rounded-md overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
+                        {item.imagen_url
+                          ? <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
+                          : <Package size={9} className="text-primary/20" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium text-primary/70 truncate">{item.nombre}</p>
+                        {item.categoria && <p className="text-[9px] text-primary/35 truncate">{item.categoria}</p>}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      ) : (
-        <p className="text-[9px] text-primary/20 italic text-center py-2">Sin drops configurados</p>
-      )}
+      </div>
     </div>
   );
 }
