@@ -273,8 +273,8 @@ export function FormularioPersonaje({
           {tab === "identidad" && (
             <div className="p-3">
               <div className="flex gap-4">
-                {/* Columna izquierda: imagen cara */}
-                <div className="shrink-0 w-96">
+                {/* Columna izquierda: imagen cara + cuerpo apilados */}
+                <div className="shrink-0 w-36 space-y-2">
                   <SelectorImagen
                     label="Cara"
                     value={form.img_url ?? ""}
@@ -282,6 +282,54 @@ export function FormularioPersonaje({
                     aspect="square"
                     placeholder={<UserCircle2 size={20} className="opacity-25" />}
                   />
+                  {!compacto && (
+                    <div
+                      className="hidden sm:block rounded-xl overflow-hidden"
+                      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                    >
+                      <div
+                        className="relative w-full"
+                        style={{ aspectRatio: "1 / 2" }}
+                      >
+                        {form.img_cuerpo_url ? (
+                          <>
+                            <img
+                              src={form.img_cuerpo_url}
+                              alt="Cuerpo completo"
+                              className="absolute inset-0 w-full h-full object-contain"
+                              style={{ objectPosition: "top center" }}
+                            />
+                            <label
+                              className="absolute inset-0 flex flex-col items-center justify-end pb-2 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                              style={{ background: "linear-gradient(to top, color-mix(in srgb, var(--bg-main) 80%, transparent) 0%, transparent 50%)" }}
+                            >
+                              <SelectorImagen
+                                label=""
+                                value={form.img_cuerpo_url}
+                                onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
+                                aspect="full"
+                                placeholder={null}
+                              />
+                            </label>
+                          </>
+                        ) : (
+                          <SelectorImagen
+                            label=""
+                            value=""
+                            onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
+                            aspect="full"
+                            placeholder={<Maximize2 size={18} className="opacity-20" />}
+                          />
+                        )}
+                      </div>
+                      <div
+                        className="px-2 py-1 border-t text-center"
+                        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                      >
+                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">Cuerpo</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Columna derecha: selectores en fila + descripción + resto */}
@@ -330,11 +378,6 @@ export function FormularioPersonaje({
                       )}
                     </div>
                     <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
-                  </div>
-
-                  {/* Picker cuerpo mobile */}
-                  <div className="sm:hidden">
-                    <PickerCuerpo value={form.img_cuerpo_url ?? ""} onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))} />
                   </div>
 
                   {/* Descripción */}
@@ -387,57 +430,6 @@ export function FormularioPersonaje({
           )}
         </div>
 
-        {/* ── Right column: imagen cuerpo completo sin cortes (desktop) ────── */}
-        {!compacto && (
-          <div
-            className="hidden sm:flex w-28 shrink-0 border-l flex-col"
-            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-          >
-            {/* Contenedor que ocupa todo el alto disponible */}
-            <div className="flex-1 min-h-0 relative overflow-hidden">
-              {form.img_cuerpo_url ? (
-                <>
-                  {/* Imagen sin recortar: contain dentro del área */}
-                  <img
-                    src={form.img_cuerpo_url}
-                    alt="Cuerpo completo"
-                    className="absolute inset-0 w-full h-full object-contain"
-                    style={{ objectPosition: "top center" }}
-                  />
-                  {/* Botón cambiar imagen — aparece al hacer hover */}
-                  <label
-                    className="absolute inset-0 flex flex-col items-center justify-end pb-2 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
-                    style={{ background: "linear-gradient(to top, color-mix(in srgb, var(--bg-main) 80%, transparent) 0%, transparent 50%)" }}
-                  >
-                    <SelectorImagen
-                      label=""
-                      value={form.img_cuerpo_url}
-                      onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-                      aspect="full"
-                      placeholder={null}
-                    />
-                  </label>
-                </>
-              ) : (
-                /* Sin imagen: selector normal */
-                <SelectorImagen
-                  label=""
-                  value=""
-                  onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-                  aspect="full"
-                  placeholder={<Maximize2 size={18} className="opacity-20" />}
-                />
-              )}
-            </div>
-            {/* Label mínimo */}
-            <div
-              className="shrink-0 px-2 py-1 border-t text-center"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
-            >
-              <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">Cuerpo</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
