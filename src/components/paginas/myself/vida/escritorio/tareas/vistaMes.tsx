@@ -1,8 +1,8 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { MotionDiv, MotionButton } from "@/components/ui/Motion";
 import React, { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Bookmark, BookOpen, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Plus } from "lucide-react";
 import { BtnIcon } from "@/components/ui";
 import { MESES, TIPOS_EVENTO, EventoBadge } from "./types";
 
@@ -65,46 +65,48 @@ export const VistaMes = ({
   }, [eventos, capitulosRaw, diaSeleccionado, mesActual, añoActual]);
 
   return (
-    <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-4 shadow-xl shadow-primary/5 flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
+    <div className="
+      bg-white-custom border border-primary/10
+      rounded-[var(--radius-card)] shadow-xl shadow-primary/5
+      flex flex-col h-full overflow-hidden
+    ">
+      {/* ── Header: navegación de mes ── */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-primary/6 shrink-0">
+        <button
+          onClick={() => cambiarMes(-1)}
+          className="p-1.5 hover:bg-primary/6 rounded-[var(--radius-btn)] text-primary/35 hover:text-primary transition-all"
+        >
+          <ChevronLeft size={15} />
+        </button>
 
-      {}
-      <div className="flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <CalendarIcon className="text-primary" size={16} />
-          <h2 className="text-[11px] font-black uppercase tracking-widest text-primary/60">Calendario</h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => cambiarMes(-1)}
-            className="p-1.5 hover:bg-primary/5 rounded-[var(--radius-btn)] text-primary/40 transition-colors"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span className="text-[10px] font-black uppercase tracking-widest text-primary min-w-[9rem] text-center">
-            {MESES[mesActual]} {añoActual}
-          </span>
-          <button
-            onClick={() => cambiarMes(1)}
-            className="p-1.5 hover:bg-primary/5 rounded-[var(--radius-btn)] text-primary/40 transition-colors"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
+        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">
+          {MESES[mesActual]} {añoActual}
+        </span>
+
+        <button
+          onClick={() => cambiarMes(1)}
+          className="p-1.5 hover:bg-primary/6 rounded-[var(--radius-btn)] text-primary/35 hover:text-primary transition-all"
+        >
+          <ChevronRight size={15} />
+        </button>
       </div>
 
-      {}
-      <div className="shrink-0">
-        {}
-        <div className="grid grid-cols-7 mb-1">
+      {/* ── Cuerpo: grilla + panel día ── */}
+      <div className="flex flex-col flex-1 min-h-0 p-4 gap-4">
+
+        {/* Días de la semana */}
+        <div className="grid grid-cols-7 shrink-0">
           {["L", "M", "X", "J", "V", "S", "D"].map(d => (
-            <div key={d} className="text-center text-[8px] font-black uppercase text-primary/25 py-1">{d}</div>
+            <div key={d} className="text-center text-[8px] font-black uppercase text-primary/20 py-1">
+              {d}
+            </div>
           ))}
         </div>
 
-        {}
-        <div className="grid grid-cols-7 gap-1">
+        {/* Grilla de días — ocupa espacio flexible */}
+        <div className="grid grid-cols-7 gap-1 shrink-0">
           {Array.from({ length: primerDiaSemana }).map((_, i) => (
-            <div key={`empty-${i}`} className="h-8" />
+            <div key={`empty-${i}`} className="aspect-square" />
           ))}
           {Array.from({ length: diasEnMes }).map((_, i) => {
             const dia = i + 1;
@@ -119,109 +121,111 @@ export const VistaMes = ({
               <MotionButton
                 key={dia}
                 onClick={() => setDiaSeleccionado(dia)}
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
                 className={cn(
-                  "h-8 rounded-[var(--radius-btn)] border flex flex-col items-center justify-center relative transition-all text-xs font-black",
+                  "aspect-square rounded-[var(--radius-btn)] border flex flex-col items-center justify-center relative transition-all text-[11px] font-black",
                   estaSeleccionado
-                    ? "bg-primary text-btn-text border-primary shadow-lg shadow-primary/30"
+                    ? "bg-primary text-btn-text border-primary shadow-lg shadow-primary/25"
                     : esHoy
-                    ? "bg-primary/10 border-primary/30 text-primary"
-                    : "bg-primary/5 border-primary/5 hover:bg-white-custom hover:border-primary/20 text-foreground"
+                    ? "bg-primary/10 border-primary/25 text-primary"
+                    : "bg-transparent border-transparent hover:bg-primary/5 hover:border-primary/10 text-foreground/70"
                 )}
               >
                 {dia}
                 {tieneAlgo && (
-                  <span
-                    className={cn(
-                      "absolute bottom-[3px] w-1 h-1 rounded-full",
-                      estaSeleccionado ? "bg-btn-text/70" : "bg-primary"
-                    )}
-                  />
+                  <span className={cn(
+                    "absolute bottom-[4px] w-1 h-1 rounded-full",
+                    estaSeleccionado ? "bg-white/60" : "bg-primary/50"
+                  )} />
                 )}
               </MotionButton>
             );
           })}
         </div>
-      </div>
 
-      {}
-      <div className="bg-primary/5 rounded-[var(--radius-btn)] p-3 border border-primary/10 shrink-0">
-        <div className="flex items-center gap-2 mb-2">
-          <Bookmark size={12} className="text-primary/40" />
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
-            Día {diaSeleccionado}
-          </span>
-        </div>
-        {}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <select
-            value={tipoEvento}
-            onChange={e => setTipoEvento(e.target.value)}
-            className="bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-black text-primary outline-none focus:border-primary/30 cursor-pointer"
-          >
-            {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <div className="flex gap-2 flex-1">
-            <input
-              type="text"
-              value={nuevoEvento}
-              onChange={(e) => setNuevoEvento(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddEvento()}
-              placeholder="Nombre del evento..."
-              className="flex-1 bg-white-custom rounded-[var(--radius-btn)] px-4 py-2 text-xs text-primary font-bold outline-none border border-primary/10 focus:border-primary/30 min-w-0"
-            />
-            <BtnIcon
-              loading={isAddingEvento}
-              disabled={!nuevoEvento.trim()}
-              onClick={handleAddEvento}
-              className="rounded-[var(--radius-btn)] w-10 h-10 shrink-0"
-            >
-              <Plus size={16} />
-            </BtnIcon>
-          </div>
-        </div>
-      </div>
+        {/* ── Panel del día seleccionado ── */}
+        <div className="flex flex-col flex-1 min-h-0 border-t border-primary/6 pt-3 gap-3">
 
-      {}
-      <div className="flex flex-col flex-1 min-h-0">
-        <h3 className="text-[9px] font-black uppercase tracking-widest text-primary/30 px-1 mb-2 shrink-0">
-          Eventos del día {diaSeleccionado}
-        </h3>
-        <div className="flex flex-col gap-2 overflow-y-auto flex-1 min-h-0">
-          {itemsCombinadosDelDia.length > 0 ? (
-            itemsCombinadosDelDia.map((item: any) => (
-              <MotionDiv
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                key={item.id}
-                className={cn(
-                  "flex items-center gap-3 p-3 rounded-[var(--radius-card)] border transition-all shrink-0",
-                  item.esCapitulo
-                    ? "bg-primary/10 border-primary/20"
-                    : "bg-primary/5 border-primary/10"
-                )}
+          {/* Header del día + form inline */}
+          <div className="flex flex-col gap-2 shrink-0">
+            <span className="text-[9px] font-black uppercase tracking-widest text-primary/35">
+              {diaSeleccionado} de {MESES[mesActual]}
+            </span>
+
+            <div className="flex gap-2">
+              <select
+                value={tipoEvento}
+                onChange={e => setTipoEvento(e.target.value)}
+                className="bg-primary/5 border border-primary/8 rounded-[var(--radius-btn)] px-2 py-2 text-[9px] font-black text-primary outline-none focus:border-primary/25 cursor-pointer"
               >
-                <div className="w-8 h-8 bg-white-custom rounded-[var(--radius-btn)] flex items-center justify-center shadow-sm shrink-0">
-                  {item.esCapitulo
-                    ? <BookOpen size={14} className="text-primary" />
-                    : <span className="text-[11px] font-black text-primary">{diaSeleccionado}</span>
-                  }
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black text-foreground uppercase italic truncate">"{item.titulo}"</p>
-                  <p className="text-[8px] font-bold text-primary/40 uppercase tracking-tight">"{item.tipo}"</p>
-                </div>
-                {item.esCapitulo && (
-                  <span className="text-[7px] font-black bg-primary text-white px-2 py-0.5 rounded-full uppercase shrink-0">
-                    Cap.
-                  </span>
-                )}
-              </MotionDiv>
-            ))
-          ) : (
-            <p className="text-[10px] font-bold text-primary/20 italic px-1">Sin eventos para este día.</p>
-          )}
+                {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+
+              <div className="flex gap-1.5 flex-1">
+                <input
+                  type="text"
+                  value={nuevoEvento}
+                  onChange={(e) => setNuevoEvento(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddEvento()}
+                  placeholder="Añadir evento..."
+                  className="
+                    flex-1 bg-primary/4 rounded-[var(--radius-btn)] px-3 py-2
+                    text-xs text-primary font-semibold outline-none
+                    border border-transparent focus:border-primary/20 focus:bg-white-custom
+                    min-w-0 transition-all placeholder:text-primary/20
+                  "
+                />
+                <BtnIcon
+                  loading={isAddingEvento}
+                  disabled={!nuevoEvento.trim()}
+                  onClick={handleAddEvento}
+                  className="rounded-[var(--radius-btn)] w-9 h-9 shrink-0"
+                >
+                  <Plus size={14} />
+                </BtnIcon>
+              </div>
+            </div>
+          </div>
+
+          {/* Eventos del día */}
+          <div className="flex flex-col gap-1.5 overflow-y-auto flex-1 min-h-0">
+            {itemsCombinadosDelDia.length === 0 ? (
+              <p className="text-[10px] font-medium text-primary/20 italic pt-2">
+                Sin eventos para este día.
+              </p>
+            ) : (
+              itemsCombinadosDelDia.map((item: any) => (
+                <MotionDiv
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  key={item.id}
+                  className={cn(
+                    "flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius-btn)] border shrink-0",
+                    item.esCapitulo
+                      ? "bg-amber-50 border-amber-200/60"
+                      : "bg-primary/4 border-primary/8"
+                  )}
+                >
+                  <div className="w-6 h-6 bg-white-custom rounded-[var(--radius-btn)] flex items-center justify-center shadow-sm shrink-0">
+                    {item.esCapitulo
+                      ? <BookOpen size={11} className="text-amber-600" />
+                      : <span className="text-[9px] font-black text-primary">{diaSeleccionado}</span>
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-foreground truncate">{item.titulo}</p>
+                    <p className="text-[8px] font-semibold text-primary/35 uppercase tracking-wide">{item.tipo}</p>
+                  </div>
+                  {item.esCapitulo && (
+                    <span className="text-[7px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase shrink-0">
+                      Cap.
+                    </span>
+                  )}
+                </MotionDiv>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

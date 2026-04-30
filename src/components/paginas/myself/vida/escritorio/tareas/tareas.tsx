@@ -1,7 +1,7 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
+import { MotionDiv, MotionButton } from "@/components/ui/Motion";
 import React, { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { tareasQueries } from "@/lib/api/queries/personal/tareas";
@@ -32,8 +32,7 @@ export const GestionPersonal = () => {
   const [nuevoEvento, setNuevoEvento] = useState("");
   const [tipoEvento, setTipoEvento] = useState("Plan");
 
-  
-
+  /* ── Tareas ── */
   const handleAddTarea = async () => {
     if (!nuevaTarea.trim() || isAddingTarea) return;
     setIsAddingTarea(true);
@@ -86,8 +85,7 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); }
   };
 
-  
-
+  /* ── Eventos ── */
   const handleAddEventoMes = async () => {
     if (!nuevoEvento.trim() || isAddingEvento) return;
     setIsAddingEvento(true);
@@ -137,56 +135,55 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); } finally { setIsAddingEvento(false); }
   };
 
-  
-
+  /* ── Render ── */
   return (
-    
-    <div className="flex flex-col lg:grid lg:grid-cols-12 lg:h-[calc(100vh-var(--navbar-height,80px))] gap-4 pb-6 lg:pb-0 lg:overflow-hidden">
+    /**
+     * Layout: 3 columnas en desktop
+     *  [col-3: Reloj/Pomodoro] | [col-6: Calendario central] | [col-3: Lista tareas]
+     * En mobile: stack vertical
+     */
+    <div className="
+      flex flex-col
+      lg:grid lg:grid-cols-12
+      lg:h-[calc(100vh-var(--navbar-height,80px))]
+      gap-3 pb-6 lg:pb-3 lg:overflow-hidden
+    ">
 
-      {}
-      <section className="lg:col-span-5 flex flex-col gap-4 lg:h-full lg:overflow-hidden">
+      {/* ── Sidebar izquierda: Reloj + Pomodoro ── */}
+      <section className="lg:col-span-3 flex flex-col lg:h-full lg:overflow-hidden">
         <RelojDigital horario={horarioRaw || []} tareas={tareas || []} />
-        <ListaTareas
-          tareas={tareas}
-          nuevaTarea={nuevaTarea}
-          setNuevaTarea={setNuevaTarea}
-          isAddingTarea={isAddingTarea}
-          onAdd={handleAddTarea}
-          onToggle={handleToggle}
-          onDelete={handleDelete}
-        />
       </section>
 
-      {}
-      <section className="lg:col-span-7 flex flex-col gap-3 lg:h-full lg:overflow-hidden">
+      {/* ── Centro: Calendario ── */}
+      <section className="lg:col-span-6 flex flex-col gap-2 lg:h-full lg:overflow-hidden">
 
-        {}
-        <div className="flex items-center gap-1 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] p-1 self-start lg:self-end shadow-sm shrink-0">
+        {/* Switcher Mes / Semana — más compacto */}
+        <div className="flex items-center gap-1 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] p-1 self-start shadow-sm shrink-0">
           <button
             onClick={() => setModoCalendario("mes")}
             className={cn(
-              "flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-[var(--radius-btn)] transition-all",
+              "flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-[var(--radius-btn)] transition-all",
               modoCalendario === "mes"
                 ? "bg-primary text-white shadow-md shadow-primary/20"
                 : "text-primary/40 hover:text-primary"
             )}
           >
-            <CalendarIcon size={11} /> Mes
+            <CalendarIcon size={10} /> Mes
           </button>
           <button
             onClick={() => setModoCalendario("semana")}
             className={cn(
-              "flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-[var(--radius-btn)] transition-all",
+              "flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-[var(--radius-btn)] transition-all",
               modoCalendario === "semana"
                 ? "bg-primary text-white shadow-md shadow-primary/20"
                 : "text-primary/40 hover:text-primary"
             )}
           >
-            <Clock size={11} /> Semana
+            <Clock size={10} /> Semana
           </button>
         </div>
 
-        {}
+        {/* Vista activa */}
         <div className="flex-1 min-h-0 flex flex-col">
           <AnimatePresence mode="wait">
             {modoCalendario === "mes" ? (
@@ -195,7 +192,7 @@ export const GestionPersonal = () => {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.18 }}
                 className="flex-1 flex flex-col min-h-0"
               >
                 <VistaMes
@@ -217,7 +214,7 @@ export const GestionPersonal = () => {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.18 }}
                 className="flex-1 flex flex-col min-h-0"
               >
                 <VistaSemanal
@@ -231,6 +228,20 @@ export const GestionPersonal = () => {
           </AnimatePresence>
         </div>
       </section>
+
+      {/* ── Sidebar derecha: Lista de tareas ── */}
+      <section className="lg:col-span-3 flex flex-col lg:h-full lg:overflow-hidden">
+        <ListaTareas
+          tareas={tareas}
+          nuevaTarea={nuevaTarea}
+          setNuevaTarea={setNuevaTarea}
+          isAddingTarea={isAddingTarea}
+          onAdd={handleAddTarea}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+        />
+      </section>
+
     </div>
   );
 };
