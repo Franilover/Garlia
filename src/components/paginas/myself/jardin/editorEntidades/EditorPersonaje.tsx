@@ -274,7 +274,7 @@ export function FormularioPersonaje({
             <div className="p-3">
               <div className="flex gap-4">
                 {/* Columna izquierda: imagen cara + cuerpo apilados */}
-                <div className="shrink-0 w-36 space-y-2">
+                <div className="shrink-0 w-52 space-y-2">
                   <SelectorImagen
                     label="Cara"
                     value={form.img_url ?? ""}
@@ -287,46 +287,34 @@ export function FormularioPersonaje({
                       className="hidden sm:block rounded-xl overflow-hidden"
                       style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
                     >
+                      {/* Label + botón cambiar */}
                       <div
-                        className="relative w-full"
-                        style={{ aspectRatio: "1 / 2" }}
-                      >
-                        {form.img_cuerpo_url ? (
-                          <>
-                            <img
-                              src={form.img_cuerpo_url}
-                              alt="Cuerpo completo"
-                              className="absolute inset-0 w-full h-full object-contain"
-                              style={{ objectPosition: "top center" }}
-                            />
-                            <label
-                              className="absolute inset-0 flex flex-col items-center justify-end pb-2 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
-                              style={{ background: "linear-gradient(to top, color-mix(in srgb, var(--bg-main) 80%, transparent) 0%, transparent 50%)" }}
-                            >
-                              <SelectorImagen
-                                label=""
-                                value={form.img_cuerpo_url}
-                                onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-                                aspect="full"
-                                placeholder={null}
-                              />
-                            </label>
-                          </>
-                        ) : (
-                          <SelectorImagen
-                            label=""
-                            value=""
-                            onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-                            aspect="full"
-                            placeholder={<Maximize2 size={18} className="opacity-20" />}
-                          />
-                        )}
-                      </div>
-                      <div
-                        className="px-2 py-1 border-t text-center"
-                        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                        className="flex items-center justify-between px-2 py-1 border-b"
+                        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
                       >
                         <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">Cuerpo</span>
+                        <SelectorImagen
+                          label="Cambiar"
+                          value={form.img_cuerpo_url ?? ""}
+                          onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
+                          aspect="full"
+                          placeholder={null}
+                        />
+                      </div>
+                      {/* Imagen siempre visible */}
+                      <div className="relative w-full bg-primary/2" style={{ aspectRatio: "1 / 2" }}>
+                        {form.img_cuerpo_url ? (
+                          <img
+                            src={form.img_cuerpo_url}
+                            alt="Cuerpo completo"
+                            className="absolute inset-0 w-full h-full object-contain"
+                            style={{ objectPosition: "top center" }}
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Maximize2 size={20} className="opacity-15" />
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -380,29 +368,27 @@ export function FormularioPersonaje({
                     <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
                   </div>
 
-                  {/* Descripción */}
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
-                    <MarkdownEditor
-                      value={form.sobre ?? ""}
-                      onChange={v => setForm(f => ({ ...f, sobre: v }))}
-                      placeholder="Biografía, personalidad…"
-                      rows={5}
-                      toolbar
-                      defaultMode="edit"
-                    />
-                  </div>
-
-                  {/* Características + Hechizos */}
-                  {!compacto && (
+                  {/* Descripción + Características + Hechizos en fila */}
+                  {!compacto ? (
                     <div className="flex gap-3">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
+                        <MarkdownEditor
+                          value={form.sobre ?? ""}
+                          onChange={v => setForm(f => ({ ...f, sobre: v }))}
+                          placeholder="Biografía, personalidad…"
+                          rows={8}
+                          toolbar
+                          defaultMode="edit"
+                        />
+                      </div>
                       <div className="flex-1 min-w-0 space-y-1">
                         <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Características</label>
                         <MarkdownEditor
                           value={form.caracteristicas ?? ""}
                           onChange={v => setForm(f => ({ ...f, caracteristicas: v }))}
                           placeholder="Rasgos físicos, personalidad, habilidades…"
-                          rows={10}
+                          rows={8}
                           toolbar
                           defaultMode="edit"
                         />
@@ -410,6 +396,18 @@ export function FormularioPersonaje({
                       <div className="w-56 shrink-0">
                         <SeccionHechizos personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
                       </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
+                      <MarkdownEditor
+                        value={form.sobre ?? ""}
+                        onChange={v => setForm(f => ({ ...f, sobre: v }))}
+                        placeholder="Biografía, personalidad…"
+                        rows={5}
+                        toolbar
+                        defaultMode="edit"
+                      />
                     </div>
                   )}
 
