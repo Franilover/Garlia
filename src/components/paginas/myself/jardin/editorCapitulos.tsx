@@ -1082,7 +1082,8 @@ const PanelEditor = ({
     clearTimeout(timer.current);
     timer.current = setTimeout(() => doSave(val), 2000);
     
-    requestAnimationFrame(() => centerCursor());
+    const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+    if (!isTouchDevice) requestAnimationFrame(() => centerCursor());
   };
 
   const handleSaveTitle = async () => {
@@ -1457,7 +1458,7 @@ const PanelEditor = ({
         </>
       )}
 
-      <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12 max-w-3xl mx-auto w-full" : "px-4 sm:px-8 py-4 sm:py-6"}`}>
+      <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12 max-w-3xl mx-auto w-full" : "px-4 sm:px-8 py-4 sm:py-6"}`} style={{ WebkitOverflowScrolling: "touch" }}>
         {}
         <div ref={caretMirrorRef} aria-hidden="true" />
         <textarea
@@ -1468,7 +1469,7 @@ const PanelEditor = ({
             if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(contenido); }
           }}
           spellCheck
-          className={`w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all ${focusMode ? "text-lg sm:text-xl" : "text-base"}`}
+          className={`w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all select-text touch-pan-y ${focusMode ? "text-lg sm:text-xl" : "text-base"}`}
           style={{ minHeight: "60vh" }}
           placeholder="Empieza a escribir…"
         />
