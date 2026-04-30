@@ -10,11 +10,13 @@ export function renderMarkdown(raw: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
+  // Bloques de código
   html = html.replace(/```([\s\S]*?)```/g, (_, code) => {
     const escaped = code.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
     return `<pre><code>${escaped.trim()}</code></pre>`;
   });
 
+  // Tablas
   html = html.replace(/(?:^|\n)((?:\|[^\n]+\|\n)+)/g, (_, tableBlock) => {
     const rows = tableBlock.trim().split("\n").filter((r: string) => r.trim());
     if (rows.length < 2) return tableBlock;
@@ -26,6 +28,13 @@ export function renderMarkdown(raw: string): string {
     return `\n<table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>\n`;
   });
 
+  // Imágenes (debe ir antes que los enlaces)
+  html = html.replace(/!\[([^\]]*)\]\((.*?)\)/g, '<img src="$2" alt="$1" />');
+  
+  // Enlaces
+  html = html.replace(/\[([^\]]+)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  // Tipografía y Encabezados
   html = html.replace(/^---$/gm, "<hr/>");
   html = html.replace(/^######\s(.+)$/gm, "<h6>$1</h6>");
   html = html.replace(/^#####\s(.+)$/gm,  "<h5>$1</h5>");
@@ -37,11 +46,24 @@ export function renderMarkdown(raw: string): string {
   html = html.replace(/\*\*(.+?)\*\*/g,     "<strong>$1</strong>");
   html = html.replace(/\*(.+?)\*/g,         "<em>$1</em>");
   html = html.replace(/`([^`]+)`/g,         "<code>$1</code>");
-  html = html.replace(/((?:^- .+\n?)+)/gm, (block) => {
+  
+  // Listas (Soporta listas normales y Task Lists / Checkboxes)
+  html = html.replace(/((?:^[ \t]*- .+\n?)+)/gm, (block) => {
     const items = block.trim().split("\n")
-      .map((l: string) => `<li>${l.replace(/^- /, "")}</li>`).join("");
+      .map((l: string) => {
+        let content = l.replace(/^[ \t]*- /, "");
+        // Detectar si es un Task List: [ ] o [x]
+        const taskMatch = content.match(/^\[([ xX\s])\] (.*)/);
+        if (taskMatch) {
+          const checked = taskMatch[1].trim().toLowerCase() === 'x' ? 'checked' : '';
+          return `<li class="task-list-item"><input type="checkbox" class="task-list-checkbox" disabled ${checked} /><span>${taskMatch[2]}</span></li>`;
+        }
+        return `<li>${content}</li>`;
+      }).join("");
     return `<ul>${items}</ul>`;
   });
+
+  // Párrafos (Saltos de línea)
   html = html.split(/\n{2,}/).map((block: string) => {
     if (/^<(h[1-6]|ul|ol|li|pre|table|hr|blockquote)/.test(block.trim())) return block;
     const inner = block.trim().replace(/\n/g, "<br/>");
@@ -60,9 +82,24 @@ export const PROSE_STYLES = `
   .prose-mundo strong { font-weight:800;color:var(--color-primary,#7c6af7) }
   .prose-mundo em     { font-style:italic;opacity:.85 }
   .prose-mundo hr { border:none;border-top:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 20%,transparent);margin:.9rem 0 }
+  
+  /* Enlaces */
+  .prose-mundo a { color:var(--color-primary,#7c6af7);text-decoration:underline;text-underline-offset:3px;transition:opacity 0.2s; }
+  .prose-mundo a:hover { opacity:0.8; }
+  
+  /* Imágenes */
+  .prose-mundo img { max-width:100%;height:auto;border-radius:0.5rem;margin:0.5rem 0;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 15%,transparent); }
+
+  /* Listas normales */
   .prose-mundo ul { list-style:none;padding-left:1rem;margin:.4rem 0 }
   .prose-mundo ul li { position:relative;padding-left:.8rem;font-size:.82rem;margin:.2rem 0;color:var(--color-input-text,#d1c9ff) }
   .prose-mundo ul li::before { content:"◈";position:absolute;left:-.2rem;font-size:.6rem;color:var(--color-primary,#7c6af7);top:.2rem }
+  
+  /* Task Lists (Checkboxes) */
+  .prose-mundo .task-list-item { display:flex;align-items:flex-start;gap:0.4rem;padding-left:0; }
+  .prose-mundo .task-list-item::before { display:none; /* Oculta el rombo de la lista normal */ }
+  .prose-mundo .task-list-checkbox { margin-top:0.25rem;accent-color:var(--color-primary,#7c6af7);width:0.85rem;height:0.85rem;cursor:not-allowed; }
+
   .prose-mundo table { width:100%;border-collapse:collapse;font-size:.78rem;margin:.6rem 0 }
   .prose-mundo th { background:color-mix(in srgb,var(--color-primary,#7c6af7) 15%,transparent);color:var(--color-primary,#7c6af7);font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:.4rem .7rem;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 20%,transparent);text-align:left }
   .prose-mundo td { padding:.35rem .7rem;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 12%,transparent);color:var(--color-input-text,#d1c9ff) }
@@ -82,9 +119,7 @@ interface MarkdownEditorProps {
   placeholder?: string;
   rows?: number;
   className?: string;
-  /** Si true muestra barra de herramientas y toggle de modo */
   toolbar?: boolean;
-  /** Modo inicial */
   defaultMode?: ViewMode;
 }
 
@@ -101,6 +136,7 @@ export function MarkdownEditor({
   const [mode, setMode] = useState<ViewMode>(defaultMode);
   const [toolbarOpen, setToolbarOpen] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const pvRef = useRef<HTMLDivElement>(null);
 
   // En móvil, si el modo es "split" lo forzamos a "edit"
   useEffect(() => {
@@ -119,7 +155,7 @@ export function MarkdownEditor({
     const ta = taRef.current;
     if (!ta) return;
     const { selectionStart: s, selectionEnd: e } = ta;
-    const sel = value.slice(s, e) || "texto";
+    const sel = value.slice(s, e) || (after === "" ? "" : "texto");
     const next = value.slice(0, s) + before + sel + after + value.slice(e);
     onChange(next);
     requestAnimationFrame(() => {
@@ -143,15 +179,66 @@ export function MarkdownEditor({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const ta = taRef.current;
     if (!ta) return;
+
+    // 1. Indentación con Tab
     if (e.key === "Tab") {
       e.preventDefault();
       const { selectionStart: s, selectionEnd: end } = ta;
       const next = value.slice(0, s) + "  " + value.slice(end);
       onChange(next);
       requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = s + 2; });
+      return;
     }
+
+    // 2. Continuación automática de listas con Enter
+    if (e.key === "Enter") {
+      const { selectionStart: s } = ta;
+      const lines = value.slice(0, s).split('\n');
+      const currentLine = lines[lines.length - 1];
+
+      // Busca si la línea actual empieza con "- " o "- [ ]" o "- [x]"
+      const listMatch = currentLine.match(/^(\s*-\s(?:\[[ xX\s]\]\s)?)(.*)/);
+      if (listMatch) {
+        if (listMatch[2].trim() === '') {
+          // Si damos Enter en un elemento de lista vacío, lo borramos (salimos de la lista)
+          e.preventDefault();
+          const newVal = value.slice(0, s - listMatch[1].length) + value.slice(s);
+          onChange(newVal);
+          requestAnimationFrame(() => {
+            ta.selectionStart = ta.selectionEnd = s - listMatch[1].length;
+          });
+        } else {
+          // Si tiene contenido, creamos el siguiente elemento automáticamente
+          e.preventDefault();
+          // Si era una tarea marcada [x], la nueva se crea desmarcada [ ]
+          const prefix = listMatch[1].replace(/\[[xX]\]/, '[ ]');
+          insertSnippet(`\n${prefix}`);
+        }
+        return;
+      }
+    }
+
+    // 3. Auto-cerrado de caracteres
+    const autoClosePairs: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
+    if (autoClosePairs[e.key]) {
+      e.preventDefault();
+      wrapSelection(e.key, autoClosePairs[e.key]);
+      return;
+    }
+
+    // 4. Accesos directos de teclado
     if ((e.ctrlKey || e.metaKey) && e.key === "b") { e.preventDefault(); wrapSelection("**", "**"); }
     if ((e.ctrlKey || e.metaKey) && e.key === "i") { e.preventDefault(); wrapSelection("*", "*"); }
+  };
+
+  // 5. Sincronización de Scroll (Textarea -> Preview)
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (mode !== "split" || !pvRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight > clientHeight) {
+      const ratio = scrollTop / (scrollHeight - clientHeight);
+      pvRef.current.scrollTop = ratio * (pvRef.current.scrollHeight - pvRef.current.clientHeight);
+    }
   };
 
   const baseCls =
@@ -166,7 +253,6 @@ export function MarkdownEditor({
       {/* Toolbar */}
       {toolbar && (
         <div className="flex items-center gap-2">
-
           {/* Botón accesos rápidos — solo mobile */}
           <div className="relative sm:hidden shrink-0">
             <button
@@ -189,7 +275,9 @@ export function MarkdownEditor({
                   { label: "Negrita", action: () => wrapSelection("**", "**") },
                   { label: "Itálica", action: () => wrapSelection("*", "*") },
                   { label: "Código", action: () => wrapSelection("`", "`") },
+                  { label: "Enlace", action: () => wrapSelection("[", "](url)") },
                   { label: "Lista", action: () => insertSnippet("\n- elemento\n- elemento\n") },
+                  { label: "Tareas", action: () => insertSnippet("\n- [ ] Pendiente\n- [x] Hecho\n") },
                   { label: "Separador", action: () => insertSnippet("\n---\n") },
                   { label: "Tabla", action: () => insertSnippet("\n| Col 1 | Col 2 |\n|---|---|\n| dato | dato |\n") },
                   { label: "Bloque", action: () => insertSnippet("\n```\ncódigo\n```\n") },
@@ -218,10 +306,24 @@ export function MarkdownEditor({
               className="px-2 py-1 rounded-lg text-[10px] font-mono text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
               {"</>"}
             </button>
+            <button type="button" onClick={() => wrapSelection("[", "](url)")} title="Añadir enlace"
+              className="px-2 py-1 rounded-lg text-[10px] font-medium text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
+              Link
+            </button>
+            <button type="button" onClick={() => wrapSelection("![alt](", ")")} title="Añadir Imagen"
+              className="px-2 py-1 rounded-lg text-[10px] font-medium text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
+              Img
+            </button>
+            
             <span className="w-px h-4 bg-primary/15 mx-0.5" />
+            
             <button type="button" onClick={() => insertSnippet("\n- elemento\n- elemento\n")}
               className="px-2 py-1 rounded-lg text-[10px] text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
               Lista
+            </button>
+            <button type="button" onClick={() => insertSnippet("\n- [ ] Pendiente\n- [x] Hecho\n")}
+              className="px-2 py-1 rounded-lg text-[10px] text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
+              Tareas
             </button>
             <button type="button" onClick={() => insertSnippet("\n---\n")}
               className="px-2 py-1 rounded-lg text-[10px] text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
@@ -265,6 +367,7 @@ export function MarkdownEditor({
             value={value}
             onChange={e => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            onScroll={handleScroll} // Sincronización de scroll
             placeholder={placeholder}
             className={baseCls}
             style={{ minHeight: minH, overflowY: "auto" }}
@@ -272,6 +375,7 @@ export function MarkdownEditor({
         )}
         {(mode === "preview" || mode === "split") && (
           <div
+            ref={pvRef} // Ref para la sincronización
             className="flex-1 bg-input-bg border border-primary/15 rounded-xl px-5 py-4 overflow-y-auto prose-mundo"
             style={{ minHeight: minH }}
             dangerouslySetInnerHTML={{
@@ -283,7 +387,7 @@ export function MarkdownEditor({
 
       {toolbar && (
         <p className="text-[10px] text-primary/25 font-mono">
-          Markdown · <strong>Ctrl+B</strong> negrita · <strong>Ctrl+I</strong> itálica · <strong>Tab</strong> indentar
+          Markdown · <strong>Ctrl+B</strong> negrita · <strong>Ctrl+I</strong> itálica · <strong>Tab</strong> indentar · <strong>Enter</strong> auto-listas
         </p>
       )}
     </div>
