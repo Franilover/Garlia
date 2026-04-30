@@ -287,22 +287,15 @@ export function FormularioPersonaje({
                       className="hidden sm:block rounded-xl overflow-hidden"
                       style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
                     >
-                      {/* Label + botón cambiar */}
+                      {/* Label */}
                       <div
-                        className="flex items-center justify-between px-2 py-1 border-b"
+                        className="px-2 py-1 border-b"
                         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
                       >
                         <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">Cuerpo</span>
-                        <SelectorImagen
-                          label="Cambiar"
-                          value={form.img_cuerpo_url ?? ""}
-                          onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
-                          aspect="full"
-                          placeholder={null}
-                        />
                       </div>
-                      {/* Imagen siempre visible */}
-                      <div className="relative w-full bg-primary/2" style={{ aspectRatio: "1 / 2" }}>
+                      {/* Imagen con hover overlay para cambiar */}
+                      <div className="relative w-full group bg-primary/2" style={{ aspectRatio: "1 / 2" }}>
                         {form.img_cuerpo_url ? (
                           <img
                             src={form.img_cuerpo_url}
@@ -315,6 +308,21 @@ export function FormularioPersonaje({
                             <Maximize2 size={20} className="opacity-15" />
                           </div>
                         )}
+                        {/* Overlay hover cubre todo */}
+                        <label
+                          className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          style={{ background: "color-mix(in srgb, var(--bg-main) 70%, transparent)", backdropFilter: "blur(2px)" }}
+                        >
+                          <Maximize2 size={14} className="text-primary/50" />
+                          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cambiar</span>
+                          <SelectorImagen
+                            label=""
+                            value={form.img_cuerpo_url ?? ""}
+                            onChange={url => setForm(f => ({ ...f, img_cuerpo_url: url }))}
+                            aspect="full"
+                            placeholder={null}
+                          />
+                        </label>
                       </div>
                     </div>
                   )}
