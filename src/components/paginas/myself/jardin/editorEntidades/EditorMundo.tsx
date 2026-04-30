@@ -1317,12 +1317,14 @@ export function EditorMundo({
   onTextoChange,
   onSave,
   initialMundoTab,
+  onTabChange,
 }: {
   activeSection: MundoSectionKey;
   textos: Record<MundoSectionKey, string>;
   onTextoChange: (section: MundoSectionKey, value: string) => void;
   onSave: (section: MundoSectionKey) => Promise<void>;
   initialMundoTab?: string;
+  onTabChange?: (section: MundoSectionKey, mundoTab: string) => void;
 }) {
   const [tab, setTab] = useState<UnifiedTab>(() =>
     resolveInitialTab(activeSection, initialMundoTab)
@@ -1333,6 +1335,17 @@ export function EditorMundo({
   useEffect(() => {
     setTab(resolveInitialTab(activeSection, initialMundoTab));
   }, [activeSection, initialMundoTab]);
+
+  // Notifica al padre cuando el usuario cambia de tab manualmente
+  const handleTabChange = useCallback((next: UnifiedTab) => {
+    setTab(next);
+    // Mapea el tab unificado a (section, mundoTab) para persistencia
+    const sectionMap: Record<UnifiedTab, MundoSectionKey> = {
+      mundo: "geografia", historia: "historia", listas: "geografia",
+      magia: "magia", hechizos: "magia", dones: "magia", runas: "magia",
+    };
+    onTabChange?.(sectionMap[next], next);
+  }, [onTabChange]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -1368,7 +1381,7 @@ export function EditorMundo({
             return (
               <button
                 key={t.key}
-                onClick={() => setTab(t.key)}
+                onClick={() => handleTabChange(t.key)}
                 className="relative flex items-center gap-1.5 px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap"
                 style={{ color: active ? color : "color-mix(in srgb, var(--primary) 28%, transparent)" }}
               >

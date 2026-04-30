@@ -106,16 +106,30 @@ function ModalNueva({ tab, onCreated, onClose }: {
 // ─── Persistencia de sesión ───────────────────────────────────────────────────
 const STORAGE_KEY = "editorEntidades:session";
 
-function readSession(): { tab: TabKey; selectedId: string | null } {
+const VALID_MUNDO_SECTIONS: MundoSectionKey[] = ["geografia", "historia", "magia"];
+const VALID_MUNDO_TABS = ["mundo", "historia", "listas", "magia", "hechizos", "dones", "runas"];
+
+function readSession(): {
+  tab: TabKey;
+  selectedId: string | null;
+  mundoSection: MundoSectionKey;
+  mundoTab: string | undefined;
+} {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { tab: "personajes", selectedId: null };
+    if (!raw) return { tab: "personajes", selectedId: null, mundoSection: "geografia", mundoTab: undefined };
     const parsed = JSON.parse(raw);
     const validTabs: TabKey[] = [...Object.keys(TAB_CONFIG) as Exclude<TabKey, "mundo">[], "mundo"];
     const tab = validTabs.includes(parsed.tab) ? parsed.tab as TabKey : "personajes";
-    return { tab, selectedId: parsed.selectedId ?? null };
+    const mundoSection = VALID_MUNDO_SECTIONS.includes(parsed.mundoSection)
+      ? parsed.mundoSection as MundoSectionKey
+      : "geografia";
+    const mundoTab = VALID_MUNDO_TABS.includes(parsed.mundoTab)
+      ? parsed.mundoTab as string
+      : undefined;
+    return { tab, selectedId: parsed.selectedId ?? null, mundoSection, mundoTab };
   } catch {
-    return { tab: "personajes", selectedId: null };
+    return { tab: "personajes", selectedId: null, mundoSection: "geografia", mundoTab: undefined };
   }
 }
 
@@ -126,16 +140,23 @@ export default function EditorEntidades() {
   const [tab,          setTab]          = useState<TabKey>(session.current.tab);
   const [selectedId,   setSelectedId]   = useState<string | null>(session.current.selectedId);
   const [showNueva,    setShowNueva]    = useState<Exclude<TabKey, "mundo"> | null>(null);
-  const [mundoSection, setMundoSection] = useState<MundoSectionKey>("magia");
-  const [requestedSubTab, setRequestedSubTab] = useState<string | undefined>(undefined);
+  const [mundoSection, setMundoSection] = useState<MundoSectionKey>(session.current.mundoSection);
+  const [requestedSubTab, setRequestedSubTab] = useState<string | undefined>(session.current.mundoTab);
 
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
   const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
 
   // Persistir sesión
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ tab, selectedId })); } catch {}
-  }, [tab, selectedId]);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        tab,
+        selectedId,
+        mundoSection,
+        mundoTab: requestedSubTab,
+      }));
+    } catch {}
+  }, [tab, selectedId, mundoSection, requestedSubTab]);
 
   const selected = useMemo(() => {
     if (tab === "mundo") return null;
@@ -231,6 +252,10 @@ export default function EditorEntidades() {
               onTextoChange={(section, value) => setMundoTextos(t => ({ ...t, [section]: value }))}
               onSave={(section) => saveMundo(section, mundoTextos[section])}
               initialMundoTab={requestedSubTab}
+              onTabChange={(section, mundoTab) => {
+                setMundoSection(section);
+                setRequestedSubTab(mundoTab);
+              }}
             />
           ) : selected ? (
             <>
