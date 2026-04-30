@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Maximize2, UserCircle2, BookOpen, Mic2, Loader2,
   ChevronDown, X, Save, Trash2,
-  User, Sparkles, Star,
+  User, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -94,26 +94,17 @@ function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: stri
 
 // ─── Sección Hechizos inline ──────────────────────────────────────────────────
 function SeccionHechizos({ personajeId, especie, varianteId }: { personajeId: string; especie?: string; varianteId?: string | null }) {
-  const COLOR_H = "oklch(0.65 0.18 290)";
   return (
     <div
       className="rounded-xl overflow-hidden"
-      style={{
-        border:     `1px solid color-mix(in srgb, ${COLOR_H} 18%, transparent)`,
-        background: `color-mix(in srgb, ${COLOR_H} 3%, transparent)`,
-      }}
+      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
     >
       <div
         className="flex items-center gap-2 px-3 py-2 border-b"
-        style={{ borderColor: `color-mix(in srgb, ${COLOR_H} 12%, transparent)`, background: `color-mix(in srgb, ${COLOR_H} 5%, transparent)` }}
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
       >
-        <Sparkles size={10} style={{ color: `color-mix(in srgb, ${COLOR_H} 70%, transparent)` }} />
-        <span
-          className="text-[9px] font-black uppercase tracking-[0.25em]"
-          style={{ color: `color-mix(in srgb, ${COLOR_H} 65%, transparent)` }}
-        >
-          Hechizos
-        </span>
+        <Sparkles size={10} className="text-primary/40" />
+        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Hechizos</span>
       </div>
       <BloqueHechizos personajeId={personajeId} especie={especie} varianteId={varianteId} />
     </div>
@@ -348,24 +339,9 @@ export function FormularioPersonaje({
                       <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
                     </div>
 
-                    {/* Don — junto a los dropdowns */}
-                    <div
-                      className="shrink-0 w-44 rounded-xl overflow-hidden"
-                      style={{
-                        border:     `1px solid color-mix(in srgb, oklch(0.72 0.15 55) 18%, transparent)`,
-                        background: `color-mix(in srgb, oklch(0.72 0.15 55) 3%, transparent)`,
-                      }}
-                    >
-                      <div
-                        className="flex items-center gap-2 px-3 py-2 border-b"
-                        style={{ borderColor: `color-mix(in srgb, oklch(0.72 0.15 55) 12%, transparent)`, background: `color-mix(in srgb, oklch(0.72 0.15 55) 5%, transparent)` }}
-                      >
-                        <Star size={10} style={{ color: `color-mix(in srgb, oklch(0.72 0.15 55) 70%, transparent)` }} />
-                        <span className="text-[9px] font-black uppercase tracking-[0.25em]" style={{ color: `color-mix(in srgb, oklch(0.72 0.15 55) 65%, transparent)` }}>Don</span>
-                      </div>
-                      <div className="p-2">
-                        <BloqueDones personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
-                      </div>
+                    {/* Don — mismo estilo que Especie / Reino */}
+                    <div className="shrink-0 w-44 space-y-1.5">
+                      <BloqueDones personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
                     </div>
                   </div>
 

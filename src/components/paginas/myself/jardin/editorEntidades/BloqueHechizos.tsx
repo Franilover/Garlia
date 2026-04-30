@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Sparkles, X, Loader2, ChevronDown } from "lucide-react";
+import { X, Loader2, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS } from "./types";
@@ -135,17 +135,18 @@ export function BloqueHechizos({ personajeId, especie, varianteId }: {
 
   return (
     <div className="space-y-2">
-      {/* Hechizos asignados: lista compacta */}
+      {/* Hechizos asignados */}
       {asignados.length > 0 && (
-        <div className="space-y-0.5">
+        <div className="space-y-0.5 px-3 pt-2">
           {asignados.map(h => (
-            <div key={h.id} className="flex items-center gap-1.5 group py-0.5">
-              <span className="flex-1 text-[11px] font-medium text-primary/60 truncate">{h.nombre}</span>
+            <div key={h.id} className="flex items-center gap-2 group py-1">
+              <span className="flex-1 text-xs font-medium text-primary/70 truncate">{h.nombre}</span>
               <button
                 onClick={() => remove(h.id)}
-                className="shrink-0 w-3.5 h-3.5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-primary/20 hover:text-red-400 transition-all"
+                className="shrink-0 text-primary/25 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                title="Quitar hechizo"
               >
-                <X size={8} />
+                <X size={11} />
               </button>
             </div>
           ))}
@@ -153,40 +154,41 @@ export function BloqueHechizos({ personajeId, especie, varianteId }: {
       )}
 
       {/* Input búsqueda */}
-      <div className="relative" ref={ref}>
-        <input
-          value={input}
-          onChange={e => { setInput(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          disabled={noEspecie}
-          placeholder={noEspecie ? "Sin especie…" : "Añadir hechizo…"}
-          className={INPUT_CLS + " pr-7 disabled:opacity-40 disabled:cursor-not-allowed text-[11px] h-7"}
-        />
-        <button type="button" onClick={() => !noEspecie && setOpen(o => !o)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary transition-colors">
-          <ChevronDown size={11} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-        </button>
+      <div className="relative p-2" ref={ref}>
+        <div className="relative">
+          <input
+            value={input}
+            onChange={e => { setInput(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            disabled={noEspecie}
+            placeholder={noEspecie ? "Sin especie…" : "Añadir hechizo…"}
+            className={INPUT_CLS + " pr-8 disabled:opacity-40 disabled:cursor-not-allowed"}
+          />
+          <button type="button" onClick={() => !noEspecie && setOpen(o => !o)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors">
+            <ChevronDown size={13} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+          </button>
 
-        {open && disponibles.length === 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl px-3 py-2.5">
-            <p className="text-[9px] text-primary/25 text-center italic">
-              {asignados.length > 0 ? "Todos los hechizos compatibles asignados" : "Sin hechizos compatibles"}
-            </p>
-          </div>
-        )}
+          {open && disponibles.length === 0 && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl px-3 py-2.5">
+              <p className="text-[9px] text-primary/25 text-center italic">
+                {asignados.length > 0 ? "Todos los hechizos compatibles asignados" : "Sin hechizos compatibles"}
+              </p>
+            </div>
+          )}
 
-        {open && filtrados.length > 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-40 overflow-y-auto">
-            {filtrados.map(h => (
-              <button key={h.id}
-                onMouseDown={() => { add(h.id); setInput(""); setOpen(false); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-primary/8 transition-colors">
-                <Sparkles size={8} className="shrink-0 text-primary/25" />
-                <span className="flex-1 text-[11px] font-medium text-primary/65 truncate">{h.nombre}</span>
-              </button>
-            ))}
-          </div>
-        )}
+          {open && filtrados.length > 0 && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white-custom border border-primary/15 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+              {filtrados.map(h => (
+                <button key={h.id}
+                  onMouseDown={() => { add(h.id); setInput(""); setOpen(false); }}
+                  className="w-full px-3 py-2 text-left text-xs font-medium text-primary/70 hover:bg-primary/8 hover:text-primary transition-colors">
+                  {h.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
