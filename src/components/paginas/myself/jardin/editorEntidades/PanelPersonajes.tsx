@@ -32,10 +32,10 @@ export function OverlayEditorPersonaje({ personaje, onSaved, onClose }: {
   };
 
   return (
-    <div className="absolute inset-0 z-[60] flex flex-col" style={{ background: "var(--bg-main)" }}>
+    <div className="fixed sm:absolute inset-0 z-[60] flex flex-col" style={{ background: "var(--bg-main)" }}>
       <ConfirmModal />
       <div
-        className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-primary/10"
+        className="shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 border-b border-primary/10"
         style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}
       >
         <button
@@ -84,7 +84,7 @@ export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "
   const PersonajeRow = ({ p }: { p: Personaje }) => (
     <button
       onClick={() => setEditando(p)}
-      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl"
+      className="w-full flex items-center gap-2.5 px-3 py-3 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl"
     >
       <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
         {p.img_url
@@ -179,7 +179,7 @@ export function PanelPersonajes({ personajes, loading, setPersonajes, titulo = "
 
           {/* Panel */}
           <div
-            className="fixed top-0 right-0 bottom-0 z-50 flex flex-col w-64 max-w-[80vw] shadow-2xl"
+            className="fixed top-0 right-0 bottom-0 z-50 flex flex-col w-4/5 sm:w-64 max-w-[320px] shadow-2xl"
             style={{
               background: "var(--bg-main)",
               borderLeft: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",

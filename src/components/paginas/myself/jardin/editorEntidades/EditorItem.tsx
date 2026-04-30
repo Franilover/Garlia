@@ -275,9 +275,9 @@ export function EditorItem({
         {/* INFO */}
         {innerTab === "info" && (
           <div className="p-4">
-            <div className="flex gap-5">
+            <div className="flex flex-col sm:flex-row gap-5">
               {/* Columna izquierda: imagen */}
-              <div className="shrink-0 w-96">
+              <div className="w-full sm:w-96 sm:shrink-0">
                 <SelectorImagen label="Imagen" value={form.imagen_url ?? ""}
                   onChange={url => setForm(f => ({ ...f, imagen_url: url }))} aspect="square"
                   placeholder={<Package size={20} className="opacity-20" />} />

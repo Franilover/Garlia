@@ -234,9 +234,10 @@ export function FormularioPersonaje({
           {/* IDENTIDAD */}
           {tab === "identidad" && (
             <div className="p-3">
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 {/* Columna izquierda: imagen cara + cuerpo apilados */}
-                <div className="shrink-0 w-52 space-y-2">
+                <div className="shrink-0 w-full sm:w-52 flex sm:flex-col gap-3 sm:gap-2">
+                  <div className="w-24 sm:w-full shrink-0">
                   <SelectorImagen
                     label="Cara"
                     value={form.img_url ?? ""}
@@ -244,6 +245,7 @@ export function FormularioPersonaje({
                     aspect="square"
                     placeholder={<UserCircle2 size={20} className="opacity-25" />}
                   />
+                  </div>
                   {!compacto && (
                     <div
                       className="hidden sm:block rounded-xl overflow-hidden"
@@ -293,8 +295,8 @@ export function FormularioPersonaje({
                 {/* Columna derecha: selectores en fila + descripción + resto */}
                 <div className="flex-1 min-w-0 space-y-3">
                   {/* Fila de dropdowns + Don */}
-                  <div className="flex gap-2 items-start">
-                    <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 items-start">
+                    <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v, variante_id: null }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
                         {variantes.length > 0 && (
@@ -340,14 +342,14 @@ export function FormularioPersonaje({
                     </div>
 
                     {/* Don — mismo estilo que Especie / Reino */}
-                    <div className="shrink-0 w-44 space-y-1.5">
+                    <div className="w-full sm:w-44 sm:shrink-0 space-y-1.5">
                       <BloqueDones personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
                     </div>
                   </div>
 
                   {/* Descripción + Características en fila */}
                   {!compacto ? (
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <div className="flex-1 min-w-0 space-y-1">
                         <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Sobre el personaje</label>
                         <MarkdownEditor
@@ -386,7 +388,7 @@ export function FormularioPersonaje({
                   )}
 
                   {/* Capítulos narrados + Hechizos en fila */}
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <div
                       className="flex-1 min-w-0 rounded-xl overflow-hidden"
                       style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
@@ -397,7 +399,7 @@ export function FormularioPersonaje({
                       </div>
                       <BloqueCapsNarrados personajeId={form.id} />
                     </div>
-                    <div className="w-56 shrink-0">
+                    <div className="w-full sm:w-56 sm:shrink-0">
                       <SeccionHechizos personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
                     </div>
                   </div>

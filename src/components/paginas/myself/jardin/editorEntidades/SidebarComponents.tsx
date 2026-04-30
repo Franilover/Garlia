@@ -709,7 +709,7 @@ export function GlobalSearchBar({
 
                     {/* Search results — grid de 3 columnas */}
                     {globalResults.length > 0 && (
-                      <div className="grid grid-cols-6 gap-1">
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                         {globalResults.map(({ item, tab }) => (
                           <EntidadCard
                             key={`${tab}-${item.id}`}
@@ -747,7 +747,7 @@ export function GlobalSearchBar({
                 )
               ) : (
                 <>
-                  <div className="grid grid-cols-6 gap-1">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                     {Object.entries(allItems)
                       .flatMap(([tab, items]) =>
                         items.map(item => ({ item, tab: tab as Exclude<TabKey, "mundo"> }))

@@ -58,17 +58,17 @@ export function BarraAcciones({ status, onSave, onDelete }: {
 }) {
   return (
     <div
-      className="shrink-0 sticky bottom-0 z-10 px-5 py-3 flex items-center justify-between gap-3 border-t border-primary/8"
+      className="shrink-0 sticky bottom-0 z-10 px-4 py-3 flex items-center justify-between gap-3 border-t border-primary/8"
       style={{ background: "color-mix(in srgb, var(--bg-main) 95%, transparent)", backdropFilter: "blur(8px)" }}
     >
       <SaveIndicator status={status} />
       <div className="flex items-center gap-2 ml-auto">
         <button onClick={onDelete}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
-          <Trash2 size={11} /> Eliminar
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all min-h-[36px]">
+          <Trash2 size={11} /> <span className="hidden xs:inline">Eliminar</span>
         </button>
         <button onClick={onSave}
-          className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+          className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 min-h-[36px]">
           <Save size={11} /> Guardar
         </button>
       </div>
@@ -122,11 +122,11 @@ export function SelectorImagen({ label, value, onChange, aspect, placeholder }: 
 
       {open && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
+            className="bg-white-custom rounded-t-2xl sm:rounded-2xl shadow-2xl border border-primary/15 w-full sm:max-w-lg p-5 max-h-[85vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
