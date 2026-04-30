@@ -216,30 +216,24 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
   return (
     <div className="relative z-10 shrink-0">
 
-      {}
+      {/* Trigger compacto — sin borde/sombra propios, vive dentro del bloque padre */}
       <MotionDiv
         layout
         onClick={() => setPomPantallaCompleta(true)}
-        className="flex flex-col sm:flex-row items-center gap-6 bg-white-custom text-primary px-6 py-4 rounded-[var(--radius-card)] shadow-xl shadow-primary/5 border border-primary/10 cursor-pointer hover:border-primary/30 transition-all select-none"
+        className="flex flex-col items-center gap-1 px-4 py-4 cursor-pointer hover:bg-primary/3 transition-all select-none"
       >
-        <div className="flex items-center gap-4">
-          <Clock size={24} className="text-primary/60 animate-pulse" />
-          <div className="flex flex-col">
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 italic">Tiempo Real</span>
-            <span className="text-3xl font-black tracking-tighter tabular-nums italic text-primary">{formatoHora}</span>
-          </div>
-        </div>
-        <div className="hidden sm:block h-10 w-px bg-primary/10 mx-2" />
-        <div className="flex flex-col items-center sm:items-start flex-1">
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/30 italic">Actividad Programada</span>
-          <span className="text-sm font-black uppercase tracking-tight italic text-primary">
-            {actividadActual ? actividadActual.actividad : "Tiempo Libre"}
-          </span>
-        </div>
-        <div className="hidden sm:flex items-center gap-2 ml-auto">
-          <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 italic">Pomodoro</span>
-          <ChevronLeft size={14} className="text-primary/30 -rotate-90" />
-        </div>
+        {/* Hora grande */}
+        <span className="text-2xl font-black tracking-tighter tabular-nums text-primary leading-none">
+          {formatoHora}
+        </span>
+        {/* Actividad */}
+        <span className="text-[8px] font-black uppercase tracking-widest text-primary/30 text-center leading-tight">
+          {actividadActual ? actividadActual.actividad : "Tiempo libre"}
+        </span>
+        {/* Indicador pomodoro */}
+        <span className="text-[7px] font-black uppercase tracking-widest text-primary/20 mt-0.5">
+          ↗ Pomodoro
+        </span>
       </MotionDiv>
 
       {}
