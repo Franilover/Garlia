@@ -92,59 +92,30 @@ function PickerCuerpo({ value, onChange }: { value: string; onChange: (url: stri
   );
 }
 
-// ─── Sección Don + Hechizos inline ───────────────────────────────────────────
+// ─── Sección Hechizos inline ──────────────────────────────────────────────────
 function SeccionHechizos({ personajeId, especie, varianteId }: { personajeId: string; especie?: string; varianteId?: string | null }) {
   const COLOR_H = "oklch(0.65 0.18 290)";
-  const COLOR_D = "oklch(0.72 0.15 55)";
   return (
-    <div className="space-y-2">
-      {/* Don */}
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{
+        border:     `1px solid color-mix(in srgb, ${COLOR_H} 18%, transparent)`,
+        background: `color-mix(in srgb, ${COLOR_H} 3%, transparent)`,
+      }}
+    >
       <div
-        className="rounded-xl overflow-hidden"
-        style={{
-          border:     `1px solid color-mix(in srgb, ${COLOR_D} 18%, transparent)`,
-          background: `color-mix(in srgb, ${COLOR_D} 3%, transparent)`,
-        }}
+        className="flex items-center gap-2 px-3 py-2 border-b"
+        style={{ borderColor: `color-mix(in srgb, ${COLOR_H} 12%, transparent)`, background: `color-mix(in srgb, ${COLOR_H} 5%, transparent)` }}
       >
-        <div
-          className="flex items-center gap-2 px-3 py-2 border-b"
-          style={{ borderColor: `color-mix(in srgb, ${COLOR_D} 12%, transparent)`, background: `color-mix(in srgb, ${COLOR_D} 5%, transparent)` }}
+        <Sparkles size={10} style={{ color: `color-mix(in srgb, ${COLOR_H} 70%, transparent)` }} />
+        <span
+          className="text-[9px] font-black uppercase tracking-[0.25em]"
+          style={{ color: `color-mix(in srgb, ${COLOR_H} 65%, transparent)` }}
         >
-          <Star size={10} style={{ color: `color-mix(in srgb, ${COLOR_D} 70%, transparent)` }} />
-          <span
-            className="text-[9px] font-black uppercase tracking-[0.25em]"
-            style={{ color: `color-mix(in srgb, ${COLOR_D} 65%, transparent)` }}
-          >
-            Don
-          </span>
-        </div>
-        <div className="p-2">
-          <BloqueDones personajeId={personajeId} especie={especie} varianteId={varianteId} />
-        </div>
+          Hechizos
+        </span>
       </div>
-
-      {/* Hechizos */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{
-          border:     `1px solid color-mix(in srgb, ${COLOR_H} 18%, transparent)`,
-          background: `color-mix(in srgb, ${COLOR_H} 3%, transparent)`,
-        }}
-      >
-        <div
-          className="flex items-center gap-2 px-3 py-2 border-b"
-          style={{ borderColor: `color-mix(in srgb, ${COLOR_H} 12%, transparent)`, background: `color-mix(in srgb, ${COLOR_H} 5%, transparent)` }}
-        >
-          <Sparkles size={10} style={{ color: `color-mix(in srgb, ${COLOR_H} 70%, transparent)` }} />
-          <span
-            className="text-[9px] font-black uppercase tracking-[0.25em]"
-            style={{ color: `color-mix(in srgb, ${COLOR_H} 65%, transparent)` }}
-          >
-            Hechizos
-          </span>
-        </div>
-        <BloqueHechizos personajeId={personajeId} especie={especie} varianteId={varianteId} />
-      </div>
+      <BloqueHechizos personajeId={personajeId} especie={especie} varianteId={varianteId} />
     </div>
   );
 }
@@ -330,35 +301,19 @@ export function FormularioPersonaje({
 
                 {/* Columna derecha: selectores en fila + descripción + resto */}
                 <div className="flex-1 min-w-0 space-y-3">
-                  {/* Fila de dropdowns */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v, variante_id: null }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
-                      {variantes.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
-                          <button
-                            type="button"
-                            onClick={() => setForm(f => ({ ...f, variante_id: null }))}
-                            className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
-                            style={!form.variante_id ? {
-                              background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
-                              borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
-                              color:       "var(--primary)",
-                            } : {
-                              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                              color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
-                            }}
-                          >
-                            Todas
-                          </button>
-                          {variantes.map(v => (
+                  {/* Fila de dropdowns + Don */}
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <SelectorTexto label="Especie" value={form.especie ?? ""} onChange={v => setForm(f => ({ ...f, especie: v, variante_id: null }))} opciones={especies} placeholder="Humano, elfo, demonio…" />
+                        {variantes.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/25 mr-0.5">Variante</span>
                             <button
-                              key={v.id}
                               type="button"
-                              onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
+                              onClick={() => setForm(f => ({ ...f, variante_id: null }))}
                               className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
-                              style={form.variante_id === v.id ? {
+                              style={!form.variante_id ? {
                                 background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
                                 borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
                                 color:       "var(--primary)",
@@ -367,16 +322,54 @@ export function FormularioPersonaje({
                                 color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
                               }}
                             >
-                              {v.tipo}
+                              Todas
                             </button>
-                          ))}
-                        </div>
-                      )}
+                            {variantes.map(v => (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
+                                className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
+                                style={form.variante_id === v.id ? {
+                                  background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
+                                  borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
+                                  color:       "var(--primary)",
+                                } : {
+                                  borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                                  color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
+                                }}
+                              >
+                                {v.tipo}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
                     </div>
-                    <SelectorTexto label="Reino" value={form.reino ?? ""} onChange={v => setForm(f => ({ ...f, reino: v }))} opciones={reinos} placeholder="Reino, grupo, nación…" />
+
+                    {/* Don — junto a los dropdowns */}
+                    <div
+                      className="shrink-0 w-44 rounded-xl overflow-hidden"
+                      style={{
+                        border:     `1px solid color-mix(in srgb, oklch(0.72 0.15 55) 18%, transparent)`,
+                        background: `color-mix(in srgb, oklch(0.72 0.15 55) 3%, transparent)`,
+                      }}
+                    >
+                      <div
+                        className="flex items-center gap-2 px-3 py-2 border-b"
+                        style={{ borderColor: `color-mix(in srgb, oklch(0.72 0.15 55) 12%, transparent)`, background: `color-mix(in srgb, oklch(0.72 0.15 55) 5%, transparent)` }}
+                      >
+                        <Star size={10} style={{ color: `color-mix(in srgb, oklch(0.72 0.15 55) 70%, transparent)` }} />
+                        <span className="text-[9px] font-black uppercase tracking-[0.25em]" style={{ color: `color-mix(in srgb, oklch(0.72 0.15 55) 65%, transparent)` }}>Don</span>
+                      </div>
+                      <div className="p-2">
+                        <BloqueDones personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Descripción + Características + Hechizos en fila */}
+                  {/* Descripción + Características en fila */}
                   {!compacto ? (
                     <div className="flex gap-3">
                       <div className="flex-1 min-w-0 space-y-1">
@@ -401,9 +394,6 @@ export function FormularioPersonaje({
                           defaultMode="edit"
                         />
                       </div>
-                      <div className="w-56 shrink-0">
-                        <SeccionHechizos personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
-                      </div>
                     </div>
                   ) : (
                     <div className="space-y-1">
@@ -419,16 +409,21 @@ export function FormularioPersonaje({
                     </div>
                   )}
 
-                  {/* Capítulos narrados */}
-                  <div
-                    className="rounded-xl overflow-hidden"
-                    style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-                  >
-                    <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-                      <Mic2 size={10} className="text-primary/40" />
-                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos narrados</span>
+                  {/* Capítulos narrados + Hechizos en fila */}
+                  <div className="flex gap-3">
+                    <div
+                      className="flex-1 min-w-0 rounded-xl overflow-hidden"
+                      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                    >
+                      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+                        <Mic2 size={10} className="text-primary/40" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos narrados</span>
+                      </div>
+                      <BloqueCapsNarrados personajeId={form.id} />
                     </div>
-                    <BloqueCapsNarrados personajeId={form.id} />
+                    <div className="w-56 shrink-0">
+                      <SeccionHechizos personajeId={form.id} especie={form.especie} varianteId={form.variante_id} />
+                    </div>
                   </div>
                 </div>
               </div>
