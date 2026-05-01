@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Hash, FileText, Plus, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
@@ -24,6 +24,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({
+  ensayos,
   ensayosFiltrados,
   todosLosTags,
   tagActivo,
@@ -42,6 +43,18 @@ export default function Sidebar({
 }: SidebarProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [zoteroExpanded, setZoteroExpanded] = useState(false);
+
+  const relatedTags = useMemo(() => {
+    if (!tagActivo) return [];
+    const ensayosConTag = ensayos.filter(e => e.tags?.includes(tagActivo));
+    const counts = new Map<string, number>();
+    ensayosConTag.forEach(e => {
+      e.tags?.forEach((t: string) => {
+        if (t !== tagActivo) counts.set(t, (counts.get(t) || 0) + 1);
+      });
+    });
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  }, [ensayos, tagActivo]);
 
   return (
     <aside
@@ -134,6 +147,66 @@ export default function Sidebar({
             );
           })}
         </div>
+
+        {/* ── Related tags (shown when a tag is active) ── */}
+        <AnimatePresence>
+          {tagActivo && relatedTags.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.15 }}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="flex items-center gap-1.5 mt-3 mb-1.5">
+                <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                  relacionados
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {relatedTags.map(([t, count]) => (
+                  <button
+                    key={t}
+                    onClick={() => onTagClick(t)}
+                    style={{
+                      fontSize: 10,
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                      background: "transparent",
+                      color: "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-mono)",
+                      transition: "all 0.1s",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)";
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 25%, transparent)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 8%, transparent)";
+                    }}
+                  >
+                    #{t}
+                    <span style={{
+                      fontSize: 8,
+                      padding: "0 4px",
+                      borderRadius: 9999,
+                      background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                      color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                    }}>
+                      {count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ── Notes list ── */}
@@ -192,60 +265,37 @@ export default function Sidebar({
                       : isHovered
                       ? "color-mix(in srgb, var(--foreground) 3%, transparent)"
                       : "transparent",
-                    borderLeft: `2px solid ${isActive ? "color-mix(in srgb, var(--foreground) 50%, transparent)" : "transparent"}`,
+                    borderLeft: isActive
+                      ? "2px solid color-mix(in srgb, var(--foreground) 25%, transparent)"
+                      : "2px solid transparent",
                     transition: "all 0.1s",
                   }}
                 >
-                  {/* Active indicator */}
-                  {isActive && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 2,
-                        background: "color-mix(in srgb, var(--foreground) 15%, transparent)",
-                      }}
-                    />
-                  )}
-
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p
-                        style={{
-                          fontSize: 12,
-                          color: isActive ? "color-mix(in srgb, var(--foreground) 90%, transparent)" : "color-mix(in srgb, var(--foreground) 50%, transparent)",
-                          fontFamily: "var(--font-mono)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          letterSpacing: "0.01em",
-                          fontWeight: isActive ? 500 : 400,
-                        }}
-                      >
-                        {ens.titulo || "sin título"}
-                      </p>
-                      {ens.tags?.length > 0 && (
-                        <div className="flex gap-1 mt-0.5 flex-wrap">
-                          {ens.tags.slice(0, 3).map((tag: string) => (
-                            <span
-                              key={tag}
-                              style={{
-                                fontSize: 9,
-                                color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                                fontFamily: "var(--font-mono)",
-                              }}
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: isActive
+                        ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
+                        : "color-mix(in srgb, var(--foreground) 50%, transparent)",
+                      fontFamily: "var(--font-serif, serif)",
+                      fontStyle: "italic",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      marginBottom: 2,
+                    }}
+                  >
+                    {ens.titulo || "Sin título"}
+                  </p>
+                  <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", fontFamily: "var(--font-mono)" }}>
+                    {new Date(ens.updated_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+                  </p>
+                  <div
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={e => { e.stopPropagation(); onEliminarEnsayo(ens.id); }}
+                    style={{ cursor: "pointer", padding: 4 }}
+                  >
                     <button
-                      onClick={e => { e.stopPropagation(); onEliminarEnsayo(ens.id); }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                       style={{
                         color: "color-mix(in srgb, var(--accent) 60%, transparent)",
                         background: "none",

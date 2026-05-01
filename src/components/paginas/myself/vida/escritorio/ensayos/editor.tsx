@@ -3,7 +3,6 @@ import { MotionDiv } from "@/components/ui/Motion";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Save, Eye, Edit3 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import { TagPanel } from "./tagPanel";
 import { CitePopup } from "./citePopup";
 import { MarkdownEditor } from "@/components/paginas/myself/jardin/editorEntidades/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
@@ -325,15 +324,6 @@ export function Editor({
           </AnimatePresence>
         </div>
       </MotionDiv>
-
-      {/* TagPanel */}
-      <TagPanel
-        tag={tagPanelActivo}
-        ensayos={ensayos}
-        onClose={() => setTagPanelActivo(null)}
-        onSelectEnsayo={onSelectEnsayo}
-        onTagClick={t => setTagPanelActivo(t)}
-      />
     </div>
   );
 }
