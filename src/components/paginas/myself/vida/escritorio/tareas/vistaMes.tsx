@@ -103,7 +103,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
         {/* Grilla días — h-9 fijo, equilibrio entre compacto y legible */}
         <div className="grid grid-cols-7 gap-1 shrink-0">
           {Array.from({ length: primerDia }).map((_, i) => (
-            <div key={`e-${i}`} className="h-11" />
+            <div key={`e-${i}`} className="h-16" />
           ))}
           {Array.from({ length: diasEnMes }).map((_, i) => {
             const dia = i + 1;
