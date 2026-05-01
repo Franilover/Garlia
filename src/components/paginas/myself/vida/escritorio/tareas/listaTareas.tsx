@@ -29,7 +29,7 @@ export const ListaTareas = ({
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-primary/8 shrink-0">
         <CheckSquare size={12} className="text-primary/40" />
-        <span className="text-[9px] font-black uppercase tracking-widest text-foreground/40 flex-1">
+        <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-on-card)]/40 flex-1">
           Pendientes
         </span>
         {pendientes.length > 0 && (
@@ -51,10 +51,10 @@ export const ListaTareas = ({
             className="
               w-full bg-primary/5 dark:bg-primary/10
               border border-transparent
-              focus:border-primary/15 focus:bg-background dark:focus:bg-background
+              focus:border-primary/15 focus:bg-[var(--white-custom)]
               rounded-[var(--radius-btn)] py-2 px-3 pr-9
-              text-[11px] text-foreground font-semibold
-              transition-all outline-none placeholder:text-foreground/25
+              text-[11px] text-[var(--input-text)] font-semibold
+              transition-all outline-none placeholder:text-[var(--input-text)]/40
             "
           />
           <BtnIcon
@@ -78,7 +78,7 @@ export const ListaTareas = ({
           {completadas.length > 0 && pendientes.length > 0 && (
             <div key="sep" className="flex items-center gap-2 py-2 shrink-0">
               <div className="flex-1 h-px bg-primary/8" />
-              <span className="text-[7px] font-black uppercase tracking-widest text-foreground/25">listas</span>
+              <span className="text-[7px] font-black uppercase tracking-widest text-[var(--text-on-card)]/25">listas</span>
               <div className="flex-1 h-px bg-primary/8" />
             </div>
           )}
@@ -89,7 +89,7 @@ export const ListaTareas = ({
         </AnimatePresence>
 
         {!tareas?.length && (
-          <p className="text-[9px] font-medium text-foreground/20 italic text-center py-8">
+          <p className="text-[9px] font-medium text-[var(--text-on-card)]/20 italic text-center py-8">
             Sin pendientes.
           </p>
         )}
@@ -136,8 +136,8 @@ const TareaItem = ({
     <span className={cn(
       "text-[11px] font-semibold flex-1 min-w-0 truncate",
       t.completada
-        ? "line-through text-foreground/25"
-        : "text-foreground/80 dark:text-foreground/85"
+        ? "line-through text-[var(--text-on-card)]/25"
+        : "text-[var(--text-on-card)]/80 "
     )}>
       {t.titulo}
     </span>
@@ -145,7 +145,7 @@ const TareaItem = ({
     {/* Eliminar */}
     <button
       onClick={() => onDelete(t.id)}
-      className="opacity-0 group-hover:opacity-100 text-foreground/20 hover:text-red-400 transition-all shrink-0"
+      className="opacity-0 group-hover:opacity-100 text-[var(--text-on-card)]/20 hover:text-red-400 transition-all shrink-0"
     >
       <Trash2 size={10} />
     </button>

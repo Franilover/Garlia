@@ -126,7 +126,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
                     ? "bg-primary text-white shadow-sm shadow-primary/20"
                     : hoy
                       ? "bg-primary/10 text-primary dark:bg-primary/20"
-                      : "text-foreground/65 hover:bg-primary/7 dark:text-foreground/75"
+                      : "text-[var(--text-on-card)]/65 hover:bg-primary/7"
                 )}
               >
                 {dia}
@@ -153,7 +153,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
             <select
               value={tipoEvento}
               onChange={e => setTipoEvento(e.target.value)}
-              className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-[9px] font-black text-primary outline-none focus:border-primary/20 cursor-pointer"
+              className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-[9px] font-black text-[var(--input-text)] outline-none focus:border-primary/20 cursor-pointer"
             >
               {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -163,7 +163,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
               onChange={e => setNuevoEvento(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleAdd()}
               placeholder="Añadir evento..."
-              className="flex-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-foreground font-semibold outline-none border border-transparent focus:border-primary/20 focus:bg-background transition-all min-w-0 placeholder:text-foreground/25"
+              className="flex-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-[var(--input-text)] font-semibold outline-none border border-transparent focus:border-primary/20 focus:bg-[var(--white-custom)] transition-all min-w-0 placeholder:text-[var(--input-text)]/40"
             />
             <BtnIcon
               loading={isAddingEvento}
@@ -178,7 +178,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
           {/* Lista de eventos */}
           <div className="flex flex-col gap-1.5">
             {itemsDia.length === 0 ? (
-              <p className="text-[9px] font-medium text-foreground/20 italic pt-0.5">Sin eventos.</p>
+              <p className="text-[9px] font-medium text-[var(--text-on-card)]/20 italic pt-0.5">Sin eventos.</p>
             ) : itemsDia.map((item: any) => (
               <MotionDiv
                 key={item.id}
@@ -191,14 +191,14 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
                     : "bg-primary/5 dark:bg-primary/10 border-primary/10"
                 )}
               >
-                <div className="w-5 h-5 bg-background rounded flex items-center justify-center shadow-sm shrink-0 border border-primary/8">
+                <div className="w-5 h-5 bg-[var(--white-custom)] rounded flex items-center justify-center shadow-sm shrink-0 border border-primary/8">
                   {item.esCapitulo
                     ? <BookOpen size={10} className="text-amber-500" />
                     : <span className="text-[8px] font-black text-primary">{diaSeleccionado}</span>
                   }
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold text-foreground/90 truncate">{item.titulo}</p>
+                  <p className="text-[10px] font-bold text-[var(--text-on-card)]/90 truncate">{item.titulo}</p>
                   <p className="text-[7px] font-semibold text-primary/40 uppercase tracking-wide">{item.tipo}</p>
                 </div>
                 {item.esCapitulo && (

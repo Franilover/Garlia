@@ -89,7 +89,7 @@ export const GestionPersonal = () => {
       <div className="
         flex-1 min-w-0
         flex flex-col lg:flex-row
-        bg-background
+        bg-[var(--white-custom)]
         border border-primary/10
         rounded-[var(--radius-card)]
         shadow-xl shadow-primary/5
@@ -101,7 +101,7 @@ export const GestionPersonal = () => {
 
           {/* Switcher modo */}
           <div className="flex items-center justify-between px-5 py-3 border-b border-primary/8 shrink-0">
-            <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-on-card)]/30">
               Calendario
             </span>
             <div className="flex items-center gap-0.5 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] p-0.5">
@@ -111,7 +111,7 @@ export const GestionPersonal = () => {
                   "flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all",
                   modoCalendario === "mes"
                     ? "bg-primary text-white shadow-sm"
-                    : "text-foreground/35 hover:text-primary"
+                    : "text-[var(--text-on-card)]/35 hover:text-primary"
                 )}
               >
                 <CalendarIcon size={9} /> Mes
@@ -122,7 +122,7 @@ export const GestionPersonal = () => {
                   "flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all",
                   modoCalendario === "semana"
                     ? "bg-primary text-white shadow-sm"
-                    : "text-foreground/35 hover:text-primary"
+                    : "text-[var(--text-on-card)]/35 hover:text-primary"
                 )}
               >
                 <Clock size={9} /> Semana
