@@ -339,7 +339,7 @@ export default function Ensayos() {
 
       <div className="ensayos-root h-full">
         <EstudioLayout
-          titulo="knowledge base"
+          titulo=" Notas "
           icono={<PenTool size={12} />}
           colapsadoLabel="notas"
           sidebarOpen={sidebarOpen}
