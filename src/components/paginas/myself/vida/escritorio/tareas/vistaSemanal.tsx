@@ -22,19 +22,19 @@ const ColumniaDia = ({
     className={cn(
       "flex flex-col min-h-0 flex-1 rounded-[var(--radius-btn)] border transition-all cursor-pointer group",
       seleccionado
-        ? "bg-primary/5 border-primary/30 shadow-md shadow-primary/10"
-        : "bg-white-custom border-primary/10 hover:border-primary/25 hover:shadow-sm",
-      esHoy && !seleccionado && "border-primary/25 bg-primary/5"
+        ? "bg-primary/8 dark:bg-primary/12 border-primary/30 shadow-md shadow-primary/10"
+        : "bg-background border-primary/10 hover:border-primary/25 hover:shadow-sm",
+      esHoy && !seleccionado && "border-primary/25 bg-primary/5 dark:bg-primary/10"
     )}
   >
-    {}
+    {/* Header día */}
     <div className={cn(
       "flex flex-col items-center py-2 border-b gap-0.5 transition-colors shrink-0",
-      seleccionado ? "border-primary/15" : "border-primary/5"
+      seleccionado ? "border-primary/15" : "border-primary/8"
     )}>
       <span className={cn(
         "text-[7px] font-black uppercase tracking-widest transition-colors",
-        esHoy ? "text-primary" : "text-primary/30"
+        esHoy ? "text-primary" : "text-primary/40 dark:text-primary/50"
       )}>
         {compact ? DIAS_SEMANA_LETRA[fecha.getDay()] : DIAS_SEMANA_CORTO[fecha.getDay()]}
       </span>
@@ -44,16 +44,16 @@ const ColumniaDia = ({
           ? "bg-primary text-white shadow-md shadow-primary/30"
           : seleccionado
           ? "bg-primary/15 text-primary"
-          : "text-primary/50 group-hover:bg-primary/8"
+          : "text-foreground/60 dark:text-foreground/70 group-hover:bg-primary/8"
       )}>
         <span className="text-xs font-black">{fecha.getDate()}</span>
       </div>
     </div>
 
-    {}
+    {/* Eventos */}
     <div className="flex flex-col gap-1 p-1.5 flex-1 overflow-y-auto min-h-0">
       {eventos.length === 0 && (
-        <p className="text-[7px] text-primary/15 font-bold italic text-center mt-3">—</p>
+        <p className="text-[7px] text-primary/20 dark:text-primary/30 font-bold italic text-center mt-3">—</p>
       )}
       {eventos.map((ev) => <EventoBadge key={ev.id} item={ev} compact={compact} />)}
     </div>
@@ -66,8 +66,6 @@ interface Props {
   isAddingEvento: boolean;
   onAddEvento: (fecha: string, titulo: string, tipo: string) => Promise<void>;
 }
-
-const VISTAS_MOVIL: VistaOpcion[] = [1, 3, 5];
 
 export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }: Props) => {
   const [vista, setVista] = useState<VistaOpcion>(7);
@@ -140,11 +138,12 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
   const compact = vista >= 5;
 
   return (
-    <div className="bg-white-custom border border-primary/10 rounded-[var(--radius-card)] p-4 shadow-xl shadow-primary/5 flex flex-col gap-3 lg:flex-1 lg:overflow-hidden">
+    /* Removido bg-white-custom → usa bg-background para soporte dark mode */
+    <div className="flex flex-col gap-3 h-full overflow-hidden">
 
-      {}
+      {/* Controles */}
       <div className="flex flex-col gap-2 shrink-0">
-        {}
+        {/* Navegación */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={irAHoy}
@@ -164,13 +163,13 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           >
             <ChevronRight size={16} />
           </button>
-          <span className="text-[10px] font-black uppercase tracking-wider text-primary/70 flex-1 truncate">
+          <span className="text-[10px] font-black uppercase tracking-wider text-foreground/70 flex-1 truncate">
             {rangoTexto}
           </span>
         </div>
 
-        {}
-        <div className="flex items-center gap-1 bg-primary/5 rounded-[var(--radius-btn)] p-1 self-start">
+        {/* Selector de vista */}
+        <div className="flex items-center gap-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] p-1 self-start">
           {VISTAS.map((v) => (
             <button
               key={v.valor}
@@ -179,7 +178,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
                 "text-[8px] font-black uppercase tracking-wide px-2 py-1.5 rounded-[var(--radius-btn)] transition-all",
                 vista === v.valor
                   ? "bg-primary text-white shadow-md shadow-primary/20"
-                  : "text-primary/40 hover:text-primary hover:bg-white-custom"
+                  : "text-primary/50 hover:text-primary hover:bg-background dark:hover:bg-background/20"
               )}
             >
               <span className="hidden sm:inline">{v.label}</span>
@@ -189,9 +188,8 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </div>
       </div>
 
-      {}
-      {}
-      <div className="flex-1 lg:min-h-0 min-h-[220px] overflow-x-auto lg:overflow-x-visible">
+      {/* Grid de días — scroll horizontal en mobile, flex vertical en desktop */}
+      <div className="flex-1 min-h-0 overflow-x-auto lg:overflow-x-visible">
         <AnimatePresence mode="wait">
           <MotionDiv
             key={`${vista}-${fechaBase.toISOString()}`}
@@ -204,8 +202,9 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
               display: "grid",
               gridTemplateColumns: `repeat(${Math.min(vista, 7)}, minmax(${compact ? "5rem" : "7rem"}, 1fr))`,
               gap: "0.375rem",
-              
               minWidth: compact ? `${vista * 5}rem` : `${vista * 7}rem`,
+              /* Garantizar altura mínima para que los eventos sean visibles */
+              minHeight: "180px",
             }}
           >
             {diasVista.map((fecha) => (
@@ -223,22 +222,22 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </AnimatePresence>
       </div>
 
-      {}
-      <div className="bg-primary/5 rounded-[var(--radius-btn)] p-3 border border-primary/10 shrink-0">
-        {}
+      {/* Panel día seleccionado */}
+      <div className="bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] p-3 border border-primary/10 shrink-0">
+        {/* Cabecera */}
         <div className="flex items-center gap-2 mb-2">
-          <Calendar size={12} className="text-primary/40" />
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+          <Calendar size={12} className="text-primary/50" />
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary/50">
             {diaSeleccionado.getDate()} de {MESES[diaSeleccionado.getMonth()]} · {DIAS_SEMANA_CORTO[diaSeleccionado.getDay()]}
           </span>
         </div>
 
-        {}
+        {/* Formulario */}
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
           <select
             value={tipoEvento}
             onChange={e => setTipoEvento(e.target.value)}
-            className="bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-black text-primary outline-none focus:border-primary/30 cursor-pointer"
+            className="bg-background dark:bg-background border border-primary/12 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-black text-foreground outline-none focus:border-primary/30 cursor-pointer"
           >
             {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
@@ -249,7 +248,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
               onChange={e => setNuevoEvento(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleAdd()}
               placeholder="Nuevo evento..."
-              className="flex-1 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-4 py-2 text-[10px] font-bold text-primary placeholder:text-primary/25 outline-none focus:border-primary/30 min-w-0"
+              className="flex-1 bg-background dark:bg-background border border-primary/12 rounded-[var(--radius-btn)] px-4 py-2 text-[10px] font-bold text-foreground placeholder:text-foreground/30 outline-none focus:border-primary/30 min-w-0"
             />
             <BtnIcon
               loading={isAddingEvento}
@@ -262,10 +261,10 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           </div>
         </div>
 
-        {}
-        <div className="space-y-1.5 max-h-32 overflow-y-auto">
+        {/* Lista eventos día seleccionado */}
+        <div className="space-y-1.5 max-h-36 overflow-y-auto">
           {eventosDiaSeleccionado.length === 0 ? (
-            <p className="text-[9px] font-bold text-primary/20 italic px-1">Sin eventos para este día.</p>
+            <p className="text-[9px] font-bold text-foreground/25 italic px-1">Sin eventos para este día.</p>
           ) : eventosDiaSeleccionado.map(ev => (
             <MotionDiv
               key={ev.id}
@@ -274,19 +273,19 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
               className={cn(
                 "flex items-center gap-3 p-2.5 rounded-[var(--radius-btn)] border",
                 ev.esCapitulo
-                  ? "bg-amber-500/10 border-amber-500/20"
-                  : "bg-white-custom border-primary/10 shadow-sm"
+                  ? "bg-amber-500/10 border-amber-500/25 dark:bg-amber-500/15 dark:border-amber-500/30"
+                  : "bg-background border-primary/10 shadow-sm"
               )}
             >
-              <div className="w-7 h-7 bg-primary/8 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 bg-primary/8 dark:bg-primary/15 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0">
                 {ev.esCapitulo
-                  ? <BookOpen size={12} className="text-amber-600" />
+                  ? <BookOpen size={12} className="text-amber-500 dark:text-amber-400" />
                   : <Bookmark size={12} className="text-primary/50" />
                 }
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[9px] font-black text-foreground uppercase italic truncate">"{ev.titulo}"</p>
-                <p className="text-[7px] font-bold text-primary/35 uppercase tracking-tight">{ev.tipo}</p>
+                <p className="text-[9px] font-black text-foreground/90 uppercase italic truncate">"{ev.titulo}"</p>
+                <p className="text-[7px] font-bold text-foreground/40 uppercase tracking-tight">{ev.tipo}</p>
               </div>
               {ev.esCapitulo && (
                 <span className="text-[7px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase shrink-0">Cap.</span>

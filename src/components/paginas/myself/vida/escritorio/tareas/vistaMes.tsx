@@ -65,14 +65,13 @@ export const VistaMes = ({
   }, [eventos, capitulosRaw, diaSeleccionado, mesActual, añoActual]);
 
   return (
-    /* Sin border/shadow — hereda del bloque padre */
     <div className="flex flex-col h-full overflow-hidden">
 
-      {/* Nav mes — sin top border, el padre ya tiene header */}
+      {/* Nav mes */}
       <div className="flex items-center justify-center gap-4 px-5 py-3 border-b border-primary/6 shrink-0">
         <button
           onClick={() => cambiarMes(-1)}
-          className="p-1 text-primary/25 hover:text-primary transition-colors"
+          className="p-1 text-primary/40 hover:text-primary transition-colors"
         >
           <ChevronLeft size={14} />
         </button>
@@ -81,19 +80,19 @@ export const VistaMes = ({
         </span>
         <button
           onClick={() => cambiarMes(1)}
-          className="p-1 text-primary/25 hover:text-primary transition-colors"
+          className="p-1 text-primary/40 hover:text-primary transition-colors"
         >
           <ChevronRight size={14} />
         </button>
       </div>
 
-      {/* Cuerpo principal */}
-      <div className="flex flex-col flex-1 min-h-0 p-4 gap-3">
+      {/* Cuerpo — scroll vertical si el contenido excede */}
+      <div className="flex flex-col flex-1 min-h-0 overflow-y-auto p-4 gap-3">
 
         {/* Cabecera días semana */}
         <div className="grid grid-cols-7 shrink-0">
           {["L","M","X","J","V","S","D"].map(d => (
-            <div key={d} className="text-center text-[7px] font-black uppercase text-primary/20 pb-1">{d}</div>
+            <div key={d} className="text-center text-[7px] font-black uppercase text-primary/30 dark:text-primary/50 pb-1">{d}</div>
           ))}
         </div>
 
@@ -116,16 +115,18 @@ export const VistaMes = ({
                 whileTap={{ scale: 0.93 }}
                 className={cn(
                   "aspect-square rounded-[var(--radius-btn)] flex flex-col items-center justify-center relative text-[11px] font-black transition-all",
-                  sel  ? "bg-primary text-btn-text shadow-md shadow-primary/20"
-                       : hoy ? "bg-primary/10 text-primary"
-                              : "text-foreground/60 hover:bg-primary/5"
+                  sel
+                    ? "bg-primary text-white shadow-md shadow-primary/20"
+                    : hoy
+                      ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+                      : "text-foreground/70 hover:bg-primary/8 dark:text-foreground/80"
                 )}
               >
                 {dia}
                 {tieneAlgo(dia) && (
                   <span className={cn(
                     "absolute bottom-[3px] w-[3px] h-[3px] rounded-full",
-                    sel ? "bg-white/50" : "bg-primary/40"
+                    sel ? "bg-white/60" : "bg-primary/50"
                   )} />
                 )}
               </MotionButton>
@@ -134,10 +135,10 @@ export const VistaMes = ({
         </div>
 
         {/* Panel día seleccionado */}
-        <div className="flex flex-col flex-1 min-h-0 border-t border-primary/6 pt-3 gap-2">
+        <div className="flex flex-col gap-2 border-t border-primary/8 pt-3">
 
           <div className="flex items-center justify-between shrink-0">
-            <span className="text-[8px] font-black uppercase tracking-widest text-primary/30">
+            <span className="text-[8px] font-black uppercase tracking-widest text-primary/40">
               {diaSeleccionado} {MESES[mesActual].slice(0, 3)}
             </span>
           </div>
@@ -147,7 +148,7 @@ export const VistaMes = ({
             <select
               value={tipoEvento}
               onChange={e => setTipoEvento(e.target.value)}
-              className="bg-primary/5 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-[9px] font-black text-primary outline-none focus:border-primary/20 cursor-pointer"
+              className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-[9px] font-black text-primary outline-none focus:border-primary/20 cursor-pointer"
             >
               {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -157,7 +158,7 @@ export const VistaMes = ({
               onChange={e => setNuevoEvento(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleAddEvento()}
               placeholder="Añadir evento..."
-              className="flex-1 bg-primary/4 rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-primary font-semibold outline-none border border-transparent focus:border-primary/15 focus:bg-white-custom transition-all min-w-0 placeholder:text-primary/20"
+              className="flex-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-foreground font-semibold outline-none border border-transparent focus:border-primary/20 focus:bg-background dark:focus:bg-background transition-all min-w-0 placeholder:text-primary/30"
             />
             <BtnIcon
               loading={isAddingEvento}
@@ -169,10 +170,10 @@ export const VistaMes = ({
             </BtnIcon>
           </div>
 
-          {/* Eventos */}
-          <div className="flex flex-col gap-1.5 overflow-y-auto flex-1 min-h-0">
+          {/* Eventos — sin altura fija, crece con el contenido */}
+          <div className="flex flex-col gap-1.5">
             {itemsDia.length === 0 ? (
-              <p className="text-[9px] font-medium text-primary/15 italic pt-1">Sin eventos.</p>
+              <p className="text-[9px] font-medium text-primary/25 italic pt-1">Sin eventos.</p>
             ) : itemsDia.map((item: any) => (
               <MotionDiv
                 key={item.id}
@@ -181,19 +182,19 @@ export const VistaMes = ({
                 className={cn(
                   "flex items-center gap-2 px-3 py-2 rounded-[var(--radius-btn)] border shrink-0",
                   item.esCapitulo
-                    ? "bg-amber-50 border-amber-200/50"
-                    : "bg-primary/4 border-primary/8"
+                    ? "bg-amber-500/10 border-amber-500/20 dark:bg-amber-500/15 dark:border-amber-500/30"
+                    : "bg-primary/5 dark:bg-primary/10 border-primary/10"
                 )}
               >
-                <div className="w-5 h-5 bg-white-custom rounded flex items-center justify-center shadow-sm shrink-0">
+                <div className="w-5 h-5 bg-background rounded flex items-center justify-center shadow-sm shrink-0 border border-primary/8">
                   {item.esCapitulo
                     ? <BookOpen size={10} className="text-amber-500" />
                     : <span className="text-[8px] font-black text-primary">{diaSeleccionado}</span>
                   }
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold text-foreground/80 truncate">{item.titulo}</p>
-                  <p className="text-[7px] font-semibold text-primary/30 uppercase tracking-wide">{item.tipo}</p>
+                  <p className="text-[10px] font-bold text-foreground/90 truncate">{item.titulo}</p>
+                  <p className="text-[7px] font-semibold text-primary/40 uppercase tracking-wide">{item.tipo}</p>
                 </div>
                 {item.esCapitulo && (
                   <span className="text-[6px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase shrink-0">
