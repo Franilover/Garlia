@@ -108,13 +108,13 @@ export const GestionPersonal = () => {
     ">
 
       {/* ══════════════════════════════════════════
-          BLOQUE UNIFICADO: borde exterior compartido
+          BLOQUE UNIFICADO
           4/5 Calendario  |  1/5 Sidebar derecha
           ══════════════════════════════════════════ */}
       <div className="
         flex-1 min-w-0
         flex flex-col lg:flex-row
-        bg-white-custom
+        bg-background
         border border-primary/10
         rounded-[var(--radius-card)]
         shadow-xl shadow-primary/5
@@ -124,19 +124,19 @@ export const GestionPersonal = () => {
         {/* ── Col izquierda: Calendario (4/5) ── */}
         <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
-          {/* Switcher dentro del header del calendario */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-primary/6 shrink-0">
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary/40">
+          {/* Switcher modo calendario */}
+          <div className="flex items-center justify-between px-5 py-3 border-b border-primary/8 shrink-0">
+            <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">
               Calendario
             </span>
-            <div className="flex items-center gap-0.5 bg-primary/5 rounded-[var(--radius-btn)] p-0.5">
+            <div className="flex items-center gap-0.5 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] p-0.5">
               <button
                 onClick={() => setModoCalendario("mes")}
                 className={cn(
                   "flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all",
                   modoCalendario === "mes"
                     ? "bg-primary text-white shadow-sm"
-                    : "text-primary/35 hover:text-primary"
+                    : "text-foreground/35 hover:text-primary"
                 )}
               >
                 <CalendarIcon size={9} /> Mes
@@ -147,7 +147,7 @@ export const GestionPersonal = () => {
                   "flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all",
                   modoCalendario === "semana"
                     ? "bg-primary text-white shadow-sm"
-                    : "text-primary/35 hover:text-primary"
+                    : "text-foreground/35 hover:text-primary"
                 )}
               >
                 <Clock size={9} /> Semana
@@ -155,7 +155,7 @@ export const GestionPersonal = () => {
             </div>
           </div>
 
-          {/* Vista activa */}
+          {/* Vista activa — padding para que VistaSemanal respire */}
           <div className="flex-1 min-h-0 overflow-hidden">
             <AnimatePresence mode="wait">
               {modoCalendario === "mes" ? (
@@ -187,7 +187,7 @@ export const GestionPersonal = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.16 }}
-                  className="h-full"
+                  className="h-full p-4"
                 >
                   <VistaSemanal
                     eventos={eventos}
@@ -202,9 +202,9 @@ export const GestionPersonal = () => {
         </div>
 
         {/* Divisor vertical interno */}
-        <div className="hidden lg:block w-px bg-primary/6 shrink-0" />
+        <div className="hidden lg:block w-px bg-primary/8 shrink-0" />
         {/* Divisor horizontal en mobile */}
-        <div className="lg:hidden h-px bg-primary/6 shrink-0" />
+        <div className="lg:hidden h-px bg-primary/8 shrink-0" />
 
         {/* ── Col derecha: Reloj + Tareas (1/5) ── */}
         <div className="w-full lg:w-[22%] shrink-0 flex flex-col overflow-hidden">
@@ -213,7 +213,7 @@ export const GestionPersonal = () => {
           <RelojDigital horario={horarioRaw || []} tareas={tareas || []} />
 
           {/* Separador interno */}
-          <div className="h-px bg-primary/6 shrink-0" />
+          <div className="h-px bg-primary/8 shrink-0" />
 
           {/* Lista de tareas */}
           <div className="flex-1 min-h-0 overflow-hidden">

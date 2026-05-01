@@ -29,12 +29,17 @@ export const VISTAS: { valor: VistaOpcion; label: string; short: string }[] = [
   { valor: 7, label: "Semana",   short: "7D" },
 ];
 
+/*
+  Colores de evento: usamos clases que funcionan bien en modo claro Y oscuro.
+  - Evitamos bg-amber-50, bg-blue-50, etc. (fondos muy claros invisibles en dark).
+  - Usamos variantes con opacidad /10 y /15 que respetan el tema.
+*/
 export const COLORES_EVENTO: Record<string, string> = {
-  "Plan":              "bg-primary/10 text-primary border-primary/15",
-  "Lanzamiento Libro": "bg-amber-50 text-amber-700 border-amber-200",
-  "Reunión":           "bg-blue-50 text-blue-700 border-blue-200",
-  "Personal":          "bg-emerald-50 text-emerald-700 border-emerald-200",
-  "default":           "bg-primary/8 text-primary/70 border-primary/10",
+  "Plan":              "bg-primary/10 text-primary border-primary/20 dark:bg-primary/15 dark:border-primary/25",
+  "Lanzamiento Libro": "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30",
+  "Reunión":           "bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/30",
+  "Personal":          "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30",
+  "default":           "bg-primary/8 text-foreground/70 border-primary/12 dark:bg-primary/12 dark:text-foreground/75",
 };
 
 export const TIPOS_EVENTO = ["Plan", "Reunión", "Personal"] as const;
