@@ -30,7 +30,7 @@ export function renderMarkdown(raw: string): string {
 
   // Imágenes (debe ir antes que los enlaces)
   html = html.replace(/!\[([^\]]*)\]\((.*?)\)/g, '<img src="$2" alt="$1" />');
-  
+
   // Enlaces
   html = html.replace(/\[([^\]]+)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
@@ -46,13 +46,12 @@ export function renderMarkdown(raw: string): string {
   html = html.replace(/\*\*(.+?)\*\*/g,     "<strong>$1</strong>");
   html = html.replace(/\*(.+?)\*/g,         "<em>$1</em>");
   html = html.replace(/`([^`]+)`/g,         "<code>$1</code>");
-  
-  // Listas (Soporta listas normales y Task Lists / Checkboxes)
+
+  // Listas
   html = html.replace(/((?:^[ \t]*- .+\n?)+)/gm, (block) => {
     const items = block.trim().split("\n")
       .map((l: string) => {
         let content = l.replace(/^[ \t]*- /, "");
-        // Detectar si es un Task List: [ ] o [x]
         const taskMatch = content.match(/^\[([ xX\s])\] (.*)/);
         if (taskMatch) {
           const checked = taskMatch[1].trim().toLowerCase() === 'x' ? 'checked' : '';
@@ -63,7 +62,7 @@ export function renderMarkdown(raw: string): string {
     return `<ul>${items}</ul>`;
   });
 
-  // Párrafos (Saltos de línea)
+  // Párrafos
   html = html.split(/\n{2,}/).map((block: string) => {
     if (/^<(h[1-6]|ul|ol|li|pre|table|hr|blockquote)/.test(block.trim())) return block;
     const inner = block.trim().replace(/\n/g, "<br/>");
@@ -73,7 +72,7 @@ export function renderMarkdown(raw: string): string {
   return html;
 }
 
-// ── Estilos de vista previa (inyectados una vez) ─────────────────────────────
+// ── Estilos de vista previa ──────────────────────────────────────────────────
 export const PROSE_STYLES = `
   .prose-mundo h1 { font-size:1.4rem;font-weight:900;margin:1rem 0 .4rem;letter-spacing:.15em;text-transform:uppercase;color:var(--color-primary,#7c6af7);border-bottom:2px solid color-mix(in srgb,var(--color-primary,#7c6af7) 20%,transparent);padding-bottom:.3rem }
   .prose-mundo h2 { font-size:1.1rem;font-weight:800;margin:.9rem 0 .35rem;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white) }
@@ -82,24 +81,15 @@ export const PROSE_STYLES = `
   .prose-mundo strong { font-weight:800;color:var(--color-primary,#7c6af7) }
   .prose-mundo em     { font-style:italic;opacity:.85 }
   .prose-mundo hr { border:none;border-top:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 20%,transparent);margin:.9rem 0 }
-  
-  /* Enlaces */
   .prose-mundo a { color:var(--color-primary,#7c6af7);text-decoration:underline;text-underline-offset:3px;transition:opacity 0.2s; }
   .prose-mundo a:hover { opacity:0.8; }
-  
-  /* Imágenes */
   .prose-mundo img { max-width:100%;height:auto;border-radius:0.5rem;margin:0.5rem 0;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 15%,transparent); }
-
-  /* Listas normales */
   .prose-mundo ul { list-style:none;padding-left:1rem;margin:.4rem 0 }
   .prose-mundo ul li { position:relative;padding-left:.8rem;font-size:.82rem;margin:.2rem 0;color:var(--color-input-text,#d1c9ff) }
   .prose-mundo ul li::before { content:"◈";position:absolute;left:-.2rem;font-size:.6rem;color:var(--color-primary,#7c6af7);top:.2rem }
-  
-  /* Task Lists (Checkboxes) */
   .prose-mundo .task-list-item { display:flex;align-items:flex-start;gap:0.4rem;padding-left:0; }
-  .prose-mundo .task-list-item::before { display:none; /* Oculta el rombo de la lista normal */ }
+  .prose-mundo .task-list-item::before { display:none; }
   .prose-mundo .task-list-checkbox { margin-top:0.25rem;accent-color:var(--color-primary,#7c6af7);width:0.85rem;height:0.85rem;cursor:not-allowed; }
-
   .prose-mundo table { width:100%;border-collapse:collapse;font-size:.78rem;margin:.6rem 0 }
   .prose-mundo th { background:color-mix(in srgb,var(--color-primary,#7c6af7) 15%,transparent);color:var(--color-primary,#7c6af7);font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:.4rem .7rem;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 20%,transparent);text-align:left }
   .prose-mundo td { padding:.35rem .7rem;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 12%,transparent);color:var(--color-input-text,#d1c9ff) }
@@ -137,6 +127,8 @@ export function MarkdownEditor({
   const [toolbarOpen, setToolbarOpen] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const pvRef = useRef<HTMLDivElement>(null);
+
+  const monoStyle: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
   // En móvil, si el modo es "split" lo forzamos a "edit"
   useEffect(() => {
@@ -180,7 +172,6 @@ export function MarkdownEditor({
     const ta = taRef.current;
     if (!ta) return;
 
-    // 1. Indentación con Tab
     if (e.key === "Tab") {
       e.preventDefault();
       const { selectionStart: s, selectionEnd: end } = ta;
@@ -190,17 +181,13 @@ export function MarkdownEditor({
       return;
     }
 
-    // 2. Continuación automática de listas con Enter
     if (e.key === "Enter") {
       const { selectionStart: s } = ta;
       const lines = value.slice(0, s).split('\n');
       const currentLine = lines[lines.length - 1];
-
-      // Busca si la línea actual empieza con "- " o "- [ ]" o "- [x]"
       const listMatch = currentLine.match(/^(\s*-\s(?:\[[ xX\s]\]\s)?)(.*)/);
       if (listMatch) {
         if (listMatch[2].trim() === '') {
-          // Si damos Enter en un elemento de lista vacío, lo borramos (salimos de la lista)
           e.preventDefault();
           const newVal = value.slice(0, s - listMatch[1].length) + value.slice(s);
           onChange(newVal);
@@ -208,9 +195,7 @@ export function MarkdownEditor({
             ta.selectionStart = ta.selectionEnd = s - listMatch[1].length;
           });
         } else {
-          // Si tiene contenido, creamos el siguiente elemento automáticamente
           e.preventDefault();
-          // Si era una tarea marcada [x], la nueva se crea desmarcada [ ]
           const prefix = listMatch[1].replace(/\[[xX]\]/, '[ ]');
           insertSnippet(`\n${prefix}`);
         }
@@ -218,7 +203,6 @@ export function MarkdownEditor({
       }
     }
 
-    // 3. Auto-cerrado de caracteres
     const autoClosePairs: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
     if (autoClosePairs[e.key]) {
       e.preventDefault();
@@ -226,12 +210,10 @@ export function MarkdownEditor({
       return;
     }
 
-    // 4. Accesos directos de teclado
     if ((e.ctrlKey || e.metaKey) && e.key === "b") { e.preventDefault(); wrapSelection("**", "**"); }
     if ((e.ctrlKey || e.metaKey) && e.key === "i") { e.preventDefault(); wrapSelection("*", "*"); }
   };
 
-  // 5. Sincronización de Scroll (Textarea -> Preview)
   const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
     if (mode !== "split" || !pvRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -241,155 +223,327 @@ export function MarkdownEditor({
     }
   };
 
-  const baseCls =
-    "flex-1 w-full bg-input-bg text-input-text border border-primary/15 rounded-xl px-4 py-3 text-sm outline-none focus:border-primary/40 placeholder:text-primary/20 resize-none transition-colors font-mono leading-relaxed";
-
   const html = renderMarkdown(value);
 
+  // Estilos base de textarea — sin bordes propios, hereda del contenedor
+  const textareaCls =
+    "flex-1 w-full bg-transparent outline-none border-none resize-none text-sm font-mono leading-relaxed placeholder:opacity-30";
+
+  const textareaStyle: React.CSSProperties = {
+    minHeight: minH,
+    overflowY: "auto",
+    color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
+    fontFamily: "var(--font-mono)",
+    fontSize: 13,
+    padding: "16px 20px",
+  };
+
+  const previewStyle: React.CSSProperties = {
+    minHeight: minH,
+    overflowY: "auto",
+    padding: "16px 20px",
+    flex: 1,
+  };
+
   return (
-    <div className={`flex flex-col flex-1 min-h-0 gap-2 ${className}`}>
+    <div className={`flex flex-col flex-1 min-h-0 ${className}`}>
       <style>{PROSE_STYLES}</style>
 
-      {/* Toolbar */}
-      {toolbar && (
-        <div className="flex items-center gap-2">
-          {/* Botón accesos rápidos — solo mobile */}
-          <div className="relative sm:hidden shrink-0">
-            <button
-              type="button"
-              onClick={() => setToolbarOpen(o => !o)}
-              title="Accesos rápidos"
-              className={`flex items-center justify-center w-8 h-8 rounded-xl border transition-all ${
-                toolbarOpen
-                  ? "bg-primary text-btn-text border-primary/40"
-                  : "bg-primary/5 border-primary/10 text-primary/50 hover:text-primary hover:bg-primary/10"
-              }`}
-            >
-              {toolbarOpen ? <XIcon size={13} /> : <Wand2 size={13} />}
-            </button>
+      {/* ── Bloque único contenedor ── */}
+      <div
+        style={{
+          border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+          borderRadius: 8,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
+          background: "color-mix(in srgb, var(--bg-menu) 40%, transparent)",
+        }}
+      >
+        {/* ── Barra superior: herramientas + toggle de modo ── */}
+        {toolbar && (
+          <div
+            style={{
+              borderBottom: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+              background: "color-mix(in srgb, var(--foreground) 2%, transparent)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "0 10px",
+              minHeight: 34,
+              flexShrink: 0,
+            }}
+          >
+            {/* Botón accesos rápidos — solo mobile */}
+            <div className="relative sm:hidden shrink-0">
+              <button
+                type="button"
+                onClick={() => setToolbarOpen(o => !o)}
+                title="Accesos rápidos"
+                style={{
+                  width: 28,
+                  height: 28,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 5,
+                  border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                  background: toolbarOpen
+                    ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
+                    : "transparent",
+                  color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+                  cursor: "pointer",
+                }}
+              >
+                {toolbarOpen ? <XIcon size={12} /> : <Wand2 size={12} />}
+              </button>
 
-            {/* Dropdown de herramientas en mobile */}
-            {toolbarOpen && (
-              <div className="absolute top-full left-0 mt-1 z-50 bg-white-custom border border-primary/15 rounded-xl shadow-xl p-2 flex flex-col gap-0.5 min-w-[130px]">
-                {[
-                  { label: "Negrita", action: () => wrapSelection("**", "**") },
-                  { label: "Itálica", action: () => wrapSelection("*", "*") },
-                  { label: "Código", action: () => wrapSelection("`", "`") },
-                  { label: "Enlace", action: () => wrapSelection("[", "](url)") },
-                  { label: "Lista", action: () => insertSnippet("\n- elemento\n- elemento\n") },
-                  { label: "Tareas", action: () => insertSnippet("\n- [ ] Pendiente\n- [x] Hecho\n") },
-                  { label: "Separador", action: () => insertSnippet("\n---\n") },
-                  { label: "Tabla", action: () => insertSnippet("\n| Col 1 | Col 2 |\n|---|---|\n| dato | dato |\n") },
-                  { label: "Bloque", action: () => insertSnippet("\n```\ncódigo\n```\n") },
-                ].map(({ label, action }) => (
-                  <button key={label} type="button"
-                    onClick={() => { action(); setToolbarOpen(false); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-[11px] font-bold text-primary/70 hover:bg-primary/8 hover:text-primary transition-all">
+              {toolbarOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 4px)",
+                    left: 0,
+                    zIndex: 50,
+                    background: "var(--bg-menu)",
+                    border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                    borderRadius: 6,
+                    padding: "4px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                    minWidth: 120,
+                  }}
+                >
+                  {[
+                    { label: "Negrita", action: () => wrapSelection("**", "**") },
+                    { label: "Itálica", action: () => wrapSelection("*", "*") },
+                    { label: "Código", action: () => wrapSelection("`", "`") },
+                    { label: "Enlace", action: () => wrapSelection("[", "](url)") },
+                    { label: "Lista", action: () => insertSnippet("\n- elemento\n- elemento\n") },
+                    { label: "Tareas", action: () => insertSnippet("\n- [ ] Pendiente\n- [x] Hecho\n") },
+                    { label: "Separador", action: () => insertSnippet("\n---\n") },
+                    { label: "Tabla", action: () => insertSnippet("\n| Col 1 | Col 2 |\n|---|---|\n| dato | dato |\n") },
+                    { label: "Bloque", action: () => insertSnippet("\n```\ncódigo\n```\n") },
+                  ].map(({ label, action }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => { action(); setToolbarOpen(false); }}
+                      style={{
+                        textAlign: "left",
+                        padding: "6px 10px",
+                        borderRadius: 4,
+                        border: "none",
+                        background: "transparent",
+                        fontSize: 11,
+                        color: "color-mix(in srgb, var(--foreground) 50%, transparent)",
+                        cursor: "pointer",
+                        ...monoStyle,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Herramientas completas — solo desktop */}
+            <div
+              className="hidden sm:flex"
+              style={{
+                alignItems: "center",
+                gap: 2,
+                flex: 1,
+                flexWrap: "wrap" as const,
+              }}
+            >
+              {[
+                { label: <strong>B</strong>, action: () => wrapSelection("**", "**"), title: "Negrita (Ctrl+B)" },
+                { label: <em>I</em>, action: () => wrapSelection("*", "*"), title: "Itálica (Ctrl+I)" },
+                { label: "</>", action: () => wrapSelection("`", "`"), title: "Código inline" },
+                { label: "Link", action: () => wrapSelection("[", "](url)"), title: "Añadir enlace" },
+                { label: "Img", action: () => wrapSelection("![alt](", ")"), title: "Añadir Imagen" },
+              ].map(({ label, action, title }, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={action}
+                  title={title}
+                  style={{
+                    padding: "2px 7px",
+                    borderRadius: 4,
+                    border: "none",
+                    background: "transparent",
+                    fontSize: 10,
+                    color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                    cursor: "pointer",
+                    ...monoStyle,
+                    transition: "color 0.1s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--foreground) 65%, transparent)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)")}
+                >
+                  {label}
+                </button>
+              ))}
+
+              {/* Separador */}
+              <div style={{ width: 1, height: 14, background: "color-mix(in srgb, var(--foreground) 8%, transparent)", margin: "0 2px" }} />
+
+              {[
+                { label: "Lista", action: () => insertSnippet("\n- elemento\n- elemento\n") },
+                { label: "Tareas", action: () => insertSnippet("\n- [ ] Pendiente\n- [x] Hecho\n") },
+                { label: "─ ─", action: () => insertSnippet("\n---\n") },
+                { label: "Tabla", action: () => insertSnippet("\n| Col 1 | Col 2 | Col 3 |\n|---|---|---|\n| dato | dato | dato |\n") },
+                { label: "Bloque", action: () => insertSnippet("\n```\ncódigo\n```\n") },
+              ].map(({ label, action }, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={action}
+                  style={{
+                    padding: "2px 7px",
+                    borderRadius: 4,
+                    border: "none",
+                    background: "transparent",
+                    fontSize: 10,
+                    color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                    cursor: "pointer",
+                    ...monoStyle,
+                    transition: "color 0.1s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--foreground) 65%, transparent)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* ── Toggle edit/split/preview — estilo ensayos ── */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                borderRadius: 5,
+                overflow: "hidden",
+                marginLeft: "auto",
+                flexShrink: 0,
+              }}
+            >
+              {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
+                const Icon = m === "edit" ? Edit3 : m === "preview" ? Eye : Columns;
+                const label = m === "edit" ? "edit" : m === "preview" ? "preview" : "split";
+                const isActive = mode === m;
+                // Ocultar split en mobile
+                const hideSplit = m === "split" ? { display: "none" } : {};
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMode(m)}
+                    title={label}
+                    className={m === "split" ? "hidden sm:flex" : "flex"}
+                    style={{
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 9,
+                      padding: "3px 8px",
+                      background: isActive
+                        ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
+                        : "transparent",
+                      color: isActive
+                        ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
+                        : "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                      border: "none",
+                      cursor: "pointer",
+                      ...monoStyle,
+                      transition: "background 0.1s, color 0.1s",
+                    }}
+                  >
+                    <Icon size={10} />
                     {label}
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
-
-          {/* Herramientas completas — solo desktop */}
-          <div className="hidden sm:flex flex-wrap items-center gap-1 px-2 py-1 bg-primary/5 border border-primary/10 rounded-xl flex-1">
-            <button type="button" onClick={() => wrapSelection("**", "**")} title="Negrita (Ctrl+B)"
-              className="px-2 py-1 rounded-lg text-[10px] font-black text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-              <strong>B</strong>
-            </button>
-            <button type="button" onClick={() => wrapSelection("*", "*")} title="Itálica (Ctrl+I)"
-              className="px-2 py-1 rounded-lg text-[10px] italic text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-              I
-            </button>
-            <button type="button" onClick={() => wrapSelection("`", "`")} title="Código inline"
-              className="px-2 py-1 rounded-lg text-[10px] font-mono text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-              {"</>"}
-            </button>
-            <button type="button" onClick={() => wrapSelection("[", "](url)")} title="Añadir enlace"
-              className="px-2 py-1 rounded-lg text-[10px] font-medium text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-              Link
-            </button>
-            <button type="button" onClick={() => wrapSelection("![alt](", ")")} title="Añadir Imagen"
-              className="px-2 py-1 rounded-lg text-[10px] font-medium text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-              Img
-            </button>
-            
-            <span className="w-px h-4 bg-primary/15 mx-0.5" />
-            
-            <button type="button" onClick={() => insertSnippet("\n- elemento\n- elemento\n")}
-              className="px-2 py-1 rounded-lg text-[10px] text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-              Lista
-            </button>
-            <button type="button" onClick={() => insertSnippet("\n- [ ] Pendiente\n- [x] Hecho\n")}
-              className="px-2 py-1 rounded-lg text-[10px] text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-              Tareas
-            </button>
-            <button type="button" onClick={() => insertSnippet("\n---\n")}
-              className="px-2 py-1 rounded-lg text-[10px] text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-              ─ ─
-            </button>
-            <button type="button"
-              onClick={() => insertSnippet("\n| Col 1 | Col 2 | Col 3 |\n|---|---|---|\n| dato | dato | dato |\n")}
-              className="px-2 py-1 rounded-lg text-[10px] text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-              Tabla
-            </button>
-            <button type="button" onClick={() => insertSnippet("\n```\ncódigo\n```\n")}
-              className="px-2 py-1 rounded-lg text-[10px] text-primary/50 hover:bg-primary/10 hover:text-primary transition-all">
-              Bloque
-            </button>
-          </div>
-
-          {/* Modo vista — siempre visible */}
-          <div className="flex items-center gap-0.5 bg-primary/5 border border-primary/10 rounded-xl p-1 shrink-0 ml-auto">
-            {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
-              const Icon  = m === "edit" ? Edit3 : m === "preview" ? Eye : Columns;
-              const title = m === "edit" ? "Editar" : m === "preview" ? "Vista" : "Dividir";
-              const hideMobile = m === "split" ? "hidden sm:flex" : "flex";
-              return (
-                <button key={m} type="button" onClick={() => setMode(m)} title={title}
-                  className={`${hideMobile} items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                    mode === m ? "bg-primary text-btn-text shadow-sm" : "text-primary/40 hover:text-primary/70"
-                  }`}>
-                  <Icon size={11} />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Área */}
-      <div className={`flex gap-3 flex-1 min-h-0 ${mode === "split" ? "flex-row" : "flex-col"}`}>
-        {(mode === "edit" || mode === "split") && (
-          <textarea
-            ref={taRef}
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onScroll={handleScroll} // Sincronización de scroll
-            placeholder={placeholder}
-            className={baseCls}
-            style={{ minHeight: minH, overflowY: "auto" }}
-          />
         )}
-        {(mode === "preview" || mode === "split") && (
+
+        {/* ── Área de contenido ── */}
+        <div
+          style={{
+            display: "flex",
+            flex: 1,
+            minHeight: 0,
+            flexDirection: mode === "split" ? "row" : "column",
+          }}
+        >
+          {/* Textarea de edición */}
+          {(mode === "edit" || mode === "split") && (
+            <textarea
+              ref={taRef}
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onScroll={handleScroll}
+              placeholder={placeholder}
+              className={textareaCls}
+              style={textareaStyle}
+            />
+          )}
+
+          {/* Separador vertical en modo split */}
+          {mode === "split" && (
+            <div
+              style={{
+                width: 1,
+                background: "color-mix(in srgb, var(--foreground) 7%, transparent)",
+                flexShrink: 0,
+              }}
+            />
+          )}
+
+          {/* Vista previa */}
+          {(mode === "preview" || mode === "split") && (
+            <div
+              ref={pvRef}
+              className="prose-mundo"
+              style={previewStyle}
+              dangerouslySetInnerHTML={{
+                __html: html || `<p class="placeholder">${placeholder ?? "Vista previa…"}</p>`,
+              }}
+            />
+          )}
+        </div>
+
+        {/* ── Pie: hint de atajos ── */}
+        {toolbar && (
           <div
-            ref={pvRef} // Ref para la sincronización
-            className="flex-1 bg-input-bg border border-primary/15 rounded-xl px-5 py-4 overflow-y-auto prose-mundo"
-            style={{ minHeight: minH }}
-            dangerouslySetInnerHTML={{
-              __html: html || `<p class="placeholder">${placeholder ?? "Vista previa…"}</p>`,
+            style={{
+              borderTop: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)",
+              padding: "5px 16px",
+              background: "color-mix(in srgb, var(--foreground) 1.5%, transparent)",
+              flexShrink: 0,
             }}
-          />
+          >
+            <span
+              style={{
+                fontSize: 9,
+                color: "color-mix(in srgb, var(--foreground) 15%, transparent)",
+                ...monoStyle,
+              }}
+            >
+              Markdown · <strong style={{ fontWeight: 600 }}>Ctrl+B</strong> negrita · <strong style={{ fontWeight: 600 }}>Ctrl+I</strong> itálica · <strong style={{ fontWeight: 600 }}>Tab</strong> indentar · <strong style={{ fontWeight: 600 }}>Enter</strong> auto-listas
+            </span>
+          </div>
         )}
       </div>
-
-      {toolbar && (
-        <p className="text-[10px] text-primary/25 font-mono">
-          Markdown · <strong>Ctrl+B</strong> negrita · <strong>Ctrl+I</strong> itálica · <strong>Tab</strong> indentar · <strong>Enter</strong> auto-listas
-        </p>
-      )}
     </div>
   );
 }

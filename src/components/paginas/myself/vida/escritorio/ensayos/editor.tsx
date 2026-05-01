@@ -1,7 +1,7 @@
 "use client";
 import { MotionDiv } from "@/components/ui/Motion";
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Save, Eye, Edit3 } from "lucide-react";
+import { Save } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { CitePopup } from "./citePopup";
 import { MarkdownEditor } from "@/components/paginas/myself/jardin/editorEntidades/MarkdownEditor";
@@ -187,58 +187,6 @@ export function Editor({
                 }}
               />
             )}
-          </div>
-
-          {/* Divider */}
-          <div style={{ width: 1, height: 16, background: "color-mix(in srgb, var(--foreground) 8%, transparent)", margin: "0 10px" }} />
-
-          {/* Edit/Preview toggle */}
-          <div
-            className="flex items-center"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-              borderRadius: 5,
-              overflow: "hidden",
-            }}
-          >
-            <button
-              onClick={() => !editMode && onToggleEditMode()}
-              style={{
-                fontSize: 9,
-                padding: "3px 8px",
-                background: editMode ? "color-mix(in srgb, var(--foreground) 10%, transparent)" : "transparent",
-                color: editMode ? "color-mix(in srgb, var(--foreground) 70%, transparent)" : "color-mix(in srgb, var(--foreground) 25%, transparent)",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                ...monoStyle,
-              }}
-              title="Editar (⌘E)"
-            >
-              <Edit3 size={10} />
-              edit
-            </button>
-            <button
-              onClick={() => editMode && onToggleEditMode()}
-              style={{
-                fontSize: 9,
-                padding: "3px 8px",
-                background: !editMode ? "color-mix(in srgb, var(--foreground) 10%, transparent)" : "transparent",
-                color: !editMode ? "color-mix(in srgb, var(--foreground) 70%, transparent)" : "color-mix(in srgb, var(--foreground) 25%, transparent)",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                ...monoStyle,
-              }}
-              title="Vista previa (⌘E)"
-            >
-              <Eye size={10} />
-              preview
-            </button>
           </div>
         </div>
 
