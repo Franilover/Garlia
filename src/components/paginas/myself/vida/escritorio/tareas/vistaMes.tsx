@@ -100,10 +100,10 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
           ))}
         </div>
 
-        {/* Grilla días — h-9 fijo, equilibrio entre compacto y legible */}
+        {/* Grilla días — h-11 */}
         <div className="grid grid-cols-7 gap-1 shrink-0">
           {Array.from({ length: primerDia }).map((_, i) => (
-            <div key={`e-${i}`} className="h-16" />
+            <div key={`e-${i}`} className="h-11" />
           ))}
           {Array.from({ length: diasEnMes }).map((_, i) => {
             const dia = i + 1;
@@ -120,7 +120,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.92 }}
                 className={cn(
-                  "h-9 w-full rounded-[var(--radius-btn)] flex flex-col items-center justify-center relative",
+                  "h-11 w-full rounded-[var(--radius-btn)] flex flex-col items-center justify-center relative",
                   "text-[12px] font-black transition-all",
                   sel
                     ? "bg-primary text-white shadow-sm shadow-primary/20"
