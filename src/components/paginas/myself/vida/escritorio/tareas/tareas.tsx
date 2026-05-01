@@ -28,9 +28,6 @@ export const GestionPersonal = () => {
   const [isAddingTarea, setIsAddingTarea] = useState(false);
   const [isAddingEvento, setIsAddingEvento] = useState(false);
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
-  const [diaSeleccionado, setDiaSeleccionado] = useState(new Date().getDate());
-  const [nuevoEvento, setNuevoEvento] = useState("");
-  const [tipoEvento, setTipoEvento] = useState("Plan");
 
   /* ── Tareas ── */
   const handleAddTarea = async () => {
@@ -65,26 +62,9 @@ export const GestionPersonal = () => {
     } catch (err) { console.error(err); }
   };
 
-  /* ── Eventos ── */
-  const handleAddEventoMes = async () => {
-    if (!nuevoEvento.trim() || isAddingEvento) return;
-    setIsAddingEvento(true);
-    const now = new Date();
-    const fechaISO = new Date(now.getFullYear(), now.getMonth(), diaSeleccionado).toISOString();
-    try {
-      if (navigator.onLine) {
-        const creado = await eventosQueries.add({ titulo: nuevoEvento, tipo: tipoEvento, fecha: fechaISO });
-        if (creado) { setEventos([...eventos, creado]); setNuevoEvento(""); dexiePut("eventos", { ...creado, status: "synced" }); }
-      } else {
-        const tempId = `temp_${Date.now()}`;
-        const evento = { id: tempId, titulo: nuevoEvento, tipo: tipoEvento, fecha: fechaISO, username: USERNAME, status: "pending" as const };
-        await dexiePut("eventos", evento); await enqueueOperation("eventos", "upsert", tempId, evento);
-        setEventos([...eventos, evento]); setNuevoEvento("");
-      }
-    } catch (err) { console.error(err); } finally { setIsAddingEvento(false); }
-  };
-
-  const handleAddEventoSemanal = async (fechaISO: string, titulo: string, tipo: string) => {
+  /* ── Eventos (interfaz unificada: fechaISO + titulo + tipo) ── */
+  const handleAddEvento = async (fechaISO: string, titulo: string, tipo: string) => {
+    if (!titulo.trim() || isAddingEvento) return;
     setIsAddingEvento(true);
     try {
       if (navigator.onLine) {
@@ -106,11 +86,6 @@ export const GestionPersonal = () => {
       flex gap-3 pb-3 overflow-hidden
       flex-col lg:flex-row
     ">
-
-      {/* ══════════════════════════════════════════
-          BLOQUE UNIFICADO
-          4/5 Calendario  |  1/5 Sidebar derecha
-          ══════════════════════════════════════════ */}
       <div className="
         flex-1 min-w-0
         flex flex-col lg:flex-row
@@ -121,10 +96,10 @@ export const GestionPersonal = () => {
         overflow-hidden
       ">
 
-        {/* ── Col izquierda: Calendario (4/5) ── */}
+        {/* ── Col izquierda: Calendario ── */}
         <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
-          {/* Switcher modo calendario */}
+          {/* Switcher modo */}
           <div className="flex items-center justify-between px-5 py-3 border-b border-primary/8 shrink-0">
             <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">
               Calendario
@@ -155,7 +130,7 @@ export const GestionPersonal = () => {
             </div>
           </div>
 
-          {/* Vista activa — padding para que VistaSemanal respire */}
+          {/* Vista activa */}
           <div className="flex-1 min-h-0 overflow-hidden">
             <AnimatePresence mode="wait">
               {modoCalendario === "mes" ? (
@@ -170,14 +145,8 @@ export const GestionPersonal = () => {
                   <VistaMes
                     eventos={eventos}
                     capitulosRaw={capitulosRaw as any[] || []}
-                    diaSeleccionado={diaSeleccionado}
-                    setDiaSeleccionado={setDiaSeleccionado}
-                    nuevoEvento={nuevoEvento}
-                    setNuevoEvento={setNuevoEvento}
-                    tipoEvento={tipoEvento}
-                    setTipoEvento={setTipoEvento}
                     isAddingEvento={isAddingEvento}
-                    handleAddEvento={handleAddEventoMes}
+                    onAddEvento={handleAddEvento}
                   />
                 </MotionDiv>
               ) : (
@@ -193,7 +162,7 @@ export const GestionPersonal = () => {
                     eventos={eventos}
                     capitulosRaw={capitulosRaw as any[] || []}
                     isAddingEvento={isAddingEvento}
-                    onAddEvento={handleAddEventoSemanal}
+                    onAddEvento={handleAddEvento}
                   />
                 </MotionDiv>
               )}
@@ -201,21 +170,14 @@ export const GestionPersonal = () => {
           </div>
         </div>
 
-        {/* Divisor vertical interno */}
+        {/* Divisores */}
         <div className="hidden lg:block w-px bg-primary/8 shrink-0" />
-        {/* Divisor horizontal en mobile */}
         <div className="lg:hidden h-px bg-primary/8 shrink-0" />
 
-        {/* ── Col derecha: Reloj + Tareas (1/5) ── */}
+        {/* ── Col derecha: Reloj + Tareas ── */}
         <div className="w-full lg:w-[22%] shrink-0 flex flex-col overflow-hidden">
-
-          {/* Reloj minimalista */}
           <RelojDigital horario={horarioRaw || []} tareas={tareas || []} />
-
-          {/* Separador interno */}
           <div className="h-px bg-primary/8 shrink-0" />
-
-          {/* Lista de tareas */}
           <div className="flex-1 min-h-0 overflow-hidden">
             <ListaTareas
               tareas={tareas}

@@ -9,22 +9,16 @@ import { MESES, TIPOS_EVENTO } from "./types";
 interface Props {
   eventos: any[];
   capitulosRaw: any[];
-  diaSeleccionado: number;
-  setDiaSeleccionado: (d: number) => void;
-  nuevoEvento: string;
-  setNuevoEvento: (v: string) => void;
-  tipoEvento: string;
-  setTipoEvento: (v: string) => void;
   isAddingEvento: boolean;
-  handleAddEvento: () => void;
+  onAddEvento: (fechaISO: string, titulo: string, tipo: string) => Promise<void>;
 }
 
-export const VistaMes = ({
-  eventos, capitulosRaw, diaSeleccionado, setDiaSeleccionado,
-  nuevoEvento, setNuevoEvento, tipoEvento, setTipoEvento,
-  isAddingEvento, handleAddEvento,
-}: Props) => {
+export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }: Props) => {
   const [fechaViz, setFechaViz] = useState(new Date());
+  // Estado local del día seleccionado (dentro del mes visualizado)
+  const [diaSeleccionado, setDiaSeleccionado] = useState(new Date().getDate());
+  const [nuevoEvento, setNuevoEvento] = useState("");
+  const [tipoEvento, setTipoEvento] = useState("Plan");
 
   const { diasEnMes, primerDia, mesActual, añoActual } = useMemo(() => {
     const año = fechaViz.getFullYear();
@@ -35,8 +29,18 @@ export const VistaMes = ({
     return { diasEnMes: dias, primerDia: pd, mesActual: mes, añoActual: año };
   }, [fechaViz]);
 
-  const cambiarMes = (offset: number) =>
+  const cambiarMes = (offset: number) => {
     setFechaViz(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+    setDiaSeleccionado(1);
+  };
+
+  // Crea el evento con el mes y año que el usuario está viendo, no el mes actual del sistema
+  const handleAdd = async () => {
+    if (!nuevoEvento.trim()) return;
+    const fechaISO = new Date(añoActual, mesActual, diaSeleccionado, 12, 0, 0).toISOString();
+    await onAddEvento(fechaISO, nuevoEvento, tipoEvento);
+    setNuevoEvento("");
+  };
 
   const tieneAlgo = (dia: number) =>
     eventos.some((e: any) => {
@@ -68,12 +72,12 @@ export const VistaMes = ({
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* Nav mes */}
-      <div className="flex items-center justify-center gap-4 px-5 py-3 border-b border-primary/6 shrink-0">
+      <div className="flex items-center justify-center gap-4 px-5 py-2 border-b border-primary/8 shrink-0">
         <button
           onClick={() => cambiarMes(-1)}
           className="p-1 text-primary/40 hover:text-primary transition-colors"
         >
-          <ChevronLeft size={14} />
+          <ChevronLeft size={13} />
         </button>
         <span className="text-[10px] font-black uppercase tracking-[0.18em] text-primary min-w-[9rem] text-center">
           {MESES[mesActual]} {añoActual}
@@ -82,12 +86,12 @@ export const VistaMes = ({
           onClick={() => cambiarMes(1)}
           className="p-1 text-primary/40 hover:text-primary transition-colors"
         >
-          <ChevronRight size={14} />
+          <ChevronRight size={13} />
         </button>
       </div>
 
-      {/* Cuerpo — scroll vertical si el contenido excede */}
-      <div className="flex flex-col flex-1 min-h-0 overflow-y-auto p-4 gap-3">
+      {/* Cuerpo con scroll */}
+      <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-4 py-3 gap-2">
 
         {/* Cabecera días semana */}
         <div className="grid grid-cols-7 shrink-0">
@@ -96,9 +100,11 @@ export const VistaMes = ({
           ))}
         </div>
 
-        {/* Grilla días */}
-        <div className="grid grid-cols-7 gap-1 shrink-0">
-          {Array.from({ length: primerDia }).map((_, i) => <div key={`e-${i}`} className="aspect-square" />)}
+        {/* Grilla días — h-7 fijo, sin aspect-square */}
+        <div className="grid grid-cols-7 gap-0.5 shrink-0">
+          {Array.from({ length: primerDia }).map((_, i) => (
+            <div key={`e-${i}`} className="h-7" />
+          ))}
           {Array.from({ length: diasEnMes }).map((_, i) => {
             const dia = i + 1;
             const sel = dia === diaSeleccionado;
@@ -111,21 +117,22 @@ export const VistaMes = ({
               <MotionButton
                 key={dia}
                 onClick={() => setDiaSeleccionado(dia)}
-                whileHover={{ scale: 1.07 }}
-                whileTap={{ scale: 0.93 }}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
                 className={cn(
-                  "aspect-square rounded-[var(--radius-btn)] flex flex-col items-center justify-center relative text-[11px] font-black transition-all",
+                  "h-7 w-full rounded-[var(--radius-btn)] flex flex-col items-center justify-center relative",
+                  "text-[10px] font-black transition-all",
                   sel
-                    ? "bg-primary text-white shadow-md shadow-primary/20"
+                    ? "bg-primary text-white shadow-sm shadow-primary/20"
                     : hoy
-                      ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
-                      : "text-foreground/70 hover:bg-primary/8 dark:text-foreground/80"
+                      ? "bg-primary/10 text-primary dark:bg-primary/20"
+                      : "text-foreground/65 hover:bg-primary/7 dark:text-foreground/75"
                 )}
               >
                 {dia}
                 {tieneAlgo(dia) && (
                   <span className={cn(
-                    "absolute bottom-[3px] w-[3px] h-[3px] rounded-full",
+                    "absolute bottom-[2px] w-[3px] h-[3px] rounded-full",
                     sel ? "bg-white/60" : "bg-primary/50"
                   )} />
                 )}
@@ -135,13 +142,11 @@ export const VistaMes = ({
         </div>
 
         {/* Panel día seleccionado */}
-        <div className="flex flex-col gap-2 border-t border-primary/8 pt-3">
+        <div className="flex flex-col gap-2 border-t border-primary/8 pt-2.5 mt-0.5">
 
-          <div className="flex items-center justify-between shrink-0">
-            <span className="text-[8px] font-black uppercase tracking-widest text-primary/40">
-              {diaSeleccionado} {MESES[mesActual].slice(0, 3)}
-            </span>
-          </div>
+          <span className="text-[8px] font-black uppercase tracking-widest text-primary/40 shrink-0">
+            {diaSeleccionado} {MESES[mesActual].slice(0, 3)} {añoActual}
+          </span>
 
           {/* Formulario */}
           <div className="flex gap-1.5 shrink-0">
@@ -156,24 +161,24 @@ export const VistaMes = ({
               type="text"
               value={nuevoEvento}
               onChange={e => setNuevoEvento(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleAddEvento()}
+              onKeyDown={e => e.key === "Enter" && handleAdd()}
               placeholder="Añadir evento..."
-              className="flex-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-foreground font-semibold outline-none border border-transparent focus:border-primary/20 focus:bg-background dark:focus:bg-background transition-all min-w-0 placeholder:text-primary/30"
+              className="flex-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-foreground font-semibold outline-none border border-transparent focus:border-primary/20 focus:bg-background transition-all min-w-0 placeholder:text-foreground/25"
             />
             <BtnIcon
               loading={isAddingEvento}
               disabled={!nuevoEvento.trim()}
-              onClick={handleAddEvento}
+              onClick={handleAdd}
               className="rounded-[var(--radius-btn)] w-8 h-8 shrink-0"
             >
               <Plus size={12} />
             </BtnIcon>
           </div>
 
-          {/* Eventos — sin altura fija, crece con el contenido */}
+          {/* Lista de eventos */}
           <div className="flex flex-col gap-1.5">
             {itemsDia.length === 0 ? (
-              <p className="text-[9px] font-medium text-primary/25 italic pt-1">Sin eventos.</p>
+              <p className="text-[9px] font-medium text-foreground/20 italic pt-0.5">Sin eventos.</p>
             ) : itemsDia.map((item: any) => (
               <MotionDiv
                 key={item.id}
