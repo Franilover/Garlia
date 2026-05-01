@@ -14,7 +14,6 @@ import Sidebar from "@/components/paginas/myself/vida/escritorio/ensayos/sidebar
 import Editor from "@/components/paginas/myself/vida/escritorio/ensayos/editor";
 import { EmptyState } from "@/components/paginas/myself/vida/escritorio/ensayos/emptyState";
 import NewNoteModal from "@/components/paginas/myself/vida/escritorio/ensayos/newNoteModal";
-import { TagPanel } from "@/components/paginas/myself/vida/escritorio/ensayos/tagPanel";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 
 export interface ZoteroSource {
@@ -403,14 +402,6 @@ export default function Ensayos() {
                 )}
               </AnimatePresence>
             )}
-
-            <TagPanel
-              tag={tagPanel}
-              ensayos={ensayos}
-              onClose={handleTagPanelClose}
-              onSelectEnsayo={handleEnsayoClick}
-              onTagClick={t => setTagPanel(t)}
-            />
           </main>
         </EstudioLayout>
       </div>
