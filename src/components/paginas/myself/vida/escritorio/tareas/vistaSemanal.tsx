@@ -41,7 +41,7 @@ const ColumniaDia = ({
       <div className={cn(
         "w-7 h-7 rounded-[var(--radius-btn)] flex items-center justify-center transition-all",
         esHoy
-          ? "bg-primary text-white shadow-md shadow-primary/30"
+          ? "bg-primary text-[var(--btn-text)] shadow-md shadow-primary/30"
           : seleccionado
           ? "bg-primary/15 text-primary"
           : "text-[var(--text-on-card)]/60 dark:text-[var(--text-on-card)]/70 group-hover:bg-primary/8"
@@ -147,7 +147,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={irAHoy}
-            className="text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary hover:text-white transition-all shrink-0"
+            className="text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary hover:text-[var(--btn-text)] transition-all shrink-0"
           >
             Hoy
           </button>
@@ -177,7 +177,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
               className={cn(
                 "text-[8px] font-black uppercase tracking-wide px-2 py-1.5 rounded-[var(--radius-btn)] transition-all",
                 vista === v.valor
-                  ? "bg-primary text-white shadow-md shadow-primary/20"
+                  ? "bg-primary text-[var(--btn-text)] shadow-md shadow-primary/20"
                   : "text-primary/50 hover:text-primary hover:bg-[var(--white-custom)] dark:hover:bg-[var(--white-custom)]/20"
               )}
             >

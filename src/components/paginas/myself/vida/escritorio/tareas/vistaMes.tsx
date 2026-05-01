@@ -123,7 +123,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
                   "h-14 w-full rounded-[var(--radius-btn)] flex flex-col items-center justify-center relative",
                   "text-[13px] font-black transition-all",
                   sel
-                    ? "bg-primary text-white shadow-sm shadow-primary/20"
+                    ? "bg-primary text-[var(--btn-text)] shadow-sm shadow-primary/20"
                     : hoy
                       ? "bg-primary/10 text-primary dark:bg-primary/20"
                       : "text-[var(--text-on-card)]/65 hover:bg-primary/7"
@@ -133,7 +133,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
                 {tieneAlgo(dia) && (
                   <span className={cn(
                     "absolute bottom-[2px] w-[3px] h-[3px] rounded-full",
-                    sel ? "bg-white/60" : "bg-primary/50"
+                    sel ? "bg-[var(--btn-text)]/50" : "bg-primary/50"
                   )} />
                 )}
               </MotionButton>

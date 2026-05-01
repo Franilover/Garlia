@@ -110,7 +110,7 @@ export const GestionPersonal = () => {
                 className={cn(
                   "flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all",
                   modoCalendario === "mes"
-                    ? "bg-primary text-white shadow-sm"
+                    ? "bg-primary text-[var(--btn-text)] shadow-sm"
                     : "text-[var(--text-on-card)]/35 hover:text-primary"
                 )}
               >
@@ -121,7 +121,7 @@ export const GestionPersonal = () => {
                 className={cn(
                   "flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-[var(--radius-btn)] transition-all",
                   modoCalendario === "semana"
-                    ? "bg-primary text-white shadow-sm"
+                    ? "bg-primary text-[var(--btn-text)] shadow-sm"
                     : "text-[var(--text-on-card)]/35 hover:text-primary"
                 )}
               >
