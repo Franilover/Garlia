@@ -273,32 +273,32 @@ export default function Ensayos() {
   }, [scheduleSave]);
 
   const crearEnsayo = async (titulo: string) => {
-    if (!titulo.trim() || !user) return;
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-    const newEnsayo = {
-      id,
-      titulo: titulo.trim(),
-      user_id: user.id,
-      contenido: "",
-      tags: tagActivo ? [tagActivo] : [],
-      created_at: now,
-      updated_at: now,
-    };
+  if (!titulo.trim() || !user) return;
+  const now = new Date().toISOString();
 
-    const { data, error } = await addRow(newEnsayo);
-    if (!error) {
-      const created = data ?? newEnsayo;
-      setEnsayos((prev: any[]) => {
-        if (prev.find((e: any) => e.id === created.id)) return prev;
-        return [created, ...prev];
-      });
-      setEnsayoActivo(created.id);
-      setEditMode(true);
-      setShowNewNoteModal(false);
-      setSidebarOpen(false);
-    }
+  const payload = {
+    titulo: titulo.trim(),
+    user_id: user.id,
+    contenido: "",
+    tags: tagActivo ? [tagActivo] : [],
+    updated_at: now,
+    // ❌ created_at eliminado — la columna no existe en la tabla
+    // ❌ id eliminado — dejar que Supabase lo genere con gen_random_uuid()
   };
+
+  const { data, error } = await addRow(payload);
+  if (!error && data) {
+    setEnsayos((prev: any[]) => {
+      if (prev.find((e: any) => e.id === data.id)) return prev;
+      return [data, ...prev];
+    });
+    setEnsayoActivo(data.id);
+    setEditMode(true);
+    setShowNewNoteModal(false);
+    setSidebarOpen(false);
+  }
+};
+
 
   const eliminarEnsayo = async (id: string) => {
     const ok = await confirm({ message: "¿Eliminar esta nota?", danger: true, confirmLabel: "Eliminar" });
