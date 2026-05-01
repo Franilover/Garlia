@@ -317,8 +317,7 @@ export function MarkdownEditor({
                     minWidth: 120,
                   }}
                 >
-                  {[
-                    { label: "Negrita", action: () => wrapSelection("**", "**") },
+                  {[,
                     { label: "Itálica", action: () => wrapSelection("*", "*") },
                     { label: "Código", action: () => wrapSelection("`", "`") },
                     { label: "Enlace", action: () => wrapSelection("[", "](url)") },
@@ -362,7 +361,6 @@ export function MarkdownEditor({
               }}
             >
               {[
-                { label: <strong>B</strong>, action: () => wrapSelection("**", "**"), title: "Negrita (Ctrl+B)" },
                 { label: <em>I</em>, action: () => wrapSelection("*", "*"), title: "Itálica (Ctrl+I)" },
                 { label: "</>", action: () => wrapSelection("`", "`"), title: "Código inline" },
                 { label: "Link", action: () => wrapSelection("[", "](url)"), title: "Añadir enlace" },
@@ -532,15 +530,6 @@ export function MarkdownEditor({
               flexShrink: 0,
             }}
           >
-            <span
-              style={{
-                fontSize: 9,
-                color: "color-mix(in srgb, var(--foreground) 15%, transparent)",
-                ...monoStyle,
-              }}
-            >
-              Markdown · <strong style={{ fontWeight: 600 }}>Ctrl+B</strong> negrita · <strong style={{ fontWeight: 600 }}>Ctrl+I</strong> itálica · <strong style={{ fontWeight: 600 }}>Tab</strong> indentar · <strong style={{ fontWeight: 600 }}>Enter</strong> auto-listas
-            </span>
           </div>
         )}
       </div>
