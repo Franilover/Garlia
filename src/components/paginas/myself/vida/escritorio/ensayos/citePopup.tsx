@@ -35,19 +35,19 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
       style={{
         minWidth: 300,
         maxWidth: 420,
-        background: "#111",
-        border: "1px solid rgba(255,255,255,0.12)",
+        background: "var(--bg-menu)",
+        border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
         borderRadius: 8,
         overflow: "hidden",
-        boxShadow: "0 16px 48px rgba(0,0,0,0.6)",
+        boxShadow: "0 16px 48px color-mix(in srgb, var(--bg-main) 0%, transparent)",
       }}
     >
       {/* Header */}
       <div
         className="flex items-center gap-2 px-3 py-2"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}
       >
-        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", ...monoStyle, textTransform: "uppercase", letterSpacing: "0.15em" }}>
+        <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle, textTransform: "uppercase", letterSpacing: "0.15em" }}>
           @ zotero · {filtered.length} resultado{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -64,18 +64,18 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
               style={{
                 display: "block",
                 padding: "8px 12px",
-                background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
-                borderLeft: `2px solid ${isActive ? "rgba(255,150,50,0.7)" : "transparent"}`,
+                background: isActive ? "color-mix(in srgb, var(--foreground) 6%, transparent)" : "transparent",
+                borderLeft: `2px solid ${isActive ? "var(--accent)" : "transparent"}`,
                 border: "none",
                 cursor: "pointer",
                 transition: "background 0.08s",
               }}
             >
-              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", ...monoStyle, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{ fontSize: 11, color: "color-mix(in srgb, var(--foreground) 75%, transparent)", ...monoStyle, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {src.title}
               </p>
               <div className="flex items-center gap-2">
-                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", ...monoStyle }}>
+                <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", ...monoStyle }}>
                   {src.author}{src.year ? ` · ${src.year}` : ""}
                 </span>
                 {src.citekey && (
@@ -84,9 +84,9 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
                       fontSize: 8,
                       padding: "1px 5px",
                       borderRadius: 3,
-                      background: "rgba(255,150,50,0.1)",
-                      border: "1px solid rgba(255,150,50,0.2)",
-                      color: "rgba(255,150,50,0.7)",
+                      background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+                      color: "color-mix(in srgb, var(--accent) 70%, transparent)",
                       ...monoStyle,
                     }}
                   >
@@ -102,9 +102,9 @@ export function CitePopup({ sources, query, position, onSelect, onClose, activeI
       {/* Footer hint */}
       <div
         className="px-3 py-1.5"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.04)", background: "rgba(255,255,255,0.02)" }}
+        style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 4%, transparent)", background: "color-mix(in srgb, var(--foreground) 2%, transparent)" }}
       >
-        <span style={{ fontSize: 8, color: "rgba(255,255,255,0.15)", ...monoStyle }}>
+        <span style={{ fontSize: 8, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
           ↑↓ navegar · enter insertar · esc cancelar
         </span>
       </div>

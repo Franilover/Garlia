@@ -36,8 +36,9 @@ function setSaveIndicator(el: HTMLElement | null, status: SaveStatus) {
     status === "saving" ? "guardando…" :
     status === "saved" ? "✓ guardado" : "error";
   el.style.color =
-    status === "saving" ? "rgba(255,255,255,0.2)" :
-    status === "saved" ? "rgba(50,200,100,0.7)" : "rgba(255,80,80,0.7)";
+    status === "saving" ? "color-mix(in srgb, var(--foreground) 20%, transparent)" :
+    status === "saved" ? "color-mix(in srgb, var(--accent) 70%, transparent)" :
+    "color-mix(in srgb, var(--primary) 70%, transparent)";
 }
 
 const LS_ACTIVE = "ensayos-active-id";
@@ -118,7 +119,6 @@ export default function Ensayos() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveIndicatorRef = useRef<HTMLSpanElement | null>(null);
 
-  // Load Zotero on mount
   useEffect(() => {
     (async () => {
       const handle = await loadZoteroHandle();
@@ -329,17 +329,12 @@ export default function Ensayos() {
 
   return (
     <>
-      {/*
-        CSS variables injected into the layout.
-        These override the light theme defaults for this page only.
-        Remove / adapt if your EstudioLayout already handles dark mode.
-      */}
       <style>{`
         .ensayos-root {
-          --sidebar-bg: #0c0c0c;
-          --sidebar-text: #888;
-          --editor-bg: #0f0f0f;
-          --editor-text: rgba(255,255,255,0.8);
+          --sidebar-bg: var(--bg-menu);
+          --sidebar-text: color-mix(in srgb, var(--foreground) 60%, transparent);
+          --editor-bg: var(--bg-main);
+          --editor-text: var(--foreground);
         }
       `}</style>
 
@@ -358,8 +353,8 @@ export default function Ensayos() {
           <div
             className="shrink-0 z-10 px-6 py-1.5 flex items-center justify-end"
             style={{
-              borderBottom: "1px solid rgba(255,255,255,0.04)",
-              background: "rgba(0,0,0,0.2)",
+              borderBottom: "1px solid color-mix(in srgb, var(--foreground) 4%, transparent)",
+              background: "color-mix(in srgb, var(--bg-menu) 20%, transparent)",
               minHeight: 28,
             }}
           >
@@ -379,13 +374,13 @@ export default function Ensayos() {
           {/* Main content */}
           <main
             className="relative flex-1 overflow-y-auto min-h-0"
-            style={{ background: "#0f0f0f" }}
+            style={{ background: "var(--editor-bg, var(--bg-main))" }}
           >
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col gap-3 items-center">
-                  <Loader2 size={16} style={{ color: "rgba(255,255,255,0.2)", animation: "spin 1s linear infinite" }} />
-                  <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "rgba(255,255,255,0.15)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                  <Loader2 size={16} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)", animation: "spin 1s linear infinite" }} />
+                  <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--foreground) 15%, transparent)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
                     cargando...
                   </span>
                 </div>

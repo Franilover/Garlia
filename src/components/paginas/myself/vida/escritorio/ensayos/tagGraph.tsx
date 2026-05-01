@@ -45,7 +45,6 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
     const ctx = canvas.getContext("2d")!;
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-    
     const tagMap = new Map<string, number>();
     ensayos.forEach(e => {
       e.tags?.forEach((t: string) => {
@@ -56,7 +55,6 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
 
-    
     tagMap.forEach((count, tag) => {
       nodes.push({
         id: `tag:${tag}`,
@@ -70,7 +68,6 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
       });
     });
 
-    
     ensayos
       .filter(e => e.tags?.length > 0)
       .forEach(e => {
@@ -93,7 +90,6 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
     nodesRef.current = nodes;
     edgesRef.current = edges;
 
-    
     const simulate = () => {
       const ns = nodesRef.current;
       const REPULSION = 800;
@@ -102,11 +98,9 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
       const CENTER_PULL = 0.002;
 
       for (let i = 0; i < ns.length; i++) {
-        
         ns[i].vx += (W / 2 - ns[i].x) * CENTER_PULL;
         ns[i].vy += (H / 2 - ns[i].y) * CENTER_PULL;
 
-        
         for (let j = i + 1; j < ns.length; j++) {
           const dx = ns[i].x - ns[j].x;
           const dy = ns[i].y - ns[j].y;
@@ -119,7 +113,6 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
         }
       }
 
-      
       edgesRef.current.forEach(edge => {
         const src = ns.find(n => n.id === edge.source);
         const tgt = ns.find(n => n.id === edge.target);
@@ -132,7 +125,6 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
         tgt.vy -= dy * ATTRACTION;
       });
 
-      
       ns.forEach(n => {
         n.vx *= DAMPING;
         n.vy *= DAMPING;
@@ -141,29 +133,15 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
       });
     };
 
-    const getColor = (type: string, active: boolean, hov: boolean) => {
-      const style = getComputedStyle(document.documentElement);
-      const accent = style.getPropertyValue("--accent").trim() || "#a78bfa";
-      const primary = style.getPropertyValue("--primary").trim() || "#1a1a1a";
-
-      if (type === "tag") {
-        if (active) return accent;
-        if (hov) return accent + "cc";
-        return accent + "66";
-      }
-      if (hov) return primary + "cc";
-      return primary + "44";
-    };
-
     const draw = () => {
       ctx.clearRect(0, 0, W, H);
       const ns = nodesRef.current;
       const hovId = hoveredRef.current;
       const style = getComputedStyle(document.documentElement);
       const accent = style.getPropertyValue("--accent").trim() || "#a78bfa";
-      const primary = style.getPropertyValue("--primary").trim() || "#1a1a1a";
+      const primary = style.getPropertyValue("--primary").trim() || "#67556d";
+      const foreground = style.getPropertyValue("--foreground").trim() || "#3a2e3d";
 
-      
       edgesRef.current.forEach(edge => {
         const src = ns.find(n => n.id === edge.source);
         const tgt = ns.find(n => n.id === edge.target);
@@ -183,7 +161,6 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
         ctx.stroke();
       });
 
-      
       ns.forEach(node => {
         const isHov = hovId === node.id;
         const isActive = tagActivo && node.id === `tag:${tagActivo}`;
@@ -191,7 +168,6 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
           ? edgesRef.current.some(e => (e.source === hovId && e.target === node.id) || (e.target === hovId && e.source === node.id))
           : false;
 
-        
         if (node.type === "tag" && (isHov || isActive)) {
           ctx.beginPath();
           ctx.arc(node.x, node.y, node.radius + 8, 0, Math.PI * 2);
@@ -218,14 +194,13 @@ export function TagGraph({ ensayos, tagActivo, onTagClick }: TagGraphProps) {
         ctx.fill();
         ctx.stroke();
 
-        
         if (node.type === "tag" || isHov || isConnected) {
           ctx.font = node.type === "tag"
             ? `bold ${Math.max(9, node.radius)}px monospace`
             : "9px monospace";
           ctx.fillStyle = node.type === "tag"
-            ? (isActive || isHov ? primary : primary + "99")
-            : primary + "88";
+            ? (isActive || isHov ? foreground : foreground + "99")
+            : foreground + "88";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 

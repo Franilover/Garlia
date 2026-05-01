@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { PenTool, Plus, Command } from "lucide-react";
+import { PenTool, Plus } from "lucide-react";
 import { MotionDiv } from "@/components/ui/Motion";
 
 interface EmptyStateProps {
@@ -17,7 +17,7 @@ export function EmptyState({ onCrearEnsayo }: EmptyStateProps) {
       className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center gap-6"
     >
       {/* ASCII-style decorative border */}
-      <div style={{ color: "rgba(255,255,255,0.06)", ...monoStyle, fontSize: 11, lineHeight: 1.4, userSelect: "none" }}>
+      <div style={{ color: "color-mix(in srgb, var(--foreground) 6%, transparent)", ...monoStyle, fontSize: 11, lineHeight: 1.4, userSelect: "none" }}>
         {"┌─────────────────────────────────┐"}<br />
         {"│                                 │"}<br />
         {"│                                 │"}<br />
@@ -31,12 +31,12 @@ export function EmptyState({ onCrearEnsayo }: EmptyStateProps) {
             width: 48,
             height: 48,
             borderRadius: 10,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "rgba(255,255,255,0.15)",
+            color: "color-mix(in srgb, var(--foreground) 15%, transparent)",
             margin: "0 auto 16px",
           }}
         >
@@ -47,13 +47,13 @@ export function EmptyState({ onCrearEnsayo }: EmptyStateProps) {
             fontSize: 14,
             fontFamily: "var(--font-serif)",
             fontStyle: "italic",
-            color: "rgba(255,255,255,0.25)",
+            color: "color-mix(in srgb, var(--foreground) 25%, transparent)",
             marginBottom: 6,
           }}
         >
           ninguna nota seleccionada
         </p>
-        <p style={{ fontSize: 10, color: "rgba(255,255,255,0.12)", ...monoStyle }}>
+        <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--foreground) 12%, transparent)", ...monoStyle }}>
           selecciona una nota del panel o crea una nueva
         </p>
 
@@ -65,10 +65,10 @@ export function EmptyState({ onCrearEnsayo }: EmptyStateProps) {
               style={{
                 fontSize: 11,
                 padding: "7px 16px",
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.12)",
+                background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
                 borderRadius: 6,
-                color: "rgba(255,255,255,0.5)",
+                color: "color-mix(in srgb, var(--foreground) 50%, transparent)",
                 cursor: "pointer",
                 ...monoStyle,
               }}
@@ -80,9 +80,9 @@ export function EmptyState({ onCrearEnsayo }: EmptyStateProps) {
                   fontSize: 9,
                   padding: "1px 5px",
                   borderRadius: 3,
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  color: "rgba(255,255,255,0.25)",
+                  background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                  color: "color-mix(in srgb, var(--foreground) 25%, transparent)",
                   ...monoStyle,
                 }}
               >

@@ -35,11 +35,11 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50"
-        style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)" }}
+        style={{ background: "color-mix(in srgb, var(--bg-main) 70%, transparent)", backdropFilter: "blur(6px)" }}
         onClick={onClose}
       />
 
-      {/* Modal — centered, compact, command-palette style */}
+      {/* Modal */}
       <MotionDiv
         initial={{ opacity: 0, scale: 0.97, y: -8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -51,19 +51,19 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
           left: "50%",
           transform: "translateX(-50%)",
           width: "min(520px, calc(100vw - 32px))",
-          background: "#111",
-          border: "1px solid rgba(255,255,255,0.12)",
+          background: "var(--bg-menu)",
+          border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
           borderRadius: 10,
           overflow: "hidden",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+          boxShadow: "0 24px 80px color-mix(in srgb, var(--bg-main) 60%, transparent)",
         }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-4 py-2.5"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+          style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)" }}
         >
-          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", ...monoStyle, textTransform: "uppercase", letterSpacing: "0.15em" }}>
+          <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", ...monoStyle, textTransform: "uppercase", letterSpacing: "0.15em" }}>
             nueva nota
           </span>
           <button
@@ -72,7 +72,7 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
               background: "none",
               border: "none",
               cursor: "pointer",
-              color: "rgba(255,255,255,0.2)",
+              color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
               display: "flex",
               alignItems: "center",
             }}
@@ -95,7 +95,7 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
               fontSize: 20,
               fontFamily: "var(--font-serif)",
               fontStyle: "italic",
-              color: "rgba(255,255,255,0.8)",
+              color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
               letterSpacing: "-0.02em",
             }}
           />
@@ -104,12 +104,12 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
         {/* Footer */}
         <div
           className="flex items-center justify-between px-4 py-2.5"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)" }}
         >
-          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", ...monoStyle }}>
-            <kbd style={{ padding: "1px 5px", borderRadius: 3, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>enter</kbd>
+          <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
+            <kbd style={{ padding: "1px 5px", borderRadius: 3, background: "color-mix(in srgb, var(--foreground) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)" }}>enter</kbd>
             {" "}confirmar · {" "}
-            <kbd style={{ padding: "1px 5px", borderRadius: 3, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>esc</kbd>
+            <kbd style={{ padding: "1px 5px", borderRadius: 3, background: "color-mix(in srgb, var(--foreground) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)" }}>esc</kbd>
             {" "}cancelar
           </span>
 
@@ -120,9 +120,9 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
                 fontSize: 10,
                 padding: "5px 12px",
                 borderRadius: 5,
-                border: "1px solid rgba(255,255,255,0.1)",
+                border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
                 background: "transparent",
-                color: "rgba(255,255,255,0.3)",
+                color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
                 cursor: "pointer",
                 ...monoStyle,
               }}
@@ -136,9 +136,9 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
                 fontSize: 10,
                 padding: "5px 14px",
                 borderRadius: 5,
-                border: "1px solid rgba(255,255,255,0.2)",
-                background: titulo.trim() ? "rgba(255,255,255,0.1)" : "transparent",
-                color: titulo.trim() ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.15)",
+                border: "1px solid color-mix(in srgb, var(--foreground) 20%, transparent)",
+                background: titulo.trim() ? "color-mix(in srgb, var(--foreground) 10%, transparent)" : "transparent",
+                color: titulo.trim() ? "color-mix(in srgb, var(--foreground) 70%, transparent)" : "color-mix(in srgb, var(--foreground) 15%, transparent)",
                 cursor: titulo.trim() ? "pointer" : "not-allowed",
                 ...monoStyle,
                 transition: "all 0.1s",

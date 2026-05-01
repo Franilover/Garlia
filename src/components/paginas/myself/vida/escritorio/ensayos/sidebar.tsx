@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Hash, FileText, Plus, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2, ChevronRight, Folder } from "lucide-react";
+import { Hash, FileText, Plus, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
@@ -47,21 +47,21 @@ export default function Sidebar({
     <aside
       className={`flex flex-col h-full overflow-hidden ${embedded ? "" : "border-r"}`}
       style={{
-        background: "var(--sidebar-bg, #0f0f0f)",
-        color: "var(--sidebar-text, #a0a0a0)",
-        borderColor: "rgba(255,255,255,0.06)",
+        background: "var(--sidebar-bg, var(--bg-menu))",
+        color: "var(--sidebar-text, color-mix(in srgb, var(--foreground) 60%, transparent))",
+        borderColor: "color-mix(in srgb, var(--foreground) 6%, transparent)",
         fontFamily: "var(--font-mono)",
       }}
     >
       {/* ── Search bar ── */}
       <div
         className="relative shrink-0 px-3 pt-3 pb-2"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}
       >
         <Search
           size={11}
           className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ color: "rgba(255,255,255,0.2)", marginTop: 4 }}
+          style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)", marginTop: 4 }}
         />
         <input
           type="text"
@@ -70,12 +70,12 @@ export default function Sidebar({
           onChange={e => onSearchChange(e.target.value)}
           className="w-full outline-none"
           style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
             borderRadius: 6,
             padding: "6px 10px 6px 28px",
             fontSize: 11,
-            color: "rgba(255,255,255,0.6)",
+            color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
             fontFamily: "var(--font-mono)",
           }}
         />
@@ -84,11 +84,11 @@ export default function Sidebar({
       {/* ── Tags ── */}
       <div
         className="shrink-0 px-3 py-2"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}
       >
         <div className="flex items-center gap-1.5 mb-2">
-          <Hash size={9} style={{ color: "rgba(255,255,255,0.2)" }} />
-          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+          <Hash size={9} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }} />
+          <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
             etiquetas
           </span>
         </div>
@@ -100,9 +100,9 @@ export default function Sidebar({
               padding: "2px 8px",
               borderRadius: 4,
               border: "1px solid",
-              borderColor: !tagActivo ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.1)",
-              background: !tagActivo ? "rgba(255,255,255,0.08)" : "transparent",
-              color: !tagActivo ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
+              borderColor: !tagActivo ? "color-mix(in srgb, var(--foreground) 35%, transparent)" : "color-mix(in srgb, var(--foreground) 10%, transparent)",
+              background: !tagActivo ? "color-mix(in srgb, var(--foreground) 8%, transparent)" : "transparent",
+              color: !tagActivo ? "color-mix(in srgb, var(--foreground) 90%, transparent)" : "color-mix(in srgb, var(--foreground) 30%, transparent)",
               cursor: "pointer",
               fontFamily: "var(--font-mono)",
               transition: "all 0.1s",
@@ -121,9 +121,9 @@ export default function Sidebar({
                   padding: "2px 8px",
                   borderRadius: 4,
                   border: "1px solid",
-                  borderColor: isActive ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.1)",
-                  background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
-                  color: isActive ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
+                  borderColor: isActive ? "color-mix(in srgb, var(--foreground) 35%, transparent)" : "color-mix(in srgb, var(--foreground) 10%, transparent)",
+                  background: isActive ? "color-mix(in srgb, var(--foreground) 8%, transparent)" : "transparent",
+                  color: isActive ? "color-mix(in srgb, var(--foreground) 90%, transparent)" : "color-mix(in srgb, var(--foreground) 30%, transparent)",
                   cursor: "pointer",
                   fontFamily: "var(--font-mono)",
                   transition: "all 0.1s",
@@ -140,11 +140,11 @@ export default function Sidebar({
       <div className="flex-1 flex flex-col min-h-0">
         <div
           className="shrink-0 px-3 py-2 flex items-center justify-between"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}
         >
           <div className="flex items-center gap-1.5">
-            <FileText size={9} style={{ color: "rgba(255,255,255,0.2)" }} />
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }} />
+            <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
               notas · {ensayosFiltrados.length}
             </span>
           </div>
@@ -158,9 +158,9 @@ export default function Sidebar({
               alignItems: "center",
               justifyContent: "center",
               borderRadius: 4,
-              border: "1px solid rgba(255,255,255,0.12)",
+              border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
               background: "transparent",
-              color: "rgba(255,255,255,0.4)",
+              color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
               cursor: "pointer",
             }}
           >
@@ -188,11 +188,11 @@ export default function Sidebar({
                     padding: "7px 12px",
                     cursor: "pointer",
                     background: isActive
-                      ? "rgba(255,255,255,0.07)"
+                      ? "color-mix(in srgb, var(--foreground) 7%, transparent)"
                       : isHovered
-                      ? "rgba(255,255,255,0.03)"
+                      ? "color-mix(in srgb, var(--foreground) 3%, transparent)"
                       : "transparent",
-                    borderLeft: `2px solid ${isActive ? "rgba(255,255,255,0.5)" : "transparent"}`,
+                    borderLeft: `2px solid ${isActive ? "color-mix(in srgb, var(--foreground) 50%, transparent)" : "transparent"}`,
                     transition: "all 0.1s",
                   }}
                 >
@@ -205,7 +205,7 @@ export default function Sidebar({
                         top: 0,
                         bottom: 0,
                         width: 2,
-                        background: "rgba(255,255,255,0.15)",
+                        background: "color-mix(in srgb, var(--foreground) 15%, transparent)",
                       }}
                     />
                   )}
@@ -215,7 +215,7 @@ export default function Sidebar({
                       <p
                         style={{
                           fontSize: 12,
-                          color: isActive ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)",
+                          color: isActive ? "color-mix(in srgb, var(--foreground) 90%, transparent)" : "color-mix(in srgb, var(--foreground) 50%, transparent)",
                           fontFamily: "var(--font-mono)",
                           whiteSpace: "nowrap",
                           overflow: "hidden",
@@ -233,7 +233,7 @@ export default function Sidebar({
                               key={tag}
                               style={{
                                 fontSize: 9,
-                                color: "rgba(255,255,255,0.2)",
+                                color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
                                 fontFamily: "var(--font-mono)",
                               }}
                             >
@@ -247,7 +247,7 @@ export default function Sidebar({
                       onClick={e => { e.stopPropagation(); onEliminarEnsayo(ens.id); }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                       style={{
-                        color: "rgba(255,80,80,0.6)",
+                        color: "color-mix(in srgb, var(--accent) 60%, transparent)",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -267,7 +267,7 @@ export default function Sidebar({
       {/* ── Zotero ── */}
       <div
         className="shrink-0"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}
       >
         <button
           onClick={() => setZoteroExpanded(p => !p)}
@@ -275,8 +275,8 @@ export default function Sidebar({
           style={{ background: "none", border: "none", cursor: "pointer" }}
         >
           <div className="flex items-center gap-1.5">
-            <BookOpen size={9} style={{ color: "rgba(255,255,255,0.2)" }} />
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            <BookOpen size={9} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }} />
+            <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
               zotero
             </span>
             {sources.length > 0 && (
@@ -285,8 +285,8 @@ export default function Sidebar({
                   fontSize: 9,
                   padding: "0 5px",
                   borderRadius: 3,
-                  background: "rgba(255,255,255,0.08)",
-                  color: "rgba(255,255,255,0.3)",
+                  background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                  color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
                   fontFamily: "var(--font-mono)",
                 }}
               >
@@ -298,7 +298,7 @@ export default function Sidebar({
             {zoteroConnected && (
               <button
                 onClick={e => { e.stopPropagation(); onRefreshZotero(); }}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.2)", padding: 2 }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb, var(--foreground) 20%, transparent)", padding: 2 }}
               >
                 <RefreshCw size={9} />
               </button>
@@ -306,7 +306,7 @@ export default function Sidebar({
             <ChevronRight
               size={10}
               style={{
-                color: "rgba(255,255,255,0.2)",
+                color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
                 transform: zoteroExpanded ? "rotate(90deg)" : "rotate(0deg)",
                 transition: "transform 0.15s",
               }}
@@ -328,18 +328,18 @@ export default function Sidebar({
                   <div
                     className="flex items-center gap-2 px-2 py-1.5"
                     style={{
-                      background: "rgba(50,200,100,0.08)",
-                      border: "1px solid rgba(50,200,100,0.15)",
+                      background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--accent) 15%, transparent)",
                       borderRadius: 5,
                     }}
                   >
-                    <CheckCircle2 size={9} style={{ color: "rgba(50,200,100,0.8)", flexShrink: 0 }} />
-                    <span style={{ fontSize: 9, color: "rgba(50,200,100,0.8)", fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                    <CheckCircle2 size={9} style={{ color: "color-mix(in srgb, var(--accent) 80%, transparent)", flexShrink: 0 }} />
+                    <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--accent) 80%, transparent)", fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                       conectado · auto-sync
                     </span>
                     <button
                       onClick={onConnectZotero}
-                      style={{ marginLeft: "auto", fontSize: 9, color: "rgba(255,255,255,0.2)", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)" }}
+                      style={{ marginLeft: "auto", fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)" }}
                     >
                       cambiar
                     </button>
@@ -351,10 +351,10 @@ export default function Sidebar({
                     style={{
                       fontSize: 10,
                       padding: "8px 10px",
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px dashed rgba(255,255,255,0.1)",
+                      background: "color-mix(in srgb, var(--foreground) 3%, transparent)",
+                      border: "1px dashed color-mix(in srgb, var(--foreground) 10%, transparent)",
                       borderRadius: 5,
-                      color: "rgba(255,255,255,0.3)",
+                      color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
                       cursor: "pointer",
                       fontFamily: "var(--font-mono)",
                       justifyContent: "center",
@@ -376,13 +376,13 @@ export default function Sidebar({
                         style={{
                           padding: "4px 6px",
                           borderRadius: 4,
-                          background: "rgba(255,255,255,0.02)",
+                          background: "color-mix(in srgb, var(--foreground) 2%, transparent)",
                         }}
                       >
                         <p
                           style={{
                             fontSize: 10,
-                            color: "rgba(255,255,255,0.45)",
+                            color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
                             fontFamily: "var(--font-mono)",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
@@ -391,13 +391,13 @@ export default function Sidebar({
                         >
                           {src.title}
                         </p>
-                        <p style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-mono)" }}>
+                        <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", fontFamily: "var(--font-mono)" }}>
                           {src.author}{src.year ? ` · ${src.year}` : ""}{src.citekey ? ` · @${src.citekey}` : ""}
                         </p>
                       </div>
                     ))}
                     {sources.length > 8 && (
-                      <p style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", textAlign: "center", padding: "4px 0", fontFamily: "var(--font-mono)" }}>
+                      <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", textAlign: "center", padding: "4px 0", fontFamily: "var(--font-mono)" }}>
                         +{sources.length - 8} más
                       </p>
                     )}
@@ -412,7 +412,7 @@ export default function Sidebar({
       {/* ── Keyboard hint ── */}
       <div
         className="shrink-0 px-3 py-2 flex items-center gap-3"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
+        style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 4%, transparent)" }}
       >
         {[["N", "nueva"], ["⌘E", "modo"], ["Esc", "cerrar"]].map(([key, label]) => (
           <div key={key} className="flex items-center gap-1">
@@ -421,15 +421,15 @@ export default function Sidebar({
                 fontSize: 8,
                 padding: "1px 4px",
                 borderRadius: 3,
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "rgba(255,255,255,0.3)",
+                background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
                 fontFamily: "var(--font-mono)",
               }}
             >
               {key}
             </kbd>
-            <span style={{ fontSize: 8, color: "rgba(255,255,255,0.15)", fontFamily: "var(--font-mono)" }}>
+            <span style={{ fontSize: 8, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", fontFamily: "var(--font-mono)" }}>
               {label}
             </span>
           </div>

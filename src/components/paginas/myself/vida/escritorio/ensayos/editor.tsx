@@ -1,7 +1,7 @@
 "use client";
 import { MotionDiv } from "@/components/ui/Motion";
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Save, Tag, Eye, Edit3, Type, AlignLeft } from "lucide-react";
+import { Save, Eye, Edit3 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { TagPanel } from "./tagPanel";
 import { CitePopup } from "./citePopup";
@@ -49,7 +49,6 @@ export function Editor({
   }, [ensayo.id]);
 
   const wordCount = localContenido.split(/\s+/).filter(Boolean).length || 0;
-  const charCount = localContenido.length || 0;
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
   const handleContenidoChange = useCallback((value: string) => {
@@ -90,9 +89,7 @@ export function Editor({
     .map(t => t.trim().toLowerCase())
     .filter(Boolean);
 
-  const monoStyle: React.CSSProperties = {
-    fontFamily: "var(--font-mono)",
-  };
+  const monoStyle: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
   return (
     <div className="relative h-full flex flex-col" ref={containerRef}>
@@ -108,19 +105,19 @@ export function Editor({
         <div
           className="shrink-0 flex items-center gap-0 px-6 py-0"
           style={{
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-            background: "rgba(0,0,0,0.3)",
+            borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+            background: "color-mix(in srgb, var(--bg-menu) 30%, transparent)",
             minHeight: 36,
           }}
         >
           {/* Breadcrumb-style title */}
           <div className="flex items-center gap-2 flex-1 min-w-0 mr-4">
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", ...monoStyle }}>
+            <span style={{ fontSize: 11, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
               notas
             </span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.1)", ...monoStyle }}>/</span>
+            <span style={{ fontSize: 11, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>/</span>
             <span
-              style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", ...monoStyle, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              style={{ fontSize: 11, color: "color-mix(in srgb, var(--foreground) 50%, transparent)", ...monoStyle, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
             >
               {localTitulo || "sin título"}
             </span>
@@ -138,9 +135,9 @@ export function Editor({
                       fontSize: 9,
                       padding: "2px 7px",
                       borderRadius: 3,
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      background: "rgba(255,255,255,0.05)",
-                      color: "rgba(255,255,255,0.4)",
+                      border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
+                      background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                      color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
                       cursor: "pointer",
                       ...monoStyle,
                     }}
@@ -154,9 +151,9 @@ export function Editor({
                     fontSize: 9,
                     padding: "2px 6px",
                     borderRadius: 3,
-                    border: "1px dashed rgba(255,255,255,0.08)",
+                    border: "1px dashed color-mix(in srgb, var(--foreground) 8%, transparent)",
                     background: "transparent",
-                    color: "rgba(255,255,255,0.2)",
+                    color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
                     cursor: "pointer",
                     ...monoStyle,
                   }}
@@ -182,9 +179,9 @@ export function Editor({
                   fontSize: 10,
                   padding: "2px 8px",
                   borderRadius: 4,
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  background: "rgba(255,255,255,0.05)",
-                  color: "rgba(255,255,255,0.6)",
+                  border: "1px solid color-mix(in srgb, var(--foreground) 15%, transparent)",
+                  background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                  color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
                   outline: "none",
                   width: 140,
                   ...monoStyle,
@@ -194,13 +191,13 @@ export function Editor({
           </div>
 
           {/* Divider */}
-          <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.08)", margin: "0 10px" }} />
+          <div style={{ width: 1, height: 16, background: "color-mix(in srgb, var(--foreground) 8%, transparent)", margin: "0 10px" }} />
 
           {/* Edit/Preview toggle */}
           <div
             className="flex items-center"
             style={{
-              border: "1px solid rgba(255,255,255,0.1)",
+              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
               borderRadius: 5,
               overflow: "hidden",
             }}
@@ -210,8 +207,8 @@ export function Editor({
               style={{
                 fontSize: 9,
                 padding: "3px 8px",
-                background: editMode ? "rgba(255,255,255,0.1)" : "transparent",
-                color: editMode ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.25)",
+                background: editMode ? "color-mix(in srgb, var(--foreground) 10%, transparent)" : "transparent",
+                color: editMode ? "color-mix(in srgb, var(--foreground) 70%, transparent)" : "color-mix(in srgb, var(--foreground) 25%, transparent)",
                 border: "none",
                 cursor: "pointer",
                 display: "flex",
@@ -229,8 +226,8 @@ export function Editor({
               style={{
                 fontSize: 9,
                 padding: "3px 8px",
-                background: !editMode ? "rgba(255,255,255,0.1)" : "transparent",
-                color: !editMode ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.25)",
+                background: !editMode ? "color-mix(in srgb, var(--foreground) 10%, transparent)" : "transparent",
+                color: !editMode ? "color-mix(in srgb, var(--foreground) 70%, transparent)" : "color-mix(in srgb, var(--foreground) 25%, transparent)",
                 border: "none",
                 cursor: "pointer",
                 display: "flex",
@@ -263,7 +260,7 @@ export function Editor({
               fontSize: "clamp(22px, 3vw, 36px)",
               fontFamily: "var(--font-serif)",
               fontStyle: "italic",
-              color: "rgba(255,255,255,0.85)",
+              color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
               letterSpacing: "-0.02em",
               lineHeight: 1.2,
             }}
@@ -271,20 +268,20 @@ export function Editor({
           />
           <div
             className="flex items-center gap-4 mt-3"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 16 }}
+            style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 16 }}
           >
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", ...monoStyle }}>
+            <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
               {wordCount} palabras
             </span>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.1)", ...monoStyle }}>·</span>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", ...monoStyle }}>
+            <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
+            <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
               ~{readTime}min lectura
             </span>
             {sources.length > 0 && (
               <>
-                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.1)", ...monoStyle }}>·</span>
+                <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
                 <span
-                  style={{ fontSize: 9, color: "rgba(255,120,0,0.6)", ...monoStyle }}
+                  style={{ fontSize: 9, color: "color-mix(in srgb, var(--accent) 60%, transparent)", ...monoStyle }}
                   title="Escribe @ para citar"
                 >
                   @ {sources.length} fuentes
@@ -292,8 +289,8 @@ export function Editor({
               </>
             )}
             <div className="ml-auto flex items-center gap-1.5">
-              <Save size={9} style={{ color: "rgba(255,255,255,0.15)" }} />
-              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", ...monoStyle }}>
+              <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
+              <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
                 {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
               </span>
             </div>
