@@ -1,8 +1,7 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import React from "react";
-import { Hash, FileText, Plus, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState } from "react";
+import { Hash, FileText, Plus, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2, ChevronRight, Folder } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
 interface SidebarProps {
@@ -21,80 +20,114 @@ interface SidebarProps {
   onSearchChange: (value: string) => void;
   onConnectZotero: () => void;
   onRefreshZotero: () => void;
-  
   embedded?: boolean;
 }
 
 export default function Sidebar({
-  ensayosFiltrados, todosLosTags, tagActivo, ensayoActivoId,
-  searchTerm, sources, zoteroConnected,
-  onTagClick, onEnsayoClick, onCrearEnsayo, onEliminarEnsayo,
-  onSearchChange, onConnectZotero, onRefreshZotero,
+  ensayosFiltrados,
+  todosLosTags,
+  tagActivo,
+  ensayoActivoId,
+  searchTerm,
+  sources,
+  zoteroConnected,
+  onTagClick,
+  onEnsayoClick,
+  onCrearEnsayo,
+  onEliminarEnsayo,
+  onSearchChange,
+  onConnectZotero,
+  onRefreshZotero,
   embedded = false,
 }: SidebarProps) {
-  const activeStyle = {
-    background: "var(--accent)", color: "var(--white-custom)",
-    border: "1px solid transparent", fontWeight: 700,
-  } as React.CSSProperties;
-
-  const inactiveStyle = {
-    background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-    color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-    border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-    fontWeight: 400,
-  } as React.CSSProperties;
-
-  const sectionStyle = {
-    background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-    border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-    borderRadius: "var(--radius-card)",
-  } as React.CSSProperties;
-
-  const labelStyle = { color: "color-mix(in srgb, var(--primary) 30%, transparent)" } as React.CSSProperties;
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [zoteroExpanded, setZoteroExpanded] = useState(false);
 
   return (
-    <aside className={`flex flex-col gap-4 overflow-y-auto p-4 ${embedded ? "flex-1 min-h-0" : "h-full border-r"}`}
+    <aside
+      className={`flex flex-col h-full overflow-hidden ${embedded ? "" : "border-r"}`}
       style={{
-        background: "var(--white-custom)",
-        color: "color-mix(in srgb, var(--primary) 80%, transparent)",
-        borderColor: "color-mix(in srgb, var(--accent) 18%, color-mix(in srgb, var(--primary) 8%, transparent))",
+        background: "var(--sidebar-bg, #0f0f0f)",
+        color: "var(--sidebar-text, #a0a0a0)",
+        borderColor: "rgba(255,255,255,0.06)",
+        fontFamily: "var(--font-mono)",
       }}
     >
-      {}
-      <div className="relative">
-        <Search size={12} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+      {/* ── Search bar ── */}
+      <div
+        className="relative shrink-0 px-3 pt-3 pb-2"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <Search
+          size={11}
+          className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none"
+          style={{ color: "rgba(255,255,255,0.2)", marginTop: 4 }}
         />
-        <input type="text" placeholder="BUSCAR NOTA..." value={searchTerm}
+        <input
+          type="text"
+          placeholder="/ buscar..."
+          value={searchTerm}
           onChange={e => onSearchChange(e.target.value)}
-          className="w-full py-2.5 pl-9 pr-3 text-[11px] outline-none transition-all uppercase tracking-widest"
+          className="w-full outline-none"
           style={{
-            background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
-            border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-            borderRadius: "var(--radius-btn)",
-            color: "color-mix(in srgb, var(--primary) 70%, transparent)",
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 6,
+            padding: "6px 10px 6px 28px",
+            fontSize: 11,
+            color: "rgba(255,255,255,0.6)",
+            fontFamily: "var(--font-mono)",
           }}
         />
       </div>
 
-      {}
-      <div className="p-3 flex flex-col gap-2.5" style={sectionStyle}>
-        <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]" style={labelStyle}>
-          <Hash size={10} /> Etiquetas
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          <button onClick={() => onTagClick(null)}
-            className="px-3 py-1.5 font-mono text-[10px] uppercase tracking-wide transition-all"
-            style={{ ...(!tagActivo ? activeStyle : inactiveStyle), borderRadius: "var(--radius-btn)" }}
+      {/* ── Tags ── */}
+      <div
+        className="shrink-0 px-3 py-2"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <div className="flex items-center gap-1.5 mb-2">
+          <Hash size={9} style={{ color: "rgba(255,255,255,0.2)" }} />
+          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            etiquetas
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          <button
+            onClick={() => onTagClick(null)}
+            style={{
+              fontSize: 10,
+              padding: "2px 8px",
+              borderRadius: 4,
+              border: "1px solid",
+              borderColor: !tagActivo ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.1)",
+              background: !tagActivo ? "rgba(255,255,255,0.08)" : "transparent",
+              color: !tagActivo ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
+              cursor: "pointer",
+              fontFamily: "var(--font-mono)",
+              transition: "all 0.1s",
+            }}
           >
-            Todos
+            all
           </button>
           {todosLosTags.map(tag => {
             const isActive = tagActivo === tag;
             return (
-              <button key={tag} onClick={() => onTagClick(isActive ? null : tag)}
-                className="px-3 py-1.5 font-mono text-[10px] uppercase tracking-wide transition-all"
-                style={{ ...(isActive ? activeStyle : inactiveStyle), borderRadius: "var(--radius-btn)" }}
+              <button
+                key={tag}
+                onClick={() => onTagClick(isActive ? null : tag)}
+                style={{
+                  fontSize: 10,
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  border: "1px solid",
+                  borderColor: isActive ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.1)",
+                  background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
+                  color: isActive ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-mono)",
+                  transition: "all 0.1s",
+                }}
               >
                 #{tag}
               </button>
@@ -103,131 +136,304 @@ export default function Sidebar({
         </div>
       </div>
 
-      {}
-      <div className="p-3 flex flex-col gap-2.5 flex-1 min-h-0" style={sectionStyle}>
-        <div className="flex items-center justify-between">
-          <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]" style={labelStyle}>
-            <FileText size={10} /> Notas
-          </p>
-          <button onClick={onCrearEnsayo}
-            className="w-7 h-7 flex items-center justify-center transition-all"
-            style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", borderRadius: "50%", color: "color-mix(in srgb, var(--primary) 50%, transparent)", background: "transparent" }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
+      {/* ── Notes list ── */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <div
+          className="shrink-0 px-3 py-2 flex items-center justify-between"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <div className="flex items-center gap-1.5">
+            <FileText size={9} style={{ color: "rgba(255,255,255,0.2)" }} />
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              notas · {ensayosFiltrados.length}
+            </span>
+          </div>
+          <button
+            onClick={onCrearEnsayo}
+            title="Nueva nota (N)"
+            style={{
+              width: 20,
+              height: 20,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 4,
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "transparent",
+              color: "rgba(255,255,255,0.4)",
+              cursor: "pointer",
+            }}
           >
-            <Plus size={14} />
+            <Plus size={11} />
           </button>
         </div>
-        <div className="flex flex-col gap-2 overflow-y-auto mt-2 pr-1">
+
+        <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
           <AnimatePresence>
             {ensayosFiltrados.map(ens => {
               const isActive = ensayoActivoId === ens.id;
+              const isHovered = hoveredId === ens.id;
               return (
-                <MotionDiv key={ens.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                <motion.div
+                  key={ens.id}
+                  initial={{ opacity: 0, x: -4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="group relative"
                   onClick={() => onEnsayoClick(ens.id)}
-                  className="group px-4 py-3 cursor-pointer transition-all"
-                  style={{ ...(isActive ? activeStyle : inactiveStyle), borderRadius: "var(--radius-btn)" }}
-                  onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 9%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 75%, transparent)"; } }}
-                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 45%, transparent)"; } }}
+                  onMouseEnter={() => setHoveredId(ens.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  style={{
+                    padding: "7px 12px",
+                    cursor: "pointer",
+                    background: isActive
+                      ? "rgba(255,255,255,0.07)"
+                      : isHovered
+                      ? "rgba(255,255,255,0.03)"
+                      : "transparent",
+                    borderLeft: `2px solid ${isActive ? "rgba(255,255,255,0.5)" : "transparent"}`,
+                    transition: "all 0.1s",
+                  }}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] uppercase tracking-wider truncate flex-1">
-                      {ens.titulo || "Sin título"}
-                    </span>
-                    <button onClick={e => { e.stopPropagation(); onEliminarEnsayo(ens.id); }}
-                      className="transition-all opacity-0 group-hover:opacity-100 shrink-0"
-                      style={{ color: isActive ? "color-mix(in srgb, var(--white-custom) 60%, transparent)" : "color-mix(in srgb, var(--accent) 70%, red)" }}
+                  {/* Active indicator */}
+                  {isActive && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 2,
+                        background: "rgba(255,255,255,0.15)",
+                      }}
+                    />
+                  )}
+
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p
+                        style={{
+                          fontSize: 12,
+                          color: isActive ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)",
+                          fontFamily: "var(--font-mono)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          letterSpacing: "0.01em",
+                          fontWeight: isActive ? 500 : 400,
+                        }}
+                      >
+                        {ens.titulo || "sin título"}
+                      </p>
+                      {ens.tags?.length > 0 && (
+                        <div className="flex gap-1 mt-0.5 flex-wrap">
+                          {ens.tags.slice(0, 3).map((tag: string) => (
+                            <span
+                              key={tag}
+                              style={{
+                                fontSize: 9,
+                                color: "rgba(255,255,255,0.2)",
+                                fontFamily: "var(--font-mono)",
+                              }}
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); onEliminarEnsayo(ens.id); }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      style={{
+                        color: "rgba(255,80,80,0.6)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 2,
+                      }}
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={10} />
                     </button>
                   </div>
-                </MotionDiv>
+                </motion.div>
               );
             })}
           </AnimatePresence>
         </div>
       </div>
 
-      {}
-      <div className="p-3 flex flex-col gap-2.5" style={sectionStyle}>
-        <div className="flex items-center justify-between">
-          <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em]" style={labelStyle}>
-            <BookOpen size={10} /> Zotero
-          </p>
+      {/* ── Zotero ── */}
+      <div
+        className="shrink-0"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <button
+          onClick={() => setZoteroExpanded(p => !p)}
+          className="w-full flex items-center justify-between px-3 py-2"
+          style={{ background: "none", border: "none", cursor: "pointer" }}
+        >
           <div className="flex items-center gap-1.5">
+            <BookOpen size={9} style={{ color: "rgba(255,255,255,0.2)" }} />
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              zotero
+            </span>
             {sources.length > 0 && (
-              <span className="font-mono text-[9px] px-2 py-0.5"
-                style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)", borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)" }}
+              <span
+                style={{
+                  fontSize: 9,
+                  padding: "0 5px",
+                  borderRadius: 3,
+                  background: "rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.3)",
+                  fontFamily: "var(--font-mono)",
+                }}
               >
                 {sources.length}
               </span>
             )}
-            {}
+          </div>
+          <div className="flex items-center gap-1">
             {zoteroConnected && (
-              <button onClick={onRefreshZotero} title="Actualizar fuentes"
-                className="w-6 h-6 flex items-center justify-center transition-all opacity-50 hover:opacity-100"
-                style={{ color: "var(--primary)", background: "transparent", border: "none", cursor: "pointer" }}
+              <button
+                onClick={e => { e.stopPropagation(); onRefreshZotero(); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.2)", padding: 2 }}
               >
-                <RefreshCw size={11} />
+                <RefreshCw size={9} />
               </button>
             )}
+            <ChevronRight
+              size={10}
+              style={{
+                color: "rgba(255,255,255,0.2)",
+                transform: zoteroExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 0.15s",
+              }}
+            />
           </div>
-        </div>
+        </button>
 
-        {}
-        {zoteroConnected ? (
-          <div className="flex items-center gap-2 px-2 py-1.5"
-            style={{ background: "color-mix(in srgb, oklch(0.6 0.15 145) 8%, transparent)", borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, oklch(0.6 0.15 145) 20%, transparent)" }}
-          >
-            <CheckCircle2 size={11} style={{ color: "oklch(0.6 0.15 145)", flexShrink: 0 }} />
-            <p className="font-mono text-[9px] uppercase tracking-wide" style={{ color: "oklch(0.6 0.15 145)" }}>
-              Conectado · auto-sync
-            </p>
-            <button onClick={onConnectZotero} className="ml-auto font-mono text-[8px] uppercase opacity-50 hover:opacity-100 transition-opacity"
-              style={{ color: "var(--primary)", background: "none", border: "none", cursor: "pointer" }}
+        <AnimatePresence>
+          {zoteroExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ overflow: "hidden" }}
             >
-              cambiar
-            </button>
-          </div>
-        ) : (
-          <button onClick={onConnectZotero}
-            className="flex items-center justify-center gap-2 px-3 py-3 cursor-pointer text-[9px] font-mono uppercase transition-all"
-            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)", border: "1px dashed color-mix(in srgb, var(--primary) 10%, transparent)", borderRadius: "var(--radius-btn)", background: "transparent" }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 4%, transparent)"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 60%, transparent)"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 35%, transparent)"; }}
-          >
-            <Link size={12} />
-            Conectar archivo Zotero
-          </button>
-        )}
+              <div className="px-3 pb-3 flex flex-col gap-2">
+                {zoteroConnected ? (
+                  <div
+                    className="flex items-center gap-2 px-2 py-1.5"
+                    style={{
+                      background: "rgba(50,200,100,0.08)",
+                      border: "1px solid rgba(50,200,100,0.15)",
+                      borderRadius: 5,
+                    }}
+                  >
+                    <CheckCircle2 size={9} style={{ color: "rgba(50,200,100,0.8)", flexShrink: 0 }} />
+                    <span style={{ fontSize: 9, color: "rgba(50,200,100,0.8)", fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                      conectado · auto-sync
+                    </span>
+                    <button
+                      onClick={onConnectZotero}
+                      style={{ marginLeft: "auto", fontSize: 9, color: "rgba(255,255,255,0.2)", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)" }}
+                    >
+                      cambiar
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={onConnectZotero}
+                    className="flex items-center gap-2 w-full"
+                    style={{
+                      fontSize: 10,
+                      padding: "8px 10px",
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px dashed rgba(255,255,255,0.1)",
+                      borderRadius: 5,
+                      color: "rgba(255,255,255,0.3)",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-mono)",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Link size={10} />
+                    conectar archivo zotero
+                  </button>
+                )}
 
-        {}
-        {sources.length > 0 && (
-          <div className="flex flex-col gap-1 mt-1 max-h-36 overflow-y-auto"
-            style={{ scrollbarWidth: "thin", scrollbarColor: "color-mix(in srgb, var(--primary) 10%, transparent) transparent" }}
-          >
-            {sources.slice(0, 6).map((src, i) => (
-              <div key={i} className="px-2 py-1.5 text-[9px] font-mono leading-tight"
-                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)", borderRadius: "var(--radius-btn)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-              >
-                <span className="block truncate" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-                  {src.title}
-                </span>
-                <span className="opacity-60">
-                  {src.author}{src.year ? ` · ${src.year}` : ""}
-                  {src.citekey ? ` · @${src.citekey}` : ""}
-                </span>
+                {sources.length > 0 && (
+                  <div
+                    className="flex flex-col gap-0.5 max-h-28 overflow-y-auto"
+                    style={{ scrollbarWidth: "none" }}
+                  >
+                    {sources.slice(0, 8).map((src, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: "4px 6px",
+                          borderRadius: 4,
+                          background: "rgba(255,255,255,0.02)",
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: 10,
+                            color: "rgba(255,255,255,0.45)",
+                            fontFamily: "var(--font-mono)",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {src.title}
+                        </p>
+                        <p style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-mono)" }}>
+                          {src.author}{src.year ? ` · ${src.year}` : ""}{src.citekey ? ` · @${src.citekey}` : ""}
+                        </p>
+                      </div>
+                    ))}
+                    {sources.length > 8 && (
+                      <p style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", textAlign: "center", padding: "4px 0", fontFamily: "var(--font-mono)" }}>
+                        +{sources.length - 8} más
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
-            ))}
-            {sources.length > 6 && (
-              <p className="text-center font-mono text-[8px] uppercase tracking-widest py-1"
-                style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}
-              >
-                +{sources.length - 6} más
-              </p>
-            )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Keyboard hint ── */}
+      <div
+        className="shrink-0 px-3 py-2 flex items-center gap-3"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
+      >
+        {[["N", "nueva"], ["⌘E", "modo"], ["Esc", "cerrar"]].map(([key, label]) => (
+          <div key={key} className="flex items-center gap-1">
+            <kbd
+              style={{
+                fontSize: 8,
+                padding: "1px 4px",
+                borderRadius: 3,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "rgba(255,255,255,0.3)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {key}
+            </kbd>
+            <span style={{ fontSize: 8, color: "rgba(255,255,255,0.15)", fontFamily: "var(--font-mono)" }}>
+              {label}
+            </span>
           </div>
-        )}
+        ))}
       </div>
     </aside>
   );

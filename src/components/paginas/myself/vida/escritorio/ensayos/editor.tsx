@@ -1,7 +1,7 @@
 "use client";
 import { MotionDiv } from "@/components/ui/Motion";
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Save, Tag } from "lucide-react";
+import { Save, Tag, Eye, Edit3, Type, AlignLeft } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { TagPanel } from "./tagPanel";
 import { CitePopup } from "./citePopup";
@@ -29,9 +29,9 @@ export function Editor({
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [localTitulo,    setLocalTitulo]    = useState<string>(ensayo.titulo    || "");
+  const [localTitulo, setLocalTitulo] = useState<string>(ensayo.titulo || "");
   const [localContenido, setLocalContenido] = useState<string>(ensayo.contenido || "");
-  const [tagInput,       setTagInput]       = useState<string>(ensayo.tags?.join(", ") || "");
+  const [tagInput, setTagInput] = useState<string>(ensayo.tags?.join(", ") || "");
   const [tagInputFocused, setTagInputFocused] = useState(false);
   const [tagPanelActivo, setTagPanelActivo] = useState<string | null>(null);
 
@@ -43,26 +43,25 @@ export function Editor({
   const [citeActiveIdx, setCiteActiveIdx] = useState(0);
 
   useEffect(() => {
-    setLocalTitulo(ensayo.titulo    || "");
+    setLocalTitulo(ensayo.titulo || "");
     setLocalContenido(ensayo.contenido || "");
     setTagInput(ensayo.tags?.join(", ") || "");
   }, [ensayo.id]);
 
   const wordCount = localContenido.split(/\s+/).filter(Boolean).length || 0;
   const charCount = localContenido.length || 0;
+  const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
-  // ── Detección de @citekey sin necesitar el ref del textarea ─────────────────
   const handleContenidoChange = useCallback((value: string) => {
     setLocalContenido(value);
     onUpdateField(ensayo.id, "contenido", value);
 
     if (!sources.length) return;
 
-    // Estimamos posición del popup a partir del contenedor
     const match = value.match(/@([\w\-.]*)$/);
     if (match) {
       const rect = containerRef.current?.getBoundingClientRect();
-      const top  = rect ? Math.min(rect.top + rect.height * 0.5, window.innerHeight - 320) : 200;
+      const top = rect ? Math.min(rect.top + rect.height * 0.5, window.innerHeight - 320) : 200;
       const left = rect ? rect.left + 32 : 32;
       setCitePopup({ query: match[1], atStart: value.length - match[0].length, position: { top, left } });
       setCiteActiveIdx(0);
@@ -77,8 +76,8 @@ export function Editor({
       ? `[@${src.citekey}]`
       : `[@${src.author.split(",")[0].trim().toLowerCase()}${src.year}]`;
 
-    const before   = localContenido.substring(0, citePopup.atStart);
-    const after    = localContenido.substring(citePopup.atStart + citePopup.query.length + 1); // +1 for @
+    const before = localContenido.substring(0, citePopup.atStart);
+    const after = localContenido.substring(citePopup.atStart + citePopup.query.length + 1);
     const newValue = before + cite + after;
 
     setLocalContenido(newValue);
@@ -91,107 +90,167 @@ export function Editor({
     .map(t => t.trim().toLowerCase())
     .filter(Boolean);
 
+  const monoStyle: React.CSSProperties = {
+    fontFamily: "var(--font-mono)",
+  };
+
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative h-full flex flex-col" ref={containerRef}>
       <MotionDiv
         key={ensayo.id}
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        className="flex flex-col gap-0 min-h-[80vh]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="flex flex-col flex-1 min-h-0"
       >
-        {/* ── Barra de tags ── */}
+        {/* ── Toolbar ── */}
         <div
-          className="flex items-center gap-2 px-3 md:px-4 py-2.5 mb-3"
+          className="shrink-0 flex items-center gap-0 px-6 py-0"
           style={{
-            background: "color-mix(in srgb, var(--white-custom) 50%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-            borderRadius: "var(--radius-card)",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            background: "rgba(0,0,0,0.3)",
+            minHeight: 36,
           }}
         >
-          <Tag size={11} className="shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }} />
+          {/* Breadcrumb-style title */}
+          <div className="flex items-center gap-2 flex-1 min-w-0 mr-4">
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", ...monoStyle }}>
+              notas
+            </span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.1)", ...monoStyle }}>/</span>
+            <span
+              style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", ...monoStyle, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+            >
+              {localTitulo || "sin título"}
+            </span>
+          </div>
 
-          {!tagInputFocused && parsedTags.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
-              {parsedTags.map(tag => (
+          {/* Tags inline */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!tagInputFocused && parsedTags.length > 0 ? (
+              <>
+                {parsedTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setTagPanelActivo(tag)}
+                    style={{
+                      fontSize: 9,
+                      padding: "2px 7px",
+                      borderRadius: 3,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.05)",
+                      color: "rgba(255,255,255,0.4)",
+                      cursor: "pointer",
+                      ...monoStyle,
+                    }}
+                  >
+                    #{tag}
+                  </button>
+                ))}
                 <button
-                  key={tag}
-                  onClick={() => setTagPanelActivo(tag)}
-                  className="font-mono text-[10px] uppercase tracking-wide px-2 py-0.5 transition-all"
+                  onClick={() => setTagInputFocused(true)}
                   style={{
-                    background: "color-mix(in srgb, var(--accent) 10%, transparent)",
-                    color: "var(--accent)",
-                    borderRadius: "var(--radius-btn)",
-                    border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+                    fontSize: 9,
+                    padding: "2px 6px",
+                    borderRadius: 3,
+                    border: "1px dashed rgba(255,255,255,0.08)",
+                    background: "transparent",
+                    color: "rgba(255,255,255,0.2)",
+                    cursor: "pointer",
+                    ...monoStyle,
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 20%, transparent)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
                 >
-                  #{tag}
+                  +tag
                 </button>
-              ))}
-              <button
-                onClick={() => setTagInputFocused(true)}
-                className="font-mono text-[9px] uppercase tracking-wide px-2 py-0.5 transition-all"
+              </>
+            ) : (
+              <input
+                type="text"
+                value={tagInput}
+                autoFocus={tagInputFocused}
+                onChange={e => {
+                  const raw = e.target.value;
+                  setTagInput(raw);
+                  const parsed = raw.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "");
+                  onUpdateField(ensayo.id, "tags", parsed);
+                }}
+                onFocus={() => setTagInputFocused(true)}
+                onBlur={() => setTagInputFocused(false)}
+                placeholder="tag1, tag2, tag3"
                 style={{
-                  color: "color-mix(in srgb, var(--primary) 25%, transparent)",
-                  border: "1px dashed color-mix(in srgb, var(--primary) 15%, transparent)",
-                  borderRadius: "var(--radius-btn)",
+                  fontSize: 10,
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  background: "rgba(255,255,255,0.05)",
+                  color: "rgba(255,255,255,0.6)",
+                  outline: "none",
+                  width: 140,
+                  ...monoStyle,
                 }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 50%, transparent)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)";
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 25%, transparent)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 15%, transparent)";
-                }}
-              >
-                + editar
-              </button>
-            </div>
-          ) : (
-            <input
-              type="text"
-              value={tagInput}
-              autoFocus={tagInputFocused}
-              onChange={e => {
-                const raw = e.target.value;
-                setTagInput(raw);
-                const parsed = raw.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "");
-                onUpdateField(ensayo.id, "tags", parsed);
-              }}
-              onFocus={() => setTagInputFocused(true)}
-              onBlur={() => setTagInputFocused(false)}
-              className="font-mono text-[10px] tracking-widest bg-transparent outline-none border-none flex-1 uppercase"
-              style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
-              placeholder="ETIQUETAS, SEPARADAS, POR, COMA"
-            />
-          )}
+              />
+            )}
+          </div>
 
-          {/* Toggle edit/preview */}
-          <button
-            onClick={onToggleEditMode}
-            className="py-1.5 px-3 md:px-4 text-[10px] font-mono uppercase tracking-wide flex items-center gap-1.5 transition-all shrink-0"
-            style={{ background: "var(--primary)", color: "var(--btn-text)", borderRadius: "var(--radius-btn)" }}
-            title={editMode ? "Vista previa (Ctrl+E)" : "Editar (Ctrl+E)"}
+          {/* Divider */}
+          <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.08)", margin: "0 10px" }} />
+
+          {/* Edit/Preview toggle */}
+          <div
+            className="flex items-center"
+            style={{
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 5,
+              overflow: "hidden",
+            }}
           >
-            {editMode ? "Vista" : "Editar"}
-          </button>
+            <button
+              onClick={() => !editMode && onToggleEditMode()}
+              style={{
+                fontSize: 9,
+                padding: "3px 8px",
+                background: editMode ? "rgba(255,255,255,0.1)" : "transparent",
+                color: editMode ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.25)",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                ...monoStyle,
+              }}
+              title="Editar (⌘E)"
+            >
+              <Edit3 size={10} />
+              edit
+            </button>
+            <button
+              onClick={() => editMode && onToggleEditMode()}
+              style={{
+                fontSize: 9,
+                padding: "3px 8px",
+                background: !editMode ? "rgba(255,255,255,0.1)" : "transparent",
+                color: !editMode ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.25)",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                ...monoStyle,
+              }}
+              title="Vista previa (⌘E)"
+            >
+              <Eye size={10} />
+              preview
+            </button>
+          </div>
         </div>
 
-        {/* ── Card principal ── */}
+        {/* ── Title input ── */}
         <div
-          className="flex flex-col gap-0 flex-1 p-5 md:p-8"
-          style={{
-            background: "var(--white-custom)",
-            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            borderRadius: "var(--radius-card)",
-            boxShadow: "var(--shadow-card)",
-          }}
+          className="shrink-0 px-8 pt-8 pb-4"
+          style={{ background: "transparent" }}
         >
-          {/* Título */}
           <input
             type="text"
             value={localTitulo}
@@ -199,72 +258,78 @@ export function Editor({
               setLocalTitulo(e.target.value);
               onUpdateField(ensayo.id, "titulo", e.target.value);
             }}
-            className="w-full bg-transparent outline-none border-none text-3xl md:text-4xl lg:text-5xl font-serif italic leading-tight mb-5 md:mb-6"
-            style={{ color: "var(--primary)" }}
-            placeholder="Título del ensayo..."
+            className="w-full bg-transparent outline-none border-none"
+            style={{
+              fontSize: "clamp(22px, 3vw, 36px)",
+              fontFamily: "var(--font-serif)",
+              fontStyle: "italic",
+              color: "rgba(255,255,255,0.85)",
+              letterSpacing: "-0.02em",
+              lineHeight: 1.2,
+            }}
+            placeholder="título..."
           />
-          <div className="h-px mb-5 md:mb-6"
-            style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-          />
-
-          {/* ── MarkdownEditor ── */}
-          <div className="flex-1 relative">
-            <MarkdownEditor
-              value={localContenido}
-              onChange={handleContenidoChange}
-              placeholder="Empieza a escribir..."
-              rows={28}
-              toolbar
-              defaultMode={editMode ? "edit" : "preview"}
-            />
-
-            {/* CitePopup de Zotero */}
-            <AnimatePresence>
-              {citePopup && sources.length > 0 && (
-                <div style={{ position: "fixed", top: citePopup.position.top + 25, left: citePopup.position.left, zIndex: 9999 }}>
-                  <CitePopup
-                    sources={sources}
-                    query={citePopup.query}
-                    position={{ top: 0, left: 0 }}
-                    onSelect={insertCite}
-                    onClose={() => setCitePopup(null)}
-                    activeIndex={citeActiveIdx}
-                  />
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* ── Footer stats ── */}
           <div
-            className="flex items-center gap-3 md:gap-4 pt-4 mt-4 flex-wrap"
-            style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            className="flex items-center gap-4 mt-3"
+            style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 16 }}
           >
-            <span className="font-mono text-[9px] uppercase tracking-widest"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", ...monoStyle }}>
               {wordCount} palabras
             </span>
-            <span className="font-mono text-[9px] uppercase tracking-widest"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-              {charCount} chars
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.1)", ...monoStyle }}>·</span>
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", ...monoStyle }}>
+              ~{readTime}min lectura
             </span>
             {sources.length > 0 && (
-              <span className="font-mono text-[9px] uppercase tracking-widest"
-                style={{ color: "var(--accent)", opacity: 0.6 }}
-                title="Escribe @ para citar una fuente de Zotero">
-                @ {sources.length} fuentes · escribe @ para citar
-              </span>
+              <>
+                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.1)", ...monoStyle }}>·</span>
+                <span
+                  style={{ fontSize: 9, color: "rgba(255,120,0,0.6)", ...monoStyle }}
+                  title="Escribe @ para citar"
+                >
+                  @ {sources.length} fuentes
+                </span>
+              </>
             )}
-            <div className="ml-auto flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-              <Save size={10} />
-              {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+            <div className="ml-auto flex items-center gap-1.5">
+              <Save size={9} style={{ color: "rgba(255,255,255,0.15)" }} />
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", ...monoStyle }}>
+                {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+              </span>
             </div>
           </div>
         </div>
+
+        {/* ── Editor content ── */}
+        <div className="flex-1 min-h-0 relative overflow-auto px-8 pb-8">
+          <MarkdownEditor
+            value={localContenido}
+            onChange={handleContenidoChange}
+            placeholder="empieza a escribir... (usa @ para citar desde Zotero)"
+            rows={28}
+            toolbar
+            defaultMode={editMode ? "edit" : "preview"}
+          />
+
+          {/* CitePopup */}
+          <AnimatePresence>
+            {citePopup && sources.length > 0 && (
+              <div style={{ position: "fixed", top: citePopup.position.top + 25, left: citePopup.position.left, zIndex: 9999 }}>
+                <CitePopup
+                  sources={sources}
+                  query={citePopup.query}
+                  position={{ top: 0, left: 0 }}
+                  onSelect={insertCite}
+                  onClose={() => setCitePopup(null)}
+                  activeIndex={citeActiveIdx}
+                />
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
       </MotionDiv>
 
-      {/* TagPanel lateral */}
+      {/* TagPanel */}
       <TagPanel
         tag={tagPanelActivo}
         ensayos={ensayos}

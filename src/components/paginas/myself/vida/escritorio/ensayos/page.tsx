@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Loader2, Menu, X, PenTool } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { Loader2, PenTool } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/ui/useToast";
@@ -12,7 +12,7 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
 import Sidebar from "@/components/paginas/myself/vida/escritorio/ensayos/sidebar";
 import Editor from "@/components/paginas/myself/vida/escritorio/ensayos/editor";
-import EmptyState from "@/components/paginas/myself/vida/escritorio/ensayos/emptyState";
+import { EmptyState } from "@/components/paginas/myself/vida/escritorio/ensayos/emptyState";
 import NewNoteModal from "@/components/paginas/myself/vida/escritorio/ensayos/newNoteModal";
 import { TagPanel } from "@/components/paginas/myself/vida/escritorio/ensayos/tagPanel";
 import EstudioLayout from "@/components/layout/EstudioLayout";
@@ -32,10 +32,12 @@ function setSaveIndicator(el: HTMLElement | null, status: SaveStatus) {
   if (!el) return;
   if (status === "idle") { el.style.opacity = "0"; return; }
   el.style.opacity = "1";
-  el.textContent = status === "saving" ? "Guardando…" : status === "saved" ? "✓ Guardado" : "Error al guardar";
-  el.style.color = status === "saving"
-    ? "color-mix(in srgb, var(--primary) 30%, transparent)"
-    : status === "saved" ? "oklch(0.6 0.15 145)" : "oklch(0.6 0.2 25)";
+  el.textContent =
+    status === "saving" ? "guardando…" :
+    status === "saved" ? "✓ guardado" : "error";
+  el.style.color =
+    status === "saving" ? "rgba(255,255,255,0.2)" :
+    status === "saved" ? "rgba(50,200,100,0.7)" : "rgba(255,80,80,0.7)";
 }
 
 const LS_ACTIVE = "ensayos-active-id";
@@ -58,18 +60,17 @@ async function loadZoteroHandle(): Promise<FileSystemFileHandle | null> {
 
 function parseZoteroJson(json: any[]): ZoteroSource[] {
   return json.map((item: any) => ({
-    title:   item.title || "",
-    author:  item.author
+    title: item.title || "",
+    author: item.author
       ? (Array.isArray(item.author)
           ? item.author.map((a: any) => a.family || a.literal || "").filter(Boolean).join(", ")
           : item.author)
       : (item.creators?.[0]?.lastName || ""),
-    year:    item.issued?.["date-parts"]?.[0]?.[0]?.toString()
-          || item.date?.substring(0, 4)
-          || "",
+    year: item.issued?.["date-parts"]?.[0]?.[0]?.toString()
+       || item.date?.substring(0, 4) || "",
     citekey: item.id || item["citation-key"] || "",
     journal: item["container-title"] || item.publisher || "",
-    url:     item.URL || item.url || "",
+    url: item.URL || item.url || "",
   }));
 }
 
@@ -83,26 +84,18 @@ async function readZoteroFile(handle: FileSystemFileHandle): Promise<ZoteroSourc
 
 export default function Ensayos() {
   const { user } = useAuth() as { user: any };
-  const router = useRouter();
   const { toasts, toast, dismiss } = useToast();
   const { confirm, ConfirmModal } = useConfirm();
 
-  const [editMode, setEditMode]         = useState(true);
-  const [sidebarOpen, setSidebarOpen]   = useState(false);
+  const [editMode, setEditMode] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNewNoteModal, setShowNewNoteModal] = useState(false);
 
-  const [sources, setSources]           = useState<ZoteroSource[]>([]);
+  const [sources, setSources] = useState<ZoteroSource[]>([]);
   const [zoteroConnected, setZoteroConnected] = useState(false);
-  const [tagActivo, setTagActivo]       = useState<string | null>(null);
-  const [tagPanel, setTagPanel]         = useState<string | null>(null);
+  const [tagActivo, setTagActivo] = useState<string | null>(null);
+  const [tagPanel, setTagPanel] = useState<string | null>(null);
 
-  
-  
-  
-  
-  
-  
-  
   const {
     data: ensayos,
     setData: setEnsayos,
@@ -113,8 +106,7 @@ export default function Ensayos() {
     deleteRow,
   } = useSupabaseData("ensayos", { order: { campo: "updated_at", asc: false } });
 
-  const handleTagClick      = useCallback((tag: string | null) => setTagActivo(tag), []);
-  const handleTagPanelOpen  = useCallback((tag: string) => setTagPanel(tag), []);
+  const handleTagClick = useCallback((tag: string | null) => setTagActivo(tag), []);
   const handleTagPanelClose = useCallback(() => setTagPanel(null), []);
 
   const [ensayoActivoId, setEnsayoActivoId] = useState<string | null>(() => {
@@ -126,7 +118,7 @@ export default function Ensayos() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveIndicatorRef = useRef<HTMLSpanElement | null>(null);
 
-  
+  // Load Zotero on mount
   useEffect(() => {
     (async () => {
       const handle = await loadZoteroHandle();
@@ -147,7 +139,6 @@ export default function Ensayos() {
         setZoteroConnected(true);
         localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
       } catch (e) {
-        console.warn("[Zotero] No se pudo leer el archivo:", e);
         const cached = localStorage.getItem("fran-zotero-cache");
         if (cached) {
           try { setSources(JSON.parse(cached)); } catch {}
@@ -221,6 +212,9 @@ export default function Ensayos() {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "e") { e.preventDefault(); setEditMode(p => !p); }
+      if (e.key === "n" && !e.ctrlKey && !e.metaKey && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        setShowNewNoteModal(true);
+      }
       if (e.key === "Escape") {
         if (tagPanel) { setTagPanel(null); return; }
         setSidebarOpen(false);
@@ -245,19 +239,13 @@ export default function Ensayos() {
     });
   }, [ensayos, tagActivo, searchTerm]);
 
-  const pendingSaveRef = useRef(false);
-  
   const pendingUpdatesRef = useRef<Record<string, any>>({});
 
   const scheduleSave = useCallback((id: string, updates: Record<string, any>) => {
-    
     pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
-
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    pendingSaveRef.current = true;
 
     saveTimerRef.current = setTimeout(async () => {
-      pendingSaveRef.current = false;
       const batch = { ...pendingUpdatesRef.current };
       pendingUpdatesRef.current = {};
       setSaveIndicator(saveIndicatorRef.current, "saving");
@@ -265,13 +253,11 @@ export default function Ensayos() {
       const now = new Date().toISOString();
       const payload = { ...batch, updated_at: now };
 
-      
       setEnsayos((prev: any[]) =>
         prev.map((e: any) => e.id === id ? { ...e, ...payload } : e)
       );
 
       try {
-        
         const { error } = await updateRow(id, payload);
         if (error) throw error;
         setSaveIndicator(saveIndicatorRef.current, "saved");
@@ -282,7 +268,6 @@ export default function Ensayos() {
     }, 1500);
   }, [updateRow, setEnsayos]);
 
-  
   const actualizarLocal = useCallback((id: string, field: string, value: any) => {
     scheduleSave(id, { [field]: value });
   }, [scheduleSave]);
@@ -301,13 +286,10 @@ export default function Ensayos() {
       updated_at: now,
     };
 
-    
     const { data, error } = await addRow(newEnsayo);
     if (!error) {
-      
       const created = data ?? newEnsayo;
       setEnsayos((prev: any[]) => {
-        
         if (prev.find((e: any) => e.id === created.id)) return prev;
         return [created, ...prev];
       });
@@ -321,11 +303,7 @@ export default function Ensayos() {
   const eliminarEnsayo = async (id: string) => {
     const ok = await confirm({ message: "¿Eliminar esta nota?", danger: true, confirmLabel: "Eliminar" });
     if (!ok) return;
-
-    
     await deleteRow(id);
-    
-    
     setEnsayos((prev: any[]) => prev.filter((e: any) => e.id !== id));
     if (ensayoActivoId === id) setEnsayoActivo(null);
   };
@@ -351,62 +329,96 @@ export default function Ensayos() {
 
   return (
     <>
-      <EstudioLayout
-        titulo="Knowledge Base"
-        icono={<PenTool size={12}/>}
-        colapsadoLabel="Notas"
-        sidebarOpen={sidebarOpen}
-        onSidebarOpenChange={setSidebarOpen}
-        isOffline={isOffline}
-        footerLeft={`${ensayos.length} notas`}
-        sidebarContent={<Sidebar {...sidebarProps} embedded />}
-      >
-        {}
-        <div className="shrink-0 z-10 border-b border-primary/10 backdrop-blur-md px-4 md:px-6 py-2.5 flex items-center justify-center bg-bg-main/80">
-          <span
-            ref={saveIndicatorRef}
-            className="font-mono text-[9px] uppercase tracking-widest transition-opacity duration-300"
-            style={{ opacity: 0 }}
-          />
-        </div>
+      {/*
+        CSS variables injected into the layout.
+        These override the light theme defaults for this page only.
+        Remove / adapt if your EstudioLayout already handles dark mode.
+      */}
+      <style>{`
+        .ensayos-root {
+          --sidebar-bg: #0c0c0c;
+          --sidebar-text: #888;
+          --editor-bg: #0f0f0f;
+          --editor-text: rgba(255,255,255,0.8);
+        }
+      `}</style>
 
-        {}
-        <main className="relative flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto min-h-0">
-          {loading ? (
-            <div className="flex flex-col gap-4 animate-pulse">
-              <div className="h-10 rounded-xl w-1/3" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }} />
-              <div className="h-px w-full" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              <div className="h-4 rounded w-2/3" style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }} />
-              <div className="h-4 rounded w-1/2" style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }} />
-            </div>
-          ) : (
-            <AnimatePresence>
-              {ensayoActivo ? (
-                <Editor
-                  key={ensayoActivo.id}
-                  ensayo={ensayoActivo}
-                  ensayos={ensayos}
-                  sources={sources}
-                  editMode={editMode}
-                  onToggleEditMode={() => setEditMode(p => !p)}
-                  onUpdateField={actualizarLocal}
-                  onSelectEnsayo={handleEnsayoClick}
-                />
-              ) : (
-                <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
-              )}
-            </AnimatePresence>
-          )}
+      <div className="ensayos-root h-full">
+        <EstudioLayout
+          titulo="knowledge base"
+          icono={<PenTool size={12} />}
+          colapsadoLabel="notas"
+          sidebarOpen={sidebarOpen}
+          onSidebarOpenChange={setSidebarOpen}
+          isOffline={isOffline}
+          footerLeft={`${ensayos.length} notas`}
+          sidebarContent={<Sidebar {...sidebarProps} embedded />}
+        >
+          {/* Save indicator bar */}
+          <div
+            className="shrink-0 z-10 px-6 py-1.5 flex items-center justify-end"
+            style={{
+              borderBottom: "1px solid rgba(255,255,255,0.04)",
+              background: "rgba(0,0,0,0.2)",
+              minHeight: 28,
+            }}
+          >
+            <span
+              ref={saveIndicatorRef}
+              style={{
+                fontSize: 9,
+                fontFamily: "var(--font-mono)",
+                opacity: 0,
+                transition: "opacity 0.3s",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+              }}
+            />
+          </div>
 
-          <TagPanel
-            tag={tagPanel}
-            ensayos={ensayos}
-            onClose={handleTagPanelClose}
-            onSelectEnsayo={handleEnsayoClick}
-            onTagClick={t => setTagPanel(t)}
-          />
-        </main>
-      </EstudioLayout>
+          {/* Main content */}
+          <main
+            className="relative flex-1 overflow-y-auto min-h-0"
+            style={{ background: "#0f0f0f" }}
+          >
+            {loading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="flex flex-col gap-3 items-center">
+                  <Loader2 size={16} style={{ color: "rgba(255,255,255,0.2)", animation: "spin 1s linear infinite" }} />
+                  <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "rgba(255,255,255,0.15)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                    cargando...
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <AnimatePresence>
+                {ensayoActivo ? (
+                  <Editor
+                    key={ensayoActivo.id}
+                    ensayo={ensayoActivo}
+                    ensayos={ensayos}
+                    sources={sources}
+                    editMode={editMode}
+                    onToggleEditMode={() => setEditMode(p => !p)}
+                    onUpdateField={actualizarLocal}
+                    onSelectEnsayo={handleEnsayoClick}
+                  />
+                ) : (
+                  <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
+                )}
+              </AnimatePresence>
+            )}
+
+            <TagPanel
+              tag={tagPanel}
+              ensayos={ensayos}
+              onClose={handleTagPanelClose}
+              onSelectEnsayo={handleEnsayoClick}
+              onTagClick={t => setTagPanel(t)}
+            />
+          </main>
+        </EstudioLayout>
+      </div>
 
       <AnimatePresence>
         {showNewNoteModal && (
