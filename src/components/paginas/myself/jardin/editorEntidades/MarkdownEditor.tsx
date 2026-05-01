@@ -318,7 +318,6 @@ export function MarkdownEditor({
                   }}
                 >
                   {[,
-                    { label: "Itálica", action: () => wrapSelection("*", "*") },
                     { label: "Código", action: () => wrapSelection("`", "`") },
                     { label: "Enlace", action: () => wrapSelection("[", "](url)") },
                     { label: "Lista", action: () => insertSnippet("\n- elemento\n- elemento\n") },
@@ -361,7 +360,6 @@ export function MarkdownEditor({
               }}
             >
               {[
-                { label: <em>I</em>, action: () => wrapSelection("*", "*"), title: "Itálica (Ctrl+I)" },
                 { label: "</>", action: () => wrapSelection("`", "`"), title: "Código inline" },
                 { label: "Link", action: () => wrapSelection("[", "](url)"), title: "Añadir enlace" },
                 { label: "Img", action: () => wrapSelection("![alt](", ")"), title: "Añadir Imagen" },
