@@ -1516,21 +1516,37 @@ const PanelEditor = ({
         </>
       )}
 
-      <div ref={scrollRef} className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12 max-w-3xl mx-auto w-full" : "px-4 sm:px-8 py-4 sm:py-6"}`} style={{ WebkitOverflowScrolling: "touch" }}>
-        {}
-        <div ref={caretMirrorRef} aria-hidden="true" />
-        <textarea
-          ref={textareaRef}
-          value={contenido}
-          onChange={e => onChange(e.target.value)}
-          onKeyDown={e => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(contenido); }
-          }}
-          spellCheck
-          className={`w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all select-text touch-pan-y ${focusMode ? "text-lg sm:text-xl" : "text-base"}`}
-          style={{ minHeight: "60vh" }}
-          placeholder="Empieza a escribir…"
-        />
+      <div ref={scrollRef} className={`flex-1 min-h-0 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`} style={{ WebkitOverflowScrolling: "touch" }}>
+        {focusMode && <div className="max-w-3xl mx-auto w-full">
+          <div ref={caretMirrorRef} aria-hidden="true" />
+          <textarea
+            ref={textareaRef}
+            value={contenido}
+            onChange={e => onChange(e.target.value)}
+            onKeyDown={e => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(contenido); }
+            }}
+            spellCheck
+            className="w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all select-text touch-pan-y text-lg sm:text-xl"
+            style={{ minHeight: "100%" }}
+            placeholder="Empieza a escribir…"
+          />
+        </div>}
+        {!focusMode && <>
+          <div ref={caretMirrorRef} aria-hidden="true" />
+          <textarea
+            ref={textareaRef}
+            value={contenido}
+            onChange={e => onChange(e.target.value)}
+            onKeyDown={e => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(contenido); }
+            }}
+            spellCheck
+            className="w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all select-text touch-pan-y text-base"
+            style={{ minHeight: "100%" }}
+            placeholder="Empieza a escribir…"
+          />
+        </>}
       </div>
 
       {!focusMode && (
