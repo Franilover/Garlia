@@ -407,20 +407,57 @@ export default function Lector() {
     document.getElementById(`cap-${capId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [capId]); // eslint-disable-line
 
+  /* ── Helpers Dexie ── */
+  const getDexieTable = async () => {
+    try {
+      const { db } = await import("@/lib/api/client/db");
+      if (!db || !(db as any).capitulos) return null;
+      return (db as any).capitulos;
+    } catch { return null; }
+  };
+
+  /* Guarda en Dexie sin pisar contenido si ya existe */
+  const cachearEnDexie = async (rows: any[]) => {
+    const table = await getDexieTable();
+    if (!table || rows.length === 0) return;
+    try {
+      const ids      = rows.map(r => r.id);
+      const existing = await table.bulkGet(ids) as (any | undefined)[];
+      const merged   = rows.map((row, i) => {
+        const prev    = existing[i];
+        const contenido = row.contenido ?? prev?.contenido ?? "";
+        return { ...prev, ...row, contenido, status: "synced" };
+      });
+      await table.bulkPut(merged);
+    } catch (e) { console.warn("[Dexie] Error cacheando caps:", e); }
+  };
+
+  /* Lee todos los caps del libro desde Dexie (solo los que tienen contenido) */
+  const leerDesdeCache = async (): Promise<any[] | null> => {
+    const table = await getDexieTable();
+    if (!table) return null;
+    try {
+      const todos    = (await table.toArray()) as any[];
+      const delLibro = todos.filter((c: any) => !c.deleted && c.libro_id === id && c.contenido);
+      return delLibro.length > 0 ? delLibro : null;
+    } catch { return null; }
+  };
+
   /* ── Carga de datos ── */
   useEffect(() => {
     if (!capId || !id) return;
+    const hoy = new Date().toISOString();
 
-    // Intentar cargar desde Dexie primero si estamos offline
-    const cargarDesdeCache = async () => {
-      try {
-        const { db } = await import("@/lib/api/client/db");
-        if (!db || !(db as any).capitulos) return null;
-        const todos = await (db as any).capitulos.toArray() as any[];
-        const delLibro = todos.filter((c: any) => !c.deleted);
-        if (delLibro.length === 0) return null;
-        return delLibro;
-      } catch { return null; }
+    type CapRaw = {
+      id: string;
+      orden: number;
+      titulo_capitulo: string;
+      contenido: string;
+      fecha_publicacion: string;
+      personajes_ids: string[];
+      libros:   { titulo: string }   | { titulo: string }[]   | null;
+      narrador: NarradorInfo         | NarradorInfo[]         | null;
+      reino:    ReinoInfo            | ReinoInfo[]            | null;
     };
 
     librosQueries.getCapituloParaLectura(capId, id, true)
@@ -431,18 +468,11 @@ export default function Lector() {
         }
         const listaRaw = queryRes.data.listaCapitulos;
 
-        type CapRaw = {
-          id: string;
-          orden: number;
-          titulo_capitulo: string;
-          contenido: string;
-          fecha_publicacion: string;
-          personajes_ids: string[];
-          libros:   { titulo: string }   | { titulo: string }[]   | null;
-          narrador: NarradorInfo         | NarradorInfo[]         | null;
-          reino:    ReinoInfo            | ReinoInfo[]            | null;
-        };
+        // Cachear lista de navegación completa (sin contenido) para offline
+        cachearEnDexie(listaRaw.map(c => ({ ...c, libro_id: id })));
 
+        // Fetch de TODO el contenido del libro en un solo query
+        // Incluye "programado" con fecha ya pasada (igual que getCapituloParaLectura)
         const { data: contenidos } = await supabase
           .from("capitulos")
           .select(`
@@ -452,33 +482,27 @@ export default function Lector() {
             reino:reinos!reino_id(id, nombre, imagen_reino)
           `)
           .in("id", listaRaw.map(c => c.id))
-          .eq("visibilidad", "publico")
+          .or(`visibilidad.eq.publico,and(visibilidad.eq.programado,fecha_publicacion.lte.${hoy.split("T")[0]})`)
           .not("titulo_capitulo", "like", "[Ruta]%")
           .order("orden", { ascending: true });
 
         const rawList = (contenidos as unknown as CapRaw[]) ?? [];
 
         const capsValidas = rawList.map(c => ({
-          id:               c.id,
-          orden:            c.orden,
-          titulo_capitulo:  c.titulo_capitulo,
-          contenido:        c.contenido,
+          id:                c.id,
+          orden:             c.orden,
+          titulo_capitulo:   c.titulo_capitulo,
+          contenido:         c.contenido,
           fecha_publicacion: c.fecha_publicacion,
-          personajes_ids:   c.personajes_ids,
-          libros:           normOne(c.libros) ?? undefined,
-          _narrador:        normOne(c.narrador),
-          _reino:           normOne(c.reino),
+          personajes_ids:    c.personajes_ids,
+          libro_id:          id,
+          libros:            normOne(c.libros) ?? undefined,
+          _narrador:         normOne(c.narrador),
+          _reino:            normOne(c.reino),
         }));
 
-        // Guardar en Dexie para acceso offline posterior
-        try {
-          const { db } = await import("@/lib/api/client/db");
-          if (db && (db as any).capitulos) {
-            await (db as any).capitulos.bulkPut(
-              capsValidas.map(c => ({ ...c, status: "synced" }))
-            );
-          }
-        } catch { /* silencioso — Dexie es opcional */ }
+        // Cachear TODO el contenido del libro en Dexie (sin pisar contenido previo)
+        cachearEnDexie(capsValidas);
 
         const idsValidos    = new Set(capsValidas.map(c => c.id));
         const listaFiltrada = listaRaw.filter(c => idsValidos.has(c.id));
@@ -494,16 +518,22 @@ export default function Lector() {
       })
       .catch(async (err) => {
         console.error("Error crítico en Lector:", err);
-        // Intentar recuperar desde Dexie como fallback
-        const cached = await cargarDesdeCache();
+        // Fallback: leer contenido completo del libro desde Dexie
+        const cached = await leerDesdeCache();
         if (cached && cached.length > 0) {
           const capsValidas = cached.map((c: any) => ({
             id: c.id, orden: c.orden, titulo_capitulo: c.titulo_capitulo,
             contenido: c.contenido, fecha_publicacion: c.fecha_publicacion,
-            personajes_ids: c.personajes_ids, libros: c.libros,
-            _narrador: c._narrador, _reino: c._reino,
+            personajes_ids: c.personajes_ids, libro_id: id,
+            libros: c.libros, _narrador: c._narrador, _reino: c._reino,
           }));
           const segs = buildSegmentos(capsValidas as any);
+          const lista = capsValidas.map(c => ({
+            id: c.id, orden: c.orden,
+            titulo_capitulo: c.titulo_capitulo,
+            fecha_publicacion: c.fecha_publicacion,
+          }));
+          setListaCapitulos(lista);
           setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
           setSegmentos(segs);
           const si = segs.findIndex(s => s.capitulos.some(c => c.id === capId));
@@ -513,6 +543,7 @@ export default function Lector() {
         }
       })
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [capId, id]);
 
   const handleNavigate = useCallback((targetCapId: string) => {
