@@ -320,9 +320,6 @@ export function MarkdownEditor({
                   {[,
                     { label: "Código", action: () => wrapSelection("`", "`") },
                     { label: "Enlace", action: () => wrapSelection("[", "](url)") },
-                    { label: "Lista", action: () => insertSnippet("\n- elemento\n- elemento\n") },
-                    { label: "Tareas", action: () => insertSnippet("\n- [ ] Pendiente\n- [x] Hecho\n") },
-                    { label: "Separador", action: () => insertSnippet("\n---\n") },
                     { label: "Tabla", action: () => insertSnippet("\n| Col 1 | Col 2 |\n|---|---|\n| dato | dato |\n") },
                     { label: "Bloque", action: () => insertSnippet("\n```\ncódigo\n```\n") },
                   ].map(({ label, action }) => (
@@ -391,9 +388,6 @@ export function MarkdownEditor({
               <div style={{ width: 1, height: 14, background: "color-mix(in srgb, var(--foreground) 8%, transparent)", margin: "0 2px" }} />
 
               {[
-                { label: "Lista", action: () => insertSnippet("\n- elemento\n- elemento\n") },
-                { label: "Tareas", action: () => insertSnippet("\n- [ ] Pendiente\n- [x] Hecho\n") },
-                { label: "─ ─", action: () => insertSnippet("\n---\n") },
                 { label: "Tabla", action: () => insertSnippet("\n| Col 1 | Col 2 | Col 3 |\n|---|---|---|\n| dato | dato | dato |\n") },
                 { label: "Bloque", action: () => insertSnippet("\n```\ncódigo\n```\n") },
               ].map(({ label, action }, i) => (
