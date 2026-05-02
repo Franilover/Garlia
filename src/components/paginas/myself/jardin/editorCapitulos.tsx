@@ -20,6 +20,7 @@ import {
 } from "@/hooks/useEditorShared";
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
 import { db } from "@/lib/api/client/db";
+import { useSupabaseData } from "@/hooks/useSupabaseData";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, EmptyEstudio, ModalBase, SaveIndicator, CampoInput, BotonSubmit, normalize } from "@/components/templates/EstudioTemplates";
@@ -109,14 +110,6 @@ async function dexieCapWrite(rows: Capitulo[]): Promise<void> {
   } catch (e) { console.warn("[Dexie] capitulos:", e); }
 }
 
-async function dexieLibrosRead(): Promise<Libro[]> {
-  try {
-    const table = (db as any)["libros"];
-    if (!table) return [];
-    const rows = await table.toArray();
-    return rows.filter((r: any) => !r.deleted) as Libro[];
-  } catch { return []; }
-}
 
 async function capUpdateContenido(id: string, contenido: string): Promise<void> {
   const existing = await dexieCapGet(id);
@@ -218,80 +211,6 @@ async function libroUpdateVisibilidad(id: string, visibilidad: string, fechaPubl
   if (fechaPublicacion !== undefined) fields.fecha_publicacion = fechaPublicacion || null;
   const { error } = await supabase.from("libros").update(fields).eq("id", id);
   if (error) throw error;
-}
-
-async function libroCreate(titulo: string): Promise<Libro> {
-  const { data, error } = await supabase
-    .from("libros")
-    .insert([{ titulo: titulo.trim().toUpperCase(), estado: "BORRADOR", visibilidad: "oculto" }])
-    .select()
-    .single();
-  if (error) throw error;
-  try {
-    const table = (db as any)["libros"];
-    if (table) await table.put({ ...data, status: "synced" });
-  } catch {}
-  return data as Libro;
-}
-
-function useLibros() {
-  const [libros, setLibros]       = useState<Libro[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
-
-  const load = useCallback(async () => {
-    const local = await dexieLibrosRead();
-    if (local.length > 0) {
-      setLibros(local);
-      setLoading(false);
-    }
-
-    if (!navigator.onLine) {
-      setIsOffline(true);
-      setLoading(false);
-      return;
-    }
-    setIsOffline(false);
-
-    try {
-      const fetchPromise = librosQueries.getAll({ isAdmin: true, order: { campo: "created_at", asc: false } });
-      const timeout = new Promise<"timeout">(r => setTimeout(() => r("timeout"), 5000));
-      const result = await Promise.race([fetchPromise, timeout]);
-
-      if (result === "timeout") {
-        setIsOffline(local.length === 0);
-        setLoading(false);
-        return;
-      }
-    const l = ((result as any)?.data || []) as Libro[];
-          setLibros(l);
-          try {
-            const table = (db as any)["libros"];
-            if (table) {
-              const remotosIds = new Set(l.map((x: Libro) => x.id));
-              const locales: any[] = await table.toArray();
-              const aEliminar = locales
-                .filter((r) => !remotosIds.has(r.id))
-                .map((r) => r.id);
-              if (aEliminar.length > 0) await table.bulkDelete(aEliminar);
-              await table.bulkPut(l.map((x) => ({ ...x, status: "synced" })));
-            }
-          } catch {}
-        } catch {
-          if (local.length === 0) setLibros(await dexieLibrosRead());
-          setIsOffline(true);
-        }
-        setLoading(false);
-      }, []);
-
-  useEffect(() => {
-    load();
-    const h = () => { setIsOffline(false); load(); };
-    window.addEventListener("online", h);
-    return () => window.removeEventListener("online", h);
-  }, [load]);
-
-  return { libros, setLibros, loading, isOffline, refetch: load };
 }
 
 function useCapitulos(libroId: string | null) {
@@ -1950,7 +1869,7 @@ function SelectorImagenPortada({ value, onChange }: { value: string; onChange: (
 const ModalNuevoLibro = ({
   onCreated, onClose,
 }: {
-  onCreated: (l: Libro) => void;
+  onCreated: (titulo: string) => Promise<void>;
   onClose: () => void;
 }) => {
   const [titulo,  setTitulo]  = useState("");
@@ -1963,8 +1882,7 @@ const ModalNuevoLibro = ({
     setSaving(true);
     setErrorMsg("");
     try {
-      const libro = await libroCreate(titulo);
-      onCreated(libro);
+      await onCreated(titulo);
       onClose();
     } catch {
       setErrorMsg("No se pudo crear el libro. Inténtalo de nuevo.");
@@ -2360,7 +2278,17 @@ const LibroColumna = ({
 };
 
 export default function EstudioCapitulos() {
-  const { libros, setLibros, loading: loadingLibros, isOffline: listaOffline, refetch } = useLibros();
+  const {
+    data:     libros,
+    setData:  setLibros,
+    loading:  loadingLibros,
+    isOffline: listaOffline,
+    refetch,
+    addRow:   addLibro,
+  } = useSupabaseData("libros", {
+    isAdmin: true,
+    order: { campo: "created_at", asc: false },
+  }) as ReturnType<typeof useSupabaseData> & { data: Libro[]; setData: React.Dispatch<React.SetStateAction<Libro[]>> };
 
   const [lastCapId,   setLastCapId]   = useLastOpenedId("estudio-caps-last-cap");
   const [lastLibroId, setLastLibroId] = useLastOpenedId("estudio-caps-last-libro");
@@ -2410,9 +2338,14 @@ export default function EstudioCapitulos() {
     setEditandoLibro(null);
   };
 
-  const handleLibroCreado = (libro: Libro) => {
-    setLibros(prev => [libro, ...prev]);
-    setSelectedLibroId(libro.id);
+  const handleLibroCreado = async (titulo: string) => {
+    const { data, error } = await addLibro({
+      titulo: titulo.trim().toUpperCase(),
+      estado: "BORRADOR",
+      visibilidad: "oculto",
+    });
+    if (error || !data) throw new Error(error ?? "Error al crear libro");
+    setSelectedLibroId(data.id);
     setShowNuevoLibro(false);
   };
 
