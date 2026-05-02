@@ -2285,10 +2285,10 @@ export default function EstudioCapitulos() {
     isOffline: listaOffline,
     refetch,
     addRow:   addLibro,
-  } = useSupabaseData("libros", {
+  } = useSupabaseData<Libro>("libros", {
     isAdmin: true,
     order: { campo: "created_at", asc: false },
-  }) as ReturnType<typeof useSupabaseData> & { data: Libro[]; setData: React.Dispatch<React.SetStateAction<Libro[]>> };
+  });
 
   const [lastCapId,   setLastCapId]   = useLastOpenedId("estudio-caps-last-cap");
   const [lastLibroId, setLastLibroId] = useLastOpenedId("estudio-caps-last-libro");
