@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Plus, Loader2, Globe, WifiOff } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { ModalBase } from "@/components/templates/EstudioTemplates";
 import {
   TAB_CONFIG, MUNDO_SECTIONS,
@@ -17,6 +18,30 @@ import { EditorItem }      from "./editorEntidades/EditorItem";
 import { EditorReino }     from "./editorEntidades/EditorReino";
 import { EditorMundo }     from "./editorEntidades/EditorMundo";
 
+// ─── Helpers Dexie locales ────────────────────────────────────────────────────
+async function dexieReadAll<T>(tabla: string): Promise<T[]> {
+  try {
+    if (!db) return [];
+    const table = (db as any)[tabla];
+    if (!table) return [];
+    const rows = (await table.toArray()) as any[];
+    return rows.filter((r: any) => !r.deleted) as T[];
+  } catch {
+    return [];
+  }
+}
+
+async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
+  try {
+    if (!db || rows.length === 0) return;
+    const table = (db as any)[tabla];
+    if (!table) return;
+    await table.bulkPut(rows);
+  } catch (e) {
+    console.warn(`[Dexie editorEntidades] bulkPut failed on '${tabla}':`, e);
+  }
+}
+
 // ─── Hook: carga todas las categorías en paralelo ─────────────────────────────
 function useAllEntidades() {
   const [allItems, setAllItems] = useState<AllItems>({
@@ -26,9 +51,39 @@ function useAllEntidades() {
   const [isOffline,  setIsOffline]  = useState(false);
 
   const load = useCallback(async () => {
-    if (!navigator.onLine) { setIsOffline(true); setLoadingAll(false); return; }
+    // 1. Leer de Dexie primero para respuesta inmediata
+    const [localP, localC, localI, localR] = await Promise.all([
+      dexieReadAll<Personaje>("personajes"),
+      dexieReadAll<Criatura>("criaturas"),
+      dexieReadAll<Item>("items"),
+      dexieReadAll<Reino>("reinos"),
+    ]);
+
+    const hasLocal =
+      localP.length > 0 || localC.length > 0 ||
+      localI.length > 0 || localR.length > 0;
+
+    if (hasLocal) {
+      setAllItems({
+        personajes: localP,
+        criaturas:  localC,
+        items:      localI,
+        reinos:     localR,
+      });
+      setLoadingAll(false);
+    }
+
+    // 2. Si offline, quedarse con los datos locales
+    if (!navigator.onLine) {
+      setIsOffline(true);
+      if (!hasLocal) setLoadingAll(false);
+      return;
+    }
+
     setIsOffline(false);
-    setLoadingAll(true);
+    if (!hasLocal) setLoadingAll(true);
+
+    // 3. Fetch remoto y sincronizar Dexie
     try {
       const [p, c, i, r] = await Promise.all([
         supabase.from("personajes").select("*").order("nombre"),
@@ -36,14 +91,26 @@ function useAllEntidades() {
         supabase.from("items")     .select("*").order("nombre"),
         supabase.from("reinos")    .select("*").order("nombre"),
       ]);
-      setAllItems({
+      const remote = {
         personajes: (p.data ?? []) as Personaje[],
         criaturas:  (c.data ?? []) as Criatura[],
         items:      (i.data ?? []) as Item[],
         reinos:     (r.data ?? []) as Reino[],
-      });
-    } catch { setIsOffline(true); }
-    setLoadingAll(false);
+      };
+      setAllItems(remote);
+
+      // Persistir en Dexie para próxima carga offline
+      await Promise.all([
+        dexieWriteAll("personajes", remote.personajes),
+        dexieWriteAll("criaturas",  remote.criaturas),
+        dexieWriteAll("items",      remote.items),
+        dexieWriteAll("reinos",     remote.reinos),
+      ]);
+    } catch {
+      setIsOffline(true);
+    } finally {
+      setLoadingAll(false);
+    }
   }, []);
 
   useEffect(() => {

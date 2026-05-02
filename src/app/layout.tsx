@@ -102,13 +102,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       {}
-      <body className="antialiased bg-bg-main min-h-svh flex flex-col">
+      <body className="antialiased bg-bg-main h-svh overflow-hidden flex flex-col">
         <OfflineSyncActivator />
         <AuthProvider>
           <DataProvider>
             <ThemeProvider>
               <LightboxProvider>
-                <div className="flex-grow pb-[56px] md:pb-0 md:pl-[68px]">
+                <div className="flex-grow overflow-hidden pb-[56px] md:pb-0 md:pl-[68px]">
                   <AppLogic>
                     {children}
                   </AppLogic>
