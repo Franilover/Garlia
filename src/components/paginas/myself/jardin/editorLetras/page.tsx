@@ -423,13 +423,20 @@ const CancionCard = ({
   onDelete: (id: string) => void;
   onToggleVisible: (id: string, visible: boolean) => void;
 }) => {
+  const [hovered, setHovered] = useState(false);
+
   const nombre = (() => {
     const p = cancion.personaje;
     return (Array.isArray(p) ? p[0]?.nombre : p?.nombre) || cancion.cantante;
   })();
 
   return (
-    <div className="song-card group" onClick={onClick}>
+    <div
+      className="song-card"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       {/* Acento de estado */}
       <div className={`song-card-accent ${estadoAccentClass(cancion.estado)}`} />
 
@@ -453,6 +460,7 @@ const CancionCard = ({
             onEdit={onEdit}
             onDelete={onDelete}
             onToggleVisible={onToggleVisible}
+            isCardHovered={hovered}
           />
         </div>
       </div>
@@ -465,12 +473,13 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 const CardActions = ({
-  cancion, onEdit, onDelete, onToggleVisible,
+  cancion, onEdit, onDelete, onToggleVisible, isCardHovered,
 }: {
   cancion: Cancion;
   onEdit: (c: Cancion) => void;
   onDelete: (id: string) => void;
   onToggleVisible: (id: string, visible: boolean) => void;
+  isCardHovered: boolean;
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [toggling, setToggling] = useState(false);
@@ -526,11 +535,10 @@ const CardActions = ({
       <button
         onClick={handleToggleVisible}
         title={cancion.visible ? "Ocultar" : "Mostrar"}
-        style={{ ...iconBase, opacity: cancion.visible ? 0 : 0.55 }}
-        className={cancion.visible ? "group-hover:opacity-[0.55]" : ""}
+        style={{ ...iconBase, opacity: cancion.visible ? (isCardHovered ? 0.55 : 0) : 0.55 }}
         onMouseEnter={onHoverIn}
         onMouseLeave={e => {
-          e.currentTarget.style.opacity = cancion.visible ? "0" : "0.55";
+          e.currentTarget.style.opacity = cancion.visible ? (isCardHovered ? "0.55" : "0") : "0.55";
           e.currentTarget.style.background = "transparent";
         }}
       >
@@ -545,14 +553,13 @@ const CardActions = ({
           onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
           style={{
             ...iconBase,
-            opacity: menuOpen ? 1 : 0,
+            opacity: menuOpen ? 1 : (isCardHovered ? 0.55 : 0),
             background: menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
           }}
-          className={menuOpen ? "" : "group-hover:opacity-[0.55]"}
           onMouseEnter={onHoverIn}
           onMouseLeave={e => {
             if (!menuOpen) {
-              e.currentTarget.style.opacity = "0";
+              e.currentTarget.style.opacity = isCardHovered ? "0.55" : "0";
               e.currentTarget.style.background = "transparent";
             }
           }}
