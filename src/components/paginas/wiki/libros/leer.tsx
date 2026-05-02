@@ -410,6 +410,19 @@ export default function Lector() {
   /* ── Carga de datos ── */
   useEffect(() => {
     if (!capId || !id) return;
+
+    // Intentar cargar desde Dexie primero si estamos offline
+    const cargarDesdeCache = async () => {
+      try {
+        const { db } = await import("@/lib/api/client/db");
+        if (!db || !(db as any).capitulos) return null;
+        const todos = await (db as any).capitulos.toArray() as any[];
+        const delLibro = todos.filter((c: any) => !c.deleted);
+        if (delLibro.length === 0) return null;
+        return delLibro;
+      } catch { return null; }
+    };
+
     librosQueries.getCapituloParaLectura(capId, id, true)
       .then(async (queryRes) => {
         if (queryRes.error || !queryRes.data) {
@@ -457,6 +470,16 @@ export default function Lector() {
           _reino:           normOne(c.reino),
         }));
 
+        // Guardar en Dexie para acceso offline posterior
+        try {
+          const { db } = await import("@/lib/api/client/db");
+          if (db && (db as any).capitulos) {
+            await (db as any).capitulos.bulkPut(
+              capsValidas.map(c => ({ ...c, status: "synced" }))
+            );
+          }
+        } catch { /* silencioso — Dexie es opcional */ }
+
         const idsValidos    = new Set(capsValidas.map(c => c.id));
         const listaFiltrada = listaRaw.filter(c => idsValidos.has(c.id));
 
@@ -469,7 +492,26 @@ export default function Lector() {
         const si = segs.findIndex(s => s.capitulos.some(c => c.id === capId));
         setSegActivo(si !== -1 ? si : 0);
       })
-      .catch((err) => { console.error("Error crítico en Lector:", err); setError("Error al abrir el pergamino"); })
+      .catch(async (err) => {
+        console.error("Error crítico en Lector:", err);
+        // Intentar recuperar desde Dexie como fallback
+        const cached = await cargarDesdeCache();
+        if (cached && cached.length > 0) {
+          const capsValidas = cached.map((c: any) => ({
+            id: c.id, orden: c.orden, titulo_capitulo: c.titulo_capitulo,
+            contenido: c.contenido, fecha_publicacion: c.fecha_publicacion,
+            personajes_ids: c.personajes_ids, libros: c.libros,
+            _narrador: c._narrador, _reino: c._reino,
+          }));
+          const segs = buildSegmentos(capsValidas as any);
+          setCapitulos(capsValidas as unknown as CapituloScrollItem[]);
+          setSegmentos(segs);
+          const si = segs.findIndex(s => s.capitulos.some(c => c.id === capId));
+          setSegActivo(si !== -1 ? si : 0);
+        } else {
+          setError("Error al abrir el pergamino");
+        }
+      })
       .finally(() => setLoading(false));
   }, [capId, id]);
 
