@@ -1777,9 +1777,12 @@ function PanelTexto({
     catch { setStatus("error"); }
   };
   return (
-    <div className="flex-1 flex flex-col min-h-0 p-5 gap-4 overflow-y-auto">
-      <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="split" />
-      <div className="flex items-center justify-end gap-3">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto p-5">
+        <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="split" />
+      </div>
+      <div className="shrink-0 flex items-center justify-end gap-3 px-5 py-3 border-t"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <SaveIndicator status={status} />
         <button onClick={handle} disabled={status === "saving"}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
