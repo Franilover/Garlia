@@ -13,6 +13,8 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { ModalDetalle } from "@/components/paginas/wiki/personal/PersonalComponents";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { db } from "@/lib/api/client/db";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type EntidadModal =
@@ -1018,12 +1020,14 @@ function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function MapaInteractivo() {
   const isAdmin = useIsAdmin();
-  const [reinos, setReinos] = useState<any[]>([]);
+
+  // reinos con caché Dexie automático — instantáneo en visitas posteriores
+  const { data: reinos, setData: setReinos, loading } = useSupabaseData<any>("reinos");
+
   const [detallesReino, setDetallesReino] = useState<any[]>([]);
   const [vistaActual, setVistaActual] = useState<"global" | "reino">("global");
   const [reinoSeleccionado, setReinoSeleccionado] = useState<any>(null);
   const [puntoSeleccionado, setPuntoSeleccionado] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [modifiedDetalles, setModifiedDetalles] = useState<Set<string>>(new Set());
@@ -1048,33 +1052,53 @@ export default function MapaInteractivo() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // Solo descubrimientos — reinos ya lo maneja useSupabaseData
   useEffect(() => {
-    supabase.from("reinos").select("*").then(({ data, error }) => {
-      if (!error && data) setReinos(data);
-      setLoading(false);
-    });
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      supabase.from("descubrimientos_personajes").select("personaje_id").eq("perfil_id", user.id).then(({ data }) => {
-        if (data) setPersonajesDesbloqueados(new Set(data.map((r: any) => r.personaje_id)));
-      });
+      supabase
+        .from("descubrimientos_personajes")
+        .select("personaje_id")
+        .eq("perfil_id", user.id)
+        .then(({ data }) => {
+          if (data) setPersonajesDesbloqueados(new Set(data.map((r: any) => r.personaje_id)));
+        });
     });
   }, []);
 
   const handleReinoClick = async (reino: any) => {
     if (editMode) { setReinoSeleccionado(reino); setPanelOpen(true); return; }
+
+    // Abrir el panel inmediatamente sin esperar las queries
     setReinoSeleccionado(reino);
+    setPuntoSeleccionado(null);
+    setVistaActual("reino");
+    setPanelOpen(true);
     setPersonajesReino([]);
     setLibrosReino([]);
     setCapitulosReino([]);
-    setPuntoSeleccionado(null);
 
+    // Mostrar detalles desde Dexie si ya los tenemos cacheados
+    try {
+      if (db) {
+        const cached = await db.reino_detalles
+          .where("reino_id").equals(reino.id)
+          .toArray();
+        if (cached.length > 0) {
+          setDetallesReino(cached.filter((d: any) => !d.deleted));
+        } else {
+          setDetallesReino([]);
+        }
+      }
+    } catch {
+      setDetallesReino([]);
+    }
+
+    // Fetch en background — la UI ya está abierta
     const [detallesRes, personajesRes, librosRes, capitulosRes] = await Promise.all([
       supabase.from("reino_detalles").select("*").eq("reino_id", reino.id),
       supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
-      // Books whose main kingdom is this one
       supabase.from("libros").select("id, titulo, portada_url, estado").eq("reino_id", reino.id).eq("visibilidad", "publico"),
-      // Chapters that take place in this kingdom (join with libro for title)
       supabase.from("capitulos")
         .select("id, titulo_capitulo, orden, libro_id, libros(titulo)")
         .eq("reino_id", reino.id)
@@ -1082,19 +1106,24 @@ export default function MapaInteractivo() {
         .order("orden", { ascending: true }),
     ]);
 
-    if (!detallesRes.error) setDetallesReino(detallesRes.data ?? []);
+    if (!detallesRes.error && detallesRes.data) {
+      setDetallesReino(detallesRes.data);
+      // Guardar en Dexie para próxima visita
+      try {
+        if (db) await db.reino_detalles.bulkPut(detallesRes.data);
+      } catch {}
+    }
+
     if (!personajesRes.error) setPersonajesReino(personajesRes.data ?? []);
     if (!librosRes.error) setLibrosReino(librosRes.data ?? []);
     if (!capitulosRes.error) {
-      const caps = (capitulosRes.data ?? []).map((c: any) => ({
-        ...c,
-        libro_titulo: c.libros?.titulo ?? null,
-      }));
-      setCapitulosReino(caps);
+      setCapitulosReino(
+        (capitulosRes.data ?? []).map((c: any) => ({
+          ...c,
+          libro_titulo: c.libros?.titulo ?? null,
+        }))
+      );
     }
-
-    setVistaActual("reino");
-    setPanelOpen(true);
   };
 
   const handlePersonajeClick = (p: any) => {

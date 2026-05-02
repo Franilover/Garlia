@@ -42,6 +42,7 @@ const DEXIE_TABLES = new Set([
   "tareas", "eventos", "recetas", "ingredientes",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
   "compras", "notas", "ensayos", "rutinas", "ejercicios_rutina",
+  "reino_detalles",
   
   
 ]);
