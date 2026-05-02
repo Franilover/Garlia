@@ -50,8 +50,7 @@ const Biblioteca = () => {
               transition={{ delay: index * 0.05 }}
               className="relative group"
             >
-              <Link href={`/wiki/libros/${libro.id}`}>
-                <div className="cursor-pointer relative">
+              <Link href={`/wiki/libros/${libro.id}`} className="block">
                   <MotionDiv
                     whileHover={{ y: -10 }}
                     className="relative aspect-[3/4] rounded-[var(--radius-card)] overflow-hidden shadow-xl border border-primary/10 bg-white-custom"
@@ -80,7 +79,6 @@ const Biblioteca = () => {
                       &quot;{libro.sinopsis}&quot;
                     </p>
                   </div>
-                </div>
               </Link>
             </MotionDiv>
           ))

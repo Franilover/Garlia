@@ -334,7 +334,7 @@ export default function LibroDetalle() {
                   const acento   = acentos[gi % acentos.length];
                   const label    = grupoLabel(grupo);
                   const img      = grupoImg(grupo);
-                  const primerCapId = capitulos[0]?.id;
+                  const primerCapId = grupo.capitulos[0]?.id;
 
                   return (
                     <div key={gi}>
