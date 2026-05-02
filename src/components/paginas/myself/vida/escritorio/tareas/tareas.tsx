@@ -82,8 +82,7 @@ export const GestionPersonal = () => {
   /* ── Render ── */
   return (
     <div className="
-      h-[calc(100svh-var(--navbar-height,80px)-56px)]
-      md:h-[calc(100svh-var(--navbar-height,80px))]
+      h-full
       flex gap-3 pb-3 overflow-hidden
       flex-col lg:flex-row
     ">

@@ -382,7 +382,7 @@ export default function Ensayos() {
         }
       `}</style>
 
-      <div className="ensayos-root h-[calc(100svh-var(--navbar-height,80px)-56px)] md:h-[calc(100svh-var(--navbar-height,80px))]">
+      <div className="ensayos-root h-full">
         <EstudioLayout
           titulo=" Notas "
           icono={<PenTool size={12} />}
