@@ -440,77 +440,159 @@ const CapituloItem = ({
   onDelete: (id: string) => void;
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hovered,  setHovered]  = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { confirm, ConfirmModal } = useConfirm();
 
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
 
+  const btnOpacity = menuOpen ? 1 : hovered ? 0.55 : 0;
+
   return (
-    <div className="relative group/cap">
+    <div
+      style={{ position: "relative" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <button
         onClick={onClick}
-        className={`w-full text-left px-3 py-2 rounded-lg transition-all border text-[11px] font-bold ${
-          selected
-            ? "bg-primary text-bg-main border-primary shadow-md shadow-primary/15"
-            : "border-transparent hover:bg-primary/5 hover:border-primary/10 text-primary/70"
-        }`}
+        style={{
+          width: "100%",
+          textAlign: "left",
+          padding: "6px 32px 6px 10px",
+          borderRadius: 7,
+          border: "1px solid",
+          borderColor: selected
+            ? "var(--primary)"
+            : hovered
+            ? "color-mix(in srgb, var(--primary) 18%, transparent)"
+            : "transparent",
+          background: selected
+            ? "var(--primary)"
+            : hovered
+            ? "color-mix(in srgb, var(--primary) 5%, transparent)"
+            : "transparent",
+          color: selected ? "var(--bg-main)" : "var(--primary)",
+          fontSize: 10,
+          fontFamily: "var(--font-mono, monospace)",
+          fontWeight: 900,
+          textTransform: "uppercase" as const,
+          letterSpacing: "0.04em",
+          transition: "background 0.12s, border-color 0.12s, color 0.12s",
+          cursor: "pointer",
+        }}
       >
-        <span className="flex items-center gap-2 pr-5">
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {/* Número de orden */}
+          <span style={{
+            fontSize: 8,
+            opacity: selected ? 0.6 : 0.35,
+            fontVariantNumeric: "tabular-nums",
+            flexShrink: 0,
+          }}>
+            {String(cap.orden).padStart(2, "0")}
+          </span>
+          {/* Indicadores */}
           {cap.status === "pending" && (
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" title="Pendiente de sync" />
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#60a5fa", flexShrink: 0 }} title="Pendiente de sync" />
           )}
           {cap.visibilidad === "oculto" && (
-            <Lock size={9} className="shrink-0 opacity-40" />
+            <Lock size={8} style={{ opacity: selected ? 0.5 : 0.3, flexShrink: 0 }} />
           )}
-          {cap.visibilidad === "programado" && new Date(cap.fecha_publicacion) > new Date() && (
-            <Timer size={9} className="shrink-0 opacity-40" />
+          {cap.visibilidad === "programado" && cap.fecha_publicacion && new Date(cap.fecha_publicacion) > new Date() && (
+            <Timer size={8} style={{ opacity: selected ? 0.5 : 0.3, flexShrink: 0 }} />
           )}
-          <span className="truncate">
-            {cap.orden}. {cap.titulo_capitulo}
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {cap.titulo_capitulo}
           </span>
         </span>
       </button>
 
-      <div ref={menuRef} className="absolute top-1 right-1">
+      {/* Menú de tres puntos */}
+      <div ref={menuRef} style={{ position: "absolute", top: 4, right: 4 }}>
         <button
           onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
-          className={`p-1 rounded transition-all ${
-            menuOpen
-              ? "bg-primary/20 text-primary opacity-100"
-              : selected
-                ? "opacity-50 hover:opacity-100 text-bg-main hover:bg-bg-main/20"
-                : "opacity-0 group-hover/cap:opacity-100 text-primary/40 hover:bg-primary/10 hover:text-primary"
-          }`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 22,
+            height: 22,
+            borderRadius: 5,
+            border: "none",
+            background: menuOpen
+              ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+              : "transparent",
+            color: selected ? "var(--bg-main)" : "var(--primary)",
+            opacity: btnOpacity,
+            cursor: "pointer",
+            transition: "opacity 0.1s, background 0.1s",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.opacity = "1";
+            e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 12%, transparent)";
+          }}
+          onMouseLeave={e => {
+            if (!menuOpen) {
+              e.currentTarget.style.opacity = hovered ? "0.55" : "0";
+              e.currentTarget.style.background = "transparent";
+            }
+          }}
         >
           <MoreHorizontal size={11} />
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 top-7 z-50 min-w-[150px] bg-bg-main border border-primary/15 rounded-xl shadow-xl py-1 overflow-hidden">
+          <div style={{
+            position: "absolute",
+            right: 0,
+            top: "calc(100% + 4px)",
+            zIndex: 50,
+            minWidth: 148,
+            background: "var(--white-custom)",
+            border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+            borderRadius: 8,
+            boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)",
+            padding: 3,
+            overflow: "hidden",
+          }}>
             <button
               onClick={e => { e.stopPropagation(); setMenuOpen(false); onEdit(cap); }}
-              className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2"
+              style={{
+                width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
+                padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
+                fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+                textTransform: "uppercase" as const, letterSpacing: "0.1em",
+                color: "var(--text-on-card)", opacity: 0.65, cursor: "pointer", transition: "opacity 0.1s, background 0.1s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = "0.65"; e.currentTarget.style.background = "transparent"; }}
             >
               <Pencil size={10} /> Editar
             </button>
-            <div className="h-px bg-primary/8 mx-2 my-1" />
+            <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 10%, transparent)", margin: "2px 6px" }} />
             <button
               onClick={async e => {
-                e.stopPropagation();
-                setMenuOpen(false);
+                e.stopPropagation(); setMenuOpen(false);
                 const ok = await confirm({ message: `¿Eliminar "${cap.titulo_capitulo}"?`, danger: true });
                 if (ok) onDelete(cap.id);
               }}
-              className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-red-400/70 hover:bg-red-500/8 hover:text-red-400 transition-all flex items-center gap-2"
+              style={{
+                width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 7,
+                padding: "6px 10px", borderRadius: 5, border: "none", background: "transparent",
+                fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+                textTransform: "uppercase" as const, letterSpacing: "0.1em",
+                color: "var(--accent)", opacity: 0.7, cursor: "pointer", transition: "opacity 0.1s, background 0.1s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)"; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; }}
             >
               <Trash2 size={10} /> Eliminar
             </button>
@@ -536,70 +618,120 @@ const LibroItem = ({
   onNuevoCap: (libroId: string) => void;
 }) => {
   const { capitulos, loading } = useCapitulos(expanded ? libro.id : null);
+  const [rowHovered, setRowHovered] = useState(false);
 
   return (
-    <div className="mb-1">
-      <div className="relative flex items-center gap-1 group/libro">
-      <button
-        onClick={onToggle}
-        className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-primary/5 transition-all text-left"
+    <div style={{ marginBottom: 2 }}>
+      <div
+        style={{ display: "flex", alignItems: "center", gap: 2, position: "relative" }}
+        onMouseEnter={() => setRowHovered(true)}
+        onMouseLeave={() => setRowHovered(false)}
       >
-        <BookMarked size={12} className="text-primary/30 shrink-0" />
-        <span className="flex-1 text-xs font-black uppercase italic tracking-tight text-primary leading-tight truncate">
-          {libro.titulo}
-        </span>
-        {libro.visibilidad && libro.visibilidad !== "publico" && (() => {
-          const cfg = VISIBILIDAD_CONFIG[libro.visibilidad] ?? VISIBILIDAD_CONFIG.oculto;
-          const Icon = cfg.icon;
-          return (
-            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border shrink-0 flex items-center gap-0.5 ${cfg.color}`}>
-              <Icon size={8} />
-            </span>
-          );
-        })()}
-        {libro.estado && (
-          <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border shrink-0 ${ESTADO_COLOR[libro.estado] || ESTADO_COLOR.BORRADOR}`}>
-            {libro.estado === "EN PROCESO" ? "WIP" : libro.estado === "FINALIZADO" ? "✓" : "…"}
+        <button
+          onClick={onToggle}
+          style={{
+            flex: 1, display: "flex", alignItems: "center", gap: 8,
+            padding: "8px 10px", borderRadius: 7, textAlign: "left",
+            background: expanded ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
+            border: "1px solid",
+            borderColor: expanded
+              ? "color-mix(in srgb, var(--primary) 14%, transparent)"
+              : "transparent",
+            cursor: "pointer", transition: "background 0.12s, border-color 0.12s",
+          }}
+          onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)"; }}
+          onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = "transparent"; }}
+        >
+          <BookMarked size={11} style={{ color: "var(--primary)", opacity: 0.3, flexShrink: 0 }} />
+          <span style={{
+            flex: 1, fontSize: 10, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+            fontStyle: "italic", textTransform: "uppercase" as const, letterSpacing: "0.06em",
+            color: "var(--primary)", lineHeight: 1.3,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {libro.titulo}
           </span>
-        )}
-        {expanded
-          ? <ChevronDown size={11} className="text-primary/25 shrink-0"/>
-          : <ChevronRight size={11} className="text-primary/25 shrink-0"/>
-        }
-      </button>
-      <button
-        onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEditLibro(libro); }}
-        className="opacity-0 group-hover/libro:opacity-100 p-1.5 rounded-lg hover:bg-primary/10 text-primary/25 hover:text-primary transition-all mr-1 shrink-0"
-        title="Editar libro"
-      >
-        <Pencil size={10}/>
-      </button>
+          {libro.estado && (
+            <span style={{
+              fontSize: 7, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+              textTransform: "uppercase" as const, letterSpacing: "0.08em",
+              padding: "1px 5px", borderRadius: 3, border: "1px solid", flexShrink: 0,
+              ...(libro.estado === "FINALIZADO"
+                ? { borderColor: "color-mix(in srgb, #22c55e 40%, transparent)", color: "#22c55e", background: "color-mix(in srgb, #22c55e 8%, transparent)" }
+                : libro.estado === "EN PROCESO"
+                ? { borderColor: "color-mix(in srgb, #eab308 40%, transparent)", color: "#eab308", background: "color-mix(in srgb, #eab308 8%, transparent)" }
+                : { borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)", background: "transparent", opacity: 0.4 }),
+            }}>
+              {libro.estado === "EN PROCESO" ? "WIP" : libro.estado === "FINALIZADO" ? "done" : "…"}
+            </span>
+          )}
+          {expanded
+            ? <ChevronDown size={10} style={{ color: "var(--primary)", opacity: 0.3, flexShrink: 0 }} />
+            : <ChevronRight size={10} style={{ color: "var(--primary)", opacity: 0.3, flexShrink: 0 }} />
+          }
+        </button>
+
+        {/* Botón editar libro */}
+        <button
+          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEditLibro(libro); }}
+          title="Editar libro"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 26, height: 26, borderRadius: 5, border: "none", flexShrink: 0,
+            background: "transparent", color: "var(--primary)",
+            opacity: rowHovered ? 0.45 : 0, cursor: "pointer",
+            transition: "opacity 0.1s, background 0.1s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
+          onMouseLeave={e => { e.currentTarget.style.opacity = rowHovered ? "0.45" : "0"; e.currentTarget.style.background = "transparent"; }}
+        >
+          <Pencil size={10} />
+        </button>
       </div>
 
       {expanded && (
-        <div className="ml-4 pl-3 border-l border-primary/10 mt-1 space-y-0.5">
+        <div style={{
+          marginLeft: 16, paddingLeft: 12,
+          borderLeft: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          marginTop: 4,
+        }}>
           {loading ? (
-            <div className="py-3 flex justify-center"><Loader2 size={14} className="animate-spin text-primary/20"/></div>
+            <div style={{ display: "flex", justifyContent: "center", padding: "10px 0" }}>
+              <Loader2 size={12} className="animate-spin" style={{ color: "var(--primary)", opacity: 0.2 }} />
+            </div>
           ) : capitulos.length === 0 ? (
-            <p className="text-[9px] text-primary/25 font-black uppercase tracking-widest px-2 py-2">Sin capítulos</p>
-          ) : (
-            capitulos.map(cap => (
-              <CapituloItem
-                key={cap.id}
-                cap={cap}
-                selected={selectedCapId === cap.id}
-                onClick={() => onSelectCap(libro.id, cap.id)}
-                onEdit={onEditCap}
-                onDelete={id => onDeleteCap(id, libro.id)}
-              />
-            ))
-          )}
-          <div className="pt-1 pb-0.5">
+            <p style={{
+              fontSize: 8, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+              textTransform: "uppercase", letterSpacing: "0.12em",
+              color: "var(--primary)", opacity: 0.2, padding: "8px 6px",
+            }}>Sin capítulos</p>
+          ) : capitulos.map(cap => (
+            <CapituloItem
+              key={cap.id}
+              cap={cap}
+              selected={selectedCapId === cap.id}
+              onClick={() => onSelectCap(libro.id, cap.id)}
+              onEdit={onEditCap}
+              onDelete={id => onDeleteCap(id, libro.id)}
+            />
+          ))}
+          <div style={{ paddingTop: 4, paddingBottom: 2 }}>
             <button
               onClick={() => onNuevoCap(libro.id)}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase text-primary/25 hover:text-primary/60 hover:border-primary/30 hover:bg-primary/3 transition-all tracking-widest"
+              style={{
+                width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+                gap: 5, padding: "6px 0", borderRadius: 6,
+                border: "1px dashed color-mix(in srgb, var(--primary) 15%, transparent)",
+                background: "transparent",
+                fontSize: 8, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+                textTransform: "uppercase" as const, letterSpacing: "0.1em",
+                color: "var(--primary)", opacity: 0.3, cursor: "pointer",
+                transition: "opacity 0.1s, background 0.1s, border-color 0.1s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 4%, transparent)"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 30%, transparent)"; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 15%, transparent)"; }}
             >
-              <Plus size={10}/> Nuevo Capítulo
+              <Plus size={9} /> Nuevo capítulo
             </button>
           </div>
         </div>
@@ -2049,56 +2181,128 @@ const LibroColumna = ({
   onNuevoCap: (libroId: string) => void;
 }) => {
   const { capitulos, loading } = useCapitulos(libro.id);
+  const [hdrHovered, setHdrHovered] = useState(false);
   const isSelected = capitulos.some(c => c.id === selectedCapId);
 
   return (
     <div
-      className="shrink-0 w-72 flex flex-col border-r overflow-hidden transition-all"
       style={{
-        borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        flexShrink: 0,
+        width: 220,
+        display: "flex",
+        flexDirection: "column",
+        borderRight: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+        overflow: "hidden",
         background: isSelected
-          ? "color-mix(in srgb, var(--primary) 3%, transparent)"
+          ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
           : "transparent",
+        transition: "background 0.15s",
       }}
     >
       {/* Cabecera del libro */}
       <div
-        className="group/libhdr px-3 py-2 border-b flex items-center gap-1.5 shrink-0"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        style={{
+          padding: "10px 10px 8px",
+          borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexShrink: 0,
+        }}
+        onMouseEnter={() => setHdrHovered(true)}
+        onMouseLeave={() => setHdrHovered(false)}
       >
+        {/* Portada o ícono */}
         {libro.portada_url ? (
-          <img src={libro.portada_url} alt="" className="w-5 h-5 rounded object-cover shrink-0 border border-primary/10" />
+          <img
+            src={libro.portada_url}
+            alt=""
+            style={{ width: 22, height: 30, borderRadius: 3, objectFit: "cover", flexShrink: 0, border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}
+          />
         ) : (
-          <BookMarked size={10} className="text-primary/25 shrink-0" />
+          <div style={{
+            width: 22, height: 30, borderRadius: 3, flexShrink: 0, display: "flex",
+            alignItems: "center", justifyContent: "center",
+            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}>
+            <BookMarked size={10} style={{ color: "var(--primary)", opacity: 0.3 }} />
+          </div>
         )}
-        <span
-          className="flex-1 text-[10px] font-black uppercase italic tracking-tight text-primary/80 leading-tight line-clamp-2"
-          title={libro.titulo}
-        >
+
+        {/* Título */}
+        <span style={{
+          flex: 1,
+          fontSize: 9,
+          fontFamily: "var(--font-mono, monospace)",
+          fontWeight: 900,
+          fontStyle: "italic",
+          textTransform: "uppercase" as const,
+          letterSpacing: "0.06em",
+          color: "var(--primary)",
+          opacity: 0.8,
+          lineHeight: 1.3,
+          overflow: "hidden",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical" as any,
+        }} title={libro.titulo}>
           {libro.titulo}
         </span>
+
+        {/* Badge estado */}
         {libro.estado && (
-          <span className={`shrink-0 text-[7px] font-black uppercase px-1 py-0.5 rounded-full border ${ESTADO_COLOR[libro.estado] || ESTADO_COLOR.BORRADOR}`}>
-            {libro.estado === "EN PROCESO" ? "WIP" : libro.estado === "FINALIZADO" ? "✓" : "…"}
+          <span style={{
+            fontSize: 7,
+            fontFamily: "var(--font-mono, monospace)",
+            fontWeight: 900,
+            textTransform: "uppercase" as const,
+            letterSpacing: "0.08em",
+            padding: "1px 5px",
+            borderRadius: 3,
+            border: "1px solid",
+            flexShrink: 0,
+            ...(libro.estado === "FINALIZADO"
+              ? { borderColor: "color-mix(in srgb, #22c55e 40%, transparent)", color: "#22c55e", background: "color-mix(in srgb, #22c55e 8%, transparent)" }
+              : libro.estado === "EN PROCESO"
+              ? { borderColor: "color-mix(in srgb, #eab308 40%, transparent)", color: "#eab308", background: "color-mix(in srgb, #eab308 8%, transparent)" }
+              : { borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 6%, transparent)", opacity: 0.5 }),
+          }}>
+            {libro.estado === "EN PROCESO" ? "WIP" : libro.estado === "FINALIZADO" ? "done" : "…"}
           </span>
         )}
+
+        {/* Botón editar libro */}
         <button
           onClick={() => onEditLibro(libro)}
-          className="opacity-0 group-hover/libhdr:opacity-100 shrink-0 p-0.5 rounded text-primary/25 hover:text-primary transition-all"
           title="Editar libro"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: 20, height: 20, borderRadius: 4, border: "none",
+            background: "transparent", color: "var(--primary)",
+            opacity: hdrHovered ? 0.5 : 0,
+            cursor: "pointer", flexShrink: 0,
+            transition: "opacity 0.1s, background 0.1s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
+          onMouseLeave={e => { e.currentTarget.style.opacity = hdrHovered ? "0.5" : "0"; e.currentTarget.style.background = "transparent"; }}
         >
           <Pencil size={9} />
         </button>
       </div>
 
       {/* Lista de capítulos */}
-      <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
+      <div style={{ flex: 1, overflowY: "auto", padding: "6px 6px" }}>
         {loading ? (
-          <div className="flex justify-center py-4">
-            <Loader2 size={12} className="animate-spin text-primary/20" />
+          <div style={{ display: "flex", justifyContent: "center", padding: "16px 0" }}>
+            <Loader2 size={12} className="animate-spin" style={{ color: "var(--primary)", opacity: 0.2 }} />
           </div>
         ) : capitulos.length === 0 ? (
-          <p className="text-[8px] text-primary/20 font-black uppercase tracking-widest px-1.5 py-3 text-center">
+          <p style={{
+            fontSize: 8, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+            textTransform: "uppercase", letterSpacing: "0.12em",
+            color: "var(--primary)", opacity: 0.2, textAlign: "center", padding: "12px 6px",
+          }}>
             Sin capítulos
           </p>
         ) : capitulos.map(cap => (
@@ -2114,15 +2318,34 @@ const LibroColumna = ({
       </div>
 
       {/* Footer: nuevo capítulo */}
-      <div
-        className="shrink-0 p-1.5 border-t"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
-      >
+      <div style={{
+        flexShrink: 0, padding: "6px",
+        borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+      }}>
         <button
           onClick={() => onNuevoCap(libro.id)}
-          className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg border border-dashed border-primary/12 text-[8px] font-black uppercase tracking-widest text-primary/20 hover:text-primary/60 hover:border-primary/30 hover:bg-primary/3 transition-all"
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+            gap: 5, padding: "6px 0", borderRadius: 6,
+            border: "1px dashed color-mix(in srgb, var(--primary) 18%, transparent)",
+            background: "transparent",
+            fontSize: 8, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+            textTransform: "uppercase" as const, letterSpacing: "0.1em",
+            color: "var(--primary)", opacity: 0.3, cursor: "pointer",
+            transition: "opacity 0.1s, background 0.1s, border-color 0.1s",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.opacity = "0.75";
+            e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
+            e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 35%, transparent)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.opacity = "0.3";
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 18%, transparent)";
+          }}
         >
-          <Plus size={9} /> Cap
+          <Plus size={9} /> Nuevo cap
         </button>
       </div>
     </div>
@@ -2202,38 +2425,75 @@ export default function EstudioCapitulos() {
 
         {/* ── Topbar ── */}
         <div
-          className="shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 20px",
+            borderBottom: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+            background: "var(--bg-main)",
+          }}
         >
-          {/* Desktop: icono + título */}
-          <div className="hidden sm:flex items-center gap-2 shrink-0">
-            <BookOpen size={12} className="text-primary/40" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40 italic">
-              Estudio de Capítulos
+          {/* Brand - desktop */}
+          <div className="hidden sm:flex" style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, borderRight: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)", paddingRight: 12, marginRight: 2 }}>
+            <BookOpen size={12} style={{ color: "var(--primary)", opacity: 0.4 }} />
+            <span style={{
+              fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+              textTransform: "uppercase", letterSpacing: "0.14em",
+              color: "var(--foreground)", opacity: 0.45,
+            }}>
+              Capítulos
             </span>
           </div>
 
-          {/* Mobile: botón volver (solo cuando hay cap abierto) */}
-          {selectedCapId ? (
+          {/* Mobile: botón volver */}
+          {selectedCapId && (
             <button
               onClick={() => { setSelectedCapId(null); setSidebarOpen(true); }}
-              className="sm:hidden flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-primary/50 hover:text-primary hover:bg-primary/8 transition-all shrink-0"
+              className="sm:hidden"
+              style={{
+                display: "flex", alignItems: "center", gap: 5,
+                fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+                textTransform: "uppercase", letterSpacing: "0.12em",
+                color: "var(--primary)", opacity: 0.5, background: "none", border: "none",
+                cursor: "pointer", flexShrink: 0, transition: "opacity 0.1s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; }}
             >
-              <ArrowLeft size={13} />
-              Volver
+              <ArrowLeft size={11} /> Libros
             </button>
-          ) : (
-            <BookOpen size={13} className="sm:hidden text-primary/40 shrink-0" />
           )}
 
+          {/* Offline badge */}
           {listaOffline && (
-            <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-orange-400 border border-orange-400/30 bg-orange-400/8 px-2 py-0.5 rounded-full shrink-0">
-              <WifiOff size={8} /><span className="hidden sm:inline ml-1">Offline</span>
+            <span style={{
+              display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
+              fontSize: 8, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+              textTransform: "uppercase", letterSpacing: "0.1em", color: "#fb923c",
+              border: "1px solid color-mix(in srgb, #fb923c 30%, transparent)",
+              background: "color-mix(in srgb, #fb923c 8%, transparent)",
+              padding: "2px 8px", borderRadius: 20,
+            }}>
+              <WifiOff size={8} />
+              <span className="hidden sm:inline">Offline</span>
             </span>
           )}
 
-          {/* Buscador con comando "add" */}
-          <div className="relative flex-1">
+          {/* Buscador */}
+          <div style={{
+            flex: 1, height: 36, display: "flex", alignItems: "center",
+            border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+            borderRadius: 8, overflow: "hidden", background: "var(--input-bg)",
+            transition: "border-color 0.15s, box-shadow 0.15s",
+          }}
+            onFocus={() => {}}
+            className="focus-within:[border-color:color-mix(in_srgb,var(--primary)_50%,transparent)]"
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "0 10px", color: "var(--primary)", opacity: 0.45, flexShrink: 0 }}>
+              <Search size={12} />
+            </div>
             <input
               type="text"
               value={busqueda}
@@ -2246,40 +2506,106 @@ export default function EstudioCapitulos() {
                   setBusqueda(v);
                 }
               }}
-              placeholder="Buscar libro… · escribe «add»"
-              className="w-full bg-primary/5 border border-primary/15 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] font-medium text-primary placeholder:text-primary/25 outline-none focus:border-primary/40 focus:bg-primary/8 transition-all"
+              placeholder="buscar libro… (escribe «add» para añadir)"
+              style={{
+                flex: 1, background: "transparent", border: "none", outline: "none",
+                padding: "9px 0", fontSize: 12, fontFamily: "var(--font-mono, monospace)",
+                color: "var(--input-text)", letterSpacing: "0.02em",
+              }}
             />
             {busqueda && (
-              <button
-                onClick={() => setBusqueda("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
-              >
-                <X size={11} />
-              </button>
+              <>
+                <div style={{ width: 1, height: 16, background: "color-mix(in srgb, var(--primary) 18%, transparent)", flexShrink: 0, margin: "0 2px" }} />
+                <button
+                  onClick={() => setBusqueda("")}
+                  title="Limpiar"
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 28, height: 28, marginRight: 3, borderRadius: 5, border: "none",
+                    background: "transparent", color: "var(--primary)", opacity: 0.5, cursor: "pointer",
+                    transition: "opacity 0.1s, background 0.1s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <X size={11} />
+                </button>
+              </>
             )}
           </div>
 
+          {/* Botón nuevo libro */}
+          <button
+            onClick={() => setShowNuevoLibro(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 4, padding: "0 12px",
+              height: 36, flexShrink: 0, whiteSpace: "nowrap",
+              border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+              borderRadius: 6, background: "transparent",
+              fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
+              textTransform: "uppercase", letterSpacing: "0.1em",
+              color: "var(--primary)", opacity: 0.7, cursor: "pointer",
+              transition: "opacity 0.15s, background 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)"; e.currentTarget.style.borderColor = "var(--primary)"; }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 30%, transparent)"; }}
+          >
+            <Plus size={11} />
+            <span className="hidden sm:inline">Nuevo</span>
+          </button>
+
+          {/* Recargar */}
           <button
             onClick={refetch}
             title="Recargar"
-            className="p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all shrink-0"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 32, height: 32, borderRadius: 6, border: "none",
+              background: "transparent", color: "var(--primary)",
+              opacity: 0.3, cursor: "pointer", flexShrink: 0,
+              transition: "opacity 0.1s, background 0.1s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent"; }}
           >
             <RefreshCw size={12} />
           </button>
+
+          {/* Modo foco (desktop, solo con cap abierto) */}
           {selectedCapId && (
             <button
               onClick={() => setFocusMode(m => !m)}
               title="Modo foco"
-              className="hidden sm:block p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all"
+              className="hidden sm:flex"
+              style={{
+                alignItems: "center", justifyContent: "center",
+                width: 32, height: 32, borderRadius: 6, border: "none",
+                background: "transparent", color: "var(--primary)",
+                opacity: 0.3, cursor: "pointer", flexShrink: 0,
+                transition: "opacity 0.1s, background 0.1s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent"; }}
             >
               {focusMode ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
             </button>
           )}
+
+          {/* Toggle sidebar (desktop, solo con cap abierto) */}
           {selectedCapId && (
             <button
               onClick={() => setSidebarOpen(o => !o)}
               title={sidebarOpen ? "Ocultar biblioteca" : "Mostrar biblioteca"}
-              className="hidden sm:block p-1.5 rounded-lg text-primary/25 hover:text-primary hover:bg-primary/8 transition-all shrink-0"
+              className="hidden sm:flex"
+              style={{
+                alignItems: "center", justifyContent: "center",
+                width: 32, height: 32, borderRadius: 6, border: "none",
+                background: "transparent", color: "var(--primary)",
+                opacity: 0.3, cursor: "pointer", flexShrink: 0,
+                transition: "opacity 0.1s, background 0.1s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent"; }}
             >
               {sidebarOpen ? <PanelLeftClose size={12} /> : <PanelLeftOpen size={12} />}
             </button>
