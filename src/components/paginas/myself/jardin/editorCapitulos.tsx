@@ -20,7 +20,7 @@ import {
 } from "@/hooks/useEditorShared";
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
 import { db } from "@/lib/api/client/db";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, EmptyEstudio, ModalBase, SaveIndicator, CampoInput, BotonSubmit, normalize } from "@/components/templates/EstudioTemplates";
