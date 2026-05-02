@@ -20,26 +20,36 @@ import { ModalEditarCancion } from "./components/modals/ModalEditarCancion";
 import type { Cancion, Filtros } from "./types";
 
 /* ─── Estilos compartidos con el MarkdownEditor ─────────────────────────────── */
+/*
+  Estrategia de contraste:
+  - Texto legible: usamos --foreground directamente (sin mezcla) para texto principal,
+    y opacity CSS para los matices sutiles — así escala bien en todos los temas.
+  - Bordes: color-mix al 15–20% de --primary (más estable que --foreground) sobre --bg-main.
+  - Fondos de controles: --input-bg del tema, que ya está calibrado para cada modo.
+  - Hover: --primary al 10–12% de fondo, --primary directo para texto.
+*/
 const SEARCH_STYLES = `
-  /* Barra de búsqueda — estilo toolbar del MarkdownEditor */
+  /* ── Barra de búsqueda ── */
   .search-bar-wrap {
     display: flex;
     align-items: center;
-    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
     border-radius: 8px;
     overflow: hidden;
-    background: color-mix(in srgb, var(--bg-menu) 40%, transparent);
-    transition: border-color 0.15s;
+    background: var(--input-bg);
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
   .search-bar-wrap:focus-within {
-    border-color: color-mix(in srgb, var(--foreground) 20%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent);
   }
   .search-bar-icon {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0 10px;
-    color: color-mix(in srgb, var(--foreground) 20%, transparent);
+    color: var(--primary);
+    opacity: 0.45;
     flex-shrink: 0;
   }
   .search-bar-input {
@@ -50,45 +60,47 @@ const SEARCH_STYLES = `
     padding: 9px 0;
     font-size: 12px;
     font-family: var(--font-mono, monospace);
-    color: color-mix(in srgb, var(--foreground) 80%, transparent);
+    color: var(--input-text);
     letter-spacing: 0.02em;
   }
   .search-bar-input::placeholder {
-    color: color-mix(in srgb, var(--foreground) 20%, transparent);
+    color: var(--input-text);
+    opacity: 0.35;
     font-style: italic;
   }
   .search-bar-clear {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
-    margin-right: 2px;
+    width: 28px;
+    height: 28px;
+    margin-right: 3px;
     border-radius: 5px;
     border: none;
     background: transparent;
-    color: color-mix(in srgb, var(--foreground) 25%, transparent);
+    color: var(--primary);
+    opacity: 0.5;
     cursor: pointer;
-    transition: color 0.1s, background 0.1s;
+    transition: opacity 0.1s, background 0.1s;
   }
   .search-bar-clear:hover {
-    color: color-mix(in srgb, var(--foreground) 60%, transparent);
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
+    opacity: 1;
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
   }
   .search-bar-divider {
     width: 1px;
     height: 16px;
-    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
     flex-shrink: 0;
     margin: 0 2px;
   }
 
-  /* Botón filtros — estilo toggle edit/preview del MarkdownEditor */
+  /* ── Botón filtros (vive dentro de la barra) ── */
   .filters-btn {
     display: flex;
     align-items: center;
     gap: 5px;
-    padding: 0 10px;
+    padding: 0 12px;
     height: 100%;
     border: none;
     background: transparent;
@@ -97,18 +109,20 @@ const SEARCH_STYLES = `
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: color-mix(in srgb, var(--foreground) 25%, transparent);
+    color: var(--primary);
+    opacity: 0.55;
     cursor: pointer;
-    transition: color 0.1s, background 0.1s;
+    transition: opacity 0.1s, background 0.1s;
     white-space: nowrap;
   }
   .filters-btn:hover {
-    color: color-mix(in srgb, var(--foreground) 55%, transparent);
-    background: color-mix(in srgb, var(--foreground) 4%, transparent);
+    opacity: 1;
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
   }
   .filters-btn.active {
-    color: color-mix(in srgb, var(--color-primary, #7c6af7) 90%, white);
-    background: color-mix(in srgb, var(--color-primary, #7c6af7) 10%, transparent);
+    opacity: 1;
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
   }
   .filters-badge {
     display: flex;
@@ -117,36 +131,36 @@ const SEARCH_STYLES = `
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: var(--color-primary, #7c6af7);
-    color: var(--bg-main, #0d0d14);
+    background: var(--primary);
+    color: var(--btn-text);
     font-size: 7px;
     font-weight: 900;
   }
 
-  /* Cards de resultados — inspiradas en la vista previa del MarkdownEditor */
+  /* ── Cards de canciones ── */
   .song-card {
-    border: 1px solid color-mix(in srgb, var(--foreground) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent);
     border-radius: 8px;
     overflow: hidden;
-    background: color-mix(in srgb, var(--bg-menu) 40%, transparent);
+    background: var(--white-custom);
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
     position: relative;
   }
   .song-card:hover {
-    border-color: color-mix(in srgb, var(--color-primary, #7c6af7) 25%, transparent);
-    background: color-mix(in srgb, var(--color-primary, #7c6af7) 4%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+    box-shadow: 0 2px 12px color-mix(in srgb, var(--primary) 10%, transparent);
   }
   .song-card-accent {
     height: 2px;
     width: 100%;
-    background: color-mix(in srgb, var(--color-primary, #7c6af7) 20%, transparent);
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
   }
   .song-card-accent.terminada {
-    background: color-mix(in srgb, #4ade80 30%, transparent);
+    background: color-mix(in srgb, #4ade80 55%, transparent);
   }
   .song-card-accent.en-proceso {
-    background: color-mix(in srgb, #facc15 30%, transparent);
+    background: color-mix(in srgb, #facc15 55%, transparent);
   }
   .song-card-body {
     padding: 12px 14px 14px;
@@ -171,7 +185,7 @@ const SEARCH_STYLES = `
     text-transform: uppercase;
     letter-spacing: 0.06em;
     line-height: 1.3;
-    color: var(--color-primary, #7c6af7);
+    color: var(--primary);
     margin-bottom: 5px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -181,7 +195,8 @@ const SEARCH_STYLES = `
   .song-card-sub {
     font-size: 9px;
     font-family: var(--font-mono, monospace);
-    color: color-mix(in srgb, var(--foreground) 30%, transparent);
+    color: var(--text-on-card);
+    opacity: 0.5;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -193,7 +208,8 @@ const SEARCH_STYLES = `
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: color-mix(in srgb, var(--foreground) 18%, transparent);
+    color: var(--text-on-card);
+    opacity: 0.3;
     margin-top: 4px;
   }
   .song-card-actions {
@@ -202,7 +218,7 @@ const SEARCH_STYLES = `
     right: 10px;
   }
 
-  /* Estado vacío */
+  /* ── Estado vacío ── */
   .empty-state {
     display: flex;
     flex-direction: column;
@@ -210,17 +226,18 @@ const SEARCH_STYLES = `
     justify-content: center;
     padding: 80px 24px;
     gap: 12px;
-    color: color-mix(in srgb, var(--foreground) 18%, transparent);
   }
   .empty-state-icon {
     width: 40px;
     height: 40px;
-    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: color-mix(in srgb, var(--bg-menu) 40%, transparent);
+    background: var(--white-custom);
+    color: var(--primary);
+    opacity: 0.5;
     margin-bottom: 4px;
   }
   .empty-state-label {
@@ -229,7 +246,8 @@ const SEARCH_STYLES = `
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    color: color-mix(in srgb, var(--foreground) 22%, transparent);
+    color: var(--foreground);
+    opacity: 0.35;
   }
   .empty-state-clear {
     font-size: 8px;
@@ -237,19 +255,21 @@ const SEARCH_STYLES = `
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: color-mix(in srgb, var(--foreground) 25%, transparent);
+    color: var(--primary);
+    opacity: 0.55;
     background: none;
-    border: none;
-    cursor: pointer;
-    transition: color 0.1s;
-    padding: 4px 8px;
+    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
     border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.1s, border-color 0.1s;
+    padding: 4px 10px;
   }
   .empty-state-clear:hover {
-    color: color-mix(in srgb, var(--color-primary, #7c6af7) 70%, white);
+    opacity: 1;
+    border-color: color-mix(in srgb, var(--primary) 50%, transparent);
   }
 
-  /* Contador de resultados */
+  /* ── Contador de resultados ── */
   .results-meta {
     display: flex;
     align-items: center;
@@ -262,7 +282,8 @@ const SEARCH_STYLES = `
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    color: color-mix(in srgb, var(--foreground) 22%, transparent);
+    color: var(--foreground);
+    opacity: 0.4;
   }
   .results-clear {
     font-size: 8px;
@@ -270,29 +291,30 @@ const SEARCH_STYLES = `
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: color-mix(in srgb, #f87171 60%, transparent);
+    color: var(--accent);
+    opacity: 0.7;
     background: none;
     border: none;
     cursor: pointer;
-    transition: color 0.1s;
+    transition: opacity 0.1s;
   }
   .results-clear:hover {
-    color: #f87171;
+    opacity: 1;
   }
 
-  /* Panel filtros */
+  /* ── Panel filtros desplegable ── */
   .filters-panel {
-    border-top: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
-    background: color-mix(in srgb, var(--bg-menu) 25%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--primary) 12%, transparent);
+    background: color-mix(in srgb, var(--primary) 5%, var(--bg-main));
   }
 
-  /* Header */
+  /* ── Header ── */
   .page-header {
     position: sticky;
     top: 0;
     z-index: 30;
     background: var(--bg-main);
-    border-bottom: 1px solid color-mix(in srgb, var(--foreground) 7%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
   }
   .header-inner {
     max-width: 1152px;
@@ -307,7 +329,7 @@ const SEARCH_STYLES = `
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
-    border-right: 1px solid color-mix(in srgb, var(--foreground) 7%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
     padding-right: 12px;
     margin-right: 2px;
   }
@@ -317,17 +339,18 @@ const SEARCH_STYLES = `
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    color: color-mix(in srgb, var(--foreground) 30%, transparent);
+    color: var(--foreground);
+    opacity: 0.45;
   }
 
-  /* Botón nueva canción */
+  /* ── Botón "Nueva canción" ── */
   .new-btn {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 0 10px;
+    padding: 0 12px;
     height: 36px;
-    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
     border-radius: 6px;
     background: transparent;
     font-size: 9px;
@@ -335,35 +358,42 @@ const SEARCH_STYLES = `
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: color-mix(in srgb, var(--foreground) 30%, transparent);
+    color: var(--primary);
+    opacity: 0.7;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: opacity 0.15s, background 0.15s, border-color 0.15s;
     flex-shrink: 0;
     white-space: nowrap;
   }
   .new-btn:hover {
-    border-color: color-mix(in srgb, var(--color-primary, #7c6af7) 35%, transparent);
-    color: color-mix(in srgb, var(--color-primary, #7c6af7) 85%, white);
-    background: color-mix(in srgb, var(--color-primary, #7c6af7) 6%, transparent);
+    opacity: 1;
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
   }
 `;
 
 /* ─── Estado de badge según estado ─────────────────────────────────────────── */
-const estadoBadgeStyle = (estado: string) => {
+// Los badges usan CSS custom properties del tema (--primary, --accent) + colores
+// semánticos absolutos. El fondo del badge siempre es --white-custom (background de la card),
+// pero en dark mode ese fondo es oscuro (#28202f), así que necesitamos que el COLOR
+// del texto sea legible sobre ambos fondos. Solución: usar opacity sobre colores base
+// que el tema ya tiene calibrados.
+const estadoBadgeStyle = (estado: string): React.CSSProperties => {
   if (estado === "TERMINADA") return {
-    borderColor: "color-mix(in srgb, #4ade80 30%, transparent)",
-    color: "color-mix(in srgb, #4ade80 75%, white)",
-    background: "color-mix(in srgb, #4ade80 8%, transparent)",
+    borderColor: "color-mix(in srgb, #22c55e 50%, transparent)",
+    color: "#22c55e",      // green-500: buen contraste en claro y oscuro
+    background: "color-mix(in srgb, #22c55e 10%, transparent)",
   };
   if (estado === "EN PROCESO") return {
-    borderColor: "color-mix(in srgb, #facc15 30%, transparent)",
-    color: "color-mix(in srgb, #facc15 80%, white)",
-    background: "color-mix(in srgb, #facc15 8%, transparent)",
+    borderColor: "color-mix(in srgb, #eab308 50%, transparent)",
+    color: "#eab308",      // yellow-500: legible sobre fondos claros y oscuros
+    background: "color-mix(in srgb, #eab308 10%, transparent)",
   };
+  // PENDIENTE — usa el primary del tema
   return {
-    borderColor: "color-mix(in srgb, var(--foreground) 10%, transparent)",
-    color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
-    background: "transparent",
+    borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
+    color: "var(--primary)",
+    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
   };
 };
 
@@ -469,7 +499,9 @@ const CardActions = ({
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
 
-  const iconBtnStyle: React.CSSProperties = {
+  // Estrategia: color fijo via --primary + opacity CSS, sin color-mix sobre --foreground
+  // Esto funciona igual en temas claros y oscuros porque opacity es relativo al color base.
+  const iconBase: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -479,8 +511,13 @@ const CardActions = ({
     border: "none",
     background: "transparent",
     cursor: "pointer",
-    color: "color-mix(in srgb, var(--foreground) 25%, transparent)",
-    transition: "color 0.1s, background 0.1s",
+    color: "var(--primary)",
+    transition: "opacity 0.1s, background 0.1s",
+  };
+
+  const onHoverIn = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.opacity = "1";
+    e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 10%, transparent)";
   };
 
   return (
@@ -489,18 +526,12 @@ const CardActions = ({
       <button
         onClick={handleToggleVisible}
         title={cancion.visible ? "Ocultar" : "Mostrar"}
-        style={{
-          ...iconBtnStyle,
-          opacity: cancion.visible ? 0 : 1,
-        }}
-        className={cancion.visible ? "group-hover:opacity-100" : ""}
-        onMouseEnter={e => {
-          (e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)";
-          (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
-        }}
+        style={{ ...iconBase, opacity: cancion.visible ? 0 : 0.55 }}
+        className={cancion.visible ? "group-hover:opacity-[0.55]" : ""}
+        onMouseEnter={onHoverIn}
         onMouseLeave={e => {
-          (e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--foreground) 25%, transparent)";
-          (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+          e.currentTarget.style.opacity = cancion.visible ? "0" : "0.55";
+          e.currentTarget.style.background = "transparent";
         }}
       >
         {toggling
@@ -513,24 +544,16 @@ const CardActions = ({
         <button
           onClick={e => { e.stopPropagation(); setMenuOpen(m => !m); }}
           style={{
-            ...iconBtnStyle,
+            ...iconBase,
             opacity: menuOpen ? 1 : 0,
-            color: menuOpen
-              ? "color-mix(in srgb, var(--foreground) 60%, transparent)"
-              : "color-mix(in srgb, var(--foreground) 25%, transparent)",
-            background: menuOpen
-              ? "color-mix(in srgb, var(--foreground) 8%, transparent)"
-              : "transparent",
+            background: menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
           }}
-          className={menuOpen ? "" : "group-hover:opacity-100"}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)";
-            (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--foreground) 6%, transparent)";
-          }}
+          className={menuOpen ? "" : "group-hover:opacity-[0.55]"}
+          onMouseEnter={onHoverIn}
           onMouseLeave={e => {
             if (!menuOpen) {
-              (e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--foreground) 25%, transparent)";
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              e.currentTarget.style.opacity = "0";
+              e.currentTarget.style.background = "transparent";
             }
           }}
         >
@@ -543,59 +566,52 @@ const CardActions = ({
             right: 0,
             top: "calc(100% + 4px)",
             zIndex: 50,
-            minWidth: 140,
-            background: "var(--bg-menu, var(--bg-main))",
-            border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+            minWidth: 144,
+            background: "var(--white-custom)",
+            border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
             borderRadius: 6,
-            boxShadow: "0 8px 24px color-mix(in srgb, var(--color-primary, #7c6af7) 8%, transparent)",
+            boxShadow: "0 8px 20px color-mix(in srgb, var(--primary) 12%, transparent)",
             padding: "3px",
             overflow: "hidden",
           }}>
-            {[
-              {
-                label: "Editar",
-                icon: <Pencil size={10} />,
-                onClick: (e: React.MouseEvent) => { e.stopPropagation(); setMenuOpen(false); onEdit(cancion); },
-                danger: false,
-              },
-            ].map(({ label, icon, onClick }) => (
-              <button
-                key={label}
-                onClick={onClick}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  padding: "6px 10px",
-                  borderRadius: 4,
-                  border: "none",
-                  background: "transparent",
-                  fontSize: 9,
-                  fontFamily: "var(--font-mono, monospace)",
-                  fontWeight: 900,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  color: "color-mix(in srgb, var(--foreground) 45%, transparent)",
-                  cursor: "pointer",
-                  transition: "color 0.1s, background 0.1s",
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--foreground) 75%, transparent)";
-                  (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)";
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--foreground) 45%, transparent)";
-                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                }}
-              >
-                {icon} {label}
-              </button>
-            ))}
+            {/* Editar */}
+            <button
+              onClick={e => { e.stopPropagation(); setMenuOpen(false); onEdit(cancion); }}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "6px 10px",
+                borderRadius: 4,
+                border: "none",
+                background: "transparent",
+                fontSize: 9,
+                fontFamily: "var(--font-mono, monospace)",
+                fontWeight: 900,
+                textTransform: "uppercase" as const,
+                letterSpacing: "0.1em",
+                color: "var(--text-on-card)",
+                opacity: 0.65,
+                cursor: "pointer",
+                transition: "opacity 0.1s, background 0.1s",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.opacity = "0.65";
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <Pencil size={10} /> Editar
+            </button>
 
-            <div style={{ height: 1, background: "color-mix(in srgb, var(--foreground) 7%, transparent)", margin: "2px 6px" }} />
+            <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 14%, transparent)", margin: "2px 6px" }} />
 
+            {/* Eliminar — usa --accent del tema, que en todos los temas tiene buen contraste sobre --white-custom */}
             <button
               onClick={async e => {
                 e.stopPropagation();
@@ -616,19 +632,20 @@ const CardActions = ({
                 fontSize: 9,
                 fontFamily: "var(--font-mono, monospace)",
                 fontWeight: 900,
-                textTransform: "uppercase",
+                textTransform: "uppercase" as const,
                 letterSpacing: "0.1em",
-                color: "color-mix(in srgb, #f87171 55%, transparent)",
+                color: "var(--accent)",
+                opacity: 0.75,
                 cursor: "pointer",
-                transition: "color 0.1s, background 0.1s",
+                transition: "opacity 0.1s, background 0.1s",
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.color = "#f87171";
-                (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, #f87171 6%, transparent)";
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 10%, transparent)";
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, #f87171 55%, transparent)";
-                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                e.currentTarget.style.opacity = "0.75";
+                e.currentTarget.style.background = "transparent";
               }}
             >
               <Trash2 size={10} /> Eliminar
@@ -725,7 +742,7 @@ export default function EstudioLetras() {
             top: 0,
             zIndex: 30,
             background: "var(--bg-main)",
-            borderBottom: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+            borderBottom: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
             padding: "10px 24px",
             display: "flex",
             alignItems: "center",
@@ -742,19 +759,20 @@ export default function EstudioLetras() {
                 fontWeight: 900,
                 textTransform: "uppercase",
                 letterSpacing: "0.12em",
-                color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                color: "var(--primary)",
+                opacity: 0.5,
                 background: "none",
                 border: "none",
                 cursor: "pointer",
                 transition: "color 0.1s",
               }}
-              onMouseEnter={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--foreground) 60%, transparent)")}
-              onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)")}
+              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = "0.5"; }}
             >
               <ArrowLeft size={11} /> Canciones
             </button>
 
-            <div style={{ width: 1, height: 14, background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }} />
+            <div style={{ width: 1, height: 14, background: "color-mix(in srgb, var(--primary) 18%, transparent)" }} />
 
             <span style={{
               fontSize: 10,
@@ -762,7 +780,7 @@ export default function EstudioLetras() {
               fontWeight: 900,
               textTransform: "uppercase",
               letterSpacing: "0.1em",
-              color: "color-mix(in srgb, var(--color-primary, #7c6af7) 70%, white)",
+              color: "var(--primary)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -799,7 +817,7 @@ export default function EstudioLetras() {
 
             {/* Brand */}
             <div className="header-brand hidden sm:flex">
-              <span style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}>
+              <span style={{ color: "var(--primary)", opacity: 0.4 }}>
                 <Music size={12} />
               </span>
               <span className="header-brand-label">Canciones</span>
@@ -882,7 +900,7 @@ export default function EstudioLetras() {
                   fontWeight: 900,
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
-                  color: "color-mix(in srgb, #f87171 65%, transparent)",
+                  color: "var(--accent)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
@@ -930,7 +948,8 @@ export default function EstudioLetras() {
               alignItems: "center",
               justifyContent: "center",
               padding: "80px 0",
-              color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
+              color: "var(--primary)",
+              opacity: 0.35,
             }}>
               <Loader2 size={18} className="animate-spin" />
             </div>
