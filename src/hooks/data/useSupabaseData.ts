@@ -17,6 +17,16 @@ import { ropaQueries }         from "@/lib/api/queries/personal/ropa";
 import { cancionesQueries }    from "@/lib/api/queries/wiki/canciones";
 import { comprasQueries }      from "@/lib/api/queries/personal/cocina/carrito";
 
+// ─── uuid helper (no dep extra si ya existe crypto.randomUUID) ─────────────
+function generateUUID(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  // Fallback para entornos sin crypto.randomUUID
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 const QUERIES_MAP: Record<string, any> = {
   personajes:   personajesQueries,
   criaturas:    criaturasQueries,
@@ -33,35 +43,22 @@ const QUERIES_MAP: Record<string, any> = {
 };
 
 const DEXIE_TABLES = new Set([
-  
   "personajes", "criaturas", "criatura_variantes", "items",
   "libros", "canciones", "reinos", "relaciones",
-  
   "secciones_cancion", "capitulos",
-  
   "tareas", "eventos", "recetas", "ingredientes",
   "ropa", "ropa_outfits", "diario_fotos", "dibujos",
   "compras", "notas", "ensayos", "rutinas", "ejercicios_rutina",
   "reino_detalles",
-  
-  
 ]);
 
 const OFFLINE_WRITABLE = new Set([
-  
   "notas", "ensayos", "secciones_cancion", "capitulos",
-  
   "tareas", "eventos",
-  
   "rutinas", "ejercicios_rutina",
-  
   "recetas", "ingredientes", "compras",
-  
   "ropa", "ropa_outfits",
-  
-  
   "diario_fotos", "dibujos",
-  
   "personajes", "criaturas", "criatura_variantes", "items", "reinos", "relaciones",
 ]);
 
@@ -70,7 +67,6 @@ const NUMERIC_ID_TABLES = new Set([
 ]);
 
 const FETCH_TIMEOUT_MS = 12_000;
-
 const REVALIDATE_THROTTLE_MS = 30_000;
 
 interface UseSupabaseOptions {
@@ -94,13 +90,66 @@ async function readFromDexie<T>(tabla: string): Promise<T[]> {
 
 async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
   try {
-    if (!db || !DEXIE_TABLES.has(tabla) || rows.length === 0) return;
+    if (!db || !DEXIE_TABLES.has(tabla)) return;
     const table = (db as any)[tabla];
     if (!table) return;
+    if (rows.length === 0) return;
     await table.bulkPut(rows);
   } catch (e) {
     console.warn(`[Dexie] No se pudo guardar en '${tabla}':`, e);
   }
+}
+
+/**
+ * Sincroniza Dexie con la data remota:
+ * - Inserta/actualiza los rows remotos marcados como "synced"
+ * - Elimina de Dexie los rows que ya no existen en el servidor
+ * - Respeta los rows con status "pending" (no los sobreescribe)
+ */
+async function syncDexieWithRemote(tabla: string, remoteRows: any[]): Promise<void> {
+  try {
+    if (!db || !DEXIE_TABLES.has(tabla)) return;
+    const table = (db as any)[tabla];
+    if (!table) return;
+
+    const localRows: any[] = await table.toArray();
+    const pendingIds = new Set(
+      localRows.filter((r: any) => r.status === "pending").map((r: any) => String(r.id))
+    );
+    const remoteIds = new Set(remoteRows.map((r: any) => String(r.id)));
+
+    // Rows remotos que no están pending → actualizar/insertar como synced
+    const toUpsert = remoteRows
+      .filter((r: any) => !pendingIds.has(String(r.id)))
+      .map((r: any) => ({ ...r, status: "synced" }));
+
+    if (toUpsert.length > 0) await table.bulkPut(toUpsert);
+
+    // Rows locales que no están en el servidor y tampoco son pending → eliminar
+    const toDelete = localRows
+      .filter((r: any) => !remoteIds.has(String(r.id)) && r.status !== "pending")
+      .map((r: any) => r.id);
+
+    if (toDelete.length > 0) await table.bulkDelete(toDelete);
+  } catch (e) {
+    console.warn(`[Dexie] No se pudo sincronizar '${tabla}':`, e);
+  }
+}
+
+/**
+ * Mergea datos remotos con los pending locales.
+ * Los pending siempre ganan sobre su contraparte remota.
+ */
+function mergeWithPending<T>(remoteData: T[], localData: T[]): T[] {
+  const pendingRows = localData.filter((r: any) => r.status === "pending");
+  if (pendingRows.length === 0) return remoteData;
+
+  const pendingIds = new Set(pendingRows.map((r: any) => String(r.id)));
+  const merged = [
+    ...pendingRows,
+    ...remoteData.filter((r: any) => !pendingIds.has(String((r as any).id))),
+  ];
+  return merged as T[];
 }
 
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
@@ -118,14 +167,12 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const lastVisibleRef  = useRef<number>(Date.now());
   const optionsKey      = JSON.stringify(opciones);
 
-  
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
     if (tabla === "__skip__") return;
 
     setError(null);
 
-    
     const localData    = await readFromDexie<T>(tabla);
     const hasLocalData = localData.length > 0;
 
@@ -136,7 +183,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       setLoading(true);
     }
 
-    
     if (!navigator.onLine) {
       if (isMounted.current) {
         if (!hasLocalData) setLoading(false);
@@ -147,7 +193,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     setIsOffline(false);
 
-    
     try {
       const currentOptions = JSON.parse(optionsKey);
 
@@ -188,11 +233,16 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       if (fetchErr) throw fetchErr;
 
       if (isMounted.current) {
-        setData(finalData as T[]);
-        updateCache(tabla, finalData);
+        // FIX: mergear con pending antes de setear estado y cache
+        const merged = mergeWithPending<T>(finalData, localData);
+        setData(merged);
+        updateCache(tabla, merged);
         retryCount.current = 0;
         lastFetchRef.current = Date.now();
-        writeToDexie(tabla, finalData);
+
+        // FIX: sincronizar Dexie respetando pending y eliminando obsoletos
+        await syncDexieWithRemote(tabla, finalData);
+
         setLoading(false);
         setIsOffline(false);
       }
@@ -218,22 +268,23 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla, updateCache, optionsKey]);
 
-  
+  // ─── Mutaciones ────────────────────────────────────────────────────────────
 
   const addRow = useCallback(async (newData: any) => {
-    
-    
     if (!navigator.onLine && NUMERIC_ID_TABLES.has(tabla)) {
       return { data: null, error: "Esta tabla requiere conexión para crear registros." };
     }
 
     if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
-      const row = { ...newData, status: "pending" };
+      // FIX: siempre garantizar un id para poder encolar la operación
+      const id = newData.id ?? generateUUID();
+      const row = { ...newData, id, status: "pending" };
       await writeToDexie(tabla, [row]);
-      await enqueueOperation(tabla, "upsert", newData.id, row);
+      await enqueueOperation(tabla, "upsert", id, row);
       setData(prev => [...prev, row as any]);
       return { data: row, error: null };
     }
+
     try {
       const res = QUERIES_MAP[tabla]?.create
         ? await QUERIES_MAP[tabla].create(newData)
@@ -243,9 +294,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       return { data: created, error: res?.error || null };
     } catch (err: any) {
       if (OFFLINE_WRITABLE.has(tabla) && !NUMERIC_ID_TABLES.has(tabla)) {
-        const row = { ...newData, status: "pending" };
+        const id = newData.id ?? generateUUID();
+        const row = { ...newData, id, status: "pending" };
         await writeToDexie(tabla, [row]);
-        await enqueueOperation(tabla, "upsert", newData.id, row);
+        await enqueueOperation(tabla, "upsert", id, row);
         setData(prev => [...prev, row as any]);
         return { data: row, error: null };
       }
@@ -310,7 +362,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
 
-  
+  // ─── Efectos ───────────────────────────────────────────────────────────────
+
   useEffect(() => {
     isMounted.current = true;
     fetchData();
@@ -343,9 +396,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        const now                  = Date.now();
-        const timeSinceLastFetch   = now - lastFetchRef.current;
-        const timeSinceHidden      = now - lastVisibleRef.current;
+        const now                = Date.now();
+        const timeSinceLastFetch = now - lastFetchRef.current;
+        const timeSinceHidden    = now - lastVisibleRef.current;
 
         if (timeSinceHidden > REVALIDATE_THROTTLE_MS || timeSinceLastFetch > REVALIDATE_THROTTLE_MS) {
           retryCount.current = 0;
@@ -358,7 +411,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       }
     };
 
-    window.addEventListener("online",  handleOnline);
+    window.addEventListener("online", handleOnline);
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {

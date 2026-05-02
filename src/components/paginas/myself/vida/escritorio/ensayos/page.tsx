@@ -33,14 +33,14 @@ function setSaveIndicator(el: HTMLElement | null, status: SaveStatus) {
   el.style.opacity = "1";
   el.textContent =
     status === "saving" ? "guardando…" :
-    status === "saved" ? "✓ guardado" : "error";
+    status === "saved"  ? "✓ guardado" : "error";
   el.style.color =
     status === "saving" ? "color-mix(in srgb, var(--foreground) 20%, transparent)" :
-    status === "saved" ? "color-mix(in srgb, var(--accent) 70%, transparent)" :
-    "color-mix(in srgb, var(--primary) 70%, transparent)";
+    status === "saved"  ? "color-mix(in srgb, var(--accent) 70%, transparent)" :
+                          "color-mix(in srgb, var(--primary) 70%, transparent)";
 }
 
-const LS_ACTIVE = "ensayos-active-id";
+const LS_ACTIVE       = "ensayos-active-id";
 const DEXIE_ZOTERO_KEY = "zotero_file_handle";
 
 async function saveZoteroHandle(handle: FileSystemFileHandle) {
@@ -60,24 +60,24 @@ async function loadZoteroHandle(): Promise<FileSystemFileHandle | null> {
 
 function parseZoteroJson(json: any[]): ZoteroSource[] {
   return json.map((item: any) => ({
-    title: item.title || "",
-    author: item.author
+    title:   item.title || "",
+    author:  item.author
       ? (Array.isArray(item.author)
           ? item.author.map((a: any) => a.family || a.literal || "").filter(Boolean).join(", ")
           : item.author)
       : (item.creators?.[0]?.lastName || ""),
-    year: item.issued?.["date-parts"]?.[0]?.[0]?.toString()
-       || item.date?.substring(0, 4) || "",
+    year:    item.issued?.["date-parts"]?.[0]?.[0]?.toString()
+          || item.date?.substring(0, 4) || "",
     citekey: item.id || item["citation-key"] || "",
     journal: item["container-title"] || item.publisher || "",
-    url: item.URL || item.url || "",
+    url:     item.URL || item.url || "",
   }));
 }
 
 async function readZoteroFile(handle: FileSystemFileHandle): Promise<ZoteroSource[]> {
   const file = await handle.getFile();
   const text = await file.text();
-  const json = JSON.parse(text);
+  const json  = JSON.parse(text);
   const items = Array.isArray(json) ? json : (json.items || json.references || []);
   return parseZoteroJson(items);
 }
@@ -85,20 +85,19 @@ async function readZoteroFile(handle: FileSystemFileHandle): Promise<ZoteroSourc
 export default function Ensayos() {
   const { user } = useAuth() as { user: any };
   const { toasts, toast, dismiss } = useToast();
-  const { confirm, ConfirmModal } = useConfirm();
+  const { confirm, ConfirmModal }  = useConfirm();
 
-  const [editMode, setEditMode] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showNewNoteModal, setShowNewNoteModal] = useState(false);
+  const [editMode,          setEditMode]          = useState(true);
+  const [sidebarOpen,       setSidebarOpen]       = useState(false);
+  const [showNewNoteModal,  setShowNewNoteModal]  = useState(false);
 
-  const [sources, setSources] = useState<ZoteroSource[]>([]);
-  const [zoteroConnected, setZoteroConnected] = useState(false);
-  const [tagActivo, setTagActivo] = useState<string | null>(null);
-  const [tagPanel, setTagPanel] = useState<string | null>(null);
+  const [sources,           setSources]           = useState<ZoteroSource[]>([]);
+  const [zoteroConnected,   setZoteroConnected]   = useState(false);
+  const [tagActivo,         setTagActivo]         = useState<string | null>(null);
 
   const {
-    data: ensayos,
-    setData: setEnsayos,
+    data:     ensayos,
+    setData:  setEnsayos,
     loading,
     isOffline,
     addRow,
@@ -107,7 +106,6 @@ export default function Ensayos() {
   } = useSupabaseData("ensayos", { order: { campo: "updated_at", asc: false } });
 
   const handleTagClick = useCallback((tag: string | null) => setTagActivo(tag), []);
-  const handleTagPanelClose = useCallback(() => setTagPanel(null), []);
 
   const [ensayoActivoId, setEnsayoActivoId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
@@ -115,12 +113,19 @@ export default function Ensayos() {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saveIndicatorRef = useRef<HTMLSpanElement | null>(null);
+
+  // FIX: pendingUpdates ahora es un mapa por nota, evitando mezcla entre notas
+  const pendingUpdatesRef  = useRef<Record<string, Record<string, any>>>({});
+  const saveTimerRef       = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const saveIndicatorRef   = useRef<HTMLSpanElement | null>(null);
+
+  // ─── Zotero ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     (async () => {
       const handle = await loadZoteroHandle();
+
+      // Sin handle: cargar desde localStorage si existe
       if (!handle) {
         const cached = localStorage.getItem("fran-zotero-cache");
         if (cached) {
@@ -128,16 +133,23 @@ export default function Ensayos() {
         }
         return;
       }
+
       try {
-        const h = handle as any;
+        const h    = handle as any;
         const perm = await h.queryPermission({ mode: "read" });
-        const granted = perm === "granted" ? "granted" : await h.requestPermission({ mode: "read" });
+        const granted = perm === "granted"
+          ? "granted"
+          : await h.requestPermission({ mode: "read" });
+
         if (granted !== "granted") return;
+
         const parsed = await readZoteroFile(handle);
         setSources(parsed);
         setZoteroConnected(true);
+        // FIX: siempre actualizar localStorage cuando Dexie tiene éxito
         localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
-      } catch (e) {
+      } catch {
+        // Dexie falló → intentar localStorage como fallback
         const cached = localStorage.getItem("fran-zotero-cache");
         if (cached) {
           try { setSources(JSON.parse(cached)); } catch {}
@@ -149,14 +161,14 @@ export default function Ensayos() {
   const connectZotero = useCallback(async () => {
     if (!("showOpenFilePicker" in window)) {
       const input = document.createElement("input");
-      input.type = "file";
+      input.type   = "file";
       input.accept = ".json";
       input.onchange = async (e) => {
         const file = (e.target as HTMLInputElement).files?.[0];
         if (!file) return;
         try {
-          const text = await file.text();
-          const json = JSON.parse(text);
+          const text  = await file.text();
+          const json  = JSON.parse(text);
           const items = Array.isArray(json) ? json : (json.items || json.references || []);
           const parsed = parseZoteroJson(items);
           setSources(parsed);
@@ -167,9 +179,10 @@ export default function Ensayos() {
       input.click();
       return;
     }
+
     try {
       const [handle] = await (window as any).showOpenFilePicker({
-        types: [{ description: "Zotero JSON", accept: { "application/json": [".json"] } }],
+        types:    [{ description: "Zotero JSON", accept: { "application/json": [".json"] } }],
         multiple: false,
       });
       await saveZoteroHandle(handle);
@@ -186,9 +199,11 @@ export default function Ensayos() {
     const handle = await loadZoteroHandle();
     if (!handle) { connectZotero(); return; }
     try {
-      const h = handle as any;
-      const perm = await h.queryPermission({ mode: "read" });
-      const granted = perm === "granted" ? "granted" : await h.requestPermission({ mode: "read" });
+      const h       = handle as any;
+      const perm    = await h.queryPermission({ mode: "read" });
+      const granted = perm === "granted"
+        ? "granted"
+        : await h.requestPermission({ mode: "read" });
       if (granted !== "granted") return;
       const parsed = await readZoteroFile(handle);
       setSources(parsed);
@@ -196,10 +211,12 @@ export default function Ensayos() {
     } catch { connectZotero(); }
   }, [connectZotero]);
 
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
   const setEnsayoActivo = useCallback((id: string | null) => {
     setEnsayoActivoId(id);
     if (id) localStorage.setItem(LS_ACTIVE, id);
-    else localStorage.removeItem(LS_ACTIVE);
+    else     localStorage.removeItem(LS_ACTIVE);
   }, []);
 
   useEffect(() => {
@@ -210,18 +227,25 @@ export default function Ensayos() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "e") { e.preventDefault(); setEditMode(p => !p); }
-      if (e.key === "n" && !e.ctrlKey && !e.metaKey && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "e") {
+        e.preventDefault();
+        setEditMode(p => !p);
+      }
+      if (
+        e.key === "n" &&
+        !e.ctrlKey && !e.metaKey &&
+        !(e.target instanceof HTMLInputElement) &&
+        !(e.target instanceof HTMLTextAreaElement)
+      ) {
         setShowNewNoteModal(true);
       }
-      if (e.key === "Escape") {
-        if (tagPanel) { setTagPanel(null); return; }
-        setSidebarOpen(false);
-      }
+      if (e.key === "Escape") setSidebarOpen(false);
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [tagPanel]);
+  }, []);
+
+  // ─── Derivados ─────────────────────────────────────────────────────────────
 
   const todosLosTags = useMemo(() => {
     const tags = new Set<string>();
@@ -231,25 +255,35 @@ export default function Ensayos() {
 
   const ensayosFiltrados = useMemo(() => {
     return ensayos.filter((e: any) => {
-      const cumpleTag = tagActivo ? e.tags?.includes(tagActivo) : true;
-      const q = searchTerm.toLowerCase();
+      const cumpleTag      = tagActivo ? e.tags?.includes(tagActivo) : true;
+      const q              = searchTerm.toLowerCase();
       const cumpleBusqueda = e.titulo?.toLowerCase().includes(q) || e.contenido?.toLowerCase().includes(q);
       return cumpleTag && cumpleBusqueda;
     });
   }, [ensayos, tagActivo, searchTerm]);
 
-  const pendingUpdatesRef = useRef<Record<string, any>>({});
+  // ─── Guardado ──────────────────────────────────────────────────────────────
 
+  /**
+   * FIX: cada nota tiene su propio bucket de updates pendientes y su propio timer.
+   * Así cambiar de nota no mezcla los updates.
+   */
   const scheduleSave = useCallback((id: string, updates: Record<string, any>) => {
-    pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    pendingUpdatesRef.current[id] = {
+      ...(pendingUpdatesRef.current[id] || {}),
+      ...updates,
+    };
 
-    saveTimerRef.current = setTimeout(async () => {
-      const batch = { ...pendingUpdatesRef.current };
-      pendingUpdatesRef.current = {};
+    // Cancelar timer anterior de esta nota específica
+    if (saveTimerRef.current[id]) clearTimeout(saveTimerRef.current[id]);
+
+    saveTimerRef.current[id] = setTimeout(async () => {
+      const batch = { ...(pendingUpdatesRef.current[id] || {}) };
+      delete pendingUpdatesRef.current[id];
+
       setSaveIndicator(saveIndicatorRef.current, "saving");
 
-      const now = new Date().toISOString();
+      const now     = new Date().toISOString();
       const payload = { ...batch, updated_at: now };
 
       setEnsayos((prev: any[]) =>
@@ -271,37 +305,44 @@ export default function Ensayos() {
     scheduleSave(id, { [field]: value });
   }, [scheduleSave]);
 
+  // ─── CRUD ──────────────────────────────────────────────────────────────────
+
   const crearEnsayo = async (titulo: string) => {
-  if (!titulo.trim() || !user) return;
-  const now = new Date().toISOString();
+    if (!titulo.trim() || !user) return;
+    const now = new Date().toISOString();
 
-  const payload = {
-    titulo: titulo.trim(),
-    user_id: user.id,
-    contenido: "",
-    tags: tagActivo ? [tagActivo] : [],
-    updated_at: now,
-    // ❌ created_at eliminado — la columna no existe en la tabla
-    // ❌ id eliminado — dejar que Supabase lo genere con gen_random_uuid()
+    const payload = {
+      titulo:     titulo.trim(),
+      user_id:    user.id,
+      contenido:  "",
+      tags:       tagActivo ? [tagActivo] : [],
+      updated_at: now,
+    };
+
+    const { data, error } = await addRow(payload);
+    if (!error && data) {
+      setEnsayos((prev: any[]) => {
+        if (prev.find((e: any) => e.id === data.id)) return prev;
+        return [data, ...prev];
+      });
+      setEnsayoActivo(data.id);
+      setEditMode(true);
+      setShowNewNoteModal(false);
+      setSidebarOpen(false);
+    }
   };
-
-  const { data, error } = await addRow(payload);
-  if (!error && data) {
-    setEnsayos((prev: any[]) => {
-      if (prev.find((e: any) => e.id === data.id)) return prev;
-      return [data, ...prev];
-    });
-    setEnsayoActivo(data.id);
-    setEditMode(true);
-    setShowNewNoteModal(false);
-    setSidebarOpen(false);
-  }
-};
-
 
   const eliminarEnsayo = async (id: string) => {
     const ok = await confirm({ message: "¿Eliminar esta nota?", danger: true, confirmLabel: "Eliminar" });
     if (!ok) return;
+
+    // Limpiar timers y updates pendientes de la nota eliminada
+    if (saveTimerRef.current[id]) {
+      clearTimeout(saveTimerRef.current[id]);
+      delete saveTimerRef.current[id];
+    }
+    delete pendingUpdatesRef.current[id];
+
     await deleteRow(id);
     setEnsayos((prev: any[]) => prev.filter((e: any) => e.id !== id));
     if (ensayoActivoId === id) setEnsayoActivo(null);
@@ -314,26 +355,30 @@ export default function Ensayos() {
 
   const ensayoActivo = ensayos.find((e: any) => e.id === ensayoActivoId) ?? null;
 
+  // ─── Props del sidebar ─────────────────────────────────────────────────────
+
   const sidebarProps = {
     ensayos, ensayosFiltrados, todosLosTags, tagActivo, ensayoActivoId,
     searchTerm, sources, zoteroConnected,
-    onTagClick: handleTagClick,
-    onEnsayoClick: handleEnsayoClick,
-    onCrearEnsayo: () => setShowNewNoteModal(true),
-    onEliminarEnsayo: eliminarEnsayo,
-    onSearchChange: setSearchTerm,
-    onConnectZotero: connectZotero,
-    onRefreshZotero: refreshZotero,
+    onTagClick:        handleTagClick,
+    onEnsayoClick:     handleEnsayoClick,
+    onCrearEnsayo:     () => setShowNewNoteModal(true),
+    onEliminarEnsayo:  eliminarEnsayo,
+    onSearchChange:    setSearchTerm,
+    onConnectZotero:   connectZotero,
+    onRefreshZotero:   refreshZotero,
   };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
       <style>{`
         .ensayos-root {
-          --sidebar-bg: var(--bg-menu);
+          --sidebar-bg:   var(--bg-menu);
           --sidebar-text: color-mix(in srgb, var(--foreground) 60%, transparent);
-          --editor-bg: var(--bg-main);
-          --editor-text: var(--foreground);
+          --editor-bg:    var(--bg-main);
+          --editor-text:  var(--foreground);
         }
       `}</style>
 
@@ -348,29 +393,29 @@ export default function Ensayos() {
           footerLeft={`${ensayos.length} notas`}
           sidebarContent={<Sidebar {...sidebarProps} embedded />}
         >
-          {/* Save indicator bar */}
+          {/* Barra de estado de guardado */}
           <div
             className="shrink-0 z-10 px-6 py-1.5 flex items-center justify-end"
             style={{
               borderBottom: "1px solid color-mix(in srgb, var(--foreground) 4%, transparent)",
-              background: "color-mix(in srgb, var(--bg-menu) 20%, transparent)",
-              minHeight: 28,
+              background:   "color-mix(in srgb, var(--bg-menu) 20%, transparent)",
+              minHeight:    28,
             }}
           >
             <span
               ref={saveIndicatorRef}
               style={{
-                fontSize: 9,
-                fontFamily: "var(--font-mono)",
-                opacity: 0,
-                transition: "opacity 0.3s",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
+                fontSize:       9,
+                fontFamily:     "var(--font-mono)",
+                opacity:        0,
+                transition:     "opacity 0.3s",
+                letterSpacing:  "0.1em",
+                textTransform:  "uppercase",
               }}
             />
           </div>
 
-          {/* Main content */}
+          {/* Contenido principal */}
           <main
             className="relative flex-1 overflow-y-auto min-h-0"
             style={{ background: "var(--editor-bg, var(--bg-main))" }}
@@ -378,8 +423,22 @@ export default function Ensayos() {
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col gap-3 items-center">
-                  <Loader2 size={16} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)", animation: "spin 1s linear infinite" }} />
-                  <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--foreground) 15%, transparent)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                  <Loader2
+                    size={16}
+                    style={{
+                      color:     "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                      animation: "spin 1s linear infinite",
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize:      10,
+                      fontFamily:    "var(--font-mono)",
+                      color:         "color-mix(in srgb, var(--foreground) 15%, transparent)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.15em",
+                    }}
+                  >
                     cargando...
                   </span>
                 </div>
@@ -408,9 +467,13 @@ export default function Ensayos() {
 
       <AnimatePresence>
         {showNewNoteModal && (
-          <NewNoteModal onConfirm={crearEnsayo} onClose={() => setShowNewNoteModal(false)} />
+          <NewNoteModal
+            onConfirm={crearEnsayo}
+            onClose={() => setShowNewNoteModal(false)}
+          />
         )}
       </AnimatePresence>
+
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
       <ConfirmModal />
     </>
