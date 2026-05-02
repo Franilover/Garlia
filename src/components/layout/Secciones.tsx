@@ -240,7 +240,7 @@ function PanelSliderInner({
             animate="center"
             exit="exit"
             transition={{ type: "spring", stiffness: 280, damping: 32 }}
-            style={{ position: "absolute", inset: 0, overflowY: "auto" }}
+            style={{ position: "absolute", inset: 0, overflow: "hidden" }}
             className={contentClassName}
           >
             {panels[active]?.content}
