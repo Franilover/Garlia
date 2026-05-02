@@ -263,19 +263,26 @@ function useLibros() {
         setLoading(false);
         return;
       }
-
-      const l = ((result as any)?.data || []) as Libro[];
-      setLibros(l);
-      try {
-        const table = (db as any)["libros"];
-        if (table) await table.bulkPut(l.map((x) => ({ ...x, status: "synced" })));
-      } catch {}
-    } catch {
-      if (local.length === 0) setLibros(await dexieLibrosRead());
-      setIsOffline(true);
-    }
-    setLoading(false);
-  }, []);
+    const l = ((result as any)?.data || []) as Libro[];
+          setLibros(l);
+          try {
+            const table = (db as any)["libros"];
+            if (table) {
+              const remotosIds = new Set(l.map((x: Libro) => x.id));
+              const locales: any[] = await table.toArray();
+              const aEliminar = locales
+                .filter((r) => !remotosIds.has(r.id))
+                .map((r) => r.id);
+              if (aEliminar.length > 0) await table.bulkDelete(aEliminar);
+              await table.bulkPut(l.map((x) => ({ ...x, status: "synced" })));
+            }
+          } catch {}
+        } catch {
+          if (local.length === 0) setLibros(await dexieLibrosRead());
+          setIsOffline(true);
+        }
+        setLoading(false);
+      }, []);
 
   useEffect(() => {
     load();
