@@ -6,6 +6,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { AlertCircle, User, List, Music } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Btn, Loading } from "@/components/ui";
+import { db } from "@/lib/api/client/db";
 import {
   LinkSection,
   getLetra,
@@ -46,22 +47,51 @@ export default function CancionDetallesPage() {
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([
-      supabase.from("canciones")
-        .select("*, personaje:personajes!personaje_id(id, nombre, img_url)")
-        .eq("id", id).eq("visible", true).single(),
-      supabase
-        .from("secciones_cancion")
-        .select("id, nombre_seccion, letra_es, letra_en, letra_jp, letra_romaji, orden")
-        .eq("cancion_id", id)
-        .order("orden", { ascending: true }),
-    ]).then(([{ data: c, error: ec }, { data: s, error: es }]) => {
-      if (ec || !c) { setErrorAcceso(true); return; }
-      if (es) throw es;
-      setCancion(c as Cancion);
-      setSecciones((s || []) as Seccion[]);
-    }).catch(() => setErrorAcceso(true))
-      .finally(() => setLoading(false));
+
+    // Cargar desde Dexie primero para mostrar algo instantáneo
+    (async () => {
+      try {
+        if (db) {
+          const [cachedCancion, cachedSecciones] = await Promise.all([
+            db.canciones.get(id),
+            db.secciones_cancion.where("cancion_id").equals(id).sortBy("orden"),
+          ]);
+          if (cachedCancion) {
+            setCancion(cachedCancion as unknown as Cancion);
+            setLoading(false);
+          }
+          if (cachedSecciones && cachedSecciones.length > 0) {
+            setSecciones(cachedSecciones as Seccion[]);
+          }
+        }
+      } catch {}
+
+      // Fetch completo en background (con join de personaje y secciones frescas)
+      try {
+        const [{ data: c, error: ec }, { data: s, error: es }] = await Promise.all([
+          supabase.from("canciones")
+            .select("*, personaje:personajes!personaje_id(id, nombre, img_url)")
+            .eq("id", id).eq("visible", true).single(),
+          supabase
+            .from("secciones_cancion")
+            .select("id, nombre_seccion, letra_es, letra_en, letra_jp, letra_romaji, orden")
+            .eq("cancion_id", id)
+            .order("orden", { ascending: true }),
+        ]);
+        if (ec || !c) { setErrorAcceso(true); setLoading(false); return; }
+        if (es) throw es;
+        setCancion(c as Cancion);
+        setSecciones((s || []) as Seccion[]);
+        // Guardar secciones en Dexie para próxima visita
+        try {
+          if (db && s && s.length > 0) await db.secciones_cancion.bulkPut(s as any);
+        } catch {}
+      } catch {
+        setErrorAcceso(true);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [id]);
 
   if (loading) return <Loading text="Cargando..." />;

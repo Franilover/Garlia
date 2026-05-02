@@ -7,6 +7,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, PageHeader } from "@/components/ui";
 import { Music, User, Mic2, PenTool, Globe, ChevronRight, List, LayoutGrid } from "lucide-react";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
 interface Personaje {
   id: string;
@@ -226,20 +227,27 @@ const PersonajeBloque = ({
 
 // ─── Página principal ──────────────────────────────────────────────────────────
 export default function CancionesPage() {
-  const [canciones, setCanciones] = useState<Cancion[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Carga desde Dexie al instante, refresca en background desde Supabase
+  const { data: cancionesCacheadas, loading } = useSupabaseData<Cancion>("canciones");
 
+  // canciones enriquecidas con el join de personaje
+  const [canciones, setCanciones] = useState<Cancion[]>([]);
+
+  // Usar data cacheada inmediatamente mientras llega el join completo
+  useEffect(() => {
+    if (cancionesCacheadas.length > 0) {
+      setCanciones(cancionesCacheadas);
+    }
+  }, [cancionesCacheadas]);
+
+  // Fetch con join en background para enriquecer con datos de personaje
   useEffect(() => {
     supabase
       .from("canciones")
-      .select(`
-        *,
-        personaje:personajes!personaje_id(id, nombre, img_url)
-      `)
+      .select("*, personaje:personajes!personaje_id(id, nombre, img_url)")
       .order("created_at", { ascending: false })
       .then(({ data }) => {
-        setCanciones((data as Cancion[]) ?? []);
-        setLoading(false);
+        if (data) setCanciones(data as Cancion[]);
       });
   }, []);
   const [vistaFila, setVistaFila] = useState(false);
