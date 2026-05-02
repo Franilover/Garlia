@@ -23,11 +23,7 @@ export default function SaludPage() {
             id: "agenda",
             label: "Agenda",
             icon: Calendar,
-            content: (
-              <main className="max-w-7xl mx-auto p-4 md:p-8 mt-6 pb-32">
-                <GestionPersonal />
-              </main>
-            ),
+            content: <GestionPersonal />,
           },
           {
             id: "ropa",
