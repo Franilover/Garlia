@@ -463,7 +463,6 @@ export function MarkdownEditor({
                     }}
                   >
                     <Icon size={10} />
-                    {label}
                   </button>
                 );
               })}
@@ -518,18 +517,7 @@ export function MarkdownEditor({
           )}
         </div>
 
-        {/* ── Pie: hint de atajos ── */}
-        {toolbar && (
-          <div
-            style={{
-              borderTop: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)",
-              padding: "5px 16px",
-              background: "color-mix(in srgb, var(--foreground) 1.5%, transparent)",
-              flexShrink: 0,
-            }}
-          >
-          </div>
-        )}
+
       </div>
     </div>
   );
