@@ -279,40 +279,53 @@ export function MarkdownEditor({
         item.label.toLowerCase().includes(cmdMenu.query.toLowerCase())
       );
 
-  // ── Calcular posición del menú flotante ────────────────────────────────
+  // ── Calcular posición del caret en coordenadas de pantalla (para position:fixed) ──
   const getCaretCoords = useCallback((ta: HTMLTextAreaElement, pos: number) => {
-    // Creamos un div espejo para calcular la posición del caret
-    const mirror = document.createElement("div");
+    const taRect = ta.getBoundingClientRect();
     const style = window.getComputedStyle(ta);
+
+    // Mirror div que replica exactamente el textarea
+    const mirror = document.createElement("div");
     const props = [
       "fontFamily", "fontSize", "fontWeight", "lineHeight",
-      "letterSpacing", "wordSpacing", "padding", "border",
-      "boxSizing", "whiteSpace", "overflowWrap", "wordBreak",
+      "letterSpacing", "wordSpacing", "paddingTop", "paddingRight",
+      "paddingBottom", "paddingLeft", "borderTopWidth", "borderRightWidth",
+      "borderBottomWidth", "borderLeftWidth", "boxSizing",
+      "overflowWrap", "wordBreak",
     ] as const;
     props.forEach(p => { (mirror.style as any)[p] = style[p]; });
-    mirror.style.position = "absolute";
+    mirror.style.position = "fixed";
     mirror.style.visibility = "hidden";
-    mirror.style.top = "0";
-    mirror.style.left = "0";
-    mirror.style.width = ta.clientWidth + "px";
-    mirror.style.height = "auto";
+    mirror.style.pointerEvents = "none";
+    mirror.style.top = taRect.top + "px";
+    mirror.style.left = taRect.left + "px";
+    mirror.style.width = taRect.width + "px";
+    mirror.style.height = taRect.height + "px";
     mirror.style.whiteSpace = "pre-wrap";
     mirror.style.overflow = "hidden";
+    mirror.style.zIndex = "-1";
 
+    // Texto antes del caret, compensando el scroll del textarea
     const textBefore = ta.value.slice(0, pos);
     mirror.textContent = textBefore;
+
     const span = document.createElement("span");
-    span.textContent = "|";
+    span.textContent = "​"; // zero-width space
     mirror.appendChild(span);
     document.body.appendChild(mirror);
 
-    const rect = ta.getBoundingClientRect();
+    // Scroll compensation: el mirror no scrollea, lo simulamos con translateY
+    mirror.scrollTop = ta.scrollTop;
     const spanRect = span.getBoundingClientRect();
     document.body.removeChild(mirror);
 
+    // Compensar el scroll del textarea manualmente
+    const lineHeight = parseFloat(style.lineHeight) || 20;
+    const adjustedTop = spanRect.top - ta.scrollTop + (ta.scrollTop > 0 ? 0 : 0);
+
     return {
-      top: spanRect.top + 20,
-      left: spanRect.left,
+      top: adjustedTop + lineHeight + 2,
+      left: Math.max(taRect.left + 8, Math.min(spanRect.left, taRect.right - 264)),
     };
   }, []);
 
@@ -364,8 +377,8 @@ export function MarkdownEditor({
         triggerStart,
         selectedIdx: 0,
         menuPos: {
-          top: showAbove ? coords.top - menuHeight - 4 : coords.top,
-          left: Math.min(coords.left, window.innerWidth - 264),
+          top: showAbove ? coords.top - menuHeight - (parseFloat(window.getComputedStyle(ta).lineHeight) || 20) - 4 : coords.top,
+          left: coords.left,
         },
       });
     } else {
