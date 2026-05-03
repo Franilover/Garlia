@@ -225,20 +225,6 @@ export default function CancionDetallesPage() {
                 gap: 10,
               }}
             >
-              {personaje.img_url && (
-                <img
-                  src={personaje.img_url}
-                  alt={personaje.nombre}
-                  style={{
-                    width: 30,
-                    height: 30,
-                    objectFit: "cover",
-                    borderRadius: "var(--radius-btn, 4px)",
-                    border,
-                    flexShrink: 0,
-                  }}
-                />
-              )}
               <div>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", opacity: 0.8, margin: 0 }}>
                   {personaje.nombre}
