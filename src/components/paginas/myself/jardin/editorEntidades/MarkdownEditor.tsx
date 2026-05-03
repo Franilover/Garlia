@@ -311,8 +311,8 @@ export function MarkdownEditor({
     document.body.removeChild(mirror);
 
     return {
-      top: spanRect.top - rect.top + ta.scrollTop,
-      left: spanRect.left - rect.left,
+      top: spanRect.top + 20,
+      left: spanRect.left,
     };
   }, []);
 
@@ -352,12 +352,11 @@ export function MarkdownEditor({
       if (!ta) return;
 
       const coords = getCaretCoords(ta, triggerStart);
-      const taRect = ta.getBoundingClientRect();
 
-      // Calcular posición del menú: encima o abajo del trigger
+      // coords ya son absolutas en pantalla (fixed), calcular si mostrar arriba o abajo
       const menuHeight = 320;
-      const spaceBelow = window.innerHeight - (taRect.top + coords.top - ta.scrollTop + 20);
-      const showAbove = spaceBelow < menuHeight && coords.top > menuHeight / 2;
+      const spaceBelow = window.innerHeight - coords.top;
+      const showAbove = spaceBelow < menuHeight + 40;
 
       setCmdMenu({
         open: true,
@@ -365,10 +364,8 @@ export function MarkdownEditor({
         triggerStart,
         selectedIdx: 0,
         menuPos: {
-          top: showAbove
-            ? coords.top - ta.scrollTop - menuHeight - 4
-            : coords.top - ta.scrollTop + 20,
-          left: Math.min(coords.left, ta.clientWidth - 260),
+          top: showAbove ? coords.top - menuHeight - 4 : coords.top,
+          left: Math.min(coords.left, window.innerWidth - 264),
         },
       });
     } else {
@@ -532,7 +529,6 @@ export function MarkdownEditor({
         style={{
           border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
           borderRadius: 8,
-          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           flex: 1,
@@ -541,82 +537,53 @@ export function MarkdownEditor({
           position: "relative",
         }}
       >
-        {/* ── Mini toolbar: solo toggle de modo ── */}
+        {/* ── Toggle flotante de vista (esquina superior derecha) ── */}
         <div
           style={{
-            borderBottom: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
-            background: "color-mix(in srgb, var(--foreground) 2%, transparent)",
+            position: "absolute",
+            top: 8,
+            right: 8,
+            zIndex: 200,
             display: "flex",
             alignItems: "center",
-            justifyContent: "flex-end",
-            gap: 8,
-            padding: "0 10px",
-            minHeight: 32,
-            flexShrink: 0,
+            background: "color-mix(in srgb, var(--bg-menu, #1a1730) 85%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+            borderRadius: 6,
+            overflow: "hidden",
+            backdropFilter: "blur(6px)",
+            boxShadow: "0 2px 8px color-mix(in srgb, black 20%, transparent)",
           }}
         >
-          {/* Hint */}
-          <span
-            style={{
-              fontSize: 10,
-              color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
-              fontFamily: "var(--font-mono)",
-              marginRight: "auto",
-              userSelect: "none",
-            }}
-          >
-            escribe <kbd style={{
-              background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
-              borderRadius: 3,
-              padding: "0 4px",
-              fontSize: 9,
-            }}>add</kbd> para insertar elementos
-          </span>
-
-          {/* Toggle edit/split/preview */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-              borderRadius: 5,
-              overflow: "hidden",
-              flexShrink: 0,
-            }}
-          >
-            {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
-              const Icon = m === "edit" ? Edit3 : m === "preview" ? Eye : Columns;
-              const isActive = mode === m;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  title={m}
-                  className={m === "split" ? "hidden sm:flex" : "flex"}
-                  style={{
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 9,
-                    padding: "3px 8px",
-                    background: isActive
-                      ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
-                      : "transparent",
-                    color: isActive
-                      ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 25%, transparent)",
-                    border: "none",
-                    cursor: "pointer",
-                    ...monoStyle,
-                    transition: "background 0.1s, color 0.1s",
-                  }}
-                >
-                  <Icon size={10} />
-                </button>
-              );
-            })}
-          </div>
+          {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
+            const Icon = m === "edit" ? Edit3 : m === "preview" ? Eye : Columns;
+            const isActive = mode === m;
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                title={m}
+                className={m === "split" ? "hidden sm:flex" : "flex"}
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 26,
+                  height: 22,
+                  background: isActive
+                    ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
+                    : "transparent",
+                  color: isActive
+                    ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
+                    : "color-mix(in srgb, var(--foreground) 22%, transparent)",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "background 0.1s, color 0.1s",
+                }}
+              >
+                <Icon size={10} />
+              </button>
+            );
+          })}
         </div>
 
         {/* ── Área de contenido ── */}
@@ -648,10 +615,10 @@ export function MarkdownEditor({
                 <div
                   ref={menuRef}
                   style={{
-                    position: "absolute",
+                    position: "fixed",
                     top: cmdMenu.menuPos.top,
                     left: Math.max(8, cmdMenu.menuPos.left),
-                    zIndex: 100,
+                    zIndex: 9999,
                     width: 256,
                     background: "var(--bg-menu, #1a1730)",
                     border: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 25%, transparent)",
