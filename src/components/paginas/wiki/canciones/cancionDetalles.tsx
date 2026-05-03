@@ -132,11 +132,12 @@ export default function CancionDetallesPage() {
     return (
       <div
         style={{
-          minHeight: "100vh",
+          height: "100%",
           background: "var(--bg-main)",
-          overflowY: "auto",
           display: "flex",
           flexDirection: "column",
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
         }}
       >
         {/* Hero: imagen a pantalla completa con overlay */}
@@ -439,7 +440,7 @@ export default function CancionDetallesPage() {
   return (
     <div
       style={{
-        height: "100vh",
+        height: "100%",
         overflow: "hidden",
         background: "var(--bg-main)",
         display: "flex",
@@ -455,7 +456,7 @@ export default function CancionDetallesPage() {
           borderRight: border,
           display: "flex",
           flexDirection: "column",
-          height: "100vh",
+          height: "100%",
           overflowY: "auto",
           padding: "40px clamp(24px, 4vw, 56px)",
           gap: 28,
@@ -659,7 +660,7 @@ export default function CancionDetallesPage() {
         style={{
           flex: 1,
           overflowY: "auto",
-          height: "100vh",
+          height: "100%",
           padding: "48px clamp(24px, 4vw, 64px)",
         }}
       >
