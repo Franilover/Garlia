@@ -266,13 +266,11 @@ export default function LibroDetalle() {
                         <img
                           src={img}
                           alt={label}
-                          className="w-8 h-8 object-cover flex-shrink-0"
-                          style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
+                          className="w-8 h-8 object-cover flex-shrink-0 rounded-btn border border-primary/15"
                         />
                       ) : (
                         <div
-                          className={`w-8 h-8 flex items-center justify-center text-[10px] font-black text-primary/50 flex-shrink-0 ${acentos[i % acentos.length].bg}`}
-                          style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
+                          className={`w-8 h-8 flex items-center justify-center text-[10px] font-black text-primary/50 flex-shrink-0 rounded-btn border border-primary/15 ${acentos[i % acentos.length].bg}`}
                         >
                           {label.charAt(0)}
                         </div>
@@ -345,23 +343,17 @@ export default function LibroDetalle() {
                             <img
                               src={img}
                               alt={label}
-                              className="w-10 h-10 object-cover flex-shrink-0 shadow-md"
-                              style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
+                              className="w-10 h-10 object-cover flex-shrink-0 shadow-md rounded-btn border border-primary/15"
                             />
                           ) : (
                             <div
-                              className={`w-10 h-10 flex items-center justify-center text-sm font-black text-primary/60 flex-shrink-0 ${acento.bg}`}
-                              style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
+                              className={`w-10 h-10 flex items-center justify-center text-sm font-black text-primary/60 flex-shrink-0 rounded-btn border border-primary/15 ${acento.bg}`}
                             >
                               {label.charAt(0)}
                             </div>
                           )}
                           <div>
-                            {/* Etiqueta encima: "Reino" o "Narrador" */}
-                            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 italic mb-0.5">
-                              {grupo.reino ? "Reino" : "Narrador"}
-                            </p>
-                            <p className="text-primary font-black uppercase text-sm tracking-tight">
+                            <p className="text-primary font-black uppercase text-base tracking-tight">
                               {grupo.reino?.nombre ?? grupo.narrador?.nombre}
                             </p>
                             {/* Si hay reino Y narrador, mostrar narrador debajo */}
@@ -376,10 +368,7 @@ export default function LibroDetalle() {
                       )}
 
                       {/* Lista de capítulos del grupo */}
-                      <div
-                        className={`grid gap-2 pl-4`}
-                        style={{ borderLeft: `calc(var(--border-width) * 2) solid color-mix(in srgb, var(--primary) ${gi % 2 === 0 ? "18" : "25"}%, transparent)` }}
-                      >
+                      <div className={`grid gap-2`}>
                         {grupo.capitulos.map((cap) => {
                           const esRuta  = cap.titulo_capitulo?.startsWith("[Ruta]");
                           const leido   = leidos.has(cap.id);
@@ -390,19 +379,18 @@ export default function LibroDetalle() {
                                 marcarLeido(cap.id);
                                 router.push(`/wiki/libros/${id}/leer/${primerCapId}#cap-${cap.id}`);
                               }}
-                              className={`w-full flex items-center justify-between p-5 transition-all text-left group ${
+                              className={`w-full flex items-center justify-between p-5 transition-all text-left group rounded-btn shadow-card ${
                                 esRuta  ? "bg-blue-50/60"  :
                                 leido   ? "bg-primary/[0.03]" :
                                 acento.bg
                               }`}
                               style={{
-                                borderRadius: "var(--radius-card)",
                                 border: `var(--border-width) solid ${
                                   esRuta ? "rgb(219 234 254)" :
                                   leido  ? "color-mix(in srgb, var(--primary) 5%, transparent)" :
                                   "color-mix(in srgb, var(--primary) 8%, transparent)"
                                 }`,
-                                boxShadow: leido ? "none" : "var(--shadow-card)",
+                                boxShadow: leido ? "none" : undefined,
                                 opacity:   leido ? 0.55 : 1,
                               }}
                               onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
@@ -446,19 +434,18 @@ export default function LibroDetalle() {
                         marcarLeido(cap.id);
                         router.push(`/wiki/libros/${id}/leer/${capitulos[0]?.id ?? cap.id}#cap-${cap.id}`);
                       }}
-                      className={`w-full flex items-center justify-between p-6 transition-all text-left group ${
+                      className={`w-full flex items-center justify-between p-6 transition-all text-left group rounded-btn shadow-card ${
                         esRuta ? "bg-blue-50/60" :
                         leido  ? "bg-primary/[0.03]" :
                         "bg-white-custom"
                       }`}
                       style={{
-                        borderRadius: "var(--radius-card)",
                         border: `var(--border-width) solid ${
                           esRuta ? "rgb(219 234 254)" :
                           leido  ? "color-mix(in srgb, var(--primary) 5%, transparent)" :
                           "color-mix(in srgb, var(--primary) 8%, transparent)"
                         }`,
-                        boxShadow: leido ? "none" : "var(--shadow-card)",
+                        boxShadow: leido ? "none" : undefined,
                         opacity:   leido ? 0.55 : 1,
                       }}
                       onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
