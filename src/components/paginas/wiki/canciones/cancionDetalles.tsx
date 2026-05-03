@@ -128,6 +128,9 @@ export default function CancionDetallesPage() {
   const personaje = normPersonaje(cancion?.personaje);
   const border = "1px solid var(--color-border, color-mix(in srgb, var(--primary) 12%, transparent))";
 
+  // ---------------------------------------------------------------------------
+  // VISTA CELULAR (MOBILE)
+  // ---------------------------------------------------------------------------
   if (isMobile) {
     return (
       <div
@@ -140,22 +143,12 @@ export default function CancionDetallesPage() {
           WebkitOverflowScrolling: "touch",
         }}
       >
-        {/* Hero: imagen a pantalla completa con overlay */}
+        {/* Hero: imagen a pantalla completa (sin degradado) */}
         <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", flexShrink: 0 }}>
           <SmartImage
             src={cancion?.portada_url || "/placeholder-cover.jpg"}
             alt={cancion?.titulo ?? ""}
             className="w-full h-full object-cover"
-          />
-          {/* Degradado oscuro bottom */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, transparent 30%, color-mix(in srgb, var(--bg-main) 85%, transparent) 100%)",
-              pointerEvents: "none",
-            }}
           />
           {/* Botón volver flotante */}
           <button
@@ -195,9 +188,10 @@ export default function CancionDetallesPage() {
             display: "flex",
             flexDirection: "column",
             gap: 16,
+            padding: "24px 24px 0",
           }}
         >
-          {/* Label + Título */}
+          {/* Título */}
           <div>
             <h1
               style={{
@@ -217,18 +211,10 @@ export default function CancionDetallesPage() {
 
           {/* Personaje */}
           {personaje && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", opacity: 0.8, margin: 0 }}>
-                  {personaje.nombre}
-                </p>
-              </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", opacity: 0.8, margin: 0 }}>
+                {personaje.nombre}
+              </p>
             </div>
           )}
 
@@ -276,15 +262,7 @@ export default function CancionDetallesPage() {
         </MotionDiv>
 
         {/* Separador con label "Letra" */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            margin: "28px 24px 0",
-            paddingBottom: 16,
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "28px 24px 0", paddingBottom: 16 }}>
           <Music size={10} style={{ color: "var(--primary)", opacity: 0.3 }} />
           <span
             style={{
@@ -313,35 +291,14 @@ export default function CancionDetallesPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
-                    style={{ padding: "24px 0",  }}
+                    style={{ padding: "24px 0" }}
                   >
                     {sec.nombre_seccion && (
-                      <p
-                        style={{
-                          fontSize: 8,
-                          fontFamily: "var(--font-mono)",
-                          letterSpacing: "0.18em",
-                          textTransform: "uppercase",
-                          color: "var(--primary)",
-                          opacity: 0.25,
-                          marginBottom: 12,
-                        }}
-                      >
+                      <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 12 }}>
                         {sec.nombre_seccion}
                       </p>
                     )}
-                    <p
-                      style={{
-                        fontSize: "1rem",
-                        fontFamily: "var(--font-lora, serif)",
-                        fontStyle: "italic",
-                        lineHeight: 2.1,
-                        color: "var(--primary)",
-                        opacity: 0.85,
-                        whiteSpace: "pre-wrap",
-                        margin: 0,
-                      }}
-                    >
+                    <p style={{ fontSize: "1rem", fontFamily: "var(--font-lora, serif)", fontStyle: "italic", lineHeight: 2.1, color: "var(--primary)", opacity: 0.85, whiteSpace: "pre-wrap", margin: 0 }}>
                       {texto}
                     </p>
                   </MotionDiv>
@@ -350,27 +307,9 @@ export default function CancionDetallesPage() {
               <div style={{ height: 60 }} />
             </div>
           ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 12,
-                height: "30vh",
-              }}
-            >
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, height: "30vh" }}>
               <Music size={28} style={{ color: "var(--primary)", opacity: 0.12 }} />
-              <p
-                style={{
-                  fontSize: 9,
-                  fontFamily: "var(--font-mono)",
-                  letterSpacing: "0.16em",
-                  textTransform: "uppercase",
-                  color: "var(--primary)",
-                  opacity: 0.2,
-                }}
-              >
+              <p style={{ fontSize: 9, fontFamily: "var(--font-mono)", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.2 }}>
                 Letra en proceso
               </p>
             </div>
@@ -380,6 +319,9 @@ export default function CancionDetallesPage() {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // VISTA COMPUTADORA (DESKTOP)
+  // ---------------------------------------------------------------------------
   return (
     <div
       style={{
@@ -401,7 +343,7 @@ export default function CancionDetallesPage() {
           height: "100%",
           overflowY: "auto",
           padding: "40px clamp(24px, 4vw, 56px)",
-          gap: 28,
+          gap: 32, // Un poco más de espacio para respirar
         }}
       >
         {/* Volver */}
@@ -428,17 +370,11 @@ export default function CancionDetallesPage() {
           </button>
         </div>
 
-        {/* Imagen de portada — centrada con márgenes */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
+        {/* Imagen de portada — Ahora mucho más grande */}
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
           <div
             style={{
-              width: "clamp(180px, 55%, 320px)",
+              width: "clamp(250px, 80%, 480px)",
               aspectRatio: "1 / 1",
               overflow: "hidden",
               position: "relative",
@@ -455,11 +391,12 @@ export default function CancionDetallesPage() {
           </div>
         </div>
 
-        {/* Label + Título */}
-        <div style={{ textAlign: "center" }}>
+        {/* Bloque de Información: Título, Personaje y Links mejor agrupados */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
+          {/* Título */}
           <h1
             style={{
-              fontSize: "clamp(1.4rem, 2.8vw, 2rem)",
+              fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)",
               fontWeight: 900,
               color: "var(--primary)",
               letterSpacing: "-0.03em",
@@ -471,52 +408,25 @@ export default function CancionDetallesPage() {
           >
             {cancion?.titulo}
           </h1>
-        </div>
 
-        {/* Personaje */}
-        {personaje && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-            }}
-          >
-            {personaje.img_url && (
-              <img
-                src={personaje.img_url}
-                alt={personaje.nombre}
-                style={{
-                  width: 32,
-                  height: 32,
-                  objectFit: "cover",
-                  borderRadius: "var(--radius-btn, 4px)",
-                  border,
-                  flexShrink: 0,
-                }}
-              />
-            )}
-            <div>
-              <p
-                style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: "var(--primary)",
-                  opacity: 0.8,
-                  margin: 0,
-                }}
-              >
-                {personaje.nombre}
-              </p>
-            </div>
-          </div>
-        )}
+          {/* Personaje (Solo nombre, sin imagen) */}
+          {personaje && (
+            <p
+              style={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: "var(--primary)",
+                opacity: 0.7,
+                margin: 0,
+              }}
+            >
+              {personaje.nombre}
+            </p>
+          )}
 
-        {/* Links */}
-        {cancion?.links && cancion.links.length > 0 && (
-          <div style={{ paddingTop: 20, }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {/* Links — Distribuídos en formato 'wrap' horizontal para no alargar la columna verticalmente */}
+          {cancion?.links && cancion.links.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, paddingTop: 8 }}>
               {cancion.links.map((link, i) => (
                 <a
                   key={i}
@@ -526,30 +436,27 @@ export default function CancionDetallesPage() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "8px 12px",
+                    gap: 8,
+                    padding: "8px 16px",
                     border,
-                    borderRadius: "var(--radius-btn, 6px)",
+                    borderRadius: "var(--radius-btn, 20px)",
                     textDecoration: "none",
                     color: "var(--primary)",
                     fontSize: 11,
                     fontWeight: 600,
                     opacity: 0.7,
                     transition: "opacity 0.15s",
-                    gap: 8,
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
                 >
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {link.titulo}
-                  </span>
-                  <ExternalLink size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+                  <span>{link.titulo}</span>
+                  <ExternalLink size={10} style={{ opacity: 0.5 }} />
                 </a>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </MotionDiv>
 
       {/* ── Columna derecha: letra, scrolleable ── */}
@@ -565,25 +472,9 @@ export default function CancionDetallesPage() {
         }}
       >
         {/* Header de sección */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            paddingBottom: 20,
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 20 }}>
           <Music size={11} style={{ color: "var(--primary)", opacity: 0.3 }} />
-          <span
-            style={{
-              fontSize: 9,
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "var(--primary)",
-              opacity: 0.3,
-            }}
-          >
+          <span style={{ fontSize: 9, fontFamily: "var(--font-mono)", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3 }}>
             Letra
           </span>
         </div>
@@ -601,62 +492,22 @@ export default function CancionDetallesPage() {
                   transition={{ duration: 0.3, delay: 0.15 + i * 0.05 }}
                 >
                   {sec.nombre_seccion && (
-                    <p
-                      style={{
-                        fontSize: 8.5,
-                        fontFamily: "var(--font-mono)",
-                        letterSpacing: "0.18em",
-                        textTransform: "uppercase",
-                        color: "var(--primary)",
-                        opacity: 0.25,
-                        marginBottom: 14,
-                      }}
-                    >
+                    <p style={{ fontSize: 8.5, fontFamily: "var(--font-mono)", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 14 }}>
                       {sec.nombre_seccion}
                     </p>
                   )}
-                  <p
-                    style={{
-                      fontSize: "1.08rem",
-                      fontFamily: "var(--font-lora, serif)",
-                      fontStyle: "italic",
-                      lineHeight: 2.1,
-                      color: "var(--primary)",
-                      opacity: 0.85,
-                      whiteSpace: "pre-wrap",
-                      margin: 0,
-                    }}
-                  >
+                  <p style={{ fontSize: "1.08rem", fontFamily: "var(--font-lora, serif)", fontStyle: "italic", lineHeight: 2.1, color: "var(--primary)", opacity: 0.85, whiteSpace: "pre-wrap", margin: 0 }}>
                     {texto}
                   </p>
                 </MotionDiv>
               );
             })}
-            {/* Espacio final */}
             <div style={{ height: 80 }} />
           </div>
         ) : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              height: "50vh",
-            }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, height: "50vh" }}>
             <Music size={32} style={{ color: "var(--primary)", opacity: 0.12 }} />
-            <p
-              style={{
-                fontSize: 9.5,
-                fontFamily: "var(--font-mono)",
-                letterSpacing: "0.16em",
-                textTransform: "uppercase",
-                color: "var(--primary)",
-                opacity: 0.2,
-              }}
-            >
+            <p style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.2 }}>
               Letra en proceso
             </p>
           </div>
