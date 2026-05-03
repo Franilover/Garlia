@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { Eye, Edit3, Columns, Wand2, X as XIcon } from "lucide-react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Eye, Edit3, Columns } from "lucide-react";
 
 // ── Renderer ────────────────────────────────────────────────────────────────
 export function renderMarkdown(raw: string): string {
@@ -10,13 +10,11 @@ export function renderMarkdown(raw: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-  // Bloques de código
   html = html.replace(/```([\s\S]*?)```/g, (_, code) => {
     const escaped = code.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
     return `<pre><code>${escaped.trim()}</code></pre>`;
   });
 
-  // Tablas
   html = html.replace(/(?:^|\n)((?:\|[^\n]+\|\n)+)/g, (_, tableBlock) => {
     const rows = tableBlock.trim().split("\n").filter((r: string) => r.trim());
     if (rows.length < 2) return tableBlock;
@@ -28,26 +26,20 @@ export function renderMarkdown(raw: string): string {
     return `\n<table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>\n`;
   });
 
-  // Imágenes (debe ir antes que los enlaces)
   html = html.replace(/!\[([^\]]*)\]\((.*?)\)/g, '<img src="$2" alt="$1" />');
-
-  // Enlaces
   html = html.replace(/\[([^\]]+)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-
-  // Tipografía y Encabezados
   html = html.replace(/^---$/gm, "<hr/>");
   html = html.replace(/^######\s(.+)$/gm, "<h6>$1</h6>");
   html = html.replace(/^#####\s(.+)$/gm,  "<h5>$1</h5>");
   html = html.replace(/^####\s(.+)$/gm,   "<h4>$1</h4>");
   html = html.replace(/^###\s(.+)$/gm,    "<h3>$1</h3>");
-  html = html.replace(/^##\s(.+)$/gm,     "<h2>$1</h2>");
+  html = html.replace(/^##\s(.+)$/gm,     "<h2>$2</h2>");
   html = html.replace(/^#\s(.+)$/gm,      "<h1>$1</h1>");
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
   html = html.replace(/\*\*(.+?)\*\*/g,     "<strong>$1</strong>");
   html = html.replace(/\*(.+?)\*/g,         "<em>$1</em>");
   html = html.replace(/`([^`]+)`/g,         "<code>$1</code>");
 
-  // Listas
   html = html.replace(/((?:^[ \t]*- .+\n?)+)/gm, (block) => {
     const items = block.trim().split("\n")
       .map((l: string) => {
@@ -62,7 +54,6 @@ export function renderMarkdown(raw: string): string {
     return `<ul>${items}</ul>`;
   });
 
-  // Párrafos
   html = html.split(/\n{2,}/).map((block: string) => {
     if (/^<(h[1-6]|ul|ol|li|pre|table|hr|blockquote)/.test(block.trim())) return block;
     const inner = block.trim().replace(/\n/g, "<br/>");
@@ -100,6 +91,129 @@ export const PROSE_STYLES = `
   .prose-mundo .placeholder { color:color-mix(in srgb,var(--color-primary,#7c6af7) 25%,transparent);font-style:italic }
 `;
 
+// ── Command menu items ────────────────────────────────────────────────────────
+interface CommandItem {
+  id: string;
+  label: string;
+  description: string;
+  keywords: string[];   // palabras que activan el match
+  icon: string;
+  snippet: string;
+  cursorOffset?: number; // posición del cursor después de insertar (desde el final)
+}
+
+const COMMAND_ITEMS: CommandItem[] = [
+  {
+    id: "codeblock",
+    label: "Bloque de código",
+    description: "Inserta un bloque ```código```",
+    keywords: ["cod", "code", "bloc", "bloque", "pre"],
+    icon: "</>",
+    snippet: "\n```\n\n```\n",
+    cursorOffset: 5, // coloca cursor dentro del bloque
+  },
+  {
+    id: "heading1",
+    label: "Título H1",
+    description: "# Encabezado grande",
+    keywords: ["h1", "tit", "titulo", "título", "head"],
+    icon: "H1",
+    snippet: "\n# ",
+  },
+  {
+    id: "heading2",
+    label: "Título H2",
+    description: "## Encabezado mediano",
+    keywords: ["h2", "tit", "titulo", "título", "head"],
+    icon: "H2",
+    snippet: "\n## ",
+  },
+  {
+    id: "heading3",
+    label: "Título H3",
+    description: "### Encabezado pequeño",
+    keywords: ["h3", "tit", "titulo", "título", "head"],
+    icon: "H3",
+    snippet: "\n### ",
+  },
+  {
+    id: "table",
+    label: "Tabla",
+    description: "Inserta una tabla markdown",
+    keywords: ["tab", "table", "tabla", "grid"],
+    icon: "⊞",
+    snippet: "\n| Col 1 | Col 2 | Col 3 |\n|---|---|---|\n| dato | dato | dato |\n",
+  },
+  {
+    id: "list",
+    label: "Lista",
+    description: "Lista con viñetas",
+    keywords: ["lis", "list", "lista", "ul", "vif"],
+    icon: "≡",
+    snippet: "\n- elemento 1\n- elemento 2\n- elemento 3\n",
+  },
+  {
+    id: "tasklist",
+    label: "Lista de tareas",
+    description: "Lista con checkboxes",
+    keywords: ["tas", "task", "tarea", "check", "todo"],
+    icon: "✓",
+    snippet: "\n- [ ] Tarea 1\n- [ ] Tarea 2\n- [x] Completada\n",
+  },
+  {
+    id: "link",
+    label: "Enlace",
+    description: "[texto](url)",
+    keywords: ["lin", "link", "enl", "enlace", "url", "href"],
+    icon: "🔗",
+    snippet: "[texto](url)",
+    cursorOffset: 4,
+  },
+  {
+    id: "image",
+    label: "Imagen",
+    description: "![alt](url)",
+    keywords: ["img", "image", "imagen", "foto", "pic"],
+    icon: "🖼",
+    snippet: "![alt](url)",
+    cursorOffset: 4,
+  },
+  {
+    id: "bold",
+    label: "Negrita",
+    description: "**texto en negrita**",
+    keywords: ["bol", "bold", "neg", "negrita", "fuerte"],
+    icon: "B",
+    snippet: "**texto**",
+    cursorOffset: 6,
+  },
+  {
+    id: "italic",
+    label: "Cursiva",
+    description: "*texto en cursiva*",
+    keywords: ["ita", "italic", "cur", "cursiva", "itálica"],
+    icon: "I",
+    snippet: "*texto*",
+    cursorOffset: 6,
+  },
+  {
+    id: "hr",
+    label: "Separador",
+    description: "Línea horizontal ---",
+    keywords: ["hr", "sep", "separa", "div", "lin", "linea"],
+    icon: "—",
+    snippet: "\n---\n",
+  },
+  {
+    id: "quote",
+    label: "Cita",
+    description: "> texto citado",
+    keywords: ["quo", "quote", "cit", "cita", "blq"],
+    icon: "❝",
+    snippet: "\n> ",
+  },
+];
+
 // ── Tipos ────────────────────────────────────────────────────────────────────
 type ViewMode = "edit" | "preview" | "split";
 
@@ -120,17 +234,31 @@ export function MarkdownEditor({
   placeholder,
   rows = 6,
   className = "",
-  toolbar = true,
   defaultMode = "split",
 }: MarkdownEditorProps) {
   const [mode, setMode] = useState<ViewMode>(defaultMode);
-  const [toolbarOpen, setToolbarOpen] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const pvRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Command menu state
+  const [cmdMenu, setCmdMenu] = useState<{
+    open: boolean;
+    query: string;           // texto escrito después de "add"
+    triggerStart: number;    // posición donde empezó "add" en el textarea
+    selectedIdx: number;
+    menuPos: { top: number; left: number };
+  }>({
+    open: false,
+    query: "",
+    triggerStart: 0,
+    selectedIdx: 0,
+    menuPos: { top: 0, left: 0 },
+  });
 
   const monoStyle: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
-  // En móvil, si el modo es "split" lo forzamos a "edit"
+  // En móvil, forzamos "edit"
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 639px)");
     const check = (e: MediaQueryListEvent | MediaQueryList) => {
@@ -143,6 +271,119 @@ export function MarkdownEditor({
 
   const minH = `${rows * 1.6}rem`;
 
+  // ── Filtrar items del menú ──────────────────────────────────────────────
+  const filteredItems = cmdMenu.query.length === 0
+    ? COMMAND_ITEMS
+    : COMMAND_ITEMS.filter(item =>
+        item.keywords.some(k => k.startsWith(cmdMenu.query.toLowerCase())) ||
+        item.label.toLowerCase().includes(cmdMenu.query.toLowerCase())
+      );
+
+  // ── Calcular posición del menú flotante ────────────────────────────────
+  const getCaretCoords = useCallback((ta: HTMLTextAreaElement, pos: number) => {
+    // Creamos un div espejo para calcular la posición del caret
+    const mirror = document.createElement("div");
+    const style = window.getComputedStyle(ta);
+    const props = [
+      "fontFamily", "fontSize", "fontWeight", "lineHeight",
+      "letterSpacing", "wordSpacing", "padding", "border",
+      "boxSizing", "whiteSpace", "overflowWrap", "wordBreak",
+    ] as const;
+    props.forEach(p => { (mirror.style as any)[p] = style[p]; });
+    mirror.style.position = "absolute";
+    mirror.style.visibility = "hidden";
+    mirror.style.top = "0";
+    mirror.style.left = "0";
+    mirror.style.width = ta.clientWidth + "px";
+    mirror.style.height = "auto";
+    mirror.style.whiteSpace = "pre-wrap";
+    mirror.style.overflow = "hidden";
+
+    const textBefore = ta.value.slice(0, pos);
+    mirror.textContent = textBefore;
+    const span = document.createElement("span");
+    span.textContent = "|";
+    mirror.appendChild(span);
+    document.body.appendChild(mirror);
+
+    const rect = ta.getBoundingClientRect();
+    const spanRect = span.getBoundingClientRect();
+    document.body.removeChild(mirror);
+
+    return {
+      top: spanRect.top - rect.top + ta.scrollTop,
+      left: spanRect.left - rect.left,
+    };
+  }, []);
+
+  // ── Insertar snippet del comando seleccionado ──────────────────────────
+  const applyCommand = useCallback((item: CommandItem) => {
+    const ta = taRef.current;
+    if (!ta) return;
+
+    // Eliminar "add" + query del texto
+    const before = value.slice(0, cmdMenu.triggerStart);
+    const after = value.slice(ta.selectionStart);
+    const newVal = before + item.snippet + after;
+    onChange(newVal);
+
+    setCmdMenu(m => ({ ...m, open: false, query: "" }));
+
+    requestAnimationFrame(() => {
+      const insertPos = cmdMenu.triggerStart + item.snippet.length;
+      const cursorPos = item.cursorOffset
+        ? insertPos - item.cursorOffset
+        : insertPos;
+      ta.selectionStart = ta.selectionEnd = cursorPos;
+      ta.focus();
+    });
+  }, [value, onChange, cmdMenu.triggerStart]);
+
+  // ── Detectar "add" mientras se escribe ─────────────────────────────────
+  const detectCommand = useCallback((newValue: string, cursorPos: number) => {
+    const textBefore = newValue.slice(0, cursorPos);
+    // Buscar "add" precedido de inicio de línea o espacio
+    const match = textBefore.match(/(^|[\n\s])add(\S*)$/);
+
+    if (match) {
+      const triggerStart = cursorPos - match[0].length + match[1].length;
+      const query = match[2]; // lo que viene después de "add"
+      const ta = taRef.current;
+      if (!ta) return;
+
+      const coords = getCaretCoords(ta, triggerStart);
+      const taRect = ta.getBoundingClientRect();
+
+      // Calcular posición del menú: encima o abajo del trigger
+      const menuHeight = 320;
+      const spaceBelow = window.innerHeight - (taRect.top + coords.top - ta.scrollTop + 20);
+      const showAbove = spaceBelow < menuHeight && coords.top > menuHeight / 2;
+
+      setCmdMenu({
+        open: true,
+        query,
+        triggerStart,
+        selectedIdx: 0,
+        menuPos: {
+          top: showAbove
+            ? coords.top - ta.scrollTop - menuHeight - 4
+            : coords.top - ta.scrollTop + 20,
+          left: Math.min(coords.left, ta.clientWidth - 260),
+        },
+      });
+    } else {
+      setCmdMenu(m => m.open ? { ...m, open: false, query: "" } : m);
+    }
+  }, [getCaretCoords]);
+
+  // ── handleChange ──────────────────────────────────────────────────────
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newVal = e.target.value;
+    onChange(newVal);
+    detectCommand(newVal, e.target.selectionStart);
+  };
+
+  // ── wrapSelection / insertSnippet ──────────────────────────────────────
   const wrapSelection = (before: string, after: string) => {
     const ta = taRef.current;
     if (!ta) return;
@@ -168,10 +409,36 @@ export function MarkdownEditor({
     });
   };
 
+  // ── handleKeyDown ─────────────────────────────────────────────────────
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const ta = taRef.current;
     if (!ta) return;
 
+    // ── Menú abierto: navegar y seleccionar ───
+    if (cmdMenu.open && filteredItems.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setCmdMenu(m => ({ ...m, selectedIdx: (m.selectedIdx + 1) % filteredItems.length }));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setCmdMenu(m => ({ ...m, selectedIdx: (m.selectedIdx - 1 + filteredItems.length) % filteredItems.length }));
+        return;
+      }
+      if (e.key === "Tab" || e.key === "Enter") {
+        e.preventDefault();
+        applyCommand(filteredItems[cmdMenu.selectedIdx]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setCmdMenu(m => ({ ...m, open: false }));
+        return;
+      }
+    }
+
+    // ── Tab normal: indent ───
     if (e.key === "Tab") {
       e.preventDefault();
       const { selectionStart: s, selectionEnd: end } = ta;
@@ -223,9 +490,20 @@ export function MarkdownEditor({
     }
   };
 
+  // Cerrar menú al hacer click fuera
+  useEffect(() => {
+    if (!cmdMenu.open) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setCmdMenu(m => ({ ...m, open: false }));
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [cmdMenu.open]);
+
   const html = renderMarkdown(value);
 
-  // Estilos base de textarea — sin bordes propios, hereda del contenedor
   const textareaCls =
     "flex-1 w-full bg-transparent outline-none border-none resize-none text-sm font-mono leading-relaxed placeholder:opacity-30";
 
@@ -249,7 +527,7 @@ export function MarkdownEditor({
     <div className={`flex flex-col flex-1 min-h-0 ${className}`}>
       <style>{PROSE_STYLES}</style>
 
-      {/* ── Bloque único contenedor ── */}
+      {/* ── Contenedor principal ── */}
       <div
         style={{
           border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
@@ -260,209 +538,86 @@ export function MarkdownEditor({
           flex: 1,
           minHeight: 0,
           background: "color-mix(in srgb, var(--bg-menu) 40%, transparent)",
+          position: "relative",
         }}
       >
-        {/* ── Barra superior: herramientas + toggle de modo ── */}
-        {toolbar && (
+        {/* ── Mini toolbar: solo toggle de modo ── */}
+        <div
+          style={{
+            borderBottom: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+            background: "color-mix(in srgb, var(--foreground) 2%, transparent)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 8,
+            padding: "0 10px",
+            minHeight: 32,
+            flexShrink: 0,
+          }}
+        >
+          {/* Hint */}
+          <span
+            style={{
+              fontSize: 10,
+              color: "color-mix(in srgb, var(--foreground) 22%, transparent)",
+              fontFamily: "var(--font-mono)",
+              marginRight: "auto",
+              userSelect: "none",
+            }}
+          >
+            escribe <kbd style={{
+              background: "color-mix(in srgb, var(--foreground) 8%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
+              borderRadius: 3,
+              padding: "0 4px",
+              fontSize: 9,
+            }}>add</kbd> para insertar elementos
+          </span>
+
+          {/* Toggle edit/split/preview */}
           <div
             style={{
-              borderBottom: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
-              background: "color-mix(in srgb, var(--foreground) 2%, transparent)",
               display: "flex",
               alignItems: "center",
-              gap: 8,
-              padding: "0 10px",
-              minHeight: 34,
+              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+              borderRadius: 5,
+              overflow: "hidden",
               flexShrink: 0,
             }}
           >
-            {/* Botón accesos rápidos — solo mobile */}
-            <div className="relative sm:hidden shrink-0">
-              <button
-                type="button"
-                onClick={() => setToolbarOpen(o => !o)}
-                title="Accesos rápidos"
-                style={{
-                  width: 28,
-                  height: 28,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 5,
-                  border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-                  background: toolbarOpen
-                    ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
-                    : "transparent",
-                  color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
-                  cursor: "pointer",
-                }}
-              >
-                {toolbarOpen ? <XIcon size={12} /> : <Wand2 size={12} />}
-              </button>
-
-              {toolbarOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "calc(100% + 4px)",
-                    left: 0,
-                    zIndex: 50,
-                    background: "var(--bg-menu)",
-                    border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-                    borderRadius: 6,
-                    padding: "4px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 2,
-                    minWidth: 120,
-                  }}
-                >
-                  {[,
-                    { label: "Código", action: () => wrapSelection("`", "`") },
-                    { label: "Enlace", action: () => wrapSelection("[", "](url)") },
-                    { label: "Tabla", action: () => insertSnippet("\n| Col 1 | Col 2 |\n|---|---|\n| dato | dato |\n") },
-                    { label: "Bloque", action: () => insertSnippet("\n```\ncódigo\n```\n") },
-                  ].map(({ label, action }) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => { action(); setToolbarOpen(false); }}
-                      style={{
-                        textAlign: "left",
-                        padding: "6px 10px",
-                        borderRadius: 4,
-                        border: "none",
-                        background: "transparent",
-                        fontSize: 11,
-                        color: "color-mix(in srgb, var(--foreground) 50%, transparent)",
-                        cursor: "pointer",
-                        ...monoStyle,
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Herramientas completas — solo desktop */}
-            <div
-              className="hidden sm:flex"
-              style={{
-                alignItems: "center",
-                gap: 2,
-                flex: 1,
-                flexWrap: "wrap" as const,
-              }}
-            >
-              {[
-                { label: "</>", action: () => wrapSelection("`", "`"), title: "Código inline" },
-                { label: "Link", action: () => wrapSelection("[", "](url)"), title: "Añadir enlace" },
-                { label: "Img", action: () => wrapSelection("![alt](", ")"), title: "Añadir Imagen" },
-              ].map(({ label, action, title }, i) => (
+            {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
+              const Icon = m === "edit" ? Edit3 : m === "preview" ? Eye : Columns;
+              const isActive = mode === m;
+              return (
                 <button
-                  key={i}
+                  key={m}
                   type="button"
-                  onClick={action}
-                  title={title}
+                  onClick={() => setMode(m)}
+                  title={m}
+                  className={m === "split" ? "hidden sm:flex" : "flex"}
                   style={{
-                    padding: "2px 7px",
-                    borderRadius: 4,
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 9,
+                    padding: "3px 8px",
+                    background: isActive
+                      ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
+                      : "transparent",
+                    color: isActive
+                      ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 25%, transparent)",
                     border: "none",
-                    background: "transparent",
-                    fontSize: 10,
-                    color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
                     cursor: "pointer",
                     ...monoStyle,
-                    transition: "color 0.1s",
+                    transition: "background 0.1s, color 0.1s",
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--foreground) 65%, transparent)")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)")}
                 >
-                  {label}
+                  <Icon size={10} />
                 </button>
-              ))}
-
-              {/* Separador */}
-              <div style={{ width: 1, height: 14, background: "color-mix(in srgb, var(--foreground) 8%, transparent)", margin: "0 2px" }} />
-
-              {[
-                { label: "Tabla", action: () => insertSnippet("\n| Col 1 | Col 2 | Col 3 |\n|---|---|---|\n| dato | dato | dato |\n") },
-                { label: "Bloque", action: () => insertSnippet("\n```\ncódigo\n```\n") },
-              ].map(({ label, action }, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={action}
-                  style={{
-                    padding: "2px 7px",
-                    borderRadius: 4,
-                    border: "none",
-                    background: "transparent",
-                    fontSize: 10,
-                    color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                    cursor: "pointer",
-                    ...monoStyle,
-                    transition: "color 0.1s",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--foreground) 65%, transparent)")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "color-mix(in srgb, var(--foreground) 30%, transparent)")}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* ── Toggle edit/split/preview — estilo ensayos ── */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-                borderRadius: 5,
-                overflow: "hidden",
-                marginLeft: "auto",
-                flexShrink: 0,
-              }}
-            >
-              {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
-                const Icon = m === "edit" ? Edit3 : m === "preview" ? Eye : Columns;
-                const label = m === "edit" ? "edit" : m === "preview" ? "preview" : "split";
-                const isActive = mode === m;
-                // Ocultar split en mobile
-                const hideSplit = m === "split" ? { display: "none" } : {};
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMode(m)}
-                    title={label}
-                    className={m === "split" ? "hidden sm:flex" : "flex"}
-                    style={{
-                      alignItems: "center",
-                      gap: 4,
-                      fontSize: 9,
-                      padding: "3px 8px",
-                      background: isActive
-                        ? "color-mix(in srgb, var(--foreground) 10%, transparent)"
-                        : "transparent",
-                      color: isActive
-                        ? "color-mix(in srgb, var(--foreground) 70%, transparent)"
-                        : "color-mix(in srgb, var(--foreground) 25%, transparent)",
-                      border: "none",
-                      cursor: "pointer",
-                      ...monoStyle,
-                      transition: "background 0.1s, color 0.1s",
-                    }}
-                  >
-                    <Icon size={10} />
-                  </button>
-                );
-              })}
-            </div>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         {/* ── Área de contenido ── */}
         <div
@@ -471,20 +626,174 @@ export function MarkdownEditor({
             flex: 1,
             minHeight: 0,
             flexDirection: mode === "split" ? "row" : "column",
+            position: "relative",
           }}
         >
           {/* Textarea de edición */}
           {(mode === "edit" || mode === "split") && (
-            <textarea
-              ref={taRef}
-              value={value}
-              onChange={e => onChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onScroll={handleScroll}
-              placeholder={placeholder}
-              className={textareaCls}
-              style={textareaStyle}
-            />
+            <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
+              <textarea
+                ref={taRef}
+                value={value}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                onScroll={handleScroll}
+                placeholder={placeholder}
+                className={textareaCls}
+                style={textareaStyle}
+              />
+
+              {/* ── Menú flotante de comandos ── */}
+              {cmdMenu.open && (
+                <div
+                  ref={menuRef}
+                  style={{
+                    position: "absolute",
+                    top: cmdMenu.menuPos.top,
+                    left: Math.max(8, cmdMenu.menuPos.left),
+                    zIndex: 100,
+                    width: 256,
+                    background: "var(--bg-menu, #1a1730)",
+                    border: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 25%, transparent)",
+                    borderRadius: 8,
+                    boxShadow: "0 8px 32px color-mix(in srgb, var(--color-primary, #7c6af7) 15%, black)",
+                    overflow: "hidden",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  {/* Header del menú */}
+                  <div
+                    style={{
+                      padding: "6px 10px 4px",
+                      fontSize: 9,
+                      fontFamily: "var(--font-mono)",
+                      color: "color-mix(in srgb, var(--color-primary, #7c6af7) 60%, transparent)",
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span style={{ opacity: 0.5 }}>add</span>
+                    {cmdMenu.query && (
+                      <span style={{
+                        background: "color-mix(in srgb, var(--color-primary, #7c6af7) 15%, transparent)",
+                        color: "var(--color-primary, #7c6af7)",
+                        padding: "0 5px",
+                        borderRadius: 3,
+                        fontWeight: 700,
+                      }}>
+                        {cmdMenu.query}
+                      </span>
+                    )}
+                    <span style={{ marginLeft: "auto", opacity: 0.4 }}>
+                      ↑↓ navegar · Tab insertar
+                    </span>
+                  </div>
+
+                  {/* Lista de items */}
+                  <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                    {filteredItems.length === 0 ? (
+                      <div
+                        style={{
+                          padding: "14px 12px",
+                          fontSize: 11,
+                          color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                          textAlign: "center",
+                          fontFamily: "var(--font-mono)",
+                        }}
+                      >
+                        Sin resultados para "{cmdMenu.query}"
+                      </div>
+                    ) : (
+                      filteredItems.map((item, idx) => {
+                        const isSelected = idx === cmdMenu.selectedIdx;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onMouseEnter={() => setCmdMenu(m => ({ ...m, selectedIdx: idx }))}
+                            onClick={() => applyCommand(item)}
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              padding: "7px 12px",
+                              background: isSelected
+                                ? "color-mix(in srgb, var(--color-primary, #7c6af7) 12%, transparent)"
+                                : "transparent",
+                              border: "none",
+                              cursor: "pointer",
+                              textAlign: "left",
+                              transition: "background 0.1s",
+                              borderLeft: isSelected
+                                ? "2px solid var(--color-primary, #7c6af7)"
+                                : "2px solid transparent",
+                            }}
+                          >
+                            {/* Icono */}
+                            <div
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: 5,
+                                background: isSelected
+                                  ? "color-mix(in srgb, var(--color-primary, #7c6af7) 20%, transparent)"
+                                  : "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: isSelected
+                                  ? "var(--color-primary, #7c6af7)"
+                                  : "color-mix(in srgb, var(--foreground) 45%, transparent)",
+                                flexShrink: 0,
+                                fontFamily: "var(--font-mono)",
+                                transition: "background 0.1s, color 0.1s",
+                              }}
+                            >
+                              {item.icon}
+                            </div>
+                            {/* Texto */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  color: isSelected
+                                    ? "color-mix(in srgb, var(--foreground) 90%, transparent)"
+                                    : "color-mix(in srgb, var(--foreground) 60%, transparent)",
+                                  marginBottom: 1,
+                                  transition: "color 0.1s",
+                                }}
+                              >
+                                {item.label}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                                  fontFamily: "var(--font-mono)",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {item.description}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Separador vertical en modo split */}
@@ -510,8 +819,6 @@ export function MarkdownEditor({
             />
           )}
         </div>
-
-
       </div>
     </div>
   );
