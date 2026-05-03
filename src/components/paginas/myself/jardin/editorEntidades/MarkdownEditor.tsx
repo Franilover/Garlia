@@ -101,7 +101,7 @@ export function renderMarkdown(raw: string): string {
       tocEntries.push({ level: parseInt(m[1]), text: m[3], id: m[2] });
     }
     if (tocEntries.length > 0) {
-      let tocHtml = `<nav class="toc"><div class="toc-title">📋 Tabla de contenidos</div><ol>`;
+      let tocHtml = `<nav class="toc"><div class="toc-title">Indice</div><ol>`;
       let prevLevel = tocEntries[0].level;
       tocEntries.forEach(entry => {
         if (entry.level > prevLevel) tocHtml += "<ol>";
