@@ -228,7 +228,6 @@ function SegmentoTransicion({
             >
               <div className="flex items-stretch" style={{ borderBottom: `var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
                 <div className="flex-1 p-6">
-                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 mb-3 italic">Fin de</p>
                   <div className="flex items-center gap-3">
                     <Avatar label={labelActual} img={imgActual} dim />
                     <p className="text-primary/40 font-black text-xs uppercase tracking-wide line-through decoration-primary/20">
@@ -240,7 +239,6 @@ function SegmentoTransicion({
                   <ChevronRight size={14} className="text-primary/15" />
                 </div>
                 <div className="flex-1 p-6">
-                  <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 mb-3 italic">Continúa con</p>
                   <div className="flex items-center gap-3">
                     <Avatar label={labelSig} img={imgSig} />
                     <div>
