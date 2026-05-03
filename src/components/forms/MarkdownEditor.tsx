@@ -668,10 +668,10 @@ export function MarkdownEditor({
     mirror.style.width = taRect.width + "px";
     mirror.style.height = taRect.height + "px";
     mirror.style.whiteSpace = "pre-wrap";
-    mirror.style.overflow = "hidden";
+    mirror.style.overflow = "auto";
     mirror.style.zIndex = "-1";
 
-    // Texto antes del caret, compensando el scroll del textarea
+    // Texto antes del caret
     const textBefore = ta.value.slice(0, pos);
     mirror.textContent = textBefore;
 
@@ -680,17 +680,19 @@ export function MarkdownEditor({
     mirror.appendChild(span);
     document.body.appendChild(mirror);
 
-    // Scroll compensation: el mirror no scrollea, lo simulamos con translateY
+    // Aplicar el mismo scroll que tiene el textarea ANTES de medir
     mirror.scrollTop = ta.scrollTop;
+    mirror.scrollLeft = ta.scrollLeft;
     const spanRect = span.getBoundingClientRect();
     document.body.removeChild(mirror);
 
-    // Compensar el scroll del textarea manualmente
     const lineHeight = parseFloat(style.lineHeight) || 20;
-    const adjustedTop = spanRect.top - ta.scrollTop + (ta.scrollTop > 0 ? 0 : 0);
+
+    // Clamp vertical: si el span quedó fuera del área visible del textarea, usar el borde del textarea
+    const clampedTop = Math.max(taRect.top, Math.min(spanRect.top, taRect.bottom - lineHeight));
 
     return {
-      top: adjustedTop + lineHeight + 2,
+      top: clampedTop + lineHeight + 2,
       left: Math.max(taRect.left + 8, Math.min(spanRect.left, taRect.right - 264)),
     };
   }, []);
