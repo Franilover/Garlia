@@ -814,15 +814,17 @@ export default function Lector() {
         background: "var(--bg-main)",
       }}
     >
-      {/* ── Columna izquierda: panel fijo ── */}
-      <PanelLateral
-        libroTitulo={libroTitulo}
-        segActualObj={segActualObj}
-        capsParaMostrar={capsParaMostrar}
-        personajesIds={personajesIds}
-        onVolver={() => router.push(`/wiki/libros/${id}`)}
-        onAbrirIndice={() => setShowIndex(true)}
-      />
+      {/* ── Columna izquierda: panel fijo — oculto en móvil ── */}
+      <div className="hidden md:contents">
+        <PanelLateral
+          libroTitulo={libroTitulo}
+          segActualObj={segActualObj}
+          capsParaMostrar={capsParaMostrar}
+          personajesIds={personajesIds}
+          onVolver={() => router.push(`/wiki/libros/${id}`)}
+          onAbrirIndice={() => setShowIndex(true)}
+        />
+      </div>
 
       {/* ── Columna derecha: texto scrolleable ── */}
       <div
