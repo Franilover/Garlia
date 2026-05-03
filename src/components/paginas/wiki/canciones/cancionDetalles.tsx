@@ -192,7 +192,6 @@ export default function CancionDetallesPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
           style={{
-            padding: "20px 24px 0",
             display: "flex",
             flexDirection: "column",
             gap: 16,
@@ -235,7 +234,7 @@ export default function CancionDetallesPage() {
 
           {/* Links — fila horizontal scrolleable */}
           {cancion?.links && cancion.links.length > 0 && (
-            <div style={{ paddingTop: 14,  }}>
+            <div>
               <div
                 style={{
                   display: "flex",
