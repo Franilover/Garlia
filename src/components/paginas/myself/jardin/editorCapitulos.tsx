@@ -29,6 +29,7 @@ import { EntidadPicker } from "@/components/forms/EntidadPicker";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SnippetToolbar } from "./snippets/SnippetToolbar";
+import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
 
 type Libro = {
   id: string;
@@ -1014,6 +1015,20 @@ const DialogSnippets = ({
   </div>
 );
 
+/** Renderiza markdown del contenido del capítulo — usado en la vista previa del editor */
+const MarkdownPreviewPane = ({ contenido }: { contenido: string }) => {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const html = React.useMemo(() => renderMarkdown(contenido), [contenido]);
+  React.useEffect(() => { renderMathInElement(ref.current); }, [html]);
+  return (
+    <div
+      ref={ref}
+      className="prose-mundo lector-texto"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+};
+
 const PanelEditor = ({
   capId, libroId, onCapitulosChange, focusMode, onToggleFocus,
 }: {
@@ -1233,16 +1248,15 @@ const PanelEditor = ({
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto">
+                <style>{PROSE_STYLES}</style>
                 <div className="max-w-2xl mx-auto px-8 py-12">
                   <h1 className="text-3xl font-black uppercase italic tracking-tight text-primary mb-8 leading-tight">
                     {cap?.titulo_capitulo}
                   </h1>
-                  <div
-                    className="prose prose-invert max-w-none text-primary/80 leading-relaxed whitespace-pre-wrap font-serif text-base"
-                    style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-                  >
-                    {contenido || <span className="text-primary/25 italic">Sin contenido aún…</span>}
-                  </div>
+                  {contenido
+                    ? <MarkdownPreviewPane contenido={contenido} />
+                    : <span className="text-primary/25 italic text-sm">Sin contenido aún…</span>
+                  }
                 </div>
               </div>
             </div>
@@ -1467,86 +1481,25 @@ const PanelEditor = ({
       )}
 
       {!focusMode && (
-        <>
-          {/* Desktop: toolbars inline */}
-          <div className="hidden sm:block">
-            <DialogSnippets textareaRef={textareaRef} value={contenido} onChange={onChange} />
-          </div>
-          <div className="hidden sm:block">
-            <SnippetToolbar
-              textareaRef={textareaRef}
-              value={contenido}
-              onChange={onChange}
-              listaCapitulos={listaSnippetCaps}
-            />
-          </div>
-
-          {/* Mobile: toggle button + collapsible drawer */}
-          <div className="sm:hidden shrink-0">
-            <button
-              onClick={() => setMobileToolsOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 py-2 border-b border-primary/8 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:bg-primary/3 transition-all"
-            >
-              <span className="flex items-center gap-1.5">
-                <Zap size={9}/>
-                Herramientas de escritura
-              </span>
-              <ChevronDown size={10} className={`transition-transform duration-200 ${mobileToolsOpen ? "rotate-180" : ""}`}/>
-            </button>
-            <AnimatePresence>
-              {mobileToolsOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.18 }}
-                  className="overflow-hidden border-b border-primary/8"
-                >
-                  <DialogSnippets textareaRef={textareaRef} value={contenido} onChange={onChange} />
-                  <SnippetToolbar
-                    textareaRef={textareaRef}
-                    value={contenido}
-                    onChange={onChange}
-                    listaCapitulos={listaSnippetCaps}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </>
+        <div className="shrink-0 px-4 sm:px-8 py-1.5 border-b border-primary/5">
+          <span className="text-[8px] font-black uppercase tracking-widest text-primary/20">
+            Escribe <kbd className="px-1.5 py-0.5 rounded bg-primary/8 text-primary/40 font-mono not-italic">add</kbd> para insertar elementos · Ctrl+S guarda
+          </span>
+        </div>
       )}
 
       <div ref={scrollRef} className={`flex-1 min-h-0 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`} style={{ WebkitOverflowScrolling: "touch" }}>
-        {focusMode && <div className="max-w-3xl mx-auto w-full">
-          <div ref={caretMirrorRef} aria-hidden="true" />
-          <textarea
-            ref={textareaRef}
+        {/* Mirror oculto para caret-centering — solo usado en modo foco sin MarkdownEditor */}
+        <div ref={caretMirrorRef} aria-hidden="true" />
+        <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
+          <MarkdownEditor
             value={contenido}
-            onChange={e => onChange(e.target.value)}
-            onKeyDown={e => {
-              if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(contenido); }
-            }}
-            spellCheck
-            className="w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all select-text touch-pan-y text-lg sm:text-xl"
-            style={{ minHeight: "100%" }}
+            onChange={onChange}
             placeholder="Empieza a escribir…"
+            defaultMode={focusMode ? "edit" : "split"}
+            rows={focusMode ? 30 : 20}
           />
-        </div>}
-        {!focusMode && <>
-          <div ref={caretMirrorRef} aria-hidden="true" />
-          <textarea
-            ref={textareaRef}
-            value={contenido}
-            onChange={e => onChange(e.target.value)}
-            onKeyDown={e => {
-              if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(contenido); }
-            }}
-            spellCheck
-            className="w-full bg-transparent outline-none resize-none text-primary leading-[1.9] placeholder:text-primary/15 font-serif transition-all select-text touch-pan-y text-base"
-            style={{ minHeight: "100%" }}
-            placeholder="Empieza a escribir…"
-          />
-        </>}
+        </div>
       </div>
 
       {!focusMode && (
