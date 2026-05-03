@@ -29,7 +29,7 @@ import { EntidadPicker } from "@/components/forms/EntidadPicker";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SnippetToolbar } from "./snippets/SnippetToolbar";
-import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor;
+import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
 
 type Libro = {
   id: string;
