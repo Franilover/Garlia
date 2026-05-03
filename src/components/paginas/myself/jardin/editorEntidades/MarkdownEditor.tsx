@@ -1,9 +1,25 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Eye, Edit3, Columns } from "lucide-react";
+import { Eye, Edit3, Columns, Search, Replace, X, ChevronUp, ChevronDown } from "lucide-react";
 
-// ── Renderer ────────────────────────────────────────────────────────────────
+// ── Slug helper for heading IDs ─────────────────────────────────────────────
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/[\s]+/g, "-");
+}
+
+// ── Callout config ───────────────────────────────────────────────────────────
+const CALLOUT_MAP: Record<string, { cls: string; icon: string; label: string }> = {
+  NOTE:    { cls: "callout-note",    icon: "📝", label: "Note" },
+  TIP:     { cls: "callout-tip",     icon: "💡", label: "Tip" },
+  WARNING: { cls: "callout-warning", icon: "⚠️",  label: "Warning" },
+  DANGER:  { cls: "callout-danger",  icon: "🔴", label: "Danger" },
+  ERROR:   { cls: "callout-danger",  icon: "❌", label: "Error" },
+  SUCCESS: { cls: "callout-success", icon: "✅", label: "Success" },
+  INFO:    { cls: "callout-info",    icon: "ℹ️",  label: "Info" },
+};
+
+// ── Renderer ─────────────────────────────────────────────────────────────────
 export function renderMarkdown(raw: string): string {
   // ── Proteger bloques de código primero ──────────────────────────────────
   const codeBlocks: string[] = [];
@@ -40,28 +56,63 @@ export function renderMarkdown(raw: string): string {
     return `\n<table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>\n`;
   });
 
-  // ── Blockquotes (soporta anidados y multilínea) ───────────────────────────
+  // ── Callouts > [!TYPE] ───────────────────────────────────────────────────
   html = html.replace(/((?:^&gt;.*(?:\n|$))+)/gm, (block) => {
-    const inner = block
-      .split("\n")
-      .filter(l => l.trim())
-      .map(l => l.replace(/^&gt;\s?/, ""))
-      .join("\n");
-    return `<blockquote>${inner}</blockquote>`;
+    const lines = block.split("\n").filter(l => l.trim());
+    const inner = lines.map(l => l.replace(/^&gt;\s?/, ""));
+    const firstLine = inner[0] || "";
+    const calloutMatch = firstLine.match(/^\[!(NOTE|TIP|WARNING|DANGER|ERROR|SUCCESS|INFO)\]\s*(.*)?$/i);
+    if (calloutMatch) {
+      const key = calloutMatch[1].toUpperCase();
+      const cfg = CALLOUT_MAP[key];
+      const titleExtra = calloutMatch[2] ? calloutMatch[2] : cfg.label;
+      const body = inner.slice(1).join("<br/>");
+      return `<div class="callout ${cfg.cls}"><div class="callout-title"><span class="callout-title-icon">${cfg.icon}</span>${titleExtra}</div>${body ? `<div class="callout-body">${body}</div>` : ""}</div>`;
+    }
+    return `<blockquote>${inner.join("\n")}</blockquote>`;
   });
 
   // ── Imágenes y enlaces ───────────────────────────────────────────────────
   html = html.replace(/!\[([^\]]*)\]\((.*?)\)/g, '<img src="$2" alt="$1" />');
   html = html.replace(/\[([^\]]+)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
-  // ── Encabezados ──────────────────────────────────────────────────────────
+  // ── Encabezados con ID para TOC ──────────────────────────────────────────
   html = html.replace(/^---$/gm, "<hr/>");
-  html = html.replace(/^######\s(.+)$/gm, "<h6>$1</h6>");
-  html = html.replace(/^#####\s(.+)$/gm,  "<h5>$1</h5>");
-  html = html.replace(/^####\s(.+)$/gm,   "<h4>$1</h4>");
-  html = html.replace(/^###\s(.+)$/gm,    "<h3>$1</h3>");
-  html = html.replace(/^##\s(.+)$/gm,     "<h2>$1</h2>");
-  html = html.replace(/^#\s(.+)$/gm,      "<h1>$1</h1>");
+  const headingCounter: Record<string, number> = {};
+  const makeHeading = (level: number, text: string) => {
+    const base = slugify(text);
+    headingCounter[base] = (headingCounter[base] || 0) + 1;
+    const id = headingCounter[base] > 1 ? `${base}-${headingCounter[base]}` : base;
+    return `<h${level} id="${id}">${text}</h${level}>`;
+  };
+  html = html.replace(/^######\s(.+)$/gm, (_, t) => makeHeading(6, t));
+  html = html.replace(/^#####\s(.+)$/gm,  (_, t) => makeHeading(5, t));
+  html = html.replace(/^####\s(.+)$/gm,   (_, t) => makeHeading(4, t));
+  html = html.replace(/^###\s(.+)$/gm,    (_, t) => makeHeading(3, t));
+  html = html.replace(/^##\s(.+)$/gm,     (_, t) => makeHeading(2, t));
+  html = html.replace(/^#\s(.+)$/gm,      (_, t) => makeHeading(1, t));
+
+  // ── [[TOC]] placeholder ──────────────────────────────────────────────────
+  if (html.includes("[[TOC]]") || html.includes("[[toc]]")) {
+    const tocEntries: { level: number; text: string; id: string }[] = [];
+    const reH = /<h([1-4])\s+id="([^"]+)">([^<]+)<\/h[1-4]>/g;
+    let m;
+    while ((m = reH.exec(html)) !== null) {
+      tocEntries.push({ level: parseInt(m[1]), text: m[3], id: m[2] });
+    }
+    if (tocEntries.length > 0) {
+      let tocHtml = `<nav class="toc"><div class="toc-title">📋 Tabla de contenidos</div><ol>`;
+      let prevLevel = tocEntries[0].level;
+      tocEntries.forEach(entry => {
+        if (entry.level > prevLevel) tocHtml += "<ol>";
+        else if (entry.level < prevLevel) tocHtml += "</ol>";
+        tocHtml += `<li><a href="#${entry.id}">${entry.text}</a></li>`;
+        prevLevel = entry.level;
+      });
+      tocHtml += `</ol></nav>`;
+      html = html.replace(/\[\[TOC\]\]|\[\[toc\]\]/g, tocHtml);
+    }
+  }
 
   // ── Tipografía inline ────────────────────────────────────────────────────
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
@@ -198,6 +249,37 @@ export const PROSE_STYLES = `
   .prose-mundo .math-inline,.prose-mundo .math-block { color:color-mix(in srgb,var(--color-primary,#7c6af7) 85%,white) }
   .prose-mundo .math-block { display:block;text-align:center;margin:.8rem 0;font-size:1.05em }
   .katex { font-size:1em !important }
+  /* ── Callouts ─────────────────────────────────────────────────────────────── */
+  .prose-mundo .callout { border-radius:.5rem;padding:.6rem 1rem;margin:.6rem 0;border-left:4px solid;display:flex;flex-direction:column;gap:.2rem;font-size:.83rem;line-height:1.6 }
+  .prose-mundo .callout-title { display:flex;align-items:center;gap:.4rem;font-weight:800;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase }
+  .prose-mundo .callout-title-icon { font-size:1rem;line-height:1 }
+  .prose-mundo .callout-body { color:inherit;opacity:.9 }
+
+  .prose-mundo .callout-note    { background:var(--callout-note-bg);    border-color:var(--callout-note-border);    color:var(--callout-note-text) }
+  .prose-mundo .callout-note    .callout-title { color:var(--callout-note-title) }
+  .prose-mundo .callout-tip     { background:var(--callout-tip-bg);     border-color:var(--callout-tip-border);     color:var(--callout-tip-text) }
+  .prose-mundo .callout-tip     .callout-title { color:var(--callout-tip-title) }
+  .prose-mundo .callout-warning { background:var(--callout-warning-bg); border-color:var(--callout-warning-border); color:var(--callout-warning-text) }
+  .prose-mundo .callout-warning .callout-title { color:var(--callout-warning-title) }
+  .prose-mundo .callout-danger  { background:var(--callout-danger-bg);  border-color:var(--callout-danger-border);  color:var(--callout-danger-text) }
+  .prose-mundo .callout-danger  .callout-title { color:var(--callout-danger-title) }
+  .prose-mundo .callout-success { background:var(--callout-success-bg); border-color:var(--callout-success-border); color:var(--callout-success-text) }
+  .prose-mundo .callout-success .callout-title { color:var(--callout-success-title) }
+  .prose-mundo .callout-info    { background:var(--callout-info-bg);    border-color:var(--callout-info-border);    color:var(--callout-info-text) }
+  .prose-mundo .callout-info    .callout-title { color:var(--callout-info-title) }
+  /* ── TOC ─────────────────────────────────────────────────────────────────── */
+  .prose-mundo .toc { background:color-mix(in srgb,var(--color-primary,#7c6af7) 6%,transparent);border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent);border-radius:.5rem;padding:.6rem 1rem;margin:.6rem 0;font-size:.78rem }
+  .prose-mundo .toc-title { font-weight:800;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--color-primary,#7c6af7);margin-bottom:.35rem;display:flex;align-items:center;gap:.35rem }
+  .prose-mundo .toc ol { padding-left:1rem;margin:.15rem 0;counter-reset:none;list-style:decimal }
+  .prose-mundo .toc ol li { padding-left:0;font-size:.76rem;margin:.12rem 0;color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 80%,transparent) }
+  .prose-mundo .toc ol li::before { display:none }
+  .prose-mundo .toc ol ol { padding-left:1.2rem;list-style:lower-alpha }
+  .prose-mundo .toc a { color:color-mix(in srgb,var(--color-primary,#7c6af7) 75%,white);text-decoration:none;transition:color .15s }
+  .prose-mundo .toc a:hover { color:var(--color-primary,#7c6af7) }
+  .prose-mundo h1[id],
+  .prose-mundo h2[id],
+  .prose-mundo h3[id],
+  .prose-mundo h4[id] { scroll-margin-top:1rem }
 `;
 
 // ── Command menu items ────────────────────────────────────────────────────────
@@ -374,6 +456,103 @@ const COMMAND_ITEMS: CommandItem[] = [
     snippet: "\n$$\n\n$$\n",
     cursorOffset: 5,
   },
+  // ── Callouts ─────────────────────────────────────────────────────────────
+  {
+    id: "callout-note",
+    label: "Callout Note",
+    description: "> [!NOTE] azul informativo",
+    keywords: ["cal", "callout", "note", "nota", "info"],
+    icon: "📝",
+    snippet: "\n> [!NOTE]\n> Escribe tu nota aquí.\n",
+    cursorOffset: 1,
+  },
+  {
+    id: "callout-tip",
+    label: "Callout Tip",
+    description: "> [!TIP] verde consejo",
+    keywords: ["cal", "callout", "tip", "consejo", "verde"],
+    icon: "💡",
+    snippet: "\n> [!TIP]\n> Escribe un consejo aquí.\n",
+    cursorOffset: 1,
+  },
+  {
+    id: "callout-warning",
+    label: "Callout Warning",
+    description: "> [!WARNING] amarillo advertencia",
+    keywords: ["cal", "callout", "warn", "warning", "adver", "amarillo"],
+    icon: "⚠️",
+    snippet: "\n> [!WARNING]\n> Escribe una advertencia aquí.\n",
+    cursorOffset: 1,
+  },
+  {
+    id: "callout-danger",
+    label: "Callout Danger",
+    description: "> [!DANGER] rojo peligro",
+    keywords: ["cal", "callout", "danger", "error", "peli", "rojo"],
+    icon: "🔴",
+    snippet: "\n> [!DANGER]\n> Escribe un error o peligro aquí.\n",
+    cursorOffset: 1,
+  },
+  {
+    id: "callout-success",
+    label: "Callout Success",
+    description: "> [!SUCCESS] verde éxito",
+    keywords: ["cal", "callout", "success", "exito", "éxito", "ok"],
+    icon: "✅",
+    snippet: "\n> [!SUCCESS]\n> Operación completada con éxito.\n",
+    cursorOffset: 1,
+  },
+  {
+    id: "callout-info",
+    label: "Callout Info",
+    description: "> [!INFO] violeta información",
+    keywords: ["cal", "callout", "info", "purple", "violeta"],
+    icon: "ℹ️",
+    snippet: "\n> [!INFO]\n> Información adicional aquí.\n",
+    cursorOffset: 1,
+  },
+  // ── TOC ──────────────────────────────────────────────────────────────────
+  {
+    id: "toc",
+    label: "Tabla de contenidos",
+    description: "[[TOC]] generada automáticamente",
+    keywords: ["toc", "tabla", "contenidos", "indice", "índice", "nav"],
+    icon: "📋",
+    snippet: "\n[[TOC]]\n",
+  },
+  // ── Plantillas ────────────────────────────────────────────────────────────
+  {
+    id: "template-article",
+    label: "Plantilla: Artículo",
+    description: "Estructura básica de artículo",
+    keywords: ["tem", "template", "plan", "plantilla", "art", "articulo"],
+    icon: "📄",
+    snippet: "\n# Título del artículo\n\n[[TOC]]\n\n## Introducción\n\nEscribe aquí la introducción.\n\n## Desarrollo\n\nEscribe aquí el contenido principal.\n\n## Conclusión\n\nEscribe aquí las conclusiones.\n",
+  },
+  {
+    id: "template-readme",
+    label: "Plantilla: README",
+    description: "README para proyecto",
+    keywords: ["tem", "template", "plan", "readme", "repo", "git", "proyec"],
+    icon: "📦",
+    snippet: "\n# Nombre del Proyecto\n\n> [!INFO]\n> Descripción breve del proyecto.\n\n## Instalación\n\n```\nnpm install\n```\n\n## Uso\n\n```\nnpm start\n```\n\n## Contribuir\n\n1. Fork del repo\n2. Crea tu rama (`git checkout -b feature/algo`)\n3. Commit tus cambios\n4. Abre un Pull Request\n",
+  },
+  {
+    id: "template-meeting",
+    label: "Plantilla: Reunión",
+    description: "Acta de reunión",
+    keywords: ["tem", "template", "plan", "reunion", "reunión", "acta", "meet"],
+    icon: "🗓",
+    snippet: "\n# Reunión — {{fecha}}\n\n**Asistentes:** Nombre1, Nombre2\n\n## Agenda\n\n1. Punto 1\n2. Punto 2\n\n## Notas\n\n- Discusión sobre...\n\n## Acciones\n\n- [ ] Tarea 1 — responsable\n- [ ] Tarea 2 — responsable\n\n## Próxima reunión\n\nFecha: \n",
+  },
+  {
+    id: "template-report",
+    label: "Plantilla: Reporte",
+    description: "Reporte técnico / ejecutivo",
+    keywords: ["tem", "template", "plan", "repo", "report", "reporte", "ejecut"],
+    icon: "📊",
+    snippet: "\n# Reporte: {{título}}\n\n> [!NOTE]\n> Resumen ejecutivo del reporte.\n\n[[TOC]]\n\n## Contexto\n\nDescripción del contexto o problema.\n\n## Análisis\n\n| Métrica | Valor | Objetivo |\n|---|---|---|\n| KPI 1 | - | - |\n| KPI 2 | - | - |\n\n## Conclusiones\n\n> [!SUCCESS]\n> Escribe aquí los resultados positivos.\n\n## Próximos pasos\n\n- [ ] Acción 1\n- [ ] Acción 2\n",
+  },
 ];
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -402,6 +581,24 @@ export function MarkdownEditor({
   const taRef = useRef<HTMLTextAreaElement>(null);
   const pvRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Find & Replace state
+  const [findReplace, setFindReplace] = useState<{
+    open: boolean;
+    find: string;
+    replace: string;
+    caseSensitive: boolean;
+    currentMatch: number;
+    totalMatches: number;
+  }>({
+    open: false,
+    find: "",
+    replace: "",
+    caseSensitive: false,
+    currentMatch: 0,
+    totalMatches: 0,
+  });
+  const findInputRef = useRef<HTMLInputElement>(null);
 
   // Command menu state
   const [cmdMenu, setCmdMenu] = useState<{
@@ -547,6 +744,71 @@ export function MarkdownEditor({
       setCmdMenu(m => m.open ? { ...m, open: false, query: "" } : m);
     }
   }, [getCaretCoords]);
+
+  // ── Find & Replace ────────────────────────────────────────────────────
+  const countMatches = useCallback((text: string, query: string, caseSensitive: boolean) => {
+    if (!query) return 0;
+    const flags = caseSensitive ? "g" : "gi";
+    try { return (text.match(new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags)) || []).length; }
+    catch { return 0; }
+  }, []);
+
+  const findAndHighlight = useCallback((dir: 1 | -1 = 1) => {
+    const ta = taRef.current;
+    if (!ta || !findReplace.find) return;
+    const flags = findReplace.caseSensitive ? "g" : "gi";
+    const regex = new RegExp(findReplace.find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags);
+    const matches: number[] = [];
+    let m;
+    while ((m = regex.exec(value)) !== null) matches.push(m.index);
+    if (!matches.length) return;
+    const next = (findReplace.currentMatch + dir + matches.length) % matches.length;
+    const idx = matches[next];
+    ta.focus();
+    ta.setSelectionRange(idx, idx + findReplace.find.length);
+    setFindReplace(s => ({ ...s, currentMatch: next, totalMatches: matches.length }));
+  }, [findReplace, value]);
+
+  const replaceOne = useCallback(() => {
+    const ta = taRef.current;
+    if (!ta || !findReplace.find) return;
+    const { selectionStart: s, selectionEnd: e } = ta;
+    if (s !== e && value.slice(s, e).toLowerCase() === findReplace.find.toLowerCase()) {
+      const newVal = value.slice(0, s) + findReplace.replace + value.slice(e);
+      onChange(newVal);
+      requestAnimationFrame(() => findAndHighlight(1));
+    } else {
+      findAndHighlight(1);
+    }
+  }, [findReplace, value, onChange, findAndHighlight]);
+
+  const replaceAll = useCallback(() => {
+    if (!findReplace.find) return;
+    const flags = findReplace.caseSensitive ? "g" : "gi";
+    const regex = new RegExp(findReplace.find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags);
+    const newVal = value.replace(regex, findReplace.replace);
+    onChange(newVal);
+    setFindReplace(s => ({ ...s, currentMatch: 0, totalMatches: 0 }));
+  }, [findReplace, value, onChange]);
+
+  // Update match count when query changes
+  useEffect(() => {
+    const total = countMatches(value, findReplace.find, findReplace.caseSensitive);
+    setFindReplace(s => ({ ...s, totalMatches: total, currentMatch: Math.min(s.currentMatch, Math.max(0, total - 1)) }));
+  }, [findReplace.find, findReplace.caseSensitive, value, countMatches]);
+
+  // Open find panel with Ctrl+F / Cmd+F
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+        e.preventDefault();
+        setFindReplace(s => ({ ...s, open: true }));
+        setTimeout(() => findInputRef.current?.focus(), 50);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   // ── handleChange ──────────────────────────────────────────────────────
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -726,14 +988,52 @@ export function MarkdownEditor({
             zIndex: 200,
             display: "flex",
             alignItems: "center",
-            background: "color-mix(in srgb, var(--bg-menu, #1a1730) 85%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-            borderRadius: 6,
-            overflow: "hidden",
-            backdropFilter: "blur(6px)",
-            boxShadow: "0 2px 8px color-mix(in srgb, black 20%, transparent)",
+            gap: 4,
           }}
         >
+          {/* Find button */}
+          <button
+            type="button"
+            title="Buscar y reemplazar (Ctrl+F)"
+            onClick={() => {
+              setFindReplace(s => ({ ...s, open: !s.open }));
+              setTimeout(() => findInputRef.current?.focus(), 50);
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 26,
+              height: 22,
+              background: findReplace.open
+                ? "color-mix(in srgb, var(--color-primary,#7c6af7) 20%, transparent)"
+                : "color-mix(in srgb, var(--bg-menu, #1a1730) 85%, transparent)",
+              color: findReplace.open
+                ? "var(--color-primary,#7c6af7)"
+                : "color-mix(in srgb, var(--foreground) 35%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+              borderRadius: 6,
+              cursor: "pointer",
+              backdropFilter: "blur(6px)",
+              boxShadow: "0 2px 8px color-mix(in srgb, black 20%, transparent)",
+            }}
+          >
+            <Search size={10} />
+          </button>
+
+          {/* Mode toggles */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              background: "color-mix(in srgb, var(--bg-menu, #1a1730) 85%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+              borderRadius: 6,
+              overflow: "hidden",
+              backdropFilter: "blur(6px)",
+              boxShadow: "0 2px 8px color-mix(in srgb, black 20%, transparent)",
+            }}
+          >
           {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
             const Icon = m === "edit" ? Edit3 : m === "preview" ? Eye : Columns;
             const isActive = mode === m;
@@ -764,7 +1064,136 @@ export function MarkdownEditor({
               </button>
             );
           })}
+          </div>
         </div>
+
+        {/* ── Panel Buscar y Reemplazar ── */}
+        {findReplace.open && (
+          <div
+            style={{
+              position: "absolute",
+              top: 36,
+              right: 8,
+              zIndex: 300,
+              width: 320,
+              background: "var(--bg-menu, #1a1730)",
+              border: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 25%, transparent)",
+              borderRadius: 8,
+              boxShadow: "0 8px 32px color-mix(in srgb, var(--color-primary, #7c6af7) 15%, black)",
+              overflow: "hidden",
+              backdropFilter: "blur(8px)",
+              padding: "10px 12px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--color-primary, #7c6af7) 70%, transparent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                Buscar y reemplazar
+              </span>
+              <button
+                type="button"
+                onClick={() => setFindReplace(s => ({ ...s, open: false }))}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb, var(--foreground) 35%, transparent)", padding: 2, display: "flex" }}
+              >
+                <X size={12} />
+              </button>
+            </div>
+
+            {/* Find row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ flex: 1, position: "relative" }}>
+                <input
+                  ref={findInputRef}
+                  type="text"
+                  value={findReplace.find}
+                  onChange={e => setFindReplace(s => ({ ...s, find: e.target.value, currentMatch: 0 }))}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") { e.shiftKey ? findAndHighlight(-1) : findAndHighlight(1); }
+                    if (e.key === "Escape") setFindReplace(s => ({ ...s, open: false }));
+                  }}
+                  placeholder="Buscar…"
+                  style={{
+                    width: "100%",
+                    background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
+                    borderRadius: 5,
+                    padding: "4px 8px",
+                    fontSize: 12,
+                    color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
+                    outline: "none",
+                    fontFamily: "var(--font-mono)",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {findReplace.find && (
+                  <span style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", fontFamily: "var(--font-mono)", pointerEvents: "none" }}>
+                    {findReplace.totalMatches > 0 ? `${findReplace.currentMatch + 1}/${findReplace.totalMatches}` : "0/0"}
+                  </span>
+                )}
+              </div>
+              <button type="button" onClick={() => findAndHighlight(-1)} title="Anterior (Shift+Enter)" style={{ background: "none", border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)", borderRadius: 4, cursor: "pointer", color: "color-mix(in srgb, var(--foreground) 50%, transparent)", padding: "3px 5px", display: "flex" }}>
+                <ChevronUp size={12} />
+              </button>
+              <button type="button" onClick={() => findAndHighlight(1)} title="Siguiente (Enter)" style={{ background: "none", border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)", borderRadius: 4, cursor: "pointer", color: "color-mix(in srgb, var(--foreground) 50%, transparent)", padding: "3px 5px", display: "flex" }}>
+                <ChevronDown size={12} />
+              </button>
+            </div>
+
+            {/* Replace row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input
+                type="text"
+                value={findReplace.replace}
+                onChange={e => setFindReplace(s => ({ ...s, replace: e.target.value }))}
+                onKeyDown={e => { if (e.key === "Escape") setFindReplace(s => ({ ...s, open: false })); }}
+                placeholder="Reemplazar con…"
+                style={{
+                  flex: 1,
+                  background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
+                  borderRadius: 5,
+                  padding: "4px 8px",
+                  fontSize: 12,
+                  color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
+                  outline: "none",
+                  fontFamily: "var(--font-mono)",
+                }}
+              />
+              <button
+                type="button"
+                onClick={replaceOne}
+                title="Reemplazar este"
+                style={{ background: "color-mix(in srgb, var(--color-primary,#7c6af7) 15%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary,#7c6af7) 30%, transparent)", borderRadius: 4, cursor: "pointer", color: "var(--color-primary,#7c6af7)", padding: "3px 7px", fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 700 }}
+              >
+                <Replace size={11} />
+              </button>
+              <button
+                type="button"
+                onClick={replaceAll}
+                title="Reemplazar todos"
+                style={{ background: "color-mix(in srgb, var(--color-primary,#7c6af7) 15%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary,#7c6af7) 30%, transparent)", borderRadius: 4, cursor: "pointer", color: "var(--color-primary,#7c6af7)", padding: "3px 7px", fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 700, whiteSpace: "nowrap" }}
+              >
+                All
+              </button>
+            </div>
+
+            {/* Options */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 10, color: "color-mix(in srgb, var(--foreground) 45%, transparent)", fontFamily: "var(--font-mono)" }}>
+                <input
+                  type="checkbox"
+                  checked={findReplace.caseSensitive}
+                  onChange={e => setFindReplace(s => ({ ...s, caseSensitive: e.target.checked, currentMatch: 0 }))}
+                  style={{ accentColor: "var(--color-primary,#7c6af7)", width: 11, height: 11 }}
+                />
+                Aa (mayúsculas)
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* ── Área de contenido ── */}
         <div
