@@ -3,12 +3,11 @@ import { MotionDiv } from "@/components/ui/Motion";
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
-import { AlertCircle, User, List, Music } from "lucide-react";
+import { AlertCircle, Music, ExternalLink } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Btn, Loading } from "@/components/ui";
 import { db } from "@/lib/api/client/db";
 import {
-  LinkSection,
   getLetra,
   type Seccion,
 } from "@/components/paginas/wiki/canciones/CancionComponents";
@@ -38,17 +37,16 @@ function normPersonaje(v: PersonajeRef | PersonajeRef[] | null | undefined): Per
 export default function CancionDetallesPage() {
   const params = useParams();
   const router = useRouter();
-  const id     = Array.isArray(params?.id) ? params.id[0] : params?.id as string;
+  const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
 
-  const [cancion,     setCancion]     = useState<Cancion | null>(null);
-  const [secciones,   setSecciones]   = useState<Seccion[]>([]);
-  const [loading,     setLoading]     = useState(true);
+  const [cancion, setCancion] = useState<Cancion | null>(null);
+  const [secciones, setSecciones] = useState<Seccion[]>([]);
+  const [loading, setLoading] = useState(true);
   const [errorAcceso, setErrorAcceso] = useState(false);
 
   useEffect(() => {
     if (!id) return;
 
-    // Cargar desde Dexie primero para mostrar algo instantáneo
     (async () => {
       try {
         if (db) {
@@ -66,23 +64,28 @@ export default function CancionDetallesPage() {
         }
       } catch {}
 
-      // Fetch completo en background (con join de personaje y secciones frescas)
       try {
         const [{ data: c, error: ec }, { data: s, error: es }] = await Promise.all([
-          supabase.from("canciones")
+          supabase
+            .from("canciones")
             .select("*, personaje:personajes!personaje_id(id, nombre, img_url)")
-            .eq("id", id).eq("visible", true).single(),
+            .eq("id", id)
+            .eq("visible", true)
+            .single(),
           supabase
             .from("secciones_cancion")
             .select("id, nombre_seccion, letra_es, letra_en, letra_jp, letra_romaji, orden")
             .eq("cancion_id", id)
             .order("orden", { ascending: true }),
         ]);
-        if (ec || !c) { setErrorAcceso(true); setLoading(false); return; }
+        if (ec || !c) {
+          setErrorAcceso(true);
+          setLoading(false);
+          return;
+        }
         if (es) throw es;
         setCancion(c as Cancion);
         setSecciones((s || []) as Seccion[]);
-        // Guardar secciones en Dexie para próxima visita
         try {
           if (db && s && s.length > 0) await db.secciones_cancion.bulkPut(s as any);
         } catch {}
@@ -95,159 +98,363 @@ export default function CancionDetallesPage() {
   }, [id]);
 
   if (loading) return <Loading text="Cargando..." />;
-  if (errorAcceso) return (
-    <div className="h-screen flex items-center justify-center bg-bg-main flex-col gap-4 text-center px-6">
-      <AlertCircle className="text-red-400" size={48} />
-      <p className="text-primary uppercase text-[10px] tracking-widest italic font-black">Canción no encontrada</p>
-      <Btn onClick={() => router.push("/wiki/canciones")} className="mt-4 rounded-full">Volver</Btn>
-    </div>
-  );
 
+  if (errorAcceso)
+    return (
+      <div className="h-screen flex items-center justify-center bg-bg-main flex-col gap-4 text-center px-6">
+        <AlertCircle className="text-red-400" size={48} />
+        <p className="text-primary uppercase text-[10px] tracking-widest italic font-black">
+          Canción no encontrada
+        </p>
+        <Btn onClick={() => router.push("/wiki/canciones")} className="mt-4 rounded-full">
+          Volver
+        </Btn>
+      </div>
+    );
+
+  const personaje = normPersonaje(cancion?.personaje);
   const border = "1px solid var(--color-border, color-mix(in srgb, var(--primary) 12%, transparent))";
 
   return (
-    <div className="h-screen overflow-y-auto bg-bg-main">
-      <div className="max-w-4xl mx-auto px-6 py-12">
-
-        {/* ── Header compacto ── */}
-        <MotionDiv
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          style={{ marginBottom: 40 }}
+    <div
+      style={{
+        height: "100vh",
+        overflow: "hidden",
+        background: "var(--bg-main)",
+        display: "flex",
+      }}
+    >
+      {/* ── Columna izquierda: sticky, no scrollea ── */}
+      <MotionDiv
+        initial={{ opacity: 0, x: -16 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4 }}
+        style={{
+          width: "clamp(260px, 30vw, 360px)",
+          flexShrink: 0,
+          borderRight: border,
+          display: "flex",
+          flexDirection: "column",
+          height: "100vh",
+          overflow: "hidden",
+        }}
+      >
+        {/* Imagen de portada — ocupa toda la parte superior */}
+        <div
+          style={{
+            flex: "0 0 auto",
+            aspectRatio: "1 / 1",
+            width: "100%",
+            overflow: "hidden",
+            position: "relative",
+          }}
         >
-          {/* Portada + título en una fila */}
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 24, marginBottom: 20 }}>
-            <div style={{
-              width: 80, height: 80, flexShrink: 0,
-              border,
-              borderRadius: "var(--radius-btn, 6px)",
-              overflow: "hidden",
-            }}>
-              <SmartImage
-                src={cancion?.portada_url || "/placeholder-cover.jpg"}
-                alt={cancion?.titulo ?? ""}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.4, marginBottom: 4 }}>
-                Canción
-              </p>
-              <h1 style={{
-                fontSize: "clamp(1.6rem, 4vw, 2.6rem)",
+          <SmartImage
+            src={cancion?.portada_url || "/placeholder-cover.jpg"}
+            alt={cancion?.titulo ?? ""}
+            className="w-full h-full object-cover"
+          />
+          {/* Degradado suave en la parte inferior de la imagen */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(to bottom, transparent 55%, color-mix(in srgb, var(--bg-main) 60%, transparent) 100%)",
+              pointerEvents: "none",
+            }}
+          />
+        </div>
+
+        {/* Metadatos debajo de la imagen */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "24px 28px 32px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 20,
+          }}
+        >
+          {/* Label + Título */}
+          <div>
+            <p
+              style={{
+                fontSize: 9,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "var(--primary)",
+                opacity: 0.35,
+                marginBottom: 6,
+              }}
+            >
+              Canción
+            </p>
+            <h1
+              style={{
+                fontSize: "clamp(1.4rem, 2.8vw, 2rem)",
                 fontWeight: 900,
                 color: "var(--primary)",
                 letterSpacing: "-0.03em",
-                lineHeight: 1,
+                lineHeight: 1.05,
                 textTransform: "uppercase",
                 fontStyle: "italic",
-              }}>
-                {cancion?.titulo}
-              </h1>
+                margin: 0,
+              }}
+            >
+              {cancion?.titulo}
+            </h1>
+          </div>
+
+          {/* Personaje */}
+          {personaje && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                paddingTop: 16,
+                borderTop: border,
+              }}
+            >
+              {personaje.img_url && (
+                <img
+                  src={personaje.img_url}
+                  alt={personaje.nombre}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    objectFit: "cover",
+                    borderRadius: "var(--radius-btn, 4px)",
+                    border,
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              <div>
+                <p
+                  style={{
+                    fontSize: 8.5,
+                    fontFamily: "var(--font-mono)",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "var(--primary)",
+                    opacity: 0.3,
+                    marginBottom: 2,
+                  }}
+                >
+                  Personaje
+                </p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "var(--primary)",
+                    opacity: 0.8,
+                    margin: 0,
+                  }}
+                >
+                  {personaje.nombre}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Metadatos en línea */}
-          <div style={{ display: "flex", alignItems: "center", gap: 0, borderTop: border, borderBottom: border }}>
-            {/* Personaje */}
-            {(() => {
-              const p = normPersonaje(cancion?.personaje);
-              if (!p) return null;
-              return (
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "8px 16px 8px 0",
-                  borderRight: border,
-                  marginRight: 16,
-                }}>
-                  <User size={10} style={{ color: "var(--primary)", opacity: 0.35, flexShrink: 0 }} />
-                  {p.img_url && (
-                    <img
-                      src={p.img_url} alt={p.nombre}
-                      style={{ width: 20, height: 20, objectFit: "cover", borderRadius: "var(--radius-btn, 4px)", border, flexShrink: 0 }}
-                    />
-                  )}
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--primary)", opacity: 0.7 }}>{p.nombre}</span>
-                </div>
-              );
-            })()}
-
-            {/* Links */}
-            <div style={{ flex: 1, padding: "8px 0" }}>
-              <LinkSection links={cancion?.links} />
-            </div>
-          </div>
-        </MotionDiv>
-
-        {/* ── Letra ── */}
-        <MotionDiv initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.08 }}>
-
-          {/* Label sección */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-            <List size={11} style={{ color: "var(--primary)", opacity: 0.3 }} />
-            <span style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.35 }}>
-              Letra
-            </span>
-          </div>
-
-          {secciones.length > 0 ? (
-            <div style={{ border, borderRadius: "var(--radius-card, 8px)", overflow: "hidden" }}>
-              {secciones.map((sec, i) => {
-                const texto = getLetra(sec, "es");
-                if (!texto.trim()) return null;
-                return (
-                  <div
-                    key={sec.id}
+          {/* Links */}
+          {cancion?.links && cancion.links.length > 0 && (
+            <div style={{ paddingTop: 16, borderTop: border }}>
+              <p
+                style={{
+                  fontSize: 8.5,
+                  fontFamily: "var(--font-mono)",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "var(--primary)",
+                  opacity: 0.3,
+                  marginBottom: 10,
+                }}
+              >
+                Escuchar
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {cancion.links.map((link, i) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
-                      padding: "28px 32px",
-                      borderTop: i > 0 ? border : undefined,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "8px 12px",
+                      border,
+                      borderRadius: "var(--radius-btn, 6px)",
+                      textDecoration: "none",
+                      color: "var(--primary)",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      opacity: 0.7,
+                      transition: "opacity 0.15s",
+                      gap: 8,
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
                   >
-                    {sec.nombre_seccion && (
-                      <p style={{
-                        fontSize: 9,
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {link.titulo}
+                    </span>
+                    <ExternalLink size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Volver */}
+          <div style={{ marginTop: "auto", paddingTop: 24, borderTop: border }}>
+            <button
+              onClick={() => router.push("/wiki/canciones")}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                fontSize: 9,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                color: "var(--primary)",
+                opacity: 0.3,
+                transition: "opacity 0.15s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.3")}
+            >
+              ← Volver
+            </button>
+          </div>
+        </div>
+      </MotionDiv>
+
+      {/* ── Columna derecha: letra, scrolleable ── */}
+      <MotionDiv
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          height: "100vh",
+          padding: "48px clamp(24px, 4vw, 64px)",
+        }}
+      >
+        {/* Header de sección */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 32,
+            paddingBottom: 20,
+            borderBottom: border,
+          }}
+        >
+          <Music size={11} style={{ color: "var(--primary)", opacity: 0.3 }} />
+          <span
+            style={{
+              fontSize: 9,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--primary)",
+              opacity: 0.3,
+            }}
+          >
+            Letra
+          </span>
+        </div>
+
+        {secciones.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {secciones.map((sec, i) => {
+              const texto = getLetra(sec, "es");
+              if (!texto.trim()) return null;
+              return (
+                <MotionDiv
+                  key={sec.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.15 + i * 0.05 }}
+                  style={{
+                    padding: "32px 0",
+                    borderBottom: border,
+                  }}
+                >
+                  {sec.nombre_seccion && (
+                    <p
+                      style={{
+                        fontSize: 8.5,
                         fontFamily: "var(--font-mono)",
-                        letterSpacing: "0.16em",
+                        letterSpacing: "0.18em",
                         textTransform: "uppercase",
                         color: "var(--primary)",
-                        opacity: 0.3,
-                        marginBottom: 12,
-                      }}>
-                        {sec.nombre_seccion}
-                      </p>
-                    )}
-                    <p style={{
-                      fontSize: "1.05rem",
+                        opacity: 0.25,
+                        marginBottom: 14,
+                      }}
+                    >
+                      {sec.nombre_seccion}
+                    </p>
+                  )}
+                  <p
+                    style={{
+                      fontSize: "1.08rem",
                       fontFamily: "var(--font-lora, serif)",
                       fontStyle: "italic",
-                      lineHeight: 2,
+                      lineHeight: 2.1,
                       color: "var(--primary)",
                       opacity: 0.85,
                       whiteSpace: "pre-wrap",
                       margin: 0,
-                    }}>
-                      {texto}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div style={{
-              border, borderStyle: "dashed",
-              borderRadius: "var(--radius-card, 8px)",
-              padding: "64px 24px",
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
-            }}>
-              <Music size={28} style={{ color: "var(--primary)", opacity: 0.15 }} />
-              <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25 }}>
-                Letra en proceso
-              </p>
-            </div>
-          )}
-        </MotionDiv>
-
-      </div>
+                    }}
+                  >
+                    {texto}
+                  </p>
+                </MotionDiv>
+              );
+            })}
+            {/* Espacio final */}
+            <div style={{ height: 80 }} />
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              height: "50vh",
+            }}
+          >
+            <Music size={32} style={{ color: "var(--primary)", opacity: 0.12 }} />
+            <p
+              style={{
+                fontSize: 9.5,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                color: "var(--primary)",
+                opacity: 0.2,
+              }}
+            >
+              Letra en proceso
+            </p>
+          </div>
+        )}
+      </MotionDiv>
     </div>
   );
 }
