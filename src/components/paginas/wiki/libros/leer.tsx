@@ -94,22 +94,25 @@ function SegmentoProgressBar({ capIds }: { capIds: string[] }) {
 
   useEffect(() => {
     if (capIds.length === 0) return;
+    const container = document.getElementById("lector-scroll-container");
+    if (!container) return;
+
     const calc = () => {
       const first = document.getElementById(`cap-${capIds[0]}`);
       const last  = document.getElementById(`cap-${capIds[capIds.length - 1]}`);
       if (!first || !last) return;
-      const top     = first.getBoundingClientRect().top + window.scrollY;
-      const bottom  = last.getBoundingClientRect().bottom + window.scrollY;
+      const top     = first.offsetTop;
+      const bottom  = last.offsetTop + last.offsetHeight;
       const total   = bottom - top;
-      const scrolled = window.scrollY + window.innerHeight - top;
+      const scrolled = container.scrollTop + container.clientHeight - top;
       setProgress(Math.min(100, Math.max(0, (scrolled / total) * 100)));
     };
     calc();
-    window.addEventListener("scroll", calc, { passive: true });
-    window.addEventListener("resize", calc, { passive: true });
+    container.addEventListener("scroll", calc, { passive: true });
+    container.addEventListener("resize", calc, { passive: true });
     return () => {
-      window.removeEventListener("scroll", calc);
-      window.removeEventListener("resize", calc);
+      container.removeEventListener("scroll", calc);
+      container.removeEventListener("resize", calc);
     };
   }, [capIds]);
 
@@ -601,7 +604,7 @@ export default function Lector() {
   );
 
   return (
-    <div className="min-h-screen bg-bg-main text-primary-dark pb-24">
+    <div id="lector-scroll-container" className="h-screen overflow-y-auto bg-bg-main text-primary-dark pb-24">
 
       {/* Barra de progreso */}
       <SegmentoProgressBar key={`prog-${segActivo}`} capIds={capsParaMostrar.map(c => c.id)} />
