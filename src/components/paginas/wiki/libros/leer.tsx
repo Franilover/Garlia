@@ -68,7 +68,7 @@ function segImgUrl(seg: Segmento): string | null | undefined {
 }
 
 /* ─────────────────────────────────────────────
-   localStorage helpers — misma clave que detalles.tsx
+   localStorage helpers
    ───────────────────────────────────────────── */
 function cargarLeidos(libroId: string): Set<string> {
   try {
@@ -87,9 +87,9 @@ function guardarLeido(libroId: string, capId: string): void {
 }
 
 /* ─────────────────────────────────────────────
-   Barra de progreso
+   Barra de progreso VERTICAL — rail sobre borde derecho
    ───────────────────────────────────────────── */
-function SegmentoProgressBar({ capIds }: { capIds: string[] }) {
+function BarraProgresoVertical({ capIds }: { capIds: string[] }) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -109,27 +109,47 @@ function SegmentoProgressBar({ capIds }: { capIds: string[] }) {
     };
     calc();
     container.addEventListener("scroll", calc, { passive: true });
-    container.addEventListener("resize", calc, { passive: true });
-    return () => {
-      container.removeEventListener("scroll", calc);
-      container.removeEventListener("resize", calc);
-    };
+    return () => container.removeEventListener("scroll", calc);
   }, [capIds]);
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[60] h-[2px] bg-primary/5">
+    /* Ocupa todo el rail (su padre es position:absolute, top/bottom:0) */
+    <div style={{ position: "absolute", inset: 0 }}>
       <motion.div
-        className="h-full origin-left"
-        style={{ background: "linear-gradient(to right, var(--accent), var(--primary))" }}
-        animate={{ scaleX: progress / 100 }}
-        transition={{ duration: 0.12, ease: "linear" }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          originY: 0,
+          background: "linear-gradient(to bottom, var(--accent, var(--primary)), color-mix(in srgb, var(--primary) 60%, transparent))",
+          borderRadius: 99,
+        }}
+        animate={{ height: `${progress}%` }}
+        transition={{ duration: 0.18, ease: "linear" }}
+      />
+      {/* Dot indicador */}
+      <motion.div
+        style={{
+          position: "absolute",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: "var(--primary)",
+          opacity: 0.6,
+          marginLeft: -1,
+        }}
+        animate={{ top: `${progress}%` }}
+        transition={{ duration: 0.18, ease: "linear" }}
       />
     </div>
   );
 }
 
 /* ─────────────────────────────────────────────
-   Tarjeta de transición — con temas dinámicos
+   Tarjeta de transición entre segmentos
    ───────────────────────────────────────────── */
 function SegmentoTransicion({
   actual,
@@ -158,7 +178,6 @@ function SegmentoTransicion({
   const imgSig      = segImgUrl(siguiente);
   const tieneReinoYNarrador = siguiente.reino && siguiente.narrador;
 
-  /* Avatar respeta border-radius del tema */
   const Avatar = ({ label, img, dim }: { label: string; img?: string | null; dim?: boolean }) => (
     img ? (
       <img
@@ -192,14 +211,12 @@ function SegmentoTransicion({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
           >
-            {/* Ornamento */}
             <div className="flex items-center gap-4 mb-10">
               <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 25%, transparent))" }} />
               <span className="font-serif text-base italic" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>✦</span>
               <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 25%, transparent))" }} />
             </div>
 
-            {/* Tarjeta principal */}
             <div
               style={{
                 borderRadius: "var(--radius-card)",
@@ -209,10 +226,7 @@ function SegmentoTransicion({
                 boxShadow: "var(--shadow-card)",
               }}
             >
-              {/* Dos columnas: actual → siguiente */}
               <div className="flex items-stretch" style={{ borderBottom: `var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
-
-                {/* Actual (terminado) */}
                 <div className="flex-1 p-6">
                   <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 mb-3 italic">Fin de</p>
                   <div className="flex items-center gap-3">
@@ -222,16 +236,9 @@ function SegmentoTransicion({
                     </p>
                   </div>
                 </div>
-
-                {/* Separador vertical */}
-                <div
-                  className="flex items-center px-3"
-                  style={{ borderLeft: `var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)` }}
-                >
+                <div className="flex items-center px-3" style={{ borderLeft: `var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
                   <ChevronRight size={14} className="text-primary/15" />
                 </div>
-
-                {/* Siguiente */}
                 <div className="flex-1 p-6">
                   <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25 mb-3 italic">Continúa con</p>
                   <div className="flex items-center gap-3">
@@ -250,7 +257,6 @@ function SegmentoTransicion({
                 </div>
               </div>
 
-              {/* Botón continuar */}
               <div className="px-6 pb-6 pt-4">
                 <button
                   onClick={onIr}
@@ -263,12 +269,10 @@ function SegmentoTransicion({
                   onMouseEnter={e => {
                     e.currentTarget.style.background = "var(--primary)";
                     e.currentTarget.style.borderColor = "var(--primary)";
-                    e.currentTarget.style.color = "var(--btn-text)";
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.background = `color-mix(in srgb, var(--primary) 5%, transparent)`;
                     e.currentTarget.style.borderColor = `color-mix(in srgb, var(--primary) 18%, transparent)`;
-                    e.currentTarget.style.color = "";
                   }}
                 >
                   <span className="font-black text-[11px] uppercase tracking-widest text-primary group-hover:text-[var(--btn-text)] transition-colors">
@@ -276,8 +280,7 @@ function SegmentoTransicion({
                   </span>
                   <div className="flex items-center gap-1.5">
                     {imgSig && (
-                      <img
-                        src={imgSig} alt={labelSig}
+                      <img src={imgSig} alt={labelSig}
                         className="w-5 h-5 object-cover opacity-70 group-hover:opacity-100 transition-opacity"
                         style={{ borderRadius: "var(--radius-btn)" }}
                       />
@@ -296,15 +299,6 @@ function SegmentoTransicion({
 
 /* ─────────────────────────────────────────────
    Hook: observa qué capítulos son visibles
-   y los marca como leídos en localStorage.
-
-   - Threshold 0.15 para el ÚLTIMO cap del segmento:
-     el usuario llega al final y ve la tarjeta de
-     transición antes de que el bloque sea 40% visible.
-   - Threshold 0.4 para el resto: evita marcar
-     caps por scroll rápido de paso.
-   - Se estabiliza la lista de IDs con useRef para
-     no re-montar el observer en cada render.
    ───────────────────────────────────────────── */
 function useScrollLeidos(libroId: string, capIds: string[]) {
   useEffect(() => {
@@ -316,9 +310,6 @@ function useScrollLeidos(libroId: string, capIds: string[]) {
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const montar = () => {
-      /* Si aún no están TODOS los elementos en el DOM, reintentamos.
-         Antes solo chequeaba el primero — si el cap-2 tardaba en
-         pintarse quedaba sin observar silenciosamente. */
       const faltantes = capIds.filter(cid => !document.getElementById(`cap-${cid}`));
       if (faltantes.length > 0) {
         timer = setTimeout(montar, 120);
@@ -351,7 +342,6 @@ function useScrollLeidos(libroId: string, capIds: string[]) {
       }
     };
 
-    /* Pequeño delay para dejar que React pinte los bloques */
     timer = setTimeout(montar, 80);
 
     return () => {
@@ -361,6 +351,232 @@ function useScrollLeidos(libroId: string, capIds: string[]) {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [libroId, capIds.join(",")]);
+}
+
+/* ─────────────────────────────────────────────
+   Personajes del segmento
+   ───────────────────────────────────────────── */
+function PersonajesPanel({ ids, border }: { ids: string[]; border: string }) {
+  const [personajes, setPersonajes] = useState<{ id: string; nombre: string; img_url?: string | null }[]>([]);
+
+  useEffect(() => {
+    if (ids.length === 0) return;
+    supabase
+      .from("personajes")
+      .select("id, nombre, img_url")
+      .in("id", ids)
+      .then(({ data }) => { if (data) setPersonajes(data); });
+  }, [ids.join(",")]);
+
+  if (personajes.length === 0) return null;
+
+  return (
+    <div style={{ paddingTop: 14, borderTop: border }}>
+      <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 10 }}>
+        Personajes
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        {personajes.map(p => (
+          <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            {p.img_url ? (
+              <img
+                src={p.img_url} alt={p.nombre}
+                style={{ width: 24, height: 24, borderRadius: "var(--radius-btn, 4px)", objectFit: "cover", border, flexShrink: 0 }}
+              />
+            ) : (
+              <div style={{
+                width: 24, height: 24, borderRadius: "var(--radius-btn, 4px)", border, flexShrink: 0,
+                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 9, fontWeight: 800, color: "var(--primary)", opacity: 0.4,
+              }}>
+                {p.nombre.charAt(0)}
+              </div>
+            )}
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--primary)", opacity: 0.65, lineHeight: 1.2 }}>
+              {p.nombre}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Panel lateral izquierdo — fijo, no scrollea
+   ───────────────────────────────────────────── */
+function PanelLateral({
+  libroTitulo,
+  segActualObj,
+  capsParaMostrar,
+  personajesIds,
+  onVolver,
+  onAbrirIndice,
+}: {
+  libroTitulo?: string;
+  segActualObj: Segmento | null;
+  capsParaMostrar: CapituloScrollItem[];
+  personajesIds: string[];
+  onVolver: () => void;
+  onAbrirIndice: () => void;
+}) {
+  const border = "1px solid color-mix(in srgb, var(--primary) 10%, transparent)";
+  const narrador = segActualObj?.narrador ?? null;
+  const imgUrl   = segActualObj ? segImgUrl(segActualObj) : null;
+
+  return (
+    <div
+      style={{
+        width: "clamp(220px, 22vw, 300px)",
+        flexShrink: 0,
+        height: "100vh",
+        borderRight: border,
+        display: "flex",
+        flexDirection: "column",   // ← columna: foto arriba, metadatos abajo
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
+      {/* ── Foto del narrador / reino — altura fija, no crece ── */}
+      <div
+        style={{
+          // Altura máxima del 40% del panel para que quede espacio debajo
+          flex: "0 0 auto",
+          maxHeight: "40%",
+          width: "100%",
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        {imgUrl ? (
+          <>
+            <img
+              src={imgUrl}
+              alt={narrador?.nombre ?? ""}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+            {/* Degradado inferior sobre la foto */}
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(to bottom, transparent 40%, var(--bg-main) 100%)",
+              pointerEvents: "none",
+            }} />
+          </>
+        ) : (
+          /* Placeholder cuando no hay imagen */
+          <div style={{
+            width: "100%",
+            height: 120,
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <span style={{ fontSize: 48, opacity: 0.08, fontFamily: "var(--font-serif, serif)", fontStyle: "italic" }}>
+              {narrador?.nombre?.charAt(0) ?? "§"}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Metadatos — ocupa el resto, scrollea si hay mucho contenido ── */}
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,            // ← clave: permite que flex-child haga scroll
+          overflowY: "auto",
+          padding: "20px 24px 24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 18,
+        }}
+      >
+        {/* Título del libro */}
+        {libroTitulo && (
+          <div>
+            <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3, marginBottom: 4 }}>
+              Libro
+            </p>
+            <p style={{ fontSize: 12, fontWeight: 800, color: "var(--primary)", opacity: 0.75, lineHeight: 1.3, fontStyle: "italic", letterSpacing: "-0.02em" }}>
+              {libroTitulo}
+            </p>
+          </div>
+        )}
+
+        {/* Narrador */}
+        {narrador && (
+          <div style={{ paddingTop: 14, borderTop: border }}>
+            <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 6 }}>
+              Narrador
+            </p>
+            <p style={{ fontSize: 13, fontWeight: 900, color: "var(--primary)", opacity: 0.8, textTransform: "uppercase", letterSpacing: "-0.02em", fontStyle: "italic" }}>
+              {narrador.nombre}
+            </p>
+          </div>
+        )}
+
+        {/* Personajes que aparecen en los capítulos del segmento */}
+        {personajesIds.length > 0 && (
+          <PersonajesPanel ids={personajesIds} border={border} />
+        )}
+
+        {/* Acciones — pegadas al fondo gracias a marginTop: auto */}
+        <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8, paddingTop: 16, borderTop: border }}>
+          <button
+            onClick={onAbrirIndice}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "9px 12px",
+              border, borderRadius: "var(--radius-btn, 6px)",
+              background: "transparent",
+              cursor: "pointer",
+              color: "var(--primary)",
+              fontSize: 10, fontFamily: "var(--font-mono)", letterSpacing: "0.14em", textTransform: "uppercase",
+              opacity: 0.5,
+              transition: "opacity 0.15s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={e => (e.currentTarget.style.opacity = "0.5")}
+          >
+            <List size={11} />
+            Índice
+          </button>
+
+          <button
+            onClick={onVolver}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "9px 12px",
+              border: "none", background: "none",
+              cursor: "pointer",
+              color: "var(--primary)",
+              fontSize: 9, fontFamily: "var(--font-mono)", letterSpacing: "0.16em", textTransform: "uppercase",
+              opacity: 0.25,
+              transition: "opacity 0.15s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = "0.6")}
+            onMouseLeave={e => (e.currentTarget.style.opacity = "0.25")}
+          >
+            ← Volver
+          </button>
+        </div>
+      </div>
+
+      {/* ── Barra de progreso vertical — rail fino sobre el borde derecho ── */}
+      <div
+        style={{
+          position: "absolute",
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: 3,
+          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+          borderRadius: 99,
+        }}
+      >
+        <BarraProgresoVertical capIds={capsParaMostrar.map(c => c.id)} />
+      </div>
+    </div>
+  );
 }
 
 /* ─────────────────────────────────────────────
@@ -383,18 +599,18 @@ export default function Lector() {
   const libroTitulo = capitulos[0]?.libros?.titulo;
   const hasScrolled = useRef(false);
 
-  /* ── IDs de los caps visibles en el segmento activo ── */
   const usaSegmentos    = segmentos.length > 1;
   const segActualObj    = usaSegmentos ? segmentos[segActivo]     ?? null : null;
   const segSiguiente    = usaSegmentos ? segmentos[segActivo + 1] ?? null : null;
   const capsParaMostrar = usaSegmentos ? (segActualObj?.capitulos ?? []) : capitulos;
-  const navLabel        = segActualObj ? segLabel(segActualObj) : null;
-  const navImg          = segActualObj ? segImgUrl(segActualObj) : null;
 
-  /* ── Marcar como leídos los caps que el usuario scrollea ── */
+  /* IDs únicos de personajes de todos los caps del segmento */
+  const personajesIds = Array.from(
+    new Set(capsParaMostrar.flatMap(c => c.personajes_ids ?? []))
+  );
+
   useScrollLeidos(id, capsParaMostrar.map(c => c.id));
 
-  /* ── Scroll inicial ── */
   useEffect(() => {
     if (loading || hasScrolled.current) return;
     hasScrolled.current = true;
@@ -410,7 +626,6 @@ export default function Lector() {
     document.getElementById(`cap-${capId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [capId]); // eslint-disable-line
 
-  /* ── Helpers Dexie ── */
   const getDexieTable = async () => {
     try {
       const { db } = await import("@/lib/api/client/db");
@@ -419,7 +634,6 @@ export default function Lector() {
     } catch { return null; }
   };
 
-  /* Guarda en Dexie sin pisar contenido si ya existe */
   const cachearEnDexie = async (rows: any[]) => {
     const table = await getDexieTable();
     if (!table || rows.length === 0) return;
@@ -435,7 +649,6 @@ export default function Lector() {
     } catch (e) { console.warn("[Dexie] Error cacheando caps:", e); }
   };
 
-  /* Lee todos los caps del libro desde Dexie (solo los que tienen contenido) */
   const leerDesdeCache = async (): Promise<any[] | null> => {
     const table = await getDexieTable();
     if (!table) return null;
@@ -446,7 +659,6 @@ export default function Lector() {
     } catch { return null; }
   };
 
-  /* ── Carga de datos ── */
   useEffect(() => {
     if (!capId || !id) return;
     const hoy = new Date().toISOString();
@@ -471,11 +683,8 @@ export default function Lector() {
         }
         const listaRaw = queryRes.data.listaCapitulos;
 
-        // Cachear lista de navegación completa (sin contenido) para offline
         cachearEnDexie(listaRaw.map(c => ({ ...c, libro_id: id })));
 
-        // Fetch de TODO el contenido del libro en un solo query
-        // Incluye "programado" con fecha ya pasada (igual que getCapituloParaLectura)
         const { data: contenidos } = await supabase
           .from("capitulos")
           .select(`
@@ -504,7 +713,6 @@ export default function Lector() {
           _reino:            normOne(c.reino),
         }));
 
-        // Cachear TODO el contenido del libro en Dexie (sin pisar contenido previo)
         cachearEnDexie(capsValidas);
 
         const idsValidos    = new Set(capsValidas.map(c => c.id));
@@ -521,7 +729,6 @@ export default function Lector() {
       })
       .catch(async (err) => {
         console.error("Error crítico en Lector:", err);
-        // Fallback: leer contenido completo del libro desde Dexie
         const cached = await leerDesdeCache();
         if (cached && cached.length > 0) {
           const capsValidas = cached.map((c: any) => ({
@@ -578,14 +785,9 @@ export default function Lector() {
     const sig = segmentos[si + 1];
     if (!sig?.capitulos[0]) return;
 
-    /* ✅ Fix: guardar todos los caps del segmento actual como leídos
-       antes de navegar. El router.push desmonta los observers y el
-       cap-2 (u otros caps intermedios) podían quedar sin registrarse. */
     const segActual = segmentos[si];
     if (segActual) {
-      for (const cap of segActual.capitulos) {
-        guardarLeido(id, cap.id);
-      }
+      for (const cap of segActual.capitulos) guardarLeido(id, cap.id);
     }
 
     router.push(`/wiki/libros/${id}/leer/${sig.capitulos[0].id}`);
@@ -604,98 +806,74 @@ export default function Lector() {
   );
 
   return (
-    <div id="lector-scroll-container" className="h-screen overflow-y-auto bg-bg-main text-primary-dark pb-24">
-
-      {/* Barra de progreso */}
-      <SegmentoProgressBar key={`prog-${segActivo}`} capIds={capsParaMostrar.map(c => c.id)} />
-
-      <Vignette />
-
-      <IndexPanel
-        open={showIndex}
-        onClose={() => setShowIndex(false)}
-        lista={listaCapitulos}
-        capIdActual={capId}
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+        background: "var(--bg-main)",
+      }}
+    >
+      {/* ── Columna izquierda: panel fijo ── */}
+      <PanelLateral
         libroTitulo={libroTitulo}
-        onSelect={(newId) => { handleChapterSelect(newId); setShowIndex(false); }}
+        segActualObj={segActualObj}
+        capsParaMostrar={capsParaMostrar}
+        personajesIds={personajesIds}
+        onVolver={() => router.push(`/wiki/libros/${id}`)}
+        onAbrirIndice={() => setShowIndex(true)}
       />
 
-      {/* ── Navbar ── */}
-      <nav
-        className="sticky top-0 z-50 backdrop-blur-md px-6 py-3"
+      {/* ── Columna derecha: texto scrolleable ── */}
+      <div
+        id="lector-scroll-container"
         style={{
-          background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
-          borderBottom: `var(--border-width) solid color-mix(in srgb, var(--primary) 6%, transparent)`,
+          flex: 1,
+          height: "100vh",
+          overflowY: "auto",
+          position: "relative",
         }}
+        className="bg-bg-main text-primary-dark"
       >
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => router.push(`/wiki/libros/${id}`)}
-            className="text-primary/40 hover:text-primary transition-colors"
-          >
-            <ChevronLeft size={20} />
-          </button>
+        <Vignette />
 
-          {/* Indicador del segmento activo */}
-          {navLabel ? (
-            <div className="flex items-center gap-2">
-              {navImg && (
-                <img
-                  src={navImg} alt={navLabel}
-                  className="w-5 h-5 object-cover"
-                  style={{
-                    borderRadius: "var(--radius-btn)",
-                    border: `var(--border-width) solid color-mix(in srgb, var(--primary) 20%, transparent)`,
-                  }}
-                />
-              )}
-              <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 italic">
-                {navLabel}
-              </span>
-              {segmentos.length > 1 && (
-                <span className="text-[8px] font-black text-primary/20 uppercase tracking-widest">
-                  · {segActivo + 1}/{segmentos.length}
-                </span>
-              )}
-            </div>
-          ) : <span />}
-
-          <button
-            onClick={() => setShowIndex(true)}
-            className="text-primary/40 hover:text-primary transition-colors"
-          >
-            <List size={20} />
-          </button>
-        </div>
-      </nav>
-
-      {/* ── Capítulos del segmento activo ── */}
-      {capsParaMostrar.map((cap) => (
-        <CapituloScrollBlock key={cap.id} cap={cap} onNavigate={handleNavigate} />
-      ))}
-
-      {/* ── Transición al siguiente segmento o fin del libro ── */}
-      {segSiguiente ? (
-        <SegmentoTransicion
-          actual={segActualObj!}
-          siguiente={segSiguiente}
-          onIr={() => irAlSiguienteSegmento(segActivo)}
+        <IndexPanel
+          open={showIndex}
+          onClose={() => setShowIndex(false)}
+          lista={listaCapitulos}
+          capIdActual={capId}
+          libroTitulo={libroTitulo}
+          onSelect={(newId) => { handleChapterSelect(newId); setShowIndex(false); }}
         />
-      ) : (
-        <footer className="max-w-2xl mx-auto px-6 pb-20 pt-4 flex flex-col items-center gap-6">
-          <div className="flex items-center gap-4 w-full max-w-xs">
-            <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
-            <span className="font-serif text-base" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>— Fin —</span>
-            <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
-          </div>
-          <button
-            onClick={() => router.push(`/wiki/libros/${id}`)}
-            className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
-          >
-            <List size={16} /> Volver al índice
-          </button>
-        </footer>
-      )}
+
+        {/* Capítulos */}
+        {capsParaMostrar.map((cap) => (
+          <CapituloScrollBlock key={cap.id} cap={cap} onNavigate={handleNavigate} />
+        ))}
+
+        {/* Transición o fin del libro */}
+        {segSiguiente ? (
+          <SegmentoTransicion
+            actual={segActualObj!}
+            siguiente={segSiguiente}
+            onIr={() => irAlSiguienteSegmento(segActivo)}
+          />
+        ) : (
+          <footer className="max-w-2xl mx-auto px-6 pb-20 pt-4 flex flex-col items-center gap-6">
+            <div className="flex items-center gap-4 w-full max-w-xs">
+              <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
+              <span className="font-serif text-base" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>— Fin —</span>
+              <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
+            </div>
+            <button
+              onClick={() => router.push(`/wiki/libros/${id}`)}
+              className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+            >
+              <List size={16} /> Volver al índice
+            </button>
+          </footer>
+        )}
+      </div>
     </div>
   );
 }
