@@ -81,11 +81,6 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
           <h2 className="text-primary font-black uppercase text-lg group-hover:text-[var(--accent)] transition-colors leading-tight tracking-tighter italic line-clamp-2">
             {cancion.titulo}
           </h2>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-primary/40 font-bold text-[8px] uppercase tracking-[0.2em]">
-            {cancion.cantante   && <span className="flex items-center gap-2"><Mic2 size={10} />{cancion.cantante}</span>}
-            {cancion.compositor && <span className="flex items-center gap-2"><PenTool size={10} />{cancion.compositor}</span>}
-            {cancion.idioma     && <span className="flex items-center gap-2"><Globe size={10} />{cancion.idioma}</span>}
-          </div>
         </div>
       </MotionDiv>
     </Link>
