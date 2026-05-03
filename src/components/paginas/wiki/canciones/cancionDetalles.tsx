@@ -251,19 +251,6 @@ export default function CancionDetallesPage() {
           {/* Links — fila horizontal scrolleable */}
           {cancion?.links && cancion.links.length > 0 && (
             <div style={{ paddingTop: 14,  }}>
-              <p
-                style={{
-                  fontSize: 8,
-                  fontFamily: "var(--font-mono)",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--primary)",
-                  opacity: 0.3,
-                  marginBottom: 8,
-                }}
-              >
-                Escuchar
-              </p>
               <div
                 style={{
                   display: "flex",
