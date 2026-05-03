@@ -223,7 +223,6 @@ export default function CancionDetallesPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-                paddingTop: 14,
               }}
             >
               {personaje.img_url && (
@@ -616,9 +615,6 @@ export default function CancionDetallesPage() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.15 + i * 0.05 }}
-                  style={{
-                    padding: "32px 0",
-                  }}
                 >
                   {sec.nombre_seccion && (
                     <p
