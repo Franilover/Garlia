@@ -103,95 +103,150 @@ export default function CancionDetallesPage() {
     </div>
   );
 
+  const border = "1px solid var(--color-border, color-mix(in srgb, var(--primary) 12%, transparent))";
+
   return (
-    <div className="min-h-screen bg-bg-main pb-20 relative">
-      <br />
-      <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[280px_1fr] gap-16 mt-4">
+    <div className="h-screen overflow-y-auto bg-bg-main">
+      <div className="max-w-4xl mx-auto px-6 py-12">
 
-        {}
-        <aside className="space-y-6">
-          <MotionDiv
-            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-            className="aspect-square rounded-[var(--radius-card)] overflow-hidden shadow-2xl border border-primary/10"
-          >
-            <SmartImage
-              src={cancion?.portada_url || "/placeholder-cover.jpg"}
-              alt={cancion?.titulo ?? ""}
-              className="w-full h-full object-cover"
-            />
-          </MotionDiv>
+        {/* ── Header compacto ── */}
+        <MotionDiv
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          style={{ marginBottom: 40 }}
+        >
+          {/* Portada + título en una fila */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 24, marginBottom: 20 }}>
+            <div style={{
+              width: 80, height: 80, flexShrink: 0,
+              border,
+              borderRadius: "var(--radius-btn, 6px)",
+              overflow: "hidden",
+            }}>
+              <SmartImage
+                src={cancion?.portada_url || "/placeholder-cover.jpg"}
+                alt={cancion?.titulo ?? ""}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.4, marginBottom: 4 }}>
+                Canción
+              </p>
+              <h1 style={{
+                fontSize: "clamp(1.6rem, 4vw, 2.6rem)",
+                fontWeight: 900,
+                color: "var(--primary)",
+                letterSpacing: "-0.03em",
+                lineHeight: 1,
+                textTransform: "uppercase",
+                fontStyle: "italic",
+              }}>
+                {cancion?.titulo}
+              </h1>
+            </div>
+          </div>
 
-          {(() => {
-            const p = normPersonaje(cancion?.personaje);
-            if (!p) return null;
-            return (
-              <MotionDiv
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className="p-6 bg-primary/5 rounded-[var(--radius-card)] border border-primary/10"
-              >
-                <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-3 flex items-center gap-2 italic">
-                  <User size={12} /> Personaje
-                </h4>
-                <div className="flex items-center gap-3">
+          {/* Metadatos en línea */}
+          <div style={{ display: "flex", alignItems: "center", gap: 0, borderTop: border, borderBottom: border }}>
+            {/* Personaje */}
+            {(() => {
+              const p = normPersonaje(cancion?.personaje);
+              if (!p) return null;
+              return (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "8px 16px 8px 0",
+                  borderRight: border,
+                  marginRight: 16,
+                }}>
+                  <User size={10} style={{ color: "var(--primary)", opacity: 0.35, flexShrink: 0 }} />
                   {p.img_url && (
                     <img
-                      src={p.img_url}
-                      alt={p.nombre}
-                      className="w-10 h-10 object-cover rounded-[var(--radius-btn)] border border-primary/15 shrink-0"
+                      src={p.img_url} alt={p.nombre}
+                      style={{ width: 20, height: 20, objectFit: "cover", borderRadius: "var(--radius-btn, 4px)", border, flexShrink: 0 }}
                     />
                   )}
-                  <p className="text-primary font-bold text-sm italic">{p.nombre}</p>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--primary)", opacity: 0.7 }}>{p.nombre}</span>
                 </div>
-              </MotionDiv>
-            );
-          })()}
+              );
+            })()}
 
-          <LinkSection links={cancion?.links} />
-        </aside>
+            {/* Links */}
+            <div style={{ flex: 1, padding: "8px 0" }}>
+              <LinkSection links={cancion?.links} />
+            </div>
+          </div>
+        </MotionDiv>
 
-        {}
-        <main>
-          <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
-            <h1 className="text-6xl font-black text-primary italic tracking-tighter leading-[0.85] mb-6 uppercase">
-              {cancion?.titulo}
-            </h1>
-          </MotionDiv>
+        {/* ── Letra ── */}
+        <MotionDiv initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.08 }}>
 
-          <div className="flex items-center mb-8 border-b border-primary/10 pb-4">
-            <h3 className="text-primary font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
-              <List size={16} /> Letra
-            </h3>
+          {/* Label sección */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+            <List size={11} style={{ color: "var(--primary)", opacity: 0.3 }} />
+            <span style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.35 }}>
+              Letra
+            </span>
           </div>
 
           {secciones.length > 0 ? (
-            <MotionDiv
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white-custom border border-primary/5 rounded-[var(--radius-card)] p-10 md:p-14"
-            >
+            <div style={{ border, borderRadius: "var(--radius-card, 8px)", overflow: "hidden" }}>
               {secciones.map((sec, i) => {
                 const texto = getLetra(sec, "es");
                 if (!texto.trim()) return null;
                 return (
-                  <p
+                  <div
                     key={sec.id}
-                    className={`text-primary text-xl md:text-2xl font-serif italic leading-[1.9] opacity-90 whitespace-pre-wrap ${i > 0 ? "mt-10" : ""}`}
+                    style={{
+                      padding: "28px 32px",
+                      borderTop: i > 0 ? border : undefined,
+                    }}
                   >
-                    {texto}
-                  </p>
+                    {sec.nombre_seccion && (
+                      <p style={{
+                        fontSize: 9,
+                        fontFamily: "var(--font-mono)",
+                        letterSpacing: "0.16em",
+                        textTransform: "uppercase",
+                        color: "var(--primary)",
+                        opacity: 0.3,
+                        marginBottom: 12,
+                      }}>
+                        {sec.nombre_seccion}
+                      </p>
+                    )}
+                    <p style={{
+                      fontSize: "1.05rem",
+                      fontFamily: "var(--font-lora, serif)",
+                      fontStyle: "italic",
+                      lineHeight: 2,
+                      color: "var(--primary)",
+                      opacity: 0.85,
+                      whiteSpace: "pre-wrap",
+                      margin: 0,
+                    }}>
+                      {texto}
+                    </p>
+                  </div>
                 );
               })}
-            </MotionDiv>
+            </div>
           ) : (
-            <MotionDiv
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="text-center py-24 bg-primary/5 rounded-[var(--radius-card)] border border-dashed border-primary/10"
-            >
-              <Music size={48} className="mx-auto text-primary/20 mb-4" />
-              <p className="text-primary/40 font-bold uppercase text-sm tracking-widest italic">Letra en proceso…</p>
-            </MotionDiv>
+            <div style={{
+              border, borderStyle: "dashed",
+              borderRadius: "var(--radius-card, 8px)",
+              padding: "64px 24px",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+            }}>
+              <Music size={28} style={{ color: "var(--primary)", opacity: 0.15 }} />
+              <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25 }}>
+                Letra en proceso
+              </p>
+            </div>
           )}
-        </main>
+        </MotionDiv>
+
       </div>
     </div>
   );
