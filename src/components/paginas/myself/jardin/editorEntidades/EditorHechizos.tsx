@@ -8,7 +8,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type SaveStatus } from "./types";
 import { SaveIndicator } from "./UIComponents";
-import { MarkdownEditor } from "./MarkdownEditor";
+import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type Hechizo = {

@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Save } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { CitePopup } from "./citePopup";
-import { MarkdownEditor } from "@/components/paginas/myself/jardin/editorEntidades/MarkdownEditor";
+import { MarkdownEditor } from "@/components/forms/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
 interface EditorProps {

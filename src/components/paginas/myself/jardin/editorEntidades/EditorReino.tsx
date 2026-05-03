@@ -10,7 +10,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Reino, type ReinoDetalle, type SaveStatus, INPUT_CLS } from "./types";
 import { useReinoDetalles, usePersonajesDelReino } from "./hooks";
 import { SaveIndicator } from "./UIComponents";
-import { MarkdownEditor } from "./MarkdownEditor";
+import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
 type InnerTab = "mapa" | "lore" | "personajes";

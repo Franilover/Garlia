@@ -7,7 +7,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Item, type SaveStatus } from "./types";
 import { useUniqueValues } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
-import { MarkdownEditor } from "./MarkdownEditor";
+import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 
 // ─── Tipos locales ─────────────────────────────────────────────────────────────
 

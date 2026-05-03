@@ -10,7 +10,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./types";
 import { useUniqueValues, useCriaturaVariantes, usePersonajesDeEspecie } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
-import { MarkdownEditor } from "./MarkdownEditor";
+import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 import { PanelPersonajes } from "./PanelPersonajes";
 import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";

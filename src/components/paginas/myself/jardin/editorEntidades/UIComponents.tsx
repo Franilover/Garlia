@@ -8,7 +8,7 @@ import {
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS, type SaveStatus } from "./types";
-import { MarkdownEditor } from "./MarkdownEditor";
+import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
 
 export function SaveIndicator({ status }: { status: SaveStatus }) {
   if (status === "idle") return null;
