@@ -547,7 +547,7 @@ export default function CancionDetallesPage() {
             <div>
               <p
                 style={{
-                  fontSize: 12,
+                  fontSize: 18,
                   fontWeight: 700,
                   color: "var(--primary)",
                   opacity: 0.8,
