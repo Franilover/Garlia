@@ -108,7 +108,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <DataProvider>
             <ThemeProvider>
               <LightboxProvider>
-                <div className="flex-grow overflow-hidden pb-[56px] md:pb-0 md:pl-[68px]">
+                {/* AQUÍ ESTÁ LA MAGIA: Cambia overflow-hidden por overflow-y-auto en este div */}
+                <div className="flex-grow overflow-y-auto custom-scrollbar pb-[56px] md:pb-0 md:pl-[68px]">
                   <AppLogic>
                     {children}
                   </AppLogic>
