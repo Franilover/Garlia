@@ -496,7 +496,6 @@ export default function CancionDetallesPage() {
               alignItems: "center",
               justifyContent: "center",
               gap: 10,
-              paddingTop: 20,
             }}
           >
             {personaje.img_url && (
