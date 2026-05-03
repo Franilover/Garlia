@@ -283,13 +283,14 @@ export const PROSE_STYLES = `
 `;
 
 // ── Command menu items ────────────────────────────────────────────────────────
-interface CommandItem {
+export interface CommandItem {
   id: string;
   label: string;
   description: string;
   keywords: string[];   // palabras que activan el match
   icon: string;
-  snippet: string;
+  snippet?: string;
+  action?: () => void;
   cursorOffset?: number; // posición del cursor después de insertar (desde el final)
 }
 
@@ -566,6 +567,9 @@ interface MarkdownEditorProps {
   className?: string;
   toolbar?: boolean;
   defaultMode?: ViewMode;
+  extraCommands?: CommandItem[];
+  /** Ref opcional: se le asigna una función insertAtCursor(text) para uso externo */
+  insertRef?: React.MutableRefObject<((text: string) => void) | null>;
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -576,6 +580,8 @@ export function MarkdownEditor({
   rows = 6,
   className = "",
   defaultMode = "split",
+  extraCommands = [],
+  insertRef,
 }: MarkdownEditorProps) {
   const [mode, setMode] = useState<ViewMode>(defaultMode);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -631,9 +637,10 @@ export function MarkdownEditor({
   const minH = `${rows * 1.6}rem`;
 
   // ── Filtrar items del menú ──────────────────────────────────────────────
+  const allCommands = [...extraCommands, ...COMMAND_ITEMS];
   const filteredItems = cmdMenu.query.length === 0
-    ? COMMAND_ITEMS
-    : COMMAND_ITEMS.filter(item =>
+    ? allCommands
+    : allCommands.filter(item =>
         item.keywords.some(k => k.startsWith(cmdMenu.query.toLowerCase())) ||
         item.label.toLowerCase().includes(cmdMenu.query.toLowerCase())
       );
@@ -693,22 +700,34 @@ export function MarkdownEditor({
     const ta = taRef.current;
     if (!ta) return;
 
-    // Eliminar "add" + query del texto
+    // Siempre cerrar el menú y limpiar el "add..." del texto
     const before = value.slice(0, cmdMenu.triggerStart);
     const after = value.slice(ta.selectionStart);
-    const newVal = before + item.snippet + after;
-    onChange(newVal);
-
+    const triggerStart = cmdMenu.triggerStart;
     setCmdMenu(m => ({ ...m, open: false, query: "" }));
 
-    requestAnimationFrame(() => {
-      const insertPos = cmdMenu.triggerStart + item.snippet.length;
-      const cursorPos = item.cursorOffset
-        ? insertPos - item.cursorOffset
-        : insertPos;
-      ta.selectionStart = ta.selectionEnd = cursorPos;
-      ta.focus();
-    });
+    // Si tiene action (modal interactivo): limpiar el trigger y ejecutar
+    if (item.action) {
+      onChange(before + after);
+      requestAnimationFrame(() => {
+        ta.selectionStart = ta.selectionEnd = triggerStart;
+        ta.focus();
+        item.action!();
+      });
+      return;
+    }
+
+    // Si tiene snippet: insertar directamente
+    if (item.snippet) {
+      const newVal = before + item.snippet + after;
+      onChange(newVal);
+      requestAnimationFrame(() => {
+        const insertPos = triggerStart + item.snippet!.length;
+        const cursorPos = item.cursorOffset ? insertPos - item.cursorOffset : insertPos;
+        ta.selectionStart = ta.selectionEnd = cursorPos;
+        ta.focus();
+      });
+    }
   }, [value, onChange, cmdMenu.triggerStart]);
 
   // ── Detectar "add" mientras se escribe ─────────────────────────────────
@@ -842,6 +861,11 @@ export function MarkdownEditor({
       ta.focus();
     });
   };
+
+  // Exponer insertSnippet al padre si proveen un insertRef
+  React.useEffect(() => {
+    if (insertRef) insertRef.current = insertSnippet;
+  });
 
   // ── handleKeyDown ─────────────────────────────────────────────────────
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

@@ -28,8 +28,9 @@ import { SoundPicker } from "@/components/forms/SoundPicker";
 import { EntidadPicker } from "@/components/forms/EntidadPicker";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { SnippetToolbar } from "./snippets/SnippetToolbar";
+import { SnippetToolbar, ModalDrop, ModalSonido, ModalSection, ModalChoice, ModalUseItem, ModalImagen } from "./snippets/SnippetToolbar";
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
+import type { CommandItem as MdCommandItem } from "@/components/forms/MarkdownEditor";
 
 type Libro = {
   id: string;
@@ -966,6 +967,16 @@ const DIALOG_SNIPPETS: DialogSnippet[] = [
   { label: "–",        title: "Guión corto (en-dash)",    insert: "–" },
 ];
 
+// Versión de DIALOG_SNIPPETS compatible con el menú "add" del MarkdownEditor
+const DIALOG_COMMANDS: MdCommandItem[] = [
+  { id: "dial-guion",    label: "Guión de diálogo",          description: "— (inicia línea de diálogo)",           keywords: ["dial", "guion", "—", "add"],   icon: "—",   snippet: "— " },
+  { id: "dial-acotac",  label: "Acotación entre guiones",   description: "— … — (acotación narrativa)",           keywords: ["acot", "dial", "—", "add"],   icon: "—…—", snippet: "— … —" },
+  { id: "dial-comillas", label: "Comillas angulares «»",     description: "«texto» (estilo literario)",            keywords: ["comi", "angul", "«»", "add"],  icon: "«»",  snippet: "«»", cursorOffset: 1 },
+  { id: "dial-linea",   label: "Línea de diálogo completa", description: "— (línea entera lista para escribir)",  keywords: ["linea", "línea", "dial", "add"], icon: "—…",  snippet: "— " },
+  { id: "dial-puntos",  label: "Puntos suspensivos",        description: "… (suspensivos tipográficos)",          keywords: ["punt", "susp", "…", "add"],    icon: "…",   snippet: "…" },
+  { id: "dial-endash",  label: "Guión corto (en-dash)",     description: "– (en-dash tipográfico)",               keywords: ["endash", "corto", "–", "add"], icon: "–",   snippet: "–" },
+];
+
 function insertAtCursor(
   ta: HTMLTextAreaElement,
   value: string,
@@ -1051,10 +1062,12 @@ const PanelEditor = ({
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [openSnippetModal, setOpenSnippetModal] = useState<"drop" | "choice" | "use" | "section" | "sound" | "imagen" | null>(null);
   const timer            = useRef<any>(null);
   const textareaRef      = useRef<HTMLTextAreaElement>(null);
   const scrollRef        = useRef<HTMLDivElement>(null);
   const caretMirrorRef   = useRef<HTMLDivElement>(null);
+  const mdInsertRef      = useRef<((text: string) => void) | null>(null);
   const { confirm, ConfirmModal } = useConfirm();
 
   const draft = useDraftRestore({
@@ -1158,6 +1171,80 @@ const PanelEditor = ({
     const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
     if (!isTouchDevice) requestAnimationFrame(() => centerCursor());
   };
+
+  // ── Comandos del menú "add" para los snippets interactivos ───────────────
+  const snippetCommands: MdCommandItem[] = useMemo(() => [
+    {
+      id: "snip-drop",
+      label: "Drop (entidad)",
+      description: "Inserta personaje, criatura o ítem interactivo",
+      keywords: ["drop", "enti", "personaj", "criatur", "item", "add"],
+      icon: "⚔️",
+      action: () => setOpenSnippetModal("drop"),
+    },
+    {
+      id: "snip-imagen",
+      label: "Imagen",
+      description: "Inserta imagen inline o flotante [[img|…]]",
+      keywords: ["img", "imagen", "foto", "imag", "add"],
+      icon: "🖼️",
+      action: () => setOpenSnippetModal("imagen"),
+    },
+    {
+      id: "snip-choice",
+      label: "Choice (decisión)",
+      description: "Botón de decisión [[choice|texto|capítulo]]",
+      keywords: ["choi", "choice", "decis", "boton", "botón", "add"],
+      icon: "🔀",
+      action: () => setOpenSnippetModal("choice"),
+    },
+    {
+      id: "snip-use",
+      label: "Use Ítem",
+      description: "Interacción con ítem del inventario [[use|…]]",
+      keywords: ["use", "item", "ítem", "inven", "add"],
+      icon: "🖱️",
+      action: () => setOpenSnippetModal("use"),
+    },
+    {
+      id: "snip-section",
+      label: "Sección",
+      description: "Marca de sección para choices [[section|id]]",
+      keywords: ["secc", "section", "ancora", "add"],
+      icon: "📌",
+      action: () => setOpenSnippetModal("section"),
+    },
+    {
+      id: "snip-sound",
+      label: "Sonido",
+      description: "Inserta un efecto de sonido o música",
+      keywords: ["son", "sound", "music", "audio", "add"],
+      icon: "🎵",
+      action: () => setOpenSnippetModal("sound"),
+    },
+    {
+      id: "snip-cita",
+      label: "Cita",
+      description: "[[cita|Texto — Fuente]]",
+      keywords: ["cita", "quote", "add"],
+      icon: "«»",
+      snippet: "[[cita|Texto de la cita — Fuente]]",
+    },
+    {
+      id: "snip-parrafo",
+      label: "Párrafo",
+      description: "Salto de párrafo doble",
+      keywords: ["parr", "párr", "salto", "add"],
+      icon: "¶",
+      snippet: " ",
+    },
+  ], []);
+
+  // Todos los extraCommands juntos: snippets interactivos + diálogo
+  const extraCommands: MdCommandItem[] = useMemo(
+    () => [...snippetCommands, ...DIALOG_COMMANDS],
+    [snippetCommands],
+  );
 
   const handleSaveTitle = async () => {
     if (!titulo.trim()) return;
@@ -1498,6 +1585,8 @@ const PanelEditor = ({
             placeholder="Empieza a escribir…"
             defaultMode={focusMode ? "edit" : "split"}
             rows={focusMode ? 30 : 20}
+            extraCommands={extraCommands}
+            insertRef={mdInsertRef}
           />
         </div>
       </div>
@@ -1509,6 +1598,14 @@ const PanelEditor = ({
         </div>
       )}
       <ConfirmModal />
+
+      {/* ── Modales de snippets (abiertos desde el menú "add") ── */}
+      {openSnippetModal === "drop"    && <ModalDrop    onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} />}
+      {openSnippetModal === "imagen"  && <ModalImagen  onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} />}
+      {openSnippetModal === "choice"  && <ModalChoice  onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} listaCapitulos={listaSnippetCaps} />}
+      {openSnippetModal === "use"     && <ModalUseItem onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} listaCapitulos={listaSnippetCaps} />}
+      {openSnippetModal === "section" && <ModalSection onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} />}
+      {openSnippetModal === "sound"   && <ModalSonido  onInsert={s => mdInsertRef.current?.(s)} onClose={() => setOpenSnippetModal(null)} />}
     </div>
   );
 };
