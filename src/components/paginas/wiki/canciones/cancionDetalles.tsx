@@ -255,19 +255,6 @@ export default function CancionDetallesPage() {
                 />
               )}
               <div>
-                <p
-                  style={{
-                    fontSize: 8,
-                    fontFamily: "var(--font-mono)",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "var(--primary)",
-                    opacity: 0.3,
-                    marginBottom: 1,
-                  }}
-                >
-                  Personaje
-                </p>
                 <p style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", opacity: 0.8, margin: 0 }}>
                   {personaje.nombre}
                 </p>
@@ -515,19 +502,6 @@ export default function CancionDetallesPage() {
 
         {/* Label + Título */}
         <div style={{ textAlign: "center" }}>
-          <p
-            style={{
-              fontSize: 9,
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "var(--primary)",
-              opacity: 0.35,
-              marginBottom: 8,
-            }}
-          >
-            Canción
-          </p>
           <h1
             style={{
               fontSize: "clamp(1.4rem, 2.8vw, 2rem)",
