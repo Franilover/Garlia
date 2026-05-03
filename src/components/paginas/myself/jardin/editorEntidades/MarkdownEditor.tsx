@@ -5,16 +5,30 @@ import { Eye, Edit3, Columns } from "lucide-react";
 
 // ── Renderer ────────────────────────────────────────────────────────────────
 export function renderMarkdown(raw: string): string {
-  let html = raw
+  // ── Proteger bloques de código primero ──────────────────────────────────
+  const codeBlocks: string[] = [];
+  let html = raw.replace(/```([\s\S]*?)```/g, (_, code) => {
+    const escaped = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const idx = codeBlocks.length;
+    codeBlocks.push(`<pre><code>${escaped.trim()}</code></pre>`);
+    return `\x00CODE${idx}\x00`;
+  });
+
+  // ── Proteger math en bloque $$...$$  ────────────────────────────────────
+  const mathBlocks: string[] = [];
+  html = html.replace(/\$\$([\s\S]+?)\$\$/g, (_, expr) => {
+    const idx = mathBlocks.length;
+    mathBlocks.push(`<span class="math-block" data-expr="${expr.trim().replace(/"/g,'&quot;')}"></span>`);
+    return `\x00MATH${idx}\x00`;
+  });
+
+  // ── Escapar HTML en el resto ─────────────────────────────────────────────
+  html = html
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-  html = html.replace(/```([\s\S]*?)```/g, (_, code) => {
-    const escaped = code.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-    return `<pre><code>${escaped.trim()}</code></pre>`;
-  });
-
+  // ── Tablas ───────────────────────────────────────────────────────────────
   html = html.replace(/(?:^|\n)((?:\|[^\n]+\|\n)+)/g, (_, tableBlock) => {
     const rows = tableBlock.trim().split("\n").filter((r: string) => r.trim());
     if (rows.length < 2) return tableBlock;
@@ -26,20 +40,61 @@ export function renderMarkdown(raw: string): string {
     return `\n<table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>\n`;
   });
 
+  // ── Blockquotes (soporta anidados y multilínea) ───────────────────────────
+  html = html.replace(/((?:^&gt;.*(?:\n|$))+)/gm, (block) => {
+    const inner = block
+      .split("\n")
+      .filter(l => l.trim())
+      .map(l => l.replace(/^&gt;\s?/, ""))
+      .join("\n");
+    return `<blockquote>${inner}</blockquote>`;
+  });
+
+  // ── Imágenes y enlaces ───────────────────────────────────────────────────
   html = html.replace(/!\[([^\]]*)\]\((.*?)\)/g, '<img src="$2" alt="$1" />');
   html = html.replace(/\[([^\]]+)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  // ── Encabezados ──────────────────────────────────────────────────────────
   html = html.replace(/^---$/gm, "<hr/>");
   html = html.replace(/^######\s(.+)$/gm, "<h6>$1</h6>");
   html = html.replace(/^#####\s(.+)$/gm,  "<h5>$1</h5>");
   html = html.replace(/^####\s(.+)$/gm,   "<h4>$1</h4>");
   html = html.replace(/^###\s(.+)$/gm,    "<h3>$1</h3>");
-  html = html.replace(/^##\s(.+)$/gm,     "<h2>$2</h2>");
+  html = html.replace(/^##\s(.+)$/gm,     "<h2>$1</h2>");
   html = html.replace(/^#\s(.+)$/gm,      "<h1>$1</h1>");
+
+  // ── Tipografía inline ────────────────────────────────────────────────────
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
   html = html.replace(/\*\*(.+?)\*\*/g,     "<strong>$1</strong>");
   html = html.replace(/\*(.+?)\*/g,         "<em>$1</em>");
-  html = html.replace(/`([^`]+)`/g,         "<code>$1</code>");
+  html = html.replace(/`([^`]+)`/g,          "<code>$1</code>");
 
+  // ── Tachado ~~texto~~ ────────────────────────────────────────────────────
+  html = html.replace(/~~(.+?)~~/g, "<del>$1</del>");
+
+  // ── Resaltado ==texto== ──────────────────────────────────────────────────
+  html = html.replace(/==(.+?)==/g, '<mark class="md-mark">$1</mark>');
+
+  // ── Superíndice ^texto^ ──────────────────────────────────────────────────
+  html = html.replace(/\^([^\^\n]+?)\^/g, "<sup>$1</sup>");
+
+  // ── Subíndice ~texto~ (solo si no es ~~ tachado) ─────────────────────────
+  html = html.replace(/(?<!~)~([^~\n]+?)~(?!~)/g, "<sub>$1</sub>");
+
+  // ── Math inline $expr$ ───────────────────────────────────────────────────
+  html = html.replace(/\$([^$\n]+?)\$/g, (_, expr) => {
+    return `<span class="math-inline" data-expr="${expr.trim().replace(/"/g,'&quot;')}"></span>`;
+  });
+
+  // ── Listas numeradas ─────────────────────────────────────────────────────
+  html = html.replace(/((?:^[ \t]*\d+\.\s.+\n?)+)/gm, (block) => {
+    const items = block.trim().split("\n")
+      .map((l: string) => `<li>${l.replace(/^[ \t]*\d+\.\s/, "")}</li>`)
+      .join("");
+    return `<ol>${items}</ol>`;
+  });
+
+  // ── Listas con viñetas ───────────────────────────────────────────────────
   html = html.replace(/((?:^[ \t]*- .+\n?)+)/gm, (block) => {
     const items = block.trim().split("\n")
       .map((l: string) => {
@@ -54,13 +109,56 @@ export function renderMarkdown(raw: string): string {
     return `<ul>${items}</ul>`;
   });
 
+  // ── Párrafos ─────────────────────────────────────────────────────────────
   html = html.split(/\n{2,}/).map((block: string) => {
-    if (/^<(h[1-6]|ul|ol|li|pre|table|hr|blockquote)/.test(block.trim())) return block;
+    if (/^<(h[1-6]|ul|ol|li|pre|table|hr|blockquote|\x00)/.test(block.trim())) return block;
     const inner = block.trim().replace(/\n/g, "<br/>");
     return inner ? `<p>${inner}</p>` : "";
   }).join("\n");
 
+  // ── Restaurar bloques protegidos ─────────────────────────────────────────
+  html = html.replace(/\x00CODE(\d+)\x00/g, (_, i) => codeBlocks[+i]);
+  html = html.replace(/\x00MATH(\d+)\x00/g, (_, i) => mathBlocks[+i]);
+
   return html;
+}
+
+// ── Renderizar fórmulas KaTeX en el DOM ──────────────────────────────────────
+export function renderMathInElement(el: HTMLElement | null) {
+  if (!el) return;
+  // Cargamos KaTeX dinámicamente solo si hay math
+  const mathEls = el.querySelectorAll<HTMLElement>(".math-inline, .math-block");
+  if (!mathEls.length) return;
+
+  const render = (katex: any) => {
+    mathEls.forEach(span => {
+      const expr = span.getAttribute("data-expr") || "";
+      const displayMode = span.classList.contains("math-block");
+      try {
+        span.innerHTML = katex.renderToString(expr, {
+          displayMode,
+          throwOnError: false,
+          output: "html",
+        });
+        span.removeAttribute("data-expr");
+      } catch {
+        span.textContent = expr;
+      }
+    });
+  };
+
+  if ((window as any).katex) {
+    render((window as any).katex);
+  } else {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css";
+    document.head.appendChild(link);
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js";
+    script.onload = () => render((window as any).katex);
+    document.head.appendChild(script);
+  }
 }
 
 // ── Estilos de vista previa ──────────────────────────────────────────────────
@@ -89,6 +187,17 @@ export const PROSE_STYLES = `
   .prose-mundo code { font-family:'Fira Code','Courier New',monospace;font-size:.78rem;color:color-mix(in srgb,var(--color-primary,#7c6af7) 90%,white) }
   .prose-mundo pre code { color:color-mix(in srgb,var(--color-primary,#7c6af7) 70%,white);line-height:1.6 }
   .prose-mundo .placeholder { color:color-mix(in srgb,var(--color-primary,#7c6af7) 25%,transparent);font-style:italic }
+  .prose-mundo ol { list-style:none;padding-left:1.2rem;margin:.4rem 0;counter-reset:ol-counter }
+  .prose-mundo ol li { position:relative;padding-left:.8rem;font-size:.82rem;margin:.2rem 0;color:var(--color-input-text,#d1c9ff);counter-increment:ol-counter }
+  .prose-mundo ol li::before { content:counter(ol-counter)".";position:absolute;left:-1rem;font-size:.7rem;font-weight:800;color:var(--color-primary,#7c6af7);font-family:var(--font-mono) }
+  .prose-mundo blockquote { border-left:3px solid var(--color-primary,#7c6af7);margin:.6rem 0;padding:.4rem .8rem .4rem 1rem;background:color-mix(in srgb,var(--color-primary,#7c6af7) 6%,transparent);border-radius:0 .4rem .4rem 0;font-style:italic;color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 80%,transparent);font-size:.83rem;line-height:1.6 }
+  .prose-mundo mark.md-mark { background:color-mix(in srgb,#f7d76a 25%,transparent);color:color-mix(in srgb,#f7d76a 90%,white);border-radius:2px;padding:0 2px }
+  .prose-mundo sup { font-size:.65em;vertical-align:super;color:color-mix(in srgb,var(--color-primary,#7c6af7) 80%,white);font-weight:700 }
+  .prose-mundo sub { font-size:.65em;vertical-align:sub;color:color-mix(in srgb,var(--color-primary,#7c6af7) 70%,white) }
+  .prose-mundo del { text-decoration:line-through;opacity:.5 }
+  .prose-mundo .math-inline,.prose-mundo .math-block { color:color-mix(in srgb,var(--color-primary,#7c6af7) 85%,white) }
+  .prose-mundo .math-block { display:block;text-align:center;margin:.8rem 0;font-size:1.05em }
+  .katex { font-size:1em !important }
 `;
 
 // ── Command menu items ────────────────────────────────────────────────────────
@@ -206,11 +315,64 @@ const COMMAND_ITEMS: CommandItem[] = [
   },
   {
     id: "quote",
-    label: "Cita",
-    description: "> texto citado",
-    keywords: ["quo", "quote", "cit", "cita", "blq"],
+    label: "Blockquote",
+    description: "> cita o nota destacada",
+    keywords: ["quo", "quote", "cit", "cita", "blq", "block"],
     icon: "❝",
     snippet: "\n> ",
+  },
+  {
+    id: "orderedlist",
+    label: "Lista numerada",
+    description: "1. 2. 3. lista ordenada",
+    keywords: ["num", "ol", "ord", "numer", "lista", "1"],
+    icon: "1.",
+    snippet: "\n1. elemento 1\n2. elemento 2\n3. elemento 3\n",
+  },
+  {
+    id: "highlight",
+    label: "Resaltado",
+    description: "==texto resaltado==",
+    keywords: ["res", "mark", "high", "resal", "color", "amarillo"],
+    icon: "▐",
+    snippet: "==texto==",
+    cursorOffset: 6,
+  },
+  {
+    id: "superscript",
+    label: "Superíndice",
+    description: "texto^superíndice^",
+    keywords: ["sup", "super", "exp", "potencia", "arriba"],
+    icon: "Xⁿ",
+    snippet: "^texto^",
+    cursorOffset: 5,
+  },
+  {
+    id: "subscript",
+    label: "Subíndice",
+    description: "texto~subíndice~",
+    keywords: ["sub", "indice", "abajo", "quim"],
+    icon: "Xₙ",
+    snippet: "~texto~",
+    cursorOffset: 5,
+  },
+  {
+    id: "math-inline",
+    label: "Math inline",
+    description: "$fórmula$ en línea",
+    keywords: ["mat", "math", "form", "ecua", "latex", "kat"],
+    icon: "∑",
+    snippet: "$x^2$",
+    cursorOffset: 3,
+  },
+  {
+    id: "math-block",
+    label: "Math bloque",
+    description: "$$fórmula centrada$$",
+    keywords: ["mat", "math", "form", "ecua", "latex", "bloque"],
+    icon: "∫",
+    snippet: "\n$$\n\n$$\n",
+    cursorOffset: 5,
   },
 ];
 
@@ -513,6 +675,11 @@ export function MarkdownEditor({
   }, [cmdMenu.open]);
 
   const html = renderMarkdown(value);
+
+  // Renderizar KaTeX cada vez que cambia el preview
+  useEffect(() => {
+    renderMathInElement(pvRef.current);
+  }, [html]);
 
   const textareaCls =
     "flex-1 w-full bg-transparent outline-none border-none resize-none text-sm font-mono leading-relaxed placeholder:opacity-30";
