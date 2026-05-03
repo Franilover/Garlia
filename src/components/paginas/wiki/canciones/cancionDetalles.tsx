@@ -312,7 +312,6 @@ export default function CancionDetallesPage() {
             gap: 10,
             margin: "28px 24px 0",
             paddingBottom: 16,
-            borderBottom: border,
           }}
         >
           <Music size={10} style={{ color: "var(--primary)", opacity: 0.3 }} />
@@ -343,7 +342,7 @@ export default function CancionDetallesPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
-                    style={{ padding: "24px 0", borderBottom: border }}
+                    style={{ padding: "24px 0",  }}
                   >
                     {sec.nombre_seccion && (
                       <p
@@ -618,7 +617,6 @@ export default function CancionDetallesPage() {
             gap: 10,
             marginBottom: 32,
             paddingBottom: 20,
-            borderBottom: border,
           }}
         >
           <Music size={11} style={{ color: "var(--primary)", opacity: 0.3 }} />
@@ -649,7 +647,6 @@ export default function CancionDetallesPage() {
                   transition={{ duration: 0.3, delay: 0.15 + i * 0.05 }}
                   style={{
                     padding: "32px 0",
-                    borderBottom: border,
                   }}
                 >
                   {sec.nombre_seccion && (
