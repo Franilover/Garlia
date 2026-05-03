@@ -124,147 +124,131 @@ export default function CancionDetallesPage() {
         display: "flex",
       }}
     >
-      {/* ── Columna izquierda: sticky, no scrollea ── */}
+      {/* ── Columna izquierda: 50%, scrolleable ── */}
       <MotionDiv
         initial={{ opacity: 0, x: -16 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4 }}
         style={{
-          width: "clamp(260px, 30vw, 360px)",
-          flexShrink: 0,
+          flex: "0 0 50%",
           borderRight: border,
           display: "flex",
           flexDirection: "column",
           height: "100vh",
-          overflow: "hidden",
+          overflowY: "auto",
+          padding: "40px clamp(24px, 4vw, 56px)",
+          gap: 28,
         }}
       >
-        {/* Imagen de portada — ocupa toda la parte superior */}
-        <div
-          style={{
-            flex: "0 0 auto",
-            aspectRatio: "1 / 1",
-            width: "100%",
-            overflow: "hidden",
-            position: "relative",
-          }}
-        >
-          <SmartImage
-            src={cancion?.portada_url || "/placeholder-cover.jpg"}
-            alt={cancion?.titulo ?? ""}
-            className="w-full h-full object-cover"
-          />
-          {/* Degradado suave en la parte inferior de la imagen */}
-          <div
+        {/* Volver */}
+        <div>
+          <button
+            onClick={() => router.push("/wiki/canciones")}
             style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(to bottom, transparent 55%, color-mix(in srgb, var(--bg-main) 60%, transparent) 100%)",
-              pointerEvents: "none",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              fontSize: 9,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "var(--primary)",
+              opacity: 0.3,
+              transition: "opacity 0.15s",
             }}
-          />
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.3")}
+          >
+            ← Volver
+          </button>
         </div>
 
-        {/* Metadatos debajo de la imagen */}
+        {/* Imagen de portada — centrada con márgenes */}
         <div
           style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: "24px 28px 32px",
             display: "flex",
-            flexDirection: "column",
-            gap: 20,
+            justifyContent: "center",
+            alignItems: "center",
           }}
         >
-          {/* Label + Título */}
-          <div>
-            <p
-              style={{
-                fontSize: 9,
-                fontFamily: "var(--font-mono)",
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                color: "var(--primary)",
-                opacity: 0.35,
-                marginBottom: 6,
-              }}
-            >
-              Canción
-            </p>
-            <h1
-              style={{
-                fontSize: "clamp(1.4rem, 2.8vw, 2rem)",
-                fontWeight: 900,
-                color: "var(--primary)",
-                letterSpacing: "-0.03em",
-                lineHeight: 1.05,
-                textTransform: "uppercase",
-                fontStyle: "italic",
-                margin: 0,
-              }}
-            >
-              {cancion?.titulo}
-            </h1>
+          <div
+            style={{
+              width: "clamp(180px, 55%, 320px)",
+              aspectRatio: "1 / 1",
+              overflow: "hidden",
+              position: "relative",
+              borderRadius: "var(--radius-btn, 8px)",
+              border,
+              flexShrink: 0,
+            }}
+          >
+            <SmartImage
+              src={cancion?.portada_url || "/placeholder-cover.jpg"}
+              alt={cancion?.titulo ?? ""}
+              className="w-full h-full object-cover"
+            />
           </div>
+        </div>
 
-          {/* Personaje */}
-          {personaje && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                paddingTop: 16,
-                borderTop: border,
-              }}
-            >
-              {personaje.img_url && (
-                <img
-                  src={personaje.img_url}
-                  alt={personaje.nombre}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    objectFit: "cover",
-                    borderRadius: "var(--radius-btn, 4px)",
-                    border,
-                    flexShrink: 0,
-                  }}
-                />
-              )}
-              <div>
-                <p
-                  style={{
-                    fontSize: 8.5,
-                    fontFamily: "var(--font-mono)",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "var(--primary)",
-                    opacity: 0.3,
-                    marginBottom: 2,
-                  }}
-                >
-                  Personaje
-                </p>
-                <p
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: "var(--primary)",
-                    opacity: 0.8,
-                    margin: 0,
-                  }}
-                >
-                  {personaje.nombre}
-                </p>
-              </div>
-            </div>
-          )}
+        {/* Label + Título */}
+        <div style={{ textAlign: "center" }}>
+          <p
+            style={{
+              fontSize: 9,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--primary)",
+              opacity: 0.35,
+              marginBottom: 8,
+            }}
+          >
+            Canción
+          </p>
+          <h1
+            style={{
+              fontSize: "clamp(1.4rem, 2.8vw, 2rem)",
+              fontWeight: 900,
+              color: "var(--primary)",
+              letterSpacing: "-0.03em",
+              lineHeight: 1.05,
+              textTransform: "uppercase",
+              fontStyle: "italic",
+              margin: 0,
+            }}
+          >
+            {cancion?.titulo}
+          </h1>
+        </div>
 
-          {/* Links */}
-          {cancion?.links && cancion.links.length > 0 && (
-            <div style={{ paddingTop: 16, borderTop: border }}>
+        {/* Personaje */}
+        {personaje && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              paddingTop: 20,
+              borderTop: border,
+            }}
+          >
+            {personaje.img_url && (
+              <img
+                src={personaje.img_url}
+                alt={personaje.nombre}
+                style={{
+                  width: 32,
+                  height: 32,
+                  objectFit: "cover",
+                  borderRadius: "var(--radius-btn, 4px)",
+                  border,
+                  flexShrink: 0,
+                }}
+              />
+            )}
+            <div>
               <p
                 style={{
                   fontSize: 8.5,
@@ -273,70 +257,77 @@ export default function CancionDetallesPage() {
                   textTransform: "uppercase",
                   color: "var(--primary)",
                   opacity: 0.3,
-                  marginBottom: 10,
+                  marginBottom: 2,
                 }}
               >
-                Escuchar
+                Personaje
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {cancion.links.map((link, i) => (
-                  <a
-                    key={i}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px 12px",
-                      border,
-                      borderRadius: "var(--radius-btn, 6px)",
-                      textDecoration: "none",
-                      color: "var(--primary)",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      opacity: 0.7,
-                      transition: "opacity 0.15s",
-                      gap: 8,
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
-                  >
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {link.titulo}
-                    </span>
-                    <ExternalLink size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
-                  </a>
-                ))}
-              </div>
+              <p
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "var(--primary)",
+                  opacity: 0.8,
+                  margin: 0,
+                }}
+              >
+                {personaje.nombre}
+              </p>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Volver */}
-          <div style={{ marginTop: "auto", paddingTop: 24, borderTop: border }}>
-            <button
-              onClick={() => router.push("/wiki/canciones")}
+        {/* Links */}
+        {cancion?.links && cancion.links.length > 0 && (
+          <div style={{ paddingTop: 20, borderTop: border }}>
+            <p
               style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                cursor: "pointer",
-                fontSize: 9,
+                fontSize: 8.5,
                 fontFamily: "var(--font-mono)",
-                letterSpacing: "0.16em",
+                letterSpacing: "0.14em",
                 textTransform: "uppercase",
                 color: "var(--primary)",
                 opacity: 0.3,
-                transition: "opacity 0.15s",
+                marginBottom: 10,
+                textAlign: "center",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.3")}
             >
-              ← Volver
-            </button>
+              Escuchar
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {cancion.links.map((link, i) => (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 12px",
+                    border,
+                    borderRadius: "var(--radius-btn, 6px)",
+                    textDecoration: "none",
+                    color: "var(--primary)",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    opacity: 0.7,
+                    transition: "opacity 0.15s",
+                    gap: 8,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
+                >
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {link.titulo}
+                  </span>
+                  <ExternalLink size={10} style={{ flexShrink: 0, opacity: 0.5 }} />
+                </a>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </MotionDiv>
 
       {/* ── Columna derecha: letra, scrolleable ── */}
