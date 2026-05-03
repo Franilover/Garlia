@@ -412,7 +412,6 @@ export default function CancionDetallesPage() {
         transition={{ duration: 0.4 }}
         style={{
           flex: "0 0 50%",
-          borderRight: border,
           display: "flex",
           flexDirection: "column",
           height: "100%",
@@ -534,20 +533,6 @@ export default function CancionDetallesPage() {
         {/* Links */}
         {cancion?.links && cancion.links.length > 0 && (
           <div style={{ paddingTop: 20, }}>
-            <p
-              style={{
-                fontSize: 8.5,
-                fontFamily: "var(--font-mono)",
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--primary)",
-                opacity: 0.3,
-                marginBottom: 10,
-                textAlign: "center",
-              }}
-            >
-              Escuchar
-            </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {cancion.links.map((link, i) => (
                 <a
