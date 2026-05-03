@@ -38,11 +38,22 @@ export function renderMarkdown(raw: string): string {
     return `\x00MATH${idx}\x00`;
   });
 
+  // ── Proteger snippets [[tipo|...]] antes del escape HTML ─────────────────
+  const snippetBlocks: string[] = [];
+  html = html.replace(/\[\[[^\]]+\]\]/g, (match) => {
+    const idx = snippetBlocks.length;
+    snippetBlocks.push(match);
+    return `\x00SNIP${idx}\x00`;
+  });
+
   // ── Escapar HTML en el resto ─────────────────────────────────────────────
   html = html
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+
+  // ── Restaurar snippets (sin escapar) ─────────────────────────────────────
+  html = html.replace(/\x00SNIP(\d+)\x00/g, (_, i) => snippetBlocks[+i]);
 
   // ── Tablas ───────────────────────────────────────────────────────────────
   html = html.replace(/(?:^|\n)((?:\|[^\n]+\|\n)+)/g, (_, tableBlock) => {
@@ -158,6 +169,73 @@ export function renderMarkdown(raw: string): string {
         return `<li>${content}</li>`;
       }).join("");
     return `<ul>${items}</ul>`;
+  });
+
+  // ── Snippets interactivos [[tipo|...]] ───────────────────────────────────
+
+  // [[section|id]] — ancla de sección
+  html = html.replace(/\[\[section\|([^\]]+)\]\]/g, (_, id) =>
+    `<span class="snip-section" id="section-${id.trim()}">` +
+    `<span class="snip-section-icon">📌</span>` +
+    `<span class="snip-section-label">${id.trim()}</span>` +
+    `</span>`
+  );
+
+  // [[choice|texto|destino]] — botón de decisión
+  html = html.replace(/\[\[choice\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, texto, destino) =>
+    `<span class="snip-choice" data-dest="${destino.trim()}">` +
+    `<span class="snip-choice-icon">🔀</span>` +
+    `<span class="snip-choice-text">${texto.trim()}</span>` +
+    (destino.trim() ? `<span class="snip-choice-dest">→ ${destino.trim()}</span>` : "") +
+    `</span>`
+  );
+
+  // [[img|url|modo]] — imagen con modo inline/float
+  html = html.replace(/\[\[img\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, url, modo) => {
+    const m = modo.trim() || "inline";
+    return `<span class="snip-img snip-img-${m}">` +
+      `<img src="${url.trim()}" alt="" class="snip-img-el" />` +
+      `<span class="snip-img-badge">${m}</span>` +
+      `</span>`;
+  });
+
+  // [[use|item-id]] — uso de ítem de inventario
+  html = html.replace(/\[\[use\|([^\]]+)\]\]/g, (_, item) =>
+    `<span class="snip-use">` +
+    `<span class="snip-use-icon">🖱️</span>` +
+    `<span class="snip-use-label">Usar: ${item.trim()}</span>` +
+    `</span>`
+  );
+
+  // [[drop|entidad-id|tipo?]] — drop de entidad (personaje, criatura, ítem)
+  html = html.replace(/\[\[drop\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, id, tipo) => {
+    const tipoLabel = tipo.trim() || "entidad";
+    const icon = tipoLabel === "personaje" ? "👤" : tipoLabel === "criatura" ? "🐉" : "⚔️";
+    return `<span class="snip-drop">` +
+      `<span class="snip-drop-icon">${icon}</span>` +
+      `<span class="snip-drop-label">${id.trim()}</span>` +
+      (tipo.trim() ? `<span class="snip-drop-tipo">${tipo.trim()}</span>` : "") +
+      `</span>`;
+  });
+
+  // [[sound|url|tipo?]] — efecto de sonido / música
+  html = html.replace(/\[\[sound\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, url, tipo) => {
+    const label = tipo.trim() || url.trim().split("/").pop() || "audio";
+    return `<span class="snip-sound">` +
+      `<span class="snip-sound-icon">🎵</span>` +
+      `<span class="snip-sound-label">${label}</span>` +
+      `</span>`;
+  });
+
+  // [[cita|Texto — Fuente]] — cita literaria
+  html = html.replace(/\[\[cita\|([^\]]+)\]\]/g, (_, contenido) => {
+    const dashIdx = contenido.lastIndexOf(" — ");
+    const texto  = dashIdx !== -1 ? contenido.slice(0, dashIdx).trim() : contenido.trim();
+    const fuente = dashIdx !== -1 ? contenido.slice(dashIdx + 3).trim() : "";
+    return `<span class="snip-cita">` +
+      `<span class="snip-cita-text">«${texto}»</span>` +
+      (fuente ? `<span class="snip-cita-fuente"> — ${fuente}</span>` : "") +
+      `</span>`;
   });
 
   // ── Párrafos ─────────────────────────────────────────────────────────────
@@ -280,6 +358,96 @@ export const PROSE_STYLES = `
   .prose-mundo h2[id],
   .prose-mundo h3[id],
   .prose-mundo h4[id] { scroll-margin-top:1rem }
+
+  /* ── Snippets interactivos ───────────────────────────────────────────────── */
+
+  /* Base compartida para todos los snippets inline */
+  .prose-mundo [class^="snip-"] {
+    display:inline-flex;align-items:center;gap:.3rem;
+    border-radius:.35rem;font-size:.72rem;font-weight:700;
+    font-family:var(--font-mono,monospace);letter-spacing:.04em;
+    vertical-align:middle;white-space:nowrap;
+    border:1px solid;padding:.1rem .45rem;
+    transition:opacity .15s;cursor:default;line-height:1.4;
+  }
+
+  /* [[choice|texto|destino]] — botón de decisión */
+  .prose-mundo .snip-choice {
+    background:color-mix(in srgb,#6366f1 12%,transparent);
+    border-color:color-mix(in srgb,#6366f1 35%,transparent);
+    color:#a5b4fc;
+  }
+  .prose-mundo .snip-choice-icon { font-size:.8rem }
+  .prose-mundo .snip-choice-text { color:#c7d2fe;font-weight:800 }
+  .prose-mundo .snip-choice-dest { opacity:.55;font-size:.68rem }
+
+  /* [[img|url|modo]] — imagen snippet */
+  .prose-mundo .snip-img { display:inline-block;vertical-align:middle;position:relative;border:none;padding:0;background:none }
+  .prose-mundo .snip-img-inline { display:block;margin:.4rem 0 }
+  .prose-mundo .snip-img-float  { float:right;margin:0 0 .5rem .75rem;max-width:42% }
+  .prose-mundo .snip-img-el { display:block;max-width:100%;border-radius:.4rem;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent) }
+  .prose-mundo .snip-img-badge {
+    position:absolute;bottom:.25rem;right:.25rem;
+    background:color-mix(in srgb,#000 55%,transparent);
+    color:#fff;font-size:.6rem;font-family:var(--font-mono,monospace);
+    font-weight:800;padding:.05rem .3rem;border-radius:.2rem;
+    letter-spacing:.06em;text-transform:uppercase;pointer-events:none;
+  }
+
+  /* [[use|item]] — ítem de inventario */
+  .prose-mundo .snip-use {
+    background:color-mix(in srgb,#f59e0b 10%,transparent);
+    border-color:color-mix(in srgb,#f59e0b 30%,transparent);
+    color:#fcd34d;
+  }
+  .prose-mundo .snip-use-icon { font-size:.8rem }
+  .prose-mundo .snip-use-label { color:#fde68a }
+
+  /* [[drop|id|tipo]] — entidad (personaje, criatura, ítem) */
+  .prose-mundo .snip-drop {
+    background:color-mix(in srgb,#10b981 10%,transparent);
+    border-color:color-mix(in srgb,#10b981 28%,transparent);
+    color:#6ee7b7;
+  }
+  .prose-mundo .snip-drop-icon { font-size:.8rem }
+  .prose-mundo .snip-drop-label { color:#a7f3d0;font-weight:800 }
+  .prose-mundo .snip-drop-tipo {
+    opacity:.5;font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;
+    padding:.05rem .3rem;border-radius:.2rem;
+    background:color-mix(in srgb,#10b981 15%,transparent);
+  }
+
+  /* [[section|id]] — ancla de sección */
+  .prose-mundo .snip-section {
+    display:inline-flex;
+    background:color-mix(in srgb,#ec4899 10%,transparent);
+    border-color:color-mix(in srgb,#ec4899 28%,transparent);
+    color:#f9a8d4;margin:.15rem 0;
+  }
+  .prose-mundo .snip-section-icon { font-size:.8rem }
+  .prose-mundo .snip-section-label { font-weight:800;color:#fbcfe8 }
+
+  /* [[sound|url|tipo]] — sonido/música */
+  .prose-mundo .snip-sound {
+    background:color-mix(in srgb,#8b5cf6 10%,transparent);
+    border-color:color-mix(in srgb,#8b5cf6 28%,transparent);
+    color:#c4b5fd;
+  }
+  .prose-mundo .snip-sound-icon { font-size:.8rem }
+  .prose-mundo .snip-sound-label { color:#ddd6fe }
+
+  /* [[cita|Texto — Fuente]] — cita literaria */
+  .prose-mundo .snip-cita {
+    display:inline;border:none;padding:0;background:none;
+    font-family:Georgia,serif;font-style:italic;
+    font-size:.85rem;font-weight:400;letter-spacing:.01em;
+    color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 75%,transparent);
+  }
+  .prose-mundo .snip-cita-fuente {
+    font-size:.75rem;font-weight:600;
+    color:color-mix(in srgb,var(--color-primary,#7c6af7) 60%,white);
+    font-style:normal;margin-left:.2rem;
+  }
 `;
 
 // ── Command menu items ────────────────────────────────────────────────────────
