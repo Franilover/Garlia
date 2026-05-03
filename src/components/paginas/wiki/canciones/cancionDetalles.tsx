@@ -587,7 +587,6 @@ export default function CancionDetallesPage() {
             display: "flex",
             alignItems: "center",
             gap: 10,
-            marginBottom: 32,
             paddingBottom: 20,
           }}
         >
