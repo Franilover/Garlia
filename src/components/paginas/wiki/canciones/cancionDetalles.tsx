@@ -200,19 +200,6 @@ export default function CancionDetallesPage() {
         >
           {/* Label + Título */}
           <div>
-            <p
-              style={{
-                fontSize: 8.5,
-                fontFamily: "var(--font-mono)",
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                color: "var(--primary)",
-                opacity: 0.35,
-                marginBottom: 6,
-              }}
-            >
-              Canción
-            </p>
             <h1
               style={{
                 fontSize: "clamp(1.6rem, 7vw, 2.2rem)",
@@ -237,7 +224,6 @@ export default function CancionDetallesPage() {
                 alignItems: "center",
                 gap: 10,
                 paddingTop: 14,
-                borderTop: border,
               }}
             >
               {personaje.img_url && (
@@ -264,7 +250,7 @@ export default function CancionDetallesPage() {
 
           {/* Links — fila horizontal scrolleable */}
           {cancion?.links && cancion.links.length > 0 && (
-            <div style={{ paddingTop: 14, borderTop: border }}>
+            <div style={{ paddingTop: 14,  }}>
               <p
                 style={{
                   fontSize: 8,
@@ -527,7 +513,6 @@ export default function CancionDetallesPage() {
               justifyContent: "center",
               gap: 10,
               paddingTop: 20,
-              borderTop: border,
             }}
           >
             {personaje.img_url && (
@@ -562,7 +547,7 @@ export default function CancionDetallesPage() {
 
         {/* Links */}
         {cancion?.links && cancion.links.length > 0 && (
-          <div style={{ paddingTop: 20, borderTop: border }}>
+          <div style={{ paddingTop: 20, }}>
             <p
               style={{
                 fontSize: 8.5,
