@@ -55,6 +55,7 @@ export default function CancionDetallesPage() {
   const [secciones, setSecciones] = useState<Seccion[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorAcceso, setErrorAcceso] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!id) return;
@@ -126,7 +127,6 @@ export default function CancionDetallesPage() {
 
   const personaje = normPersonaje(cancion?.personaje);
   const border = "1px solid var(--color-border, color-mix(in srgb, var(--primary) 12%, transparent))";
-  const isMobile = useIsMobile();
 
   if (isMobile) {
     return (
