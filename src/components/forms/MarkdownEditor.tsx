@@ -52,7 +52,7 @@ export function renderMarkdown(raw: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-  // ── Restaurar snippets (sin escapar) ─────────────────────────────────────
+  // ── Restaurar snippets sin escapar ───────────────────────────────────────
   html = html.replace(/\x00SNIP(\d+)\x00/g, (_, i) => snippetBlocks[+i]);
 
   // ── Tablas ───────────────────────────────────────────────────────────────
@@ -171,71 +171,83 @@ export function renderMarkdown(raw: string): string {
     return `<ul>${items}</ul>`;
   });
 
-  // ── Snippets interactivos [[tipo|...]] ───────────────────────────────────
+  // ── Snippets interactivos [[tipo|...]] ──────────────────────────────────
+  // Función helper para escapar atributos data-*
+  const da = (s: string) => s.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
-  // [[section|id]] — ancla de sección
-  html = html.replace(/\[\[section\|([^\]]+)\]\]/g, (_, id) =>
-    `<span class="snip-section" id="section-${id.trim()}">` +
-    `<span class="snip-section-icon">📌</span>` +
-    `<span class="snip-section-label">${id.trim()}</span>` +
-    `</span>`
-  );
-
-  // [[choice|texto|destino]] — botón de decisión
-  html = html.replace(/\[\[choice\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, texto, destino) =>
-    `<span class="snip-choice" data-dest="${destino.trim()}">` +
-    `<span class="snip-choice-icon">🔀</span>` +
-    `<span class="snip-choice-text">${texto.trim()}</span>` +
-    (destino.trim() ? `<span class="snip-choice-dest">→ ${destino.trim()}</span>` : "") +
-    `</span>`
-  );
-
-  // [[img|url|modo]] — imagen con modo inline/float
-  html = html.replace(/\[\[img\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, url, modo) => {
-    const m = modo.trim() || "inline";
-    return `<span class="snip-img snip-img-${m}">` +
-      `<img src="${url.trim()}" alt="" class="snip-img-el" />` +
-      `<span class="snip-img-badge">${m}</span>` +
-      `</span>`;
+  // [[section|id|label?]] — ancla de sección
+  html = html.replace(/\[\[section\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, id, label) => {
+    const sId    = id.trim();
+    const sLabel = label.trim() || sId;
+    return `<button class="snip-section" id="section-${da(sId)}" data-snip="section" data-id="${da(sId)}" data-label="${da(sLabel)}" tabindex="0">`
+      + `<span class="snip-section-icon">📌</span>`
+      + `<span class="snip-section-label">${sLabel}</span>`
+      + `</button>`;
   });
 
-  // [[use|item-id]] — uso de ítem de inventario
-  html = html.replace(/\[\[use\|([^\]]+)\]\]/g, (_, item) =>
-    `<span class="snip-use">` +
-    `<span class="snip-use-icon">🖱️</span>` +
-    `<span class="snip-use-label">Usar: ${item.trim()}</span>` +
-    `</span>`
+  // [[choice|texto|destino]] — botón de decisión (navega a capId o #section-id)
+  html = html.replace(/\[\[choice\|([^|\]]+)\|([^\]]*)\]\]/g, (_, texto, target) =>
+    `<button class="snip-choice" data-snip="choice" data-target="${da(target.trim())}" tabindex="0">`
+    + `<span class="snip-choice-icon">🔀</span>`
+    + `<span class="snip-choice-text">${texto.trim()}</span>`
+    + `</button>`
   );
 
-  // [[drop|entidad-id|tipo?]] — drop de entidad (personaje, criatura, ítem)
-  html = html.replace(/\[\[drop\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, id, tipo) => {
-    const tipoLabel = tipo.trim() || "entidad";
-    const icon = tipoLabel === "personaje" ? "👤" : tipoLabel === "criatura" ? "🐉" : "⚔️";
-    return `<span class="snip-drop">` +
-      `<span class="snip-drop-icon">${icon}</span>` +
-      `<span class="snip-drop-label">${id.trim()}</span>` +
-      (tipo.trim() ? `<span class="snip-drop-tipo">${tipo.trim()}</span>` : "") +
-      `</span>`;
+  // [[img|url|caption?]] — imagen inline
+  html = html.replace(/\[\[img\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, url, caption) =>
+    `<span class="snip-img snip-img-inline" data-snip="img" data-url="${da(url.trim())}" data-caption="${da(caption.trim())}">`
+    + `<img src="${da(url.trim())}" alt="${da(caption.trim())}" class="snip-img-el" />`
+    + (caption.trim() ? `<span class="snip-img-caption">${caption.trim()}</span>` : "")
+    + `</span>`
+  );
+
+  // [[float|palabra|url|caption?]] — imagen flotante anclada a una palabra
+  html = html.replace(/\[\[float\|([^|\]]+)\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, word, url, caption) =>
+    `<span class="snip-float" data-snip="float" data-word="${da(word.trim())}" data-url="${da(url.trim())}" data-caption="${da(caption.trim())}">`
+    + `<img src="${da(url.trim())}" alt="${da(caption.trim())}" class="snip-img-el snip-float-img" />`
+    + `<span class="snip-float-word">${word.trim()}</span>`
+    + (caption.trim() ? `<span class="snip-img-caption">${caption.trim()}</span>` : "")
+    + `</span>`
+  );
+
+  // [[use|palabra|itemId|targetOk|targetFail?]] — interacción con ítem
+  html = html.replace(/\[\[use\|([^|\]]+)\|([^|\]]+)\|([^|\]]+)\|?([^\]]*?)\]\]/g, (_, word, itemId, targetOk, targetFail) =>
+    `<button class="snip-use" data-snip="use" data-word="${da(word.trim())}" data-itemid="${da(itemId.trim())}" data-targetok="${da(targetOk.trim())}" data-targetfail="${da(targetFail.trim())}" tabindex="0">`
+    + `<span class="snip-use-icon">🖱️</span>`
+    + `<span class="snip-use-label">${word.trim()}</span>`
+    + `</button>`
+  );
+
+  // [[sound|...]] — efecto de sonido (formato libre, viene de SoundPicker)
+  html = html.replace(/\[\[sound\|([^\]]+)\]\]/g, (_, raw) =>
+    `<button class="snip-sound" data-snip="sound" data-raw="${da(raw.trim())}" tabindex="0">`
+    + `<span class="snip-sound-icon">🎵</span>`
+    + `<span class="snip-sound-label">${raw.trim().split("|")[0]}</span>`
+    + `</button>`
+  );
+
+  // [[drop|...]] — entidad (formato libre, viene de EntidadPicker)
+  html = html.replace(/\[\[drop\|([^\]]+)\]\]/g, (_, raw) => {
+    const parts    = raw.trim().split("|");
+    const nombre   = parts[0] || raw.trim();
+    const tipo     = parts[1] || "";
+    const icon     = tipo === "personaje" ? "👤" : tipo === "criatura" ? "🐉" : "⚔️";
+    return `<button class="snip-drop" data-snip="drop" data-raw="${da(raw.trim())}" tabindex="0">`
+      + `<span class="snip-drop-icon">${icon}</span>`
+      + `<span class="snip-drop-label">${nombre}</span>`
+      + (tipo ? `<span class="snip-drop-tipo">${tipo}</span>` : "")
+      + `</button>`;
   });
 
-  // [[sound|url|tipo?]] — efecto de sonido / música
-  html = html.replace(/\[\[sound\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, url, tipo) => {
-    const label = tipo.trim() || url.trim().split("/").pop() || "audio";
-    return `<span class="snip-sound">` +
-      `<span class="snip-sound-icon">🎵</span>` +
-      `<span class="snip-sound-label">${label}</span>` +
-      `</span>`;
-  });
-
-  // [[cita|Texto — Fuente]] — cita literaria
+  // [[cita|Texto — Fuente]] — cita literaria (no clickeable)
   html = html.replace(/\[\[cita\|([^\]]+)\]\]/g, (_, contenido) => {
     const dashIdx = contenido.lastIndexOf(" — ");
-    const texto  = dashIdx !== -1 ? contenido.slice(0, dashIdx).trim() : contenido.trim();
-    const fuente = dashIdx !== -1 ? contenido.slice(dashIdx + 3).trim() : "";
-    return `<span class="snip-cita">` +
-      `<span class="snip-cita-text">«${texto}»</span>` +
-      (fuente ? `<span class="snip-cita-fuente"> — ${fuente}</span>` : "") +
-      `</span>`;
+    const texto   = dashIdx !== -1 ? contenido.slice(0, dashIdx).trim() : contenido.trim();
+    const fuente  = dashIdx !== -1 ? contenido.slice(dashIdx + 3).trim() : "";
+    return `<span class="snip-cita">`
+      + `<span class="snip-cita-text">«${texto}»</span>`
+      + (fuente ? `<span class="snip-cita-fuente"> — ${fuente}</span>` : "")
+      + `</span>`;
   });
 
   // ── Párrafos ─────────────────────────────────────────────────────────────
@@ -361,92 +373,93 @@ export const PROSE_STYLES = `
 
   /* ── Snippets interactivos ───────────────────────────────────────────────── */
 
-  /* Base compartida para todos los snippets inline */
-  .prose-mundo [class^="snip-"] {
-    display:inline-flex;align-items:center;gap:.3rem;
-    border-radius:.35rem;font-size:.72rem;font-weight:700;
-    font-family:var(--font-mono,monospace);letter-spacing:.04em;
-    vertical-align:middle;white-space:nowrap;
-    border:1px solid;padding:.1rem .45rem;
-    transition:opacity .15s;cursor:default;line-height:1.4;
-  }
-
-  /* [[choice|texto|destino]] — botón de decisión */
+  /* [[choice]] — botón de decisión */
   .prose-mundo .snip-choice {
-    background:color-mix(in srgb,#6366f1 12%,transparent);
-    border-color:color-mix(in srgb,#6366f1 35%,transparent);
-    color:#a5b4fc;
+    display:inline-flex;align-items:center;gap:.35rem;
+    background:color-mix(in srgb,#6366f1 14%,transparent);
+    border:1px solid color-mix(in srgb,#6366f1 38%,transparent);
+    color:#c7d2fe;border-radius:.4rem;padding:.2rem .65rem;
+    font-size:.78rem;font-weight:800;font-family:var(--font-mono,monospace);
+    letter-spacing:.04em;cursor:pointer;vertical-align:middle;
+    transition:background .15s,border-color .15s,transform .1s;
   }
-  .prose-mundo .snip-choice-icon { font-size:.8rem }
-  .prose-mundo .snip-choice-text { color:#c7d2fe;font-weight:800 }
-  .prose-mundo .snip-choice-dest { opacity:.55;font-size:.68rem }
+  .prose-mundo .snip-choice:hover { background:color-mix(in srgb,#6366f1 24%,transparent);border-color:color-mix(in srgb,#6366f1 55%,transparent);transform:translateY(-1px) }
+  .prose-mundo .snip-choice:active { transform:translateY(0) }
+  .prose-mundo .snip-choice-icon { font-size:.85rem;line-height:1 }
+  .prose-mundo .snip-choice-text { color:#e0e7ff }
 
-  /* [[img|url|modo]] — imagen snippet */
-  .prose-mundo .snip-img { display:inline-block;vertical-align:middle;position:relative;border:none;padding:0;background:none }
-  .prose-mundo .snip-img-inline { display:block;margin:.4rem 0 }
-  .prose-mundo .snip-img-float  { float:right;margin:0 0 .5rem .75rem;max-width:42% }
-  .prose-mundo .snip-img-el { display:block;max-width:100%;border-radius:.4rem;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent) }
-  .prose-mundo .snip-img-badge {
-    position:absolute;bottom:.25rem;right:.25rem;
-    background:color-mix(in srgb,#000 55%,transparent);
-    color:#fff;font-size:.6rem;font-family:var(--font-mono,monospace);
-    font-weight:800;padding:.05rem .3rem;border-radius:.2rem;
-    letter-spacing:.06em;text-transform:uppercase;pointer-events:none;
-  }
-
-  /* [[use|item]] — ítem de inventario */
+  /* [[use]] — ítem de inventario */
   .prose-mundo .snip-use {
-    background:color-mix(in srgb,#f59e0b 10%,transparent);
-    border-color:color-mix(in srgb,#f59e0b 30%,transparent);
-    color:#fcd34d;
+    display:inline-flex;align-items:center;gap:.35rem;
+    background:color-mix(in srgb,#f59e0b 12%,transparent);
+    border:1px solid color-mix(in srgb,#f59e0b 32%,transparent);
+    color:#fcd34d;border-radius:.4rem;padding:.2rem .65rem;
+    font-size:.78rem;font-weight:800;font-family:var(--font-mono,monospace);
+    letter-spacing:.04em;cursor:pointer;vertical-align:middle;
+    transition:background .15s,border-color .15s,transform .1s;
   }
-  .prose-mundo .snip-use-icon { font-size:.8rem }
+  .prose-mundo .snip-use:hover { background:color-mix(in srgb,#f59e0b 22%,transparent);border-color:color-mix(in srgb,#f59e0b 50%,transparent);transform:translateY(-1px) }
+  .prose-mundo .snip-use:active { transform:translateY(0) }
+  .prose-mundo .snip-use-icon { font-size:.85rem;line-height:1 }
   .prose-mundo .snip-use-label { color:#fde68a }
 
-  /* [[drop|id|tipo]] — entidad (personaje, criatura, ítem) */
+  /* [[drop]] — entidad */
   .prose-mundo .snip-drop {
+    display:inline-flex;align-items:center;gap:.35rem;
     background:color-mix(in srgb,#10b981 10%,transparent);
-    border-color:color-mix(in srgb,#10b981 28%,transparent);
-    color:#6ee7b7;
+    border:1px solid color-mix(in srgb,#10b981 30%,transparent);
+    color:#6ee7b7;border-radius:.4rem;padding:.2rem .65rem;
+    font-size:.78rem;font-weight:800;font-family:var(--font-mono,monospace);
+    letter-spacing:.04em;cursor:pointer;vertical-align:middle;
+    transition:background .15s,border-color .15s,transform .1s;
   }
-  .prose-mundo .snip-drop-icon { font-size:.8rem }
-  .prose-mundo .snip-drop-label { color:#a7f3d0;font-weight:800 }
-  .prose-mundo .snip-drop-tipo {
-    opacity:.5;font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;
-    padding:.05rem .3rem;border-radius:.2rem;
-    background:color-mix(in srgb,#10b981 15%,transparent);
-  }
+  .prose-mundo .snip-drop:hover { background:color-mix(in srgb,#10b981 20%,transparent);border-color:color-mix(in srgb,#10b981 48%,transparent);transform:translateY(-1px) }
+  .prose-mundo .snip-drop:active { transform:translateY(0) }
+  .prose-mundo .snip-drop-icon { font-size:.85rem;line-height:1 }
+  .prose-mundo .snip-drop-label { color:#a7f3d0 }
+  .prose-mundo .snip-drop-tipo { font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;opacity:.5;margin-left:.1rem }
 
-  /* [[section|id]] — ancla de sección */
+  /* [[section]] — ancla de sección */
   .prose-mundo .snip-section {
-    display:inline-flex;
+    display:inline-flex;align-items:center;gap:.3rem;
     background:color-mix(in srgb,#ec4899 10%,transparent);
-    border-color:color-mix(in srgb,#ec4899 28%,transparent);
-    color:#f9a8d4;margin:.15rem 0;
+    border:1px dashed color-mix(in srgb,#ec4899 30%,transparent);
+    color:#f9a8d4;border-radius:.35rem;padding:.15rem .5rem;
+    font-size:.7rem;font-weight:800;font-family:var(--font-mono,monospace);
+    letter-spacing:.05em;vertical-align:middle;cursor:default;
   }
-  .prose-mundo .snip-section-icon { font-size:.8rem }
-  .prose-mundo .snip-section-label { font-weight:800;color:#fbcfe8 }
+  .prose-mundo .snip-section-icon { font-size:.75rem;line-height:1 }
+  .prose-mundo .snip-section-label { color:#fbcfe8 }
 
-  /* [[sound|url|tipo]] — sonido/música */
+  /* [[sound]] — sonido/música */
   .prose-mundo .snip-sound {
+    display:inline-flex;align-items:center;gap:.35rem;
     background:color-mix(in srgb,#8b5cf6 10%,transparent);
-    border-color:color-mix(in srgb,#8b5cf6 28%,transparent);
-    color:#c4b5fd;
+    border:1px solid color-mix(in srgb,#8b5cf6 30%,transparent);
+    color:#c4b5fd;border-radius:.4rem;padding:.2rem .65rem;
+    font-size:.78rem;font-weight:800;font-family:var(--font-mono,monospace);
+    letter-spacing:.04em;cursor:pointer;vertical-align:middle;
+    transition:background .15s,border-color .15s;
   }
-  .prose-mundo .snip-sound-icon { font-size:.8rem }
+  .prose-mundo .snip-sound:hover { background:color-mix(in srgb,#8b5cf6 20%,transparent);border-color:color-mix(in srgb,#8b5cf6 48%,transparent) }
+  .prose-mundo .snip-sound-icon { font-size:.85rem;line-height:1 }
   .prose-mundo .snip-sound-label { color:#ddd6fe }
 
-  /* [[cita|Texto — Fuente]] — cita literaria */
+  /* [[img]] / [[float]] — imágenes */
+  .prose-mundo .snip-img { display:block;margin:.5rem 0 }
+  .prose-mundo .snip-float { float:right;margin:0 0 .5rem .75rem;max-width:40%;clear:right }
+  .prose-mundo .snip-img-el { max-width:100%;border-radius:.45rem;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent);display:block }
+  .prose-mundo .snip-img-caption { display:block;font-size:.7rem;color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 50%,transparent);font-style:italic;margin-top:.25rem;text-align:center }
+  .prose-mundo .snip-float-word { display:none }
+
+  /* [[cita]] — cita literaria (no clickeable) */
   .prose-mundo .snip-cita {
-    display:inline;border:none;padding:0;background:none;
-    font-family:Georgia,serif;font-style:italic;
-    font-size:.85rem;font-weight:400;letter-spacing:.01em;
-    color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 75%,transparent);
+    display:inline;font-family:Georgia,serif;font-style:italic;
+    font-size:.85rem;color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 75%,transparent);
   }
   .prose-mundo .snip-cita-fuente {
-    font-size:.75rem;font-weight:600;
-    color:color-mix(in srgb,var(--color-primary,#7c6af7) 60%,white);
-    font-style:normal;margin-left:.2rem;
+    font-style:normal;font-size:.75rem;font-weight:600;margin-left:.25rem;
+    color:color-mix(in srgb,var(--color-primary,#7c6af7) 65%,white);
   }
 `;
 
@@ -727,6 +740,15 @@ const COMMAND_ITEMS: CommandItem[] = [
 // ── Tipos ────────────────────────────────────────────────────────────────────
 type ViewMode = "edit" | "preview" | "split";
 
+export type SnippetAction =
+  | { type: "choice";  target: string }
+  | { type: "section"; id: string; label: string }
+  | { type: "use";     word: string; itemId: string; targetOk: string; targetFail: string }
+  | { type: "drop";    raw: string }
+  | { type: "sound";   raw: string }
+  | { type: "img";     url: string; caption: string }
+  | { type: "float";   word: string; url: string; caption: string };
+
 interface MarkdownEditorProps {
   value: string;
   onChange: (v: string) => void;
@@ -738,6 +760,8 @@ interface MarkdownEditorProps {
   extraCommands?: CommandItem[];
   /** Ref opcional: se le asigna una función insertAtCursor(text) para uso externo */
   insertRef?: React.MutableRefObject<((text: string) => void) | null>;
+  /** Callback cuando el lector hace click en un snippet interactivo del preview */
+  onSnippetAction?: (action: SnippetAction) => void;
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -750,6 +774,7 @@ export function MarkdownEditor({
   defaultMode = "split",
   extraCommands = [],
   insertRef,
+  onSnippetAction,
 }: MarkdownEditorProps) {
   const [mode, setMode] = useState<ViewMode>(defaultMode);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -1136,6 +1161,44 @@ export function MarkdownEditor({
   useEffect(() => {
     renderMathInElement(pvRef.current);
   }, [html]);
+
+  // Delegación de clicks en snippets del preview
+  useEffect(() => {
+    const el = pvRef.current;
+    if (!el || !onSnippetAction) return;
+    const handler = (e: MouseEvent) => {
+      const tgt = (e.target as HTMLElement).closest("[data-snip]") as HTMLElement | null;
+      if (!tgt) return;
+      e.preventDefault();
+      const snip = tgt.dataset.snip!;
+      const d    = tgt.dataset;
+      switch (snip) {
+        case "choice":
+          onSnippetAction({ type: "choice", target: d.target ?? "" });
+          break;
+        case "section":
+          onSnippetAction({ type: "section", id: d.id ?? "", label: d.label ?? "" });
+          break;
+        case "use":
+          onSnippetAction({ type: "use", word: d.word ?? "", itemId: d.itemid ?? "", targetOk: d.targetok ?? "", targetFail: d.targetfail ?? "" });
+          break;
+        case "drop":
+          onSnippetAction({ type: "drop", raw: d.raw ?? "" });
+          break;
+        case "sound":
+          onSnippetAction({ type: "sound", raw: d.raw ?? "" });
+          break;
+        case "img":
+          onSnippetAction({ type: "img", url: d.url ?? "", caption: d.caption ?? "" });
+          break;
+        case "float":
+          onSnippetAction({ type: "float", word: d.word ?? "", url: d.url ?? "", caption: d.caption ?? "" });
+          break;
+      }
+    };
+    el.addEventListener("click", handler);
+    return () => el.removeEventListener("click", handler);
+  }, [html, onSnippetAction]);
 
   const textareaCls =
     "flex-1 w-full bg-transparent outline-none border-none resize-none text-sm font-mono leading-relaxed placeholder:opacity-30";

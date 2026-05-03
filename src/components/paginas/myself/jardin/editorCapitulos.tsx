@@ -30,7 +30,7 @@ import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SnippetToolbar, ModalDrop, ModalSonido, ModalSection, ModalChoice, ModalUseItem, ModalImagen } from "./snippets/SnippetToolbar";
 import { MarkdownEditor, renderMarkdown, renderMathInElement, PROSE_STYLES } from "@/components/forms/MarkdownEditor";
-import type { CommandItem as MdCommandItem } from "@/components/forms/MarkdownEditor";
+import type { CommandItem as MdCommandItem, SnippetAction } from "@/components/forms/MarkdownEditor";
 
 type Libro = {
   id: string;
@@ -1172,6 +1172,42 @@ const PanelEditor = ({
     if (!isTouchDevice) requestAnimationFrame(() => centerCursor());
   };
 
+  // ── Acción de snippets en el preview ─────────────────────────────────────
+  const handleSnippetAction = useCallback((action: SnippetAction) => {
+    switch (action.type) {
+      case "choice": {
+        // Buscar si el target es un capId conocido
+        const cap = listaSnippetCaps.find(c => c.id === action.target);
+        if (cap) {
+          // Navegar al capítulo
+          window.dispatchEvent(new CustomEvent("snippet:navigate-cap", { detail: { capId: action.target } }));
+        } else {
+          // Saltar a sección dentro del mismo documento (scroll)
+          const el = document.getElementById(`section-${action.target}`);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        break;
+      }
+      case "section": {
+        // La sección es solo un ancla visual; al hacer click, resaltarla brevemente
+        const el = document.getElementById(`section-${action.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("snip-section--highlight");
+          setTimeout(() => el.classList.remove("snip-section--highlight"), 1200);
+        }
+        break;
+      }
+      case "use":
+      case "drop":
+      case "sound":
+      case "img":
+      case "float":
+        // Estos pueden extenderse más adelante; por ahora no hacen nada en el editor
+        break;
+    }
+  }, [listaSnippetCaps]);
+
   // ── Comandos del menú "add" para los snippets interactivos ───────────────
   const snippetCommands: MdCommandItem[] = useMemo(() => [
     {
@@ -1587,6 +1623,7 @@ const PanelEditor = ({
             rows={focusMode ? 30 : 20}
             extraCommands={extraCommands}
             insertRef={mdInsertRef}
+            onSnippetAction={handleSnippetAction}
           />
         </div>
       </div>
