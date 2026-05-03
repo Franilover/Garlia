@@ -547,19 +547,6 @@ export default function CancionDetallesPage() {
             <div>
               <p
                 style={{
-                  fontSize: 8.5,
-                  fontFamily: "var(--font-mono)",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--primary)",
-                  opacity: 0.3,
-                  marginBottom: 2,
-                }}
-              >
-                Personaje
-              </p>
-              <p
-                style={{
                   fontSize: 12,
                   fontWeight: 700,
                   color: "var(--primary)",
