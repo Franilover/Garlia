@@ -95,6 +95,9 @@ export default function Ensayos() {
   const [zoteroConnected,   setZoteroConnected]   = useState(false);
   const [tagActivo,         setTagActivo]         = useState<string | null>(null);
 
+  // For pre-filling the new note modal title (used when creating tag-pages)
+  const [pendingNoteTitle,  setPendingNoteTitle]  = useState<string | null>(null);
+
   const {
     data:     ensayos,
     setData:  setEnsayos,
@@ -114,7 +117,6 @@ export default function Ensayos() {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  // FIX: pendingUpdates ahora es un mapa por nota, evitando mezcla entre notas
   const pendingUpdatesRef  = useRef<Record<string, Record<string, any>>>({});
   const saveTimerRef       = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const saveIndicatorRef   = useRef<HTMLSpanElement | null>(null);
@@ -125,7 +127,6 @@ export default function Ensayos() {
     (async () => {
       const handle = await loadZoteroHandle();
 
-      // Sin handle: cargar desde localStorage si existe
       if (!handle) {
         const cached = localStorage.getItem("fran-zotero-cache");
         if (cached) {
@@ -146,10 +147,8 @@ export default function Ensayos() {
         const parsed = await readZoteroFile(handle);
         setSources(parsed);
         setZoteroConnected(true);
-        // FIX: siempre actualizar localStorage cuando Dexie tiene éxito
         localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
       } catch {
-        // Dexie falló → intentar localStorage como fallback
         const cached = localStorage.getItem("fran-zotero-cache");
         if (cached) {
           try { setSources(JSON.parse(cached)); } catch {}
@@ -211,6 +210,35 @@ export default function Ensayos() {
     } catch { connectZotero(); }
   }, [connectZotero]);
 
+  // ─── Tag-as-page navigation ────────────────────────────────────────────────
+
+  /**
+   * Navigate to the note whose title matches `name` (case-insensitive).
+   * If no note exists, open NewNoteModal pre-filled with that name.
+   */
+  const navigateToPage = useCallback((name: string) => {
+    const normalized = name.trim().toLowerCase();
+    const found = ensayos.find(
+      (e: any) => e.titulo?.toLowerCase() === normalized
+    );
+    if (found) {
+      setEnsayoActivo(found.id);
+      setSidebarOpen(false);
+    } else {
+      // Pre-fill modal with the page name and open it
+      setPendingNoteTitle(name.trim());
+      setShowNewNoteModal(true);
+    }
+  }, [ensayos]);
+
+  /**
+   * Click a tag chip → navigate to the note-page for that tag.
+   * Also updates the active tag filter in the sidebar.
+   */
+  const handleTagNavigate = useCallback((tag: string) => {
+    navigateToPage(tag);
+  }, [navigateToPage]);
+
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
   const setEnsayoActivo = useCallback((id: string | null) => {
@@ -225,32 +253,10 @@ export default function Ensayos() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "e") {
-        e.preventDefault();
-        setEditMode(p => !p);
-      }
-      if (
-        e.key === "n" &&
-        !e.ctrlKey && !e.metaKey &&
-        !(e.target instanceof HTMLInputElement) &&
-        !(e.target instanceof HTMLTextAreaElement)
-      ) {
-        setShowNewNoteModal(true);
-      }
-      if (e.key === "Escape") setSidebarOpen(false);
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, []);
-
-  // ─── Derivados ─────────────────────────────────────────────────────────────
-
   const todosLosTags = useMemo(() => {
-    const tags = new Set<string>();
-    ensayos.forEach((e: any) => e.tags?.forEach((t: string) => tags.add(t)));
-    return Array.from(tags).sort();
+    const set = new Set<string>();
+    ensayos.forEach((e: any) => e.tags?.forEach((t: string) => set.add(t)));
+    return Array.from(set).sort();
   }, [ensayos]);
 
   const ensayosFiltrados = useMemo(() => {
@@ -264,17 +270,12 @@ export default function Ensayos() {
 
   // ─── Guardado ──────────────────────────────────────────────────────────────
 
-  /**
-   * FIX: cada nota tiene su propio bucket de updates pendientes y su propio timer.
-   * Así cambiar de nota no mezcla los updates.
-   */
   const scheduleSave = useCallback((id: string, updates: Record<string, any>) => {
     pendingUpdatesRef.current[id] = {
       ...(pendingUpdatesRef.current[id] || {}),
       ...updates,
     };
 
-    // Cancelar timer anterior de esta nota específica
     if (saveTimerRef.current[id]) clearTimeout(saveTimerRef.current[id]);
 
     saveTimerRef.current[id] = setTimeout(async () => {
@@ -329,6 +330,7 @@ export default function Ensayos() {
       setEditMode(true);
       setShowNewNoteModal(false);
       setSidebarOpen(false);
+      setPendingNoteTitle(null);
     }
   };
 
@@ -336,7 +338,6 @@ export default function Ensayos() {
     const ok = await confirm({ message: "¿Eliminar esta nota?", danger: true, confirmLabel: "Eliminar" });
     if (!ok) return;
 
-    // Limpiar timers y updates pendientes de la nota eliminada
     if (saveTimerRef.current[id]) {
       clearTimeout(saveTimerRef.current[id]);
       delete saveTimerRef.current[id];
@@ -361,6 +362,7 @@ export default function Ensayos() {
     ensayos, ensayosFiltrados, todosLosTags, tagActivo, ensayoActivoId,
     searchTerm, sources, zoteroConnected,
     onTagClick:        handleTagClick,
+    onTagNavigate:     handleTagNavigate,
     onEnsayoClick:     handleEnsayoClick,
     onCrearEnsayo:     () => setShowNewNoteModal(true),
     onEliminarEnsayo:  eliminarEnsayo,
@@ -455,6 +457,7 @@ export default function Ensayos() {
                     onToggleEditMode={() => setEditMode(p => !p)}
                     onUpdateField={actualizarLocal}
                     onSelectEnsayo={handleEnsayoClick}
+                    onNavigateToPage={navigateToPage}
                   />
                 ) : (
                   <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
@@ -468,8 +471,12 @@ export default function Ensayos() {
       <AnimatePresence>
         {showNewNoteModal && (
           <NewNoteModal
+            initialTitle={pendingNoteTitle ?? undefined}
             onConfirm={crearEnsayo}
-            onClose={() => setShowNewNoteModal(false)}
+            onClose={() => {
+              setShowNewNoteModal(false);
+              setPendingNoteTitle(null);
+            }}
           />
         )}
       </AnimatePresence>

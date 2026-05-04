@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Save } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { CitePopup } from "./citePopup";
+import { WikilinkPopup } from "./wikilinkPopup";
 import { MarkdownEditor } from "@/components/forms/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
@@ -15,6 +16,7 @@ interface EditorProps {
   onToggleEditMode: () => void;
   onUpdateField: (id: string, field: string, value: any) => void;
   onSelectEnsayo: (id: string) => void;
+  onNavigateToPage: (name: string) => void;
 }
 
 export function Editor({
@@ -25,6 +27,7 @@ export function Editor({
   onToggleEditMode,
   onUpdateField,
   onSelectEnsayo,
+  onNavigateToPage,
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -32,14 +35,22 @@ export function Editor({
   const [localContenido, setLocalContenido] = useState<string>(ensayo.contenido || "");
   const [tagInput, setTagInput] = useState<string>(ensayo.tags?.join(", ") || "");
   const [tagInputFocused, setTagInputFocused] = useState(false);
-  const [tagPanelActivo, setTagPanelActivo] = useState<string | null>(null);
 
+  // Citation popup (@)
   const [citePopup, setCitePopup] = useState<{
     query: string;
     atStart: number;
     position: { top: number; left: number };
   } | null>(null);
   const [citeActiveIdx, setCiteActiveIdx] = useState(0);
+
+  // Wikilink popup ([[)
+  const [wikilinkPopup, setWikilinkPopup] = useState<{
+    query: string;
+    bracketStart: number;
+    position: { top: number; left: number };
+  } | null>(null);
+  const [wikilinkActiveIdx, setWikilinkActiveIdx] = useState(0);
 
   useEffect(() => {
     setLocalTitulo(ensayo.titulo || "");
@@ -50,18 +61,41 @@ export function Editor({
   const wordCount = localContenido.split(/\s+/).filter(Boolean).length || 0;
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
+  const getPopupPosition = () => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    const top = rect ? Math.min(rect.top + rect.height * 0.5, window.innerHeight - 320) : 200;
+    const left = rect ? rect.left + 32 : 32;
+    return { top, left };
+  };
+
   const handleContenidoChange = useCallback((value: string) => {
     setLocalContenido(value);
     onUpdateField(ensayo.id, "contenido", value);
 
-    if (!sources.length) return;
+    // ── [[ wikilink popup ──
+    const wikilinkMatch = value.match(/\[\[([^\]#|]*)$/);
+    if (wikilinkMatch) {
+      setCitePopup(null);
+      setWikilinkPopup({
+        query: wikilinkMatch[1],
+        bracketStart: value.length - wikilinkMatch[0].length,
+        position: getPopupPosition(),
+      });
+      setWikilinkActiveIdx(0);
+      return;
+    } else {
+      setWikilinkPopup(null);
+    }
 
-    const match = value.match(/@([\w\-.]*)$/);
-    if (match) {
-      const rect = containerRef.current?.getBoundingClientRect();
-      const top = rect ? Math.min(rect.top + rect.height * 0.5, window.innerHeight - 320) : 200;
-      const left = rect ? rect.left + 32 : 32;
-      setCitePopup({ query: match[1], atStart: value.length - match[0].length, position: { top, left } });
+    // ── @ cite popup ──
+    if (!sources.length) return;
+    const citeMatch = value.match(/@([\w\-.]*)$/);
+    if (citeMatch) {
+      setCitePopup({
+        query: citeMatch[1],
+        atStart: value.length - citeMatch[0].length,
+        position: getPopupPosition(),
+      });
       setCiteActiveIdx(0);
     } else {
       setCitePopup(null);
@@ -82,6 +116,22 @@ export function Editor({
     onUpdateField(ensayo.id, "contenido", newValue);
     setCitePopup(null);
   }, [citePopup, ensayo.id, localContenido, onUpdateField]);
+
+  const insertWikilink = useCallback((name: string) => {
+    if (!wikilinkPopup) return;
+    const link = `[[${name}]]`;
+
+    // Replace from [[ start to current cursor (query + [[)
+    const before = localContenido.substring(0, wikilinkPopup.bracketStart);
+    const after = localContenido.substring(
+      wikilinkPopup.bracketStart + 2 + wikilinkPopup.query.length // skip [[ + typed query
+    );
+    const newValue = before + link + after;
+
+    setLocalContenido(newValue);
+    onUpdateField(ensayo.id, "contenido", newValue);
+    setWikilinkPopup(null);
+  }, [wikilinkPopup, ensayo.id, localContenido, onUpdateField]);
 
   const parsedTags: string[] = tagInput
     .split(",")
@@ -129,14 +179,15 @@ export function Editor({
             className="flex items-center mt-3"
             style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 16 }}
           >
-            {/* Tags — left side */}
+            {/* Tags — left side (click navigates to tag-page) */}
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
               {!tagInputFocused && parsedTags.length > 0 ? (
                 <>
                   {parsedTags.map(tag => (
                     <button
                       key={tag}
-                      onClick={() => setTagPanelActivo(tag)}
+                      onClick={() => onNavigateToPage(tag)}
+                      title={`Ir a la página "${tag}"`}
                       style={{
                         fontSize: 9,
                         padding: "2px 7px",
@@ -145,7 +196,18 @@ export function Editor({
                         background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
                         color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
                         cursor: "pointer",
+                        transition: "all 0.1s",
                         ...monoStyle,
+                      }}
+                      onMouseEnter={e => {
+                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--accent) 40%, transparent)";
+                        (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--accent) 80%, transparent)";
+                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--accent) 8%, transparent)";
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 12%, transparent)";
+                        (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 40%, transparent)";
+                        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 5%, transparent)";
                       }}
                     >
                       #{tag}
@@ -210,7 +272,7 @@ export function Editor({
                   <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 10%, transparent)", ...monoStyle }}>·</span>
                   <span
                     style={{ fontSize: 9, color: "color-mix(in srgb, var(--accent) 60%, transparent)", ...monoStyle }}
-                    title="Escribe @ para citar"
+                    title="Escribe @ para citar · [[ para enlazar"
                   >
                     @ {sources.length} fuentes
                   </span>
@@ -231,13 +293,13 @@ export function Editor({
           <MarkdownEditor
             value={localContenido}
             onChange={handleContenidoChange}
-            placeholder="empieza a escribir... (usa @ para citar desde Zotero)"
+            placeholder="empieza a escribir... (usa @ para citar · [[ para enlazar notas)"
             rows={28}
             toolbar
             defaultMode={editMode ? "edit" : "preview"}
           />
 
-          {/* CitePopup */}
+          {/* CitePopup (@) */}
           <AnimatePresence>
             {citePopup && sources.length > 0 && (
               <div style={{ position: "fixed", top: citePopup.position.top + 25, left: citePopup.position.left, zIndex: 9999 }}>
@@ -248,6 +310,21 @@ export function Editor({
                   onSelect={insertCite}
                   onClose={() => setCitePopup(null)}
                   activeIndex={citeActiveIdx}
+                />
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* WikilinkPopup ([[) */}
+          <AnimatePresence>
+            {wikilinkPopup && (
+              <div style={{ position: "fixed", top: wikilinkPopup.position.top + 25, left: wikilinkPopup.position.left, zIndex: 9999 }}>
+                <WikilinkPopup
+                  ensayos={ensayos}
+                  query={wikilinkPopup.query}
+                  activeIndex={wikilinkActiveIdx}
+                  onSelect={insertWikilink}
+                  onClose={() => setWikilinkPopup(null)}
                 />
               </div>
             )}

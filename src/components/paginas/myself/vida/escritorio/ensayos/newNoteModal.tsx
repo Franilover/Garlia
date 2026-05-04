@@ -4,16 +4,20 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { X } from "lucide-react";
 
 interface NewNoteModalProps {
+  /** Pre-fill the title input (used when creating a tag-page or following a [[link]]). */
+  initialTitle?: string;
   onConfirm: (titulo: string) => void;
   onClose: () => void;
 }
 
-export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) {
-  const [titulo, setTitulo] = useState("");
+export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNoteModalProps) {
+  const [titulo, setTitulo] = useState(initialTitle ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
+    // Select all if pre-filled so the user can immediately retype
+    if (initialTitle) inputRef.current?.select();
   }, []);
 
   const handleSubmit = () => {
@@ -63,8 +67,14 @@ export default function NewNoteModal({ onConfirm, onClose }: NewNoteModalProps) 
           className="flex items-center justify-between px-4 py-2.5"
           style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)" }}
         >
-          <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 25%, transparent)", ...monoStyle, textTransform: "uppercase", letterSpacing: "0.15em" }}>
-            nueva nota
+          <span style={{
+            fontSize: 9,
+            color: "color-mix(in srgb, var(--foreground) 25%, transparent)",
+            ...monoStyle,
+            textTransform: "uppercase",
+            letterSpacing: "0.15em",
+          }}>
+            {initialTitle ? `nueva página · "${initialTitle}"` : "nueva nota"}
           </span>
           <button
             onClick={onClose}
