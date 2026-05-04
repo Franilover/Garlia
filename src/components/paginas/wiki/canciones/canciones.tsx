@@ -295,7 +295,7 @@ export default function CancionesPage() {
   return (
     <div className="min-h-screen bg-bg-main pb-20">
       <div className="max-w-6xl mx-auto pt-16 px-6">
-        <PageHeader title="Soliloquios" icon={<Music size={32} />} />
+        <PageHeader title="Canciones" icon={<Music size={32} />} />
 
         <div className="flex items-center gap-3 mb-10">
           <input
