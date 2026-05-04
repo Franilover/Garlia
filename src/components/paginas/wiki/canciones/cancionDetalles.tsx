@@ -3,7 +3,7 @@ import { MotionDiv } from "@/components/ui/Motion";
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
-import { AlertCircle, Music, ExternalLink, ChevronLeft } from "lucide-react";
+import { AlertCircle, Music, ExternalLink, ChevronLeft, Info, FileText } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Btn, Loading } from "@/components/ui";
 import { db } from "@/lib/api/client/db";
@@ -39,11 +39,161 @@ interface Cancion {
   portada_url?: string;
   visible: boolean;
   links?: { titulo: string; url: string }[];
+  info_cancion?: string | null;
 }
 
 function normPersonaje(v: PersonajeRef | PersonajeRef[] | null | undefined): PersonajeRef | null {
   if (!v) return null;
   return Array.isArray(v) ? (v[0] ?? null) : v;
+}
+
+// ── Bloque imagen/info con flip al tocar ────────────────────────────────────
+function CoverFlip({
+  portada_url,
+  titulo,
+  info,
+  border,
+  size,
+}: {
+  portada_url?: string;
+  titulo: string;
+  info?: string | null;
+  border: string;
+  size: string; // CSS value, e.g. "clamp(250px, 80%, 480px)"
+}) {
+  const [flipped, setFlipped] = useState(false);
+  const hasInfo = !!info?.trim();
+
+  return (
+    <div
+      style={{
+        width: size,
+        aspectRatio: "1 / 1",
+        position: "relative",
+        cursor: hasInfo ? "pointer" : "default",
+        flexShrink: 0,
+      }}
+      onClick={() => hasInfo && setFlipped((f) => !f)}
+    >
+      {/* Card container */}
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          position: "relative",
+          transformStyle: "preserve-3d",
+          transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)",
+          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          borderRadius: "var(--radius-btn, 8px)",
+          border,
+          overflow: "hidden",
+        }}
+      >
+        {/* Frente: portada */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+          }}
+        >
+          <SmartImage
+            src={portada_url || "/placeholder-cover.jpg"}
+            alt={titulo}
+            className="w-full h-full object-cover"
+          />
+          {/* Hint de que hay info */}
+          {hasInfo && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: 10,
+                right: 10,
+                background: "color-mix(in srgb, var(--bg-main) 70%, transparent)",
+                backdropFilter: "blur(6px)",
+                border,
+                borderRadius: 99,
+                padding: "4px 8px",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                color: "var(--primary)",
+                fontSize: 8,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                opacity: 0.8,
+              }}
+            >
+              <Info size={8} />
+              Info
+            </div>
+          )}
+        </div>
+
+        {/* Reverso: info_cancion */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+            background: "var(--bg-main)",
+            overflowY: "auto",
+            padding: "20px 18px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <FileText size={10} style={{ color: "var(--primary)", opacity: 0.35 }} />
+            <span
+              style={{
+                fontSize: 8,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.22em",
+                textTransform: "uppercase",
+                color: "var(--primary)",
+                opacity: 0.35,
+              }}
+            >
+              Información
+            </span>
+          </div>
+          <p
+            style={{
+              fontSize: "0.78rem",
+              lineHeight: 1.75,
+              color: "var(--primary)",
+              opacity: 0.75,
+              whiteSpace: "pre-wrap",
+              margin: 0,
+              flex: 1,
+            }}
+          >
+            {info}
+          </p>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <span
+              style={{
+                fontSize: 7.5,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "var(--primary)",
+                opacity: 0.2,
+              }}
+            >
+              Toca para volver
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function CancionDetallesPage() {
@@ -129,77 +279,87 @@ export default function CancionDetallesPage() {
   const border = "1px solid var(--color-border, color-mix(in srgb, var(--primary) 12%, transparent))";
 
   // ---------------------------------------------------------------------------
-  // VISTA CELULAR (MOBILE)
+  // VISTA CELULAR (MOBILE) — rediseñada
   // ---------------------------------------------------------------------------
   if (isMobile) {
     return (
       <div
         style={{
-          height: "100%",
+          minHeight: "100%",
           background: "var(--bg-main)",
           display: "flex",
           flexDirection: "column",
           overflowY: "auto",
           WebkitOverflowScrolling: "touch",
+          paddingBottom: 48,
         }}
       >
-        {/* Hero: imagen a pantalla completa (sin degradado) */}
+        {/* ── Hero con imagen a pantalla completa ── */}
         <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", flexShrink: 0 }}>
           <SmartImage
             src={cancion?.portada_url || "/placeholder-cover.jpg"}
             alt={cancion?.titulo ?? ""}
             className="w-full h-full object-cover"
           />
-          {/* Botón volver flotante */}
+
+          {/* Degradado inferior para suavizar transición */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: "45%",
+              background: "linear-gradient(to bottom, transparent, var(--bg-main))",
+              pointerEvents: "none",
+            }}
+          />
+
+          {/* Botón volver */}
           <button
             onClick={() => router.push("/wiki/canciones")}
             style={{
               position: "absolute",
               top: 16,
               left: 16,
-              background: "color-mix(in srgb, var(--bg-main) 70%, transparent)",
-              backdropFilter: "blur(8px)",
+              background: "color-mix(in srgb, var(--bg-main) 65%, transparent)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
               border,
-              borderRadius: "var(--radius-btn, 6px)",
-              padding: "6px 10px 6px 6px",
+              borderRadius: 99,
+              padding: "7px 14px 7px 10px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: 2,
+              gap: 4,
               color: "var(--primary)",
               fontSize: 9,
               fontFamily: "var(--font-mono)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
-              opacity: 0.85,
             }}
           >
             <ChevronLeft size={12} />
             Volver
           </button>
-        </div>
 
-        {/* Ficha: título + personaje + links */}
-        <MotionDiv
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            padding: "24px 24px 0",
-          }}
-        >
-          {/* Título */}
-          <div>
+          {/* Título sobre el degradado */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              padding: "0 22px 20px",
+            }}
+          >
             <h1
               style={{
-                fontSize: "clamp(1.6rem, 7vw, 2.2rem)",
+                fontSize: "clamp(1.7rem, 8vw, 2.4rem)",
                 fontWeight: 900,
                 color: "var(--primary)",
                 letterSpacing: "-0.03em",
-                lineHeight: 1.05,
+                lineHeight: 1.0,
                 textTransform: "uppercase",
                 fontStyle: "italic",
                 margin: 0,
@@ -207,79 +367,114 @@ export default function CancionDetallesPage() {
             >
               {cancion?.titulo}
             </h1>
-          </div>
-
-          {/* Personaje */}
-          {personaje && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", opacity: 0.8, margin: 0 }}>
-                {personaje.nombre}
-              </p>
-            </div>
-          )}
-
-          {/* Links — fila horizontal scrolleable */}
-          {cancion?.links && cancion.links.length > 0 && (
-            <div>
-              <div
+            {personaje && (
+              <p
                 style={{
-                  display: "flex",
-                  gap: 8,
-                  overflowX: "auto",
-                  paddingBottom: 4,
-                  scrollbarWidth: "none",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "var(--primary)",
+                  opacity: 0.55,
+                  margin: "6px 0 0",
+                  letterSpacing: "0.04em",
                 }}
               >
-                {cancion.links.map((link, i) => (
-                  <a
-                    key={i}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "7px 12px",
-                      border,
-                      borderRadius: "var(--radius-btn, 20px)",
-                      textDecoration: "none",
-                      color: "var(--primary)",
-                      fontSize: 10.5,
-                      fontWeight: 600,
-                      opacity: 0.7,
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {link.titulo}
-                    <ExternalLink size={9} style={{ opacity: 0.5 }} />
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-        </MotionDiv>
-
-        {/* Separador con label "Letra" */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "28px 24px 0", paddingBottom: 16 }}>
-          <Music size={10} style={{ color: "var(--primary)", opacity: 0.3 }} />
-          <span
-            style={{
-              fontSize: 8.5,
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "var(--primary)",
-              opacity: 0.3,
-            }}
-          >
-            Letra
-          </span>
+                {personaje.nombre}
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* Letra */}
-        <div style={{ padding: "0 24px", flex: 1 }}>
+        {/* ── Info flip card (solo si hay info) ── */}
+        {cancion?.info_cancion?.trim() && (
+          <MotionDiv
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            style={{ padding: "20px 22px 0" }}
+          >
+            <InfoFlipMobile info={cancion.info_cancion} border={border} />
+          </MotionDiv>
+        )}
+
+        {/* ── Links ── */}
+        {cancion?.links && cancion.links.length > 0 && (
+          <MotionDiv
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.15 }}
+            style={{ padding: "18px 22px 0" }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                overflowX: "auto",
+                paddingBottom: 4,
+                scrollbarWidth: "none",
+              }}
+            >
+              {cancion.links.map((link, i) => (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "8px 14px",
+                    border,
+                    borderRadius: 99,
+                    textDecoration: "none",
+                    color: "var(--primary)",
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    opacity: 0.7,
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  }}
+                >
+                  {link.titulo}
+                  <ExternalLink size={9} style={{ opacity: 0.5 }} />
+                </a>
+              ))}
+            </div>
+          </MotionDiv>
+        )}
+
+        {/* ── Separador Letra ── */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            margin: "28px 22px 0",
+            paddingBottom: 4,
+          }}
+        >
+          <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Music size={9} style={{ color: "var(--primary)", opacity: 0.25 }} />
+            <span
+              style={{
+                fontSize: 8,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "var(--primary)",
+                opacity: 0.25,
+              }}
+            >
+              Letra
+            </span>
+          </div>
+          <div style={{ flex: 1, height: 1, background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+        </div>
+
+        {/* ── Letra ── */}
+        <div style={{ padding: "20px 22px 0" }}>
           {secciones.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column" }}>
               {secciones.map((sec, i) => {
@@ -291,25 +486,64 @@ export default function CancionDetallesPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
-                    style={{ padding: "24px 0" }}
+                    style={{ paddingBottom: 28 }}
                   >
                     {sec.nombre_seccion && (
-                      <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 12 }}>
+                      <p
+                        style={{
+                          fontSize: 8,
+                          fontFamily: "var(--font-mono)",
+                          letterSpacing: "0.18em",
+                          textTransform: "uppercase",
+                          color: "var(--primary)",
+                          opacity: 0.25,
+                          marginBottom: 12,
+                          margin: "0 0 12px",
+                        }}
+                      >
                         {sec.nombre_seccion}
                       </p>
                     )}
-                    <p style={{ fontSize: "1rem", fontFamily: "var(--font-lora, serif)", fontStyle: "italic", lineHeight: 2.1, color: "var(--primary)", opacity: 0.85, whiteSpace: "pre-wrap", margin: 0 }}>
+                    <p
+                      style={{
+                        fontSize: "1rem",
+                        fontFamily: "var(--font-lora, serif)",
+                        fontStyle: "italic",
+                        lineHeight: 2.1,
+                        color: "var(--primary)",
+                        opacity: 0.85,
+                        whiteSpace: "pre-wrap",
+                        margin: 0,
+                      }}
+                    >
                       {texto}
                     </p>
                   </MotionDiv>
                 );
               })}
-              <div style={{ height: 60 }} />
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, height: "30vh" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                height: "30vh",
+              }}
+            >
               <Music size={28} style={{ color: "var(--primary)", opacity: 0.12 }} />
-              <p style={{ fontSize: 9, fontFamily: "var(--font-mono)", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.2 }}>
+              <p
+                style={{
+                  fontSize: 9,
+                  fontFamily: "var(--font-mono)",
+                  letterSpacing: "0.16em",
+                  textTransform: "uppercase",
+                  color: "var(--primary)",
+                  opacity: 0.2,
+                }}
+              >
                 Letra en proceso
               </p>
             </div>
@@ -343,7 +577,7 @@ export default function CancionDetallesPage() {
           height: "100%",
           overflowY: "auto",
           padding: "40px clamp(24px, 4vw, 56px)",
-          gap: 32, // Un poco más de espacio para respirar
+          gap: 32,
         }}
       >
         {/* Volver */}
@@ -370,30 +604,19 @@ export default function CancionDetallesPage() {
           </button>
         </div>
 
-        {/* Imagen de portada — Ahora mucho más grande */}
+        {/* Imagen con flip a info */}
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <div
-            style={{
-              width: "clamp(250px, 80%, 480px)",
-              aspectRatio: "1 / 1",
-              overflow: "hidden",
-              position: "relative",
-              borderRadius: "var(--radius-btn, 8px)",
-              border,
-              flexShrink: 0,
-            }}
-          >
-            <SmartImage
-              src={cancion?.portada_url || "/placeholder-cover.jpg"}
-              alt={cancion?.titulo ?? ""}
-              className="w-full h-full object-cover"
-            />
-          </div>
+          <CoverFlip
+            portada_url={cancion?.portada_url}
+            titulo={cancion?.titulo ?? ""}
+            info={cancion?.info_cancion}
+            border={border}
+            size="clamp(250px, 80%, 480px)"
+          />
         </div>
 
-        {/* Bloque de Información: Título, Personaje y Links mejor agrupados */}
+        {/* Título, personaje y links */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
-          {/* Título */}
           <h1
             style={{
               fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)",
@@ -409,7 +632,6 @@ export default function CancionDetallesPage() {
             {cancion?.titulo}
           </h1>
 
-          {/* Personaje (Solo nombre, sin imagen) */}
           {personaje && (
             <p
               style={{
@@ -424,7 +646,6 @@ export default function CancionDetallesPage() {
             </p>
           )}
 
-          {/* Links — Distribuídos en formato 'wrap' horizontal para no alargar la columna verticalmente */}
           {cancion?.links && cancion.links.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, paddingTop: 8 }}>
               {cancion.links.map((link, i) => (
@@ -471,10 +692,18 @@ export default function CancionDetallesPage() {
           padding: "48px clamp(24px, 4vw, 64px)",
         }}
       >
-        {/* Header de sección */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 20 }}>
           <Music size={11} style={{ color: "var(--primary)", opacity: 0.3 }} />
-          <span style={{ fontSize: 9, fontFamily: "var(--font-mono)", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3 }}>
+          <span
+            style={{
+              fontSize: 9,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--primary)",
+              opacity: 0.3,
+            }}
+          >
             Letra
           </span>
         </div>
@@ -492,11 +721,32 @@ export default function CancionDetallesPage() {
                   transition={{ duration: 0.3, delay: 0.15 + i * 0.05 }}
                 >
                   {sec.nombre_seccion && (
-                    <p style={{ fontSize: 8.5, fontFamily: "var(--font-mono)", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 14 }}>
+                    <p
+                      style={{
+                        fontSize: 8.5,
+                        fontFamily: "var(--font-mono)",
+                        letterSpacing: "0.18em",
+                        textTransform: "uppercase",
+                        color: "var(--primary)",
+                        opacity: 0.25,
+                        marginBottom: 14,
+                      }}
+                    >
                       {sec.nombre_seccion}
                     </p>
                   )}
-                  <p style={{ fontSize: "1.08rem", fontFamily: "var(--font-lora, serif)", fontStyle: "italic", lineHeight: 2.1, color: "var(--primary)", opacity: 0.85, whiteSpace: "pre-wrap", margin: 0 }}>
+                  <p
+                    style={{
+                      fontSize: "1.08rem",
+                      fontFamily: "var(--font-lora, serif)",
+                      fontStyle: "italic",
+                      lineHeight: 2.1,
+                      color: "var(--primary)",
+                      opacity: 0.85,
+                      whiteSpace: "pre-wrap",
+                      margin: 0,
+                    }}
+                  >
                     {texto}
                   </p>
                 </MotionDiv>
@@ -505,14 +755,113 @@ export default function CancionDetallesPage() {
             <div style={{ height: 80 }} />
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, height: "50vh" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              height: "50vh",
+            }}
+          >
             <Music size={32} style={{ color: "var(--primary)", opacity: 0.12 }} />
-            <p style={{ fontSize: 9.5, fontFamily: "var(--font-mono)", letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.2 }}>
+            <p
+              style={{
+                fontSize: 9.5,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                color: "var(--primary)",
+                opacity: 0.2,
+              }}
+            >
               Letra en proceso
             </p>
           </div>
         )}
       </MotionDiv>
+    </div>
+  );
+}
+
+// ── Componente flip inline para mobile ──────────────────────────────────────
+function InfoFlipMobile({ info, border }: { info: string; border: string }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+          border,
+          borderRadius: open ? "12px 12px 0 0" : 12,
+          padding: "10px 14px",
+          cursor: "pointer",
+          color: "var(--primary)",
+          transition: "border-radius 0.2s",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Info size={10} style={{ opacity: 0.5 }} />
+          <span
+            style={{
+              fontSize: 8.5,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              opacity: 0.5,
+            }}
+          >
+            Información
+          </span>
+        </div>
+        <span
+          style={{
+            fontSize: 9,
+            fontFamily: "var(--font-mono)",
+            opacity: 0.3,
+            transition: "transform 0.2s",
+            display: "inline-block",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        >
+          ▾
+        </span>
+      </button>
+
+      {open && (
+        <MotionDiv
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          style={{
+            border,
+            borderTop: "none",
+            borderRadius: "0 0 12px 12px",
+            padding: "14px 16px 16px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "0.82rem",
+              lineHeight: 1.75,
+              color: "var(--primary)",
+              opacity: 0.72,
+              whiteSpace: "pre-wrap",
+              margin: 0,
+            }}
+          >
+            {info}
+          </p>
+        </MotionDiv>
+      )}
     </div>
   );
 }
