@@ -429,7 +429,7 @@ const CapituloItem = ({
           </span>
           {/* Indicadores */}
           {cap.status === "pending" && (
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#60a5fa", flexShrink: 0 }} title="Pendiente de sync" />
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--callout-info-border)", flexShrink: 0 }} title="Pendiente de sync" />
           )}
           {cap.visibilidad === "oculto" && (
             <Lock size={8} style={{ opacity: selected ? 0.5 : 0.3, flexShrink: 0 }} />
@@ -585,9 +585,9 @@ const LibroItem = ({
               textTransform: "uppercase" as const, letterSpacing: "0.08em",
               padding: "1px 5px", borderRadius: 3, border: "1px solid", flexShrink: 0,
               ...(libro.estado === "FINALIZADO"
-                ? { borderColor: "color-mix(in srgb, #22c55e 40%, transparent)", color: "#22c55e", background: "color-mix(in srgb, #22c55e 8%, transparent)" }
+                ? { borderColor: "color-mix(in srgb, var(--callout-success-border) 40%, transparent)", color: "var(--callout-success-title)", background: "color-mix(in srgb, var(--callout-success-border) 8%, transparent)" }
                 : libro.estado === "EN PROCESO"
-                ? { borderColor: "color-mix(in srgb, #eab308 40%, transparent)", color: "#eab308", background: "color-mix(in srgb, #eab308 8%, transparent)" }
+                ? { borderColor: "color-mix(in srgb, var(--callout-warning-border) 40%, transparent)", color: "var(--callout-warning-title)", background: "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)" }
                 : { borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)", background: "transparent", opacity: 0.4 }),
             }}>
               {libro.estado === "EN PROCESO" ? "WIP" : libro.estado === "FINALIZADO" ? "done" : "…"}
@@ -2291,9 +2291,9 @@ const LibroColumna = ({
             border: "1px solid",
             flexShrink: 0,
             ...(libro.estado === "FINALIZADO"
-              ? { borderColor: "color-mix(in srgb, #22c55e 40%, transparent)", color: "#22c55e", background: "color-mix(in srgb, #22c55e 8%, transparent)" }
+              ? { borderColor: "color-mix(in srgb, var(--callout-success-border) 40%, transparent)", color: "var(--callout-success-title)", background: "color-mix(in srgb, var(--callout-success-border) 8%, transparent)" }
               : libro.estado === "EN PROCESO"
-              ? { borderColor: "color-mix(in srgb, #eab308 40%, transparent)", color: "#eab308", background: "color-mix(in srgb, #eab308 8%, transparent)" }
+              ? { borderColor: "color-mix(in srgb, var(--callout-warning-border) 40%, transparent)", color: "var(--callout-warning-title)", background: "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)" }
               : { borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 6%, transparent)", opacity: 0.5 }),
           }}>
             {libro.estado === "EN PROCESO" ? "WIP" : libro.estado === "FINALIZADO" ? "done" : "…"}
@@ -2479,7 +2479,7 @@ export default function EstudioCapitulos() {
           }}
         >
           {/* Brand - desktop */}
-          <div className="hidden sm:flex" style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, borderRight: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)", paddingRight: 12, marginRight: 2 }}>
+          <div className="hidden sm:flex" style={{ alignItems: "center", gap: 6, flexShrink: 0, borderRight: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)", paddingRight: 12, marginRight: 2 }}>
             <BookOpen size={12} style={{ color: "var(--primary)", opacity: 0.4 }} />
             <span style={{
               fontSize: 9, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
@@ -2514,9 +2514,9 @@ export default function EstudioCapitulos() {
             <span style={{
               display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
               fontSize: 8, fontFamily: "var(--font-mono, monospace)", fontWeight: 900,
-              textTransform: "uppercase", letterSpacing: "0.1em", color: "#fb923c",
-              border: "1px solid color-mix(in srgb, #fb923c 30%, transparent)",
-              background: "color-mix(in srgb, #fb923c 8%, transparent)",
+              textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--callout-warning-title)",
+              border: "1px solid color-mix(in srgb, var(--callout-warning-border) 30%, transparent)",
+              background: "color-mix(in srgb, var(--callout-warning-border) 8%, transparent)",
               padding: "2px 8px", borderRadius: 20,
             }}>
               <WifiOff size={8} />
