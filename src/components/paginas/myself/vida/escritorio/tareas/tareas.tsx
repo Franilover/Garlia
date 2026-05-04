@@ -99,8 +99,8 @@ export const GestionPersonal = () => {
         {/* ── Col izquierda: Calendario ── */}
         <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
-          {/* Switcher modo */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-primary/8 shrink-0">
+          {/* Switcher modo — solo desktop */}
+          <div className="hidden lg:flex items-center justify-between px-5 py-3 border-b border-primary/8 shrink-0">
             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-on-card)]/30">
               Calendario
             </span>
@@ -133,6 +133,21 @@ export const GestionPersonal = () => {
           {/* Vista activa */}
           <div className="flex-1 min-h-0 overflow-hidden">
             <AnimatePresence mode="wait">
+              {/* Móvil: siempre VistaMes */}
+              <MotionDiv
+                key="mes-mobile"
+                className="h-full lg:hidden"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <VistaMes
+                  eventos={eventos}
+                  capitulosRaw={capitulosRaw as any[] || []}
+                  isAddingEvento={isAddingEvento}
+                  onAddEvento={handleAddEvento}
+                />
+              </MotionDiv>
+              {/* Desktop: según modoCalendario */}
               {modoCalendario === "mes" ? (
                 <MotionDiv
                   key="mes"
@@ -140,7 +155,7 @@ export const GestionPersonal = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.16 }}
-                  className="h-full"
+                  className="hidden lg:block h-full"
                 >
                   <VistaMes
                     eventos={eventos}
@@ -156,7 +171,7 @@ export const GestionPersonal = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.16 }}
-                  className="h-full p-4"
+                  className="hidden lg:block h-full p-4"
                 >
                   <VistaSemanal
                     eventos={eventos}
@@ -170,18 +185,14 @@ export const GestionPersonal = () => {
           </div>
         </div>
 
-        {/* Divisor solo en desktop */}
+        {/* Divisores */}
         <div className="hidden lg:block w-px bg-primary/8 shrink-0" />
+        <div className="lg:hidden h-px bg-primary/8 shrink-0" />
 
-        {/* ── Col derecha: Reloj (solo desktop) + Tareas ── */}
+        {/* ── Col derecha: Reloj + Tareas ── */}
         <div className="w-full lg:w-[22%] shrink-0 flex flex-col overflow-hidden">
-          {/* Reloj: oculto en móvil */}
-          <div className="hidden lg:block">
-            <RelojDigital horario={horarioRaw || []} tareas={tareas || []} />
-            <div className="h-px bg-primary/8" />
-          </div>
-          {/* Separador entre calendario y tareas solo en móvil */}
-          <div className="h-px bg-primary/8 shrink-0 lg:hidden" />
+          <RelojDigital horario={horarioRaw || []} tareas={tareas || []} />
+          <div className="h-px bg-primary/8 shrink-0" />
           <div className="flex-1 min-h-0 overflow-hidden">
             <ListaTareas
               tareas={tareas}
