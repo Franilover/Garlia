@@ -157,10 +157,10 @@ const SEARCH_STYLES = `
     background: color-mix(in srgb, var(--primary) 25%, transparent);
   }
   .song-card-accent.terminada {
-    background: color-mix(in srgb, #4ade80 55%, transparent);
+    background: color-mix(in srgb, var(--callout-success-border) 55%, transparent);
   }
   .song-card-accent.en-proceso {
-    background: color-mix(in srgb, #facc15 55%, transparent);
+    background: color-mix(in srgb, var(--callout-warning-border) 55%, transparent);
   }
   .song-card-body {
     padding: 12px 14px 14px;
@@ -319,19 +319,30 @@ const SEARCH_STYLES = `
   .header-inner {
     max-width: 1152px;
     margin: 0 auto;
-    padding: 10px 24px;
+    padding: 10px 12px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+  }
+  @media (min-width: 640px) {
+    .header-inner {
+      padding: 10px 24px;
+      gap: 10px;
+    }
   }
   .header-brand {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
     border-right: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
     padding-right: 12px;
     margin-right: 2px;
+  }
+  @media (min-width: 640px) {
+    .header-brand {
+      display: flex;
+    }
   }
   .header-brand-label {
     font-size: 9px;
@@ -348,7 +359,7 @@ const SEARCH_STYLES = `
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 0 12px;
+    padding: 0 10px;
     height: 36px;
     border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
     border-radius: 6px;
@@ -365,6 +376,11 @@ const SEARCH_STYLES = `
     flex-shrink: 0;
     white-space: nowrap;
   }
+  @media (min-width: 640px) {
+    .new-btn {
+      padding: 0 12px;
+    }
+  }
   .new-btn:hover {
     opacity: 1;
     border-color: var(--primary);
@@ -380,14 +396,14 @@ const SEARCH_STYLES = `
 // que el tema ya tiene calibrados.
 const estadoBadgeStyle = (estado: string): React.CSSProperties => {
   if (estado === "TERMINADA") return {
-    borderColor: "color-mix(in srgb, #22c55e 50%, transparent)",
-    color: "#22c55e",      // green-500: buen contraste en claro y oscuro
-    background: "color-mix(in srgb, #22c55e 10%, transparent)",
+    borderColor: "color-mix(in srgb, var(--callout-success-border) 50%, transparent)",
+    color: "var(--callout-success-title)",
+    background: "color-mix(in srgb, var(--callout-success-border) 10%, transparent)",
   };
   if (estado === "EN PROCESO") return {
-    borderColor: "color-mix(in srgb, #eab308 50%, transparent)",
-    color: "#eab308",      // yellow-500: legible sobre fondos claros y oscuros
-    background: "color-mix(in srgb, #eab308 10%, transparent)",
+    borderColor: "color-mix(in srgb, var(--callout-warning-border) 50%, transparent)",
+    color: "var(--callout-warning-title)",
+    background: "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
   };
   // PENDIENTE — usa el primary del tema
   return {
@@ -822,8 +838,8 @@ export default function EstudioLetras() {
         <header className="page-header">
           <div className="header-inner">
 
-            {/* Brand */}
-            <div className="header-brand hidden sm:flex">
+            {/* Brand — solo visible en sm+ */}
+            <div className="header-brand">
               <span style={{ color: "var(--primary)", opacity: 0.4 }}>
                 <Music size={12} />
               </span>
