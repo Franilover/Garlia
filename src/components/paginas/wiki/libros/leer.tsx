@@ -470,7 +470,7 @@ function PanelLateral({
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <span style={{ fontSize: 48, opacity: 0.08, fontFamily: "var(--font-serif, serif)", fontStyle: "italic" }}>
-              {narrador?.nombre?.charAt(0) ?? "§"}
+              {narrador?.nombre?.charAt(0) ?? ""}
             </span>
           </div>
         )}

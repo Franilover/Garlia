@@ -133,7 +133,7 @@ export function CapituloScrollBlock({ cap, onNavigate }: {
       >
         <header className="mb-12 text-center">
           <span className="lector-seccion text-primary/20 font-serif italic block mb-2">
-            § {cap.orden}
+            {cap.orden}
           </span>
           <h1 className="lector-titulo font-black text-primary tracking-tighter uppercase italic leading-none">
             {cap.titulo_capitulo}
