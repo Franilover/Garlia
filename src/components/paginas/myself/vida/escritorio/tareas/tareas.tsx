@@ -185,14 +185,18 @@ export const GestionPersonal = () => {
           </div>
         </div>
 
-        {/* Divisores */}
+        {/* Divisor solo desktop */}
         <div className="hidden lg:block w-px bg-primary/8 shrink-0" />
-        <div className="lg:hidden h-px bg-primary/8 shrink-0" />
 
-        {/* ── Col derecha: Reloj + Tareas ── */}
+        {/* ── Col derecha: Reloj (solo desktop) + Tareas ── */}
         <div className="w-full lg:w-[22%] shrink-0 flex flex-col overflow-hidden">
-          <RelojDigital horario={horarioRaw || []} tareas={tareas || []} />
-          <div className="h-px bg-primary/8 shrink-0" />
+          {/* Reloj: oculto en móvil */}
+          <div className="hidden lg:block">
+            <RelojDigital horario={horarioRaw || []} tareas={tareas || []} />
+            <div className="h-px bg-primary/8" />
+          </div>
+          {/* Separador entre calendario y tareas solo en móvil */}
+          <div className="h-px bg-primary/8 shrink-0 lg:hidden" />
           <div className="flex-1 min-h-0 overflow-hidden">
             <ListaTareas
               tareas={tareas}
