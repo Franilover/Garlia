@@ -72,6 +72,7 @@ function CoverFlip({
         position: "relative",
         cursor: hasInfo ? "pointer" : "default",
         flexShrink: 0,
+        perspective: "1200px", // necesario para que el flip 3D tenga profundidad
       }}
       onClick={() => hasInfo && setFlipped((f) => !f)}
     >
@@ -86,7 +87,8 @@ function CoverFlip({
           transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
           borderRadius: "var(--radius-btn, 8px)",
           border,
-          overflow: "hidden",
+          // overflow: "hidden" NO VA ACÁ — destruye el contexto 3D
+          // y la cara trasera nunca se ve aunque rote correctamente.
         }}
       >
         {/* Frente: portada */}
@@ -96,6 +98,8 @@ function CoverFlip({
             inset: 0,
             backfaceVisibility: "hidden",
             WebkitBackfaceVisibility: "hidden",
+            borderRadius: "var(--radius-btn, 8px)",
+            overflow: "hidden", // overflow por cara, no en el contenedor 3D
           }}
         >
           <SmartImage
@@ -146,6 +150,8 @@ function CoverFlip({
             display: "flex",
             flexDirection: "column",
             gap: 10,
+            borderRadius: "var(--radius-btn, 8px)",
+            overflow: "hidden",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
