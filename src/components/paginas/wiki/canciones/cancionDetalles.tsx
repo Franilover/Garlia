@@ -309,7 +309,7 @@ export default function CancionDetallesPage() {
         </div>
 
         {/* Título y personaje debajo de la imagen */}
-        <div style={{ padding: "20px 24px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ padding: "20px 24px 0", display: "flex", flexDirection: "column", gap: 6, alignItems: "center", textAlign: "center" }}>
           <h1
             style={{
               fontSize: "clamp(1.7rem, 8vw, 2.4rem)",
