@@ -1119,16 +1119,16 @@ export function MarkdownEditor({
           position: "relative",
         }}
       >
-        {/* ── Toggle flotante de vista (esquina superior derecha) ── */}
+        {/* ── Toolbar de vista (barra real, no flota sobre el contenido) ── */}
         <div
           style={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            zIndex: 100,
             display: "flex",
             alignItems: "center",
+            justifyContent: "flex-end",
             gap: 4,
+            padding: "5px 8px",
+            borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+            flexShrink: 0,
           }}
         >
           {/* Find button */}
@@ -1147,15 +1147,13 @@ export function MarkdownEditor({
               height: 22,
               background: findReplace.open
                 ? "color-mix(in srgb, var(--color-primary,#7c6af7) 20%, transparent)"
-                : "color-mix(in srgb, var(--bg-menu, #1a1730) 85%, transparent)",
+                : "transparent",
               color: findReplace.open
                 ? "var(--color-primary,#7c6af7)"
-                : "color-mix(in srgb, var(--foreground) 35%, transparent)",
+                : "color-mix(in srgb, var(--foreground) 30%, transparent)",
               border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-              borderRadius: 6,
+              borderRadius: 5,
               cursor: "pointer",
-              backdropFilter: "blur(6px)",
-              boxShadow: "0 2px 8px color-mix(in srgb, black 20%, transparent)",
             }}
           >
             <Search size={10} />
@@ -1166,12 +1164,10 @@ export function MarkdownEditor({
             style={{
               display: "flex",
               alignItems: "center",
-              background: "color-mix(in srgb, var(--bg-menu, #1a1730) 85%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-              borderRadius: 6,
+              background: "color-mix(in srgb, var(--foreground) 4%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+              borderRadius: 5,
               overflow: "hidden",
-              backdropFilter: "blur(6px)",
-              boxShadow: "0 2px 8px color-mix(in srgb, black 20%, transparent)",
             }}
           >
           {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
@@ -1212,7 +1208,7 @@ export function MarkdownEditor({
           <div
             style={{
               position: "absolute",
-              top: 36,
+              top: 40,
               right: 8,
               zIndex: 300,
               width: 320,
