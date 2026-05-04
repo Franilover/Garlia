@@ -44,7 +44,7 @@ interface PersonalProps {
 }
 
 export default function Personal({ datos: datosProp }: PersonalProps) {
-  const [tab, setTab] = useState<"items" | "criaturas" | "personajes">("items");
+  const [tab, setTab] = useState<"items" | "criaturas" | "personajes">("personajes");
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
 
   const [perfil, setPerfil]           = useState<Perfil | null>(null);
@@ -273,9 +273,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   };
 
   const tabs = [
-    { id: "items",      label: "Inventario", icon: Sword },
+    { id: "personajes", label: "Agenda",     icon: User  },
     { id: "criaturas",  label: "Bestiario",  icon: Cat   },
-    { id: "personajes", label: "Agenda",     icon: User    },
+    { id: "items",      label: "Inventario", icon: Sword },
   ] as const;
 
   if (cargando) return (

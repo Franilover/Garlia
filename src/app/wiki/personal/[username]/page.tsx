@@ -43,7 +43,7 @@ export default function PerfilPublico() {
   const [otrosPerfiles, setOtrosPerfiles]       = useState<PerfilResumen[]>([]);
   const [cargando, setCargando]                 = useState(true);
   const [notFound, setNotFound]                 = useState(false);
-  const [tab, setTab]                           = useState<"items" | "criaturas" | "personajes">("items");
+  const [tab, setTab]                           = useState<"items" | "criaturas" | "personajes">("personajes");
   const [modalD, setModalD]                     = useState<EntidadModal | null>(null);
   const [modalPersonaje, setModalPersonaje]     = useState<Descubrimiento | null>(null);
   const [cancionesPersonaje, setCancionesPersonaje] = useState<any[]>([]);
@@ -169,9 +169,9 @@ export default function PerfilPublico() {
   };
 
   const tabs = [
-    { id: "items",      label: "Inventario", icon: Sword },
-    { id: "criaturas",  label: "Bestiario",  icon: Cat   },
     { id: "personajes", label: "Agenda",     icon: User  },
+    { id: "criaturas",  label: "Bestiario",  icon: Cat   },
+    { id: "items",      label: "Inventario", icon: Sword },
   ] as const;
 
   /* ── Loading ── */
