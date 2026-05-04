@@ -78,42 +78,28 @@ export default function Sidebar({
         />
         <input
           type="text"
-          placeholder="/ buscar..."
+          placeholder="/ buscar... · add"
           value={searchTerm}
-          onChange={e => onSearchChange(e.target.value)}
+          onChange={e => {
+            const val = e.target.value;
+            if (val.toLowerCase() === "add") {
+              onSearchChange("");
+              onCrearEnsayo();
+            } else {
+              onSearchChange(val);
+            }
+          }}
           className="w-full outline-none"
           style={{
             background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
             border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
             borderRadius: 6,
-            padding: "6px 44px 6px 28px",
+            padding: "6px 10px 6px 28px",
             fontSize: 11,
             color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
             fontFamily: "var(--font-mono)",
           }}
         />
-        <button
-          onClick={onCrearEnsayo}
-          title="Nueva nota"
-          style={{
-            position: "absolute",
-            right: 16,
-            top: "50%",
-            transform: "translateY(-50%)",
-            marginTop: 4,
-            fontSize: 10,
-            padding: "2px 7px",
-            borderRadius: 4,
-            border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
-            background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
-            color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-            cursor: "pointer",
-            fontFamily: "var(--font-mono)",
-            letterSpacing: "0.05em",
-          }}
-        >
-          add
-        </button>
       </div>
 
       {/* ── Tags ── */}
