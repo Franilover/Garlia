@@ -5,11 +5,11 @@
 
 @font-face {
   font-family: 'CalligraphicFrames';
-  /* La barra / apunta directamente a la carpeta public */
-  src: url('/fonts/Calligraphicframessoft-KZdl.otf') format('opentype');
-  font-weight: normal;
+  src: url('/fonts/Calligraphicframessoft-KZdl.otf') format('opentype'),
+       url('/fonts/Calligraphicframessoft-KZdl.otf') format('adobe-font-metrics');
+  font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: block; 
 }
 
 @theme inline {
