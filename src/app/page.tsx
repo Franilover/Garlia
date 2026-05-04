@@ -12,20 +12,20 @@ export default function Home() {
       transition={{ duration: 0.5 }}
       className="min-h-svh bg-bg-main flex flex-col items-center"
     >
-      <div className="flex flex-col items-center p-10 gap-4">
-        {/* Prueba de fuego: Letras mayúsculas que forman el marco */}
-        <h1 className="font-caligrafia text-8xl text-primary leading-none">
-          A B C
-        </h1>
-        
-        <p className="font-sans text-white/50">
-          Si ves dibujos arriba, ¡la configuración de public + CSS funcionó!
-        </p>
+      <div className="flex flex-col items-center p-10 gap-8">
+        <div className="text-primary">
+          <p className="font-sans text-xs mb-2 opacity-50 text-center">Esquinas y Bordes (A B C D)</p>
+          <h1 className="font-decorativa text-9xl leading-none">
+            A B C D
+          </h1>
+        </div>
 
-        {/* El adorno central '1' */}
-        <span className="font-caligrafia text-6xl text-accent">
-          1
-        </span>
+        <div className="text-accent">
+          <p className="font-sans text-xs mb-2 opacity-50 text-center">Adorno central (1)</p>
+          <span className="font-decorativa text-8xl">
+            1
+          </span>
+        </div>
       </div>
     </MotionMain>
   );

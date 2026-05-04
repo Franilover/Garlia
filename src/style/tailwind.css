@@ -4,12 +4,12 @@
 @plugin "tailwindcss-animate";
 
 @font-face {
-  font-family: 'CalligraphicFrames';
-  src: url('/fonts/Calligraphicframessoft-KZdl.otf') format('opentype'),
-       url('/fonts/Calligraphicframessoft-KZdl.otf') format('adobe-font-metrics');
-  font-weight: 400;
-  font-style: normal;
-  font-display: block; 
+    font-family: 'CalligraphicFrames';
+    src: url('/fonts/CalligraphicFramesSoft.woff2') format('woff2'),
+         url('/fonts/CalligraphicFramesSoft.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
 }
 
 @theme inline {
