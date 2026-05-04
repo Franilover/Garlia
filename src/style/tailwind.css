@@ -4,14 +4,13 @@
 @plugin "tailwindcss-animate";
 
 @font-face {
-    font-family: 'CalligraphicFrames';
+    font-family: 'Calligraphic Frames Soft'; /* Nombre exacto de la demo */
     src: url('/fonts/CalligraphicFramesSoft.woff2') format('woff2'),
          url('/fonts/CalligraphicFramesSoft.woff') format('woff');
     font-weight: normal;
     font-style: normal;
     font-display: block;
 }
-
 @theme inline {
   --color-primary: var(--primary);
   --color-accent: var(--accent);
@@ -30,7 +29,7 @@
   --radius-input: var(--radius-input);
   --shadow-card: var(--shadow-card);
 
-  --font-caligrafia: 'CalligraphicFrames';
+  --font-caligrafia: 'Calligraphic Frames Soft';
 
   --animate-terminal-flicker: flicker 0.15s infinite;
   --animate-cursor-blink: blink 1s step-end infinite;
@@ -57,6 +56,10 @@
   }
 }
 
+
+.font-decorativa {
+  font-family: 'Calligraphic Frames Soft', sans-serif !important;
+}
 
 /* =========================================
    TEMA: DEFAULT (MINIMALISTA)
