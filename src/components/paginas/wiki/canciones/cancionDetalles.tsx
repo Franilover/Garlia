@@ -107,32 +107,18 @@ function CoverFlip({
             alt={titulo}
             className="w-full h-full object-cover"
           />
-          {/* Hint de que hay info */}
+          {/* Hint sutil: borde inferior con gradiente cuando hay info */}
           {hasInfo && (
             <div
               style={{
                 position: "absolute",
-                bottom: 10,
-                right: 10,
-                background: "color-mix(in srgb, var(--bg-main) 70%, transparent)",
-                backdropFilter: "blur(6px)",
-                border,
-                borderRadius: 99,
-                padding: "4px 8px",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                color: "var(--primary)",
-                fontSize: 8,
-                fontFamily: "var(--font-mono)",
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                opacity: 0.8,
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 3,
+                background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 30%, transparent), transparent)",
               }}
-            >
-              <Info size={8} />
-              Info
-            </div>
+            />
           )}
         </div>
 
@@ -154,25 +140,10 @@ function CoverFlip({
             overflow: "hidden",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <FileText size={10} style={{ color: "var(--primary)", opacity: 0.35 }} />
-            <span
-              style={{
-                fontSize: 8,
-                fontFamily: "var(--font-mono)",
-                letterSpacing: "0.22em",
-                textTransform: "uppercase",
-                color: "var(--primary)",
-                opacity: 0.35,
-              }}
-            >
-              Información
-            </span>
-          </div>
           <p
             style={{
-              fontSize: "0.78rem",
-              lineHeight: 1.75,
+              fontSize: "0.95rem",
+              lineHeight: 1.8,
               color: "var(--primary)",
               opacity: 0.75,
               whiteSpace: "pre-wrap",
