@@ -331,26 +331,28 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
       <ConfirmModal />
 
       {/* Header */}
-      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+      <div className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-        <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center border"
-          style={{
-            background: form.criatura?.imagen_url ? "transparent" : `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
-            borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
-          }}>
-          {form.criatura?.imagen_url
-            ? <img src={form.criatura.imagen_url} alt="" className="w-full h-full object-cover" />
-            : <cfg.Icon size={16} style={{ color: cfg.color }} />}
+        {/* Row 1: icono + nombre */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden flex items-center justify-center border"
+            style={{
+              background: form.criatura?.imagen_url ? "transparent" : `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
+              borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
+            }}>
+            {form.criatura?.imagen_url
+              ? <img src={form.criatura.imagen_url} alt="" className="w-full h-full object-cover" />
+              : <cfg.Icon size={15} style={{ color: cfg.color }} />}
+          </div>
+          <input
+            value={form.nombre ?? ""}
+            onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+            placeholder={`Nombre del ${cfg.labelSing.toLowerCase()}…`}
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          />
         </div>
-
-        <input
-          value={form.nombre ?? ""}
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-          placeholder={`Nombre del ${cfg.labelSing.toLowerCase()}…`}
-          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-        />
-
-        <div className="shrink-0 flex items-center gap-2">
+        {/* Row 2: acciones (siempre visible, bien separado) */}
+        <div className="flex items-center justify-end gap-2">
           <SaveIndicator status={status} />
           <button onClick={del}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
@@ -435,19 +437,21 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <ConfirmModal />
       {/* Header */}
-      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+      <div className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-        <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center border"
-          style={{ background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)` }}>
-          <cfg.Icon size={16} style={{ color: cfg.color }} />
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center border"
+            style={{ background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)` }}>
+            <cfg.Icon size={15} style={{ color: cfg.color }} />
+          </div>
+          <input
+            value={form.nombre ?? ""}
+            onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+            placeholder="Nombre de la runa…"
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          />
         </div>
-        <input
-          value={form.nombre ?? ""}
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-          placeholder="Nombre de la runa…"
-          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-        />
-        <div className="shrink-0 flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <SaveIndicator status={status} />
           <button onClick={del}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all">
@@ -1372,10 +1376,10 @@ export function EditorMundo({
 
       {/* ── Barra de tabs unificada ─────────────────────────────────────── */}
       <div
-        className="shrink-0 flex items-center border-b overflow-x-auto"
+        className="shrink-0 flex items-center border-b overflow-x-auto scrollbar-none"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
       >
-        {/* Ícono Mundo */}
+        {/* Ícono Mundo — solo desktop */}
         <div
           className="shrink-0 hidden sm:flex items-center gap-2 py-3 px-4 border-r"
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
@@ -1390,26 +1394,30 @@ export function EditorMundo({
         </div>
 
         {/* Tabs */}
-        <div className="flex items-end">
+        <div className="flex items-end min-w-0">
           {UNIFIED_TABS.map((t, i) => {
             if (t === "sep") return (
-              <div key={`sep-${i}`} className="w-px mx-1 self-stretch my-2"
+              <div key={`sep-${i}`} className="w-px mx-0.5 sm:mx-1 self-stretch my-2 shrink-0"
                 style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
             );
             const active = tab === t.key;
             const color = t.color ?? "var(--primary)";
+            // En mobile, tabs de magia solo muestran ícono para ahorrar espacio
+            const isMagicTab = t.color !== undefined; // hechizos, dones, runas tienen color
             return (
               <button
                 key={t.key}
                 onClick={() => handleTabChange(t.key)}
-                className="relative flex items-center gap-1.5 px-2 sm:px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap"
+                className="relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2.5 sm:py-3 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap shrink-0"
                 style={{ color: active ? color : "color-mix(in srgb, var(--primary) 28%, transparent)" }}
+                title={t.label}
               >
                 <t.Icon size={10} />
-                {t.label}
+                {/* En mobile, los tabs de magia (hechizos/dones/runas) solo muestran ícono */}
+                <span className={isMagicTab ? "hidden sm:inline" : ""}>{t.label}</span>
                 {active && (
                   <span
-                    className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-t-full"
+                    className="absolute bottom-0 left-1 right-1 h-0.5 rounded-t-full"
                     style={{ background: color }}
                   />
                 )}
@@ -1624,8 +1632,8 @@ function PanelListas() {
       )}
 
       {/* ── Mobile tab switcher (hidden on sm+) ─────────────────────────── */}
-      <div className="sm:hidden shrink-0 flex border-b overflow-x-auto"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+      <div className="sm:hidden absolute bottom-0 left-0 right-0 z-10 flex border-t"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "var(--bg-main)" }}>
         {([
           { key: "reinos",    label: "Reinos",    Icon: Map,     count: reinos.length },
           { key: "criaturas", label: "Criaturas", Icon: Bug,     count: criaturas.length },
@@ -1633,25 +1641,28 @@ function PanelListas() {
           { key: "personajes",label: "Personajes",Icon: Users,   count: personajes.length },
         ] as const).map(t => (
           <button key={t.key} onClick={() => setMobileTab(t.key)}
-            className="flex-1 flex flex-col items-center gap-1 px-3 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all relative whitespace-nowrap"
+            className="flex-1 flex flex-col items-center gap-1 px-2 py-3 text-[9px] font-black uppercase tracking-widest transition-all relative"
             style={{ color: mobileTab === t.key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-            <t.Icon size={13} />
-            {t.label}
-            {t.count > 0 && (
-              <span className="text-[8px] font-black px-1 rounded-full absolute top-1.5 right-2"
-                style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                {t.count}
-              </span>
-            )}
+            <div className="relative">
+              <t.Icon size={18} />
+              {t.count > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 text-[7px] font-black px-1 rounded-full leading-tight"
+                  style={{ background: mobileTab === t.key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                    color: mobileTab === t.key ? "var(--btn-text, #fff)" : "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                  {t.count}
+                </span>
+              )}
+            </div>
+            <span className="truncate max-w-full">{t.label}</span>
             {mobileTab === t.key && (
-              <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full bg-current" />
+              <span className="absolute top-0 left-3 right-3 h-0.5 rounded-b-full bg-current" />
             )}
           </button>
         ))}
       </div>
 
       {/* ── 4 columnas (desktop) / 1 columna con tabs (mobile) ──────────── */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden pb-14 sm:pb-0">
 
       {/* Reinos */}
       <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "reinos" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
@@ -1778,15 +1789,15 @@ function PanelTexto({
   };
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto p-5">
-        <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="split" />
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5">
+        <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="edit" />
       </div>
-      <div className="shrink-0 flex items-center justify-end gap-3 px-5 py-3 border-t"
+      <div className="shrink-0 flex items-center justify-end gap-3 px-3 sm:px-5 py-2.5 sm:py-3 border-t"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <SaveIndicator status={status} />
         <button onClick={handle} disabled={status === "saving"}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
-          <SaveIcon size={11} /> {saveLabel}
+          className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50">
+          <SaveIcon size={11} /> <span className="hidden sm:inline">{saveLabel}</span><span className="sm:hidden">Guardar</span>
         </button>
       </div>
     </div>
