@@ -12,7 +12,7 @@ import localFont from 'next/font/local';
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 const calligraphic = localFont({
-  src: './fonts/Calligraphicframessoft-KZdl.otf',
+  src: '/public/fonts/Calligraphicframessoft-KZdl.otf',
   variable: '--font-calligraphic',
 });
 
