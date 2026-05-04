@@ -3,6 +3,15 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
+@font-face {
+  font-family: 'CalligraphicFrames';
+  /* La barra / apunta directamente a la carpeta public */
+  src: url('/fonts/Calligraphicframessoft-KZdl.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
   --color-primary: var(--primary);
   --color-accent: var(--accent);
@@ -21,7 +30,7 @@
   --radius-input: var(--radius-input);
   --shadow-card: var(--shadow-card);
 
-  --font-caligrafia: var(--font-calligraphic);
+  --font-caligrafia: 'CalligraphicFrames';
 
   --animate-terminal-flicker: flicker 0.15s infinite;
   --animate-cursor-blink: blink 1s step-end infinite;
