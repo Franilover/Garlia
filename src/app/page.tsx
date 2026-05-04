@@ -11,7 +11,11 @@ export default function Home() {
       transition={{ duration: 0.5 }}
       className="min-h-svh bg-bg-main"
     >
-      <SobreMi />
+      <img 
+        src="/marcos.svg" 
+        alt="Bordes decorativos" 
+        className="w-full max-w-2xl h-auto" 
+      />
     </MotionMain>
   );
 }
