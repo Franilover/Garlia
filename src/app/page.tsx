@@ -15,9 +15,14 @@ export default function Home() {
 <div className="flex flex-col items-center p-10 gap-8">
   <div className="text-primary">
     {/* Cambiamos font-caligrafia por font-decorativa */}
+<div className="flex flex-col items-center p-10 gap-8">
+  <div className="text-primary">
+    {/* Cambiamos font-caligrafia por font-decorativa */}
     <h1 className="font-decorativa text-9xl leading-none">
       A B C D
     </h1>
+  </div>
+</div>
   </div>
 </div>
     </MotionMain>
