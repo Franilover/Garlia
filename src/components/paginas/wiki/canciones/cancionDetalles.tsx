@@ -271,107 +271,74 @@ export default function CancionDetallesPage() {
           paddingBottom: 48,
         }}
       >
-        {/* ── Hero con imagen a pantalla completa ── */}
-        <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", flexShrink: 0 }}>
-          <SmartImage
-            src={cancion?.portada_url || "/placeholder-cover.jpg"}
-            alt={cancion?.titulo ?? ""}
-            className="w-full h-full object-cover"
-          />
-
-          {/* Degradado inferior para suavizar transición */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: "45%",
-              background: "linear-gradient(to bottom, transparent, var(--bg-main))",
-              pointerEvents: "none",
-            }}
-          />
-
-          {/* Botón volver */}
+        {/* Botón volver */}
+        <div style={{ padding: "16px 24px 0" }}>
           <button
             onClick={() => router.push("/wiki/canciones")}
             style={{
-              position: "absolute",
-              top: 16,
-              left: 16,
-              background: "color-mix(in srgb, var(--bg-main) 65%, transparent)",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              border,
-              borderRadius: 99,
-              padding: "7px 14px 7px 10px",
+              background: "none",
+              border: "none",
+              padding: 0,
               cursor: "pointer",
+              fontSize: 9,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "var(--primary)",
+              opacity: 0.3,
               display: "flex",
               alignItems: "center",
               gap: 4,
-              color: "var(--primary)",
-              fontSize: 9,
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
+              transition: "opacity 0.15s",
             }}
           >
-            <ChevronLeft size={12} />
+            <ChevronLeft size={10} />
             Volver
           </button>
-
-          {/* Título sobre el degradado */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: "0 22px 20px",
-            }}
-          >
-            <h1
-              style={{
-                fontSize: "clamp(1.7rem, 8vw, 2.4rem)",
-                fontWeight: 900,
-                color: "var(--primary)",
-                letterSpacing: "-0.03em",
-                lineHeight: 1.0,
-                textTransform: "uppercase",
-                fontStyle: "italic",
-                margin: 0,
-              }}
-            >
-              {cancion?.titulo}
-            </h1>
-            {personaje && (
-              <p
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--primary)",
-                  opacity: 0.55,
-                  margin: "6px 0 0",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                {personaje.nombre}
-              </p>
-            )}
-          </div>
         </div>
 
-        {/* ── Info flip card (solo si hay info) ── */}
-        {cancion?.info_cancion?.trim() && (
-          <MotionDiv
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            style={{ padding: "20px 22px 0" }}
+        {/* ── Hero con imagen con márgenes y flip igual que desktop ── */}
+        <div style={{ padding: "20px 24px 0", display: "flex", justifyContent: "center" }}>
+          <CoverFlip
+            portada_url={cancion?.portada_url}
+            titulo={cancion?.titulo ?? ""}
+            info={cancion?.info_cancion}
+            border={border}
+            size="min(100%, 400px)"
+          />
+        </div>
+
+        {/* Título y personaje debajo de la imagen */}
+        <div style={{ padding: "20px 24px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+          <h1
+            style={{
+              fontSize: "clamp(1.7rem, 8vw, 2.4rem)",
+              fontWeight: 900,
+              color: "var(--primary)",
+              letterSpacing: "-0.03em",
+              lineHeight: 1.05,
+              textTransform: "uppercase",
+              fontStyle: "italic",
+              margin: 0,
+            }}
           >
-            <InfoFlipMobile info={cancion.info_cancion} border={border} />
-          </MotionDiv>
-        )}
+            {cancion?.titulo}
+          </h1>
+          {personaje && (
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--primary)",
+                opacity: 0.55,
+                margin: 0,
+                letterSpacing: "0.04em",
+              }}
+            >
+              {personaje.nombre}
+            </p>
+          )}
+        </div>
 
         {/* ── Links ── */}
         {cancion?.links && cancion.links.length > 0 && (
@@ -379,7 +346,7 @@ export default function CancionDetallesPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.15 }}
-            style={{ padding: "18px 22px 0" }}
+            style={{ padding: "18px 32px 0" }}
           >
             <div
               style={{
@@ -427,7 +394,7 @@ export default function CancionDetallesPage() {
             display: "flex",
             alignItems: "center",
             gap: 10,
-            margin: "28px 22px 0",
+            margin: "32px 32px 0",
             paddingBottom: 4,
           }}
         >
@@ -451,7 +418,7 @@ export default function CancionDetallesPage() {
         </div>
 
         {/* ── Letra ── */}
-        <div style={{ padding: "20px 22px 0" }}>
+        <div style={{ padding: "24px 32px 0" }}>
           {secciones.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column" }}>
               {secciones.map((sec, i) => {
