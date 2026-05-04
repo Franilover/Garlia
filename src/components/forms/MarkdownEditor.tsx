@@ -2,6 +2,8 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Eye, Edit3, Columns, Search, Replace, X, ChevronUp, ChevronDown } from "lucide-react";
+import { parseContenido, parseSections } from "@/components/paginas/wiki/libros/leer/type";
+import { RenderSegmentos }               from "@/components/paginas/wiki/libros/leer/segmentos/ContenidoInteractivo";
 
 // ── Slug helper for heading IDs ─────────────────────────────────────────────
 function slugify(text: string): string {
@@ -38,22 +40,11 @@ export function renderMarkdown(raw: string): string {
     return `\x00MATH${idx}\x00`;
   });
 
-  // ── Proteger snippets [[tipo|...]] antes del escape HTML ─────────────────
-  const snippetBlocks: string[] = [];
-  html = html.replace(/\[\[[^\]]+\]\]/g, (match) => {
-    const idx = snippetBlocks.length;
-    snippetBlocks.push(match);
-    return `\x00SNIP${idx}\x00`;
-  });
-
   // ── Escapar HTML en el resto ─────────────────────────────────────────────
   html = html
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-
-  // ── Restaurar snippets sin escapar ───────────────────────────────────────
-  html = html.replace(/\x00SNIP(\d+)\x00/g, (_, i) => snippetBlocks[+i]);
 
   // ── Tablas ───────────────────────────────────────────────────────────────
   html = html.replace(/(?:^|\n)((?:\|[^\n]+\|\n)+)/g, (_, tableBlock) => {
@@ -169,85 +160,6 @@ export function renderMarkdown(raw: string): string {
         return `<li>${content}</li>`;
       }).join("");
     return `<ul>${items}</ul>`;
-  });
-
-  // ── Snippets interactivos [[tipo|...]] ──────────────────────────────────
-  // Función helper para escapar atributos data-*
-  const da = (s: string) => s.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-
-  // [[section|id|label?]] — ancla de sección
-  html = html.replace(/\[\[section\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, id, label) => {
-    const sId    = id.trim();
-    const sLabel = label.trim() || sId;
-    return `<button class="snip-section" id="section-${da(sId)}" data-snip="section" data-id="${da(sId)}" data-label="${da(sLabel)}" tabindex="0">`
-      + `<span class="snip-section-icon">📌</span>`
-      + `<span class="snip-section-label">${sLabel}</span>`
-      + `</button>`;
-  });
-
-  // [[choice|texto|destino]] — botón de decisión (navega a capId o #section-id)
-  html = html.replace(/\[\[choice\|([^|\]]+)\|([^\]]*)\]\]/g, (_, texto, target) =>
-    `<button class="snip-choice" data-snip="choice" data-target="${da(target.trim())}" tabindex="0">`
-    + `<span class="snip-choice-icon">🔀</span>`
-    + `<span class="snip-choice-text">${texto.trim()}</span>`
-    + `</button>`
-  );
-
-  // [[img|url|caption?]] — imagen inline
-  html = html.replace(/\[\[img\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, url, caption) =>
-    `<span class="snip-img snip-img-inline" data-snip="img" data-url="${da(url.trim())}" data-caption="${da(caption.trim())}">`
-    + `<img src="${da(url.trim())}" alt="${da(caption.trim())}" class="snip-img-el" />`
-    + (caption.trim() ? `<span class="snip-img-caption">${caption.trim()}</span>` : "")
-    + `</span>`
-  );
-
-  // [[float|palabra|url|caption?]] — imagen flotante anclada a una palabra
-  html = html.replace(/\[\[float\|([^|\]]+)\|([^|\]]+)\|?([^\]]*)\]\]/g, (_, word, url, caption) =>
-    `<span class="snip-float" data-snip="float" data-word="${da(word.trim())}" data-url="${da(url.trim())}" data-caption="${da(caption.trim())}">`
-    + `<img src="${da(url.trim())}" alt="${da(caption.trim())}" class="snip-img-el snip-float-img" />`
-    + `<span class="snip-float-word">${word.trim()}</span>`
-    + (caption.trim() ? `<span class="snip-img-caption">${caption.trim()}</span>` : "")
-    + `</span>`
-  );
-
-  // [[use|palabra|itemId|targetOk|targetFail?]] — interacción con ítem
-  html = html.replace(/\[\[use\|([^|\]]+)\|([^|\]]+)\|([^|\]]+)\|?([^\]]*?)\]\]/g, (_, word, itemId, targetOk, targetFail) =>
-    `<button class="snip-use" data-snip="use" data-word="${da(word.trim())}" data-itemid="${da(itemId.trim())}" data-targetok="${da(targetOk.trim())}" data-targetfail="${da(targetFail.trim())}" tabindex="0">`
-    + `<span class="snip-use-icon">🖱️</span>`
-    + `<span class="snip-use-label">${word.trim()}</span>`
-    + `</button>`
-  );
-
-  // [[sound|...]] — efecto de sonido (formato libre, viene de SoundPicker)
-  html = html.replace(/\[\[sound\|([^\]]+)\]\]/g, (_, raw) =>
-    `<button class="snip-sound" data-snip="sound" data-raw="${da(raw.trim())}" tabindex="0">`
-    + `<span class="snip-sound-icon">🎵</span>`
-    + `<span class="snip-sound-label">${raw.trim().split("|")[0]}</span>`
-    + `</button>`
-  );
-
-  // [[drop|...]] — entidad (formato libre, viene de EntidadPicker)
-  html = html.replace(/\[\[drop\|([^\]]+)\]\]/g, (_, raw) => {
-    const parts    = raw.trim().split("|");
-    const nombre   = parts[0] || raw.trim();
-    const tipo     = parts[1] || "";
-    const icon     = tipo === "personaje" ? "👤" : tipo === "criatura" ? "🐉" : "⚔️";
-    return `<button class="snip-drop" data-snip="drop" data-raw="${da(raw.trim())}" tabindex="0">`
-      + `<span class="snip-drop-icon">${icon}</span>`
-      + `<span class="snip-drop-label">${nombre}</span>`
-      + (tipo ? `<span class="snip-drop-tipo">${tipo}</span>` : "")
-      + `</button>`;
-  });
-
-  // [[cita|Texto — Fuente]] — cita literaria (no clickeable)
-  html = html.replace(/\[\[cita\|([^\]]+)\]\]/g, (_, contenido) => {
-    const dashIdx = contenido.lastIndexOf(" — ");
-    const texto   = dashIdx !== -1 ? contenido.slice(0, dashIdx).trim() : contenido.trim();
-    const fuente  = dashIdx !== -1 ? contenido.slice(dashIdx + 3).trim() : "";
-    return `<span class="snip-cita">`
-      + `<span class="snip-cita-text">«${texto}»</span>`
-      + (fuente ? `<span class="snip-cita-fuente"> — ${fuente}</span>` : "")
-      + `</span>`;
   });
 
   // ── Párrafos ─────────────────────────────────────────────────────────────
@@ -370,97 +282,6 @@ export const PROSE_STYLES = `
   .prose-mundo h2[id],
   .prose-mundo h3[id],
   .prose-mundo h4[id] { scroll-margin-top:1rem }
-
-  /* ── Snippets interactivos ───────────────────────────────────────────────── */
-
-  /* [[choice]] — botón de decisión */
-  .prose-mundo .snip-choice {
-    display:inline-flex;align-items:center;gap:.35rem;
-    background:color-mix(in srgb,#6366f1 14%,transparent);
-    border:1px solid color-mix(in srgb,#6366f1 38%,transparent);
-    color:#c7d2fe;border-radius:.4rem;padding:.2rem .65rem;
-    font-size:.78rem;font-weight:800;font-family:var(--font-mono,monospace);
-    letter-spacing:.04em;cursor:pointer;vertical-align:middle;
-    transition:background .15s,border-color .15s,transform .1s;
-  }
-  .prose-mundo .snip-choice:hover { background:color-mix(in srgb,#6366f1 24%,transparent);border-color:color-mix(in srgb,#6366f1 55%,transparent);transform:translateY(-1px) }
-  .prose-mundo .snip-choice:active { transform:translateY(0) }
-  .prose-mundo .snip-choice-icon { font-size:.85rem;line-height:1 }
-  .prose-mundo .snip-choice-text { color:#e0e7ff }
-
-  /* [[use]] — ítem de inventario */
-  .prose-mundo .snip-use {
-    display:inline-flex;align-items:center;gap:.35rem;
-    background:color-mix(in srgb,#f59e0b 12%,transparent);
-    border:1px solid color-mix(in srgb,#f59e0b 32%,transparent);
-    color:#fcd34d;border-radius:.4rem;padding:.2rem .65rem;
-    font-size:.78rem;font-weight:800;font-family:var(--font-mono,monospace);
-    letter-spacing:.04em;cursor:pointer;vertical-align:middle;
-    transition:background .15s,border-color .15s,transform .1s;
-  }
-  .prose-mundo .snip-use:hover { background:color-mix(in srgb,#f59e0b 22%,transparent);border-color:color-mix(in srgb,#f59e0b 50%,transparent);transform:translateY(-1px) }
-  .prose-mundo .snip-use:active { transform:translateY(0) }
-  .prose-mundo .snip-use-icon { font-size:.85rem;line-height:1 }
-  .prose-mundo .snip-use-label { color:#fde68a }
-
-  /* [[drop]] — entidad */
-  .prose-mundo .snip-drop {
-    display:inline-flex;align-items:center;gap:.35rem;
-    background:color-mix(in srgb,#10b981 10%,transparent);
-    border:1px solid color-mix(in srgb,#10b981 30%,transparent);
-    color:#6ee7b7;border-radius:.4rem;padding:.2rem .65rem;
-    font-size:.78rem;font-weight:800;font-family:var(--font-mono,monospace);
-    letter-spacing:.04em;cursor:pointer;vertical-align:middle;
-    transition:background .15s,border-color .15s,transform .1s;
-  }
-  .prose-mundo .snip-drop:hover { background:color-mix(in srgb,#10b981 20%,transparent);border-color:color-mix(in srgb,#10b981 48%,transparent);transform:translateY(-1px) }
-  .prose-mundo .snip-drop:active { transform:translateY(0) }
-  .prose-mundo .snip-drop-icon { font-size:.85rem;line-height:1 }
-  .prose-mundo .snip-drop-label { color:#a7f3d0 }
-  .prose-mundo .snip-drop-tipo { font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;opacity:.5;margin-left:.1rem }
-
-  /* [[section]] — ancla de sección */
-  .prose-mundo .snip-section {
-    display:inline-flex;align-items:center;gap:.3rem;
-    background:color-mix(in srgb,#ec4899 10%,transparent);
-    border:1px dashed color-mix(in srgb,#ec4899 30%,transparent);
-    color:#f9a8d4;border-radius:.35rem;padding:.15rem .5rem;
-    font-size:.7rem;font-weight:800;font-family:var(--font-mono,monospace);
-    letter-spacing:.05em;vertical-align:middle;cursor:default;
-  }
-  .prose-mundo .snip-section-icon { font-size:.75rem;line-height:1 }
-  .prose-mundo .snip-section-label { color:#fbcfe8 }
-
-  /* [[sound]] — sonido/música */
-  .prose-mundo .snip-sound {
-    display:inline-flex;align-items:center;gap:.35rem;
-    background:color-mix(in srgb,#8b5cf6 10%,transparent);
-    border:1px solid color-mix(in srgb,#8b5cf6 30%,transparent);
-    color:#c4b5fd;border-radius:.4rem;padding:.2rem .65rem;
-    font-size:.78rem;font-weight:800;font-family:var(--font-mono,monospace);
-    letter-spacing:.04em;cursor:pointer;vertical-align:middle;
-    transition:background .15s,border-color .15s;
-  }
-  .prose-mundo .snip-sound:hover { background:color-mix(in srgb,#8b5cf6 20%,transparent);border-color:color-mix(in srgb,#8b5cf6 48%,transparent) }
-  .prose-mundo .snip-sound-icon { font-size:.85rem;line-height:1 }
-  .prose-mundo .snip-sound-label { color:#ddd6fe }
-
-  /* [[img]] / [[float]] — imágenes */
-  .prose-mundo .snip-img { display:block;margin:.5rem 0 }
-  .prose-mundo .snip-float { float:right;margin:0 0 .5rem .75rem;max-width:40%;clear:right }
-  .prose-mundo .snip-img-el { max-width:100%;border-radius:.45rem;border:1px solid color-mix(in srgb,var(--color-primary,#7c6af7) 18%,transparent);display:block }
-  .prose-mundo .snip-img-caption { display:block;font-size:.7rem;color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 50%,transparent);font-style:italic;margin-top:.25rem;text-align:center }
-  .prose-mundo .snip-float-word { display:none }
-
-  /* [[cita]] — cita literaria (no clickeable) */
-  .prose-mundo .snip-cita {
-    display:inline;font-family:Georgia,serif;font-style:italic;
-    font-size:.85rem;color:color-mix(in srgb,var(--color-input-text,#d1c9ff) 75%,transparent);
-  }
-  .prose-mundo .snip-cita-fuente {
-    font-style:normal;font-size:.75rem;font-weight:600;margin-left:.25rem;
-    color:color-mix(in srgb,var(--color-primary,#7c6af7) 65%,white);
-  }
 `;
 
 // ── Command menu items ────────────────────────────────────────────────────────
@@ -742,12 +563,104 @@ type ViewMode = "edit" | "preview" | "split";
 
 export type SnippetAction =
   | { type: "choice";  target: string }
-  | { type: "section"; id: string; label: string }
-  | { type: "use";     word: string; itemId: string; targetOk: string; targetFail: string }
+  | { type: "section"; id: string; label?: string }
+  | { type: "use";     word: string; itemId: string; targetOk: string; targetFail?: string }
   | { type: "drop";    raw: string }
   | { type: "sound";   raw: string }
-  | { type: "img";     url: string; caption: string }
-  | { type: "float";   word: string; url: string; caption: string };
+  | { type: "img";     url: string; caption?: string }
+  | { type: "float";   word: string; url: string; caption?: string };
+
+// ── MarkdownPreviewWithSnippets ──────────────────────────────────────────────
+// Combina markdown estático con los componentes React reales del lector.
+// Separa el texto en bloques de markdown puro vs líneas que contienen snippets.
+// El markdown puro va a dangerouslySetInnerHTML. Las líneas con snippets se
+// parsean con parseContenido → RenderSegmentos (componentes reales con lógica).
+// Los segmentos "text" dentro de líneas mixtas también pasan por renderMarkdown
+// para preservar bold/italic/etc.
+
+/** Texto inline dentro de un bloque mixto — aplica markdown sin envolver en <p> */
+function SnipInlineText({ text }: { text: string }) {
+  const html = renderMarkdown(text.trim());
+  if (!html.trim()) return null;
+  // Quitar <p>...</p> envolvente si sólo hay uno, para que quede inline
+  const unwrapped = html.replace(/^<p>([\s\S]*)<\/p>$/, "$1");
+  return <span dangerouslySetInnerHTML={{ __html: unwrapped }} />;
+}
+
+function MarkdownPreviewWithSnippets({
+  value,
+  placeholder,
+  onSnippetAction,
+  pvRef,
+  style,
+}: {
+  value: string;
+  placeholder?: string;
+  onSnippetAction?: (action: SnippetAction) => void;
+  pvRef: React.RefObject<HTMLDivElement>;
+  style: React.CSSProperties;
+}) {
+  // Pre-calcular sectionMap para resolver si un target es sección local
+  const sectionMap = React.useMemo(
+    () => parseSections(parseContenido(value)),
+    [value]
+  );
+
+  const handleNavigate = useCallback((target: string) => {
+    if (!onSnippetAction) return;
+    onSnippetAction(
+      sectionMap[target] !== undefined
+        ? { type: "section", id: target }
+        : { type: "choice",  target }
+    );
+  }, [onSnippetAction, sectionMap]);
+
+  // Separar el raw text en bloques: md puro vs líneas que tienen snippets
+  const blocks = React.useMemo(() => {
+    const SNIPPET_LINE_RE = /\[\[\w+\|[\s\S]*?\]\]/;
+    const result: Array<{ kind: "md"; text: string } | { kind: "segs"; text: string }> = [];
+    let mdAccum = "";
+    for (const line of value.split("\n")) {
+      if (SNIPPET_LINE_RE.test(line)) {
+        if (mdAccum) { result.push({ kind: "md", text: mdAccum }); mdAccum = ""; }
+        result.push({ kind: "segs", text: line });
+      } else {
+        mdAccum += (mdAccum ? "\n" : "") + line;
+      }
+    }
+    if (mdAccum) result.push({ kind: "md", text: mdAccum });
+    return result;
+  }, [value]);
+
+  if (!value.trim()) {
+    return (
+      <div ref={pvRef} className="prose-mundo" style={style}>
+        <p className="placeholder">{placeholder ?? "Vista previa…"}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={pvRef} className="prose-mundo" style={style}>
+      {blocks.map((block, i) => {
+        if (block.kind === "md") {
+          return (
+            <div key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(block.text) }} />
+          );
+        }
+
+        // Línea mixta: parseContenido la divide en segmentos (text + snippets)
+        const segs = parseContenido(block.text);
+
+        return (
+          <div key={i} className="my-2 leading-loose">
+            <RenderSegmentos segs={segs} onNavigate={handleNavigate} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 interface MarkdownEditorProps {
   value: string;
@@ -760,7 +673,7 @@ interface MarkdownEditorProps {
   extraCommands?: CommandItem[];
   /** Ref opcional: se le asigna una función insertAtCursor(text) para uso externo */
   insertRef?: React.MutableRefObject<((text: string) => void) | null>;
-  /** Callback cuando el lector hace click en un snippet interactivo del preview */
+  /** Callback cuando el usuario interactúa con un snippet en el preview */
   onSnippetAction?: (action: SnippetAction) => void;
 }
 
@@ -1161,44 +1074,6 @@ export function MarkdownEditor({
   useEffect(() => {
     renderMathInElement(pvRef.current);
   }, [html]);
-
-  // Delegación de clicks en snippets del preview
-  useEffect(() => {
-    const el = pvRef.current;
-    if (!el || !onSnippetAction) return;
-    const handler = (e: MouseEvent) => {
-      const tgt = (e.target as HTMLElement).closest("[data-snip]") as HTMLElement | null;
-      if (!tgt) return;
-      e.preventDefault();
-      const snip = tgt.dataset.snip!;
-      const d    = tgt.dataset;
-      switch (snip) {
-        case "choice":
-          onSnippetAction({ type: "choice", target: d.target ?? "" });
-          break;
-        case "section":
-          onSnippetAction({ type: "section", id: d.id ?? "", label: d.label ?? "" });
-          break;
-        case "use":
-          onSnippetAction({ type: "use", word: d.word ?? "", itemId: d.itemid ?? "", targetOk: d.targetok ?? "", targetFail: d.targetfail ?? "" });
-          break;
-        case "drop":
-          onSnippetAction({ type: "drop", raw: d.raw ?? "" });
-          break;
-        case "sound":
-          onSnippetAction({ type: "sound", raw: d.raw ?? "" });
-          break;
-        case "img":
-          onSnippetAction({ type: "img", url: d.url ?? "", caption: d.caption ?? "" });
-          break;
-        case "float":
-          onSnippetAction({ type: "float", word: d.word ?? "", url: d.url ?? "", caption: d.caption ?? "" });
-          break;
-      }
-    };
-    el.addEventListener("click", handler);
-    return () => el.removeEventListener("click", handler);
-  }, [html, onSnippetAction]);
 
   const textareaCls =
     "flex-1 w-full bg-transparent outline-none border-none resize-none text-sm font-mono leading-relaxed placeholder:opacity-30";
@@ -1642,13 +1517,12 @@ export function MarkdownEditor({
 
           {/* Vista previa */}
           {(mode === "preview" || mode === "split") && (
-            <div
-              ref={pvRef}
-              className="prose-mundo"
+            <MarkdownPreviewWithSnippets
+              value={value}
+              placeholder={placeholder}
+              onSnippetAction={onSnippetAction}
+              pvRef={pvRef}
               style={previewStyle}
-              dangerouslySetInnerHTML={{
-                __html: html || `<p class="placeholder">${placeholder ?? "Vista previa…"}</p>`,
-              }}
             />
           )}
         </div>
