@@ -166,7 +166,7 @@ const SEARCH_STYLES = `
     padding: 12px 14px 14px;
   }
   .song-card-badge {
-    display: inline-flex;
+    display: none;
     align-items: center;
     padding: 1px 6px;
     border-radius: 3px;
@@ -177,6 +177,11 @@ const SEARCH_STYLES = `
     text-transform: uppercase;
     letter-spacing: 0.12em;
     margin-bottom: 7px;
+  }
+  @media (min-width: 640px) {
+    .song-card-badge {
+      display: inline-flex;
+    }
   }
   .song-card-title {
     font-size: 11px;
