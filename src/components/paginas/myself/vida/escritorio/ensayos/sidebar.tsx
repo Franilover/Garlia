@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
-import { Hash, FileText, Plus, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2, ChevronRight } from "lucide-react";
+import { Hash, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
@@ -86,12 +86,34 @@ export default function Sidebar({
             background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
             border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
             borderRadius: 6,
-            padding: "6px 10px 6px 28px",
+            padding: "6px 44px 6px 28px",
             fontSize: 11,
             color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
             fontFamily: "var(--font-mono)",
           }}
         />
+        <button
+          onClick={onCrearEnsayo}
+          title="Nueva nota"
+          style={{
+            position: "absolute",
+            right: 16,
+            top: "50%",
+            transform: "translateY(-50%)",
+            marginTop: 4,
+            fontSize: 10,
+            padding: "2px 7px",
+            borderRadius: 4,
+            border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
+            background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
+            color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+            cursor: "pointer",
+            fontFamily: "var(--font-mono)",
+            letterSpacing: "0.05em",
+          }}
+        >
+          add
+        </button>
       </div>
 
       {/* ── Tags ── */}
@@ -211,35 +233,6 @@ export default function Sidebar({
 
       {/* ── Notes list ── */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div
-          className="shrink-0 px-3 py-2 flex items-center justify-between"
-          style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}
-        >
-          <div className="flex items-center gap-1.5">
-            <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }} />
-            <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
-              notas · {ensayosFiltrados.length}
-            </span>
-          </div>
-          <button
-            onClick={onCrearEnsayo}
-            title="Nueva nota (N)"
-            style={{
-              width: 20,
-              height: 20,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 4,
-              border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
-              background: "transparent",
-              color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
-              cursor: "pointer",
-            }}
-          >
-            <Plus size={11} />
-          </button>
-        </div>
 
         <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
           <AnimatePresence>
@@ -459,32 +452,6 @@ export default function Sidebar({
         </AnimatePresence>
       </div>
 
-      {/* ── Keyboard hint ── */}
-      <div
-        className="shrink-0 px-3 py-2 flex items-center gap-3"
-        style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 4%, transparent)" }}
-      >
-        {[["N", "nueva"], ["⌘E", "modo"], ["Esc", "cerrar"]].map(([key, label]) => (
-          <div key={key} className="flex items-center gap-1">
-            <kbd
-              style={{
-                fontSize: 8,
-                padding: "1px 4px",
-                borderRadius: 3,
-                background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-                color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {key}
-            </kbd>
-            <span style={{ fontSize: 8, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", fontFamily: "var(--font-mono)" }}>
-              {label}
-            </span>
-          </div>
-        ))}
-      </div>
     </aside>
   );
 }
