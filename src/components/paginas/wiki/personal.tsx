@@ -919,7 +919,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 {[
                   { icon: <Sword size={10} />, label: "Objetos",   count: inventario.length + misItemsDesc.length, max: 50 },
                   { icon: <Cat size={10} />,   label: "Criaturas", count: misCriaturas.length, max: 30 },
-                  { icon: <User size={10} />,  label: "Aliados",   count: misPersonajes.length, max: 20 },
+                  { icon: <User size={10} />,  label: "Amigos",   count: misPersonajes.length, max: 20 },
                 ].map(({ icon, label, count, max }) => (
                   <div key={label}>
                     <div className="flex items-center justify-between mb-1">
