@@ -649,12 +649,20 @@ function MarkdownPreviewWithSnippets({
           );
         }
 
-        // Línea mixta: parseContenido la divide en segmentos (text + snippets)
+        // Línea mixta: parseContenido la divide en segmentos (text + snippets).
+        // Renderizamos cada segmento manualmente para que los "text" pasen por
+        // renderMarkdown (bold, italic, etc.) en lugar de quedar como texto plano.
         const segs = parseContenido(block.text);
 
         return (
           <div key={i} className="my-2 leading-loose">
-            <RenderSegmentos segs={segs} onNavigate={handleNavigate} />
+            {segs.map((seg, j) => {
+              if (seg.type === "text")   return <SnipInlineText key={j} text={seg.value} />;
+              // Para el resto usamos RenderSegmentos con un solo segmento
+              return (
+                <RenderSegmentos key={j} segs={[seg]} onNavigate={handleNavigate} />
+              );
+            })}
           </div>
         );
       })}
