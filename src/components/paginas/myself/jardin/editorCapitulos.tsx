@@ -6,10 +6,10 @@ import React, {
 } from "react";
 import {
   ArrowLeft, BookOpen, ChevronDown, ChevronRight, UserCircle2,
-  Loader2, PanelLeftClose, PanelLeftOpen,
-  Plus, RefreshCw, Save, Search,
+  Loader2,
+  Plus, Save, Search,
   Trash2, WifiOff, X, Check, CheckCircle2, AlertCircle,
-  Eye, EyeOff, Maximize2, Minimize2, Clock, Hash,
+  Eye, EyeOff, Minimize2, Clock, Hash,
   AlignLeft, Calendar, BookMarked, Pencil, MoreHorizontal, Globe, Lock, Timer, Zap,
   Mic2, MapPin,
 } from "lucide-react";
@@ -64,10 +64,10 @@ type SaveStatus = "idle" | "saving" | "saved" | "pending" | "error";
 const TABLA_CAPS = "capitulos";
 
 const ESTADO_COLOR: Record<string, string> = {
-  "EN PROCESO": "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  FINALIZADO:   "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  BORRADOR:     "bg-primary/10 text-primary/40 border-primary/20",
-  PAUSADO:      "bg-primary/10 text-primary/40 border-primary/20",
+  "EN PROCESO": "border border-[color-mix(in_srgb,var(--callout-warning-border)_40%,transparent)] text-[var(--callout-warning-title)] bg-[color-mix(in_srgb,var(--callout-warning-border)_12%,transparent)]",
+  FINALIZADO:   "border border-[color-mix(in_srgb,var(--callout-success-border)_40%,transparent)] text-[var(--callout-success-title)] bg-[color-mix(in_srgb,var(--callout-success-border)_12%,transparent)]",
+  BORRADOR:     "border border-primary/20 text-primary/40 bg-primary/10",
+  PAUSADO:      "border border-primary/20 text-primary/40 bg-primary/10",
 };
 
 const VISIBILIDAD_CONFIG = {
@@ -1060,7 +1060,6 @@ const PanelEditor = ({
   const [savingMeta,    setSavingMeta]    = useState(false);
   const [previewOpen,   setPreviewOpen]   = useState(false);
   const [listaSnippetCaps, setListaSnippetCaps] = useState<{id:string;orden:number;titulo_capitulo:string}[]>([]);
-  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const [openSnippetModal, setOpenSnippetModal] = useState<"drop" | "choice" | "use" | "section" | "sound" | "imagen" | null>(null);
   const timer            = useRef<any>(null);
@@ -1345,12 +1344,12 @@ const PanelEditor = ({
             <div className="relative z-10 flex flex-col h-full">
               <div className="flex items-center justify-between px-6 py-3 bg-white-custom/80 backdrop-blur-md border-b border-primary/10 shrink-0">
                 <div className="flex items-center gap-3">
-                  <Eye size={14} className="text-emerald-500" />
+                  <Eye size={14} className="text-primary/40" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 italic">
                     Vista previa — {cap?.titulo_capitulo}
                   </span>
                   {cap?.visibilidad !== "publico" && (
-                    <span className="flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 tracking-wide">
+                    <span className="flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-[color-mix(in_srgb,var(--callout-warning-border)_30%,transparent)] bg-[color-mix(in_srgb,var(--callout-warning-border)_10%,transparent)] text-[var(--callout-warning-title)] tracking-wide">
                       <Lock size={8} />
                       {VISIBILIDAD_CONFIG[cap?.visibilidad ?? "oculto"]?.label}
                     </span>
@@ -1395,8 +1394,8 @@ const PanelEditor = ({
       {isOffline && <BannerOffline color="blue" mensaje="Sin conexión — los cambios se guardan localmente" />}
 
       {saveStatus === "pending" && !isOffline && (
-        <div className="shrink-0 flex items-center gap-2 px-4 sm:px-8 py-2 bg-blue-500/8 border-b border-blue-500/15 text-[9px] font-black uppercase tracking-widest text-blue-400/70">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"/>
+        <div className="shrink-0 flex items-center gap-2 px-4 sm:px-8 py-2 bg-[color-mix(in_srgb,var(--callout-info-border)_8%,transparent)] border-b border-[color-mix(in_srgb,var(--callout-info-border)_15%,transparent)] text-[9px] font-black uppercase tracking-widest text-[var(--callout-info-title)]" style={{ opacity: 0.7 }}>
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--callout-info-border)]"/>
           Cambios pendientes de sincronizar
         </div>
       )}
@@ -1446,73 +1445,22 @@ const PanelEditor = ({
                 className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30" title="Guardar (Ctrl+S)">
                 <Save size={14}/>
               </button>
-              <button onClick={() => setPreviewOpen(true)}
-                className="p-2 rounded-lg hover:bg-emerald-500/10 text-primary/30 hover:text-emerald-500 transition-all" title="Vista previa">
-                <Eye size={14}/>
-              </button>
-              <button onClick={onToggleFocus} className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all" title="Modo foco">
-                <Maximize2 size={14}/>
-              </button>
-              <button onClick={reload as any} className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all" title="Recargar">
-                <RefreshCw size={13}/>
-              </button>
               <button onClick={handleDelete} className="p-2 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all" title="Eliminar capítulo">
                 <Trash2 size={13}/>
               </button>
             </div>
 
             {}
-            {/* Mobile: save + overflow menu */}
+            {/* Mobile: save + delete */}
             <div className="flex sm:hidden items-center gap-1 shrink-0">
               <SaveIndicator status={saveStatus}/>
               <button onClick={() => doSave(contenido)} disabled={saveStatus === "saving"}
                 className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all disabled:opacity-30">
                 <Save size={14}/>
               </button>
-              <div className="relative">
-                <button
-                  onClick={() => setMobileActionsOpen(o => !o)}
-                  className="p-2 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
-                >
-                  <MoreHorizontal size={14}/>
-                </button>
-                <AnimatePresence>
-                  {mobileActionsOpen && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-40"
-                        onClick={() => setMobileActionsOpen(false)}
-                      />
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                        transition={{ duration: 0.12 }}
-                        className="absolute right-0 top-9 z-50 min-w-[160px] bg-bg-main border border-primary/15 rounded-xl shadow-xl py-1 overflow-hidden"
-                      >
-                        <button onClick={() => { setPreviewOpen(true); setMobileActionsOpen(false); }}
-                          className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2">
-                          <Eye size={11}/> Vista previa
-                        </button>
-                        <button onClick={() => { onToggleFocus(); setMobileActionsOpen(false); }}
-                          className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2">
-                          <Maximize2 size={11}/> Modo foco
-                        </button>
-                        <button onClick={() => { (reload as any)(); setMobileActionsOpen(false); }}
-                          className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2">
-                          <RefreshCw size={11}/> Recargar
-                        </button>
-                        <div className="h-px bg-primary/8 mx-2 my-1"/>
-                        <button onClick={() => { handleDelete(); setMobileActionsOpen(false); }}
-                          className="w-full text-left px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-red-400/70 hover:bg-red-500/8 hover:text-red-400 transition-all flex items-center gap-2">
-                          <Trash2 size={11}/> Eliminar
-                        </button>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
+              <button onClick={handleDelete} className="p-2 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all">
+                <Trash2 size={14}/>
+              </button>
             </div>
           </div>
 
@@ -2597,62 +2545,7 @@ export default function EstudioCapitulos() {
             <span className="hidden sm:inline">Nuevo</span>
           </button>
 
-          {/* Recargar */}
-          <button
-            onClick={refetch}
-            title="Recargar"
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 32, height: 32, borderRadius: 6, border: "none",
-              background: "transparent", color: "var(--primary)",
-              opacity: 0.3, cursor: "pointer", flexShrink: 0,
-              transition: "opacity 0.1s, background 0.1s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent"; }}
-          >
-            <RefreshCw size={12} />
-          </button>
 
-          {/* Modo foco (desktop, solo con cap abierto) */}
-          {selectedCapId && (
-            <button
-              onClick={() => setFocusMode(m => !m)}
-              title="Modo foco"
-              className="hidden sm:flex"
-              style={{
-                alignItems: "center", justifyContent: "center",
-                width: 32, height: 32, borderRadius: 6, border: "none",
-                background: "transparent", color: "var(--primary)",
-                opacity: 0.3, cursor: "pointer", flexShrink: 0,
-                transition: "opacity 0.1s, background 0.1s",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
-              onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent"; }}
-            >
-              {focusMode ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-            </button>
-          )}
-
-          {/* Toggle sidebar (desktop, solo con cap abierto) */}
-          {selectedCapId && (
-            <button
-              onClick={() => setSidebarOpen(o => !o)}
-              title={sidebarOpen ? "Ocultar biblioteca" : "Mostrar biblioteca"}
-              className="hidden sm:flex"
-              style={{
-                alignItems: "center", justifyContent: "center",
-                width: 32, height: 32, borderRadius: 6, border: "none",
-                background: "transparent", color: "var(--primary)",
-                opacity: 0.3, cursor: "pointer", flexShrink: 0,
-                transition: "opacity 0.1s, background 0.1s",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
-              onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent"; }}
-            >
-              {sidebarOpen ? <PanelLeftClose size={12} /> : <PanelLeftOpen size={12} />}
-            </button>
-          )}
         </div>
 
         {/* ── Biblioteca de columnas (se colapsa cuando hay un cap abierto y sidebarOpen=false) ── */}
