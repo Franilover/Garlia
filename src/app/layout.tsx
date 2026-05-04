@@ -7,8 +7,14 @@ import "@/style/tailwind.css";
 import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
+import localFont from 'next/font/local';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
+
+const calligraphic = localFont({
+  src: './fonts/Calligraphicframessoft-KZdl.otf',
+  variable: '--font-calligraphic',
+});
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -78,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         caveat.variable,
         lora.variable,
         literata.variable,
+        calligraphic.variable,
       )}
       suppressHydrationWarning
     >
@@ -102,7 +109,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       {}
-      <body className="antialiased bg-bg-main h-svh overflow-hidden flex flex-col">
+      <body className={cn(
+        "antialiased bg-bg-main h-svh overflow-hidden flex flex-col",
+        geist.variable,
+        montserrat.variable,
+        pixelifySans.variable,
+        caveat.variable,
+        lora.variable,
+        literata.variable,
+        calligraphic.variable 
+      )}>
         <OfflineSyncActivator />
         <AuthProvider>
           <DataProvider>

@@ -9,9 +9,19 @@ export default function Home() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-svh bg-bg-main"
+      className="min-h-svh bg-bg-main flex flex-col items-center"
     >
+      {/* 1. Un adorno superior antes del contenido */}
+      <div className="font-caligrafia text-6xl text-primary mt-12 mb-4 select-none">
+        f 
+      </div>
+
       <SobreMi />
+
+      {/* 2. Un separador decorativo al final */}
+      <div className="font-caligrafia text-5xl text-accent/50 mt-10 mb-20 select-none">
+        a b b b c
+      </div>
     </MotionMain>
   );
 }
