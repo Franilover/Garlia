@@ -1,8 +1,27 @@
-<div className="bg-white p-10 z-[999] relative">
-  <h1 className="text-black mb-4">Prueba de Fuente:</h1>
-  <div className="font-caligrafia text-8xl text-red-500 flex flex-wrap gap-4">
-    <span>A</span> <span>B</span> <span>C</span> 
-    <span>1</span> <span>2</span> <span>3</span>
-    <span>a</span> <span>b</span> <span>c</span>
-  </div>
-</div>
+"use client";
+import React from "react";
+import { MotionMain } from "@/components/ui/Motion";
+import SobreMi from "@/components/paginas/personal/sobre-mi";
+
+// CORRECCIÓN: Añade 'default'
+export default function Home() { 
+  return (
+    <MotionMain 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-svh bg-bg-main flex flex-col items-center"
+    >
+      {/* Tu contenido con la fuente caligráfica */}
+      <div className="font-caligrafia text-6xl text-primary mt-12 mb-4 select-none">
+        f 
+      </div>
+
+      <SobreMi />
+
+      <div className="font-caligrafia text-5xl text-accent/50 mt-10 mb-20 select-none">
+        a b b b c
+      </div>
+    </MotionMain>
+  );
+}
