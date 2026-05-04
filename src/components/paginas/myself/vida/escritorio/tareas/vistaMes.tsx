@@ -91,7 +91,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
       </div>
 
       {/* Cuerpo con scroll */}
-      <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-4 py-3 gap-2">
+      <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-2 sm:px-4 py-2 sm:py-3 gap-1.5 sm:gap-2">
 
         {/* Cabecera días semana */}
         <div className="grid grid-cols-7 shrink-0">
@@ -100,10 +100,10 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
           ))}
         </div>
 
-        {/* Grilla días — h-11 */}
-        <div className="grid grid-cols-7 gap-1 shrink-0">
+        {/* Grilla días */}
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 shrink-0">
           {Array.from({ length: primerDia }).map((_, i) => (
-            <div key={`e-${i}`} className="h-14" />
+            <div key={`e-${i}`} className="h-8 sm:h-14" />
           ))}
           {Array.from({ length: diasEnMes }).map((_, i) => {
             const dia = i + 1;
@@ -120,8 +120,8 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento }:
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.92 }}
                 className={cn(
-                  "h-14 w-full rounded-[var(--radius-btn)] flex flex-col items-center justify-center relative",
-                  "text-[13px] font-black transition-all",
+                  "h-8 sm:h-14 w-full rounded-[var(--radius-btn)] flex flex-col items-center justify-center relative",
+                  "text-[11px] sm:text-[13px] font-black transition-all",
                   sel
                     ? "bg-primary text-[var(--btn-text)] shadow-sm shadow-primary/20"
                     : hoy

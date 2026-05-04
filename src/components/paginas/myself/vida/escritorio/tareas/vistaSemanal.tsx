@@ -29,24 +29,24 @@ const ColumniaDia = ({
   >
     {/* Header día */}
     <div className={cn(
-      "flex flex-col items-center py-2 border-b gap-0.5 transition-colors shrink-0",
+      "flex flex-col items-center py-1 sm:py-2 border-b gap-0.5 transition-colors shrink-0",
       seleccionado ? "border-primary/15" : "border-primary/8"
     )}>
       <span className={cn(
-        "text-[7px] font-black uppercase tracking-widest transition-colors",
+        "text-[6px] sm:text-[7px] font-black uppercase tracking-widest transition-colors",
         esHoy ? "text-primary" : "text-primary/40 dark:text-primary/50"
       )}>
         {compact ? DIAS_SEMANA_LETRA[fecha.getDay()] : DIAS_SEMANA_CORTO[fecha.getDay()]}
       </span>
       <div className={cn(
-        "w-7 h-7 rounded-[var(--radius-btn)] flex items-center justify-center transition-all",
+        "w-5 h-5 sm:w-7 sm:h-7 rounded-[var(--radius-btn)] flex items-center justify-center transition-all",
         esHoy
           ? "bg-primary text-[var(--btn-text)] shadow-md shadow-primary/30"
           : seleccionado
           ? "bg-primary/15 text-primary"
           : "text-[var(--text-on-card)]/60 dark:text-[var(--text-on-card)]/70 group-hover:bg-primary/8"
       )}>
-        <span className="text-xs font-black">{fecha.getDate()}</span>
+        <span className="text-[10px] sm:text-xs font-black">{fecha.getDate()}</span>
       </div>
     </div>
 
@@ -142,7 +142,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
     <div className="flex flex-col gap-3 h-full overflow-hidden">
 
       {/* Controles */}
-      <div className="flex flex-col gap-2 shrink-0">
+      <div className="flex flex-col gap-1.5 sm:gap-2 shrink-0">
         {/* Navegación */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -169,7 +169,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </div>
 
         {/* Selector de vista */}
-        <div className="flex items-center gap-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] p-1 self-start">
+        <div className="flex items-center gap-0.5 sm:gap-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] p-0.5 sm:p-1 self-start overflow-x-auto max-w-full">
           {VISTAS.map((v) => (
             <button
               key={v.valor}
@@ -188,8 +188,8 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </div>
       </div>
 
-      {/* Grid de días — scroll horizontal en mobile, flex vertical en desktop */}
-      <div className="flex-1 min-h-0 overflow-x-auto lg:overflow-x-visible">
+      {/* Grid de días */}
+      <div className="flex-1 min-h-0 overflow-x-auto">
         <AnimatePresence mode="wait">
           <MotionDiv
             key={`${vista}-${fechaBase.toISOString()}`}
@@ -200,11 +200,10 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
             className="h-full"
             style={{
               display: "grid",
-              gridTemplateColumns: `repeat(${Math.min(vista, 7)}, minmax(${compact ? "5rem" : "7rem"}, 1fr))`,
-              gap: "0.375rem",
-              minWidth: compact ? `${vista * 5}rem` : `${vista * 7}rem`,
-              /* Garantizar altura mínima para que los eventos sean visibles */
-              minHeight: "180px",
+              gridTemplateColumns: `repeat(${Math.min(vista, 7)}, minmax(${compact ? "3.5rem" : "5.5rem"}, 1fr))`,
+              gap: "0.25rem",
+              minWidth: compact ? `${vista * 3.5}rem` : `${vista * 5.5}rem`,
+              minHeight: "140px",
             }}
           >
             {diasVista.map((fecha) => (
@@ -223,7 +222,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
       </div>
 
       {/* Panel día seleccionado */}
-      <div className="bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] p-3 border border-primary/10 shrink-0">
+      <div className="bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] p-2 sm:p-3 border border-primary/10 shrink-0">
         {/* Cabecera */}
         <div className="flex items-center gap-2 mb-2">
           <Calendar size={12} className="text-primary/50" />
@@ -262,7 +261,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         </div>
 
         {/* Lista eventos día seleccionado */}
-        <div className="space-y-1.5 max-h-36 overflow-y-auto">
+        <div className="space-y-1 sm:space-y-1.5 max-h-24 sm:max-h-36 overflow-y-auto">
           {eventosDiaSeleccionado.length === 0 ? (
             <p className="text-[9px] font-bold text-[var(--text-on-card)]/25 italic px-1">Sin eventos para este día.</p>
           ) : eventosDiaSeleccionado.map(ev => (
