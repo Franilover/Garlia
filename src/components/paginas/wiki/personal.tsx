@@ -917,9 +917,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                 </div>
                 {[
+                  { icon: <User size={10} />,  label: "Amigos",   count: misPersonajes.length, max: 20 },
                   { icon: <Sword size={10} />, label: "Objetos",   count: inventario.length + misItemsDesc.length, max: 50 },
                   { icon: <Cat size={10} />,   label: "Criaturas", count: misCriaturas.length, max: 30 },
-                  { icon: <User size={10} />,  label: "Amigos",   count: misPersonajes.length, max: 20 },
                 ].map(({ icon, label, count, max }) => (
                   <div key={label}>
                     <div className="flex items-center justify-between mb-1">
