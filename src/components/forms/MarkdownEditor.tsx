@@ -1125,7 +1125,7 @@ export function MarkdownEditor({
             position: "absolute",
             top: 8,
             right: 8,
-            zIndex: 200,
+            zIndex: 100,
             display: "flex",
             alignItems: "center",
             gap: 4,
