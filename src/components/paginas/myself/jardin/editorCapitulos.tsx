@@ -42,6 +42,7 @@ type Libro = {
   fecha_publicacion?: string;
   fecha_proximo_capitulo?: string;
   reino_id?: string | null;
+  categoria?: string | null;
 };
 
 type Capitulo = {
@@ -1979,9 +1980,11 @@ const ModalEditarLibro = ({
   const [visibilidad, setVisibilidad] = useState<"publico" | "programado" | "oculto">(libro.visibilidad ?? "oculto");
   const [fechaLibro,  setFechaLibro]  = useState(libro.fecha_publicacion ?? "");
   const [reinoId,     setReinoId]     = useState<string | null>(libro.reino_id ?? null);
+  const [categoria,   setCategoria]   = useState(libro.categoria ?? "");
   const [saving,      setSaving]      = useState(false);
 
   const ESTADOS = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
+  const CATEGORIAS = ["Libro", "Extra"];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1995,6 +1998,7 @@ const ModalEditarLibro = ({
         estado,
         visibilidad,
         reino_id: reinoId,
+        categoria: categoria.trim() || null,
         fecha_publicacion: visibilidad === "programado" ? (fechaLibro || null) : null,
       };
       await libroUpdateMeta(libro.id, fields);
@@ -2048,6 +2052,21 @@ const ModalEditarLibro = ({
           label="Visibilidad del Libro"
         />
         <SelectorReino value={reinoId} onChange={setReinoId} />
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">Categoría</label>
+          <div className="flex gap-1.5 flex-wrap">
+            {CATEGORIAS.map(cat => (
+              <button key={cat} type="button" onClick={() => setCategoria(categoria === cat ? "" : cat)}
+                className={`px-3 py-1.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border transition-all ${
+                  categoria === cat
+                    ? "bg-primary text-btn-text border-primary shadow-sm"
+                    : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary/70"
+                }`}>
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="pt-2">
           <BotonSubmit
             loading={saving}
