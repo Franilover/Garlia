@@ -78,6 +78,13 @@ export function renderMarkdown(raw: string): string {
   html = html.replace(/!\[([^\]]*)\]\((.*?)\)/g, '<img src="$2" alt="$1" />');
   html = html.replace(/\[([^\]]+)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
+  // ── Wikilinks [[nombre]] → enlace interno clicable ───────────────────────
+  html = html.replace(/\[\[([^\]|#]+?)(?:\|([^\]]+))?\]\]/g, (_, target, alias) => {
+    const label = alias?.trim() || target.trim();
+    const safeTarget = target.trim().replace(/"/g, '&quot;');
+    return `<a class="wikilink" data-wikilink="${safeTarget}" href="#" title="Ir a: ${safeTarget}">${label}</a>`;
+  });
+
   // ── Encabezados con ID para TOC ──────────────────────────────────────────
   html = html.replace(/^---$/gm, "<hr/>");
   const headingCounter: Record<string, number> = {};
@@ -282,6 +289,9 @@ export const PROSE_STYLES = `
   .prose-mundo h2[id],
   .prose-mundo h3[id],
   .prose-mundo h4[id] { scroll-margin-top:1rem }
+  /* ── Wikilinks ──────────────────────────────────────────────────────────── */
+  .prose-mundo a.wikilink { color:var(--accent,#7c6af7);text-decoration:none;border-bottom:1px dashed color-mix(in srgb,var(--accent,#7c6af7) 50%,transparent);padding-bottom:1px;cursor:pointer;transition:all 0.15s }
+  .prose-mundo a.wikilink:hover { border-bottom-style:solid;background:color-mix(in srgb,var(--accent,#7c6af7) 8%,transparent);border-radius:2px }
 `;
 
 // ── Command menu items ────────────────────────────────────────────────────────
@@ -562,13 +572,14 @@ const COMMAND_ITEMS: CommandItem[] = [
 type ViewMode = "edit" | "preview" | "split";
 
 export type SnippetAction =
-  | { type: "choice";  target: string }
-  | { type: "section"; id: string; label?: string }
-  | { type: "use";     word: string; itemId: string; targetOk: string; targetFail?: string }
-  | { type: "drop";    raw: string }
-  | { type: "sound";   raw: string }
-  | { type: "img";     url: string; caption?: string }
-  | { type: "float";   word: string; url: string; caption?: string };
+  | { type: "choice";    target: string }
+  | { type: "section";   id: string; label?: string }
+  | { type: "use";       word: string; itemId: string; targetOk: string; targetFail?: string }
+  | { type: "drop";      raw: string }
+  | { type: "sound";     raw: string }
+  | { type: "img";       url: string; caption?: string }
+  | { type: "float";     word: string; url: string; caption?: string }
+  | { type: "wikilink";  target: string };
 
 // ── MarkdownPreviewWithSnippets ──────────────────────────────────────────────
 // Combina markdown estático con los componentes React reales del lector.
@@ -615,6 +626,17 @@ function MarkdownPreviewWithSnippets({
     );
   }, [onSnippetAction, sectionMap]);
 
+  // Click handler para wikilinks renderizados en HTML estático
+  const handleContainerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const a = (e.target as HTMLElement).closest("a[data-wikilink]");
+    if (!a) return;
+    e.preventDefault();
+    const target = a.getAttribute("data-wikilink");
+    if (target && onSnippetAction) {
+      onSnippetAction({ type: "wikilink", target });
+    }
+  }, [onSnippetAction]);
+
   // Separar el raw text en bloques: md puro vs líneas que tienen snippets
   const blocks = React.useMemo(() => {
     const SNIPPET_LINE_RE = /\[\[\w+\|[\s\S]*?\]\]/;
@@ -641,7 +663,7 @@ function MarkdownPreviewWithSnippets({
   }
 
   return (
-    <div ref={pvRef} className="prose-mundo" style={style}>
+    <div ref={pvRef} className="prose-mundo" style={style} onClick={handleContainerClick}>
       {blocks.map((block, i) => {
         if (block.kind === "md") {
           return (

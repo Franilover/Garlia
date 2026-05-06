@@ -297,6 +297,11 @@ export function Editor({
             rows={28}
             toolbar
             defaultMode={editMode ? "edit" : "preview"}
+            onSnippetAction={(action) => {
+              if (action.type === "wikilink") {
+                onNavigateToPage(action.target);
+              }
+            }}
           />
 
           {/* CitePopup (@) */}
