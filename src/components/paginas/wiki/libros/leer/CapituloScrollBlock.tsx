@@ -164,7 +164,7 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
         <div className="min-h-[20vh]">
           {usarMarkdown
             ? <ContenidoMarkdown texto={cap.contenido ?? ""} onNavigate={onNavigate} />
-            : <ContenidoInteractivo texto={cap.contenido ?? ""} onNavigate={onNavigate} />
+            : <ContenidoInteractivo texto={cap.contenido ?? ""} onNavigate={onNavigate} esExtra={esExtra} />
           }
         </div>
 

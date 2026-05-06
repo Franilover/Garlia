@@ -48,15 +48,16 @@ function AnimatedDropCap({ char, rest }: { char: string; rest: string }) {
    Renderizado de segmentos con drop cap en el
    primer párrafo
    ───────────────────────────────────────────── */
-export function RenderSegmentos({ segs, onNavigate, isFirst = false }: {
+export function RenderSegmentos({ segs, onNavigate, isFirst = false, esExtra = false }: {
   segs: Segment[];
   onNavigate: (id: string) => void;
   isFirst?: boolean;
+  esExtra?: boolean;
 }) {
   return (
     <>
       {segs.map((seg, i) => {
-        const isFirstText = isFirst && i === 0 && seg.type === "text";
+        const isFirstText = isFirst && !esExtra && i === 0 && seg.type === "text";
 
         if (seg.type === "text") {
           if (isFirstText && seg.value.length > 0) {
@@ -88,9 +89,10 @@ export function RenderSegmentos({ segs, onNavigate, isFirst = false }: {
 /* ─────────────────────────────────────────────
    Componente principal
    ───────────────────────────────────────────── */
-export function ContenidoInteractivo({ texto, onNavigate }: {
+export function ContenidoInteractivo({ texto, onNavigate, esExtra = false }: {
   texto: string;
   onNavigate: (capId: string) => void;
+  esExtra?: boolean;
 }) {
   const allSegs     = parseContenido(texto);
   const sectionMap  = parseSections(allSegs);
@@ -127,7 +129,7 @@ export function ContenidoInteractivo({ texto, onNavigate }: {
         fontFeatureSettings: '"kern" 1, "liga" 1, "onum" 1',
       }}
     >
-      <RenderSegmentos segs={sectionMap[""]} onNavigate={handleNavigate} isFirst />
+      <RenderSegmentos segs={sectionMap[""]} onNavigate={handleNavigate} isFirst esExtra={esExtra} />
 
       <AnimatePresence mode="wait">
         {currentId !== "" && (
