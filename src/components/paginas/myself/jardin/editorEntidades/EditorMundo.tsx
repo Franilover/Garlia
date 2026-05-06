@@ -1350,14 +1350,21 @@ export function EditorMundo({
     resolveInitialTab(activeSection, initialMundoTab)
   );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const userChangedTabRef = useRef(false);
 
-  // Sync cuando cambia la sección activa o el subTab desde el buscador
+  // Sync solo cuando el cambio viene desde afuera (buscador global, etc).
+  // Si el usuario acaba de cambiar tab manualmente, omitimos este disparo.
   useEffect(() => {
+    if (userChangedTabRef.current) {
+      userChangedTabRef.current = false;
+      return;
+    }
     setTab(resolveInitialTab(activeSection, initialMundoTab));
   }, [activeSection, initialMundoTab]);
 
   // Notifica al padre cuando el usuario cambia de tab manualmente
   const handleTabChange = useCallback((next: UnifiedTab) => {
+    userChangedTabRef.current = true;
     setTab(next);
     // Mapea el tab unificado a (section, mundoTab) para persistencia
     const sectionMap: Record<UnifiedTab, MundoSectionKey> = {
