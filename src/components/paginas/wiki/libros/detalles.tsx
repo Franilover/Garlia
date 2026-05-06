@@ -230,24 +230,20 @@ export default function LibroDetalle() {
             />
           </div>
 
-          <div className="card-main mt-8 p-6">
-            <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
-              <Calendar size={12} /> Próximo Capítulo
-            </h4>
-            {capituloProximo ? (
-              <>
-                <p className="text-primary font-bold text-sm leading-snug mb-1">{capituloProximo.titulo_capitulo}</p>
-                <p className="text-primary/50 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 italic">
-                  <Clock size={10} />
-                  {new Date(capituloProximo.fecha_publicacion).toLocaleDateString("es-ES", {
-                    day: "numeric", month: "long", year: "numeric",
-                  })}
-                </p>
-              </>
-            ) : (
-              <p className="text-primary/30 font-bold text-xs italic">Sin capítulo programado</p>
-            )}
-          </div>
+          {capituloProximo && (
+            <div className="card-main mt-8 p-6">
+              <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
+                <Calendar size={12} /> Próximo Capítulo
+              </h4>
+              <p className="text-primary font-bold text-sm leading-snug mb-1">{capituloProximo.titulo_capitulo}</p>
+              <p className="text-primary/50 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 italic">
+                <Clock size={10} />
+                {new Date(capituloProximo.fecha_publicacion).toLocaleDateString("es-ES", {
+                  day: "numeric", month: "long", year: "numeric",
+                })}
+              </p>
+            </div>
+          )}
 
           {/* ── Resumen de grupos en sidebar (reinos o narradores) ── */}
           {tieneAgrupacion && grupos.length > 1 && (
@@ -309,17 +305,14 @@ export default function LibroDetalle() {
 
           {/* ── Índice agrupado ── */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between mb-8 pb-4" style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-              <h3 className="text-primary font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-2 italic">
-                <ListOrdered size={16} /> Índice
-              </h3>
-              {leidos.size > 0 && (
+            {leidos.size > 0 && (
+              <div className="flex justify-end mb-4">
                 <span className="flex items-center gap-1.5 text-primary/40 font-bold text-[9px] uppercase tracking-widest italic">
                   <CheckCircle2 size={11} className="text-primary/30" />
                   {leidos.size}/{capitulos.length} leídos
                 </span>
-              )}
-            </div>
+              </div>
+            )}
 
             {capitulos.length === 0 ? (
               <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
