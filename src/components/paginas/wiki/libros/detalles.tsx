@@ -36,6 +36,7 @@ interface Libro {
   titulo: string;
   sinopsis: string;
   portada_url: string;
+  categoria: string | null;
 }
 
 interface CapituloProximo {
@@ -212,6 +213,104 @@ export default function LibroDetalle() {
     { bg: "bg-[var(--accent)]/8",     border: "border-[var(--accent)]/25",   dot: "bg-[var(--accent)]/70" },
   ];
 
+  const esExtra = libro.categoria?.toLowerCase() === "extra";
+
+  // ── Layout para categoría "Extra": imagen grande + título centrado + capítulos planos ──
+  if (esExtra) {
+    return (
+      <div className="min-h-screen bg-bg-main pb-20 relative">
+        <BackBtn onClick={() => router.push("/wiki/libros")} />
+
+        <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[340px_1fr] gap-12 mt-4 items-start">
+          {/* Imagen grande pegada al top */}
+          <div
+            className="rounded-[var(--radius-card)] overflow-hidden bg-white-custom md:sticky md:top-8"
+            style={{ border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)", boxShadow: "var(--shadow-card)" }}
+          >
+            <SmartImage
+              src={libro.portada_url || "/placeholder-cover.jpg"}
+              alt={libro.titulo}
+              className="w-full h-full"
+            />
+          </div>
+
+          {/* Título centrado + capítulos planos */}
+          <main>
+            <h1 className="text-4xl font-black text-primary italic tracking-tighter leading-[0.9] mb-10 uppercase text-center">
+              {libro.titulo}
+            </h1>
+
+            {leidos.size > 0 && (
+              <div className="flex justify-end mb-4">
+                <span className="flex items-center gap-1.5 text-primary/40 font-bold text-[9px] uppercase tracking-widest italic">
+                  <CheckCircle2 size={11} className="text-primary/30" />
+                  {leidos.size}/{capitulos.length} leídos
+                </span>
+              </div>
+            )}
+
+            {capitulos.length === 0 ? (
+              <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
+                Aún no hay capítulos publicados
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {capitulos.map((cap) => {
+                  const esRuta = cap.titulo_capitulo?.startsWith("[Ruta]");
+                  const leido  = leidos.has(cap.id);
+                  return (
+                    <button
+                      key={cap.id}
+                      onClick={() => {
+                        marcarLeido(cap.id);
+                        router.push(`/wiki/libros/${id}/leer/${capitulos[0]?.id ?? cap.id}#cap-${cap.id}`);
+                      }}
+                      className={`w-full flex items-center justify-between p-5 transition-all text-left group rounded-btn shadow-card ${
+                        esRuta ? "bg-blue-50/60" :
+                        leido  ? "bg-primary/[0.03]" :
+                        "bg-white-custom"
+                      }`}
+                      style={{
+                        border: `var(--border-width) solid ${
+                          esRuta ? "rgb(219 234 254)" :
+                          leido  ? "color-mix(in srgb, var(--primary) 5%, transparent)" :
+                          "color-mix(in srgb, var(--primary) 8%, transparent)"
+                        }`,
+                        boxShadow: leido ? "none" : undefined,
+                        opacity:   leido ? 0.55 : 1,
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.opacity = leido ? "0.55" : "1"; e.currentTarget.style.borderColor = esRuta ? "rgb(219 234 254)" : leido ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+                    >
+                      <div className="flex flex-col gap-1">
+                        {esRuta && (
+                          <span className="text-[8px] font-black uppercase tracking-widest text-blue-400 mb-0.5">↳ Nodo de ruta</span>
+                        )}
+                        <span className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}>
+                          {cap.orden}. {esRuta ? cap.titulo_capitulo.replace("[Ruta] ", "") : cap.titulo_capitulo}
+                        </span>
+                        {cap.fecha_publicacion && (
+                          <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
+                            Publicado: {new Date(cap.fecha_publicacion).toLocaleDateString("es-ES")}
+                          </span>
+                        )}
+                      </div>
+                      {leido
+                        ? <CheckCircle2 size={14} className="text-primary/25 flex-shrink-0" />
+                        : <Play size={14} fill="currentColor" className="text-primary flex-shrink-0" />
+                      }
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Layout normal ──
   return (
     <div className="min-h-screen bg-bg-main pb-20 relative">
       <BackBtn onClick={() => router.push("/wiki/libros")} />
