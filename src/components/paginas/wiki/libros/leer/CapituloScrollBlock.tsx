@@ -96,9 +96,10 @@ function ContenidoMarkdown({ texto, onNavigate }: { texto: string; onNavigate: (
   );
 }
 
-export function CapituloScrollBlock({ cap, onNavigate }: {
+export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
   cap: CapituloScrollItem;
   onNavigate: (capId: string) => void;
+  esExtra?: boolean;
 }) {
   const words = (cap.contenido ?? "").trim()
     ? (cap.contenido ?? "").trim().split(/\s+/).length
@@ -132,16 +133,20 @@ export function CapituloScrollBlock({ cap, onNavigate }: {
         }}
       >
         <header className="mb-12 text-center">
-          <span className="lector-seccion text-primary/20 font-serif italic block mb-2">
-            {cap.orden}
-          </span>
+          {!esExtra && (
+            <span className="lector-seccion text-primary/20 font-serif italic block mb-2">
+              {cap.orden}
+            </span>
+          )}
           <h1 className="lector-titulo font-black text-primary tracking-tighter uppercase italic leading-none">
             {cap.titulo_capitulo}
           </h1>
-          <div className="flex items-center justify-center gap-4 mt-4 text-[9px] font-black uppercase tracking-widest text-primary/25">
-            <span className="flex items-center gap-1"><AlignLeft size={9} /> {words.toLocaleString()} palabras</span>
-            <span className="flex items-center gap-1"><Clock size={9} /> ~{Math.max(1, Math.round(words / 200))} min</span>
-          </div>
+          {!esExtra && (
+            <div className="flex items-center justify-center gap-4 mt-4 text-[9px] font-black uppercase tracking-widest text-primary/25">
+              <span className="flex items-center gap-1"><AlignLeft size={9} /> {words.toLocaleString()} palabras</span>
+              <span className="flex items-center gap-1"><Clock size={9} /> ~{Math.max(1, Math.round(words / 200))} min</span>
+            </div>
+          )}
         </header>
 
         <div className="min-h-[20vh]">
@@ -151,7 +156,7 @@ export function CapituloScrollBlock({ cap, onNavigate }: {
           }
         </div>
 
-        <FinCapituloSeparador cap={cap} onVisible={disparar} />
+        {!esExtra && <FinCapituloSeparador cap={cap} onVisible={disparar} />}
 
         <AnimatePresence>
           {mostrarCelebration && (

@@ -410,20 +410,144 @@ function PanelLateral({
   capsParaMostrar,
   personajesIds,
   loading,
+  esExtra,
+  listaCapitulos,
+  capIdActual,
   onVolver,
   onAbrirIndice,
+  onSelectCap,
 }: {
   libroTitulo?: string;
   segActualObj: Segmento | null;
   capsParaMostrar: CapituloScrollItem[];
   personajesIds: string[];
   loading?: boolean;
+  esExtra?: boolean;
+  listaCapitulos?: CapituloLista[];
+  capIdActual?: string;
   onVolver: () => void;
   onAbrirIndice: () => void;
+  onSelectCap?: (capId: string) => void;
 }) {
   const border = "1px solid color-mix(in srgb, var(--primary) 10%, transparent)";
   const narrador = segActualObj?.narrador ?? null;
   const imgUrl   = segActualObj ? segImgUrl(segActualObj) : null;
+
+  // ── Layout Extra: título + índice lista + botón leer ──
+  if (esExtra) {
+    return (
+      <div
+        style={{
+          width: "clamp(220px, 22vw, 300px)",
+          flexShrink: 0,
+          height: "100vh",
+          borderRight: border,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        {/* Botón volver */}
+        <div style={{ padding: "16px 20px 0", flexShrink: 0 }}>
+          <button
+            onClick={onVolver}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              border: "none", background: "none", cursor: "pointer",
+              color: "var(--primary)", fontSize: 9,
+              fontFamily: "var(--font-mono)", letterSpacing: "0.16em",
+              textTransform: "uppercase", opacity: 0.25, transition: "opacity 0.15s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = "0.6")}
+            onMouseLeave={e => (e.currentTarget.style.opacity = "0.25")}
+          >
+            ← Volver
+          </button>
+        </div>
+
+        {/* Título del libro */}
+        {libroTitulo && (
+          <div style={{ padding: "16px 20px 0", flexShrink: 0 }}>
+            <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3, marginBottom: 6 }}>
+              Libro
+            </p>
+            <p style={{ fontSize: 13, fontWeight: 900, color: "var(--primary)", opacity: 0.8, lineHeight: 1.3, fontStyle: "italic", letterSpacing: "-0.02em", textTransform: "uppercase" }}>
+              {libroTitulo}
+            </p>
+          </div>
+        )}
+
+        {/* Separador */}
+        <div style={{ margin: "16px 20px 8px", height: 1, background: border.replace("1px solid ", "") }} />
+
+        {/* Lista de capítulos */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 12px" }}>
+          {loading ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 8px" }}>
+              {[70, 90, 60, 80].map((w, i) => (
+                <div key={i} style={{ height: 10, width: `${w}%`, borderRadius: 4, background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              ))}
+            </div>
+          ) : (listaCapitulos ?? []).map(cap => {
+            const esActual = cap.id === capIdActual;
+            return (
+              <button
+                key={cap.id}
+                onClick={() => onSelectCap?.(cap.id)}
+                style={{
+                  display: "block", width: "100%", textAlign: "left",
+                  padding: "7px 10px", borderRadius: 6, border: "none",
+                  background: esActual ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                  cursor: "pointer", transition: "background 0.12s",
+                  color: esActual ? "var(--primary)" : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                  fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 700,
+                  textTransform: "uppercase", letterSpacing: "0.04em",
+                  lineHeight: 1.4,
+                }}
+                onMouseEnter={e => { if (!esActual) e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+                onMouseLeave={e => { if (!esActual) e.currentTarget.style.background = "transparent"; }}
+              >
+                <span style={{ fontSize: 8, opacity: 0.4, marginRight: 6, fontVariantNumeric: "tabular-nums" }}>
+                  {String(cap.orden).padStart(2, "0")}
+                </span>
+                {cap.titulo_capitulo}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Botón Leer (scroll al cap actual) */}
+        <div style={{ padding: "12px 16px", flexShrink: 0, borderTop: border }}>
+          <button
+            onClick={() => {
+              if (capIdActual) document.getElementById(`cap-${capIdActual}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+              gap: 8, padding: "10px 16px",
+              border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
+              borderRadius: "var(--radius-btn, 6px)",
+              background: "transparent", cursor: "pointer",
+              color: "var(--primary)", fontSize: 10,
+              fontFamily: "var(--font-mono)", fontWeight: 900,
+              letterSpacing: "0.14em", textTransform: "uppercase",
+              opacity: 0.6, transition: "opacity 0.15s, background 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = "0.6"; e.currentTarget.style.background = "transparent"; }}
+          >
+            <ChevronLeft size={11} style={{ transform: "rotate(180deg)" }} /> Leer
+          </button>
+        </div>
+
+        {/* Barra de progreso */}
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 3, background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderRadius: 99 }}>
+          <BarraProgresoVertical capIds={capsParaMostrar.map(c => c.id)} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -610,6 +734,7 @@ export default function Lector() {
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState<string | null>(null);
   const [showIndex,      setShowIndex]      = useState(false);
+  const [esExtra,        setEsExtra]        = useState(false);
 
   const libroTitulo = capitulos[0]?.libros?.titulo;
   const hasScrolled = useRef(false);
@@ -689,6 +814,11 @@ export default function Lector() {
       narrador: NarradorInfo         | NarradorInfo[]         | null;
       reino:    ReinoInfo            | ReinoInfo[]            | null;
     };
+
+    supabase.from("libros").select("categoria").eq("id", id).single()
+      .then(({ data: libroData }) => {
+        if (libroData?.categoria?.toLowerCase() === "extra") setEsExtra(true);
+      });
 
     librosQueries.getCapituloParaLectura(capId, id, true)
       .then(async (queryRes) => {
@@ -836,8 +966,12 @@ export default function Lector() {
           capsParaMostrar={capsParaMostrar}
           personajesIds={personajesIds}
           loading={loading}
+          esExtra={esExtra}
+          listaCapitulos={listaCapitulos}
+          capIdActual={capId}
           onVolver={() => router.push(`/wiki/libros/${id}`)}
           onAbrirIndice={() => setShowIndex(true)}
+          onSelectCap={(newId) => { handleChapterSelect(newId); }}
         />
       </div>
 
@@ -865,7 +999,7 @@ export default function Lector() {
 
         {/* Capítulos */}
         {!loading && capsParaMostrar.map((cap) => (
-          <CapituloScrollBlock key={cap.id} cap={cap} onNavigate={handleNavigate} />
+          <CapituloScrollBlock key={cap.id} cap={cap} onNavigate={handleNavigate} esExtra={esExtra} />
         ))}
 
         {/* Transición o fin del libro */}
@@ -877,17 +1011,21 @@ export default function Lector() {
           />
         ) : (
           <footer className="max-w-2xl mx-auto px-6 pb-20 pt-4 flex flex-col items-center gap-6">
-            <div className="flex items-center gap-4 w-full max-w-xs">
-              <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
-              <span className="font-serif text-base" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>— Fin —</span>
-              <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
-            </div>
-            <button
-              onClick={() => router.push(`/wiki/libros/${id}`)}
-              className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
-            >
-              <List size={16} /> Volver al índice
-            </button>
+            {!esExtra && (
+              <>
+                <div className="flex items-center gap-4 w-full max-w-xs">
+                  <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
+                  <span className="font-serif text-base" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>— Fin —</span>
+                  <div className="flex-1 h-px" style={{ background: "linear-gradient(to left, transparent, color-mix(in srgb, var(--primary) 20%, transparent))" }} />
+                </div>
+                <button
+                  onClick={() => router.push(`/wiki/libros/${id}`)}
+                  className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  <List size={16} /> Volver al índice
+                </button>
+              </>
+            )}
           </footer>
         )}
       </div>
