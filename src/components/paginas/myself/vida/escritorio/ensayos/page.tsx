@@ -213,10 +213,44 @@ export default function Ensayos() {
   // ─── Tag-as-page navigation ────────────────────────────────────────────────
 
   /**
-   * Navigate to the note whose title matches `name` (case-insensitive).
-   * If no note exists, open NewNoteModal pre-filled with that name.
+   * Silently create a tag-page (no modal). Returns the new note id.
    */
-  const navigateToPage = useCallback((name: string) => {
+  const autoCreateTagPage = useCallback(async (tag: string): Promise<string | null> => {
+    if (!user) return null;
+    const now = new Date().toISOString();
+    // Build initial content listing linked notes
+    const linkedNotes = ensayos
+      .filter((e: any) => e.tags?.includes(tag) && e.titulo)
+      .map((e: any) => `- [[${e.titulo}]]`)
+      .join("\n");
+
+    const contenido = `# ${tag}\n\nNotas con esta etiqueta:\n\n${linkedNotes || "_ninguna aún_"}`;
+
+    const payload = {
+      titulo:     tag,
+      user_id:    user.id,
+      contenido,
+      tags:       [tag],
+      updated_at: now,
+    };
+
+    const { data, error } = await addRow(payload);
+    if (!error && data) {
+      setEnsayos((prev: any[]) => {
+        if (prev.find((e: any) => e.id === data.id)) return prev;
+        return [data, ...prev];
+      });
+      return data.id;
+    }
+    return null;
+  }, [user, ensayos, addRow, setEnsayos]);
+
+  /**
+   * Navigate to the note whose title matches `name` (case-insensitive).
+   * If it's a tag navigation and no note exists, auto-create the page silently.
+   * If it's a wikilink and no note exists, open NewNoteModal pre-filled.
+   */
+  const navigateToPage = useCallback(async (name: string, isTag = false) => {
     const normalized = name.trim().toLowerCase();
     const found = ensayos.find(
       (e: any) => e.titulo?.toLowerCase() === normalized
@@ -224,19 +258,37 @@ export default function Ensayos() {
     if (found) {
       setEnsayoActivo(found.id);
       setSidebarOpen(false);
+    } else if (isTag) {
+      // Auto-create tag page silently
+      const newId = await autoCreateTagPage(name.trim());
+      if (newId) {
+        setEnsayoActivo(newId);
+        setSidebarOpen(false);
+      }
     } else {
-      // Pre-fill modal with the page name and open it
+      // Wikilink: pre-fill modal
       setPendingNoteTitle(name.trim());
       setShowNewNoteModal(true);
     }
-  }, [ensayos]);
+  }, [ensayos, autoCreateTagPage]);
 
   /**
-   * Click a tag chip → navigate to the note-page for that tag.
-   * Also updates the active tag filter in the sidebar.
+   * Auto-create pages for any tags that don't have one yet.
+   */
+  const autoCreateMissingTagPages = useCallback(async (tags: string[]) => {
+    for (const tag of tags) {
+      const exists = ensayos.some((e: any) => e.titulo?.toLowerCase() === tag.toLowerCase());
+      if (!exists) {
+        await autoCreateTagPage(tag);
+      }
+    }
+  }, [ensayos, autoCreateTagPage]);
+
+  /**
+   * Click a tag chip → navigate to the note-page for that tag (auto-creates if missing).
    */
   const handleTagNavigate = useCallback((tag: string) => {
-    navigateToPage(tag);
+    navigateToPage(tag, true);
   }, [navigateToPage]);
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -304,7 +356,11 @@ export default function Ensayos() {
 
   const actualizarLocal = useCallback((id: string, field: string, value: any) => {
     scheduleSave(id, { [field]: value });
-  }, [scheduleSave]);
+    // Auto-create pages for any new tags
+    if (field === "tags" && Array.isArray(value)) {
+      autoCreateMissingTagPages(value);
+    }
+  }, [scheduleSave, autoCreateMissingTagPages]);
 
   // ─── CRUD ──────────────────────────────────────────────────────────────────
 
@@ -356,7 +412,34 @@ export default function Ensayos() {
 
   const ensayoActivo = ensayos.find((e: any) => e.id === ensayoActivoId) ?? null;
 
-  // ─── Props del sidebar ─────────────────────────────────────────────────────
+  // ─── Keep tag-pages content in sync ───────────────────────────────────────
+  // When ensayos change, refresh all tag-pages (notes whose title matches a tag)
+  // so they always list the current notes with that tag.
+  useEffect(() => {
+    if (!ensayos.length) return;
+    const allTags = new Set<string>();
+    ensayos.forEach((e: any) => e.tags?.forEach((t: string) => allTags.add(t)));
+
+    allTags.forEach(tag => {
+      const tagPage = ensayos.find((e: any) => e.titulo?.toLowerCase() === tag.toLowerCase());
+      if (!tagPage) return;
+      const linkedNotes = ensayos
+        .filter((e: any) => e.id !== tagPage.id && e.tags?.includes(tag) && e.titulo)
+        .map((e: any) => `- [[${e.titulo}]]`)
+        .join("\n");
+      const newContent = `# ${tag}\n\nNotas con esta etiqueta:\n\n${linkedNotes || "_ninguna aún_"}`;
+      // Only update if content has changed to avoid infinite loops
+      if (tagPage.contenido !== newContent) {
+        scheduleSave(tagPage.id, { contenido: newContent });
+        setEnsayos((prev: any[]) =>
+          prev.map((e: any) => e.id === tagPage.id ? { ...e, contenido: newContent } : e)
+        );
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ensayos.map((e: any) => `${e.id}:${e.tags?.join(",")}`).join("|")]);
+
+
 
   const sidebarProps = {
     ensayos, ensayosFiltrados, todosLosTags, tagActivo, ensayoActivoId,
@@ -457,7 +540,7 @@ export default function Ensayos() {
                     onToggleEditMode={() => setEditMode(p => !p)}
                     onUpdateField={actualizarLocal}
                     onSelectEnsayo={handleEnsayoClick}
-                    onNavigateToPage={navigateToPage}
+                    onNavigateToPage={(name) => navigateToPage(name, false)}
                   />
                 ) : (
                   <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
