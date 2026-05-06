@@ -1309,10 +1309,9 @@ type TabGroup = {
 const UNIFIED_TABS: (TabGroup | "sep")[] = [
   { key: "mundo",    label: "Mundo",    Icon: Globe },
   { key: "historia", label: "Historia", Icon: ScrollText },
+  { key: "magia",    label: "Magia",    Icon: Sparkles, color: "var(--accent)" },
   "sep",
   { key: "listas",   label: "Listas",   Icon: Users },
-  "sep",
-  { key: "magia",    label: "Magia",    Icon: Sparkles, color: "var(--accent)" },
 ];
 
 // Mapea el activeSection + subTab al nuevo UnifiedTab
