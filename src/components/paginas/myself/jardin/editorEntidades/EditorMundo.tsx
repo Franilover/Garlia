@@ -1296,9 +1296,8 @@ function PanelMagia({
 type UnifiedTab =
   | "mundo"     // texto geografía
   | "historia"  // texto historia
-  | "listas"    // columnas: reinos · criaturas · objetos · personajes · hechizos · dones
-  | "magia"     // texto sistema de magia
-  | "runas";
+  | "listas"    // columnas: reinos · criaturas · objetos · personajes · hechizos · dones · runas
+  | "magia";    // texto sistema de magia
 
 type TabGroup = {
   key: UnifiedTab;
@@ -1313,22 +1312,20 @@ const UNIFIED_TABS: (TabGroup | "sep")[] = [
   "sep",
   { key: "listas",   label: "Listas",   Icon: Users },
   "sep",
-  { key: "magia",    label: "Magia",    Icon: Sparkles,   color: "var(--accent)" },
-  { key: "runas",    label: "Runas",    Icon: ScrollText, color: "var(--primary)" },
+  { key: "magia",    label: "Magia",    Icon: Sparkles, color: "var(--accent)" },
 ];
 
 // Mapea el activeSection + subTab al nuevo UnifiedTab
 function resolveInitialTab(activeSection: MundoSectionKey, initialMundoTab?: string): UnifiedTab {
   if (activeSection === "historia") return "historia";
   if (activeSection === "magia") {
-    const valid: UnifiedTab[] = ["magia", "runas"];
-    if (valid.includes(initialMundoTab as UnifiedTab)) return initialMundoTab as UnifiedTab;
-    // hechizos y dones ahora viven en listas
-    if (initialMundoTab === "hechizos" || initialMundoTab === "dones") return "listas";
+    if (initialMundoTab === "magia") return "magia";
+    // hechizos, dones y runas ahora viven en listas
+    if (["hechizos", "dones", "runas"].includes(initialMundoTab ?? "")) return "listas";
     return "magia";
   }
   // geografia
-  const listsKeys = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones"];
+  const listsKeys = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones", "runas"];
   if (initialMundoTab && listsKeys.includes(initialMundoTab)) return "listas";
   return "mundo";
 }
@@ -1365,7 +1362,7 @@ export function EditorMundo({
     // Mapea el tab unificado a (section, mundoTab) para persistencia
     const sectionMap: Record<UnifiedTab, MundoSectionKey> = {
       mundo: "geografia", historia: "historia", listas: "geografia",
-      magia: "magia", runas: "magia",
+      magia: "magia",
     };
     onTabChange?.(sectionMap[next], next);
   }, [onTabChange]);
@@ -1466,7 +1463,6 @@ export function EditorMundo({
         )}
 
         {tab === "listas"   && <PanelListas />}
-        {tab === "runas"    && <PanelRunas />}
       </div>
     </div>
   );
@@ -1481,6 +1477,7 @@ function PanelListas() {
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList();
   const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntidadesMagicas("hechizos");
   const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones");
+  const { items: runas,    setItems: setRunas,    loading: loadingRunas    } = useRunas();
   const { criaturas: criaturasMagicas, loading: loadingCriaturasMagicas } = useCriaturas();
 
   const [searchR, setSearchR] = useState("");
@@ -1489,6 +1486,7 @@ function PanelListas() {
   const [searchP, setSearchP] = useState("");
   const [searchH, setSearchH] = useState("");
   const [searchD, setSearchD] = useState("");
+  const [searchRu, setSearchRu] = useState("");
 
   const [selectedReino,    setSelectedReino]    = useState<Reino | null>(null);
   const [selectedCriatura, setSelectedCriatura] = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
@@ -1496,17 +1494,19 @@ function PanelListas() {
   const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
   const [selectedHechizo,  setSelectedHechizo]  = useState<EntidadMagica | null>(null);
   const [selectedDon,      setSelectedDon]      = useState<EntidadMagica | null>(null);
+  const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
-  const [mobileTab, setMobileTab] = useState<"reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones">("reinos");
+  const [mobileTab, setMobileTab] = useState<"reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas">("reinos");
 
   // Editor overlay activo
-  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | null =
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | null =
     selectedReino    ? "reino"    :
     selectedCriatura ? "criatura" :
     selectedObjeto   ? "objeto"   :
     selectedPersonaje? "personaje":
     selectedHechizo  ? "hechizo"  :
-    selectedDon      ? "don"      : null;
+    selectedDon      ? "don"      :
+    selectedRuna     ? "runa"     : null;
 
   const filteredR = reinos.filter(r    => r.nombre.toLowerCase().includes(searchR.toLowerCase()));
   const filteredC = criaturas.filter(c => c.nombre.toLowerCase().includes(searchC.toLowerCase()));
@@ -1514,6 +1514,7 @@ function PanelListas() {
   const filteredP = personajes.filter(p => p.nombre.toLowerCase().includes(searchP.toLowerCase()));
   const filteredH = hechizos.filter(h  => h.nombre.toLowerCase().includes(searchH.toLowerCase()) || (h.criatura?.nombre ?? "").toLowerCase().includes(searchH.toLowerCase()));
   const filteredD = dones.filter(d     => d.nombre.toLowerCase().includes(searchD.toLowerCase()) || (d.criatura?.nombre ?? "").toLowerCase().includes(searchD.toLowerCase()));
+  const filteredRu = runas.filter(r    => r.nombre.toLowerCase().includes(searchRu.toLowerCase()));
 
   const handleSavePersonaje = async () => {
     if (!selectedPersonaje) return;
@@ -1589,7 +1590,7 @@ function PanelListas() {
               onClick={() => {
                 setSelectedReino(null); setSelectedCriatura(null);
                 setSelectedObjeto(null); setSelectedPersonaje(null);
-                setSelectedHechizo(null); setSelectedDon(null);
+                setSelectedHechizo(null); setSelectedDon(null); setSelectedRuna(null);
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
             >
@@ -1602,8 +1603,9 @@ function PanelListas() {
               {overlay === "personaje"&& <Users    size={12} className="text-primary/40 shrink-0" />}
               {overlay === "hechizo"  && <Sparkles size={12} className="shrink-0" style={{ color: "var(--accent)" }} />}
               {overlay === "don"      && <Star     size={12} className="shrink-0" style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }} />}
+              {overlay === "runa"     && <ScrollText size={12} className="shrink-0" style={{ color: "var(--primary)" }} />}
               <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">
-                {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedPersonaje?.nombre ?? selectedHechizo?.nombre ?? selectedDon?.nombre}
+                {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedPersonaje?.nombre ?? selectedHechizo?.nombre ?? selectedDon?.nombre ?? selectedRuna?.nombre}
               </span>
             </div>
           </div>
@@ -1654,6 +1656,13 @@ function PanelListas() {
                 onDeleted={id => { setDones(p => p.filter(d => d.id !== id)); setSelectedDon(null); }}
               />
             )}
+            {overlay === "runa" && selectedRuna && (
+              <FormularioRuna
+                key={selectedRuna.id} item={selectedRuna}
+                onSaved={u => { setRunas(p => p.map(r => r.id === u.id ? u : r)); setSelectedRuna(u); }}
+                onDeleted={id => { setRunas(p => p.filter(r => r.id !== id)); setSelectedRuna(null); }}
+              />
+            )}
           </div>
         </div>
       )}
@@ -1666,8 +1675,9 @@ function PanelListas() {
           { key: "criaturas", label: "Criaturas", Icon: Bug,      count: criaturas.length, color: undefined },
           { key: "objetos",   label: "Objetos",   Icon: Package,  count: objetos.length,   color: undefined },
           { key: "personajes",label: "Personajes",Icon: Users,    count: personajes.length,color: undefined },
-          { key: "hechizos",  label: "Hechizos",  Icon: Sparkles, count: hechizos.length,  color: "var(--accent)" },
-          { key: "dones",     label: "Dones",     Icon: Star,     count: dones.length,     color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
+          { key: "hechizos",  label: "Hechizos",  Icon: Sparkles,    count: hechizos.length,  color: "var(--accent)" },
+          { key: "dones",     label: "Dones",     Icon: Star,        count: dones.length,     color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
+          { key: "runas",     label: "Runas",     Icon: ScrollText,  count: runas.length,     color: "var(--primary)" },
         ] as const).map(t => (
           <button key={t.key} onClick={() => setMobileTab(t.key)}
             className="flex-1 flex flex-col items-center gap-1 px-2 py-3 text-[9px] font-black uppercase tracking-widest transition-all relative min-w-[3.5rem]"
@@ -1822,7 +1832,7 @@ function PanelListas() {
       </div>
 
       {/* Dones */}
-      <div className={`flex-1 flex flex-col min-h-0 ${mobileTab !== "dones" ? "hidden sm:flex" : "flex"}`}>
+      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "dones" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
         <ColHeader label="Dones" count={dones.length} Icon={Star} color="color-mix(in srgb, var(--accent) 70%, var(--primary))" />
         <SearchInput value={searchD} onChange={setSearchD} placeholder="Buscar don…" />
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
@@ -1842,6 +1852,31 @@ function PanelListas() {
                     {d.criatura && (
                       <p className="text-[8px] truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>{d.criatura.nombre}</p>
                     )}
+                  </div>
+                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
+                </button>
+              ))}
+        </div>
+      </div>
+
+      {/* Runas */}
+      <div className={`flex-1 flex flex-col min-h-0 ${mobileTab !== "runas" ? "hidden sm:flex" : "flex"}`}>
+        <ColHeader label="Runas" count={runas.length} Icon={ScrollText} color="var(--primary)" />
+        <SearchInput value={searchRu} onChange={setSearchRu} placeholder="Buscar runa…" />
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
+          {loadingRunas
+            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+            : filteredRu.length === 0
+              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchRu ? "Sin resultados" : "Sin runas"}</p>
+              : filteredRu.map(r => (
+                <button key={r.id} onClick={() => setSelectedRuna(r)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                  <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                    style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+                    <ScrollText size={11} className="text-primary/40" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-primary/80 truncate">{r.nombre}</p>
                   </div>
                   <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
                 </button>
