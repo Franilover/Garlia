@@ -236,6 +236,7 @@ export const PROSE_STYLES = `
   .prose-mundo ul { list-style:none;padding-left:1rem;margin:.4rem 0 }
   .prose-mundo ul li { position:relative;padding-left:.8rem;font-size:.82rem;margin:.2rem 0;color:var(--color-input-text,#d1c9ff) }
   .prose-mundo ul li::before { content: "⋆"; position: absolute; left: -1.4rem; font-size: 1.6rem; color: var(--color-primary, #7c6af7); top: -0.2rem; line-height: 1; }
+  .prose-mundo ul li::before { content: "⋆"; position: absolute; left: -0.1rem; font-size: 1.6rem; color: var(--color-primary, #7c6af7); top: -0.3rem; line-height: 1; }
   .prose-mundo .task-list-item { display:flex;align-items:flex-start;gap:0.4rem;padding-left:0; }
   .prose-mundo .task-list-item::before { display:none; }
   .prose-mundo .task-list-checkbox { margin-top:0.25rem;accent-color:var(--color-primary,#7c6af7);width:0.85rem;height:0.85rem;cursor:not-allowed; }
