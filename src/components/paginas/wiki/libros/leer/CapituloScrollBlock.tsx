@@ -119,6 +119,18 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false }: {
      */
     <div id={`cap-${cap.id}`} className="lector-article-wrap scroll-mt-20">
       <style>{FLUID_FONT_STYLES}</style>
+      {esExtra && <style>{`
+        .lector-article-wrap p::first-letter,
+        .lector-article-wrap p:first-of-type::first-letter,
+        .prose-mundo p::first-letter,
+        .lector-texto p::first-letter {
+          all: unset !important;
+          font-size: inherit !important;
+          float: none !important;
+          line-height: inherit !important;
+          font-weight: inherit !important;
+        }
+      `}</style>}
 
       <article
         className="lector-article-inner mx-auto px-6 py-16 md:py-24"
