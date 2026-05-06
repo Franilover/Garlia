@@ -409,6 +409,7 @@ function PanelLateral({
   segActualObj,
   capsParaMostrar,
   personajesIds,
+  loading,
   onVolver,
   onAbrirIndice,
 }: {
@@ -416,6 +417,7 @@ function PanelLateral({
   segActualObj: Segmento | null;
   capsParaMostrar: CapituloScrollItem[];
   personajesIds: string[];
+  loading?: boolean;
   onVolver: () => void;
   onAbrirIndice: () => void;
 }) {
@@ -488,8 +490,23 @@ function PanelLateral({
           gap: 18,
         }}
       >
+        {/* Placeholders de carga */}
+        {loading && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[80, 60, 100, 50].map((w, i) => (
+              <div key={i} style={{
+                height: i === 0 ? 14 : 10,
+                width: `${w}%`,
+                borderRadius: 4,
+                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                opacity: 0.5,
+              }} />
+            ))}
+          </div>
+        )}
+
         {/* Título del libro */}
-        {libroTitulo && (
+        {!loading && libroTitulo && (
           <div>
             <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3, marginBottom: 4 }}>
               Libro
@@ -501,7 +518,7 @@ function PanelLateral({
         )}
 
         {/* Narrador */}
-        {narrador && (
+        {!loading && narrador && (
           <div style={{ paddingTop: 14, borderTop: border }}>
             <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 6 }}>
               Narrador
@@ -513,7 +530,7 @@ function PanelLateral({
         )}
 
         {/* Personajes que aparecen en los capítulos del segmento */}
-        {personajesIds.length > 0 && (
+        {!loading && personajesIds.length > 0 && (
           <PersonajesPanel ids={personajesIds} border={border} />
         )}
 
@@ -791,8 +808,7 @@ export default function Lector() {
     router.push(`/wiki/libros/${id}/leer/${sig.capitulos[0].id}`);
   }, [segmentos, id, router]);
 
-  if (loading) return <LectorSkeleton />;
-  if (error || capitulos.length === 0) return (
+  if (!loading && (error || capitulos.length === 0)) return (
     <div className="h-screen flex flex-col items-center justify-center bg-bg-main text-primary p-6 text-center">
       <h2 className="font-black uppercase text-xl mb-4 italic tracking-tighter">
         {error || "No hay capítulos disponibles"}
@@ -819,6 +835,7 @@ export default function Lector() {
           segActualObj={segActualObj}
           capsParaMostrar={capsParaMostrar}
           personajesIds={personajesIds}
+          loading={loading}
           onVolver={() => router.push(`/wiki/libros/${id}`)}
           onAbrirIndice={() => setShowIndex(true)}
         />
@@ -847,7 +864,7 @@ export default function Lector() {
         />
 
         {/* Capítulos */}
-        {capsParaMostrar.map((cap) => (
+        {!loading && capsParaMostrar.map((cap) => (
           <CapituloScrollBlock key={cap.id} cap={cap} onNavigate={handleNavigate} />
         ))}
 
