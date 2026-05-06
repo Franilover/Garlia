@@ -1296,10 +1296,8 @@ function PanelMagia({
 type UnifiedTab =
   | "mundo"     // texto geografía
   | "historia"  // texto historia
-  | "listas"    // columnas: reinos · criaturas · objetos · personajes
+  | "listas"    // columnas: reinos · criaturas · objetos · personajes · hechizos · dones
   | "magia"     // texto sistema de magia
-  | "hechizos"
-  | "dones"
   | "runas";
 
 type TabGroup = {
@@ -1316,8 +1314,6 @@ const UNIFIED_TABS: (TabGroup | "sep")[] = [
   { key: "listas",   label: "Listas",   Icon: Users },
   "sep",
   { key: "magia",    label: "Magia",    Icon: Sparkles,   color: "var(--accent)" },
-  { key: "hechizos", label: "Hechizos", Icon: Sparkles,   color: "var(--accent)" },
-  { key: "dones",    label: "Dones",    Icon: Star,       color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
   { key: "runas",    label: "Runas",    Icon: ScrollText, color: "var(--primary)" },
 ];
 
@@ -1325,11 +1321,14 @@ const UNIFIED_TABS: (TabGroup | "sep")[] = [
 function resolveInitialTab(activeSection: MundoSectionKey, initialMundoTab?: string): UnifiedTab {
   if (activeSection === "historia") return "historia";
   if (activeSection === "magia") {
-    const valid: UnifiedTab[] = ["magia", "hechizos", "dones", "runas"];
-    return (valid.includes(initialMundoTab as UnifiedTab) ? initialMundoTab : "magia") as UnifiedTab;
+    const valid: UnifiedTab[] = ["magia", "runas"];
+    if (valid.includes(initialMundoTab as UnifiedTab)) return initialMundoTab as UnifiedTab;
+    // hechizos y dones ahora viven en listas
+    if (initialMundoTab === "hechizos" || initialMundoTab === "dones") return "listas";
+    return "magia";
   }
   // geografia
-  const listsKeys = ["reinos", "criaturas", "objetos", "personajes"];
+  const listsKeys = ["reinos", "criaturas", "objetos", "personajes", "hechizos", "dones"];
   if (initialMundoTab && listsKeys.includes(initialMundoTab)) return "listas";
   return "mundo";
 }
@@ -1366,7 +1365,7 @@ export function EditorMundo({
     // Mapea el tab unificado a (section, mundoTab) para persistencia
     const sectionMap: Record<UnifiedTab, MundoSectionKey> = {
       mundo: "geografia", historia: "historia", listas: "geografia",
-      magia: "magia", hechizos: "magia", dones: "magia", runas: "magia",
+      magia: "magia", runas: "magia",
     };
     onTabChange?.(sectionMap[next], next);
   }, [onTabChange]);
@@ -1467,8 +1466,6 @@ export function EditorMundo({
         )}
 
         {tab === "listas"   && <PanelListas />}
-        {tab === "hechizos" && <PanelMagico modo="hechizos" />}
-        {tab === "dones"    && <PanelMagico modo="dones" />}
         {tab === "runas"    && <PanelRunas />}
       </div>
     </div>
@@ -1476,36 +1473,47 @@ export function EditorMundo({
 }
 
 
-// ─── PanelListas: 4 columnas side-by-side ────────────────────────────────────
+// ─── PanelListas: columnas side-by-side (reinos, criaturas, objetos, personajes, hechizos, dones) ──
 function PanelListas() {
   const { reinos,    setReinos,    loading: loadingReinos    } = useReinos();
   const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
   const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos();
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesList();
+  const { items: hechizos, setItems: setHechizos, loading: loadingHechizos } = useEntidadesMagicas("hechizos");
+  const { items: dones,    setItems: setDones,    loading: loadingDones    } = useEntidadesMagicas("dones");
+  const { criaturas: criaturasMagicas, loading: loadingCriaturasMagicas } = useCriaturas();
 
   const [searchR, setSearchR] = useState("");
   const [searchC, setSearchC] = useState("");
   const [searchO, setSearchO] = useState("");
   const [searchP, setSearchP] = useState("");
+  const [searchH, setSearchH] = useState("");
+  const [searchD, setSearchD] = useState("");
 
   const [selectedReino,    setSelectedReino]    = useState<Reino | null>(null);
   const [selectedCriatura, setSelectedCriatura] = useState<{ id: string; nombre: string; imagen_url?: string; habitat?: string } | null>(null);
   const [selectedObjeto,   setSelectedObjeto]   = useState<{ id: string; nombre: string; imagen_url?: string; categoria?: string } | null>(null);
   const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
+  const [selectedHechizo,  setSelectedHechizo]  = useState<EntidadMagica | null>(null);
+  const [selectedDon,      setSelectedDon]      = useState<EntidadMagica | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
-  const [mobileTab, setMobileTab] = useState<"reinos" | "criaturas" | "objetos" | "personajes">("reinos");
+  const [mobileTab, setMobileTab] = useState<"reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones">("reinos");
 
   // Editor overlay activo
-  const overlay: "reino" | "criatura" | "objeto" | "personaje" | null =
+  const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | null =
     selectedReino    ? "reino"    :
     selectedCriatura ? "criatura" :
     selectedObjeto   ? "objeto"   :
-    selectedPersonaje? "personaje": null;
+    selectedPersonaje? "personaje":
+    selectedHechizo  ? "hechizo"  :
+    selectedDon      ? "don"      : null;
 
   const filteredR = reinos.filter(r    => r.nombre.toLowerCase().includes(searchR.toLowerCase()));
   const filteredC = criaturas.filter(c => c.nombre.toLowerCase().includes(searchC.toLowerCase()));
   const filteredO = objetos.filter(o   => o.nombre.toLowerCase().includes(searchO.toLowerCase()));
   const filteredP = personajes.filter(p => p.nombre.toLowerCase().includes(searchP.toLowerCase()));
+  const filteredH = hechizos.filter(h  => h.nombre.toLowerCase().includes(searchH.toLowerCase()) || (h.criatura?.nombre ?? "").toLowerCase().includes(searchH.toLowerCase()));
+  const filteredD = dones.filter(d     => d.nombre.toLowerCase().includes(searchD.toLowerCase()) || (d.criatura?.nombre ?? "").toLowerCase().includes(searchD.toLowerCase()));
 
   const handleSavePersonaje = async () => {
     if (!selectedPersonaje) return;
@@ -1535,11 +1543,11 @@ function PanelListas() {
   const colBorder = "border-r last:border-r-0";
   const colStyle = { borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" };
 
-  function ColHeader({ label, count, Icon }: { label: string; count: number; Icon: React.ElementType }) {
+  function ColHeader({ label, count, Icon, color }: { label: string; count: number; Icon: React.ElementType; color?: string }) {
     return (
       <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2"
         style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-        <Icon size={11} className="text-primary/35 shrink-0" />
+        <Icon size={11} style={{ color: color ?? "color-mix(in srgb, var(--primary) 35%, transparent)" }} className="shrink-0" />
         <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/50 flex-1">{label}</p>
         {count > 0 && (
           <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full"
@@ -1581,18 +1589,21 @@ function PanelListas() {
               onClick={() => {
                 setSelectedReino(null); setSelectedCriatura(null);
                 setSelectedObjeto(null); setSelectedPersonaje(null);
+                setSelectedHechizo(null); setSelectedDon(null);
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
             >
               <ChevronRight size={12} className="rotate-180" /> Volver a Listas
             </button>
             <div className="flex items-center gap-2 min-w-0">
-              {overlay === "reino"    && <Map     size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "criatura" && <Bug     size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "objeto"   && <Package size={12} className="text-primary/40 shrink-0" />}
-              {overlay === "personaje"&& <Users   size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "reino"    && <Map      size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "criatura" && <Bug      size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "objeto"   && <Package  size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "personaje"&& <Users    size={12} className="text-primary/40 shrink-0" />}
+              {overlay === "hechizo"  && <Sparkles size={12} className="shrink-0" style={{ color: "var(--accent)" }} />}
+              {overlay === "don"      && <Star     size={12} className="shrink-0" style={{ color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" }} />}
               <span className="text-[11px] font-black uppercase tracking-[0.15em] text-primary/60 truncate">
-                {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedPersonaje?.nombre}
+                {selectedReino?.nombre ?? selectedCriatura?.nombre ?? selectedObjeto?.nombre ?? selectedPersonaje?.nombre ?? selectedHechizo?.nombre ?? selectedDon?.nombre}
               </span>
             </div>
           </div>
@@ -1627,27 +1638,45 @@ function PanelListas() {
                 compacto
               />
             )}
+            {overlay === "hechizo" && selectedHechizo && (
+              <FormularioMagico
+                key={selectedHechizo.id} item={selectedHechizo} modo="hechizos"
+                criaturas={criaturasMagicas} loadingCriaturas={loadingCriaturasMagicas}
+                onSaved={u => { setHechizos(p => p.map(h => h.id === u.id ? u : h)); setSelectedHechizo(u); }}
+                onDeleted={id => { setHechizos(p => p.filter(h => h.id !== id)); setSelectedHechizo(null); }}
+              />
+            )}
+            {overlay === "don" && selectedDon && (
+              <FormularioMagico
+                key={selectedDon.id} item={selectedDon} modo="dones"
+                criaturas={criaturasMagicas} loadingCriaturas={loadingCriaturasMagicas}
+                onSaved={u => { setDones(p => p.map(d => d.id === u.id ? u : d)); setSelectedDon(u); }}
+                onDeleted={id => { setDones(p => p.filter(d => d.id !== id)); setSelectedDon(null); }}
+              />
+            )}
           </div>
         </div>
       )}
 
       {/* ── Mobile tab switcher (hidden on sm+) ─────────────────────────── */}
-      <div className="sm:hidden absolute bottom-0 left-0 right-0 z-10 flex border-t"
+      <div className="sm:hidden absolute bottom-0 left-0 right-0 z-10 flex border-t overflow-x-auto scrollbar-none"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)", background: "var(--bg-main)" }}>
         {([
-          { key: "reinos",    label: "Reinos",    Icon: Map,     count: reinos.length },
-          { key: "criaturas", label: "Criaturas", Icon: Bug,     count: criaturas.length },
-          { key: "objetos",   label: "Objetos",   Icon: Package, count: objetos.length },
-          { key: "personajes",label: "Personajes",Icon: Users,   count: personajes.length },
+          { key: "reinos",    label: "Reinos",    Icon: Map,      count: reinos.length,    color: undefined },
+          { key: "criaturas", label: "Criaturas", Icon: Bug,      count: criaturas.length, color: undefined },
+          { key: "objetos",   label: "Objetos",   Icon: Package,  count: objetos.length,   color: undefined },
+          { key: "personajes",label: "Personajes",Icon: Users,    count: personajes.length,color: undefined },
+          { key: "hechizos",  label: "Hechizos",  Icon: Sparkles, count: hechizos.length,  color: "var(--accent)" },
+          { key: "dones",     label: "Dones",     Icon: Star,     count: dones.length,     color: "color-mix(in srgb, var(--accent) 70%, var(--primary))" },
         ] as const).map(t => (
           <button key={t.key} onClick={() => setMobileTab(t.key)}
-            className="flex-1 flex flex-col items-center gap-1 px-2 py-3 text-[9px] font-black uppercase tracking-widest transition-all relative"
-            style={{ color: mobileTab === t.key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+            className="flex-1 flex flex-col items-center gap-1 px-2 py-3 text-[9px] font-black uppercase tracking-widest transition-all relative min-w-[3.5rem]"
+            style={{ color: mobileTab === t.key ? (t.color ?? "var(--primary)") : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
             <div className="relative">
               <t.Icon size={18} />
               {t.count > 0 && (
                 <span className="absolute -top-1.5 -right-2.5 text-[7px] font-black px-1 rounded-full leading-tight"
-                  style={{ background: mobileTab === t.key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                  style={{ background: mobileTab === t.key ? (t.color ?? "var(--primary)") : "color-mix(in srgb, var(--primary) 15%, transparent)",
                     color: mobileTab === t.key ? "var(--btn-text, #fff)" : "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
                   {t.count}
                 </span>
@@ -1661,7 +1690,7 @@ function PanelListas() {
         ))}
       </div>
 
-      {/* ── 4 columnas (desktop) / 1 columna con tabs (mobile) ──────────── */}
+      {/* ── 6 columnas (desktop) / 1 columna con tabs (mobile) ──────────── */}
       <div className="flex-1 flex min-h-0 overflow-hidden pb-14 sm:pb-0">
 
       {/* Reinos */}
@@ -1740,7 +1769,7 @@ function PanelListas() {
       </div>
 
       {/* Personajes */}
-      <div className={`flex-1 flex flex-col min-h-0 ${mobileTab !== "personajes" ? "hidden sm:flex" : "flex"}`}>
+      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "personajes" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
         <ColHeader label="Personajes" count={personajes.length} Icon={Users} />
         <SearchInput value={searchP} onChange={setSearchP} placeholder="Buscar personaje…" />
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
@@ -1764,11 +1793,68 @@ function PanelListas() {
         </div>
       </div>
 
-      </div>{/* end 4-col flex wrapper */}
+      {/* Hechizos */}
+      <div className={`flex-1 flex flex-col min-h-0 ${colBorder} ${mobileTab !== "hechizos" ? "hidden sm:flex" : "flex"}`} style={colStyle}>
+        <ColHeader label="Hechizos" count={hechizos.length} Icon={Sparkles} color="var(--accent)" />
+        <SearchInput value={searchH} onChange={setSearchH} placeholder="Buscar hechizo…" />
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
+          {loadingHechizos
+            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+            : filteredH.length === 0
+              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchH ? "Sin resultados" : "Sin hechizos"}</p>
+              : filteredH.map(h => (
+                <button key={h.id} onClick={() => setSelectedHechizo(h)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                  <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                    style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)" }}>
+                    <Sparkles size={11} style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-primary/80 truncate">{h.nombre}</p>
+                    {h.criatura && (
+                      <p className="text-[8px] truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>{h.criatura.nombre}</p>
+                    )}
+                  </div>
+                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
+                </button>
+              ))}
+        </div>
+      </div>
+
+      {/* Dones */}
+      <div className={`flex-1 flex flex-col min-h-0 ${mobileTab !== "dones" ? "hidden sm:flex" : "flex"}`}>
+        <ColHeader label="Dones" count={dones.length} Icon={Star} color="color-mix(in srgb, var(--accent) 70%, var(--primary))" />
+        <SearchInput value={searchD} onChange={setSearchD} placeholder="Buscar don…" />
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2 space-y-0.5">
+          {loadingDones
+            ? <div className="flex justify-center py-8"><Loader2 size={14} className="animate-spin text-primary/20" /></div>
+            : filteredD.length === 0
+              ? <p className="text-[9px] text-primary/20 uppercase tracking-widest text-center py-8 italic">{searchD ? "Sin resultados" : "Sin dones"}</p>
+              : filteredD.map(d => (
+                <button key={d.id} onClick={() => setSelectedDon(d)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-primary/6 border border-transparent hover:border-primary/10 transition-all rounded-xl group">
+                  <div className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                    style={{ background: "color-mix(in srgb, var(--accent) 6%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)" }}>
+                    <Star size={11} style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-primary/80 truncate">{d.nombre}</p>
+                    {d.criatura && (
+                      <p className="text-[8px] truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>{d.criatura.nombre}</p>
+                    )}
+                  </div>
+                  <ChevronRight size={9} className="text-primary/15 shrink-0 group-hover:text-primary/35 transition-colors" />
+                </button>
+              ))}
+        </div>
+      </div>
+
+      </div>{/* end 6-col flex wrapper */}
 
     </div>
   );
 }
+
 
 // ─── Panel de texto genérico (reemplaza PanelMagia y el texto de los demás) ──
 function PanelTexto({
