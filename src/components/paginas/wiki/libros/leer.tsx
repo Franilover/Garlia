@@ -743,6 +743,10 @@ export default function Lector() {
   const segActualObj    = usaSegmentos ? segmentos[segActivo]     ?? null : null;
   const segSiguiente    = usaSegmentos ? segmentos[segActivo + 1] ?? null : null;
   const capsParaMostrar = usaSegmentos ? (segActualObj?.capitulos ?? []) : capitulos;
+  // En modo Extra solo se renderiza el capítulo activo, no todos en scroll
+  const capsARenderizar = esExtra
+    ? capsParaMostrar.filter(c => c.id === capId)
+    : capsParaMostrar;
 
   /* IDs únicos de personajes de todos los caps del segmento */
   const personajesIds = Array.from(
@@ -998,7 +1002,7 @@ export default function Lector() {
         />
 
         {/* Capítulos */}
-        {!loading && capsParaMostrar.map((cap) => (
+        {!loading && capsARenderizar.map((cap) => (
           <CapituloScrollBlock key={cap.id} cap={cap} onNavigate={handleNavigate} esExtra={esExtra} />
         ))}
 
