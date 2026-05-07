@@ -29,7 +29,6 @@
       "@/*": ["./src/*"],
 
       "@/components/*": ["src/components/*"],
-      "@/components/*": ["src/components/*"], 
       "@/ui/*": ["src/components/ui/*"],
       
       "@/features/*": ["./src/features/*"],
