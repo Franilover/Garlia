@@ -207,7 +207,7 @@ export default function LibroDetalle() {
 
   // Colores de acento por grupo (igual que antes)
   const acentos = [
-    { bg: "bg-primary/5",             border: "border-primary/15",           dot: "bg-primary/40" },
+    { bg: "bg-primary/5",             border: "border-primary/30",           dot: "bg-primary/40" },
     { bg: "bg-[var(--accent)]/5",     border: "border-[var(--accent)]/20",   dot: "bg-[var(--accent)]/50" },
     { bg: "bg-primary/8",             border: "border-primary/20",           dot: "bg-primary/60" },
     { bg: "bg-[var(--accent)]/8",     border: "border-[var(--accent)]/25",   dot: "bg-[var(--accent)]/70" },
@@ -361,11 +361,11 @@ export default function LibroDetalle() {
                         <img
                           src={img}
                           alt={label}
-                          className="w-8 h-8 object-cover flex-shrink-0 rounded-btn border border-primary/15"
+                          className="w-8 h-8 object-cover flex-shrink-0 rounded-btn border border-primary/30"
                         />
                       ) : (
                         <div
-                          className={`w-8 h-8 flex items-center justify-center text-[10px] font-black text-primary/50 flex-shrink-0 rounded-btn border border-primary/15 ${acentos[i % acentos.length].bg}`}
+                          className={`w-8 h-8 flex items-center justify-center text-[10px] font-black text-primary/50 flex-shrink-0 rounded-btn border border-primary/30 ${acentos[i % acentos.length].bg}`}
                         >
                           {label.charAt(0)}
                         </div>
@@ -435,11 +435,11 @@ export default function LibroDetalle() {
                             <img
                               src={img}
                               alt={label}
-                              className="w-10 h-10 object-cover flex-shrink-0 shadow-md rounded-btn border border-primary/15"
+                              className="w-10 h-10 object-cover flex-shrink-0 shadow-md rounded-btn border border-primary/30"
                             />
                           ) : (
                             <div
-                              className={`w-10 h-10 flex items-center justify-center text-sm font-black text-primary/60 flex-shrink-0 rounded-btn border border-primary/15 ${acento.bg}`}
+                              className={`w-10 h-10 flex items-center justify-center text-sm font-black text-primary/60 flex-shrink-0 rounded-btn border border-primary/30 ${acento.bg}`}
                             >
                               {label.charAt(0)}
                             </div>
