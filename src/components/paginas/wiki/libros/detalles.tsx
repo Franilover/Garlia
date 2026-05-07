@@ -442,14 +442,6 @@ export default function LibroDetalle() {
 
         {/* ── Contenido principal ── */}
         <main>
-          <div className="mb-12">
-            <h1 className="text-5xl font-black text-primary italic tracking-tighter leading-[0.9] mb-6 uppercase">
-              {libro.titulo}
-            </h1>
-            <p className="text-primary/70 leading-relaxed text-lg font-medium italic">
-              &quot;{libro.sinopsis}&quot;
-            </p>
-          </div>
 
           {/* ── Índice agrupado ── */}
           <div className="space-y-4">
