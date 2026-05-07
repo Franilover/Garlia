@@ -16,6 +16,84 @@
   --color-input-text: var(--input-text);
   --color-menu-text: var(--menu-text);
 
+  /* ── Escala de grises ── */
+  --color-gray-50:  #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+
+  /* ── Café antiguo / sepia ── */
+  --color-brown-50:  #fdf6ee;
+  --color-brown-100: #f5e6cc;
+  --color-brown-200: #e8cda0;
+  --color-brown-300: #d4aa72;
+  --color-brown-400: #c08848;
+  --color-brown-500: #a06828;
+  --color-brown-600: #7d4e1a;
+  --color-brown-700: #5c3610;
+  --color-brown-800: #3d2008;
+  --color-brown-900: #2a1304;
+  --color-brown-950: #150900;
+
+  /* ── Extras faltantes: slate, rose, teal ── */
+  --color-slate-50:  #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+
+  --color-rose-50:  #fff1f2;
+  --color-rose-100: #ffe4e6;
+  --color-rose-200: #fecdd3;
+  --color-rose-300: #fda4af;
+  --color-rose-400: #fb7185;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #e11d48;
+  --color-rose-700: #be123c;
+  --color-rose-800: #9f1239;
+  --color-rose-900: #881337;
+  --color-rose-950: #4c0519;
+
+  --color-teal-50:  #f0fdfa;
+  --color-teal-100: #ccfbf1;
+  --color-teal-200: #99f6e4;
+  --color-teal-300: #5eead4;
+  --color-teal-400: #2dd4bf;
+  --color-teal-500: #14b8a6;
+  --color-teal-600: #0d9488;
+  --color-teal-700: #0f766e;
+  --color-teal-800: #115e59;
+  --color-teal-900: #134e4a;
+  --color-teal-950: #042f2e;
+
+  /* ── Tokens semánticos de callout (para acceso directo vía Tailwind) ── */
+  --color-callout-note-border:   var(--callout-note-border);
+  --color-callout-note-bg:       var(--callout-note-bg);
+  --color-callout-note-text:     var(--callout-note-text);
+  --color-callout-tip-border:    var(--callout-tip-border);
+  --color-callout-tip-bg:        var(--callout-tip-bg);
+  --color-callout-warning-border:var(--callout-warning-border);
+  --color-callout-warning-bg:    var(--callout-warning-bg);
+  --color-callout-danger-border: var(--callout-danger-border);
+  --color-callout-danger-bg:     var(--callout-danger-bg);
+  --color-callout-success-border:var(--callout-success-border);
+  --color-callout-success-bg:    var(--callout-success-bg);
+  --color-callout-info-border:   var(--callout-info-border);
+  --color-callout-info-bg:       var(--callout-info-bg);
+
   /* Radios y sombras temáticas → clases Tailwind: rounded-card, rounded-btn, rounded-input, shadow-card */
   --radius-card: var(--radius-card);
   --radius-btn: var(--radius-btn);
@@ -336,6 +414,182 @@
 }
 
 /* =========================================
+   TEMA: SLATE (GRIS AZULADO)
+   ========================================= */
+[data-theme="slate"] {
+  --primary: #334155;
+  --accent: #64748b;
+  --bg-main: #e2e8f0;
+  --bg-menu: #1e293b;
+  --white-custom: #f8fafc;
+  --foreground: #0f172a;
+  --btn-text: #f8fafc;
+  --menu-text: #f1f5f9;
+  --text-on-card: #0f172a;
+  --input-bg: #ffffff;
+  --input-text: #0f172a;
+  --radius-card: 0.5rem;
+  --radius-btn: 0.375rem;
+  --radius-input: 0.375rem;
+  --shadow-card: 0 2px 12px 0 rgba(51,65,85,0.10);
+  --border-width: 1px;
+
+  /* ── Callout colors: SLATE light ── */
+  --callout-note-border:   #334155;
+  --callout-note-bg:       color-mix(in srgb, #334155 10%, transparent);
+  --callout-note-text:     #0f172a;
+  --callout-note-title:    #1e293b;
+  --callout-tip-border:    #475569;
+  --callout-tip-bg:        color-mix(in srgb, #475569 12%, transparent);
+  --callout-tip-text:      #0f172a;
+  --callout-tip-title:     #1e293b;
+  --callout-warning-border: #92400e;
+  --callout-warning-bg:     color-mix(in srgb, #92400e 10%, transparent);
+  --callout-warning-text:   #0f172a;
+  --callout-warning-title:  #78350f;
+  --callout-danger-border:  #991b1b;
+  --callout-danger-bg:      color-mix(in srgb, #991b1b 10%, transparent);
+  --callout-danger-text:    #0f172a;
+  --callout-danger-title:   #7f1d1d;
+  --callout-success-border: #166534;
+  --callout-success-bg:     color-mix(in srgb, #166534 10%, transparent);
+  --callout-success-text:   #0f172a;
+  --callout-success-title:  #14532d;
+  --callout-info-border:    #1d4ed8;
+  --callout-info-bg:        color-mix(in srgb, #1d4ed8 10%, transparent);
+  --callout-info-text:      #0f172a;
+  --callout-info-title:     #1e3a8a;
+}
+
+[data-theme="slate"].dark {
+  --primary: #94a3b8;
+  --accent: #7dd3fc;
+  --bg-main: #0f172a;
+  --bg-menu: #020617;
+  --white-custom: #1e293b;
+  --foreground: #e2e8f0;
+  --btn-text: #0f172a;
+  --menu-text: #e2e8f0;
+  --text-on-card: #e2e8f0;
+  --input-bg: #1e293b;
+  --input-text: #e2e8f0;
+
+  /* ── Callout colors: SLATE dark ── */
+  --callout-note-border:   #94a3b8;
+  --callout-note-bg:       color-mix(in srgb, #94a3b8 10%, transparent);
+  --callout-note-text:     #cbd5e1;
+  --callout-note-title:    #e2e8f0;
+  --callout-tip-border:    #7dd3fc;
+  --callout-tip-bg:        color-mix(in srgb, #7dd3fc 10%, transparent);
+  --callout-tip-text:      #bae6fd;
+  --callout-tip-title:     #e0f2fe;
+  --callout-warning-border: #fbbf24;
+  --callout-warning-bg:     color-mix(in srgb, #fbbf24 10%, transparent);
+  --callout-warning-text:   #fde68a;
+  --callout-warning-title:  #fef3c7;
+  --callout-danger-border:  #f87171;
+  --callout-danger-bg:      color-mix(in srgb, #f87171 10%, transparent);
+  --callout-danger-text:    #fca5a5;
+  --callout-danger-title:   #fee2e2;
+  --callout-success-border: #4ade80;
+  --callout-success-bg:     color-mix(in srgb, #4ade80 10%, transparent);
+  --callout-success-text:   #86efac;
+  --callout-success-title:  #dcfce7;
+  --callout-info-border:    #60a5fa;
+  --callout-info-bg:        color-mix(in srgb, #60a5fa 10%, transparent);
+  --callout-info-text:      #93c5fd;
+  --callout-info-title:     #dbeafe;
+}
+
+/* =========================================
+   TEMA: SEPIA (CAFÉ ANTIGUO CÁLIDO)
+   ========================================= */
+[data-theme="sepia"] {
+  --primary: #6b4423;
+  --accent: #c08040;
+  --bg-main: #f0e6d0;
+  --bg-menu: #3d2010;
+  --white-custom: #fdf6ee;
+  --foreground: #2a1304;
+  --btn-text: #fdf6ee;
+  --menu-text: #f5e6cc;
+  --text-on-card: #2a1304;
+  --input-bg: #fdf6ee;
+  --input-text: #2a1304;
+  --radius-card: 0.25rem;
+  --radius-btn: 0.25rem;
+  --radius-input: 0.25rem;
+  --shadow-card: 2px 3px 10px 0 rgba(107,68,35,0.13);
+  --border-width: 1px;
+
+  /* ── Callout colors: SEPIA light ── */
+  --callout-note-border:   #6b4423;
+  --callout-note-bg:       color-mix(in srgb, #6b4423 10%, transparent);
+  --callout-note-text:     #2a1304;
+  --callout-note-title:    #3d2010;
+  --callout-tip-border:    #c08040;
+  --callout-tip-bg:        color-mix(in srgb, #c08040 12%, transparent);
+  --callout-tip-text:      #2a1304;
+  --callout-tip-title:     #7d4e1a;
+  --callout-warning-border: #9a6600;
+  --callout-warning-bg:     color-mix(in srgb, #9a6600 10%, transparent);
+  --callout-warning-text:   #2a1304;
+  --callout-warning-title:  #5c3e00;
+  --callout-danger-border:  #8a2010;
+  --callout-danger-bg:      color-mix(in srgb, #8a2010 10%, transparent);
+  --callout-danger-text:    #2a1304;
+  --callout-danger-title:   #5a0f08;
+  --callout-success-border: #3a5c22;
+  --callout-success-bg:     color-mix(in srgb, #3a5c22 10%, transparent);
+  --callout-success-text:   #2a1304;
+  --callout-success-title:  #1e3a10;
+  --callout-info-border:    #4a5880;
+  --callout-info-bg:        color-mix(in srgb, #4a5880 10%, transparent);
+  --callout-info-text:      #2a1304;
+  --callout-info-title:     #2a3458;
+}
+
+[data-theme="sepia"].dark {
+  --primary: #d4a060;
+  --accent: #e8c080;
+  --bg-main: #1a1008;
+  --bg-menu: #100a04;
+  --white-custom: #261808;
+  --foreground: #f0d8a8;
+  --btn-text: #1a1008;
+  --menu-text: #f0d8a8;
+  --text-on-card: #f0d8a8;
+  --input-bg: #201408;
+  --input-text: #f0d8a8;
+
+  /* ── Callout colors: SEPIA dark ── */
+  --callout-note-border:   #d4a060;
+  --callout-note-bg:       color-mix(in srgb, #d4a060 10%, transparent);
+  --callout-note-text:     #e8c890;
+  --callout-note-title:    #f5dfa8;
+  --callout-tip-border:    #e8c080;
+  --callout-tip-bg:        color-mix(in srgb, #e8c080 10%, transparent);
+  --callout-tip-text:      #f5d898;
+  --callout-tip-title:     #ffeeb8;
+  --callout-warning-border: #d4880a;
+  --callout-warning-bg:     color-mix(in srgb, #d4880a 10%, transparent);
+  --callout-warning-text:   #f0b840;
+  --callout-warning-title:  #ffcc60;
+  --callout-danger-border:  #c84030;
+  --callout-danger-bg:      color-mix(in srgb, #c84030 10%, transparent);
+  --callout-danger-text:    #e87060;
+  --callout-danger-title:   #ff9080;
+  --callout-success-border: #60a848;
+  --callout-success-bg:     color-mix(in srgb, #60a848 10%, transparent);
+  --callout-success-text:   #90c870;
+  --callout-success-title:  #b0e890;
+  --callout-info-border:    #7888c0;
+  --callout-info-bg:        color-mix(in srgb, #7888c0 10%, transparent);
+  --callout-info-text:      #a0b0e0;
+  --callout-info-title:     #c8d4f8;
+}
+
+/* =========================================
    FUENTES POR TEMA
    Usamos las variables CSS inyectadas por next/font en el <html>
    para evitar que font-family inline en <body> las pise.
@@ -348,6 +602,18 @@
 [data-theme="pixel"],
 [data-theme="pixel"] * {
   font-family: var(--font-pixelify), sans-serif !important;
+}
+
+/* SLATE: sans-serif limpio */
+[data-theme="slate"],
+[data-theme="slate"] * {
+  font-family: var(--font-montserrat), system-ui, sans-serif !important;
+}
+
+/* SEPIA: serif cálido, igual que scribble pero con su propia voz */
+[data-theme="sepia"],
+[data-theme="sepia"] * {
+  font-family: var(--font-lora), Georgia, serif !important;
 }
 
 /* SCRIBBLE: Lora para cuerpo, Caveat para títulos */
