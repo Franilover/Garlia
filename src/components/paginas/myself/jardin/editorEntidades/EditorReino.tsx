@@ -11,6 +11,7 @@ import { type Reino, type ReinoDetalle, type SaveStatus, INPUT_CLS } from "./typ
 import { useReinoDetalles, usePersonajesDelReino } from "./hooks";
 import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
+import { useWikilink } from "./WikilinkContext";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
 type InnerTab = "mapa" | "lore" | "personajes";
@@ -29,6 +30,7 @@ function CampoLore({
   placeholder?: string; rows?: number; icon?: React.ElementType;
 }) {
   const [open, setOpen] = useState(!!value);
+  const { onSnippetAction } = useWikilink();
   const preview = value.replace(/[#*`_~\[\]]/g, "").trim().slice(0, 80);
 
   return (
@@ -52,7 +54,7 @@ function CampoLore({
       </button>
       {open && (
         <div className="px-4 pb-4 pt-1">
-          <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit" />
+          <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
         </div>
       )}
     </div>
@@ -213,6 +215,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
   const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
+  const { onSnippetAction } = useWikilink();
 
   const prevCoords = useRef({ x: detalle.coord_x, y: detalle.coord_y });
   useEffect(() => {
@@ -270,7 +273,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
           <div>
             <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
             <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-              rows={4} placeholder="Describe este lugar…" toolbar defaultMode="edit" />
+              rows={4} placeholder="Describe este lugar…" toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
           </div>
           <div className="flex items-center justify-between">
             <button onClick={async () => {
@@ -306,6 +309,7 @@ export function EditorReino({ item, onSaved, onDeleted }: {
   const [newPointName, setNewPointName] = useState("");
   const { detalles, setDetalles } = useReinoDetalles(item.id);
   const { confirm, ConfirmModal } = useConfirm();
+  const { onSnippetAction } = useWikilink();
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesDelReino(form.nombre);
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
@@ -515,7 +519,7 @@ export function EditorReino({ item, onSaved, onDeleted }: {
                 </label>
                 <div className="flex-1">
                   <MarkdownEditor value={form.historia ?? ""} onChange={v => setForm(f => ({ ...f, historia: v }))}
-                    placeholder="Origen, eventos clave, cronología del reino…" rows={16} toolbar defaultMode="edit" />
+                    placeholder="Origen, eventos clave, cronología del reino…" rows={16} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
                 </div>
               </div>
 
@@ -525,7 +529,7 @@ export function EditorReino({ item, onSaved, onDeleted }: {
                   <Mountain size={9} className="opacity-50" /> Geografía
                 </label>
                 <MarkdownEditor value={form.geografia ?? ""} onChange={v => setForm(f => ({ ...f, geografia: v }))}
-                  placeholder="Paisajes, clima, fronteras, ciudades principales…" rows={7} toolbar defaultMode="edit" />
+                  placeholder="Paisajes, clima, fronteras, ciudades principales…" rows={7} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
               </div>
 
               {/* Col 3 fila 1 — Cultura */}
@@ -534,7 +538,7 @@ export function EditorReino({ item, onSaved, onDeleted }: {
                   <Landmark size={9} className="opacity-50" /> Cultura
                 </label>
                 <MarkdownEditor value={form.cultura ?? ""} onChange={v => setForm(f => ({ ...f, cultura: v }))}
-                  placeholder="Tradiciones, religión, idioma, costumbres, arte…" rows={7} toolbar defaultMode="edit" />
+                  placeholder="Tradiciones, religión, idioma, costumbres, arte…" rows={7} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
               </div>
 
               {/* Col 2 fila 2 — Política */}
@@ -543,7 +547,7 @@ export function EditorReino({ item, onSaved, onDeleted }: {
                   <Users size={9} className="opacity-50" /> Política
                 </label>
                 <MarkdownEditor value={form.politica ?? ""} onChange={v => setForm(f => ({ ...f, politica: v }))}
-                  placeholder="Sistema de gobierno, facciones, líderes, leyes…" rows={7} toolbar defaultMode="edit" />
+                  placeholder="Sistema de gobierno, facciones, líderes, leyes…" rows={7} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
               </div>
 
               {/* Col 3 fila 2 — Economía */}
@@ -552,7 +556,7 @@ export function EditorReino({ item, onSaved, onDeleted }: {
                   <Coins size={9} className="opacity-50" /> Economía
                 </label>
                 <MarkdownEditor value={form.economia ?? ""} onChange={v => setForm(f => ({ ...f, economia: v }))}
-                  placeholder="Recursos, comercio, moneda, riqueza…" rows={7} toolbar defaultMode="edit" />
+                  placeholder="Recursos, comercio, moneda, riqueza…" rows={7} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
               </div>
             </div>
           )}

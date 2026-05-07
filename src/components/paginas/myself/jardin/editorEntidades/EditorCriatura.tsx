@@ -11,6 +11,7 @@ import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from
 import { useUniqueValues, useCriaturaVariantes, usePersonajesDeEspecie } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
+import { useWikilink } from "./WikilinkContext";
 import { PanelPersonajes } from "./PanelPersonajes";
 import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";
@@ -32,6 +33,7 @@ function CampoLore({
   placeholder?: string; rows?: number; icon?: React.ElementType;
 }) {
   const [open, setOpen] = useState(!!value);
+  const { onSnippetAction } = useWikilink();
   const preview = value.replace(/[#*`_~\[\]]/g, "").trim().slice(0, 80);
 
   return (
@@ -58,7 +60,7 @@ function CampoLore({
       </button>
       {open && (
         <div className="px-4 pb-4 pt-1">
-          <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit" />
+          <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
         </div>
       )}
     </div>
@@ -78,6 +80,7 @@ function VarianteEditor({
   const [expanded, setExpanded] = useState(false);
   const [status,   setStatus]   = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
+  const { onSnippetAction } = useWikilink();
 
   const handleSave = async () => {
     setStatus("saving");
@@ -154,7 +157,7 @@ function VarianteEditor({
               <div>
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
                 <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                  rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" />
+                  rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
               </div>
             </div>
 
@@ -338,7 +341,7 @@ export function EditorCriatura({
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
                     <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                      placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit" />
+                      placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit"  />
                   </div>
                 </div>
 
