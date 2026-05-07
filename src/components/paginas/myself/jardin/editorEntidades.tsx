@@ -236,6 +236,31 @@ export default function EditorEntidades() {
     setSelectedId(item.id);
   }, []);
 
+  const handleWikilinkNavigate = useCallback((target: string) => {
+  const norm = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const t = norm(target);
+
+  const collections = [
+    { tab: "personajes" as TabKey, items: allItems.personajes },
+    { tab: "criaturas"  as TabKey, items: allItems.criaturas  },
+    { tab: "items"      as TabKey, items: allItems.items      },
+    { tab: "reinos"     as TabKey, items: allItems.reinos     },
+  ];
+
+  for (const { tab, items } of collections) {
+    const found =
+      items.find(i => norm(i.nombre) === t) ??
+      items.find(i => norm(i.nombre).startsWith(t)) ??
+      items.find(i => norm(i.nombre).includes(t));
+    if (found) {
+      setTab(tab);              // ← PRIMERO cambiar tab
+      setSelectedId(found.id);
+      return;
+    }
+  }
+}, [allItems]);
+
   const handleCreated = (item: any, chosenTab?: Exclude<TabKey, "mundo">) => {
     const t = chosenTab ?? tab as Exclude<TabKey, "mundo">;
     setAllItems(prev => ({ ...prev, [t]: [item, ...prev[t as keyof typeof prev]] }));
