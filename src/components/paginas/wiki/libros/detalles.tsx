@@ -450,15 +450,6 @@ export default function LibroDetalle() {
                   {leidos.size}/{capitulos.length}
                 </span>
               </div>
-              <div className="h-1 w-full rounded-full bg-primary/8 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${Math.round((leidos.size / capitulos.length) * 100)}%`,
-                    background: "linear-gradient(to right, var(--primary), color-mix(in srgb, var(--accent, var(--primary)) 80%, var(--primary)))",
-                  }}
-                />
-              </div>
             </div>
           )}
 
