@@ -116,72 +116,35 @@ function CoverFlipProtagonistas({
 
   return (
     <div
-      style={{
-        aspectRatio: "3/4",
-        position: "relative",
-        cursor: hasProtagonistas ? "pointer" : "default",
-        perspective: "1200px",
-      }}
+      style={{ aspectRatio: "3/4", position: "relative", cursor: hasProtagonistas ? "pointer" : "default", perspective: "1200px" }}
       onClick={() => hasProtagonistas && setFlipped(f => !f)}
     >
       <div
         style={{
-          width: "100%",
-          height: "100%",
-          position: "relative",
+          width: "100%", height: "100%", position: "relative",
           transformStyle: "preserve-3d",
           transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)",
           transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-          borderRadius: "var(--radius-card)",
-          border,
-          boxShadow: "var(--shadow-card)",
+          borderRadius: "var(--radius-card)", border, boxShadow: "var(--shadow-card)",
         }}
       >
         {/* Frente: portada */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-            borderRadius: "var(--radius-card)",
-            overflow: "hidden",
-          }}
-        >
-          <SmartImage
-            src={portada_url || "/placeholder-cover.jpg"}
-            alt={titulo}
-            className="w-full h-full"
-          />
+        <div style={{ position: "absolute", inset: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", borderRadius: "var(--radius-card)", overflow: "hidden" }}>
+          <SmartImage src={portada_url || "/placeholder-cover.jpg"} alt={titulo} className="w-full h-full" />
           {hasProtagonistas && (
-            <div
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 3,
-                background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 30%, transparent), transparent)",
-              }}
-            />
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 30%, transparent), transparent)" }} />
           )}
         </div>
 
         {/* Reverso: protagonistas */}
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
+            position: "absolute", inset: 0,
+            backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
-            background: "var(--bg-main)",
-            padding: "20px 18px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            borderRadius: "var(--radius-card)",
-            overflowY: "auto",
+            background: "var(--bg-main)", padding: "20px 18px",
+            display: "flex", flexDirection: "column", gap: 12,
+            borderRadius: "var(--radius-card)", overflowY: "auto",
           }}
         >
           <p style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3, margin: 0 }}>
@@ -195,20 +158,9 @@ function CoverFlipProtagonistas({
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   {img ? (
-                    <img
-                      src={img}
-                      alt={label}
-                      style={{ width: 36, height: 36, objectFit: "cover", flexShrink: 0, borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }}
-                    />
+                    <img src={img} alt={label} style={{ width: 36, height: 36, objectFit: "cover", flexShrink: 0, borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
                   ) : (
-                    <div
-                      style={{
-                        width: 36, height: 36, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 13, fontWeight: 900, color: "var(--primary)", opacity: 0.5,
-                        borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-                        background: `color-mix(in srgb, var(--primary) ${i % 2 === 0 ? 5 : 8}%, transparent)`,
-                      }}
-                    >
+                    <div style={{ width: 36, height: 36, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: "var(--primary)", opacity: 0.5, borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", background: `color-mix(in srgb, var(--primary) ${i % 2 === 0 ? 5 : 8}%, transparent)` }}>
                       {label.charAt(0)}
                     </div>
                   )}
@@ -468,8 +420,12 @@ export default function LibroDetalle() {
             tieneAgrupacion={tieneAgrupacion}
           />
 
+          <h1 className="text-3xl font-black text-primary italic tracking-tighter leading-[0.95] mt-5 uppercase text-center">
+            {libro.titulo}
+          </h1>
+
           {capituloProximo && (
-            <div className="card-main mt-8 p-6">
+            <div className="card-main mt-6 p-6">
               <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
                 <Calendar size={12} /> Próximo Capítulo
               </h4>
@@ -482,15 +438,17 @@ export default function LibroDetalle() {
               </p>
             </div>
           )}
-
         </aside>
 
         {/* ── Contenido principal ── */}
         <main>
           <div className="mb-12">
-            <h1 className="text-5xl font-black text-primary italic tracking-tighter leading-[0.9] mb-6 uppercase text-center">
+            <h1 className="text-5xl font-black text-primary italic tracking-tighter leading-[0.9] mb-6 uppercase">
               {libro.titulo}
             </h1>
+            <p className="text-primary/70 leading-relaxed text-lg font-medium italic">
+              &quot;{libro.sinopsis}&quot;
+            </p>
           </div>
 
           {/* ── Índice agrupado ── */}
