@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/api/client/supabase";
-import { Play, ListOrdered, Calendar, Clock, BookOpen, CheckCircle2 } from "lucide-react";
+import { Play, Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, BackBtn } from "@/components/ui";
 
@@ -95,6 +95,149 @@ function grupoLabel(g: GrupoSegmento): string {
 /** Imagen de cabecera: imagen del reino tiene prioridad sobre avatar del narrador */
 function grupoImg(g: GrupoSegmento): string | null | undefined {
   return g.reino?.imagen_reino ?? g.narrador?.img_url ?? null;
+}
+
+// ── Flip de portada que muestra protagonistas al hacer click ─────────────────
+function CoverFlipProtagonistas({
+  portada_url,
+  titulo,
+  grupos,
+  tieneAgrupacion,
+}: {
+  portada_url?: string;
+  titulo: string;
+  grupos: GrupoSegmento[];
+  tieneAgrupacion: boolean;
+}) {
+  const [flipped, setFlipped] = useState(false);
+  const protagonistas = grupos.filter(g => g.reino || g.narrador);
+  const hasProtagonistas = tieneAgrupacion && protagonistas.length > 0;
+  const border = "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)";
+
+  return (
+    <div
+      style={{
+        aspectRatio: "3/4",
+        position: "relative",
+        cursor: hasProtagonistas ? "pointer" : "default",
+        perspective: "1200px",
+      }}
+      onClick={() => hasProtagonistas && setFlipped(f => !f)}
+    >
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          position: "relative",
+          transformStyle: "preserve-3d",
+          transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)",
+          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          borderRadius: "var(--radius-card)",
+          border,
+          boxShadow: "var(--shadow-card)",
+        }}
+      >
+        {/* Frente: portada */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            borderRadius: "var(--radius-card)",
+            overflow: "hidden",
+          }}
+        >
+          <SmartImage
+            src={portada_url || "/placeholder-cover.jpg"}
+            alt={titulo}
+            className="w-full h-full"
+          />
+          {hasProtagonistas && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 3,
+                background: "linear-gradient(to right, transparent, color-mix(in srgb, var(--primary) 30%, transparent), transparent)",
+              }}
+            />
+          )}
+        </div>
+
+        {/* Reverso: protagonistas */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+            background: "var(--bg-main)",
+            padding: "20px 18px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            borderRadius: "var(--radius-card)",
+            overflowY: "auto",
+          }}
+        >
+          <p style={{ fontSize: 8.5, fontWeight: 900, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3, margin: 0 }}>
+            Protagonistas
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+            {protagonistas.map((g, i) => {
+              const label = grupoLabel(g);
+              const img = grupoImg(g);
+              if (!label) return null;
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {img ? (
+                    <img
+                      src={img}
+                      alt={label}
+                      style={{ width: 36, height: 36, objectFit: "cover", flexShrink: 0, borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 36, height: 36, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 13, fontWeight: 900, color: "var(--primary)", opacity: 0.5,
+                        borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                        background: `color-mix(in srgb, var(--primary) ${i % 2 === 0 ? 5 : 8}%, transparent)`,
+                      }}
+                    >
+                      {label.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--primary)", margin: 0 }}>
+                      {g.reino?.nombre ?? g.narrador?.nombre}
+                    </p>
+                    {g.reino && g.narrador && (
+                      <p style={{ fontSize: 9, fontWeight: 700, color: "var(--primary)", opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.06em", margin: 0, fontStyle: "italic" }}>
+                        {g.narrador.nombre}
+                      </p>
+                    )}
+                    <p style={{ fontSize: 9, color: "var(--primary)", opacity: 0.35, margin: 0, fontStyle: "italic" }}>
+                      {g.capitulos.length} cap{g.capitulos.length !== 1 ? "ítulos" : "ítulo"}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <span style={{ fontSize: 7.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.2 }}>
+              Toca para volver
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function LibroDetalle() {
@@ -318,16 +461,12 @@ export default function LibroDetalle() {
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-[320px_1fr] gap-16 mt-4">
         {/* ── Portada y sidebar ── */}
         <aside>
-          <div
-            className="aspect-3/4 rounded-[var(--radius-card)] overflow-hidden bg-white-custom relative"
-            style={{ border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)", boxShadow: "var(--shadow-card)" }}
-          >
-            <SmartImage
-              src={libro.portada_url || "/placeholder-cover.jpg"}
-              alt={libro.titulo}
-              className="w-full h-full"
-            />
-          </div>
+          <CoverFlipProtagonistas
+            portada_url={libro.portada_url}
+            titulo={libro.titulo}
+            grupos={grupos}
+            tieneAgrupacion={tieneAgrupacion}
+          />
 
           {capituloProximo && (
             <div className="card-main mt-8 p-6">
@@ -344,51 +483,6 @@ export default function LibroDetalle() {
             </div>
           )}
 
-          {/* ── Resumen de grupos en sidebar (reinos o narradores) ── */}
-          {tieneAgrupacion && grupos.length > 1 && (
-            <div className="card-main mt-6 p-6">
-              <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-4 flex items-center gap-2 italic">
-                <BookOpen size={12} /> {tieneReinos ? "Reinos" : "Protagonistas"}
-              </h4>
-              <div className="flex flex-col gap-3">
-                {grupos.map((g, i) => {
-                  const label = grupoLabel(g);
-                  const img   = grupoImg(g);
-                  if (!label) return null;
-                  return (
-                    <div key={i} className="flex items-center gap-3">
-                      {img ? (
-                        <img
-                          src={img}
-                          alt={label}
-                          className="w-8 h-8 object-cover flex-shrink-0 rounded-btn border border-primary/30"
-                        />
-                      ) : (
-                        <div
-                          className={`w-8 h-8 flex items-center justify-center text-[10px] font-black text-primary/50 flex-shrink-0 rounded-btn border border-primary/30 ${acentos[i % acentos.length].bg}`}
-                        >
-                          {label.charAt(0)}
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-primary font-black text-[11px] uppercase tracking-wide">
-                          {g.reino?.nombre ?? g.narrador?.nombre}
-                        </p>
-                        {g.reino && g.narrador && (
-                          <p className="text-primary/40 font-bold text-[9px] italic uppercase tracking-wide">
-                            {g.narrador.nombre}
-                          </p>
-                        )}
-                        <p className="text-primary/40 font-bold text-[9px] italic">
-                          {g.capitulos.length} cap{g.capitulos.length !== 1 ? "ítulos" : "ítulo"}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </aside>
 
         {/* ── Contenido principal ── */}
