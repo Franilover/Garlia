@@ -294,43 +294,43 @@
 }
 
 [data-theme="scribble"].dark {
-  --primary: #d4a96a;
-  --accent: #e08040;
-  --bg-main: #1a130a;
-  --bg-menu: #120e06;
-  --white-custom: #261c0f;
-  --foreground: #ede0c8;
-  --btn-text: #1a130a;
-  --menu-text: #ede0c8;
-  --text-on-card: #ede0c8;
-  --input-bg: #2e2010;
-  --input-text: #ede0c8;
+  --primary: #7a5c9e;
+  --accent: #9b6bbf;
+  --bg-main: #120d1a;
+  --bg-menu: #0d0913;
+  --white-custom: #1c1428;
+  --foreground: #c8b8e0;
+  --btn-text: #120d1a;
+  --menu-text: #c8b8e0;
+  --text-on-card: #c8b8e0;
+  --input-bg: #221830;
+  --input-text: #c8b8e0;
 
-  /* ── Callout colors: SCRIBBLE dark (candlelight tones) ── */
-  --callout-note-border:  #d4a96a;
-  --callout-note-bg:      color-mix(in srgb, #d4a96a 10%, transparent);
-  --callout-note-text:    #ede0c8;
-  --callout-note-title:   #e8c888;
-  --callout-tip-border:   #e08040;
-  --callout-tip-bg:       color-mix(in srgb, #e08040 10%, transparent);
-  --callout-tip-text:     #f0c898;
-  --callout-tip-title:    #e8903a;
-  --callout-warning-border: #d4a020;
-  --callout-warning-bg:     color-mix(in srgb, #d4a020 10%, transparent);
-  --callout-warning-text:   #f0d080;
-  --callout-warning-title:  #d8b030;
-  --callout-danger-border:  #c05050;
-  --callout-danger-bg:      color-mix(in srgb, #c05050 10%, transparent);
-  --callout-danger-text:    #e89090;
-  --callout-danger-title:   #d06060;
-  --callout-success-border: #7aaa5a;
-  --callout-success-bg:     color-mix(in srgb, #7aaa5a 10%, transparent);
-  --callout-success-text:   #b0d890;
-  --callout-success-title:  #8aba6a;
-  --callout-info-border:    #9080c0;
-  --callout-info-bg:        color-mix(in srgb, #9080c0 10%, transparent);
-  --callout-info-text:      #c0b0e8;
-  --callout-info-title:     #a090d0;
+  /* ── Callout colors: SCRIBBLE dark (deep purple tones) ── */
+  --callout-note-border:  #7a5c9e;
+  --callout-note-bg:      color-mix(in srgb, #7a5c9e 10%, transparent);
+  --callout-note-text:    #c8b8e0;
+  --callout-note-title:   #b0a0d0;
+  --callout-tip-border:   #9b6bbf;
+  --callout-tip-bg:       color-mix(in srgb, #9b6bbf 10%, transparent);
+  --callout-tip-text:     #c8a8e0;
+  --callout-tip-title:    #b088cc;
+  --callout-warning-border: #8a6a30;
+  --callout-warning-bg:     color-mix(in srgb, #8a6a30 10%, transparent);
+  --callout-warning-text:   #c0a060;
+  --callout-warning-title:  #a07838;
+  --callout-danger-border:  #883060;
+  --callout-danger-bg:      color-mix(in srgb, #883060 10%, transparent);
+  --callout-danger-text:    #c07090;
+  --callout-danger-title:   #a04870;
+  --callout-success-border: #4a7a60;
+  --callout-success-bg:     color-mix(in srgb, #4a7a60 10%, transparent);
+  --callout-success-text:   #80b898;
+  --callout-success-title:  #5e9070;
+  --callout-info-border:    #6858a8;
+  --callout-info-bg:        color-mix(in srgb, #6858a8 12%, transparent);
+  --callout-info-text:      #a898d8;
+  --callout-info-title:     #8878c0;
 }
 
 /* =========================================
