@@ -209,7 +209,7 @@ export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string }[] =
 const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
   { id: "default",  label: "Minimalista", emoji: "" },
   { id: "pixel",    label: "Retro",       emoji: "" },
-  { id: "slate",    label: "Monocromo",   emoji: "" },
+  { id: "slate",    label: "Monocromatico",   emoji: "" },
   { id: "sepia",    label: "Antiguo",     emoji: "" },
 ];
 
