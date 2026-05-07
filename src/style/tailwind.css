@@ -508,6 +508,13 @@
     color: var(--primary);
   }
 
+  [data-theme="scribble"].dark .btn-brand {
+    border: 1px solid var(--primary);
+    background: transparent;
+    color: var(--foreground);
+    outline: none;
+  }
+
   [data-theme="pixel"].dark .btn-brand {
     box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 30%, transparent);
   }
