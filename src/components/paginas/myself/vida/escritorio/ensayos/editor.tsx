@@ -235,13 +235,24 @@ export function Editor({
                   value={tagInput}
                   autoFocus={tagInputFocused}
                   onChange={e => {
-                    const raw = e.target.value;
-                    setTagInput(raw);
-                    const parsed = raw.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "");
-                    onUpdateField(ensayo.id, "tags", parsed);
+                    setTagInput(e.target.value);
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "");
+                      onUpdateField(ensayo.id, "tags", parsed);
+                      setTagInputFocused(false);
+                    }
+                    if (e.key === "Escape") {
+                      setTagInputFocused(false);
+                    }
                   }}
                   onFocus={() => setTagInputFocused(true)}
-                  onBlur={() => setTagInputFocused(false)}
+                  onBlur={() => {
+                    const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "");
+                    onUpdateField(ensayo.id, "tags", parsed);
+                    setTagInputFocused(false);
+                  }}
                   placeholder="tag1, tag2, tag3"
                   style={{
                     fontSize: 10,
