@@ -5,25 +5,46 @@
  * ──────────────────────────────────────────────────────────────────────────────
  * Contexto React que conecta [[wikilinks]] con la navegación de editorEntidades.
  *
- * Expone DOS handlers:
+ * PROBLEMA QUE RESUELVE:
+ *   Navegar a una entidad desde un wikilink requiere DOS acciones simultáneas:
+ *     1. Cambiar el tab activo (ej: "personajes")
+ *     2. Seleccionar el item (setSelectedId)
+ *   Si solo se hace una de las dos, la navegación falla silenciosamente.
  *
- *   onWikilink(target)      — para MarkdownPreview (nuevo componente liviano).
- *                             Recibe directamente el texto del wikilink y navega.
+ * CÓMO USARLO en editorEntidades.tsx:
  *
- *   onSnippetAction(action) — legacy para MarkdownEditor cuando se usa en modo
- *                             split/preview con onSnippetAction. Solo procesa
- *                             { type: "wikilink" }, ignora el resto (esos son
- *                             responsabilidad del lector de ensayos).
+ *   import { WikilinkProvider } from "./WikilinkContext";
  *
- * Uso:
- *   // En editorEntidades.tsx:
- *   <WikilinkProvider onWikilink={handleNavigate}>
+ *   const handleWikilinkNavigate = useCallback((target: string) => {
+ *     const norm = (s: string) =>
+ *       s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+ *     const t = norm(target);
+ *
+ *     const collections = [
+ *       { tab: "personajes" as TabKey, items: allItems.personajes },
+ *       { tab: "criaturas"  as TabKey, items: allItems.criaturas  },
+ *       { tab: "items"      as TabKey, items: allItems.items      },
+ *       { tab: "reinos"     as TabKey, items: allItems.reinos     },
+ *     ];
+ *
+ *     for (const { tab, items } of collections) {
+ *       const found =
+ *         items.find(i => norm(i.nombre) === t) ??
+ *         items.find(i => norm(i.nombre).startsWith(t)) ??
+ *         items.find(i => norm(i.nombre).includes(t));
+ *       if (found) {
+ *         setActiveTab(tab);        // ← cambiar tab PRIMERO
+ *         setSelectedId(found.id);  // ← luego seleccionar
+ *         return;
+ *       }
+ *     }
+ *   }, [allItems]);
+ *
+ *   // Envolver el árbol con el provider:
+ *   <WikilinkProvider onWikilink={handleWikilinkNavigate}>
  *     <EditorPersonaje ... />
+ *     <EditorCriatura  ... />
  *   </WikilinkProvider>
- *
- *   // En cualquier editor hijo:
- *   const { onWikilink } = useWikilink();
- *   <MarkdownPreview value={texto} />   ← lo consume automáticamente
  */
 
 import React, { createContext, useContext, useCallback } from "react";
@@ -31,9 +52,9 @@ import type { SnippetAction } from "./MarkdownEditor";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface WikilinkContextValue {
-  /** Handler directo para MarkdownPreview — recibe el texto del wikilink */
+  /** Navegar a una entidad por nombre (texto crudo del wikilink). */
   onWikilink: (target: string) => void;
-  /** Handler legacy para MarkdownEditor.onSnippetAction */
+  /** Adapter para MarkdownEditor.onSnippetAction — solo maneja { type: "wikilink" }. */
   onSnippetAction: (action: SnippetAction) => void;
 }
 
@@ -41,10 +62,13 @@ interface WikilinkContextValue {
 const WikilinkContext = createContext<WikilinkContextValue | null>(null);
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
+/**
+ * Devuelve el contexto de wikilinks.
+ * Fuera del provider → noops (no crashea, solo no navega).
+ */
 export function useWikilink(): WikilinkContextValue {
   const ctx = useContext(WikilinkContext);
   if (!ctx) {
-    // Fuera del provider: devolver noops para que no crashee
     return {
       onWikilink: () => {},
       onSnippetAction: () => {},
@@ -55,28 +79,20 @@ export function useWikilink(): WikilinkContextValue {
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 interface WikilinkProviderProps {
-  /** Función de navegación provista por editorEntidades */
   onWikilink: (target: string) => void;
   children: React.ReactNode;
 }
 
 export function WikilinkProvider({ onWikilink, children }: WikilinkProviderProps) {
-  // onSnippetAction legacy: solo manejar { type: "wikilink" }
   const onSnippetAction = useCallback((action: SnippetAction) => {
     if (action.type === "wikilink") {
       onWikilink(action.target);
     }
-    // Los tipos "choice", "section", "use", "drop", "sound", "img", "float"
-    // son exclusivos del lector de ensayos — se ignoran acá.
+    // "choice", "section", "use", "drop", "sound", "img", "float" → lector de ensayos, ignorar
   }, [onWikilink]);
 
-  const value: WikilinkContextValue = {
-    onWikilink,
-    onSnippetAction,
-  };
-
   return (
-    <WikilinkContext.Provider value={value}>
+    <WikilinkContext.Provider value={{ onWikilink, onSnippetAction }}>
       {children}
     </WikilinkContext.Provider>
   );
