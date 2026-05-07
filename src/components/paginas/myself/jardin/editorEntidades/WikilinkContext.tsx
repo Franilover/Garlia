@@ -1,17 +1,20 @@
-/**
- * Uso:
- *
- * En el editor padre:
- *   const { onSnippetAction } = useWikilink();
- *
- * Luego se pasa como prop:
- *   <FormularioPersonaje onSnippetAction={onSnippetAction} />
- *
- * Y finalmente:
- *   <MarkdownEditor onSnippetAction={onSnippetAction} />
- */
 "use client";
 
+/**
+ * WikilinkContext
+ * ───────────────
+ * Provee una función `navigateToWikilink(target: string)` que los componentes
+ * internos del editor (EditorPersonaje, EditorCriatura, etc.) pueden usar para
+ * navegar a otra entidad cuando el usuario hace clic en un [[wikilink]] dentro
+ * del MarkdownEditor.
+ *
+ * Uso en un editor hijo:
+ *
+ *   const { onSnippetAction } = useWikilink();
+ *   <MarkdownEditor onSnippetAction={onSnippetAction} ... />
+ *
+ * El padre (EditorEntidades) provee el contexto con la función real de navegación.
+ */
 
 import React, { createContext, useContext, useCallback } from "react";
 

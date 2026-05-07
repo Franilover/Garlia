@@ -6,7 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/api/client/supabase";
 import { SmartImage } from "@/components/display/SmartImage";
 import { Loading, PageHeader } from "@/components/ui";
-import { Music, User, Mic2, PenTool, Globe, ChevronRight, List, LayoutGrid } from "lucide-react";
+import { Music, User, ChevronRight, List, LayoutGrid, Search, X } from "lucide-react";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
 interface Personaje {
@@ -50,37 +50,42 @@ const CancionCardGrid = ({ cancion, index }: { cancion: Cancion; index: number }
   >
     <Link href={`/wiki/canciones/${cancion.id}`}>
       <MotionDiv
-        whileHover={{ y: -12 }}
+        whileHover={{ y: -8 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        className="cursor-pointer h-full flex flex-col"
+        className="cursor-pointer h-full"
       >
         <div
-          className="relative aspect-square overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 transition-all duration-500"
+          className="relative aspect-square overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5"
           style={{
             borderRadius: "var(--radius-card)",
             border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
             boxShadow: "var(--shadow-card)",
           }}
         >
+          {/* Imagen */}
           <SmartImage
             src={cancion.portada_url || "/placeholder-cover.jpg"}
             alt={cancion.titulo}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
-            <div
-              className="bg-white-custom/90 p-5 rounded-full backdrop-blur-sm"
-              style={{ boxShadow: "var(--shadow-card)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
-            >
-              <ChevronRight size={32} className="text-primary ml-1" />
-            </div>
+
+          {/* Gradiente permanente desde abajo */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+
+          {/* Gradiente hover desde arriba (oscurece más) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
+
+          {/* Título sobre la imagen */}
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <h2 className="text-white font-black uppercase text-base leading-tight tracking-tighter italic line-clamp-2 drop-shadow-sm group-hover:text-[var(--accent)] transition-colors duration-300">
+              {cancion.titulo}
+            </h2>
+            {cancion.cantante && (
+              <p className="text-white/50 text-[9px] font-bold uppercase tracking-widest mt-1 truncate">
+                {cancion.cantante}
+              </p>
+            )}
           </div>
-        </div>
-        <div className="mt-6 flex-1 flex flex-col px-2">
-          <h2 className="text-primary font-black uppercase text-lg group-hover:text-[var(--accent)] transition-colors leading-tight tracking-tighter italic line-clamp-2">
-            {cancion.titulo}
-          </h2>
         </div>
       </MotionDiv>
     </Link>
@@ -95,7 +100,7 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
   >
     <Link href={`/wiki/canciones/${cancion.id}`}>
       <div
-        className="group flex items-center justify-between gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm px-6 py-4 transition-all duration-300 cursor-pointer"
+        className="group flex items-center gap-4 bg-white-custom/50 hover:bg-white-custom/80 backdrop-blur-sm px-4 py-3 transition-all duration-300 cursor-pointer"
         style={{
           borderRadius: "var(--radius-btn)",
           border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -103,31 +108,38 @@ const CancionCardFila = ({ cancion, index }: { cancion: Cancion; index: number }
         onMouseEnter={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)"; }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)"; }}
       >
-        <div className="flex items-center gap-4 min-w-0">
-          <div
-            className="w-10 h-10 overflow-hidden shrink-0"
-            style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
-          >
-            <SmartImage src={cancion.portada_url || "/placeholder-cover.jpg"} alt={cancion.titulo} className="w-full h-full object-cover" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-primary font-black uppercase text-sm group-hover:text-[var(--accent)] transition-colors tracking-tighter italic truncate">
-              {cancion.titulo}
-            </h2>
-            {cancion.cantante && (
-              <p className="text-primary/40 text-[10px] font-bold uppercase tracking-widest truncate mt-0.5">
-                {cancion.cantante}
-              </p>
-            )}
-          </div>
+        {/* Número de track */}
+        <span className="font-mono text-[10px] font-black text-primary/20 w-6 text-right shrink-0 select-none group-hover:text-primary/40 transition-colors">
+          {String(index + 1).padStart(2, "0")}
+        </span>
+
+        {/* Thumbnail 56px */}
+        <div
+          className="w-14 h-14 overflow-hidden shrink-0"
+          style={{ borderRadius: "var(--radius-btn)", border: "var(--border-width) solid color-mix(in srgb, var(--primary) 15%, transparent)" }}
+        >
+          <SmartImage src={cancion.portada_url || "/placeholder-cover.jpg"} alt={cancion.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         </div>
-        <ChevronRight size={16} className="text-primary/30 group-hover:text-primary transition-colors shrink-0" />
+
+        {/* Info */}
+        <div className="min-w-0 flex-1">
+          <h2 className="text-primary font-black uppercase text-sm group-hover:text-[var(--accent)] transition-colors tracking-tighter italic truncate">
+            {cancion.titulo}
+          </h2>
+          {cancion.cantante && (
+            <p className="text-primary/40 text-[10px] font-bold uppercase tracking-widest truncate mt-0.5">
+              {cancion.cantante}
+            </p>
+          )}
+        </div>
+
+        <ChevronRight size={14} className="text-primary/20 group-hover:text-primary/50 transition-colors shrink-0" />
       </div>
     </Link>
   </MotionDiv>
 );
 
-// ─── Encabezado de bloque por personaje (igual que grupos en detalles.tsx) ─────
+// ─── Encabezado de bloque por personaje ───────────────────────────────────────
 const PersonajeHeader = ({
   nombre,
   count,
@@ -164,21 +176,33 @@ const PersonajeHeader = ({
         <User size={14} className="text-primary/40" />
       </div>
     )}
-    <div>
-      <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 italic mb-0.5">
-        Personaje
-      </p>
-      <p className="text-primary font-black uppercase text-sm tracking-tight flex items-center gap-2">
-        {nombre}
-        <span className="text-primary/30 font-bold text-[10px] normal-case tracking-normal">
-          {count} {count !== 1 ? "canciones" : "canción"}
-        </span>
-      </p>
+
+    <div className="flex-1 flex items-center gap-3 min-w-0">
+      {/* Línea izquierda */}
+      <div
+        className="h-px flex-1 hidden sm:block"
+        style={{ background: "linear-gradient(to left, color-mix(in srgb, var(--primary) 10%, transparent), transparent)" }}
+      />
+
+      {/* Bloque central */}
+      <div className="flex flex-col items-start sm:items-center gap-0.5 min-w-0">
+        <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30 italic">
+          Personaje
+        </p>
+        <p className="text-primary font-black uppercase text-sm tracking-tight leading-none">
+          {nombre}
+        </p>
+        <p className="text-[8px] font-mono font-bold text-primary/30 tracking-widest">
+          ── {count} {count !== 1 ? "canciones" : "canción"} ──
+        </p>
+      </div>
+
+      {/* Línea derecha */}
+      <div
+        className="h-px flex-1"
+        style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 10%, transparent), transparent)" }}
+      />
     </div>
-    <div
-      className="flex-1 h-px ml-2"
-      style={{ background: "linear-gradient(to right, color-mix(in srgb, var(--primary) 12%, transparent), transparent)" }}
-    />
   </MotionDiv>
 );
 
@@ -298,12 +322,23 @@ export default function CancionesPage() {
         <PageHeader title="Canciones" icon={<Music size={32} />} />
 
         <div className="flex items-center gap-3 mb-10">
-          <input
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar canción…"
-            className="flex-1 bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] px-5 py-3 text-sm font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/25 transition-all"
-          />
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none" />
+            <input
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              placeholder="Buscar canción…"
+              className="w-full bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] pl-10 pr-10 py-3 text-sm font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/25 transition-all"
+            />
+            {busqueda && (
+              <button
+                onClick={() => setBusqueda("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-primary/30 hover:text-primary hover:bg-primary/5 transition-all"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
           <button
             onClick={() => setVistaFila(v => !v)}
             title={vistaFila ? "Vista cuadrícula" : "Vista lista"}

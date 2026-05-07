@@ -18,9 +18,6 @@ import { EditorItem }      from "./editorEntidades/EditorItem";
 import { EditorReino }     from "./editorEntidades/EditorReino";
 import { EditorMundo }     from "./editorEntidades/EditorMundo";
 
-// ─── Wikilink context ─────────────────────────────────────────────────────────
-import { WikilinkProvider } from "./editorEntidades/WikilinkContext";
-
 // ─── Helpers Dexie locales ────────────────────────────────────────────────────
 async function dexieReadAll<T>(tabla: string): Promise<T[]> {
   try {
@@ -203,15 +200,6 @@ function readSession(): {
   }
 }
 
-// ─── Normalización para búsqueda fuzzy de wikilinks ──────────────────────────
-function normalizeStr(s: string) {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
-
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function EditorEntidades() {
   const session = useRef(readSession());
@@ -272,134 +260,88 @@ export default function EditorEntidades() {
     }));
   }, [setAllItems]);
 
-  // ── Navegación por wikilinks ─────────────────────────────────────────────
-  /**
-   * Recibe el texto dentro de [[...]] y busca la entidad más parecida
-   * en allItems (personajes → criaturas → items → reinos).
-   * Si encuentra coincidencia navega a ella; si no, no hace nada.
-   *
-   * Estrategia de matching (en orden de prioridad):
-   *   1. Exact match (case-insensitive + sin tildes)
-   *   2. startsWith
-   *   3. includes
-   */
-  const handleWikilinkNavigate = useCallback((target: string) => {
-    const norm = normalizeStr(target);
-
-    type TabEntry = { id: string; nombre: string };
-    const TABS_ORDER: Array<{ key: Exclude<TabKey, "mundo">; items: TabEntry[] }> = [
-      { key: "personajes", items: allItems.personajes },
-      { key: "criaturas",  items: allItems.criaturas  },
-      { key: "items",      items: allItems.items       },
-      { key: "reinos",     items: allItems.reinos      },
-    ];
-
-    // Buscar exacta primero, luego startsWith, luego includes
-    for (const strategy of [
-      (n: string, t: string) => n === t,
-      (n: string, t: string) => n.startsWith(t),
-      (n: string, t: string) => n.includes(t),
-    ]) {
-      for (const { key, items } of TABS_ORDER) {
-        const found = (items as TabEntry[]).find(i =>
-          strategy(normalizeStr(i.nombre), norm)
-        );
-        if (found) {
-          setTab(key);
-          setSelectedId(found.id);
-          return;
-        }
-      }
-    }
-
-    // Sin coincidencia: no hacer nada silenciosamente
-    // (podría mostrarse un toast en el futuro)
-  }, [allItems]);
-
   const isMundo = tab === "mundo";
 
   return (
     <>
-      <WikilinkProvider navigateTo={handleWikilinkNavigate}>
-        <div
-          className="flex flex-col w-full overflow-hidden h-full"
-          style={{ background: "var(--bg-main)" }}
-        >
-          {/* ── Buscador global ──────────────────────────────────────────────── */}
-          <GlobalSearchBar
-            allItems={allItems}
-            loadingAll={loadingAll}
-            isOffline={isOffline}
-            activeTab={tab}
-            selectedId={selectedId}
-            activeMundoSection={tab === "mundo" ? mundoSection : null}
-            onSelect={handleSelect}
-            onAdd={(chosenTab) => {
-              setTab(chosenTab);
-              setShowNueva(chosenTab as Exclude<TabKey, "mundo">);
-            }}
-            onNavigateTab={(chosenTab) => {
-              setTab(chosenTab);
-              const first = allItems[chosenTab]?.[0];
-              setSelectedId(first?.id ?? null);
-            }}
-            onSelectMundoSection={(section) => {
-              setTab("mundo");
-              setSelectedId(null);
-              setMundoSection(section);
-            }}
-            onSelectMundoSubTab={(section, subTab) => {
-              setTab("mundo");
-              setSelectedId(null);
-              setMundoSection(section);
-              setRequestedSubTab(subTab);
-            }}
-            onToggleOculto={handleToggleOcultoReino}
-          />
+      <div
+        className="flex flex-col w-full overflow-hidden h-full"
+        style={{ background: "var(--bg-main)" }}
+      >
+        {/* ── Buscador global ──────────────────────────────────────────────── */}
+        <GlobalSearchBar
+          allItems={allItems}
+          loadingAll={loadingAll}
+          isOffline={isOffline}
+          activeTab={tab}
+          selectedId={selectedId}
+          activeMundoSection={tab === "mundo" ? mundoSection : null}
+          onSelect={handleSelect}
+          onAdd={(chosenTab) => {
+            setTab(chosenTab);
+            setShowNueva(chosenTab as Exclude<TabKey, "mundo">);
+          }}
+          onNavigateTab={(chosenTab) => {
+            setTab(chosenTab);
+            const first = allItems[chosenTab]?.[0];
+            setSelectedId(first?.id ?? null);
+          }}
+          onSelectMundoSection={(section) => {
+            setTab("mundo");
+            setSelectedId(null);
+            setMundoSection(section);
+          }}
+          onSelectMundoSubTab={(section, subTab) => {
+            setTab("mundo");
+            setSelectedId(null);
+            setMundoSection(section);
+            setRequestedSubTab(subTab);
+          }}
+          onToggleOculto={handleToggleOcultoReino}
+        />
 
-          {/* ── Indicador offline ────────────────────────────────────────────── */}
-          {isOffline && (
-            <div
-              className="shrink-0 flex items-center justify-center gap-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-orange-400"
-              style={{ background: "color-mix(in srgb, oklch(0.7 0.15 55) 8%, transparent)" }}
-            >
-              <WifiOff size={10} /> Sin conexión · algunos datos pueden estar desactualizados
+        {/* ── Indicador offline ────────────────────────────────────────────── */}
+        {isOffline && (
+          <div
+            className="shrink-0 flex items-center justify-center gap-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-orange-400"
+            style={{ background: "color-mix(in srgb, oklch(0.7 0.15 55) 8%, transparent)" }}
+          >
+            <WifiOff size={10} /> Sin conexión · algunos datos pueden estar desactualizados
+          </div>
+        )}
+
+        {/* ── Editor ──────────────────────────────────────────────────────── */}
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          {isMundo ? (
+            <EditorMundo
+              activeSection={mundoSection}
+              textos={mundoTextos}
+              onTextoChange={(section, value) => setMundoTextos(t => ({ ...t, [section]: value }))}
+              onSave={(section) => saveMundo(section, mundoTextos[section])}
+              initialMundoTab={requestedSubTab}
+              onTabChange={(section, mundoTab) => {
+                setMundoSection(section);
+                setRequestedSubTab(mundoTab);
+              }}
+            />
+          ) : selected ? (
+            <>
+              {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} />}
+              {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} />}
+              {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} />}
+              {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} />}
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-primary/15 select-none">
+              <Globe size={48} strokeWidth={1} />
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">Worldbuilding</p>
+              <p className="text-[10px] text-primary/20 tracking-widest">
+                {loadingAll ? "Cargando…" : "Buscá cualquier entidad arriba"}
+              </p>
             </div>
           )}
-
-          {/* ── Editor ──────────────────────────────────────────────────────── */}
-          <div className="flex-1 flex min-h-0 overflow-hidden">
-            {isMundo ? (
-              <EditorMundo
-                activeSection={mundoSection}
-                textos={mundoTextos}
-                onTextoChange={(section, value) => setMundoTextos(t => ({ ...t, [section]: value }))}
-                onSave={(section) => saveMundo(section, mundoTextos[section])}
-                initialMundoTab={requestedSubTab}
-                onTabChange={(section, mundoTab) => {
-                  setMundoSection(section);
-                  setRequestedSubTab(mundoTab);
-                }}
-              />
-            ) : selected ? (
-              <>
-                {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} />}
-                {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} />}
-                {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} />}
-                {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} />}
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center gap-3 text-primary/15 select-none">
-                <Globe size={48} strokeWidth={1} />
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">Worldbuilding</p>
-                <p className="text-[10px] text-primary/20 tracking-widest">
-                  {loadingAll ? "Cargando…" : "Buscá cualquier entidad arriba"}
-                </p>
-              </div>
-            )}
-          </div>
         </div>
-      </WikilinkProvider>
+      </div>
 
       {/* Modal nueva entrada */}
       {showNueva && !isMundo && (

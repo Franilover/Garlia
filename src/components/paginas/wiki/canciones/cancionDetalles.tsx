@@ -376,7 +376,7 @@ useEffect(() => {
                     gap: 6,
                     padding: "8px 14px",
                     border,
-                    borderRadius: 99,
+                    borderRadius: "var(--radius-btn, 99px)",
                     textDecoration: "none",
                     color: "var(--primary)",
                     fontSize: 10.5,
@@ -437,7 +437,7 @@ useEffect(() => {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
-                    style={{ paddingBottom: 28 }}
+                    style={{ paddingBottom: 40 }}
                   >
                     {sec.nombre_seccion && (
                       <p
@@ -460,7 +460,7 @@ useEffect(() => {
                         fontSize: "1rem",
                         fontFamily: "var(--font-lora, serif)",
                         fontStyle: "italic",
-                        lineHeight: 2.1,
+                        lineHeight: 1.85,
                         color: "var(--primary)",
                         opacity: 0.85,
                         whiteSpace: "pre-wrap",
@@ -691,7 +691,7 @@ useEffect(() => {
                       fontSize: "1.08rem",
                       fontFamily: "var(--font-lora, serif)",
                       fontStyle: "italic",
-                      lineHeight: 2.1,
+                      lineHeight: 1.85,
                       color: "var(--primary)",
                       opacity: 0.85,
                       whiteSpace: "pre-wrap",
@@ -751,7 +751,7 @@ function InfoFlipMobile({ info, border }: { info: string; border: string }) {
           justifyContent: "space-between",
           background: "color-mix(in srgb, var(--primary) 5%, transparent)",
           border,
-          borderRadius: open ? "12px 12px 0 0" : 12,
+          borderRadius: open ? "var(--radius-btn, 12px) var(--radius-btn, 12px) 0 0" : "var(--radius-btn, 12px)",
           padding: "10px 14px",
           cursor: "pointer",
           color: "var(--primary)",
@@ -794,7 +794,7 @@ function InfoFlipMobile({ info, border }: { info: string; border: string }) {
           style={{
             border,
             borderTop: "none",
-            borderRadius: "0 0 12px 12px",
+            borderRadius: "0 0 var(--radius-btn, 12px) var(--radius-btn, 12px)",
             padding: "14px 16px 16px",
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
