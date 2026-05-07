@@ -1376,6 +1376,21 @@ export function MarkdownEditor({
                 placeholder={placeholder}
                 className={textareaCls}
                 style={textareaStyle}
+                onDoubleClick={(e) => {
+                  if (!onSnippetAction) return;
+                  const ta = e.currentTarget;
+                  const pos = ta.selectionStart ?? 0;
+                  const text = ta.value;
+                  const wikilinkRe = /\[\[([^\]|#]+?)(?:\|[^\]]*)?\]\]/g;
+                  let m: RegExpExecArray | null;
+                  while ((m = wikilinkRe.exec(text)) !== null) {
+                    if (m.index <= pos && pos <= m.index + m[0].length) {
+                      e.preventDefault();
+                      onSnippetAction({ type: "wikilink", target: m[1].trim() });
+                      return;
+                    }
+                  }
+                }}
               />
 
               {/* ── Menú flotante de comandos ── */}
