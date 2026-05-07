@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type ThemeName   = "default" | "pixel" | "scribble";
+export type ThemeName   = "default" | "pixel" | "scribble" | "slate" | "sepia";
 export type DarkMode    = "light" | "dark";
 export type AccentColor  = "purple" | "yellow" | "blue" | "red" | "green";
 
@@ -140,7 +140,62 @@ const ACCENT_PALETTES: Record<AccentColor, {
       "--btn-text":   "#08140d",
     },
   },
-  
+};
+
+// Paletas extra para temas slate y sepia (no dependen del acento, usan sus propios CSS vars)
+// Estas se usan para sobreescribir solo cuando el tema lo requiere
+const THEME_OVERRIDES: Partial<Record<ThemeName, {
+  light: Record<string, string>;
+  dark:  Record<string, string>;
+}>> = {
+  slate: {
+    light: {
+      "--primary":     "#334155",
+      "--accent":      "#64748b",
+      "--bg-main":     "#e2e8f0",
+      "--bg-menu":     "#1e293b",
+      "--foreground":  "#0f172a",
+      "--white-custom":"#f8fafc",
+      "--input-bg":    "#ffffff",
+      "--input-text":  "#0f172a",
+      "--btn-text":    "#f8fafc",
+    },
+    dark: {
+      "--primary":     "#94a3b8",
+      "--accent":      "#7dd3fc",
+      "--bg-main":     "#0f172a",
+      "--bg-menu":     "#020617",
+      "--foreground":  "#e2e8f0",
+      "--white-custom":"#1e293b",
+      "--input-bg":    "#1e293b",
+      "--input-text":  "#e2e8f0",
+      "--btn-text":    "#0f172a",
+    },
+  },
+  sepia: {
+    light: {
+      "--primary":     "#6b4423",
+      "--accent":      "#c08040",
+      "--bg-main":     "#f0e6d0",
+      "--bg-menu":     "#3d2010",
+      "--foreground":  "#2a1304",
+      "--white-custom":"#fdf6ee",
+      "--input-bg":    "#fdf6ee",
+      "--input-text":  "#2a1304",
+      "--btn-text":    "#fdf6ee",
+    },
+    dark: {
+      "--primary":     "#d4a060",
+      "--accent":      "#e8c080",
+      "--bg-main":     "#1a1008",
+      "--bg-menu":     "#100a04",
+      "--foreground":  "#f0d8a8",
+      "--white-custom":"#261808",
+      "--input-bg":    "#201408",
+      "--input-text":  "#f0d8a8",
+      "--btn-text":    "#1a1008",
+    },
+  },
 };
 
 export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string }[] = [
@@ -155,14 +210,20 @@ const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
   { id: "default",  label: "Minimalista", emoji: "" },
   { id: "pixel",    label: "Retro",       emoji: "" },
   { id: "scribble", label: "Antiguo",     emoji: "" },
+  { id: "slate",    label: "Gris",        emoji: "" },
+  { id: "sepia",    label: "Café",        emoji: "" },
 ];
 
-function applyAccentPalette(accent: AccentColor, dark: DarkMode) {
-  const palette = ACCENT_PALETTES[accent][dark];
+function applyAccentPalette(accent: AccentColor, dark: DarkMode, theme?: ThemeName) {
   const root = document.documentElement;
-  Object.entries(palette).forEach(([key, val]) => {
-    root.style.setProperty(key, val);
-  });
+  // Si el tema tiene override propio, aplica eso en vez del acento
+  if (theme && THEME_OVERRIDES[theme]) {
+    const palette = THEME_OVERRIDES[theme]![dark];
+    Object.entries(palette).forEach(([key, val]) => root.style.setProperty(key, val));
+    return;
+  }
+  const palette = ACCENT_PALETTES[accent][dark];
+  Object.entries(palette).forEach(([key, val]) => root.style.setProperty(key, val));
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -197,15 +258,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
     }
-    applyAccentPalette(accent, dark);
-  }, [dark, accent]);
+    applyAccentPalette(accent, dark, theme);
+  }, [dark, accent, theme]);
 
   
   useEffect(() => {
-    applyAccentPalette(accent, dark);
+    applyAccentPalette(accent, dark, theme);
     localStorage.setItem("app-accent", accent);
     document.documentElement.setAttribute("data-accent", accent);
-  }, [accent, dark]);
+  }, [accent, dark, theme]);
 
   const setTheme   = (t: ThemeName)   => setThemeState(t);
   const setAccent  = (a: AccentColor) => setAccentState(a);
