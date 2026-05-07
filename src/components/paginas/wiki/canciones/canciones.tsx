@@ -186,9 +186,6 @@ const PersonajeHeader = ({
 
       {/* Bloque central */}
       <div className="flex flex-col items-start sm:items-center gap-0.5 min-w-0">
-        <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30 italic">
-          Personaje
-        </p>
         <p className="text-primary font-black uppercase text-sm tracking-tight leading-none">
           {nombre}
         </p>
