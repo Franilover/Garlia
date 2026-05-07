@@ -443,20 +443,9 @@
 
   [data-theme="scribble"] .card-main {
     border: 1px solid var(--primary);
-  }
-
-  [data-theme="scribble"] .card-main::after {
-    content: "";
-    position: absolute;
-    inset: 4px;
-    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
-    pointer-events: none;
-    z-index: 10;
-  }
-
-  [data-theme="scribble"] .card-main.no-inner-border::after,
-  [data-theme="scribble"] .editor-block::after {
-    display: none;
+    box-shadow:
+      3px 3px 0px color-mix(in srgb, var(--primary) 35%, transparent),
+      var(--shadow-card);
   }
 
   [data-theme="pixel"].dark .card-main {
@@ -495,13 +484,8 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent);
   }
 
-  [data-theme="scribble"] aside .relative:has(input[type="text"])::after {
-    content: "";
-    position: absolute;
-    inset: 4px;
-    border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
-    pointer-events: none;
-    z-index: 5;
+  [data-theme="scribble"] aside .relative:has(input[type="text"]) input {
+    box-shadow: inset 2px 2px 0px color-mix(in srgb, var(--primary) 20%, transparent);
   }
 
   /* BOTONES */
