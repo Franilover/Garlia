@@ -14,6 +14,7 @@
   --color-text-on-card: var(--text-on-card);
   --color-input-bg: var(--input-bg);
   --color-input-text: var(--input-text);
+  --color-menu-text: var(--menu-text);
 
   /* Radios y sombras temáticas → clases Tailwind: rounded-card, rounded-btn, rounded-input, shadow-card */
   --radius-card: var(--radius-card);
@@ -24,6 +25,7 @@
   --animate-terminal-flicker: flicker 0.15s infinite;
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
+  --animate-scanline: scanline-move 8s linear infinite;
   
   @keyframes flicker {
     0% { opacity: 0.97; }
@@ -426,6 +428,10 @@
     @apply bg-[var(--bg-main)] text-[var(--foreground)] antialiased;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
+
+  *, *::before, *::after {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease;
+  }
 }
 
 @layer components {
@@ -462,7 +468,7 @@
 
   [data-theme="scribble"] .char-card-base {
     border: 1px solid var(--primary);
-    grayscale: 0;
+    filter: grayscale(0);
   }
 
   /* BUSCADOR E INPUTS */
@@ -475,6 +481,11 @@
     color: var(--input-text);
     outline: none;
     transition: all 0.2s ease;
+  }
+
+  .input-brand:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
   }
 
   .dark .input-brand:focus,
@@ -500,6 +511,14 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .btn-brand:hover {
+    filter: brightness(1.1);
+  }
+
+  .btn-brand:active {
+    transform: translateY(1px);
   }
 
   [data-theme="scribble"] .btn-brand {
