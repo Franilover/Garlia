@@ -334,6 +334,25 @@ export default function LibroDetalle() {
             <h1 className="text-4xl font-black text-primary italic tracking-tighter leading-[0.9] mb-10 uppercase text-center">
               {libro.titulo}
             </h1>
+
+            {leidos.size > 0 && capitulos.length > 0 && (
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex-1 h-1 rounded-full bg-primary/8 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.round((leidos.size / capitulos.length) * 100)}%`,
+                      background: "linear-gradient(to right, var(--primary), color-mix(in srgb, var(--accent, var(--primary)) 80%, var(--primary)))",
+                    }}
+                  />
+                </div>
+                <span className="flex items-center gap-1.5 text-primary/30 font-bold text-[9px] uppercase tracking-widest italic whitespace-nowrap flex-shrink-0">
+                  <CheckCircle2 size={10} className="text-primary/25" />
+                  {leidos.size}/{capitulos.length}
+                </span>
+              </div>
+            )}
+
             {capitulos.length === 0 ? (
               <p className="text-center text-primary/30 font-bold text-xs uppercase tracking-widest py-12 italic">
                 Aún no hay capítulos publicados
@@ -449,6 +468,15 @@ export default function LibroDetalle() {
                 <span className="text-[8px] font-bold text-primary/30 uppercase tracking-wider">
                   {leidos.size}/{capitulos.length}
                 </span>
+              </div>
+              <div className="h-1 w-full rounded-full bg-primary/8 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.round((leidos.size / capitulos.length) * 100)}%`,
+                    background: "linear-gradient(to right, var(--primary), color-mix(in srgb, var(--accent, var(--primary)) 80%, var(--primary)))",
+                  }}
+                />
               </div>
             </div>
           )}
