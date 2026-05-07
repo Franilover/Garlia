@@ -572,3 +572,10 @@
     --radius: var(--radius-btn);
   }
 }
+/* Scribble dark — shadcn border/ring override */
+@layer base {
+  [data-theme="scribble"].dark {
+    --border: color-mix(in srgb, var(--primary) 30%, transparent);
+    --ring: color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+}
