@@ -320,185 +320,91 @@
 }
 
 /* =========================================
-   TEMA: SCRIBBLE (ANTIGUO)
-   ========================================= */
-[data-theme="scribble"] {
-  --primary: #4a3427;
-  --accent: #d2691e;
-  --bg-main: #e2d1b9;
-  --bg-menu: #4a3427;
-  --white-custom: #ebdecb;
-  --foreground: #2d1f18;
-  --btn-text: #ebdecb;
-  --menu-text: #ebdecb;
-  --text-on-card: #1e130e;
-  --input-bg: #eedcc4;
-  --input-text: #1e130e;
-  --radius-card: 0px;
-  --radius-btn: 0px;
-  --radius-input: 0px;
-  --shadow-card: 4px 4px 0px rgba(74,52,39,0.1);
-  --border-width: 1px;
-
-  /* ── Callout colors: SCRIBBLE light (ink & parchment tones) ── */
-  /* note   → sepia brown (primary) */
-  --callout-note-border:  #3a2418;
-  --callout-note-bg:      color-mix(in srgb, #3a2418 10%, transparent);
-  --callout-note-text:    #1e130e;
-  --callout-note-title:   #0f0806;
-  /* tip    → burnt sienna (accent) más oscuro */
-  --callout-tip-border:   #b45010;
-  --callout-tip-bg:       color-mix(in srgb, #b45010 12%, transparent);
-  --callout-tip-text:     #1e130e;
-  --callout-tip-title:    #7a2800;
-  /* warning → ochre / mustard más oscuro */
-  --callout-warning-border: #966900;
-  --callout-warning-bg:     color-mix(in srgb, #966900 12%, transparent);
-  --callout-warning-text:   #1e130e;
-  --callout-warning-title:  #5a3e00;
-  /* danger → deep red ink */
-  --callout-danger-border:  #7a1010;
-  --callout-danger-bg:      color-mix(in srgb, #7a1010 10%, transparent);
-  --callout-danger-text:    #1e130e;
-  --callout-danger-title:   #550000;
-  /* success → faded olive ink */
-  --callout-success-border: #385522;
-  --callout-success-bg:     color-mix(in srgb, #385522 10%, transparent);
-  --callout-success-text:   #1e130e;
-  --callout-success-title:  #1e3810;
-  /* info → dusty indigo */
-  --callout-info-border:    #483868;
-  --callout-info-bg:        color-mix(in srgb, #483868 10%, transparent);
-  --callout-info-text:      #1e130e;
-  --callout-info-title:     #2a1a4a;
-}
-
-[data-theme="scribble"].dark {
-  --primary: #7a5c9e;
-  --accent: #9b6bbf;
-  --bg-main: #120d1a;
-  --bg-menu: #0d0913;
-  --white-custom: #1c1428;
-  --foreground: #c8b8e0;
-  --btn-text: #120d1a;
-  --menu-text: #c8b8e0;
-  --text-on-card: #c8b8e0;
-  --input-bg: #221830;
-  --input-text: #c8b8e0;
-
-  /* ── Callout colors: SCRIBBLE dark (deep purple tones) ── */
-  --callout-note-border:  #7a5c9e;
-  --callout-note-bg:      color-mix(in srgb, #7a5c9e 10%, transparent);
-  --callout-note-text:    #c8b8e0;
-  --callout-note-title:   #b0a0d0;
-  --callout-tip-border:   #9b6bbf;
-  --callout-tip-bg:       color-mix(in srgb, #9b6bbf 10%, transparent);
-  --callout-tip-text:     #c8a8e0;
-  --callout-tip-title:    #b088cc;
-  --callout-warning-border: #8a6a30;
-  --callout-warning-bg:     color-mix(in srgb, #8a6a30 10%, transparent);
-  --callout-warning-text:   #c0a060;
-  --callout-warning-title:  #a07838;
-  --callout-danger-border:  #883060;
-  --callout-danger-bg:      color-mix(in srgb, #883060 10%, transparent);
-  --callout-danger-text:    #c07090;
-  --callout-danger-title:   #a04870;
-  --callout-success-border: #4a7a60;
-  --callout-success-bg:     color-mix(in srgb, #4a7a60 10%, transparent);
-  --callout-success-text:   #80b898;
-  --callout-success-title:  #5e9070;
-  --callout-info-border:    #6858a8;
-  --callout-info-bg:        color-mix(in srgb, #6858a8 12%, transparent);
-  --callout-info-text:      #a898d8;
-  --callout-info-title:     #8878c0;
-}
-
-/* =========================================
-   TEMA: SLATE (GRIS AZULADO)
+   TEMA: SLATE (MONOCROMO)
    ========================================= */
 [data-theme="slate"] {
-  --primary: #334155;
-  --accent: #64748b;
-  --bg-main: #e2e8f0;
-  --bg-menu: #1e293b;
-  --white-custom: #f8fafc;
-  --foreground: #0f172a;
-  --btn-text: #f8fafc;
-  --menu-text: #f1f5f9;
-  --text-on-card: #0f172a;
+  --primary: #1a1a1a;
+  --accent: #555555;
+  --bg-main: #efefef;
+  --bg-menu: #1a1a1a;
+  --white-custom: #ffffff;
+  --foreground: #0a0a0a;
+  --btn-text: #ffffff;
+  --menu-text: #e0e0e0;
+  --text-on-card: #0a0a0a;
   --input-bg: #ffffff;
-  --input-text: #0f172a;
-  --radius-card: 0.5rem;
+  --input-text: #0a0a0a;
+  --radius-card: 0.375rem;
   --radius-btn: 0.375rem;
   --radius-input: 0.375rem;
-  --shadow-card: 0 2px 12px 0 rgba(51,65,85,0.10);
+  --shadow-card: 0 2px 12px 0 rgba(0,0,0,0.10);
   --border-width: 1px;
 
-  /* ── Callout colors: SLATE light ── */
-  --callout-note-border:   #334155;
-  --callout-note-bg:       color-mix(in srgb, #334155 10%, transparent);
-  --callout-note-text:     #0f172a;
-  --callout-note-title:    #1e293b;
-  --callout-tip-border:    #475569;
-  --callout-tip-bg:        color-mix(in srgb, #475569 12%, transparent);
-  --callout-tip-text:      #0f172a;
-  --callout-tip-title:     #1e293b;
-  --callout-warning-border: #92400e;
-  --callout-warning-bg:     color-mix(in srgb, #92400e 10%, transparent);
-  --callout-warning-text:   #0f172a;
-  --callout-warning-title:  #78350f;
-  --callout-danger-border:  #991b1b;
-  --callout-danger-bg:      color-mix(in srgb, #991b1b 10%, transparent);
-  --callout-danger-text:    #0f172a;
-  --callout-danger-title:   #7f1d1d;
-  --callout-success-border: #166534;
-  --callout-success-bg:     color-mix(in srgb, #166534 10%, transparent);
-  --callout-success-text:   #0f172a;
-  --callout-success-title:  #14532d;
-  --callout-info-border:    #1d4ed8;
-  --callout-info-bg:        color-mix(in srgb, #1d4ed8 10%, transparent);
-  --callout-info-text:      #0f172a;
-  --callout-info-title:     #1e3a8a;
+  /* ── Callout colors: SLATE light (grises puros) ── */
+  --callout-note-border:   #333333;
+  --callout-note-bg:       color-mix(in srgb, #333333 10%, transparent);
+  --callout-note-text:     #0a0a0a;
+  --callout-note-title:    #1a1a1a;
+  --callout-tip-border:    #555555;
+  --callout-tip-bg:        color-mix(in srgb, #555555 12%, transparent);
+  --callout-tip-text:      #0a0a0a;
+  --callout-tip-title:     #2a2a2a;
+  --callout-warning-border: #7a5500;
+  --callout-warning-bg:     color-mix(in srgb, #7a5500 10%, transparent);
+  --callout-warning-text:   #0a0a0a;
+  --callout-warning-title:  #4a3200;
+  --callout-danger-border:  #880000;
+  --callout-danger-bg:      color-mix(in srgb, #880000 10%, transparent);
+  --callout-danger-text:    #0a0a0a;
+  --callout-danger-title:   #550000;
+  --callout-success-border: #1a5522;
+  --callout-success-bg:     color-mix(in srgb, #1a5522 10%, transparent);
+  --callout-success-text:   #0a0a0a;
+  --callout-success-title:  #0a3312;
+  --callout-info-border:    #444444;
+  --callout-info-bg:        color-mix(in srgb, #444444 10%, transparent);
+  --callout-info-text:      #0a0a0a;
+  --callout-info-title:     #222222;
 }
 
 [data-theme="slate"].dark {
-  --primary: #94a3b8;
-  --accent: #7dd3fc;
-  --bg-main: #0f172a;
-  --bg-menu: #020617;
-  --white-custom: #1e293b;
-  --foreground: #e2e8f0;
-  --btn-text: #0f172a;
-  --menu-text: #e2e8f0;
-  --text-on-card: #e2e8f0;
-  --input-bg: #1e293b;
-  --input-text: #e2e8f0;
+  --primary: #d0d0d0;
+  --accent: #999999;
+  --bg-main: #111111;
+  --bg-menu: #050505;
+  --white-custom: #1e1e1e;
+  --foreground: #f0f0f0;
+  --btn-text: #111111;
+  --menu-text: #e0e0e0;
+  --text-on-card: #f0f0f0;
+  --input-bg: #1e1e1e;
+  --input-text: #f0f0f0;
 
-  /* ── Callout colors: SLATE dark ── */
-  --callout-note-border:   #94a3b8;
-  --callout-note-bg:       color-mix(in srgb, #94a3b8 10%, transparent);
-  --callout-note-text:     #cbd5e1;
-  --callout-note-title:    #e2e8f0;
-  --callout-tip-border:    #7dd3fc;
-  --callout-tip-bg:        color-mix(in srgb, #7dd3fc 10%, transparent);
-  --callout-tip-text:      #bae6fd;
-  --callout-tip-title:     #e0f2fe;
-  --callout-warning-border: #fbbf24;
-  --callout-warning-bg:     color-mix(in srgb, #fbbf24 10%, transparent);
-  --callout-warning-text:   #fde68a;
-  --callout-warning-title:  #fef3c7;
-  --callout-danger-border:  #f87171;
-  --callout-danger-bg:      color-mix(in srgb, #f87171 10%, transparent);
-  --callout-danger-text:    #fca5a5;
-  --callout-danger-title:   #fee2e2;
-  --callout-success-border: #4ade80;
-  --callout-success-bg:     color-mix(in srgb, #4ade80 10%, transparent);
-  --callout-success-text:   #86efac;
-  --callout-success-title:  #dcfce7;
-  --callout-info-border:    #60a5fa;
-  --callout-info-bg:        color-mix(in srgb, #60a5fa 10%, transparent);
-  --callout-info-text:      #93c5fd;
-  --callout-info-title:     #dbeafe;
+  /* ── Callout colors: SLATE dark (grises puros) ── */
+  --callout-note-border:   #aaaaaa;
+  --callout-note-bg:       color-mix(in srgb, #aaaaaa 10%, transparent);
+  --callout-note-text:     #e0e0e0;
+  --callout-note-title:    #f0f0f0;
+  --callout-tip-border:    #888888;
+  --callout-tip-bg:        color-mix(in srgb, #888888 10%, transparent);
+  --callout-tip-text:      #cccccc;
+  --callout-tip-title:     #e8e8e8;
+  --callout-warning-border: #c8a040;
+  --callout-warning-bg:     color-mix(in srgb, #c8a040 10%, transparent);
+  --callout-warning-text:   #e8cc80;
+  --callout-warning-title:  #f0dca0;
+  --callout-danger-border:  #cc5555;
+  --callout-danger-bg:      color-mix(in srgb, #cc5555 10%, transparent);
+  --callout-danger-text:    #e88888;
+  --callout-danger-title:   #f0aaaa;
+  --callout-success-border: #55aa55;
+  --callout-success-bg:     color-mix(in srgb, #55aa55 10%, transparent);
+  --callout-success-text:   #88cc88;
+  --callout-success-title:  #aaddaa;
+  --callout-info-border:    #777777;
+  --callout-info-bg:        color-mix(in srgb, #777777 12%, transparent);
+  --callout-info-text:      #bbbbbb;
+  --callout-info-title:     #dddddd;
 }
 
 /* =========================================
@@ -610,29 +516,10 @@
   font-family: var(--font-montserrat), system-ui, sans-serif !important;
 }
 
-/* SEPIA: serif cálido, igual que scribble pero con su propia voz */
+/* SEPIA: serif cálido */
 [data-theme="sepia"],
 [data-theme="sepia"] * {
   font-family: var(--font-lora), Georgia, serif !important;
-}
-
-/* SCRIBBLE: Lora para cuerpo, Caveat para títulos */
-[data-theme="scribble"],
-[data-theme="scribble"] * {
-  font-family: var(--font-lora), serif !important;
-}
-
-[data-theme="scribble"] h1,
-[data-theme="scribble"] h2,
-[data-theme="scribble"] h3,
-[data-theme="scribble"] h4,
-[data-theme="scribble"] h5,
-[data-theme="scribble"] h6,
-[data-theme="scribble"] .font-display,
-[data-theme="scribble"] .title,
-[data-theme="scribble"] .card-title,
-[data-theme="scribble"] .heading {
-  font-family: var(--font-caveat), cursive !important;
 }
 
 /* =========================================
@@ -641,17 +528,6 @@
 [data-theme] .lector-texto,
 [data-theme] .lector-texto * {
   font-family: var(--font-literata), Georgia, "Times New Roman", serif !important;
-}
-
-/* Textura de papel (Scribble) */
-[data-theme="scribble"] body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0.06;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
 }
 
 [data-theme="pixel"].dark body::before {
@@ -713,13 +589,6 @@
     overflow: hidden;
   }
 
-  [data-theme="scribble"] .card-main {
-    border: 1px solid var(--primary);
-    box-shadow:
-      3px 3px 0px color-mix(in srgb, var(--primary) 35%, transparent),
-      var(--shadow-card);
-  }
-
   [data-theme="pixel"].dark .card-main {
     border: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
     box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 15%, transparent);
@@ -730,11 +599,6 @@
     @apply relative aspect-[3/4] cursor-pointer overflow-hidden grayscale hover:grayscale-0 transition-all duration-500 shadow-md;
     border-radius: var(--radius-card);
     border: var(--border-width) solid transparent;
-  }
-
-  [data-theme="scribble"] .char-card-base {
-    border: 1px solid var(--primary);
-    filter: grayscale(0);
   }
 
   /* BUSCADOR E INPUTS */
@@ -752,17 +616,6 @@
   .input-brand:focus-visible {
     border-color: var(--accent);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
-  }
-
-  .dark .input-brand:focus,
-  [data-theme="pixel"].dark .input-brand:focus,
-  [data-theme="scribble"].dark .input-brand:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent);
-  }
-
-  [data-theme="scribble"] aside .relative:has(input[type="text"]) input {
-    box-shadow: inset 2px 2px 0px color-mix(in srgb, var(--primary) 20%, transparent);
   }
 
   /* BOTONES */
@@ -787,19 +640,6 @@
     transform: translateY(1px);
   }
 
-  [data-theme="scribble"] .btn-brand {
-    border: 1px solid var(--primary);
-    background: transparent;
-    color: var(--primary);
-  }
-
-  [data-theme="scribble"].dark .btn-brand {
-    border: 1px solid var(--primary);
-    background: transparent;
-    color: var(--foreground);
-    outline: none;
-  }
-
   [data-theme="pixel"].dark .btn-brand {
     box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 30%, transparent);
   }
@@ -813,7 +653,7 @@
     color: var(--input-text, var(--foreground));
   }
 
-  .dark select, [data-theme="pixel"].dark select, [data-theme="scribble"].dark select {
+  .dark select, [data-theme="pixel"].dark select {
     background-color: var(--input-bg);
     color: var(--input-text);
     border-color: color-mix(in srgb, var(--primary) 40%, transparent);
@@ -825,7 +665,7 @@
     color: var(--text-on-card); 
   }
 
-  .dark .bg-white, [data-theme="scribble"].dark .bg-white {
+  .dark .bg-white {
     background-color: var(--white-custom) !important;
   }
 
@@ -855,12 +695,5 @@
     --input: var(--input-bg);
     --ring: var(--accent);
     --radius: var(--radius-btn);
-  }
-}
-/* Scribble dark — shadcn border/ring override */
-@layer base {
-  [data-theme="scribble"].dark {
-    --border: color-mix(in srgb, var(--primary) 30%, transparent);
-    --ring: color-mix(in srgb, var(--primary) 40%, transparent);
   }
 }

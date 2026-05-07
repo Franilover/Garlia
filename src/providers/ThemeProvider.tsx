@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type ThemeName   = "default" | "pixel" | "scribble" | "slate" | "sepia";
+export type ThemeName   = "default" | "pixel" | "slate" | "sepia";
 export type DarkMode    = "light" | "dark";
 export type AccentColor  = "purple" | "yellow" | "blue" | "red" | "green";
 
@@ -150,26 +150,26 @@ const THEME_OVERRIDES: Partial<Record<ThemeName, {
 }>> = {
   slate: {
     light: {
-      "--primary":     "#334155",
-      "--accent":      "#64748b",
-      "--bg-main":     "#e2e8f0",
-      "--bg-menu":     "#1e293b",
-      "--foreground":  "#0f172a",
-      "--white-custom":"#f8fafc",
+      "--primary":     "#1a1a1a",
+      "--accent":      "#555555",
+      "--bg-main":     "#efefef",
+      "--bg-menu":     "#1a1a1a",
+      "--foreground":  "#0a0a0a",
+      "--white-custom":"#ffffff",
       "--input-bg":    "#ffffff",
-      "--input-text":  "#0f172a",
-      "--btn-text":    "#f8fafc",
+      "--input-text":  "#0a0a0a",
+      "--btn-text":    "#ffffff",
     },
     dark: {
-      "--primary":     "#94a3b8",
-      "--accent":      "#7dd3fc",
-      "--bg-main":     "#0f172a",
-      "--bg-menu":     "#020617",
-      "--foreground":  "#e2e8f0",
-      "--white-custom":"#1e293b",
-      "--input-bg":    "#1e293b",
-      "--input-text":  "#e2e8f0",
-      "--btn-text":    "#0f172a",
+      "--primary":     "#d0d0d0",
+      "--accent":      "#999999",
+      "--bg-main":     "#111111",
+      "--bg-menu":     "#050505",
+      "--foreground":  "#f0f0f0",
+      "--white-custom":"#1e1e1e",
+      "--input-bg":    "#1e1e1e",
+      "--input-text":  "#f0f0f0",
+      "--btn-text":    "#111111",
     },
   },
   sepia: {
@@ -209,10 +209,12 @@ export const ACCENT_OPTIONS: { id: AccentColor; label: string; hex: string }[] =
 const THEMES: { id: ThemeName; label: string; emoji: string }[] = [
   { id: "default",  label: "Minimalista", emoji: "" },
   { id: "pixel",    label: "Retro",       emoji: "" },
-  { id: "scribble", label: "Antiguo",     emoji: "" },
-  { id: "slate",    label: "Gris",        emoji: "" },
-  { id: "sepia",    label: "Café",        emoji: "" },
+  { id: "slate",    label: "Monocromo",   emoji: "" },
+  { id: "sepia",    label: "Antiguo",     emoji: "" },
 ];
+
+// Temas que tienen paleta fija y no usan el selector de color de acento
+const THEMES_WITH_OVERRIDE = new Set<ThemeName>(["slate", "sepia"]);
 
 function applyAccentPalette(accent: AccentColor, dark: DarkMode, theme?: ThemeName) {
   const root = document.documentElement;
@@ -227,7 +229,7 @@ function applyAccentPalette(accent: AccentColor, dark: DarkMode, theme?: ThemeNa
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme,  setThemeState]  = useState<ThemeName>("scribble");
+  const [theme,  setThemeState]  = useState<ThemeName>("sepia");
   const [dark,   setDarkState]   = useState<DarkMode>("dark");
   const [accent, setAccentState] = useState<AccentColor>("purple");
 
@@ -311,6 +313,7 @@ export function ThemeSelector() {
       </div>
 
       {}
+      {!THEMES_WITH_OVERRIDE.has(theme) && (
       <div className="flex flex-col gap-2">
         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Color</p>
         <div className="flex gap-2 flex-wrap">
@@ -329,6 +332,7 @@ export function ThemeSelector() {
           ))}
         </div>
       </div>
+      )}
 
       {}
       <button
