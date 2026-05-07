@@ -12,7 +12,7 @@ import { type Personaje, type SaveStatus } from "./types";
 import { useCapitulosNarrados, useNombresDeTabla } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "./WikilinkContext";
+import { useWikilink } from "../../../../forms/WikilinkContext";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";

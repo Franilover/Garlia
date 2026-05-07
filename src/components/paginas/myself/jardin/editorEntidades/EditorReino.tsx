@@ -11,7 +11,7 @@ import { type Reino, type ReinoDetalle, type SaveStatus, INPUT_CLS } from "./typ
 import { useReinoDetalles, usePersonajesDelReino } from "./hooks";
 import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "./WikilinkContext";
+import { useWikilink } from "../../../../forms/WikilinkContext";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
 type InnerTab = "mapa" | "lore" | "personajes";

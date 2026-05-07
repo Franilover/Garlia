@@ -9,7 +9,7 @@ import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS, type SaveStatus } from "./types";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
-import { useWikilink } from "./WikilinkContext";
+import { useWikilink } from "../../../../forms/WikilinkContext";
 
 export function SaveIndicator({ status }: { status: SaveStatus }) {
   if (status === "idle") return null;
