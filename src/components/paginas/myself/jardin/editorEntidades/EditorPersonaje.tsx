@@ -16,6 +16,7 @@ import { useWikilink } from "./WikilinkContext";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";
+import type { SnippetAction } from "@/components/forms/MarkdownEditor";
 
 // ─── Tabs internas ────────────────────────────────────────────────────────────
 type InnerTab = "identidad";
@@ -139,9 +140,14 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
   return variantes;
 }
 
-// ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
-  form, setForm, status, onSave, onDelete, compacto = false,
+  form,
+  setForm,
+  status,
+  onSave,
+  onDelete,
+  compacto = false,
+  onSnippetAction,
 }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -149,12 +155,12 @@ export function FormularioPersonaje({
   onSave: () => void;
   onDelete: () => void;
   compacto?: boolean;
+  onSnippetAction?: (action: SnippetAction) => void;
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
   const [tab, setTab] = useState<InnerTab>("identidad");
   const variantes = useCriaturaVariantesPorNombre(form.especie);
-  const { onSnippetAction } = useWikilink();
 
   const field = (k: keyof Personaje) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -361,7 +367,7 @@ export function FormularioPersonaje({
                           rows={8}
                           toolbar
                           defaultMode="edit"
-                        onSnippetAction={onSnippetAction}
+                          onSnippetAction={onSnippetAction}
                         />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
@@ -425,6 +431,7 @@ export function EditorPersonaje({
 }: {
   item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void;
 }) {
+  const { onSnippetAction } = useWikilink();
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
