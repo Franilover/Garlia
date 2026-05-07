@@ -96,6 +96,8 @@ function SideSubItem({
   );
 }
 
+const OUTLINE_THEMES = new Set(["pixel", "slate", "sepia"]);
+
 function SideNavItem({
   href, label, icon: Icon, active, fillActive,
   subLinks, sidebarExpanded, onClose,
@@ -106,8 +108,10 @@ function SideNavItem({
   sidebarExpanded: boolean; onClose: () => void;
 }) {
   const currentPath = usePathname();
+  const { theme } = useTheme();
   const [open, setOpen] = useState(false);
   const hasSublinks = !!subLinks?.length;
+  const useOutline = OUTLINE_THEMES.has(theme);
 
   useEffect(() => { setOpen(false); }, [currentPath]);
 
@@ -125,6 +129,13 @@ function SideNavItem({
           background: active ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
           color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
           paddingRight: sidebarExpanded ? "12px" : "10px",
+          ...(useOutline && active ? {
+            border: "var(--border-width) solid var(--primary)",
+            borderRadius: "var(--radius-btn)",
+          } : {
+            border: "var(--border-width) solid transparent",
+            borderRadius: "var(--radius-btn)",
+          }),
         }}
         onMouseEnter={(e) => {
           if (!active) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)";
@@ -135,7 +146,7 @@ function SideNavItem({
           (e.currentTarget as HTMLElement).style.color = active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)";
         }}
       >
-        {active && !sidebarExpanded && (
+        {active && !sidebarExpanded && !useOutline && (
           <span className="absolute left-[3px]" style={{ width: "3px", height: "20px", borderRadius: "0 2px 2px 0", background: "var(--primary)" }} />
         )}
         <span className="shrink-0 flex items-center justify-center" style={{ width: "28px" }}>
@@ -196,14 +207,29 @@ function MobileNavItem({
   isOpen: boolean; onToggle: () => void; onClose: () => void;
 }) {
   const currentPath = usePathname();
+  const { theme } = useTheme();
   const hasSublinks = !!subLinks?.length;
+  const useOutline = OUTLINE_THEMES.has(theme);
 
-  const btnStyle = (isActive: boolean, menuOpen: boolean): React.CSSProperties => ({
-    borderRadius: "var(--radius-btn)",
-    background: (isActive || menuOpen) ? "var(--primary)" : "transparent",
-    color: (isActive || menuOpen) ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-    touchAction: "manipulation",
-  });
+  const btnStyle = (isActive: boolean, menuOpen: boolean): React.CSSProperties => {
+    if (useOutline) {
+      return {
+        borderRadius: "var(--radius-btn)",
+        border: isActive
+          ? "var(--border-width) solid var(--primary)"
+          : "var(--border-width) solid transparent",
+        background: menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+        color: (isActive || menuOpen) ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+        touchAction: "manipulation",
+      };
+    }
+    return {
+      borderRadius: "var(--radius-btn)",
+      background: (isActive || menuOpen) ? "var(--primary)" : "transparent",
+      color: (isActive || menuOpen) ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+      touchAction: "manipulation",
+    };
+  };
 
   
   if (!hasSublinks) {
@@ -404,14 +430,29 @@ function MobileNavItemNested({
   isOpen: boolean; onToggle: () => void; onClose: () => void;
 }) {
   const currentPath = usePathname();
+  const { theme } = useTheme();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const useOutline = OUTLINE_THEMES.has(theme);
 
-  const btnStyle = (isActive: boolean, menuOpen: boolean): React.CSSProperties => ({
-    borderRadius: "var(--radius-btn)",
-    background: (isActive || menuOpen) ? "var(--primary)" : "transparent",
-    color: (isActive || menuOpen) ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-    touchAction: "manipulation",
-  });
+  const btnStyle = (isActive: boolean, menuOpen: boolean): React.CSSProperties => {
+    if (useOutline) {
+      return {
+        borderRadius: "var(--radius-btn)",
+        border: isActive
+          ? "var(--border-width) solid var(--primary)"
+          : "var(--border-width) solid transparent",
+        background: menuOpen ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+        color: (isActive || menuOpen) ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+        touchAction: "manipulation",
+      };
+    }
+    return {
+      borderRadius: "var(--radius-btn)",
+      background: (isActive || menuOpen) ? "var(--primary)" : "transparent",
+      color: (isActive || menuOpen) ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+      touchAction: "manipulation",
+    };
+  };
 
   return (
     <div className="relative flex items-stretch">
@@ -517,9 +558,10 @@ const Navbar = () => {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [sidebarVisible,  setSidebarVisible]  = useState(false);
   const [mobileOpenMenu,  setMobileOpenMenu]  = useState<string | null>(null);
-  const { dark, toggleDark, accent, setAccent } = useTheme();
+  const { dark, toggleDark, accent, setAccent, theme } = useTheme();
   const isDark = dark === "dark";
   const toggle = toggleDark;
+  const useOutline = OUTLINE_THEMES.has(theme);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -774,8 +816,13 @@ const Navbar = () => {
                       className="flex items-center justify-center transition-all"
                       style={{
                         borderRadius: "var(--radius-btn)",
-                        background: isActive ? "var(--primary)" : "transparent",
-                        color: isActive ? "var(--btn-text)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                        border: useOutline && isActive
+                          ? "var(--border-width) solid var(--primary)"
+                          : "var(--border-width) solid transparent",
+                        background: !useOutline && isActive ? "var(--primary)" : "transparent",
+                        color: isActive
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 40%, transparent)",
                         width: 36, height: 36,
                         touchAction: "manipulation",
                       }}
