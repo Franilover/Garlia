@@ -288,23 +288,34 @@ export function useTheme() {
 }
 
 export function ThemeSelector() {
-  const { theme, setTheme, toggleDark, dark, accent, setAccent } = useTheme();
+  const { theme, setTheme, accent, setAccent } = useTheme();
 
   return (
     <div className="flex flex-col gap-4 p-4">
 
-      {}
+      {/* Diseño */}
       <div className="flex flex-col gap-2">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Diseño</p>
+        <p
+          className="text-[9px] font-black uppercase tracking-[0.2em]"
+          style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+        >
+          Diseño
+        </p>
         {THEMES.map(t => (
           <button
             key={t.id}
             onClick={() => setTheme(t.id)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left ${
-              theme === t.id
-                ? "bg-primary text-white border-primary"
-                : "bg-bg-main border-primary/15 text-primary/60 hover:border-primary/40 hover:text-primary"
-            }`}
+            className="flex items-center gap-3 px-3 py-2.5 transition-all text-left"
+            style={{
+              borderRadius: "var(--radius-btn)",
+              border: `var(--border-width) solid ${theme === t.id ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)"}`,
+              background: theme === t.id
+                ? "var(--primary)"
+                : "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+              color: theme === t.id
+                ? "var(--btn-text)"
+                : "color-mix(in srgb, var(--primary) 60%, transparent)",
+            }}
           >
             <span className="text-lg leading-none">{t.emoji}</span>
             <p className="text-[11px] font-black uppercase tracking-wide leading-none">{t.label}</p>
@@ -312,38 +323,32 @@ export function ThemeSelector() {
         ))}
       </div>
 
-      {}
+      {/* Color — oculto para temas con paleta fija */}
       {!THEMES_WITH_OVERRIDE.has(theme) && (
-      <div className="flex flex-col gap-2">
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Color</p>
-        <div className="flex gap-2 flex-wrap">
-          {ACCENT_OPTIONS.map(a => (
-            <button
-              key={a.id}
-              onClick={() => setAccent(a.id)}
-              title={a.label}
-              className={`w-8 h-8 rounded-full border-2 transition-all ${
-                accent === a.id
-                  ? "scale-110 border-white shadow-lg"
-                  : "border-transparent hover:scale-105 opacity-70 hover:opacity-100"
-              }`}
-              style={{ backgroundColor: a.hex }}
-            />
-          ))}
+        <div className="flex flex-col gap-2">
+          <p
+            className="text-[9px] font-black uppercase tracking-[0.2em]"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Color
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {ACCENT_OPTIONS.map(a => (
+              <button
+                key={a.id}
+                onClick={() => setAccent(a.id)}
+                title={a.label}
+                className={`w-8 h-8 rounded-full border-2 transition-all ${
+                  accent === a.id
+                    ? "scale-110 border-white shadow-lg"
+                    : "border-transparent hover:scale-105 opacity-70 hover:opacity-100"
+                }`}
+                style={{ backgroundColor: a.hex }}
+              />
+            ))}
+          </div>
         </div>
-      </div>
       )}
-
-      {}
-      <button
-        onClick={toggleDark}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-primary/15 bg-bg-main text-primary/60 hover:border-primary/40 hover:text-primary transition-all"
-      >
-        <span className="text-lg leading-none">{dark === "dark" ? "☀️" : "🌙"}</span>
-        <p className="text-[11px] font-black uppercase tracking-wide">
-          {dark === "dark" ? "Modo claro" : "Modo oscuro"}
-        </p>
-      </button>
 
     </div>
   );
