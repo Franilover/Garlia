@@ -10,6 +10,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje } from "./types";
 import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
+import { useWikilink } from "./WikilinkContext";
 import { EditorReino } from "./EditorReino";
 import { FormularioPersonaje } from "./EditorPersonaje";
 import { EditorCriatura } from "./EditorCriatura";
@@ -297,6 +298,7 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
   const [form, setForm] = useState<EntidadMagica>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
+  const { onSnippetAction } = useWikilink();
   const cfg = MAGIC_CONFIG[modo];
   const criaturaId = form.criatura_id ?? null;
   const { variantes, loading: loadingVariantes } = useCriaturaVariantes(criaturaId);
@@ -392,6 +394,7 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
             placeholder={cfg.placeholder}
             toolbar
             defaultMode="edit"
+                    onSnippetAction={onSnippetAction}
           />
         </div>
       </div>
@@ -407,6 +410,7 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
 }) {
   const [form, setForm] = useState<Runa>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
+  const { onSnippetAction } = useWikilink();
   const { confirm, ConfirmModal } = useConfirm();
   const cfg = MAGIC_CONFIG.runas;
 
@@ -474,6 +478,7 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
             placeholder={cfg.placeholder}
             toolbar
             defaultMode="edit"
+                    onSnippetAction={onSnippetAction}
           />
         </div>
       </div>
@@ -739,6 +744,7 @@ function PanelHistoria({
 }) {
   const [historiaTab, setHistoriaTab] = useState<HistoriaTab>(initialHistoriaTab ?? "texto");
   const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
+  const { onSnippetAction } = useWikilink();
   const { personajes, setPersonajes, loading } = usePersonajes();
   const [selectedPersonaje, setSelectedPersonaje] = useState<Personaje | null>(null);
   const [search, setSearch] = useState("");
@@ -833,6 +839,7 @@ function PanelHistoria({
             rows={22}
             toolbar
             defaultMode="split"
+                    onSnippetAction={onSnippetAction}
           />
           <div className="flex items-center justify-end gap-3">
             <SaveIndicator status={localStatus} />
@@ -1022,6 +1029,7 @@ function PanelMundo({
 }) {
   const [geoTab, setGeoTab] = useState<MundoGeoTab>(initialGeoTab ?? "texto");
   const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
+  const { onSnippetAction } = useWikilink();
   const { reinos, setReinos, loading: loadingReinos } = useReinos();
   const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
   const { objetos, setObjetos, loading: loadingObjetos } = useObjetosList();
@@ -1089,7 +1097,8 @@ function PanelMundo({
         <div className="flex-1 flex flex-col min-h-0 p-5 gap-4 overflow-y-auto">
           <MarkdownEditor value={texto} onChange={onChange}
             placeholder="Continentes, mares, climas, fronteras del mundo…"
-            rows={22} toolbar defaultMode="split" />
+            rows={22} toolbar defaultMode="split"             onSnippetAction={onSnippetAction}
+            />
           <div className="flex items-center justify-end gap-3">
             <SaveIndicator status={localStatus} />
             <button onClick={handleSave} disabled={localStatus === "saving"}
@@ -1259,6 +1268,7 @@ function PanelMagia({
   status: SaveStatus;
 }) {
   const [localStatus, setLocalStatus] = useState<SaveStatus>("idle");
+  const { onSnippetAction } = useWikilink();
   const handleSave = async () => {
     setLocalStatus("saving");
     try {
@@ -1277,7 +1287,8 @@ function PanelMagia({
         rows={22}
         toolbar
         defaultMode="split"
-      />
+                onSnippetAction={onSnippetAction}
+          />
       <div className="flex items-center justify-end gap-3">
         <SaveIndicator status={localStatus} />
         <button
@@ -1909,6 +1920,7 @@ function PanelTexto({
   SaveIcon: React.ElementType;
 }) {
   const [status, setStatus] = useState<SaveStatus>("idle");
+  const { onSnippetAction } = useWikilink();
   const handle = async () => {
     setStatus("saving");
     try { await onSave(); setStatus("saved"); setTimeout(() => setStatus("idle"), 2000); }
@@ -1917,7 +1929,8 @@ function PanelTexto({
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5">
-        <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="edit" />
+        <MarkdownEditor value={texto} onChange={onChange} placeholder={placeholder} rows={22} toolbar defaultMode="edit" onSnippetAction={onSnippetAction}
+/>
       </div>
       <div className="shrink-0 flex items-center justify-end gap-3 px-3 sm:px-5 py-2.5 sm:py-3 border-t"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>

@@ -8,6 +8,7 @@ import { type Item, type SaveStatus } from "./types";
 import { useUniqueValues } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
+import { useWikilink } from "./WikilinkContext";
 
 // ─── Tipos locales ─────────────────────────────────────────────────────────────
 
@@ -168,6 +169,7 @@ export function EditorItem({
   const [innerTab, setInnerTab] = useState<InnerTab>("info");
   const { confirm, ConfirmModal } = useConfirm();
 
+  const { onSnippetAction } = useWikilink();
   const categorias = useUniqueValues("items", "categoria");
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
@@ -298,7 +300,8 @@ export function EditorItem({
                     placeholder="Qué es, qué hace, su historia…"
                     toolbar
                     defaultMode="edit"
-                  />
+                            onSnippetAction={onSnippetAction}
+          />
                 </div>
               </div>
             </div>

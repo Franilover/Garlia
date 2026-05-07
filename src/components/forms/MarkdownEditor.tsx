@@ -82,14 +82,7 @@ export function renderMarkdown(raw: string): string {
   html = html.replace(/\[\[([^\]|#]+?)(?:\|([^\]]+))?\]\]/g, (_, target, alias) => {
     const label = alias?.trim() || target.trim();
     const safeTarget = target.trim().replace(/"/g, '&quot;');
-    const previewRef = useRef<HTMLDivElement>(null);
-    return `<a 
-      class="wikilink" 
-      data-wikilink="${target}" 
-      href="#"
-    >
-      ${target}
-    </a>`;
+    return `<a class="wikilink" data-wikilink="${safeTarget}" href="#" title="Ir a: ${safeTarget}">${label}</a>`;
   });
 
   // ── Encabezados con ID para TOC ──────────────────────────────────────────
