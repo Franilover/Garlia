@@ -17,6 +17,7 @@ import { EditorCriatura }  from "./editorEntidades/EditorCriatura";
 import { EditorItem }      from "./editorEntidades/EditorItem";
 import { EditorReino }     from "./editorEntidades/EditorReino";
 import { EditorMundo }     from "./editorEntidades/EditorMundo";
+import { WikilinkProvider } from "@/components/forms/WikilinkContext";
 
 // ─── Helpers Dexie locales ────────────────────────────────────────────────────
 async function dexieReadAll<T>(tabla: string): Promise<T[]> {
@@ -237,29 +238,26 @@ export default function EditorEntidades() {
   }, []);
 
   const handleWikilinkNavigate = useCallback((target: string) => {
-  const norm = (s: string) =>
-    s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const t = norm(target);
-
-  const collections = [
-    { tab: "personajes" as TabKey, items: allItems.personajes },
-    { tab: "criaturas"  as TabKey, items: allItems.criaturas  },
-    { tab: "items"      as TabKey, items: allItems.items      },
-    { tab: "reinos"     as TabKey, items: allItems.reinos     },
-  ];
-
-  for (const { tab, items } of collections) {
-    const found =
-      items.find(i => norm(i.nombre) === t) ??
-      items.find(i => norm(i.nombre).startsWith(t)) ??
-      items.find(i => norm(i.nombre).includes(t));
-    if (found) {
-      setTab(tab);              // ← PRIMERO cambiar tab
-      setSelectedId(found.id);
-      return;
+    const norm = (s: string) =>
+      s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const t = norm(target);
+    const collections: { tab: Exclude<TabKey, "mundo">; items: any[] }[] = [
+      { tab: "personajes", items: allItems.personajes },
+      { tab: "criaturas",  items: allItems.criaturas  },
+      { tab: "items",      items: allItems.items      },
+      { tab: "reinos",     items: allItems.reinos     },
+    ];
+    for (const { tab, items } of collections) {
+      const found =
+        items.find(i => norm(i.nombre) === t) ??
+        items.find(i => norm(i.nombre).startsWith(t)) ??
+        items.find(i => norm(i.nombre).includes(t));
+      if (found) {
+        handleSelect(found, tab);
+        return;
+      }
     }
-  }
-}, [allItems]);
+  }, [allItems, handleSelect]);
 
   const handleCreated = (item: any, chosenTab?: Exclude<TabKey, "mundo">) => {
     const t = chosenTab ?? tab as Exclude<TabKey, "mundo">;
@@ -337,6 +335,7 @@ export default function EditorEntidades() {
 
         {/* ── Editor ──────────────────────────────────────────────────────── */}
         <div className="flex-1 flex min-h-0 overflow-hidden">
+          <WikilinkProvider onWikilink={handleWikilinkNavigate}>
           {isMundo ? (
             <EditorMundo
               activeSection={mundoSection}
@@ -365,6 +364,7 @@ export default function EditorEntidades() {
               </p>
             </div>
           )}
+          </WikilinkProvider>
         </div>
       </div>
 
