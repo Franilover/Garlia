@@ -82,7 +82,7 @@ export function renderMarkdown(raw: string): string {
   html = html.replace(/\[\[([^\]|#]+?)(?:\|([^\]]+))?\]\]/g, (_, target, alias) => {
     const label = alias?.trim() || target.trim();
     const safeTarget = target.trim().replace(/"/g, '&quot;');
-    return `<a class="wikilink" data-wikilink="${safeTarget}" href="#" title="Ir a: ${safeTarget}">${label}</a>`;
+    return `<a class="wikilink" data-wikilink="${safeTarget}" href="javascript:void(0)" title="Ir a: ${safeTarget}">${label}</a>`;
   });
 
   // ── Encabezados con ID para TOC ──────────────────────────────────────────
@@ -628,6 +628,8 @@ function MarkdownPreviewWithSnippets({
   }, [onSnippetAction, sectionMap]);
 
   // Click handler para wikilinks renderizados en HTML estático
+  // Usamos un listener nativo con capture:true para que e.preventDefault()
+  // cancele la navegación del <a href="#"> ANTES de que el browser actúe.
   const handleContainerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const a = (e.target as HTMLElement).closest("a[data-wikilink]");
     if (!a) return;
@@ -636,6 +638,22 @@ function MarkdownPreviewWithSnippets({
     if (target && onSnippetAction) {
       onSnippetAction({ type: "wikilink", target });
     }
+  }, [onSnippetAction]);
+
+  // Listener nativo en capture para interceptar ANTES de que el browser navegue al #
+  useEffect(() => {
+    const el = pvRef.current;
+    if (!el || !onSnippetAction) return;
+    const handler = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest("a[data-wikilink]");
+      if (!a) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const target = a.getAttribute("data-wikilink");
+      if (target) onSnippetAction({ type: "wikilink", target });
+    };
+    el.addEventListener("click", handler, { capture: true });
+    return () => el.removeEventListener("click", handler, { capture: true });
   }, [onSnippetAction]);
 
   // Separar el raw text en bloques: md puro vs líneas que tienen snippets
