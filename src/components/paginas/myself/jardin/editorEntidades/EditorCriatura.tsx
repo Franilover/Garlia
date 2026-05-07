@@ -27,13 +27,23 @@ const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
 
 // ─── Campo colapsable ─────────────────────────────────────────────────────────
 function CampoLore({
-  label, value, onChange, placeholder, rows = 5, icon: Icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+  rows = 5,
+  icon: Icon,
+  onSnippetAction,
 }: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; rows?: number; icon?: React.ElementType;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  rows?: number;
+  icon?: React.ElementType;
+  onSnippetAction?: any;
 }) {
   const [open, setOpen] = useState(!!value);
-  const { onSnippetAction } = useWikilink();
   const preview = value.replace(/[#*`_~\[\]]/g, "").trim().slice(0, 80);
 
   return (
@@ -60,7 +70,7 @@ function CampoLore({
       </button>
       {open && (
         <div className="px-4 pb-4 pt-1">
-          <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
+          <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit"  />
         </div>
       )}
     </div>
@@ -80,7 +90,6 @@ function VarianteEditor({
   const [expanded, setExpanded] = useState(false);
   const [status,   setStatus]   = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
 
   const handleSave = async () => {
     setStatus("saving");
@@ -157,7 +166,7 @@ function VarianteEditor({
               <div>
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
                 <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
-                  rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
+                  rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit" />
               </div>
             </div>
 
