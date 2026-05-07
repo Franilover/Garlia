@@ -221,71 +221,108 @@ function SegmentoTransicion({
               style={{
                 borderRadius: "var(--radius-card)",
                 border: `var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)`,
-                background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 4%, var(--white-custom)), color-mix(in srgb, var(--accent) 3%, var(--white-custom)))",
                 overflow: "hidden",
                 boxShadow: "var(--shadow-card)",
               }}
             >
-              <div className="flex items-stretch" style={{ borderBottom: `var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
-                <div className="flex-1 p-6">
-                  <div className="flex items-center gap-3">
-                    <Avatar label={labelActual} img={imgActual} dim />
-                    <p className="text-primary/40 font-black text-xs uppercase tracking-wide line-through decoration-primary/20">
-                      {labelActual}
-                    </p>
+              {/* Hero image del siguiente segmento */}
+              {imgSig && (
+                <div style={{ position: "relative", height: 160, overflow: "hidden" }}>
+                  <img
+                    src={imgSig} alt={labelSig}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  />
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    background: "linear-gradient(to bottom, transparent 20%, var(--bg-main, #fff) 100%)",
+                  }} />
+                  {/* Etiqueta "Siguiente" sobre la imagen */}
+                  <div style={{
+                    position: "absolute", top: 14, left: 16,
+                    display: "flex", alignItems: "center", gap: 6,
+                    background: "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+                    backdropFilter: "blur(8px)",
+                    borderRadius: 99, padding: "4px 12px",
+                    border: `var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)`,
+                  }}>
+                    <span style={{ fontSize: 8, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.2em", color: "var(--primary)", opacity: 0.4 }}>
+                      A continuación
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center px-3" style={{ borderLeft: `var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
-                  <ChevronRight size={14} className="text-primary/15" />
-                </div>
-                <div className="flex-1 p-6">
-                  <div className="flex items-center gap-3">
-                    <Avatar label={labelSig} img={imgSig} />
-                    <div>
-                      <p className="text-primary font-black text-xs uppercase tracking-wide">
-                        {siguiente.reino?.nombre ?? siguiente.narrador?.nombre}
+              )}
+
+              <div
+                style={{
+                  background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 4%, var(--bg-main)), color-mix(in srgb, var(--accent) 3%, var(--bg-main)))",
+                  padding: imgSig ? "0 0 0" : undefined,
+                }}
+              >
+                {/* Transición: actual → siguiente */}
+                <div className="flex items-stretch" style={{ borderBottom: `var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
+                  <div className="flex-1 p-5">
+                    <div className="flex items-center gap-3">
+                      <Avatar label={labelActual} img={imgActual} dim />
+                      <p className="text-primary/30 font-black text-xs uppercase tracking-wide line-through decoration-primary/15">
+                        {labelActual}
                       </p>
-                      {tieneReinoYNarrador && (
-                        <p className="text-primary/40 font-bold text-[9px] uppercase tracking-widest italic mt-0.5">
-                          {siguiente.narrador!.nombre}
+                    </div>
+                  </div>
+                  <div className="flex items-center px-3" style={{ borderLeft: `var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)` }}>
+                    <ChevronRight size={14} className="text-primary/15" />
+                  </div>
+                  <div className="flex-1 p-5">
+                    <div className="flex items-center gap-3">
+                      {!imgSig && <Avatar label={labelSig} img={imgSig} />}
+                      <div>
+                        <p className="text-primary font-black text-sm uppercase tracking-tight leading-tight">
+                          {siguiente.reino?.nombre ?? siguiente.narrador?.nombre}
                         </p>
-                      )}
+                        {tieneReinoYNarrador && (
+                          <p className="text-primary/40 font-bold text-[9px] uppercase tracking-widest italic mt-0.5">
+                            {siguiente.narrador!.nombre}
+                          </p>
+                        )}
+                        <p className="text-primary/25 font-bold text-[9px] uppercase tracking-wider mt-1">
+                          {siguiente.capitulos.length} cap{siguiente.capitulos.length !== 1 ? "ítulos" : "ítulo"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="px-6 pb-6 pt-4">
-                <button
-                  onClick={onIr}
-                  className="w-full flex items-center justify-between p-4 transition-all group"
-                  style={{
-                    borderRadius: "var(--radius-btn)",
-                    border: `var(--border-width) solid color-mix(in srgb, var(--primary) 18%, transparent)`,
-                    background: `color-mix(in srgb, var(--primary) 5%, transparent)`,
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = "var(--primary)";
-                    e.currentTarget.style.borderColor = "var(--primary)";
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = `color-mix(in srgb, var(--primary) 5%, transparent)`;
-                    e.currentTarget.style.borderColor = `color-mix(in srgb, var(--primary) 18%, transparent)`;
-                  }}
-                >
-                  <span className="font-black text-[11px] uppercase tracking-widest text-primary group-hover:text-[var(--btn-text)] transition-colors">
-                    Continuar → {labelSig}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    {imgSig && (
-                      <img src={imgSig} alt={labelSig}
-                        className="w-5 h-5 object-cover opacity-70 group-hover:opacity-100 transition-opacity"
-                        style={{ borderRadius: "var(--radius-btn)" }}
-                      />
-                    )}
-                    <ChevronRight size={14} className="text-primary/50 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                </button>
+                <div className="px-5 pb-5 pt-4">
+                  <button
+                    onClick={onIr}
+                    className="w-full flex items-center justify-between p-4 transition-all group"
+                    style={{
+                      borderRadius: "var(--radius-btn)",
+                      border: `var(--border-width) solid color-mix(in srgb, var(--primary) 18%, transparent)`,
+                      background: `color-mix(in srgb, var(--primary) 5%, transparent)`,
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = "var(--primary)";
+                      e.currentTarget.style.borderColor = "var(--primary)";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = `color-mix(in srgb, var(--primary) 5%, transparent)`;
+                      e.currentTarget.style.borderColor = `color-mix(in srgb, var(--primary) 18%, transparent)`;
+                    }}
+                  >
+                    <span className="font-black text-[11px] uppercase tracking-widest text-primary group-hover:text-[var(--btn-text)] transition-colors">
+                      Continuar → {labelSig}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {imgSig && (
+                        <img src={imgSig} alt={labelSig}
+                          className="w-5 h-5 object-cover opacity-70 group-hover:opacity-100 transition-opacity"
+                          style={{ borderRadius: "var(--radius-btn)" }}
+                        />
+                      )}
+                      <ChevronRight size={14} className="text-primary/50 group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -739,6 +776,9 @@ export default function Lector() {
   const libroTitulo = capitulos[0]?.libros?.titulo;
   const hasScrolled = useRef(false);
 
+  // Título del capítulo actualmente visible en pantalla
+  const [activeCapTitle, setActiveCapTitle] = useState<string | null>(null);
+
   const usaSegmentos    = segmentos.length > 1;
   const segActualObj    = usaSegmentos ? segmentos[segActivo]     ?? null : null;
   const segSiguiente    = usaSegmentos ? segmentos[segActivo + 1] ?? null : null;
@@ -747,6 +787,29 @@ export default function Lector() {
   const capsARenderizar = esExtra
     ? capsParaMostrar.filter(c => c.id === capId)
     : capsParaMostrar;
+
+  useEffect(() => {
+    const ids = capsARenderizar.map(c => c.id);
+    if (ids.length === 0) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const cap = capsARenderizar.find(c => `cap-${c.id}` === entry.target.id);
+            if (cap) setActiveCapTitle(`${cap.orden}. ${cap.titulo_capitulo}`);
+          }
+        }
+      },
+      { threshold: 0.15, rootMargin: "-10% 0px -60% 0px" }
+    );
+    const timerId = setTimeout(() => {
+      for (const id of ids) {
+        const el = document.getElementById(`cap-${id}`);
+        if (el) obs.observe(el);
+      }
+    }, 300);
+    return () => { clearTimeout(timerId); obs.disconnect(); };
+  }, [capsARenderizar]);
 
   /* IDs únicos de personajes de todos los caps del segmento */
   const personajesIds = Array.from(
@@ -962,6 +1025,29 @@ export default function Lector() {
         background: "var(--bg-main)",
       }}
     >
+      {/* ── Barra superior fija en móvil ── */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-12 border-b border-primary/8 backdrop-blur-md"
+        style={{ background: "color-mix(in srgb, var(--bg-main) 92%, transparent)" }}
+      >
+        <button
+          onClick={() => router.push(`/wiki/libros/${id}`)}
+          className="flex items-center gap-2 text-primary/40 hover:text-primary transition-colors font-black text-[9px] uppercase tracking-widest"
+        >
+          <ChevronLeft size={14} /> Volver
+        </button>
+        {libroTitulo && (
+          <span className="text-primary/50 font-black text-[9px] uppercase tracking-wider italic truncate max-w-[45%] text-center">
+            {libroTitulo}
+          </span>
+        )}
+        <button
+          onClick={() => setShowIndex(true)}
+          className="flex items-center gap-1.5 text-primary/40 hover:text-primary transition-colors font-black text-[9px] uppercase tracking-widest"
+        >
+          <List size={13} /> Índice
+        </button>
+      </div>
+
       {/* ── Columna izquierda: panel fijo — oculto en móvil ── */}
       <div className="hidden md:contents">
         <PanelLateral
@@ -991,6 +1077,23 @@ export default function Lector() {
         className="bg-bg-main text-primary-dark"
       >
         <Vignette />
+
+        {/* Indicador flotante de capítulo activo (aparece al scroll) */}
+        {activeCapTitle && (
+          <div
+            className="hidden md:flex sticky top-0 z-30 items-center gap-3 px-8 py-2.5 pointer-events-none"
+            style={{ background: "linear-gradient(to bottom, color-mix(in srgb, var(--bg-main) 90%, transparent), transparent)" }}
+          >
+            <span
+              className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25 italic truncate max-w-sm"
+            >
+              {activeCapTitle}
+            </span>
+          </div>
+        )}
+
+        {/* Padding top en móvil para compensar la barra fija */}
+        <div className="md:hidden h-12" />
 
         <IndexPanel
           open={showIndex}

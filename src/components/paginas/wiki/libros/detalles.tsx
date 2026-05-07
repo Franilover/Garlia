@@ -335,11 +335,20 @@ export default function LibroDetalle() {
               {libro.titulo}
             </h1>
 
-            {leidos.size > 0 && (
-              <div className="flex justify-end mb-4">
-                <span className="flex items-center gap-1.5 text-primary/40 font-bold text-[9px] uppercase tracking-widest italic">
-                  <CheckCircle2 size={11} className="text-primary/30" />
-                  {leidos.size}/{capitulos.length} leídos
+            {leidos.size > 0 && capitulos.length > 0 && (
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex-1 h-1 rounded-full bg-primary/8 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.round((leidos.size / capitulos.length) * 100)}%`,
+                      background: "linear-gradient(to right, var(--primary), color-mix(in srgb, var(--accent, var(--primary)) 80%, var(--primary)))",
+                    }}
+                  />
+                </div>
+                <span className="flex items-center gap-1.5 text-primary/30 font-bold text-[9px] uppercase tracking-widest italic whitespace-nowrap flex-shrink-0">
+                  <CheckCircle2 size={10} className="text-primary/25" />
+                  {leidos.size}/{capitulos.length}
                 </span>
               </div>
             )}
@@ -424,20 +433,114 @@ export default function LibroDetalle() {
             {libro.titulo}
           </h1>
 
-          {capituloProximo && (
-            <div className="card-main mt-6 p-6">
-              <h4 className="text-primary font-black uppercase text-[9px] tracking-[0.2em] mb-2 flex items-center gap-2 italic">
-                <Calendar size={12} /> Próximo Capítulo
-              </h4>
-              <p className="text-primary font-bold text-sm leading-snug mb-1">{capituloProximo.titulo_capitulo}</p>
-              <p className="text-primary/50 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 italic">
-                <Clock size={10} />
-                {new Date(capituloProximo.fecha_publicacion).toLocaleDateString("es-ES", {
-                  day: "numeric", month: "long", year: "numeric",
-                })}
-              </p>
+          {/* ── CTA principal: Comenzar / Continuar leyendo ── */}
+          {capitulos.length > 0 && (() => {
+            const primerNoLeido = capitulos.find(c => !leidos.has(c.id));
+            const targetCap     = primerNoLeido ?? capitulos[0];
+            const continuar     = leidos.size > 0 && primerNoLeido;
+            const primerCapId   = capitulos[0]?.id;
+            return (
+              <button
+                onClick={() => router.push(`/wiki/libros/${id}/leer/${primerCapId}#cap-${targetCap.id}`)}
+                className="mt-5 w-full flex items-center justify-center gap-2.5 py-3.5 px-5 rounded-btn transition-all group"
+                style={{
+                  background: "var(--primary)",
+                  border: "var(--border-width) solid var(--primary)",
+                  color: "var(--btn-text, #fff)",
+                  boxShadow: "0 4px 20px color-mix(in srgb, var(--primary) 25%, transparent)",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = "0.88"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = "1";    e.currentTarget.style.transform = ""; }}
+              >
+                <Play size={12} fill="currentColor" />
+                <span className="font-black uppercase text-[11px] tracking-widest">
+                  {continuar ? `Continuar · Cap. ${targetCap.orden}` : "Comenzar a leer"}
+                </span>
+              </button>
+            );
+          })()}
+
+          {/* ── Barra de progreso global ── */}
+          {capitulos.length > 0 && leidos.size > 0 && (
+            <div className="mt-5 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/30 italic">Progreso</span>
+                <span className="text-[8px] font-bold text-primary/30 uppercase tracking-wider">
+                  {leidos.size}/{capitulos.length}
+                </span>
+              </div>
+              <div className="h-1 w-full rounded-full bg-primary/8 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.round((leidos.size / capitulos.length) * 100)}%`,
+                    background: "linear-gradient(to right, var(--primary), color-mix(in srgb, var(--accent, var(--primary)) 80%, var(--primary)))",
+                  }}
+                />
+              </div>
             </div>
           )}
+
+          {capituloProximo && (() => {
+            const fechaPub  = new Date(capituloProximo.fecha_publicacion);
+            const ahora     = new Date();
+            const diffMs    = fechaPub.getTime() - ahora.getTime();
+            const diffDias  = Math.ceil(diffMs / 86_400_000);
+            const esMuyProx = diffDias <= 7 && diffDias > 0;
+            return (
+              <div
+                className="mt-6 rounded-[var(--radius-card)] overflow-hidden"
+                style={{
+                  border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                  background: esMuyProx
+                    ? "linear-gradient(135deg, color-mix(in srgb, var(--accent,var(--primary)) 8%, var(--bg-main)), color-mix(in srgb, var(--primary) 4%, var(--bg-main)))"
+                    : "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
+                  boxShadow: esMuyProx ? "0 4px 24px color-mix(in srgb, var(--accent,var(--primary)) 12%, transparent)" : "none",
+                }}
+              >
+                {/* Header */}
+                <div
+                  className="flex items-center gap-2 px-5 py-2.5"
+                  style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                >
+                  <Calendar size={10} className="text-primary/40" />
+                  <span className="text-[8px] font-black uppercase tracking-[0.22em] text-primary/30 italic">
+                    Próximo capítulo
+                  </span>
+                  {esMuyProx && (
+                    <span className="ml-auto text-[8px] font-black uppercase tracking-widest text-[var(--accent,var(--primary))]/70 bg-[var(--accent,var(--primary))]/10 px-2 py-0.5 rounded-full">
+                      ¡Pronto!
+                    </span>
+                  )}
+                </div>
+                {/* Body */}
+                <div className="px-5 py-4 flex flex-col gap-2">
+                  <p className="text-primary font-black text-sm leading-snug tracking-tight">
+                    {capituloProximo.titulo_capitulo}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Clock size={9} className="text-primary/30" />
+                    <span className="text-primary/40 font-bold text-[10px] uppercase tracking-wider italic">
+                      {fechaPub.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}
+                    </span>
+                  </div>
+                  {diffDias > 0 && (
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span
+                        className="font-black text-2xl tracking-tighter"
+                        style={{ color: esMuyProx ? "var(--accent, var(--primary))" : "var(--primary)", opacity: esMuyProx ? 1 : 0.2 }}
+                      >
+                        {diffDias}
+                      </span>
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-primary/25">
+                        día{diffDias !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </aside>
 
         {/* ── Contenido principal ── */}
@@ -445,11 +548,20 @@ export default function LibroDetalle() {
 
           {/* ── Índice agrupado ── */}
           <div className="space-y-4">
-            {leidos.size > 0 && (
-              <div className="flex justify-end mb-4">
-                <span className="flex items-center gap-1.5 text-primary/40 font-bold text-[9px] uppercase tracking-widest italic">
-                  <CheckCircle2 size={11} className="text-primary/30" />
-                  {leidos.size}/{capitulos.length} leídos
+            {leidos.size > 0 && capitulos.length > 0 && (
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex-1 h-1 rounded-full bg-primary/8 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.round((leidos.size / capitulos.length) * 100)}%`,
+                      background: "linear-gradient(to right, var(--primary), color-mix(in srgb, var(--accent, var(--primary)) 80%, var(--primary)))",
+                    }}
+                  />
+                </div>
+                <span className="flex items-center gap-1.5 text-primary/30 font-bold text-[9px] uppercase tracking-widest italic whitespace-nowrap flex-shrink-0">
+                  <CheckCircle2 size={10} className="text-primary/25" />
+                  {leidos.size}/{capitulos.length}
                 </span>
               </div>
             )}
