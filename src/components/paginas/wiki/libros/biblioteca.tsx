@@ -38,7 +38,8 @@ const Biblioteca = () => {
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat)!.push(libro);
     }
-    return Array.from(map.entries());
+    const orden: Record<string, number> = { "Libro": 0, "Extra": 1 };
+    return Array.from(map.entries()).sort(([a], [b]) => (orden[a] ?? 99) - (orden[b] ?? 99));
   }, [librosVisibles]);
 
   const hayMultiplesCategorias = grupos.length > 1;
