@@ -431,7 +431,6 @@ export function EditorPersonaje({
 }: {
   item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void;
 }) {
-  const { onSnippetAction } = useWikilink();
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();

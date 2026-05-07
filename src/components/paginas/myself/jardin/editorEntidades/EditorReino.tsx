@@ -29,10 +29,10 @@ function CampoLore({
   label: string; value: string; onChange: (v: string) => void;
   placeholder?: string; rows?: number; icon?: React.ElementType;
 }) {
-  const [open, setOpen] = useState(!!value);
   const { onSnippetAction } = useWikilink();
+  const [open, setOpen] = useState(!!value);
   const preview = value.replace(/[#*`_~\[\]]/g, "").trim().slice(0, 80);
-
+  
   return (
     <div
       className="rounded-2xl overflow-hidden"
@@ -211,11 +211,11 @@ function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => vo
 function DetalleEditor({ detalle, onSaved, onDeleted }: {
   detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void;
 }) {
+  const { onSnippetAction } = useWikilink();
   const [form, setForm] = useState(detalle);
   const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
 
   const prevCoords = useRef({ x: detalle.coord_x, y: detalle.coord_y });
   useEffect(() => {
@@ -302,6 +302,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted }: {
 export function EditorReino({ item, onSaved, onDeleted }: {
   item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void;
 }) {
+  const { onSnippetAction } = useWikilink();
   const [form,   setForm]   = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [tab,    setTab]    = useState<InnerTab>("mapa");
@@ -309,7 +310,6 @@ export function EditorReino({ item, onSaved, onDeleted }: {
   const [newPointName, setNewPointName] = useState("");
   const { detalles, setDetalles } = useReinoDetalles(item.id);
   const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesDelReino(form.nombre);
 
   useEffect(() => { setForm(item); setStatus("idle"); }, [item.id]);
