@@ -128,6 +128,51 @@
 
 
 /* =========================================
+   CALLOUTS — Colores dinámicos derivados del tema
+   note  → primary
+   tip   → accent
+   warning/danger/success/info → mezcla del color semántico con primary
+   ========================================= */
+:root,
+[data-theme] {
+  /* note → primary */
+  --callout-note-border:  var(--primary);
+  --callout-note-bg:      color-mix(in srgb, var(--primary) 10%, transparent);
+  --callout-note-text:    var(--foreground);
+  --callout-note-title:   var(--primary);
+
+  /* tip → accent */
+  --callout-tip-border:   var(--accent);
+  --callout-tip-bg:       color-mix(in srgb, var(--accent) 12%, transparent);
+  --callout-tip-text:     var(--foreground);
+  --callout-tip-title:    var(--accent);
+
+  /* warning → ámbar mezclado con primary */
+  --callout-warning-border: color-mix(in srgb, var(--primary) 35%, #c8900a);
+  --callout-warning-bg:     color-mix(in srgb, var(--primary) 20%, color-mix(in srgb, #c8900a 15%, transparent));
+  --callout-warning-text:   var(--foreground);
+  --callout-warning-title:  color-mix(in srgb, var(--primary) 40%, #8a5c00);
+
+  /* danger → rojo mezclado con primary */
+  --callout-danger-border:  color-mix(in srgb, var(--primary) 30%, #c43030);
+  --callout-danger-bg:      color-mix(in srgb, var(--primary) 15%, color-mix(in srgb, #c43030 12%, transparent));
+  --callout-danger-text:    var(--foreground);
+  --callout-danger-title:   color-mix(in srgb, var(--primary) 35%, #8a1010);
+
+  /* success → verde mezclado con primary */
+  --callout-success-border: color-mix(in srgb, var(--primary) 30%, #2e7d50);
+  --callout-success-bg:     color-mix(in srgb, var(--primary) 15%, color-mix(in srgb, #2e7d50 12%, transparent));
+  --callout-success-text:   var(--foreground);
+  --callout-success-title:  color-mix(in srgb, var(--primary) 35%, #1a4d30);
+
+  /* info → mezcla de accent con azul suave */
+  --callout-info-border:    color-mix(in srgb, var(--accent) 50%, #4a70b0);
+  --callout-info-bg:        color-mix(in srgb, var(--accent) 20%, color-mix(in srgb, #4a70b0 10%, transparent));
+  --callout-info-text:      var(--foreground);
+  --callout-info-title:     color-mix(in srgb, var(--accent) 55%, #2a4880);
+}
+
+/* =========================================
    TEMA: DEFAULT (MINIMALISTA)
    ========================================= */
 :root,
@@ -149,38 +194,6 @@
   --shadow-card: 0 2px 16px 0 rgba(103,85,109,0.07);
   --border-width: 1px;
   font-size: 14px;
-
-  /* ── Callout colors: DEFAULT light ── */
-  /* note   → primary (violeta mauve) */
-  --callout-note-border:  #5a4664;
-  --callout-note-bg:      color-mix(in srgb, #5a4664 12%, transparent);
-  --callout-note-text:    #2e2333;
-  --callout-note-title:   #3d2b47;
-  /* tip    → accent (lila más oscuro para contraste) */
-  --callout-tip-border:   #aa78be;
-  --callout-tip-bg:       color-mix(in srgb, #aa78be 14%, transparent);
-  --callout-tip-text:     #2e2333;
-  --callout-tip-title:    #6b3d8a;
-  /* warning → warm amber más oscuro */
-  --callout-warning-border: #a06414;
-  --callout-warning-bg:     color-mix(in srgb, #a06414 12%, transparent);
-  --callout-warning-text:   #2e2333;
-  --callout-warning-title:  #6b3d08;
-  /* danger → muted red */
-  --callout-danger-border:  #a83d52;
-  --callout-danger-bg:      color-mix(in srgb, #a83d52 12%, transparent);
-  --callout-danger-text:    #2e2333;
-  --callout-danger-title:   #7a1e33;
-  /* success → sage green */
-  --callout-success-border: #3f6e50;
-  --callout-success-bg:     color-mix(in srgb, #3f6e50 12%, transparent);
-  --callout-success-text:   #2e2333;
-  --callout-success-title:  #1e4530;
-  /* info → accent variant */
-  --callout-info-border:    #7d50a0;
-  --callout-info-bg:        color-mix(in srgb, #7d50a0 12%, transparent);
-  --callout-info-text:      #2e2333;
-  --callout-info-title:     #532070;
 }
 
 [data-theme="default"].dark,
@@ -196,32 +209,6 @@
   --text-on-card: #e8daf2;
   --input-bg: #32273c;
   --input-text: #e8daf2;
-
-  /* ── Callout colors: DEFAULT dark ── */
-  --callout-note-border:  #b89ec8;
-  --callout-note-bg:      color-mix(in srgb, #b89ec8 10%, transparent);
-  --callout-note-text:    #d4c4e8;
-  --callout-note-title:   #c8aede;
-  --callout-tip-border:   #9d70b5;
-  --callout-tip-bg:       color-mix(in srgb, #9d70b5 12%, transparent);
-  --callout-tip-text:     #d0aee8;
-  --callout-tip-title:    #be90d8;
-  --callout-warning-border: #d4a050;
-  --callout-warning-bg:     color-mix(in srgb, #d4a050 10%, transparent);
-  --callout-warning-text:   #f0ca8a;
-  --callout-warning-title:  #e8b860;
-  --callout-danger-border:  #d47080;
-  --callout-danger-bg:      color-mix(in srgb, #d47080 10%, transparent);
-  --callout-danger-text:    #f0a0b0;
-  --callout-danger-title:   #e8809a;
-  --callout-success-border: #70b88a;
-  --callout-success-bg:     color-mix(in srgb, #70b88a 10%, transparent);
-  --callout-success-text:   #a0d8b0;
-  --callout-success-title:  #80c89a;
-  --callout-info-border:    #9d70b5;
-  --callout-info-bg:        color-mix(in srgb, #9d70b5 12%, transparent);
-  --callout-info-text:      #c8a8e0;
-  --callout-info-title:     #b890d0;
 }
 
 /* =========================================
@@ -340,31 +327,37 @@
   --shadow-card: 0 2px 12px 0 rgba(0,0,0,0.10);
   --border-width: 1px;
 
-  /* ── Callout colors: SLATE light (grises puros) ── */
-  --callout-note-border:   #333333;
-  --callout-note-bg:       color-mix(in srgb, #333333 10%, transparent);
+  /* ── Callout colors: SLATE light (escala de grises 100% monocromo) ── */
+  /* note   → gris medio */
+  --callout-note-border:   #555555;
+  --callout-note-bg:       color-mix(in srgb, #555555 8%, transparent);
   --callout-note-text:     #0a0a0a;
   --callout-note-title:    #1a1a1a;
-  --callout-tip-border:    #555555;
-  --callout-tip-bg:        color-mix(in srgb, #555555 12%, transparent);
+  /* tip    → gris más claro, ligeramente diferenciado */
+  --callout-tip-border:    #777777;
+  --callout-tip-bg:        color-mix(in srgb, #777777 8%, transparent);
   --callout-tip-text:      #0a0a0a;
-  --callout-tip-title:     #2a2a2a;
-  --callout-warning-border: #7a5500;
-  --callout-warning-bg:     color-mix(in srgb, #7a5500 10%, transparent);
+  --callout-tip-title:     #333333;
+  /* warning → gris oscuro con trazo más grueso visualmente */
+  --callout-warning-border: #2a2a2a;
+  --callout-warning-bg:     color-mix(in srgb, #2a2a2a 10%, transparent);
   --callout-warning-text:   #0a0a0a;
-  --callout-warning-title:  #4a3200;
-  --callout-danger-border:  #880000;
-  --callout-danger-bg:      color-mix(in srgb, #880000 10%, transparent);
+  --callout-warning-title:  #111111;
+  /* danger → negro puro, máximo contraste */
+  --callout-danger-border:  #000000;
+  --callout-danger-bg:      color-mix(in srgb, #000000 12%, transparent);
   --callout-danger-text:    #0a0a0a;
-  --callout-danger-title:   #550000;
-  --callout-success-border: #1a5522;
-  --callout-success-bg:     color-mix(in srgb, #1a5522 10%, transparent);
+  --callout-danger-title:   #000000;
+  /* success → gris carbón medio-bajo */
+  --callout-success-border: #444444;
+  --callout-success-bg:     color-mix(in srgb, #444444 8%, transparent);
   --callout-success-text:   #0a0a0a;
-  --callout-success-title:  #0a3312;
-  --callout-info-border:    #444444;
-  --callout-info-bg:        color-mix(in srgb, #444444 10%, transparent);
+  --callout-success-title:  #222222;
+  /* info    → gris neutro suave */
+  --callout-info-border:    #888888;
+  --callout-info-bg:        color-mix(in srgb, #888888 8%, transparent);
   --callout-info-text:      #0a0a0a;
-  --callout-info-title:     #222222;
+  --callout-info-title:     #444444;
 }
 
 [data-theme="slate"].dark {
