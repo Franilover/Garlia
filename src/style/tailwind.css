@@ -232,38 +232,6 @@
   --shadow-card: 0 2px 0px 0px rgba(26,26,26,0.15);
   --border-width: 2px;
   image-rendering: pixelated;
-
-  /* ── Callout colors: PIXEL light ── */
-  /* note   → dark charcoal (primary) */
-  --callout-note-border:  #1a1a1a;
-  --callout-note-bg:      color-mix(in srgb, #1a1a1a 10%, transparent);
-  --callout-note-text:    #111111;
-  --callout-note-title:   #000000;
-  /* tip    → orange accent más oscuro para contraste */
-  --callout-tip-border:   #cc4a15;
-  --callout-tip-bg:       color-mix(in srgb, #cc4a15 12%, transparent);
-  --callout-tip-text:     #111111;
-  --callout-tip-title:    #8b2200;
-  /* warning → yellow retro más oscuro */
-  --callout-warning-border: #a08000;
-  --callout-warning-bg:     color-mix(in srgb, #a08000 12%, transparent);
-  --callout-warning-text:   #111111;
-  --callout-warning-title:  #5a4400;
-  /* danger → pixel red */
-  --callout-danger-border:  #bb1100;
-  --callout-danger-bg:      color-mix(in srgb, #bb1100 10%, transparent);
-  --callout-danger-text:    #111111;
-  --callout-danger-title:   #880000;
-  /* success → pixel green */
-  --callout-success-border: #1a5500;
-  --callout-success-bg:     color-mix(in srgb, #1a5500 10%, transparent);
-  --callout-success-text:   #111111;
-  --callout-success-title:  #0c3300;
-  /* info → accent orange oscuro */
-  --callout-info-border:    #9e3800;
-  --callout-info-bg:        color-mix(in srgb, #9e3800 10%, transparent);
-  --callout-info-text:      #111111;
-  --callout-info-title:     #6b2000;
 }
 
 [data-theme="pixel"].dark {
@@ -278,32 +246,6 @@
   --text-on-card: #c8e8c4;
   --input-bg: #131d14;
   --input-text: #c8e8c4;
-
-  /* ── Callout colors: PIXEL dark (terminal phosphor green palette) ── */
-  --callout-note-border:  #7dbb8a;
-  --callout-note-bg:      color-mix(in srgb, #7dbb8a 10%, transparent);
-  --callout-note-text:    #a8d8a8;
-  --callout-note-title:   #9dd89a;
-  --callout-tip-border:   #a8d5a2;
-  --callout-tip-bg:       color-mix(in srgb, #a8d5a2 10%, transparent);
-  --callout-tip-text:     #c0e8b8;
-  --callout-tip-title:    #b0dca8;
-  --callout-warning-border: #c8b840;
-  --callout-warning-bg:     color-mix(in srgb, #c8b840 10%, transparent);
-  --callout-warning-text:   #e8d870;
-  --callout-warning-title:  #d8c850;
-  --callout-danger-border:  #cc4444;
-  --callout-danger-bg:      color-mix(in srgb, #cc4444 10%, transparent);
-  --callout-danger-text:    #e87070;
-  --callout-danger-title:   #dd5555;
-  --callout-success-border: #55cc55;
-  --callout-success-bg:     color-mix(in srgb, #55cc55 10%, transparent);
-  --callout-success-text:   #88ee88;
-  --callout-success-title:  #66dd66;
-  --callout-info-border:    #7dbb8a;
-  --callout-info-bg:        color-mix(in srgb, #7dbb8a 12%, transparent);
-  --callout-info-text:      #a8d8b0;
-  --callout-info-title:     #90c898;
 }
 
 /* =========================================
@@ -326,38 +268,6 @@
   --radius-input: 0.375rem;
   --shadow-card: 0 2px 12px 0 rgba(0,0,0,0.10);
   --border-width: 1px;
-
-  /* ── Callout colors: SLATE light (escala de grises 100% monocromo) ── */
-  /* note   → gris medio */
-  --callout-note-border:   #555555;
-  --callout-note-bg:       color-mix(in srgb, #555555 8%, transparent);
-  --callout-note-text:     #0a0a0a;
-  --callout-note-title:    #1a1a1a;
-  /* tip    → gris más claro, ligeramente diferenciado */
-  --callout-tip-border:    #777777;
-  --callout-tip-bg:        color-mix(in srgb, #777777 8%, transparent);
-  --callout-tip-text:      #0a0a0a;
-  --callout-tip-title:     #333333;
-  /* warning → gris oscuro con trazo más grueso visualmente */
-  --callout-warning-border: #2a2a2a;
-  --callout-warning-bg:     color-mix(in srgb, #2a2a2a 10%, transparent);
-  --callout-warning-text:   #0a0a0a;
-  --callout-warning-title:  #111111;
-  /* danger → negro puro, máximo contraste */
-  --callout-danger-border:  #000000;
-  --callout-danger-bg:      color-mix(in srgb, #000000 12%, transparent);
-  --callout-danger-text:    #0a0a0a;
-  --callout-danger-title:   #000000;
-  /* success → gris carbón medio-bajo */
-  --callout-success-border: #444444;
-  --callout-success-bg:     color-mix(in srgb, #444444 8%, transparent);
-  --callout-success-text:   #0a0a0a;
-  --callout-success-title:  #222222;
-  /* info    → gris neutro suave */
-  --callout-info-border:    #888888;
-  --callout-info-bg:        color-mix(in srgb, #888888 8%, transparent);
-  --callout-info-text:      #0a0a0a;
-  --callout-info-title:     #444444;
 }
 
 [data-theme="slate"].dark {
@@ -372,32 +282,6 @@
   --text-on-card: #f0f0f0;
   --input-bg: #1e1e1e;
   --input-text: #f0f0f0;
-
-  /* ── Callout colors: SLATE dark (grises puros) ── */
-  --callout-note-border:   #aaaaaa;
-  --callout-note-bg:       color-mix(in srgb, #aaaaaa 10%, transparent);
-  --callout-note-text:     #e0e0e0;
-  --callout-note-title:    #f0f0f0;
-  --callout-tip-border:    #888888;
-  --callout-tip-bg:        color-mix(in srgb, #888888 10%, transparent);
-  --callout-tip-text:      #cccccc;
-  --callout-tip-title:     #e8e8e8;
-  --callout-warning-border: #c8a040;
-  --callout-warning-bg:     color-mix(in srgb, #c8a040 10%, transparent);
-  --callout-warning-text:   #e8cc80;
-  --callout-warning-title:  #f0dca0;
-  --callout-danger-border:  #cc5555;
-  --callout-danger-bg:      color-mix(in srgb, #cc5555 10%, transparent);
-  --callout-danger-text:    #e88888;
-  --callout-danger-title:   #f0aaaa;
-  --callout-success-border: #55aa55;
-  --callout-success-bg:     color-mix(in srgb, #55aa55 10%, transparent);
-  --callout-success-text:   #88cc88;
-  --callout-success-title:  #aaddaa;
-  --callout-info-border:    #777777;
-  --callout-info-bg:        color-mix(in srgb, #777777 12%, transparent);
-  --callout-info-text:      #bbbbbb;
-  --callout-info-title:     #dddddd;
 }
 
 /* =========================================
@@ -420,32 +304,6 @@
   --radius-input: 0.25rem;
   --shadow-card: 2px 3px 10px 0 rgba(107,68,35,0.13);
   --border-width: 1px;
-
-  /* ── Callout colors: SEPIA light ── */
-  --callout-note-border:   #6b4423;
-  --callout-note-bg:       color-mix(in srgb, #6b4423 10%, transparent);
-  --callout-note-text:     #2a1304;
-  --callout-note-title:    #3d2010;
-  --callout-tip-border:    #c08040;
-  --callout-tip-bg:        color-mix(in srgb, #c08040 12%, transparent);
-  --callout-tip-text:      #2a1304;
-  --callout-tip-title:     #7d4e1a;
-  --callout-warning-border: #9a6600;
-  --callout-warning-bg:     color-mix(in srgb, #9a6600 10%, transparent);
-  --callout-warning-text:   #2a1304;
-  --callout-warning-title:  #5c3e00;
-  --callout-danger-border:  #8a2010;
-  --callout-danger-bg:      color-mix(in srgb, #8a2010 10%, transparent);
-  --callout-danger-text:    #2a1304;
-  --callout-danger-title:   #5a0f08;
-  --callout-success-border: #3a5c22;
-  --callout-success-bg:     color-mix(in srgb, #3a5c22 10%, transparent);
-  --callout-success-text:   #2a1304;
-  --callout-success-title:  #1e3a10;
-  --callout-info-border:    #4a5880;
-  --callout-info-bg:        color-mix(in srgb, #4a5880 10%, transparent);
-  --callout-info-text:      #2a1304;
-  --callout-info-title:     #2a3458;
 }
 
 [data-theme="sepia"].dark {
@@ -460,32 +318,6 @@
   --text-on-card: #f0d8a8;
   --input-bg: #201408;
   --input-text: #f0d8a8;
-
-  /* ── Callout colors: SEPIA dark ── */
-  --callout-note-border:   #d4a060;
-  --callout-note-bg:       color-mix(in srgb, #d4a060 10%, transparent);
-  --callout-note-text:     #e8c890;
-  --callout-note-title:    #f5dfa8;
-  --callout-tip-border:    #e8c080;
-  --callout-tip-bg:        color-mix(in srgb, #e8c080 10%, transparent);
-  --callout-tip-text:      #f5d898;
-  --callout-tip-title:     #ffeeb8;
-  --callout-warning-border: #d4880a;
-  --callout-warning-bg:     color-mix(in srgb, #d4880a 10%, transparent);
-  --callout-warning-text:   #f0b840;
-  --callout-warning-title:  #ffcc60;
-  --callout-danger-border:  #c84030;
-  --callout-danger-bg:      color-mix(in srgb, #c84030 10%, transparent);
-  --callout-danger-text:    #e87060;
-  --callout-danger-title:   #ff9080;
-  --callout-success-border: #60a848;
-  --callout-success-bg:     color-mix(in srgb, #60a848 10%, transparent);
-  --callout-success-text:   #90c870;
-  --callout-success-title:  #b0e890;
-  --callout-info-border:    #7888c0;
-  --callout-info-bg:        color-mix(in srgb, #7888c0 10%, transparent);
-  --callout-info-text:      #a0b0e0;
-  --callout-info-title:     #c8d4f8;
 }
 
 /* =========================================
