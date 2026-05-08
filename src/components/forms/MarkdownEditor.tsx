@@ -752,6 +752,14 @@ function MarkdownPreviewWithSnippets({
   );
 }
 
+// ── Wikilink entity type ────────────────────────────────────────────────────
+export type WikiEntity = { name: string; type: string };
+
+/** Normalize string[] | WikiEntity[] → WikiEntity[] */
+function toWikiEntities(entities: (string | WikiEntity)[]): WikiEntity[] {
+  return entities.map(e => typeof e === "string" ? { name: e, type: "nota" } : e);
+}
+
 interface MarkdownEditorProps {
   value: string;
   onChange: (v: string) => void;
@@ -766,7 +774,7 @@ interface MarkdownEditorProps {
   /** Callback cuando el usuario interactúa con un snippet en el preview */
   onSnippetAction?: (action: SnippetAction) => void;
   /** Lista de entidades disponibles para autocompletado de [[wikilinks]] */
-  entities?: string[];
+  entities?: (string | WikiEntity)[];
   /** Si true, el textarea crece con el contenido (ignora rows). Default: true */
   autoResize?: boolean;
 }
@@ -853,9 +861,10 @@ export function MarkdownEditor({
   }>({ open: false, anchorEl: null, tableStart: 0, tableEnd: 0, rows: [] });
 
   // Filtered entity list for wikilink menu
+  const normalizedEntities = toWikiEntities(entities);
   const filteredEntities = wikiMenu.query.length === 0
-    ? entities
-    : entities.filter(e => e.toLowerCase().includes(wikiMenu.query.toLowerCase()));
+    ? normalizedEntities
+    : normalizedEntities.filter(e => e.name.toLowerCase().includes(wikiMenu.query.toLowerCase()));
 
   // ── Auto-resize textarea ──────────────────────────────────────────────────
   useEffect(() => {
@@ -1185,7 +1194,7 @@ export function MarkdownEditor({
   }, [getCaretCoords]);
 
   // ── Apply selected entity as wikilink ─────────────────────────────────
-  const applyWikilink = useCallback((entity: string) => {
+  const applyWikilink = useCallback((entity: WikiEntity) => {
     const ta = taRef.current;
     if (!ta) return;
     const cursor = ta.selectionStart;
@@ -1195,7 +1204,7 @@ export function MarkdownEditor({
     const endPos = cursor + (hasClosing ? 2 : 0);
     const before = value.slice(0, wikiMenu.triggerStart);
     const after = value.slice(endPos);
-    const inserted = `[[${entity}]]`;
+    const inserted = `[[${entity.name}]]`;
     const newVal = before + inserted + after;
     onChange(newVal);
     setWikiMenu(m => ({ ...m, open: false }));
@@ -1835,7 +1844,7 @@ export function MarkdownEditor({
           )}
 
               {/* ── Wikilink autocomplete menu ── */}
-              {wikiMenu.open && (
+              {wikiMenu.open && normalizedEntities.length > 0 && (
                 <div
                   ref={wikiMenuRef}
                   style={{
@@ -1909,15 +1918,15 @@ export function MarkdownEditor({
                         letterSpacing: "0.1em", textTransform: "uppercase",
                         color: "color-mix(in srgb, var(--color-primary, #7c6af7) 25%, transparent)",
                       }}>
-                        {entities.length === 0 ? "No hay entidades cargadas" : "Sin coincidencias"}
+                        Sin coincidencias
                       </div>
                     ) : (
                       filteredEntities.map((entity, idx) => {
                         const isSelected = idx === wikiMenu.selectedIdx;
-                        const initial = entity.trim()[0]?.toUpperCase() ?? "?";
+                        const initial = entity.name.trim()[0]?.toUpperCase() ?? "?";
                         return (
                           <button
-                            key={entity}
+                            key={entity.name}
                             type="button"
                             onMouseEnter={() => setWikiMenu(m => ({ ...m, selectedIdx: idx }))}
                             onClick={() => applyWikilink(entity)}
@@ -1958,7 +1967,7 @@ export function MarkdownEditor({
                                 : "color-mix(in srgb, var(--foreground) 60%, transparent)",
                               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                               transition: "color 0.1s",
-                            }}>{entity}</span>
+                            }}>{entity.name}</span>
                             {/* Tag */}
                             <span style={{
                               flexShrink: 0, fontSize: 7, fontWeight: 900,
@@ -1966,7 +1975,7 @@ export function MarkdownEditor({
                               textTransform: "uppercase", padding: "2px 5px", borderRadius: 5,
                               background: "color-mix(in srgb, var(--color-primary, #7c6af7) 8%, transparent)",
                               color: "color-mix(in srgb, var(--color-primary, #7c6af7) 40%, transparent)",
-                            }}>wiki</span>
+                            }}>{entity.type}</span>
                           </button>
                         );
                       })

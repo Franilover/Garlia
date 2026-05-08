@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Save } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { CitePopup } from "./citePopup";
-import { MarkdownEditor } from "@/components/forms/MarkdownEditor";
+import { MarkdownEditor, WikiEntity } from "@/components/forms/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
 interface EditorProps {
@@ -16,7 +16,7 @@ interface EditorProps {
   onUpdateField: (id: string, field: string, value: any) => void;
   onSelectEnsayo: (id: string) => void;
   onNavigateToPage: (name: string) => void;
-  entities?: string[];
+  entities?: WikiEntity[];
 }
 
 export function Editor({
@@ -28,7 +28,7 @@ export function Editor({
   onUpdateField,
   onSelectEnsayo,
   onNavigateToPage,
-  entities = [],
+  entities = [] as WikiEntity[],
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 

@@ -224,15 +224,15 @@ export default function EditorEntidades() {
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
   const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
 
-  // Lista plana de nombres de todas las entidades — para el autocompletado [[wikilink]]
+  // Lista de entidades con tipo para el autocompletado [[wikilink]]
   const allEntityNames = useMemo(() => [
-    ...allItems.personajes.map(e => e.nombre),
-    ...allItems.criaturas .map(e => e.nombre),
-    ...allItems.items     .map(e => e.nombre),
-    ...allItems.reinos    .map(e => e.nombre),
-    ...allItems.hechizos  .map(e => e.nombre),
-    ...allItems.dones     .map(e => e.nombre),
-    ...allItems.runas     .map(e => e.nombre),
+    ...allItems.personajes.map(e => ({ name: e.nombre, type: "personaje" })),
+    ...allItems.criaturas .map(e => ({ name: e.nombre, type: "criatura"  })),
+    ...allItems.items     .map(e => ({ name: e.nombre, type: "ítem"      })),
+    ...allItems.reinos    .map(e => ({ name: e.nombre, type: "reino"     })),
+    ...allItems.hechizos  .map(e => ({ name: e.nombre, type: "hechizo"   })),
+    ...allItems.dones     .map(e => ({ name: e.nombre, type: "don"       })),
+    ...allItems.runas     .map(e => ({ name: e.nombre, type: "runa"      })),
   ], [allItems]);
 
   // Persistir sesión

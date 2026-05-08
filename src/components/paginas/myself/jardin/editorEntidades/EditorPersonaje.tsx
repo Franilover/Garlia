@@ -11,7 +11,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Personaje, type SaveStatus } from "./types";
 import { useCapitulosNarrados, useNombresDeTabla } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
-import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
+import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { BloqueHechizos } from "./BloqueHechizos";
@@ -149,7 +149,7 @@ export function FormularioPersonaje({
   onSave: () => void;
   onDelete: () => void;
   compacto?: boolean;
-  entities?: string[];
+  entities?: WikiEntity[];
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
@@ -427,7 +427,7 @@ export function FormularioPersonaje({
 export function EditorPersonaje({
   item, onSaved, onDeleted, entities = [],
 }: {
-  item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; entities?: string[];
+  item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
 }) {
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");

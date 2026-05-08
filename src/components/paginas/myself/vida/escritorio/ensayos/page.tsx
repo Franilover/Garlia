@@ -311,11 +311,30 @@ export default function Ensayos() {
     return Array.from(set).sort();
   }, [ensayos]);
 
-  // Lista de nombres para el autocompletado [[wikilink]] del editor:
-  // títulos de ensayos (no vacíos) + todas las tags existentes
+  // Lista de entidades para el autocompletado [[wikilink]] del editor:
+  // títulos de ensayos + todas las tags, cada una con su tipo dinámico
   const allWikilinkNames = useMemo(() => {
-    const titles = ensayos.map((e: any) => e.titulo).filter(Boolean) as string[];
-    return Array.from(new Set([...titles, ...todosLosTags])).sort();
+    const seen = new Set<string>();
+    const result: { name: string; type: string }[] = [];
+
+    // Tags primero (cada ensayo puede tener varias)
+    todosLosTags.forEach(tag => {
+      if (!seen.has(tag)) {
+        seen.add(tag);
+        result.push({ name: tag, type: "tag" });
+      }
+    });
+
+    // Títulos de ensayos — el tipo es la primera tag del ensayo, o "nota" si no tiene
+    ensayos.forEach((e: any) => {
+      const titulo = e.titulo?.trim();
+      if (!titulo || seen.has(titulo)) return;
+      seen.add(titulo);
+      const tipo = e.tags?.[0] ?? "nota";
+      result.push({ name: titulo, type: tipo });
+    });
+
+    return result.sort((a, b) => a.name.localeCompare(b.name));
   }, [ensayos, todosLosTags]);
 
   const ensayosFiltrados = useMemo(() => {

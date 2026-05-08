@@ -7,7 +7,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Item, type SaveStatus } from "./types";
 import { useUniqueValues } from "./hooks";
 import { SelectorImagen, SelectorTexto, SaveIndicator } from "./UIComponents";
-import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
+import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 
 // ─── Tipos locales ─────────────────────────────────────────────────────────────
@@ -162,7 +162,7 @@ type InnerTab = "info" | "criaturas";
 export function EditorItem({
   item, onSaved, onDeleted, entities = [],
 }: {
-  item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: string[];
+  item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
 }) {
   const [form,     setForm]     = useState<Item>(item);
   const [status,   setStatus]   = useState<SaveStatus>("idle");

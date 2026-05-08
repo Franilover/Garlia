@@ -10,7 +10,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Reino, type ReinoDetalle, type SaveStatus, INPUT_CLS } from "./types";
 import { useReinoDetalles, usePersonajesDelReino } from "./hooks";
 import { SaveIndicator } from "./UIComponents";
-import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
+import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ function CampoLore({
   label, value, onChange, placeholder, rows = 6, icon: Icon, entities = [],
 }: {
   label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; rows?: number; icon?: React.ElementType; entities?: string[];
+  placeholder?: string; rows?: number; icon?: React.ElementType; entities?: WikiEntity[];
 }) {
   const [open, setOpen] = useState(!!value);
   const { onSnippetAction } = useWikilink();
@@ -54,8 +54,7 @@ function CampoLore({
       </button>
       {open && (
         <div className="px-4 pb-4 pt-1">
-          <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} />
-          entities={entities}
+          <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit" onSnippetAction={onSnippetAction} entities={entities} />
         </div>
       )}
     </div>
@@ -210,7 +209,7 @@ function ImagePickerModal({ onSelect, onClose }: { onSelect: (url: string) => vo
 
 // ─── DetalleEditor ─────────────────────────────────────────────────────────────
 function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
-  detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void; entities?: string[];
+  detalle: ReinoDetalle; onSaved: (d: ReinoDetalle) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
 }) {
   const [form, setForm] = useState(detalle);
   const [expanded, setExpanded] = useState(false);
@@ -304,7 +303,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
 
 // ─── EditorReino ───────────────────────────────────────────────────────────────
 export function EditorReino({ item, onSaved, onDeleted, entities = [] }: {
-  item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void; entities?: string[];
+  item: Reino; onSaved: (r: Reino) => void; onDeleted: (id: string) => void; entities?: WikiEntity[];
 }) {
   const [form,   setForm]   = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
