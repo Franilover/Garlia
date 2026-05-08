@@ -781,107 +781,103 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       ══════════════════════════════════════ */}
       <div className="w-full max-w-7xl mx-auto pb-20">
 
-        {/* ── HERO BANNER — avatar grande con zoom, nombre superpuesto ── */}
-        <div className="relative w-full overflow-hidden animate-in fade-in duration-700"
-          style={{
-            height: "clamp(220px, 30vw, 340px)",
-            background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
-          }}>
+        {/* ── HERO HEADER — banda decorativa + avatar circular prominente ── */}
+        <div className="animate-in fade-in duration-700">
 
-          {/* Imagen de fondo: avatar con efecto zoom-center */}
-          {perfil?.avatar_url ? (
-            <img
-              src={perfil.avatar_url}
-              alt={perfil?.username}
-              className="absolute inset-0 w-full h-full transition-transform duration-[8000ms] ease-in-out hover:scale-105"
-              style={{ objectFit: "cover", objectPosition: "center top", filter: "blur(0px)" }}
-            />
-          ) : (
-            /* Sin avatar: patrón decorativo de fondo */
-            <div className="absolute inset-0 flex items-center justify-center"
-              style={{
-                background: `repeating-linear-gradient(
-                  45deg,
-                  color-mix(in srgb, var(--primary) 3%, transparent) 0px,
-                  color-mix(in srgb, var(--primary) 3%, transparent) 1px,
-                  transparent 1px,
-                  transparent 28px
-                )`,
-              }}>
-              <User size={72} style={{ color: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-            </div>
-          )}
-
-          {/* Gradiente oscuro en la parte inferior para el texto */}
-          <div className="absolute inset-0" style={{
-            background: "linear-gradient(to top, color-mix(in srgb, var(--bg-main) 90%, transparent) 0%, color-mix(in srgb, var(--bg-main) 40%, transparent) 40%, transparent 75%)"
-          }} />
-
-          {/* Botón cambiar avatar — flotante arriba a la derecha */}
-          <button
-            onClick={() => setShowAvatarPicker(true)}
-            className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-3 py-1.5 transition-all hover:opacity-90"
+          {/* Banda de color/patrón superior */}
+          <div className="relative w-full overflow-hidden"
             style={{
-              background: "color-mix(in srgb, var(--white-custom) 80%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-              borderRadius: "var(--radius-btn)",
-              backdropFilter: "blur(8px)",
-              color: "color-mix(in srgb, var(--primary) 65%, transparent)",
+              height: "96px",
+              background: `color-mix(in srgb, var(--primary) 7%, var(--bg-main))`,
+              borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             }}>
-            <User size={10} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Cambiar foto</span>
-          </button>
-
-          {/* Contenido inferior del banner: título + nombre + status */}
-          <div className="absolute bottom-0 left-0 right-0 px-6 md:px-10 pb-6 flex items-end justify-between gap-4">
-            <div className="flex flex-col gap-1.5">
-              {/* Título / clase */}
-              {perfil?.titulo && (
-                <div className="inline-flex w-fit items-center gap-1.5 px-2.5 py-1"
-                  style={{
-                    border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-                    borderRadius: "2px",
-                    background: "color-mix(in srgb, var(--white-custom) 70%, transparent)",
-                    backdropFilter: "blur(6px)",
-                  }}>
-                  <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }} />
-                  <span className="text-[8px] font-black uppercase tracking-[0.22em]"
-                    style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-                    {perfil.titulo}
-                  </span>
-                </div>
-              )}
-
-              {/* Username — grande y protagónico */}
-              <h1 className="font-serif italic leading-none capitalize drop-shadow-sm"
-                style={{ fontSize: "clamp(1.8rem, 5vw, 3rem)", color: "var(--primary)", letterSpacing: "0.01em" }}>
-                {perfil?.username ?? "…"}
-              </h1>
-
-              {/* Status */}
-              <p className="font-serif italic"
-                style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-                {perfil?.status ?? "Enciclopedia"}
-              </p>
-            </div>
-
-            {/* Total descubrimientos — badge esquina derecha */}
-            <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 mb-1"
+            {/* Patrón decorativo */}
+            <div className="absolute inset-0"
               style={{
-                border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
+                backgroundImage: `repeating-linear-gradient(
+                  45deg,
+                  color-mix(in srgb, var(--primary) 4%, transparent) 0px,
+                  color-mix(in srgb, var(--primary) 4%, transparent) 1px,
+                  transparent 1px,
+                  transparent 24px
+                )`,
+              }} />
+            {/* Badge descubrimientos — esquina superior derecha */}
+            <div className="absolute top-4 right-4 md:right-10 flex items-center gap-1.5 px-3 py-1.5"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                 borderRadius: "2px",
-                background: "color-mix(in srgb, var(--white-custom) 70%, transparent)",
-                backdropFilter: "blur(8px)",
+                background: "color-mix(in srgb, var(--white-custom) 75%, transparent)",
+                backdropFilter: "blur(6px)",
               }}>
-              <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+              <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }} />
               <span className="text-[9px] font-black uppercase tracking-[0.22em] tabular-nums"
                 style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
                 {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length}
               </span>
               <span className="text-[7px] font-black uppercase tracking-[0.2em] hidden sm:inline"
-                style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
+                style={{ color: "color-mix(in srgb, var(--primary) 36%, transparent)" }}>
                 descubrimientos
               </span>
+            </div>
+          </div>
+
+          {/* Zona de identidad: avatar que sobresale + nombre a la derecha */}
+          <div className="px-6 md:px-10 flex items-end gap-5 md:gap-7"
+            style={{ marginTop: "-52px", paddingBottom: "20px" }}>
+
+            {/* Avatar circular grande — sobresale sobre la banda */}
+            <button
+              onClick={() => setShowAvatarPicker(true)}
+              className="group relative shrink-0 transition-opacity hover:opacity-90"
+              title="Cambiar imagen"
+              style={{
+                width: 104,
+                height: 104,
+                borderRadius: "50%",
+                overflow: "hidden",
+                background: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))",
+                border: "3px solid var(--white-custom)",
+                boxShadow: "0 2px 16px color-mix(in srgb, var(--primary) 14%, transparent)",
+                flexShrink: 0,
+              }}>
+              {perfil?.avatar_url
+                ? <img src={perfil.avatar_url} alt={perfil?.username}
+                    className="w-full h-full object-contain" />
+                : <User size={38} className="absolute inset-0 m-auto"
+                    style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
+              {/* Overlay hover */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                <span className="text-[7px] font-black uppercase tracking-widest"
+                  style={{ color: "var(--btn-text)" }}>Cambiar</span>
+              </div>
+            </button>
+
+            {/* Nombre + título + status */}
+            <div className="flex flex-col gap-1 pb-1">
+              {perfil?.titulo && (
+                <div className="inline-flex w-fit items-center gap-1.5 px-2 py-0.5"
+                  style={{
+                    border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                    borderRadius: "2px",
+                    background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  }}>
+                  <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }} />
+                  <span className="text-[7px] font-black uppercase tracking-[0.22em]"
+                    style={{ color: "color-mix(in srgb, var(--primary) 48%, transparent)" }}>
+                    {perfil.titulo}
+                  </span>
+                </div>
+              )}
+              <h1 className="font-serif italic leading-none capitalize"
+                style={{ fontSize: "clamp(1.7rem, 4vw, 2.6rem)", color: "var(--primary)", letterSpacing: "0.01em" }}>
+                {perfil?.username ?? "…"}
+              </h1>
+              <p className="font-serif italic"
+                style={{ fontSize: "0.83rem", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                {perfil?.status ?? "Enciclopedia"}
+              </p>
             </div>
           </div>
         </div>
