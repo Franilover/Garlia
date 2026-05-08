@@ -45,6 +45,8 @@ export interface MarkdownEditorFieldProps {
   label?: string;
   previewMinHeight?: string;
   hidePreviewIfEmpty?: boolean;
+  /** Entidades disponibles para autocompletado de [[wikilinks]] */
+  entities?: string[];
 }
 
 export function MarkdownEditorField({
@@ -56,6 +58,7 @@ export function MarkdownEditorField({
   label,
   previewMinHeight = "3rem",
   hidePreviewIfEmpty = true,
+  entities = [],
 }: MarkdownEditorFieldProps) {
   const showPreview = !hidePreviewIfEmpty || value?.trim().length > 0;
 
@@ -82,6 +85,7 @@ export function MarkdownEditorField({
         rows={rows}
         defaultMode="edit"
         toolbar={false}
+        entities={entities}
         // Sin onSnippetAction — ese es exclusivo del lector de ensayos
       />
 

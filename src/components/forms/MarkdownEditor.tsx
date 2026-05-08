@@ -98,7 +98,7 @@ export function renderMarkdown(raw: string): string {
     const base = slugify(text);
     headingCounter[base] = (headingCounter[base] || 0) + 1;
     const id = headingCounter[base] > 1 ? `${base}-${headingCounter[base]}` : base;
-    return `<h${level} id="${id}">${text}</h${level}>`;
+    return `<h${level} id="${id}">${text}<a class="heading-anchor" href="#${id}" aria-label="Enlace a sección" tabindex="-1">#</a></h${level}>`;
   };
   html = html.replace(/^######\s(.+)$/gm, (_, t) => makeHeading(6, t));
   html = html.replace(/^#####\s(.+)$/gm,  (_, t) => makeHeading(5, t));
@@ -300,6 +300,18 @@ export const PROSE_STYLES = `
   .prose-mundo h2[id],
   .prose-mundo h3[id],
   .prose-mundo h4[id] { scroll-margin-top:1rem }
+  /* ── Heading anchors ────────────────────────────────────────────────────── */
+  .prose-mundo h1, .prose-mundo h2, .prose-mundo h3,
+  .prose-mundo h4, .prose-mundo h5, .prose-mundo h6 { position:relative; }
+  .prose-mundo .heading-anchor { opacity:0; margin-left:.4rem; font-size:.7em; font-weight:400; color:color-mix(in srgb,var(--color-primary,#7c6af7) 50%,transparent); text-decoration:none; vertical-align:middle; transition:opacity 0.15s; user-select:none; }
+  .prose-mundo h1:hover .heading-anchor,
+  .prose-mundo h2:hover .heading-anchor,
+  .prose-mundo h3:hover .heading-anchor,
+  .prose-mundo h4:hover .heading-anchor { opacity:1; }
+  .prose-mundo .heading-anchor:hover { color:var(--color-primary,#7c6af7); }
+  /* ── Table editor hint ──────────────────────────────────────────────────── */
+  .prose-mundo table { cursor:pointer; transition:outline 0.12s; }
+  .prose-mundo table:hover { outline:2px solid color-mix(in srgb,var(--color-primary,#7c6af7) 40%,transparent); border-radius:4px; }
   /* ── Wikilinks ──────────────────────────────────────────────────────────── */
   .prose-mundo a.wikilink { color:var(--accent,#7c6af7);text-decoration:none;border-bottom:1px dashed color-mix(in srgb,var(--accent,#7c6af7) 50%,transparent);padding-bottom:1px;cursor:pointer;transition:all 0.15s }
   .prose-mundo a.wikilink:hover { border-bottom-style:solid;background:color-mix(in srgb,var(--accent,#7c6af7) 8%,transparent);border-radius:2px }
@@ -615,12 +627,14 @@ function MarkdownPreviewWithSnippets({
   onSnippetAction,
   pvRef,
   style,
+  onTableClick,
 }: {
   value: string;
   placeholder?: string;
   onSnippetAction?: (action: SnippetAction) => void;
   pvRef: React.RefObject<HTMLDivElement>;
   style: React.CSSProperties;
+  onTableClick?: (table: HTMLTableElement) => void;
 }) {
   // Pre-calcular sectionMap para resolver si un target es sección local
   const sectionMap = React.useMemo(
@@ -649,6 +663,23 @@ function MarkdownPreviewWithSnippets({
       onSnippetAction({ type: "wikilink", target });
     }
   }, [onSnippetAction]);
+
+  // Click nativo para tablas (necesita acceso al elemento DOM real)
+  useEffect(() => {
+    const el = pvRef.current;
+    if (!el || !onTableClick) return;
+    const handler = (e: MouseEvent) => {
+      // Ignore heading anchor clicks
+      if ((e.target as HTMLElement).closest("a.heading-anchor")) return;
+      const table = (e.target as HTMLElement).closest("table");
+      if (table) {
+        e.preventDefault();
+        onTableClick(table as HTMLTableElement);
+      }
+    };
+    el.addEventListener("click", handler);
+    return () => el.removeEventListener("click", handler);
+  }, [pvRef, onTableClick]);
 
   // Listener nativo en capture para interceptar ANTES de que el browser navegue al #
   useEffect(() => {
@@ -734,6 +765,10 @@ interface MarkdownEditorProps {
   insertRef?: React.MutableRefObject<((text: string) => void) | null>;
   /** Callback cuando el usuario interactúa con un snippet en el preview */
   onSnippetAction?: (action: SnippetAction) => void;
+  /** Lista de entidades disponibles para autocompletado de [[wikilinks]] */
+  entities?: string[];
+  /** Si true, el textarea crece con el contenido (ignora rows). Default: true */
+  autoResize?: boolean;
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -747,6 +782,8 @@ export function MarkdownEditor({
   extraCommands = [],
   insertRef,
   onSnippetAction,
+  entities = [],
+  autoResize = true,
 }: MarkdownEditorProps) {
   const [mode, setMode] = useState<ViewMode>(defaultMode);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -787,6 +824,59 @@ export function MarkdownEditor({
   });
 
   const monoStyle: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+
+  // ── Wikilink autocomplete state ──────────────────────────────────────────
+  const [wikiMenu, setWikiMenu] = useState<{
+    open: boolean;
+    query: string;
+    triggerStart: number;
+    selectedIdx: number;
+    menuPos: { top: number; left: number };
+  }>({
+    open: false,
+    query: "",
+    triggerStart: 0,
+    selectedIdx: 0,
+    menuPos: { top: 0, left: 0 },
+  });
+  const wikiMenuRef = useRef<HTMLDivElement>(null);
+
+  // ── Table editor state ────────────────────────────────────────────────────
+  const [tableEditor, setTableEditor] = useState<{
+    open: boolean;
+    anchorEl: { top: number; left: number } | null;
+    /** position in value where the table markdown starts */
+    tableStart: number;
+    /** position in value where the table markdown ends */
+    tableEnd: number;
+    rows: string[][];
+  }>({ open: false, anchorEl: null, tableStart: 0, tableEnd: 0, rows: [] });
+
+  // Filtered entity list for wikilink menu
+  const filteredEntities = wikiMenu.query.length === 0
+    ? entities
+    : entities.filter(e => e.toLowerCase().includes(wikiMenu.query.toLowerCase()));
+
+  // ── Auto-resize textarea ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!autoResize) return;
+    const ta = taRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = ta.scrollHeight + "px";
+  }, [value, autoResize]);
+
+  // Close wikilink menu on outside click
+  useEffect(() => {
+    if (!wikiMenu.open) return;
+    const handler = (e: MouseEvent) => {
+      if (wikiMenuRef.current && !wikiMenuRef.current.contains(e.target as Node)) {
+        setWikiMenu(m => ({ ...m, open: false }));
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [wikiMenu.open]);
 
   // En móvil, forzamos "edit"
   useEffect(() => {
@@ -996,12 +1086,120 @@ export function MarkdownEditor({
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
+  // ── Table editor helpers ──────────────────────────────────────────────────
+  /** Parse a markdown table block into a 2D array (header row first) */
+  const parseTableMd = (md: string): string[][] => {
+    const lines = md.trim().split("\n").filter(l => l.trim());
+    const parse = (row: string) => row.split("|").slice(1, -1).map(c => c.trim());
+    const isSep = (r: string) => /^\|[-| :]+\|$/.test(r.trim());
+    return lines.filter(l => !isSep(l)).map(parse);
+  };
+
+  /** Serialize a 2D array back to markdown table */
+  const serializeTableMd = (rows: string[][]): string => {
+    if (!rows.length) return "";
+    const cols = Math.max(...rows.map(r => r.length));
+    const padded = rows.map(r => [...r, ...Array(cols - r.length).fill("")]);
+    const widths = Array.from({ length: cols }, (_, ci) =>
+      Math.max(3, ...padded.map(r => (r[ci] || "").length))
+    );
+    const formatRow = (r: string[]) =>
+      "| " + r.map((c, ci) => c.padEnd(widths[ci])).join(" | ") + " |";
+    const sep = "| " + widths.map(w => "-".repeat(w)).join(" | ") + " |";
+    return [formatRow(padded[0]), sep, ...padded.slice(1).map(formatRow)].join("\n");
+  };
+
+  /** Find the table under the preview click and open the table editor */
+  const openTableEditor = useCallback((tableEl: HTMLTableElement) => {
+    // Find the markdown source of this table by scanning for | blocks
+    const tableRegex = /(?:^|\n)((?:\|[^\n]+\|\n?)+)/g;
+    let m: RegExpExecArray | null;
+    let best: { start: number; end: number; rows: string[][] } | null = null;
+    // Walk all tables in value, pick the one whose parse matches columns
+    const colCount = tableEl.querySelectorAll("thead th").length;
+    while ((m = tableRegex.exec(value)) !== null) {
+      const block = m[1];
+      const rows = parseTableMd(block);
+      if (rows[0]?.length === colCount) {
+        const start = m.index + (m[0].length - block.length);
+        best = { start, end: m.index + m[0].length, rows };
+      }
+    }
+    if (!best) return;
+    const rect = tableEl.getBoundingClientRect();
+    setTableEditor({
+      open: true,
+      anchorEl: { top: rect.top + window.scrollY, left: rect.left },
+      tableStart: best.start,
+      tableEnd: best.end,
+      rows: best.rows,
+    });
+  }, [value]);
+
+  /** Write table edits back to value */
+  const commitTableEdit = useCallback((newRows: string[][]) => {
+    const newMd = serializeTableMd(newRows);
+    const newVal = value.slice(0, tableEditor.tableStart) + newMd + value.slice(tableEditor.tableEnd);
+    onChange(newVal);
+    setTableEditor(te => ({ ...te, rows: newRows, tableEnd: tableEditor.tableStart + newMd.length }));
+  }, [value, onChange, tableEditor.tableStart, tableEditor.tableEnd]);
+
   // ── handleChange ──────────────────────────────────────────────────────
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newVal = e.target.value;
     onChange(newVal);
-    detectCommand(newVal, e.target.selectionStart);
+    const cursor = e.target.selectionStart;
+    detectCommand(newVal, cursor);
+    detectWikilink(newVal, cursor);
   };
+
+  // ── Detect [[wikilink typing ──────────────────────────────────────────
+  const detectWikilink = useCallback((newValue: string, cursorPos: number) => {
+    if (!entities.length) return;
+    const textBefore = newValue.slice(0, cursorPos);
+    // Match [[ followed by non-] characters (no closing yet)
+    const match = textBefore.match(/\[\[([^\][]*)$/);
+    if (match) {
+      const query = match[1];
+      const triggerStart = cursorPos - match[0].length;
+      const ta = taRef.current;
+      if (!ta) return;
+      const coords = getCaretCoords(ta, triggerStart);
+      const menuHeight = 260;
+      const spaceBelow = window.innerHeight - coords.top;
+      const showAbove = spaceBelow < menuHeight + 40;
+      setWikiMenu({
+        open: true,
+        query,
+        triggerStart,
+        selectedIdx: 0,
+        menuPos: {
+          top: showAbove
+            ? coords.top - menuHeight - (parseFloat(window.getComputedStyle(ta).lineHeight) || 20) - 4
+            : coords.top,
+          left: coords.left,
+        },
+      });
+    } else {
+      setWikiMenu(m => m.open ? { ...m, open: false } : m);
+    }
+  }, [entities, getCaretCoords]);
+
+  // ── Apply selected entity as wikilink ─────────────────────────────────
+  const applyWikilink = useCallback((entity: string) => {
+    const ta = taRef.current;
+    if (!ta) return;
+    const before = value.slice(0, wikiMenu.triggerStart);
+    const after = value.slice(ta.selectionStart);
+    const inserted = `[[${entity}]]`;
+    const newVal = before + inserted + after;
+    onChange(newVal);
+    setWikiMenu(m => ({ ...m, open: false }));
+    requestAnimationFrame(() => {
+      ta.selectionStart = ta.selectionEnd = wikiMenu.triggerStart + inserted.length;
+      ta.focus();
+    });
+  }, [value, onChange, wikiMenu.triggerStart]);
 
   // ── wrapSelection / insertSnippet ──────────────────────────────────────
   const wrapSelection = (before: string, after: string) => {
@@ -1038,6 +1236,30 @@ export function MarkdownEditor({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const ta = taRef.current;
     if (!ta) return;
+
+    // ── Wikilink menu: navegar y seleccionar ───
+    if (wikiMenu.open && filteredEntities.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setWikiMenu(m => ({ ...m, selectedIdx: (m.selectedIdx + 1) % filteredEntities.length }));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setWikiMenu(m => ({ ...m, selectedIdx: (m.selectedIdx - 1 + filteredEntities.length) % filteredEntities.length }));
+        return;
+      }
+      if (e.key === "Tab" || e.key === "Enter") {
+        e.preventDefault();
+        applyWikilink(filteredEntities[wikiMenu.selectedIdx]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setWikiMenu(m => ({ ...m, open: false }));
+        return;
+      }
+    }
 
     // ── Menú abierto: navegar y seleccionar ───
     if (cmdMenu.open && filteredItems.length > 0) {
@@ -1138,8 +1360,8 @@ export function MarkdownEditor({
     "flex-1 w-full bg-transparent outline-none border-none resize-none text-sm font-mono leading-relaxed placeholder:opacity-30";
 
   const textareaStyle: React.CSSProperties = {
-    minHeight: minH,
-    overflowY: "auto",
+    minHeight: autoResize ? `${rows * 1.6}rem` : minH,
+    overflowY: autoResize ? "hidden" : "auto",
     color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
     fontFamily: "var(--font-mono)",
     fontSize: 13,
@@ -1560,6 +1782,97 @@ export function MarkdownEditor({
             </div>
           )}
 
+              {/* ── Wikilink autocomplete menu ── */}
+              {wikiMenu.open && entities.length > 0 && (
+                <div
+                  ref={wikiMenuRef}
+                  style={{
+                    position: "fixed",
+                    top: wikiMenu.menuPos.top,
+                    left: Math.max(8, wikiMenu.menuPos.left),
+                    zIndex: 9999,
+                    width: 240,
+                    background: "var(--bg-menu, #1a1730)",
+                    border: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 35%, transparent)",
+                    borderRadius: 8,
+                    boxShadow: "0 8px 32px color-mix(in srgb, var(--color-primary, #7c6af7) 15%, black)",
+                    overflow: "hidden",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  {/* Header */}
+                  <div style={{
+                    padding: "5px 10px 4px",
+                    fontSize: 9,
+                    fontFamily: "var(--font-mono)",
+                    color: "color-mix(in srgb, var(--color-primary, #7c6af7) 60%, transparent)",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}>
+                    <span style={{ opacity: 0.5 }}>[[</span>
+                    {wikiMenu.query && (
+                      <span style={{
+                        background: "color-mix(in srgb, var(--color-primary, #7c6af7) 15%, transparent)",
+                        color: "var(--color-primary, #7c6af7)",
+                        padding: "0 5px",
+                        borderRadius: 3,
+                        fontWeight: 700,
+                      }}>{wikiMenu.query}</span>
+                    )}
+                    <span style={{ marginLeft: "auto", opacity: 0.4 }}>↑↓ · Tab</span>
+                  </div>
+                  {/* Entity list */}
+                  <div style={{ maxHeight: 220, overflowY: "auto" }}>
+                    {filteredEntities.length === 0 ? (
+                      <div style={{ padding: "12px", fontSize: 11, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textAlign: "center", fontFamily: "var(--font-mono)" }}>
+                        Sin coincidencias
+                      </div>
+                    ) : (
+                      filteredEntities.map((entity, idx) => {
+                        const isSelected = idx === wikiMenu.selectedIdx;
+                        return (
+                          <button
+                            key={entity}
+                            type="button"
+                            onMouseEnter={() => setWikiMenu(m => ({ ...m, selectedIdx: idx }))}
+                            onClick={() => applyWikilink(entity)}
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              padding: "6px 12px",
+                              background: isSelected
+                                ? "color-mix(in srgb, var(--color-primary, #7c6af7) 12%, transparent)"
+                                : "transparent",
+                              border: "none",
+                              cursor: "pointer",
+                              textAlign: "left",
+                              borderLeft: isSelected
+                                ? "2px solid var(--color-primary, #7c6af7)"
+                                : "2px solid transparent",
+                            }}
+                          >
+                            <span style={{ fontSize: 12, opacity: 0.4, fontFamily: "var(--font-mono)" }}>[[</span>
+                            <span style={{
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: isSelected
+                                ? "color-mix(in srgb, var(--foreground) 90%, transparent)"
+                                : "color-mix(in srgb, var(--foreground) 65%, transparent)",
+                            }}>{entity}</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
           {/* Separador vertical en modo split */}
           {mode === "split" && (
             <div
@@ -1579,10 +1892,137 @@ export function MarkdownEditor({
               onSnippetAction={onSnippetAction}
               pvRef={pvRef}
               style={previewStyle}
+              onTableClick={openTableEditor}
             />
           )}
         </div>
       </div>
+
+      {/* ── Floating table editor ── */}
+      {tableEditor.open && tableEditor.anchorEl && (
+        <div
+          style={{
+            position: "fixed",
+            top: Math.min(tableEditor.anchorEl.top - window.scrollY + 8, window.innerHeight - 360),
+            left: Math.max(8, Math.min(tableEditor.anchorEl.left, window.innerWidth - 540)),
+            zIndex: 10000,
+            width: 520,
+            background: "var(--bg-menu, #1a1730)",
+            border: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 35%, transparent)",
+            borderRadius: 10,
+            boxShadow: "0 12px 40px color-mix(in srgb, var(--color-primary, #7c6af7) 20%, black)",
+            backdropFilter: "blur(10px)",
+            overflow: "hidden",
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "7px 12px",
+            borderBottom: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+          }}>
+            <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--color-primary,#7c6af7) 70%, transparent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              Editor de tabla
+            </span>
+            <div style={{ display: "flex", gap: 6 }}>
+              {/* Add column */}
+              <button type="button" title="Añadir columna" onClick={() => {
+                const newRows = tableEditor.rows.map(r => [...r, ""]);
+                commitTableEdit(newRows);
+              }} style={{ fontSize: 10, fontFamily: "var(--font-mono)", background: "color-mix(in srgb, var(--color-primary,#7c6af7) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary,#7c6af7) 25%, transparent)", borderRadius: 4, color: "var(--color-primary,#7c6af7)", padding: "2px 7px", cursor: "pointer" }}>
+                +col
+              </button>
+              {/* Add row */}
+              <button type="button" title="Añadir fila" onClick={() => {
+                const cols = tableEditor.rows[0]?.length ?? 1;
+                const newRows = [...tableEditor.rows, Array(cols).fill("")];
+                commitTableEdit(newRows);
+              }} style={{ fontSize: 10, fontFamily: "var(--font-mono)", background: "color-mix(in srgb, var(--color-primary,#7c6af7) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary,#7c6af7) 25%, transparent)", borderRadius: 4, color: "var(--color-primary,#7c6af7)", padding: "2px 7px", cursor: "pointer" }}>
+                +fila
+              </button>
+              {/* Close */}
+              <button type="button" onClick={() => setTableEditor(te => ({ ...te, open: false }))} style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb, var(--foreground) 35%, transparent)", padding: 2, display: "flex", alignItems: "center" }}>
+                <X size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Table grid */}
+          <div style={{ padding: "10px", overflowX: "auto", maxHeight: 300, overflowY: "auto" }}>
+            <table style={{ borderCollapse: "collapse", width: "100%" }}>
+              <tbody>
+                {tableEditor.rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, ci) => (
+                      <td key={ci} style={{ padding: 2 }}>
+                        <input
+                          type="text"
+                          value={cell}
+                          onChange={e => {
+                            const newRows = tableEditor.rows.map((r, rr) =>
+                              r.map((c, cc) => rr === ri && cc === ci ? e.target.value : c)
+                            );
+                            commitTableEdit(newRows);
+                          }}
+                          style={{
+                            width: "100%",
+                            minWidth: 80,
+                            background: ri === 0
+                              ? "color-mix(in srgb, var(--color-primary,#7c6af7) 10%, transparent)"
+                              : "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                            border: `1px solid color-mix(in srgb, var(--foreground) ${ri === 0 ? 15 : 8}%, transparent)`,
+                            borderRadius: 4,
+                            padding: "4px 7px",
+                            fontSize: 12,
+                            fontFamily: ri === 0 ? "var(--font-mono)" : "inherit",
+                            fontWeight: ri === 0 ? 700 : 400,
+                            color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
+                            outline: "none",
+                            boxSizing: "border-box",
+                          }}
+                          onFocus={e => { e.target.style.borderColor = "color-mix(in srgb, var(--color-primary,#7c6af7) 60%, transparent)"; }}
+                          onBlur={e => { e.target.style.borderColor = ""; }}
+                        />
+                      </td>
+                    ))}
+                    {/* Delete row button */}
+                    <td style={{ padding: "2px 0 2px 4px" }}>
+                      <button
+                        type="button"
+                        title={ri === 0 ? "Fila de encabezado (no eliminable)" : "Eliminar fila"}
+                        disabled={ri === 0}
+                        onClick={() => {
+                          if (ri === 0) return;
+                          commitTableEdit(tableEditor.rows.filter((_, r) => r !== ri));
+                        }}
+                        style={{ background: "none", border: "none", cursor: ri === 0 ? "default" : "pointer", opacity: ri === 0 ? 0.15 : 0.4, color: "var(--foreground)", padding: "2px 3px", fontSize: 12, lineHeight: 1, borderRadius: 3, display: "flex", alignItems: "center" }}
+                      >
+                        <X size={11} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer: delete column */}
+          <div style={{ display: "flex", justifyContent: "flex-end", padding: "6px 12px", borderTop: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", gap: 6 }}>
+            <button type="button" title="Eliminar última columna" onClick={() => {
+              if ((tableEditor.rows[0]?.length ?? 0) <= 1) return;
+              commitTableEdit(tableEditor.rows.map(r => r.slice(0, -1)));
+            }} style={{ fontSize: 10, fontFamily: "var(--font-mono)", background: "transparent", border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)", borderRadius: 4, color: "color-mix(in srgb, var(--foreground) 40%, transparent)", padding: "2px 7px", cursor: "pointer" }}>
+              {"−"}col
+            </button>
+            <button type="button" title="Eliminar última fila" onClick={() => {
+              if (tableEditor.rows.length <= 1) return;
+              commitTableEdit(tableEditor.rows.slice(0, -1));
+            }} style={{ fontSize: 10, fontFamily: "var(--font-mono)", background: "transparent", border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)", borderRadius: 4, color: "color-mix(in srgb, var(--foreground) 40%, transparent)", padding: "2px 7px", cursor: "pointer" }}>
+              {"−"}fila
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
