@@ -1347,6 +1347,7 @@ export function EditorMundo({
   onTextoChange,
   onSave,
   initialMundoTab,
+  initialItemId,
   onTabChange,
 }: {
   activeSection: MundoSectionKey;
@@ -1354,6 +1355,7 @@ export function EditorMundo({
   onTextoChange: (section: MundoSectionKey, value: string) => void;
   onSave: (section: MundoSectionKey) => Promise<void>;
   initialMundoTab?: string;
+  initialItemId?: string;
   onTabChange?: (section: MundoSectionKey, mundoTab: string) => void;
 }) {
   const [tab, setTab] = useState<UnifiedTab>(() =>
@@ -1479,7 +1481,7 @@ export function EditorMundo({
           />
         )}
 
-        {tab === "listas"   && <PanelListas />}
+        {tab === "listas"   && <PanelListas initialSubTab={initialMundoTab} initialItemId={initialItemId} />}
       </div>
     </div>
   );
@@ -1487,7 +1489,7 @@ export function EditorMundo({
 
 
 // ─── PanelListas: columnas side-by-side (reinos, criaturas, objetos, personajes, hechizos, dones) ──
-function PanelListas() {
+function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string; initialItemId?: string }) {
   const { reinos,    setReinos,    loading: loadingReinos    } = useReinos();
   const { criaturas, setCriaturas, loading: loadingCriaturas } = useCriaturas();
   const { objetos,   setObjetos,   loading: loadingObjetos   } = useObjetos();
@@ -1513,7 +1515,9 @@ function PanelListas() {
   const [selectedDon,      setSelectedDon]      = useState<EntidadMagica | null>(null);
   const [selectedRuna,     setSelectedRuna]     = useState<Runa | null>(null);
   const [personajeStatus,  setPersonajeStatus]  = useState<SaveStatus>("idle");
-  const [mobileTab, setMobileTab] = useState<"reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas">("reinos");
+  const [mobileTab, setMobileTab] = useState<"reinos" | "criaturas" | "objetos" | "personajes" | "hechizos" | "dones" | "runas">(
+    (initialSubTab as any) ?? "reinos"
+  );
 
   // Editor overlay activo
   const overlay: "reino" | "criatura" | "objeto" | "personaje" | "hechizo" | "don" | "runa" | null =
@@ -1532,6 +1536,23 @@ function PanelListas() {
   const filteredH = hechizos.filter(h  => h.nombre.toLowerCase().includes(searchH.toLowerCase()) || (h.criatura?.nombre ?? "").toLowerCase().includes(searchH.toLowerCase()));
   const filteredD = dones.filter(d     => d.nombre.toLowerCase().includes(searchD.toLowerCase()) || (d.criatura?.nombre ?? "").toLowerCase().includes(searchD.toLowerCase()));
   const filteredRu = runas.filter(r    => r.nombre.toLowerCase().includes(searchRu.toLowerCase()));
+
+  // Auto-seleccionar item cuando se navega desde wikilink o buscador
+  useEffect(() => {
+    if (!initialItemId || !initialSubTab) return;
+    if (initialSubTab === "hechizos") {
+      const found = hechizos.find(i => i.id === initialItemId);
+      if (found) setSelectedHechizo(found);
+    } else if (initialSubTab === "dones") {
+      const found = dones.find(i => i.id === initialItemId);
+      if (found) setSelectedDon(found);
+    } else if (initialSubTab === "runas") {
+      const found = runas.find(i => i.id === initialItemId);
+      if (found) setSelectedRuna(found);
+    }
+  // Solo al montar
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hechizos.length, dones.length, runas.length]);
 
   const handleSavePersonaje = async () => {
     if (!selectedPersonaje) return;
