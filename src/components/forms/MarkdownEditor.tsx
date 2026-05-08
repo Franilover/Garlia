@@ -1323,38 +1323,52 @@ export function MarkdownEditor({
       }
     }
 
-    const autoClosePairs: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
-    if (autoClosePairs[e.key]) {
-      if (e.key === '[') {
-        const { selectionStart: s } = ta;
-        const charBefore = value[s - 1];
-        if (charBefore === '[') {
-          // Ya hay un [ antes: queremos producir [[|]]
-          // El primer autocomplete de [ ya insertó [|], así que value[s] === ']'
-          // Hay que reemplazar ese ] por [] para obtener [[]] sin duplicar
-          e.preventDefault();
-          const charAfter = value[s];
-          if (charAfter === ']') {
-            // Reemplazar el ] existente por [] → [[|]]
-            const newVal = value.slice(0, s) + '[]' + value.slice(s + 1);
-            onChange(newVal);
-          } else {
-            // No hay ] después: insertar []] normalmente
-            const newVal = value.slice(0, s) + '[]]' + value.slice(s);
-            onChange(newVal);
-          }
-          requestAnimationFrame(() => {
-            ta.selectionStart = ta.selectionEnd = s + 1; // cursor entre [[ y ]]
-            ta.focus();
-          });
-          return;
-        }
+    const autoClosePairs: Record<string, string> = { '(': ')', '{': '}' };
+
+    // ── Manejo especial de [ para soportar [[wikilinks]] ──────────────────
+    if (e.key === '[') {
+      e.preventDefault();
+      const { selectionStart: s, selectionEnd: e2 } = ta;
+      const charBefore = value[s - 1];
+      const charAfter  = value[s];
+      const hasSelection = s !== e2;
+
+      if (!hasSelection && charBefore === '[' && charAfter === ']') {
+        // Estamos en [|] — segundo [: convertir a [[|]]
+        // Reemplazar el ] que sigue por []
+        const newVal = value.slice(0, s) + '[]' + value.slice(s + 1);
+        onChange(newVal);
+        requestAnimationFrame(() => {
+          ta.selectionStart = ta.selectionEnd = s + 1;
+          ta.focus();
+        });
+      } else if (!hasSelection && charBefore === '[') {
+        // Segundo [ sin ] autocerrado (ej: usuario borró el ]): insertar []]
+        const newVal = value.slice(0, s) + '[]]' + value.slice(s);
+        onChange(newVal);
+        requestAnimationFrame(() => {
+          ta.selectionStart = ta.selectionEnd = s + 1;
+          ta.focus();
+        });
+      } else {
+        // Primer [ o hay selección: comportamiento normal de autocerrado
+        const sel = hasSelection ? value.slice(s, e2) : '';
+        const newVal = value.slice(0, s) + '[' + sel + ']' + value.slice(e2);
+        onChange(newVal);
+        requestAnimationFrame(() => {
+          ta.selectionStart = s + 1;
+          ta.selectionEnd   = s + 1 + sel.length;
+          ta.focus();
+        });
       }
+      return;
+    }
+
+    if (autoClosePairs[e.key]) {
       e.preventDefault();
       wrapSelection(e.key, autoClosePairs[e.key]);
       return;
     }
-
     if ((e.ctrlKey || e.metaKey) && e.key === "b") { e.preventDefault(); wrapSelection("**", "**"); }
     if ((e.ctrlKey || e.metaKey) && e.key === "i") { e.preventDefault(); wrapSelection("*", "*"); }
   };
