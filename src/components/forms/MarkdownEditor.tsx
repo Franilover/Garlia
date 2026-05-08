@@ -1325,11 +1325,20 @@ export function MarkdownEditor({
 
     const autoClosePairs: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
     if (autoClosePairs[e.key]) {
-      // No auto-cerrar [ si el carácter anterior ya es [ (evita romper [[wikilinks]])
       if (e.key === '[') {
         const { selectionStart: s } = ta;
         const charBefore = value[s - 1];
-        if (charBefore === '[') return; // dejar que el browser inserte [ normalmente
+        if (charBefore === '[') {
+          // Ya hay un [ antes: completar con [[ ]] → insertar "[]" extra para que quede [[|]]
+          e.preventDefault();
+          const newVal = value.slice(0, s) + '[]]' + value.slice(s);
+          onChange(newVal);
+          requestAnimationFrame(() => {
+            ta.selectionStart = ta.selectionEnd = s + 1; // cursor entre [[ y ]]
+            ta.focus();
+          });
+          return;
+        }
       }
       e.preventDefault();
       wrapSelection(e.key, autoClosePairs[e.key]);
