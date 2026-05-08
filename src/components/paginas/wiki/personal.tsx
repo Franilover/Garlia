@@ -837,8 +837,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 borderRadius: "50%",
                 overflow: "hidden",
                 background: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))",
-                border: "3px solid var(--white-custom)",
-                boxShadow: "0 2px 16px color-mix(in srgb, var(--primary) 14%, transparent)",
                 flexShrink: 0,
               }}>
               {perfil?.avatar_url
@@ -855,7 +853,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             </button>
 
             {/* Nombre + título + status */}
-            <div className="flex flex-col gap-1 pb-1">
+            <div className="flex flex-col gap-1 pb-1" style={{ paddingTop: "56px" }}>
               {perfil?.titulo && (
                 <div className="inline-flex w-fit items-center gap-1.5 px-2 py-0.5"
                   style={{
