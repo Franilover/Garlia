@@ -20,17 +20,17 @@ const PARCHMENT_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=IM+Fell+English:ital@0;1&family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&display=swap');
 
   :root {
-    --parch-bg:       #f2e8c9;
-    --parch-mid:      #e8d9a8;
-    --parch-dark:     #c9a96e;
-    --parch-ink:      #2c1a0e;
-    --parch-ink-mid:  #5c3d1e;
-    --parch-ink-fade: #8b6340;
-    --parch-red:      #8b1a1a;
-    --parch-gold:     #b8860b;
-    --parch-gold-lt:  #d4a843;
-    --parch-shadow:   rgba(44,26,14,0.18);
-    --parch-border:   #8b6340;
+    --parch-bg:       var(--bg-main);
+    --parch-mid:      color-mix(in srgb, var(--primary) 12%, var(--bg-main));
+    --parch-dark:     var(--primary);
+    --parch-ink:      var(--foreground);
+    --parch-ink-mid:  color-mix(in srgb, var(--foreground) 75%, transparent);
+    --parch-ink-fade: color-mix(in srgb, var(--foreground) 50%, transparent);
+    --parch-red:      var(--primary);
+    --parch-gold:     var(--accent);
+    --parch-gold-lt:  color-mix(in srgb, var(--accent) 70%, var(--bg-main));
+    --parch-shadow:   color-mix(in srgb, var(--foreground) 18%, transparent);
+    --parch-border:   var(--primary);
     --parch-radius:   2px;
   }
 
@@ -42,8 +42,8 @@ const PARCHMENT_STYLES = `
         0deg,
         transparent,
         transparent 28px,
-        rgba(44,26,14,0.035) 28px,
-        rgba(44,26,14,0.035) 29px
+        color-mix(in srgb, var(--parch-ink) 3.5%, transparent) 28px,
+        color-mix(in srgb, var(--parch-ink) 3.5%, transparent) 29px
       );
   }
 
@@ -51,7 +51,7 @@ const PARCHMENT_STYLES = `
     background-color: var(--parch-mid);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
     border: 1.5px solid var(--parch-dark);
-    box-shadow: inset 0 0 40px rgba(44,26,14,0.08), 2px 4px 12px var(--parch-shadow);
+    box-shadow: inset 0 0 40px color-mix(in srgb, var(--parch-ink) 8%, transparent), 2px 4px 12px var(--parch-shadow);
     position: relative;
   }
 
@@ -59,7 +59,7 @@ const PARCHMENT_STYLES = `
     content: '';
     position: absolute;
     inset: 3px;
-    border: 1px solid rgba(139,99,64,0.25);
+    border: 1px solid color-mix(in srgb, var(--parch-border) 25%, transparent);
     border-radius: 1px;
     pointer-events: none;
   }
@@ -144,7 +144,7 @@ const PARCHMENT_STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.15);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--parch-ink) 30%, transparent), inset 0 1px 3px rgba(255,255,255,0.15);
     position: relative;
   }
 
@@ -159,7 +159,7 @@ const PARCHMENT_STYLES = `
   .parch-tab-active {
     background: var(--parch-bg) !important;
     border-color: var(--parch-dark) !important;
-    box-shadow: inset 0 0 20px rgba(44,26,14,0.06), 0 2px 8px var(--parch-shadow) !important;
+    box-shadow: inset 0 0 20px color-mix(in srgb, var(--parch-ink) 6%, transparent), 0 2px 8px var(--parch-shadow) !important;
   }
 
   .parch-tab-active .parch-tab-label { color: var(--parch-ink) !important; }
@@ -184,13 +184,13 @@ const PARCHMENT_STYLES = `
 
   /* Scroll-end flourish */
   .parch-scroll-top {
-    background: linear-gradient(180deg, #c9a96e 0%, #e8d9a8 100%);
+    background: linear-gradient(180deg, var(--parch-dark) 0%, var(--parch-mid) 100%);
     height: 28px;
     border-radius: 4px 4px 0 0;
     border: 1.5px solid var(--parch-border);
     border-bottom: none;
     position: relative;
-    box-shadow: 0 -2px 8px rgba(44,26,14,0.12);
+    box-shadow: 0 -2px 8px color-mix(in srgb, var(--parch-ink) 12%, transparent);
   }
 
   .parch-scroll-top::before {
@@ -202,17 +202,17 @@ const PARCHMENT_STYLES = `
     justify-content: center;
     font-family: 'Cinzel', serif;
     font-size: 0.55rem;
-    color: rgba(44,26,14,0.45);
+    color: color-mix(in srgb, var(--parch-ink) 45%, transparent);
     letter-spacing: 0.5em;
   }
 
   .parch-scroll-bottom {
-    background: linear-gradient(0deg, #c9a96e 0%, #e8d9a8 100%);
+    background: linear-gradient(0deg, var(--parch-dark) 0%, var(--parch-mid) 100%);
     height: 28px;
     border-radius: 0 0 4px 4px;
     border: 1.5px solid var(--parch-border);
     border-top: none;
-    box-shadow: 0 4px 10px rgba(44,26,14,0.15);
+    box-shadow: 0 4px 10px color-mix(in srgb, var(--parch-ink) 15%, transparent);
   }
 
   .parch-progress-segment {
@@ -487,7 +487,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
               className="fixed inset-0 z-40 backdrop-blur-sm"
-              style={{ background: "rgba(20,10,4,0.6)" }}
+              style={{ background: "color-mix(in srgb, var(--parch-ink) 60%, transparent)" }}
             />
             <MotionDiv
               initial={{ opacity: 0, scale: 0.94, y: 24 }}
@@ -508,7 +508,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     <img src={modalEntidad.data.imagen_url} alt={modalEntidad.data.nombre}
                       className="w-full h-full object-contain"
                       style={{ background: "color-mix(in srgb, var(--parch-dark) 12%, var(--parch-bg))" }} />
-                    <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(44,26,14,0.55) 0%, transparent 55%)" }} />
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(to top, color-mix(in srgb, var(--parch-ink) 55%, transparent) 0%, transparent 55%)" }} />
                     <button
                       onClick={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
                       className="parch-btn absolute top-3 right-3"
@@ -624,7 +624,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           <>
             <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowAvatarPicker(false)}
-              className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "rgba(20,10,4,0.55)" }} />
+              className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--parch-ink) 55%, transparent)" }} />
             <MotionDiv
               initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 16 }}
@@ -667,7 +667,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           <>
             <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowPersonajePicker(false)}
-              className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "rgba(20,10,4,0.55)" }} />
+              className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--parch-ink) 55%, transparent)" }} />
             <MotionDiv
               initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 16 }}
@@ -723,7 +723,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           <>
             <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowMascotaPicker(false)}
-              className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "rgba(20,10,4,0.55)" }} />
+              className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--parch-ink) 55%, transparent)" }} />
             <MotionDiv
               initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 16 }}
@@ -785,7 +785,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             {/* Top banner strip with aged texture */}
             <div style={{
               height: 112,
-              background: "linear-gradient(180deg, #b8960c 0%, #c9a83c 40%, #e8d9a8 100%)",
+              background: "linear-gradient(180deg, var(--parch-gold) 0%, var(--parch-gold-lt) 40%, var(--parch-mid) 100%)",
               borderBottom: "2px solid var(--parch-border)",
               position: "relative",
               overflow: "hidden",
@@ -795,7 +795,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 position: "absolute", inset: 0,
                 backgroundImage: `repeating-linear-gradient(
                   -45deg,
-                  rgba(44,26,14,0.06) 0px, rgba(44,26,14,0.06) 1px,
+                  color-mix(in srgb, var(--parch-ink) 6%, transparent) 0px, color-mix(in srgb, var(--parch-ink) 6%, transparent) 1px,
                   transparent 1px, transparent 18px
                 )`,
               }} />
@@ -806,9 +806,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               {/* Discovery count badge */}
               <div style={{
                 position: "absolute", top: 12, right: 40,
-                border: "1px solid rgba(44,26,14,0.35)",
+                border: "1px solid color-mix(in srgb, var(--parch-ink) 35%, transparent)",
                 borderRadius: "1px",
-                background: "rgba(242,232,201,0.82)",
+                background: "color-mix(in srgb, var(--parch-bg) 82%, transparent)",
                 backdropFilter: "blur(4px)",
                 padding: "5px 12px",
                 display: "flex", alignItems: "center", gap: 6,
@@ -821,7 +821,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
               {/* Title in banner */}
               <div style={{ position: "absolute", bottom: 10, left: "50%", transform: "translateX(-50%)", textAlign: "center", whiteSpace: "nowrap" }}>
-                <span className="parch-label" style={{ fontSize: "0.5rem", letterSpacing: "0.5em", color: "rgba(44,26,14,0.5)" }}>
+                <span className="parch-label" style={{ fontSize: "0.5rem", letterSpacing: "0.5em", color: "color-mix(in srgb, var(--parch-ink) 50%, transparent)" }}>
                   ✦ Crónica del Aventurero ✦
                 </span>
               </div>
@@ -850,7 +850,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   position: "absolute", inset: -4,
                   borderRadius: "50%",
                   background: "conic-gradient(from 0deg, var(--parch-gold), var(--parch-dark) 25%, var(--parch-gold) 50%, var(--parch-dark) 75%, var(--parch-gold))",
-                  boxShadow: "0 4px 20px rgba(44,26,14,0.28)",
+                  boxShadow: "0 4px 20px color-mix(in srgb, var(--parch-ink) 28%, transparent)",
                 }} />
                 {/* Image container */}
                 <div style={{
@@ -867,7 +867,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 {/* "Cambiar" hover overlay */}
                 <div className="group-hover:opacity-100" style={{
                   position: "absolute", inset: 3, borderRadius: "50%",
-                  background: "rgba(44,26,14,0.55)", display: "flex", alignItems: "center", justifyContent: "center",
+                  background: "color-mix(in srgb, var(--parch-ink) 55%, transparent)", display: "flex", alignItems: "center", justifyContent: "center",
                   opacity: 0, transition: "opacity 0.2s",
                 }}>
                   <span className="parch-label" style={{ color: "var(--parch-bg)", fontSize: "0.5rem" }}>Cambiar</span>
@@ -895,7 +895,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   color: "var(--parch-ink)",
                   lineHeight: 1.1,
                   letterSpacing: "0.02em",
-                  textShadow: "1px 1px 0 rgba(139,99,64,0.2)",
+                  textShadow: "1px 1px 0 color-mix(in srgb, var(--parch-border) 20%, transparent)",
                 }}>
                   {perfil?.username ?? "…"}
                 </h1>
