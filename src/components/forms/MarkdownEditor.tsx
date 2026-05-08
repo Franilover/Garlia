@@ -1838,84 +1838,158 @@ export function MarkdownEditor({
                     top: wikiMenu.menuPos.top,
                     left: Math.max(8, wikiMenu.menuPos.left),
                     zIndex: 9999,
-                    width: 240,
-                    background: "var(--bg-menu, #1a1730)",
-                    border: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 35%, transparent)",
-                    borderRadius: 8,
-                    boxShadow: "0 8px 32px color-mix(in srgb, var(--color-primary, #7c6af7) 15%, black)",
+                    width: 264,
+                    background: "var(--bg-main, var(--bg-menu, #1a1730))",
+                    border: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 15%, transparent)",
+                    borderRadius: 16,
+                    boxShadow: "0 12px 40px color-mix(in srgb, var(--color-primary, #7c6af7) 22%, transparent)",
                     overflow: "hidden",
-                    backdropFilter: "blur(8px)",
+                    backdropFilter: "blur(12px)",
+                    animation: "wikiPopIn 140ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+                    transformOrigin: "top left",
                   }}
                 >
+                  <style>{`
+                    @keyframes wikiPopIn {
+                      from { opacity: 0; transform: scale(0.92) translateY(-4px); }
+                      to   { opacity: 1; transform: scale(1) translateY(0); }
+                    }
+                  `}</style>
+
                   {/* Header */}
                   <div style={{
-                    padding: "5px 10px 4px",
-                    fontSize: 9,
-                    fontFamily: "var(--font-mono)",
-                    color: "color-mix(in srgb, var(--color-primary, #7c6af7) 60%, transparent)",
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+                    padding: "8px 12px 7px",
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
+                    borderBottom: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 8%, transparent)",
+                    background: "color-mix(in srgb, var(--color-primary, #7c6af7) 4%, transparent)",
                   }}>
-                    <span style={{ opacity: 0.5 }}>[[</span>
-                    {wikiMenu.query && (
+                    {/* [[ badge */}
+                    <span style={{
+                      fontSize: 9,
+                      fontFamily: "var(--font-mono)",
+                      fontWeight: 900,
+                      letterSpacing: "0.05em",
+                      color: "color-mix(in srgb, var(--color-primary, #7c6af7) 50%, transparent)",
+                      background: "color-mix(in srgb, var(--color-primary, #7c6af7) 10%, transparent)",
+                      padding: "1px 5px",
+                      borderRadius: 4,
+                    }}>[[</span>
+                    {wikiMenu.query ? (
                       <span style={{
-                        background: "color-mix(in srgb, var(--color-primary, #7c6af7) 15%, transparent)",
-                        color: "var(--color-primary, #7c6af7)",
-                        padding: "0 5px",
-                        borderRadius: 3,
+                        fontSize: 10,
                         fontWeight: 700,
+                        fontFamily: "var(--font-mono)",
+                        color: "var(--color-primary, #7c6af7)",
+                        flex: 1,
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                       }}>{wikiMenu.query}</span>
-                    )}
-                    <span style={{ marginLeft: "auto", opacity: 0.4 }}>↑↓ · Tab</span>
-                  </div>
-                  {/* Entity list */}
-                  <div style={{ maxHeight: 220, overflowY: "auto" }}>
-                    {filteredEntities.length === 0 ? (
-                      <div style={{ padding: "12px", fontSize: 11, color: "color-mix(in srgb, var(--foreground) 30%, transparent)", textAlign: "center", fontFamily: "var(--font-mono)" }}>
-                        Sin coincidencias
-                      </div>
                     ) : (
-                      filteredEntities.map((entity, idx) => {
-                        const isSelected = idx === wikiMenu.selectedIdx;
-                        return (
-                          <button
-                            key={entity}
-                            type="button"
-                            onMouseEnter={() => setWikiMenu(m => ({ ...m, selectedIdx: idx }))}
-                            onClick={() => applyWikilink(entity)}
-                            style={{
-                              width: "100%",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              padding: "6px 12px",
-                              background: isSelected
-                                ? "color-mix(in srgb, var(--color-primary, #7c6af7) 12%, transparent)"
-                                : "transparent",
-                              border: "none",
-                              cursor: "pointer",
-                              textAlign: "left",
-                              borderLeft: isSelected
-                                ? "2px solid var(--color-primary, #7c6af7)"
-                                : "2px solid transparent",
-                            }}
-                          >
-                            <span style={{ fontSize: 12, opacity: 0.4, fontFamily: "var(--font-mono)" }}>[[</span>
-                            <span style={{
-                              fontSize: 12,
-                              fontWeight: 600,
-                              color: isSelected
-                                ? "color-mix(in srgb, var(--foreground) 90%, transparent)"
-                                : "color-mix(in srgb, var(--foreground) 65%, transparent)",
-                            }}>{entity}</span>
-                          </button>
-                        );
-                      })
+                      <span style={{
+                        fontSize: 9,
+                        fontWeight: 900,
+                        letterSpacing: "0.2em",
+                        textTransform: "uppercase",
+                        color: "color-mix(in srgb, var(--color-primary, #7c6af7) 35%, transparent)",
+                        flex: 1,
+                      }}>Entidades</span>
                     )}
+                    <span style={{
+                      fontSize: 8,
+                      fontFamily: "var(--font-mono)",
+                      color: "color-mix(in srgb, var(--color-primary, #7c6af7) 30%, transparent)",
+                      letterSpacing: "0.05em",
+                    }}>↑↓ Tab</span>
+                  </div>
+
+                  {/* Entity list */}
+                  <div style={{ maxHeight: 240, overflowY: "auto", padding: "6px" }}>
+                    {filteredEntities.map((entity, idx) => {
+                      const isSelected = idx === wikiMenu.selectedIdx;
+                      // Initial letter avatar
+                      const initial = entity.trim()[0]?.toUpperCase() ?? "?";
+                      return (
+                        <button
+                          key={entity}
+                          type="button"
+                          onMouseEnter={() => setWikiMenu(m => ({ ...m, selectedIdx: idx }))}
+                          onClick={() => applyWikilink(entity)}
+                          style={{
+                            width: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 9,
+                            padding: "6px 8px",
+                            background: isSelected
+                              ? "color-mix(in srgb, var(--color-primary, #7c6af7) 12%, transparent)"
+                              : "transparent",
+                            border: isSelected
+                              ? "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 20%, transparent)"
+                              : "1px solid transparent",
+                            borderRadius: 12,
+                            cursor: "pointer",
+                            textAlign: "left",
+                            transition: "background 0.1s, border-color 0.1s",
+                          }}
+                        >
+                          {/* Avatar cuadrado con inicial */}
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: isSelected
+                              ? "color-mix(in srgb, var(--color-primary, #7c6af7) 20%, transparent)"
+                              : "color-mix(in srgb, var(--color-primary, #7c6af7) 7%, transparent)",
+                            border: `1px solid color-mix(in srgb, var(--color-primary, #7c6af7) ${isSelected ? 25 : 10}%, transparent)`,
+                            fontSize: 11,
+                            fontWeight: 900,
+                            fontFamily: "var(--font-mono)",
+                            color: isSelected
+                              ? "var(--color-primary, #7c6af7)"
+                              : "color-mix(in srgb, var(--color-primary, #7c6af7) 40%, transparent)",
+                            transition: "background 0.1s, color 0.1s",
+                          }}>
+                            {initial}
+                          </div>
+
+                          {/* Nombre */}
+                          <span style={{
+                            flex: 1,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: isSelected
+                              ? "color-mix(in srgb, var(--foreground) 90%, transparent)"
+                              : "color-mix(in srgb, var(--foreground) 60%, transparent)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            transition: "color 0.1s",
+                          }}>{entity}</span>
+
+                          {/* Tag [[ ]] */}
+                          <span style={{
+                            flexShrink: 0,
+                            fontSize: 7,
+                            fontWeight: 900,
+                            fontFamily: "var(--font-mono)",
+                            letterSpacing: "0.1em",
+                            textTransform: "uppercase",
+                            padding: "2px 5px",
+                            borderRadius: 5,
+                            background: "color-mix(in srgb, var(--color-primary, #7c6af7) 8%, transparent)",
+                            color: "color-mix(in srgb, var(--color-primary, #7c6af7) 40%, transparent)",
+                          }}>wiki</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
