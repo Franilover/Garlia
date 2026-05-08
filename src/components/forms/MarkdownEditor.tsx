@@ -74,6 +74,12 @@ export function renderMarkdown(raw: string): string {
     return `<blockquote>${inner.join("\n")}</blockquote>`;
   });
 
+  // ── Proteger [[TOC]] antes de que el regex de wikilinks lo consuma ─────────
+  const hasTOC = /\[\[toc\]\]/i.test(html);
+  if (hasTOC) {
+    html = html.replace(/\[\[toc\]\]/gi, "\x00TOC\x00");
+  }
+
   // ── Imágenes y enlaces ───────────────────────────────────────────────────
   html = html.replace(/!\[([^\]]*)\]\((.*?)\)/g, '<img src="$2" alt="$1" />');
   html = html.replace(/\[([^\]]+)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
@@ -101,16 +107,17 @@ export function renderMarkdown(raw: string): string {
   html = html.replace(/^##\s(.+)$/gm,     (_, t) => makeHeading(2, t));
   html = html.replace(/^#\s(.+)$/gm,      (_, t) => makeHeading(1, t));
 
-  // ── [[TOC]] placeholder ──────────────────────────────────────────────────
-  if (html.includes("[[TOC]]") || html.includes("[[toc]]")) {
+  // ── [[TOC]] → tabla de contenidos real ──────────────────────────────────
+  if (hasTOC) {
     const tocEntries: { level: number; text: string; id: string }[] = [];
     const reH = /<h([1-4])\s+id="([^"]+)">([^<]+)<\/h[1-4]>/g;
     let m;
     while ((m = reH.exec(html)) !== null) {
       tocEntries.push({ level: parseInt(m[1]), text: m[3], id: m[2] });
     }
+    let tocHtml: string;
     if (tocEntries.length > 0) {
-      let tocHtml = `<nav class="toc"><div class="toc-title">Indice</div><ol>`;
+      tocHtml = `<nav class="toc"><div class="toc-title">Índice</div><ol>`;
       let prevLevel = tocEntries[0].level;
       tocEntries.forEach(entry => {
         if (entry.level > prevLevel) tocHtml += "<ol>";
@@ -119,8 +126,11 @@ export function renderMarkdown(raw: string): string {
         prevLevel = entry.level;
       });
       tocHtml += `</ol></nav>`;
-      html = html.replace(/\[\[TOC\]\]|\[\[toc\]\]/g, tocHtml);
+    } else {
+      // No hay encabezados: dejar un comentario invisible en vez de nada
+      tocHtml = `<nav class="toc toc-empty"></nav>`;
     }
+    html = html.replace(/\x00TOC\x00/g, tocHtml);
   }
 
   // ── Tipografía inline ────────────────────────────────────────────────────
