@@ -311,6 +311,13 @@ export default function Ensayos() {
     return Array.from(set).sort();
   }, [ensayos]);
 
+  // Lista de nombres para el autocompletado [[wikilink]] del editor:
+  // títulos de ensayos (no vacíos) + todas las tags existentes
+  const allWikilinkNames = useMemo(() => {
+    const titles = ensayos.map((e: any) => e.titulo).filter(Boolean) as string[];
+    return Array.from(new Set([...titles, ...todosLosTags])).sort();
+  }, [ensayos, todosLosTags]);
+
   const ensayosFiltrados = useMemo(() => {
     return ensayos.filter((e: any) => {
       const cumpleTag      = tagActivo ? e.tags?.includes(tagActivo) : true;
@@ -541,6 +548,7 @@ export default function Ensayos() {
                     onUpdateField={actualizarLocal}
                     onSelectEnsayo={handleEnsayoClick}
                     onNavigateToPage={(name) => navigateToPage(name, false)}
+                    entities={allWikilinkNames}
                   />
                 ) : (
                   <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />

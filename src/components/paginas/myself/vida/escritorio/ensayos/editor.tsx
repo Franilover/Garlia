@@ -4,7 +4,6 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Save } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { CitePopup } from "./citePopup";
-import { WikilinkPopup } from "./wikilinkPopup";
 import { MarkdownEditor } from "@/components/forms/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
@@ -17,6 +16,7 @@ interface EditorProps {
   onUpdateField: (id: string, field: string, value: any) => void;
   onSelectEnsayo: (id: string) => void;
   onNavigateToPage: (name: string) => void;
+  entities?: string[];
 }
 
 export function Editor({
@@ -28,6 +28,7 @@ export function Editor({
   onUpdateField,
   onSelectEnsayo,
   onNavigateToPage,
+  entities = [],
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -43,14 +44,6 @@ export function Editor({
     position: { top: number; left: number };
   } | null>(null);
   const [citeActiveIdx, setCiteActiveIdx] = useState(0);
-
-  // Wikilink popup ([[)
-  const [wikilinkPopup, setWikilinkPopup] = useState<{
-    query: string;
-    bracketStart: number;
-    position: { top: number; left: number };
-  } | null>(null);
-  const [wikilinkActiveIdx, setWikilinkActiveIdx] = useState(0);
 
   useEffect(() => {
     setLocalTitulo(ensayo.titulo || "");
@@ -71,21 +64,6 @@ export function Editor({
   const handleContenidoChange = useCallback((value: string) => {
     setLocalContenido(value);
     onUpdateField(ensayo.id, "contenido", value);
-
-    // ── [[ wikilink popup ──
-    const wikilinkMatch = value.match(/\[\[([^\]#|]*)$/);
-    if (wikilinkMatch) {
-      setCitePopup(null);
-      setWikilinkPopup({
-        query: wikilinkMatch[1],
-        bracketStart: value.length - wikilinkMatch[0].length,
-        position: getPopupPosition(),
-      });
-      setWikilinkActiveIdx(0);
-      return;
-    } else {
-      setWikilinkPopup(null);
-    }
 
     // ── @ cite popup ──
     if (!sources.length) return;
@@ -116,22 +94,6 @@ export function Editor({
     onUpdateField(ensayo.id, "contenido", newValue);
     setCitePopup(null);
   }, [citePopup, ensayo.id, localContenido, onUpdateField]);
-
-  const insertWikilink = useCallback((name: string) => {
-    if (!wikilinkPopup) return;
-    const link = `[[${name}]]`;
-
-    // Replace from [[ start to current cursor (query + [[)
-    const before = localContenido.substring(0, wikilinkPopup.bracketStart);
-    const after = localContenido.substring(
-      wikilinkPopup.bracketStart + 2 + wikilinkPopup.query.length // skip [[ + typed query
-    );
-    const newValue = before + link + after;
-
-    setLocalContenido(newValue);
-    onUpdateField(ensayo.id, "contenido", newValue);
-    setWikilinkPopup(null);
-  }, [wikilinkPopup, ensayo.id, localContenido, onUpdateField]);
 
   const parsedTags: string[] = tagInput
     .split(",")
@@ -308,6 +270,7 @@ export function Editor({
             rows={28}
             toolbar
             defaultMode={editMode ? "edit" : "preview"}
+            entities={entities}
             onSnippetAction={(action) => {
               if (action.type === "wikilink") {
                 onNavigateToPage(action.target);
@@ -326,21 +289,6 @@ export function Editor({
                   onSelect={insertCite}
                   onClose={() => setCitePopup(null)}
                   activeIndex={citeActiveIdx}
-                />
-              </div>
-            )}
-          </AnimatePresence>
-
-          {/* WikilinkPopup ([[) */}
-          <AnimatePresence>
-            {wikilinkPopup && (
-              <div style={{ position: "fixed", top: wikilinkPopup.position.top + 25, left: wikilinkPopup.position.left, zIndex: 9999 }}>
-                <WikilinkPopup
-                  ensayos={ensayos}
-                  query={wikilinkPopup.query}
-                  activeIndex={wikilinkActiveIdx}
-                  onSelect={insertWikilink}
-                  onClose={() => setWikilinkPopup(null)}
                 />
               </div>
             )}
