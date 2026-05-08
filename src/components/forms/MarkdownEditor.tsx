@@ -1329,10 +1329,20 @@ export function MarkdownEditor({
         const { selectionStart: s } = ta;
         const charBefore = value[s - 1];
         if (charBefore === '[') {
-          // Ya hay un [ antes: completar con [[ ]] → insertar "[]" extra para que quede [[|]]
+          // Ya hay un [ antes: queremos producir [[|]]
+          // El primer autocomplete de [ ya insertó [|], así que value[s] === ']'
+          // Hay que reemplazar ese ] por [] para obtener [[]] sin duplicar
           e.preventDefault();
-          const newVal = value.slice(0, s) + '[]]' + value.slice(s);
-          onChange(newVal);
+          const charAfter = value[s];
+          if (charAfter === ']') {
+            // Reemplazar el ] existente por [] → [[|]]
+            const newVal = value.slice(0, s) + '[]' + value.slice(s + 1);
+            onChange(newVal);
+          } else {
+            // No hay ] después: insertar []] normalmente
+            const newVal = value.slice(0, s) + '[]]' + value.slice(s);
+            onChange(newVal);
+          }
           requestAnimationFrame(() => {
             ta.selectionStart = ta.selectionEnd = s + 1; // cursor entre [[ y ]]
             ta.focus();
