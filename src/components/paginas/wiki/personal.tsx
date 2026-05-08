@@ -1352,7 +1352,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                                 : <User size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
                             <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                              <p className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                              <p className="font-serif italic text-[12px] leading-tight capitalize truncate text-center"
                                 style={{ color: "var(--primary)" }}>
                                 {d.nombre ?? "Contacto"}
                               </p>
