@@ -1338,7 +1338,7 @@ export function MarkdownEditor({
 
       if (!hasSelection && charBefore === '[' && charAfter === ']') {
         // Estamos en [|] — segundo [: convertir a [[|]]
-        const newVal = currentVal.slice(0, s) + '[]' + currentVal.slice(s + 1);
+        const newVal = currentVal.slice(0, s) + '[]]' + currentVal.slice(s + 1);
         onChange(newVal);
         requestAnimationFrame(() => {
           ta.selectionStart = ta.selectionEnd = s + 1;
