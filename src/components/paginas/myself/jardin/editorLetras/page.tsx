@@ -690,7 +690,7 @@ const CardActions = ({
 export default function EstudioLetras() {
   const { canciones, setCanciones, loading: loadingLista, isOffline: listaOffline, refetch } = useCanciones();
   const [lastId, setLastId] = useLastOpenedId("estudio-letras-last-id");
-  const [selectedId, _setSelectedId] = useState<string | null>(null);
+  const [selectedId, _setSelectedId] = useState<string | null>(lastId);
 
   const setSelectedId = (id: string | null) => {
     _setSelectedId(id);
