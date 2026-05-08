@@ -1155,7 +1155,6 @@ export function MarkdownEditor({
 
   // ── Detect [[wikilink typing ──────────────────────────────────────────
   const detectWikilink = useCallback((newValue: string, cursorPos: number) => {
-    if (!entities.length) return;
     const textBefore = newValue.slice(0, cursorPos);
     // Match [[ seguido de texto sin ] (cursor puede estar antes de ]] o al final)
     const match = textBefore.match(/\[\[([^\]]*)$/);
@@ -1183,7 +1182,7 @@ export function MarkdownEditor({
     } else {
       setWikiMenu(m => m.open ? { ...m, open: false } : m);
     }
-  }, [entities, getCaretCoords]);
+  }, [getCaretCoords]);
 
   // ── Apply selected entity as wikilink ─────────────────────────────────
   const applyWikilink = useCallback((entity: string) => {
@@ -1243,26 +1242,28 @@ export function MarkdownEditor({
     if (!ta) return;
 
     // ── Wikilink menu: navegar y seleccionar ───
-    if (wikiMenu.open && filteredEntities.length > 0) {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setWikiMenu(m => ({ ...m, selectedIdx: (m.selectedIdx + 1) % filteredEntities.length }));
-        return;
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setWikiMenu(m => ({ ...m, selectedIdx: (m.selectedIdx - 1 + filteredEntities.length) % filteredEntities.length }));
-        return;
-      }
-      if (e.key === "Tab" || e.key === "Enter") {
-        e.preventDefault();
-        applyWikilink(filteredEntities[wikiMenu.selectedIdx]);
-        return;
-      }
+    if (wikiMenu.open) {
       if (e.key === "Escape") {
         e.preventDefault();
         setWikiMenu(m => ({ ...m, open: false }));
         return;
+      }
+      if (filteredEntities.length > 0) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setWikiMenu(m => ({ ...m, selectedIdx: (m.selectedIdx + 1) % filteredEntities.length }));
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setWikiMenu(m => ({ ...m, selectedIdx: (m.selectedIdx - 1 + filteredEntities.length) % filteredEntities.length }));
+          return;
+        }
+        if (e.key === "Tab" || e.key === "Enter") {
+          e.preventDefault();
+          applyWikilink(filteredEntities[wikiMenu.selectedIdx]);
+          return;
+        }
       }
     }
 
@@ -1794,7 +1795,7 @@ export function MarkdownEditor({
           )}
 
               {/* ── Wikilink autocomplete menu ── */}
-              {wikiMenu.open && entities.length > 0 && (
+              {wikiMenu.open && entities.length > 0 && filteredEntities.length > 0 && (
                 <div
                   ref={wikiMenuRef}
                   style={{
