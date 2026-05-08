@@ -1141,24 +1141,34 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             {/* Grid area */}
             <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
-              {/* ── TABS — Minimal horizontal ── */}
-              <div className="flex items-center gap-1 mb-4" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                {tabs.map(t => {
+              {/* ── TABS — conectadas al panel, se levantan al activarse ── */}
+              <div className="flex items-end gap-0">
+                {tabs.map((t, idx) => {
                   const isActive = tab === t.id;
                   return (
                     <button
                       key={t.id}
                       onClick={() => setTab(t.id)}
-                      className="relative flex items-center gap-2 px-3 py-2.5 transition-all duration-150"
+                      className="relative flex items-center gap-2 px-4 transition-all duration-150"
                       style={{
-                        color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                        borderBottom: isActive ? "1px solid var(--primary)" : "1px solid transparent",
-                        marginBottom: "-1px",
-                        background: "transparent",
+                        paddingTop: isActive ? "9px" : "7px",
+                        paddingBottom: isActive ? "9px" : "7px",
+                        color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 38%, transparent)",
+                        background: isActive
+                          ? "color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
+                          : "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
+                        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                        borderBottom: isActive
+                          ? "1px solid color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
+                          : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                        borderRadius: "4px 4px 0 0",
+                        marginRight: idx < tabs.length - 1 ? "-1px" : 0,
+                        zIndex: isActive ? 2 : 1,
+                        transform: isActive ? "translateY(1px)" : "translateY(3px)",
                       }}>
                       <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
                       <span className="text-[8px] tabular-nums"
-                        style={{ color: isActive ? "color-mix(in srgb, var(--primary) 45%, transparent)" : "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
+                        style={{ color: isActive ? "color-mix(in srgb, var(--primary) 40%, transparent)" : "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
                         {t.count}
                       </span>
                     </button>
@@ -1169,9 +1179,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               {/* Inventory panel */}
               <div style={{
                 border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                borderRadius: "4px",
+                borderRadius: "0 4px 4px 4px",
                 background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
                 padding: "16px",
+                position: "relative",
+                zIndex: 1,
               }}>
                 <AnimatePresence mode="wait">
                   <MotionDiv key={tab}
