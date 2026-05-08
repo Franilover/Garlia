@@ -1189,7 +1189,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   <MotionDiv key={tab}
                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.16 }}
-                    className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3">
 
                     {tab === "items" && (
                       <>
@@ -1221,7 +1221,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
                               {item.items.imagen_url
                                 ? <img src={item.items.imagen_url} alt={item.items.nombre}
-                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
+                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
                                     style={{ objectPosition: "center" }} />
                                 : <Sword size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
@@ -1260,7 +1260,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
-                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
+                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
                                     style={{ objectPosition: "center" }} />
                                 : <Sword size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
@@ -1304,7 +1304,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
-                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
+                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
                                     style={{ objectPosition: "center" }} />
                                 : <Cat size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
@@ -1347,7 +1347,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
-                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
+                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-125"
                                     style={{ objectPosition: "center" }} />
                                 : <User size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
