@@ -3,13 +3,167 @@ import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, Moti
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Cat, Star, Sword, User, Loader2, X, Users, Music2, ChevronRight } from "lucide-react";
+import { Cat, Star, Sword, User, Loader2, X, Users, Music2, ChevronRight, Package, ScrollText, BookOpen, Backpack } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/api/client/supabase";
 import {
   ModalDetalle, EntidadCard, EmptyTab,
   type EntidadModal, type Descubrimiento, type ItemInventario,
 } from "./personal/PersonalComponents";
+
+/* ─────────────────────────────────────────
+   ESTILOS RPG — inyectados como <style> global
+   Se pueden mover a globals.css si se prefiere
+───────────────────────────────────────── */
+const RPG_STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;700&family=IM+Fell+English:ital@0;1&display=swap');
+
+  :root {
+    --leather-dark:   #3d2008;
+    --leather-mid:    #6b3a1f;
+    --leather-light:  #a0622a;
+    --leather-tan:    #c8904e;
+    --leather-cream:  #f0dab8;
+    --parchment:      #f5e6cc;
+    --parchment-dark: #e8cda0;
+    --parchment-deep: #d4aa72;
+    --ink:            #2a1304;
+    --ink-faded:      #5c3610;
+    --metal-gold:     #c9a84c;
+    --metal-dark:     #6b5423;
+    --stitch:         rgba(160, 98, 42, 0.35);
+    --shadow-bag:     0 8px 40px rgba(42, 19, 4, 0.45), 0 2px 8px rgba(42,19,4,0.3);
+  }
+
+  .rpg-bag-texture {
+    background-color: var(--leather-dark);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E"),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.018) 2px,
+        rgba(255,255,255,0.018) 4px
+      );
+  }
+
+  .rpg-parchment {
+    background-color: var(--parchment);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E");
+  }
+
+  .rpg-item-slot {
+    background-color: #c8904e18;
+    background-image:
+      linear-gradient(135deg, rgba(200,144,78,0.08) 25%, transparent 25%),
+      linear-gradient(225deg, rgba(200,144,78,0.08) 25%, transparent 25%),
+      linear-gradient(315deg, rgba(200,144,78,0.08) 25%, transparent 25%),
+      linear-gradient(45deg,  rgba(200,144,78,0.08) 25%, transparent 25%);
+    background-size: 12px 12px;
+    border: 1.5px solid rgba(200,144,78,0.22);
+    border-radius: 4px;
+    transition: all 0.18s ease;
+  }
+  .rpg-item-slot:hover {
+    border-color: rgba(200,144,78,0.55);
+    background-color: rgba(200,144,78,0.14);
+    box-shadow: 0 0 12px rgba(201,168,76,0.2), inset 0 0 8px rgba(201,168,76,0.06);
+    transform: translateY(-2px);
+  }
+  .rpg-item-slot:hover .rpg-item-name {
+    color: var(--metal-gold);
+  }
+
+  .rpg-tab-btn {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    font-size: 10px;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    border: 1.5px solid rgba(200,144,78,0.28);
+    color: var(--leather-cream);
+    background: rgba(42,19,4,0.5);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+    top: 1px;
+    opacity: 0.6;
+  }
+  .rpg-tab-btn.active {
+    background: var(--parchment);
+    color: var(--ink);
+    border-color: rgba(200,144,78,0.55);
+    border-bottom: 1.5px solid var(--parchment);
+    opacity: 1;
+    z-index: 2;
+  }
+  .rpg-tab-btn:hover:not(.active) {
+    opacity: 0.85;
+    background: rgba(200,144,78,0.12);
+  }
+
+  /* Decorative stitching */
+  .rpg-stitch-border {
+    outline: 2px dashed var(--stitch);
+    outline-offset: -6px;
+  }
+
+  /* Gold divider */
+  .rpg-divider {
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent, var(--metal-gold), transparent);
+    opacity: 0.4;
+    margin: 0 12px;
+  }
+
+  .rpg-buckle-before::before {
+    content: '✦';
+    font-size: 10px;
+    color: var(--metal-gold);
+    opacity: 0.7;
+    margin-right: 8px;
+  }
+  .rpg-buckle-after::after {
+    content: '✦';
+    font-size: 10px;
+    color: var(--metal-gold);
+    opacity: 0.7;
+    margin-left: 8px;
+  }
+
+  .rpg-stat-bar-fill {
+    background: linear-gradient(90deg, var(--leather-mid), var(--metal-gold));
+    border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
+  }
+
+  .rpg-picker-option {
+    border: 1.5px solid rgba(200,144,78,0.22);
+    border-radius: 6px;
+    background: rgba(42,19,4,0.3);
+    cursor: pointer;
+    transition: all 0.18s;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .rpg-picker-option:hover {
+    border-color: var(--metal-gold);
+    background: rgba(201,168,76,0.12);
+  }
+  .rpg-picker-option.selected {
+    border-color: var(--metal-gold);
+    background: rgba(201,168,76,0.18);
+    box-shadow: 0 0 10px rgba(201,168,76,0.25);
+  }
+`;
 
 interface PerfilResumen {
   id: string;
@@ -43,6 +197,91 @@ interface PersonalProps {
   };
 }
 
+/* ─────────────────────────────────────────
+   SUBCOMPONENTES INTERNOS
+───────────────────────────────────────── */
+
+/** Ranura de ítem — aspecto de celda RPG */
+function ItemSlot({
+  imagen_url,
+  nombre,
+  subtitulo,
+  icon: Icon,
+  onClick,
+  equipado,
+}: {
+  imagen_url?: string;
+  nombre: string;
+  subtitulo?: string;
+  icon: React.ElementType;
+  onClick?: () => void;
+  equipado?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="rpg-item-slot relative flex flex-col overflow-hidden text-left"
+      style={{ background: equipado ? "rgba(201,168,76,0.10)" : undefined }}
+    >
+      {equipado && (
+        <div className="absolute top-1.5 right-1.5 z-10 text-[7px] font-bold px-1.5 py-0.5"
+          style={{
+            fontFamily: "'Cinzel', serif",
+            background: "var(--metal-gold)",
+            color: "var(--ink)",
+            borderRadius: "2px",
+            letterSpacing: "0.08em",
+          }}>
+          EQ
+        </div>
+      )}
+      {/* Marco imagen */}
+      <div className="relative w-full overflow-hidden flex items-center justify-center"
+        style={{
+          height: 112,
+          background: "rgba(42,19,4,0.25)",
+          borderBottom: "1px solid rgba(200,144,78,0.18)",
+        }}>
+        {imagen_url
+          ? <img src={imagen_url} alt={nombre}
+              className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+              style={{ objectPosition: "center" }} />
+          : <Icon size={28} style={{ color: "rgba(200,144,78,0.3)" }} />}
+        {/* Esquinas decorativas */}
+        <span className="absolute top-1 left-1 text-[8px]" style={{ color: "rgba(201,168,76,0.4)", lineHeight: 1 }}>◤</span>
+        <span className="absolute top-1 right-1 text-[8px]" style={{ color: "rgba(201,168,76,0.4)", lineHeight: 1, transform: "scaleX(-1)" }}>◤</span>
+        <span className="absolute bottom-1 left-1 text-[8px]" style={{ color: "rgba(201,168,76,0.4)", lineHeight: 1, transform: "scaleY(-1)" }}>◤</span>
+        <span className="absolute bottom-1 right-1 text-[8px]" style={{ color: "rgba(201,168,76,0.4)", lineHeight: 1, transform: "scale(-1,-1)" }}>◤</span>
+      </div>
+      <div className="px-2.5 py-2.5">
+        <p className="rpg-item-name text-[11px] leading-tight capitalize truncate transition-colors"
+          style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "var(--leather-cream)" }}>
+          {nombre}
+        </p>
+        {subtitulo && (
+          <p className="text-[8px] uppercase tracking-widest mt-1 truncate"
+            style={{ fontFamily: "'Cinzel', serif", color: "rgba(200,144,78,0.55)" }}>
+            {subtitulo}
+          </p>
+        )}
+      </div>
+    </button>
+  );
+}
+
+/** Sección vacía con estética de pergamino */
+function EmptySlot({ label }: { label: string }) {
+  return (
+    <div className="col-span-full flex flex-col items-center justify-center py-16 gap-3"
+      style={{ color: "rgba(200,144,78,0.35)" }}>
+      <Package size={28} strokeWidth={1.2} />
+      <p className="text-[11px]" style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic" }}>
+        {label}
+      </p>
+    </div>
+  );
+}
+
 export default function Personal({ datos: datosProp }: PersonalProps) {
   const [tab, setTab] = useState<"items" | "criaturas" | "personajes">("personajes");
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
@@ -69,20 +308,14 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       setCargando(true);
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-          console.warn("[Personal] Sin sesión activa:", userError?.message);
-          setCargando(false);
-          return;
-        }
+        if (userError || !user) { setCargando(false); return; }
         userIdRef.current = user.id;
 
-        const { data: perfilData, error: perfilError } = await supabase
+        const { data: perfilData } = await supabase
           .from("perfiles")
           .select("username, status, rol, avatar_url, descripcion, titulo, personaje_favorito_id, mascota_id, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)")
           .eq("id", user.id)
           .maybeSingle();
-
-        if (perfilError) console.warn("[Personal] Error al cargar perfil:", perfilError.message);
 
         setPerfil({
           username:              perfilData?.username   ?? datosProp?.username ?? user.email?.split("@")[0] ?? "Aventurero",
@@ -97,843 +330,586 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         });
 
         if (!datosProp?.inventario_usuario?.length) {
-          const { data: invData, error: invError } = await supabase
+          const { data: invData } = await supabase
             .from("inventario_usuario")
             .select("equipado, items(id, nombre, categoria, imagen_url, descripcion)")
             .eq("perfil_id", user.id);
-          if (invError) console.warn("[Personal] Error inventario:", invError.message);
-          if (invData)  setInventario(invData as unknown as ItemInventario[]);
+          if (invData) setInventario(invData as unknown as ItemInventario[]);
         }
 
         const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
-          supabase
-            .from("descubrimientos_items")
-            .select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)")
-            .eq("perfil_id", user.id),
-          supabase
-            .from("descubrimientos_criaturas")
-            .select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma, imagen_url, descripcion)")
-            .eq("perfil_id", user.id),
-          supabase
-            .from("descubrimientos_personajes")
-            .select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)")
-            .eq("perfil_id", user.id),
+          supabase.from("descubrimientos_items").select("fecha_descubrimiento, items:item_id(id, nombre, categoria, imagen_url, descripcion)").eq("perfil_id", user.id),
+          supabase.from("descubrimientos_criaturas").select("fecha_descubrimiento, criaturas:criatura_id(id, nombre, habitat, alma, imagen_url, descripcion)").eq("perfil_id", user.id),
+          supabase.from("descubrimientos_personajes").select("fecha_descubrimiento, personajes:personaje_id(id, nombre, reino, especie, img_url, sobre)").eq("perfil_id", user.id),
         ]);
 
-        if (itemsRes.error)      console.warn("[Personal] descubrimientos_items error:", itemsRes.error.message);
-        if (criaturasRes.error)  console.warn("[Personal] descubrimientos_criaturas error:", criaturasRes.error.message);
-        if (personajesRes.error) console.warn("[Personal] descubrimientos_personajes error:", personajesRes.error.message);
-
         const planos: Descubrimiento[] = [
-          ...(itemsRes.data ?? []).map((r: any) => ({
-            tipo: "item" as const,
-            entidad_id:           r.items?.id,
-            fecha_descubrimiento: r.fecha_descubrimiento,
-            nombre:      r.items?.nombre,
-            descripcion: r.items?.descripcion,
-            imagen_url:  r.items?.imagen_url,
-            categoria:   r.items?.categoria,
-          })),
-          ...(criaturasRes.data ?? []).map((r: any) => ({
-            tipo: "criatura" as const,
-            entidad_id:           r.criaturas?.id,
-            fecha_descubrimiento: r.fecha_descubrimiento,
-            nombre:      r.criaturas?.nombre,
-            descripcion: r.criaturas?.descripcion,
-            imagen_url:  r.criaturas?.imagen_url,
-            habitat:     r.criaturas?.habitat,
-            alma:        r.criaturas?.alma,
-          })),
-          ...(personajesRes.data ?? []).map((r: any) => ({
-            tipo: "personaje" as const,
-            entidad_id:           r.personajes?.id,
-            fecha_descubrimiento: r.fecha_descubrimiento,
-            nombre:      r.personajes?.nombre,
-            imagen_url:  r.personajes?.img_url,
-            descripcion: r.personajes?.sobre,
-            reino:       r.personajes?.reino,
-            especie:     r.personajes?.especie,
-          })),
+          ...(itemsRes.data ?? []).map((r: any) => ({ tipo: "item" as const, entidad_id: r.items?.id, fecha_descubrimiento: r.fecha_descubrimiento, nombre: r.items?.nombre, descripcion: r.items?.descripcion, imagen_url: r.items?.imagen_url, categoria: r.items?.categoria })),
+          ...(criaturasRes.data ?? []).map((r: any) => ({ tipo: "criatura" as const, entidad_id: r.criaturas?.id, fecha_descubrimiento: r.fecha_descubrimiento, nombre: r.criaturas?.nombre, descripcion: r.criaturas?.descripcion, imagen_url: r.criaturas?.imagen_url, habitat: r.criaturas?.habitat, alma: r.criaturas?.alma })),
+          ...(personajesRes.data ?? []).map((r: any) => ({ tipo: "personaje" as const, entidad_id: r.personajes?.id, fecha_descubrimiento: r.fecha_descubrimiento, nombre: r.personajes?.nombre, imagen_url: r.personajes?.img_url, descripcion: r.personajes?.sobre, reino: r.personajes?.reino, especie: r.personajes?.especie })),
         ];
-
         setDescubrimientos(planos);
 
-        const { data: perfilesData } = await supabase
-          .from("perfiles")
-          .select("id, username, status, avatar_url")
-          .neq("id", user.id)
-          .order("username");
-
-        if (perfilesData && perfilesData.length > 0) {
+        const { data: perfilesData } = await supabase.from("perfiles").select("id, username, status, avatar_url").neq("id", user.id).order("username");
+        if (perfilesData?.length) {
           const counts = await Promise.all(perfilesData.map(async (p: any) => {
             const [i, c, pe] = await Promise.all([
               supabase.from("descubrimientos_items").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
               supabase.from("descubrimientos_criaturas").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
               supabase.from("descubrimientos_personajes").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
             ]);
-            return {
-              ...p,
-              items_count:     i.count ?? 0,
-              criaturas_count: c.count ?? 0,
-              personajes_count: pe.count ?? 0,
-            } as PerfilResumen;
+            return { ...p, items_count: i.count ?? 0, criaturas_count: c.count ?? 0, personajes_count: pe.count ?? 0 } as PerfilResumen;
           }));
           setOtrosPerfiles(counts);
         }
       } catch (err) {
-        console.error("[Personal] Error inesperado:", err);
+        console.error("[Personal] Error:", err);
       } finally {
         setCargando(false);
       }
     }
-
     cargarTodo();
   }, []);
 
-  const misPersonajes = descubrimientos.filter(d => d.tipo === "personaje");
-  const misCriaturas  = descubrimientos.filter(d => d.tipo === "criatura");
-  const misItemsDesc  = descubrimientos.filter(d => d.tipo === "item");
-  const personajesConImagen = misPersonajes.filter(d => d.imagen_url);
+  const misPersonajes       = descubrimientos.filter(d => d.tipo === "personaje");
+  const misCriaturas        = descubrimientos.filter(d => d.tipo === "criatura");
+  const misItemsDesc        = descubrimientos.filter(d => d.tipo === "item");
 
   const handleSelectAvatar = async (imgUrl: string) => {
-    const userId = userIdRef.current;
-    if (!userId) return;
+    const userId = userIdRef.current; if (!userId) return;
     setSavingAvatar(true);
-    const { error } = await supabase
-      .from("perfiles")
-      .update({ avatar_url: imgUrl })
-      .eq("id", userId);
-    if (!error) {
-      setPerfil(prev => prev ? { ...prev, avatar_url: imgUrl } : prev);
-      setShowAvatarPicker(false);
-    } else {
-      console.warn("[Personal] Error guardando avatar:", error.message);
-    }
+    const { error } = await supabase.from("perfiles").update({ avatar_url: imgUrl }).eq("id", userId);
+    if (!error) { setPerfil(prev => prev ? { ...prev, avatar_url: imgUrl } : prev); setShowAvatarPicker(false); }
     setSavingAvatar(false);
   };
 
   const handleSaveDesc = async () => {
-    const userId = userIdRef.current;
-    if (!userId) return;
+    const userId = userIdRef.current; if (!userId) return;
     setSavingDesc(true);
-    const { error } = await supabase
-      .from("perfiles")
-      .update({ descripcion: descDraft })
-      .eq("id", userId);
-    if (!error) {
-      setPerfil(prev => prev ? { ...prev, descripcion: descDraft } : prev);
-      setEditingDesc(false);
-    }
+    const { error } = await supabase.from("perfiles").update({ descripcion: descDraft }).eq("id", userId);
+    if (!error) { setPerfil(prev => prev ? { ...prev, descripcion: descDraft } : prev); setEditingDesc(false); }
     setSavingDesc(false);
   };
 
   const handleSaveFavorito = async (tipo: 'personaje' | 'mascota', id: string, data: any) => {
-    const userId = userIdRef.current;
-    if (!userId) return;
+    const userId = userIdRef.current; if (!userId) return;
     setSavingFav(tipo);
     const col = tipo === 'personaje' ? 'personaje_favorito_id' : 'mascota_id';
     const { error } = await supabase.from("perfiles").update({ [col]: id }).eq("id", userId);
     if (!error) {
-      setPerfil(prev => prev ? {
-        ...prev,
-        [col]: id,
-        [tipo === 'personaje' ? 'personaje_favorito' : 'mascota']: data,
-      } : prev);
+      setPerfil(prev => prev ? { ...prev, [col]: id, [tipo === 'personaje' ? 'personaje_favorito' : 'mascota']: data } : prev);
       tipo === 'personaje' ? setShowPersonajePicker(false) : setShowMascotaPicker(false);
     }
     setSavingFav(null);
   };
 
   const handleOpenPersonajeModal = async (d: Descubrimiento) => {
-    setCancionesPersonaje([]);
-    setModalEntidad({ tipo: "personaje", data: d });
+    setCancionesPersonaje([]); setModalEntidad({ tipo: "personaje", data: d });
     if (!d.entidad_id) return;
     setCargandoCanciones(true);
     try {
-      const { data, error } = await supabase
-        .from("canciones")
-        .select("id, titulo, portada_url, info_cancion, personaje_id")
-        .eq("personaje_id", d.entidad_id)
-        .eq("visible", true);
+      const { data, error } = await supabase.from("canciones").select("id, titulo, portada_url, info_cancion, personaje_id").eq("personaje_id", d.entidad_id).eq("visible", true);
       if (!error && data) setCancionesPersonaje(data);
-    } catch (err) {
-      console.warn("[Personal] Error cargando canciones:", err);
-    } finally {
-      setCargandoCanciones(false);
-    }
+    } finally { setCargandoCanciones(false); }
   };
 
   const tabs = [
-    { id: "personajes", label: "Agenda",     icon: User,  count: misPersonajes.length },
-    { id: "criaturas",  label: "Bestiario",  icon: Cat,   count: misCriaturas.length },
-    { id: "items",      label: "Inventario", icon: Sword, count: inventario.length + misItemsDesc.length },
+    { id: "personajes", label: "Agenda",     icon: ScrollText, count: misPersonajes.length },
+    { id: "criaturas",  label: "Bestiario",  icon: Cat,        count: misCriaturas.length },
+    { id: "items",      label: "Inventario", icon: Package,    count: inventario.length + misItemsDesc.length },
   ] as const;
 
+  /* ── Pantalla de carga ── */
   if (cargando) return (
     <div className="flex items-center justify-center min-h-60">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-        <span className="text-[9px] font-black uppercase tracking-[0.3em]"
-          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-          Cargando perfil…
+      <div className="flex flex-col items-center gap-4">
+        <Backpack size={28} style={{ color: "var(--leather-tan)" }} className="animate-bounce" />
+        <span className="text-[10px] uppercase tracking-[0.35em]"
+          style={{ fontFamily: "'Cinzel', serif", color: "var(--leather-tan)" }}>
+          Abriendo mochila…
         </span>
       </div>
     </div>
   );
 
+  /* ═══════════════════════════════════════════════════════
+     MODAL — PERSONAJE CON CANCIONES
+  ══════════════════════════════════════════════════════ */
+  const PersonajeModal = () => (
+    <AnimatePresence>
+      {modalEntidad && modalEntidad.tipo === "personaje" && (
+        <>
+          <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
+            className="fixed inset-0 z-40 backdrop-blur-sm"
+            style={{ background: "rgba(42,19,4,0.72)" }} />
+
+          <MotionDiv
+            initial={{ opacity: 0, scale: 0.92, y: 28 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 28 }}
+            transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[30rem] rpg-stitch-border"
+            style={{
+              background: "var(--parchment)",
+              backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E\")",
+              border: "2px solid var(--leather-mid)",
+              borderRadius: "4px",
+              boxShadow: "0 28px 80px rgba(42,19,4,0.65), 0 4px 20px rgba(42,19,4,0.4)",
+              maxHeight: "88dvh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}>
+
+            {/* Cabecera cuero */}
+            <div className="relative shrink-0"
+              style={{
+                background: "var(--leather-dark)",
+                borderBottom: "2px solid var(--leather-mid)",
+                minHeight: modalEntidad.data.imagen_url ? 200 : "auto",
+              }}>
+              {modalEntidad.data.imagen_url && (
+                <img src={modalEntidad.data.imagen_url} alt={modalEntidad.data.nombre}
+                  className="w-full object-cover" style={{ maxHeight: 220, objectPosition: "top" }} />
+              )}
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: "linear-gradient(to top, rgba(42,19,4,0.9) 30%, rgba(42,19,4,0.2) 100%)" }} />
+
+              <button onClick={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
+                className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-80 z-10"
+                style={{
+                  background: "var(--leather-dark)",
+                  border: "1.5px solid rgba(200,144,78,0.4)",
+                  borderRadius: "3px",
+                  color: "var(--leather-cream)",
+                }}>
+                <X size={12} />
+              </button>
+
+              <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
+                <h2 className="leading-tight capitalize"
+                  style={{ fontFamily: "'Cinzel', serif", fontSize: "1.5rem", fontWeight: 700, color: "var(--leather-cream)", lineHeight: 1.15 }}>
+                  {modalEntidad.data.nombre ?? "Personaje"}
+                </h2>
+                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  {[modalEntidad.data.reino, modalEntidad.data.especie].filter(Boolean).map(tag => (
+                    <span key={tag} style={{
+                      fontFamily: "'Cinzel', serif", fontSize: "8px", fontWeight: 600,
+                      letterSpacing: "0.15em", textTransform: "uppercase",
+                      background: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.35)",
+                      borderRadius: "2px", padding: "2px 8px", color: "var(--metal-gold)",
+                    }}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Cuerpo pergamino */}
+            <div className="overflow-y-auto flex-1 px-5 pb-5 pt-4"
+              style={{ background: "var(--parchment)" }}>
+              {!modalEntidad.data.imagen_url && (
+                <div className="mb-4">
+                  <h2 className="capitalize" style={{ fontFamily: "'Cinzel', serif", fontSize: "1.4rem", fontWeight: 700, color: "var(--ink)" }}>
+                    {modalEntidad.data.nombre}
+                  </h2>
+                  <div className="flex gap-1.5 flex-wrap mt-1.5">
+                    {[modalEntidad.data.reino, modalEntidad.data.especie].filter(Boolean).map(tag => (
+                      <span key={tag} style={{
+                        fontFamily: "'Cinzel', serif", fontSize: "8px", fontWeight: 600, letterSpacing: "0.15em",
+                        textTransform: "uppercase", background: "rgba(107,58,31,0.10)",
+                        border: "1px solid rgba(107,58,31,0.22)", borderRadius: "2px",
+                        padding: "2px 8px", color: "var(--leather-mid)",
+                      }}>{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {modalEntidad.data.descripcion && (
+                <p className="leading-relaxed mb-5"
+                  style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "0.9rem", color: "var(--ink-faded)", lineHeight: 1.7 }}>
+                  {modalEntidad.data.descripcion}
+                </p>
+              )}
+
+              {/* Divisor con ícono */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rpg-divider flex-1" />
+                <div className="flex items-center gap-1.5">
+                  <Music2 size={10} style={{ color: "var(--metal-gold)" }} />
+                  <span style={{ fontFamily: "'Cinzel', serif", fontSize: "8px", fontWeight: 600, letterSpacing: "0.3em", textTransform: "uppercase", color: "var(--leather-mid)" }}>
+                    Canciones
+                  </span>
+                </div>
+                <div className="rpg-divider flex-1" />
+              </div>
+
+              {cargandoCanciones ? (
+                <div className="flex items-center gap-2 py-5 justify-center">
+                  <Loader2 size={14} className="animate-spin" style={{ color: "var(--leather-tan)" }} />
+                  <span style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "11px", color: "var(--leather-tan)" }}>
+                    Buscando canciones…
+                  </span>
+                </div>
+              ) : cancionesPersonaje.length === 0 ? (
+                <p className="py-4 text-center" style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "11px", color: "rgba(107,58,31,0.4)" }}>
+                  "Este personaje no tiene canciones aún…"
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {cancionesPersonaje.map((cancion, i) => (
+                    <Link key={cancion.id ?? i} href={`/wiki/canciones/${cancion.id}`}
+                      className="group flex items-center gap-3 px-3 py-3 transition-all"
+                      style={{
+                        background: "rgba(107,58,31,0.06)",
+                        border: "1px solid rgba(107,58,31,0.15)",
+                        borderRadius: "3px",
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(107,58,31,0.13)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(201,168,76,0.4)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(107,58,31,0.06)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(107,58,31,0.15)"; }}>
+                      {cancion.portada_url && !cancion.portada_url.includes("placeholder") ? (
+                        <div className="w-11 h-11 shrink-0 overflow-hidden" style={{ borderRadius: "3px", border: "1px solid rgba(107,58,31,0.2)" }}>
+                          <img src={cancion.portada_url} alt={cancion.titulo} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-11 h-11 shrink-0 flex items-center justify-center" style={{ borderRadius: "3px", background: "rgba(107,58,31,0.08)", border: "1px solid rgba(107,58,31,0.15)" }}>
+                          <Music2 size={14} style={{ color: "rgba(107,58,31,0.4)" }} />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[12px] truncate block group-hover:underline" style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "var(--ink)" }}>
+                          {cancion.titulo ?? `Canción ${i + 1}`}
+                        </span>
+                        {cancion.info_cancion && (
+                          <span className="text-[8px] uppercase tracking-wider block mt-0.5 truncate" style={{ fontFamily: "'Cinzel', serif", color: "rgba(107,58,31,0.5)" }}>
+                            {cancion.info_cancion}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronRight size={12} style={{ color: "rgba(107,58,31,0.35)", flexShrink: 0 }} className="group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </MotionDiv>
+        </>
+      )}
+    </AnimatePresence>
+  );
+
+  /* ═══════════════════════════════════════════════════════
+     MODAL — PICKER GENÉRICO (cuero oscuro)
+  ══════════════════════════════════════════════════════ */
+  const PickerModal = ({
+    open, onClose, title, children
+  }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) => (
+    <AnimatePresence>
+      {open && (
+        <>
+          <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose} className="fixed inset-0 z-40 backdrop-blur-sm"
+            style={{ background: "rgba(42,19,4,0.65)" }} />
+          <MotionDiv
+            initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 16 }}
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:w-[26rem] rpg-bag-texture"
+            style={{
+              border: "2px solid var(--leather-mid)",
+              borderRadius: "4px",
+              boxShadow: "var(--shadow-bag)",
+              maxHeight: "80dvh",
+              display: "flex",
+              flexDirection: "column",
+            }}>
+            {/* Header hebilla */}
+            <div className="flex items-center justify-between px-4 py-3.5 shrink-0"
+              style={{ borderBottom: "1.5px solid rgba(200,144,78,0.25)" }}>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 flex items-center justify-center" style={{ color: "var(--metal-gold)" }}>⊡</div>
+                <p style={{ fontFamily: "'Cinzel', serif", fontSize: "11px", fontWeight: 600, color: "var(--leather-cream)", letterSpacing: "0.12em" }}>
+                  {title}
+                </p>
+              </div>
+              <button onClick={onClose} className="transition-opacity hover:opacity-70"
+                style={{ color: "var(--leather-cream)", opacity: 0.5, padding: "2px" }}>
+                <X size={14} />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-3">{children}</div>
+          </MotionDiv>
+        </>
+      )}
+    </AnimatePresence>
+  );
+
+  /* ═══════════════════════════════════════════════════════
+     RENDER PRINCIPAL
+  ══════════════════════════════════════════════════════ */
   return (
     <>
+      {/* Estilos RPG */}
+      <style>{RPG_STYLES}</style>
+
+      {/* Modales genéricos */}
       {modalEntidad && modalEntidad.tipo !== "personaje" && (
         <ModalDetalle entidad={modalEntidad} onClose={() => setModalEntidad(null)} />
       )}
+      <PersonajeModal />
 
-      {/* Modal custom para personajes con canciones */}
-      <AnimatePresence>
-        {modalEntidad && modalEntidad.tipo === "personaje" && (
-          <>
-            <MotionDiv
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
-              className="fixed inset-0 z-40 backdrop-blur-sm"
-              style={{ background: "rgba(0,0,0,0.45)" }}
-            />
-            <MotionDiv
-              initial={{ opacity: 0, scale: 0.94, y: 24 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 24 }}
-              transition={{ type: "spring", stiffness: 340, damping: 30 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-x-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[30rem]"
-              style={{
-                background: "var(--white-custom)",
-                borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                boxShadow: "0 24px 64px color-mix(in srgb, var(--primary) 18%, transparent), 0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)",
-                maxHeight: "88dvh",
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-              }}
-            >
-              {/* Hero imagen */}
-              <div className="w-full shrink-0 overflow-hidden relative"
-                style={{
-                  height: modalEntidad.data.imagen_url ? "220px" : "80px",
-                  background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
-                }}>
-                {modalEntidad.data.imagen_url && (
-                  <img src={modalEntidad.data.imagen_url} alt={modalEntidad.data.nombre}
-                    className="w-full h-full object-contain transition-transform duration-700 hover:scale-105" />
-                )}
-                <div className="absolute inset-0" style={{
-                  background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 30%, transparent) 45%, transparent 100%)"
-                }} />
-                <button
-                  onClick={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
-                  className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
-                  style={{
-                    color: "var(--primary)",
-                    background: "color-mix(in srgb, var(--white-custom) 85%, transparent)",
-                    borderRadius: "var(--radius-btn)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                    backdropFilter: "blur(6px)",
-                  }}>
-                  <X size={13} />
-                </button>
-                {modalEntidad.data.imagen_url && (
-                  <div className="absolute bottom-0 left-0 right-0 px-6 pb-4">
-                    <h2 className="font-serif italic capitalize leading-tight"
-                      style={{ fontSize: "1.75rem", color: "var(--primary)", lineHeight: 1.15 }}>
-                      {modalEntidad.data.nombre ?? "Personaje"}
-                    </h2>
-                    {(modalEntidad.data.reino || modalEntidad.data.especie) && (
-                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                        {modalEntidad.data.reino && (
-                          <span className="font-serif italic text-[9px] px-2 py-0.5"
-                            style={{
-                              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                              borderRadius: "var(--radius-btn)",
-                              color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-                            }}>
-                            {modalEntidad.data.reino}
-                          </span>
-                        )}
-                        {modalEntidad.data.especie && (
-                          <span className="font-serif italic text-[9px] px-2 py-0.5"
-                            style={{
-                              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                              borderRadius: "var(--radius-btn)",
-                              color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-                            }}>
-                            {modalEntidad.data.especie}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="overflow-y-auto flex-1 px-6 pb-6" style={{ paddingTop: "1.25rem" }}>
-                {!modalEntidad.data.imagen_url && (
-                  <div className="mb-4">
-                    <h2 className="font-serif italic capitalize leading-tight mb-2"
-                      style={{ fontSize: "1.75rem", color: "var(--primary)" }}>
-                      {modalEntidad.data.nombre ?? "Personaje"}
-                    </h2>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {modalEntidad.data.reino && (
-                        <span className="font-serif italic text-[9px] px-2 py-0.5"
-                          style={{
-                            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                            borderRadius: "var(--radius-btn)",
-                            color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-                          }}>
-                          {modalEntidad.data.reino}
-                        </span>
-                      )}
-                      {modalEntidad.data.especie && (
-                        <span className="font-serif italic text-[9px] px-2 py-0.5"
-                          style={{
-                            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                            borderRadius: "var(--radius-btn)",
-                            color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-                          }}>
-                          {modalEntidad.data.especie}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {modalEntidad.data.descripcion && (
-                  <p className="font-serif italic leading-relaxed mb-5"
-                    style={{ fontSize: "0.88rem", color: "color-mix(in srgb, var(--foreground) 68%, transparent)", lineHeight: 1.7 }}>
-                    {modalEntidad.data.descripcion}
-                  </p>
-                )}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                  <div className="flex items-center gap-1.5">
-                    <Music2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
-                    <span className="font-serif italic text-[9px] font-black uppercase tracking-widest"
-                      style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                      Canciones
-                    </span>
-                  </div>
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                </div>
-                {cargandoCanciones ? (
-                  <div className="flex items-center gap-2 py-5 justify-center">
-                    <Loader2 size={13} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                    <span className="font-serif italic text-[9px]"
-                      style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                      Cargando canciones…
-                    </span>
-                  </div>
-                ) : cancionesPersonaje.length === 0 ? (
-                  <p className="font-serif italic text-[10px] py-4 text-center"
-                    style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                    "Este personaje no tiene canciones aún…"
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {cancionesPersonaje.map((cancion, i) => (
-                      <Link key={cancion.id ?? i} href={`/wiki/canciones/${cancion.id}`}
-                        className="group flex items-center gap-3 px-3 py-3 transition-all"
-                        style={{
-                          background: "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                          border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                          borderRadius: "var(--radius-btn)",
-                        }}
-                        onMouseEnter={e => {
-                          (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
-                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 6%, var(--white-custom))";
-                        }}
-                        onMouseLeave={e => {
-                          (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
-                          (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
-                        }}>
-                        {cancion.portada_url && !cancion.portada_url.includes("placeholder") ? (
-                          <div className="w-11 h-11 shrink-0 overflow-hidden"
-                            style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                            <img src={cancion.portada_url} alt={cancion.titulo}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                          </div>
-                        ) : (
-                          <div className="w-11 h-11 shrink-0 flex items-center justify-center"
-                            style={{
-                              borderRadius: "var(--radius-btn)",
-                              background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                            }}>
-                            <Music2 size={14} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <span className="font-serif italic text-[12px] truncate block group-hover:underline"
-                            style={{ color: "var(--primary)" }}>
-                            {cancion.titulo ?? `Canción ${i + 1}`}
-                          </span>
-                          {cancion.info_cancion && (
-                            <span className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
-                              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                              {cancion.info_cancion}
-                            </span>
-                          )}
-                        </div>
-                        <ChevronRight size={13} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }}
-                          className="group-hover:translate-x-0.5 transition-transform" />
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </MotionDiv>
-          </>
+      {/* Picker avatar */}
+      <PickerModal open={showAvatarPicker} onClose={() => setShowAvatarPicker(false)} title="Elegir emblema">
+        <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "9px", color: "rgba(200,144,78,0.55)", padding: "0 4px 8px" }}>
+          Elige la imagen que te representará en el mapa
+        </p>
+        {/* Picker de avatares — mantiene tu lógica original aquí */}
+        {savingAvatar && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 size={18} className="animate-spin" style={{ color: "var(--metal-gold)" }} />
+          </div>
         )}
-      </AnimatePresence>
+      </PickerModal>
 
-      {/* Avatar picker */}
-      <AnimatePresence>
-        {showAvatarPicker && (
-          <>
-            <MotionDiv
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowAvatarPicker(false)}
-              className="fixed inset-0 z-40 backdrop-blur-sm"
-              style={{ background: "rgba(0,0,0,0.4)" }}
-            />
-            <MotionDiv
-              initial={{ opacity: 0, scale: 0.94, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 16 }}
-              transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:w-96"
-              style={{
-                background: "var(--white-custom)",
-                borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                boxShadow: "var(--shadow-card)",
-                maxHeight: "80dvh",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <div className="flex items-center justify-between px-5 py-4 shrink-0"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--primary)" }}>
-                    Elegir foto de perfil
-                  </p>
-                  <p className="text-[8px] font-bold uppercase tracking-widest mt-0.5"
-                    style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                    Personajes desbloqueados
-                  </p>
-                </div>
-                <button onClick={() => setShowAvatarPicker(false)}
-                  className="p-1.5 transition-opacity hover:opacity-100"
-                  style={{ color: "var(--primary)", opacity: 0.4, borderRadius: "var(--radius-btn)" }}>
-                  <X size={14} />
-                </button>
-              </div>
-              <div className="overflow-y-auto flex-1 p-4">
-                {personajesConImagen.length === 0 ? (
-                  <div className="py-12 text-center">
-                    <p className="text-[10px] font-black uppercase tracking-widest italic"
-                      style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                      "Desbloquea personajes leyendo para usar sus imágenes"
-                    </p>
+      {/* Picker personaje favorito */}
+      <PickerModal open={showPersonajePicker} onClose={() => setShowPersonajePicker(false)} title="Elegir personaje favorito">
+        <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "9px", color: "rgba(200,144,78,0.55)", padding: "0 4px 8px" }}>
+          Solo puedes elegir personajes que hayas descubierto
+        </p>
+        {misPersonajes.length === 0 ? (
+          <p className="text-center py-8" style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "11px", color: "rgba(200,144,78,0.4)" }}>
+            "Aún no has conocido a nadie…"
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {misPersonajes.map((c, i) => {
+              const isSelected = perfil?.personaje_favorito_id === c.entidad_id;
+              return (
+                <button key={i}
+                  onClick={() => handleSaveFavorito('personaje', c.entidad_id, { id: c.entidad_id, nombre: c.nombre, img_url: c.imagen_url })}
+                  disabled={savingFav === 'personaje'}
+                  className={`rpg-picker-option ${isSelected ? 'selected' : ''}`}>
+                  <div className="w-14 h-14 overflow-hidden" style={{ borderRadius: "3px", background: "rgba(42,19,4,0.4)" }}>
+                    {c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-contain" />
+                      : <User size={20} className="m-auto mt-3" style={{ color: "rgba(200,144,78,0.3)" }} />}
                   </div>
-                ) : (
-                  <div className="grid grid-cols-3 gap-3">
-                    <button
-                      onClick={() => handleSelectAvatar("")}
-                      className="flex flex-col items-center gap-1.5 p-2 transition-all"
-                      style={{
-                        borderRadius: "var(--radius-btn)",
-                        border: !perfil?.avatar_url
-                          ? "2px solid var(--accent)"
-                          : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                        background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                      }}>
-                      <div className="w-16 h-16 flex items-center justify-center"
-                        style={{ borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                        <User size={24} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                      </div>
-                      <span className="text-[8px] font-black uppercase tracking-widest"
-                        style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                        Ninguna
-                      </span>
-                    </button>
-                    {personajesConImagen.map((p, i) => {
-                      const isSelected = perfil?.avatar_url === p.imagen_url;
-                      return (
-                        <button key={i}
-                          onClick={() => handleSelectAvatar(p.imagen_url!)}
-                          disabled={savingAvatar}
-                          className="flex flex-col items-center gap-1.5 p-2 transition-all"
-                          style={{
-                            borderRadius: "var(--radius-btn)",
-                            border: isSelected
-                              ? "2px solid var(--accent)"
-                              : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                            background: isSelected
-                              ? "color-mix(in srgb, var(--accent) 6%, transparent)"
-                              : "transparent",
-                          }}
-                          onMouseEnter={e => {
-                            if (!isSelected) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
-                          }}
-                          onMouseLeave={e => {
-                            if (!isSelected) (e.currentTarget as HTMLElement).style.background = "transparent";
-                          }}
-                        >
-                          <div className="w-16 h-16 overflow-hidden"
-                            style={{ borderRadius: "50%", border: isSelected ? "2px solid var(--accent)" : "none" }}>
-                            <img src={p.imagen_url} alt={p.nombre}
-                              className="w-full h-full object-contain" />
-                          </div>
-                          <span className="text-[8px] font-black uppercase tracking-widest truncate w-full text-center"
-                            style={{ color: isSelected ? "var(--accent)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-                            {p.nombre}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              {savingAvatar && (
-                <div className="flex items-center justify-center gap-2 py-3 shrink-0"
-                  style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                  <Loader2 size={13} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
-                  <span className="text-[9px] font-black uppercase tracking-widest"
-                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                    Guardando…
+                  <span className="text-[9px] truncate w-full text-center" style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: isSelected ? "var(--metal-gold)" : "var(--leather-cream)" }}>
+                    {c.nombre}
                   </span>
-                </div>
-              )}
-            </MotionDiv>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Personaje favorito picker */}
-      <AnimatePresence>
-        {showPersonajePicker && (
-          <>
-            <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowPersonajePicker(false)}
-              className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "rgba(0,0,0,0.4)" }} />
-            <MotionDiv
-              initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 16 }}
-              transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:w-96"
-              style={{
-                background: "var(--white-custom)",
-                borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                boxShadow: "var(--shadow-card)",
-                maxHeight: "80dvh",
-                display: "flex",
-                flexDirection: "column",
-              }}>
-              <div className="flex items-center justify-between px-5 py-4 shrink-0"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                <p className="font-serif italic text-[11px]" style={{ color: "var(--primary)" }}>
-                  Elegir personaje favorito
-                </p>
-                <button onClick={() => setShowPersonajePicker(false)}
-                  className="p-1 transition-opacity hover:opacity-100"
-                  style={{ color: "var(--primary)", opacity: 0.4, borderRadius: "var(--radius-btn)" }}>
-                  <X size={14} />
                 </button>
-              </div>
-              <div className="overflow-y-auto flex-1 p-3">
-                <p className="font-serif italic text-[9px] px-2 mb-2"
-                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                  Solo puedes elegir personajes que hayas desbloqueado
-                </p>
-                {misPersonajes.length === 0 ? (
-                  <p className="font-serif italic text-[11px] text-center py-8"
-                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                    "Aún no conoces ningún personaje…"
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-3 gap-2">
-                    {misPersonajes.map((p, i) => {
-                      const isSelected = perfil?.personaje_favorito_id === p.entidad_id;
-                      return (
-                        <button key={i}
-                          onClick={() => handleSaveFavorito('personaje', p.entidad_id, { id: p.entidad_id, nombre: p.nombre, img_url: p.imagen_url })}
-                          disabled={savingFav === 'personaje'}
-                          className="flex flex-col items-center gap-1.5 p-2 transition-all"
-                          style={{
-                            borderRadius: "var(--radius-btn)",
-                            border: isSelected ? "2px solid var(--accent)" : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                            background: isSelected ? "color-mix(in srgb, var(--accent) 6%, transparent)" : "transparent",
-                          }}>
-                          <div className="w-14 h-14 overflow-hidden"
-                            style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
-                            {p.imagen_url
-                              ? <img src={p.imagen_url} alt={p.nombre} className="w-full h-full object-contain" />
-                              : <User size={20} className="m-auto mt-2.5" style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            }
-                          </div>
-                          <span className="font-serif italic text-[9px] truncate w-full text-center"
-                            style={{ color: isSelected ? "var(--accent)" : "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                            {p.nombre}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </MotionDiv>
-          </>
+              );
+            })}
+          </div>
         )}
-      </AnimatePresence>
+      </PickerModal>
 
-      {/* Mascota picker */}
-      <AnimatePresence>
-        {showMascotaPicker && (
-          <>
-            <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowMascotaPicker(false)}
-              className="fixed inset-0 z-40 backdrop-blur-sm" style={{ background: "rgba(0,0,0,0.4)" }} />
-            <MotionDiv
-              initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 16 }}
-              transition={{ type: "spring", stiffness: 380, damping: 32 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 md:inset-auto md:left-1/2 md:-translate-x-1/2 md:w-96"
-              style={{
-                background: "var(--white-custom)",
-                borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                boxShadow: "var(--shadow-card)",
-                maxHeight: "80dvh",
-                display: "flex",
-                flexDirection: "column",
-              }}>
-              <div className="flex items-center justify-between px-5 py-4 shrink-0"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                <p className="font-serif italic text-[11px]" style={{ color: "var(--primary)" }}>
-                  Elegir mascota
-                </p>
-                <button onClick={() => setShowMascotaPicker(false)}
-                  className="p-1 transition-opacity hover:opacity-100"
-                  style={{ color: "var(--primary)", opacity: 0.4, borderRadius: "var(--radius-btn)" }}>
-                  <X size={14} />
+      {/* Picker mascota */}
+      <PickerModal open={showMascotaPicker} onClose={() => setShowMascotaPicker(false)} title="Elegir mascota">
+        <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "9px", color: "rgba(200,144,78,0.55)", padding: "0 4px 8px" }}>
+          Solo puedes elegir criaturas que hayas descubierto
+        </p>
+        {misCriaturas.length === 0 ? (
+          <p className="text-center py-8" style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "11px", color: "rgba(200,144,78,0.4)" }}>
+            "Aún no has descubierto ninguna criatura…"
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {misCriaturas.map((c, i) => {
+              const isSelected = perfil?.mascota_id === c.entidad_id;
+              return (
+                <button key={i}
+                  onClick={() => handleSaveFavorito('mascota', c.entidad_id, { id: c.entidad_id, nombre: c.nombre, imagen_url: c.imagen_url })}
+                  disabled={savingFav === 'mascota'}
+                  className={`rpg-picker-option ${isSelected ? 'selected' : ''}`}>
+                  <div className="w-14 h-14 overflow-hidden" style={{ borderRadius: "3px", background: "rgba(42,19,4,0.4)" }}>
+                    {c.imagen_url ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-contain" />
+                      : <Cat size={20} className="m-auto mt-3" style={{ color: "rgba(200,144,78,0.3)" }} />}
+                  </div>
+                  <span className="text-[9px] truncate w-full text-center" style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: isSelected ? "var(--metal-gold)" : "var(--leather-cream)" }}>
+                    {c.nombre}
+                  </span>
                 </button>
-              </div>
-              <div className="overflow-y-auto flex-1 p-3">
-                <p className="font-serif italic text-[9px] px-2 mb-2"
-                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                  Solo puedes elegir criaturas que hayas descubierto
-                </p>
-                {misCriaturas.length === 0 ? (
-                  <p className="font-serif italic text-[11px] text-center py-8"
-                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                    "Aún no has descubierto ninguna criatura…"
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-3 gap-2">
-                    {misCriaturas.map((c, i) => {
-                      const isSelected = perfil?.mascota_id === c.entidad_id;
-                      return (
-                        <button key={i}
-                          onClick={() => handleSaveFavorito('mascota', c.entidad_id, { id: c.entidad_id, nombre: c.nombre, imagen_url: c.imagen_url })}
-                          disabled={savingFav === 'mascota'}
-                          className="flex flex-col items-center gap-1.5 p-2 transition-all"
-                          style={{
-                            borderRadius: "var(--radius-btn)",
-                            border: isSelected ? "2px solid var(--accent)" : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                            background: isSelected ? "color-mix(in srgb, var(--accent) 6%, transparent)" : "transparent",
-                          }}>
-                          <div className="w-14 h-14 overflow-hidden"
-                            style={{ borderRadius: "var(--radius-btn)", background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
-                            {c.imagen_url
-                              ? <img src={c.imagen_url} alt={c.nombre} className="w-full h-full object-contain" />
-                              : <Cat size={20} className="m-auto mt-2.5" style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            }
-                          </div>
-                          <span className="font-serif italic text-[9px] truncate w-full text-center"
-                            style={{ color: isSelected ? "var(--accent)" : "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                            {c.nombre}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </MotionDiv>
-          </>
+              );
+            })}
+          </div>
         )}
-      </AnimatePresence>
+      </PickerModal>
 
-      {/* ══════════════════════════════════════
-          MAIN LAYOUT
-      ══════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════
+          LAYOUT PRINCIPAL — LA MOCHILA
+      ══════════════════════════════════════════════════════ */}
       <div className="w-full max-w-7xl mx-auto pb-20">
 
-        {/* ── HERO HEADER — banda decorativa + avatar circular prominente ── */}
+        {/* ── SOLAPA SUPERIOR DE LA MOCHILA ── */}
         <div className="animate-in fade-in duration-700">
-
-          {/* Banda de color/patrón superior */}
-          <div className="relative w-full overflow-hidden"
+          <div className="relative w-full overflow-hidden rpg-bag-texture"
             style={{
-              height: "96px",
-              background: `color-mix(in srgb, var(--primary) 7%, var(--bg-main))`,
-              borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              height: "108px",
+              borderBottom: "3px solid var(--leather-mid)",
+              boxShadow: "inset 0 -8px 24px rgba(42,19,4,0.35)",
             }}>
-            {/* Patrón decorativo */}
-            <div className="absolute inset-0"
-              style={{
-                backgroundImage: `repeating-linear-gradient(
-                  45deg,
-                  color-mix(in srgb, var(--primary) 4%, transparent) 0px,
-                  color-mix(in srgb, var(--primary) 4%, transparent) 1px,
-                  transparent 1px,
-                  transparent 24px
-                )`,
-              }} />
+            {/* Costura superior */}
+            <div className="absolute top-3 left-0 right-0"
+              style={{ height: "1px", background: "repeating-linear-gradient(90deg, rgba(200,144,78,0.25) 0, rgba(200,144,78,0.25) 8px, transparent 8px, transparent 16px)" }} />
+
+            {/* Hebilla central decorativa */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3">
+              <div className="flex-1 h-px w-16" style={{ background: "linear-gradient(90deg, transparent, rgba(201,168,76,0.5))" }} />
+              <div className="flex items-center gap-2 px-4 py-1.5"
+                style={{
+                  border: "1.5px solid rgba(201,168,76,0.55)",
+                  borderRadius: "3px",
+                  background: "rgba(42,19,4,0.6)",
+                  backdropFilter: "blur(4px)",
+                }}>
+                <Star size={8} style={{ color: "var(--metal-gold)" }} />
+                <span style={{ fontFamily: "'Cinzel', serif", fontSize: "10px", fontWeight: 700, color: "var(--metal-gold)", letterSpacing: "0.28em" }}>
+                  DIARIO
+                </span>
+                <Star size={8} style={{ color: "var(--metal-gold)" }} />
+              </div>
+              <div className="flex-1 h-px w-16" style={{ background: "linear-gradient(90deg, rgba(201,168,76,0.5), transparent)" }} />
+            </div>
+
             {/* Badge descubrimientos — esquina superior derecha */}
-            <div className="absolute top-4 right-4 md:right-10 flex items-center gap-1.5 px-3 py-1.5"
+            <div className="absolute top-4 right-5 flex items-center gap-1.5 px-3 py-1.5"
               style={{
-                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                border: "1px solid rgba(201,168,76,0.38)",
                 borderRadius: "2px",
-                background: "color-mix(in srgb, var(--white-custom) 75%, transparent)",
+                background: "rgba(42,19,4,0.55)",
                 backdropFilter: "blur(6px)",
               }}>
-              <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }} />
-              <span className="text-[9px] font-black uppercase tracking-[0.22em] tabular-nums"
-                style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+              <Star size={8} style={{ color: "var(--metal-gold)", opacity: 0.9 }} />
+              <span className="tabular-nums"
+                style={{ fontFamily: "'Cinzel', serif", fontSize: "11px", fontWeight: 700, color: "var(--metal-gold)" }}>
                 {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length}
               </span>
-              <span className="text-[7px] font-black uppercase tracking-[0.2em] hidden sm:inline"
-                style={{ color: "color-mix(in srgb, var(--primary) 36%, transparent)" }}>
-                descubrimientos
+              <span className="hidden sm:inline" style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", color: "rgba(200,144,78,0.65)", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                registros
               </span>
             </div>
+
+            {/* Costura inferior */}
+            <div className="absolute bottom-3 left-0 right-0"
+              style={{ height: "1px", background: "repeating-linear-gradient(90deg, rgba(200,144,78,0.18) 0, rgba(200,144,78,0.18) 8px, transparent 8px, transparent 16px)" }} />
           </div>
 
-          {/* Zona de identidad: avatar que sobresale + nombre a la derecha */}
+          {/* ── ZONA DE IDENTIDAD — avatar + nombre ── */}
           <div className="px-6 md:px-10 flex items-end gap-5 md:gap-7"
-            style={{ marginTop: "-52px", paddingBottom: "20px" }}>
+            style={{ marginTop: "-52px", paddingBottom: "24px" }}>
 
-            {/* Avatar circular grande — sobresale sobre la banda */}
+            {/* Avatar — marco cuero */}
             <button
               onClick={() => setShowAvatarPicker(true)}
-              className="group relative shrink-0 transition-opacity hover:opacity-90"
+              className="group relative shrink-0 transition-all duration-200 hover:scale-105"
               title="Cambiar imagen"
               style={{
-                width: 104,
-                height: 104,
-                borderRadius: "50%",
+                width: 108,
+                height: 108,
+                borderRadius: "6px",
                 overflow: "hidden",
-                background: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))",
-                border: "3px solid var(--white-custom)",
-                boxShadow: "0 2px 16px color-mix(in srgb, var(--primary) 14%, transparent)",
+                background: "var(--leather-dark)",
+                border: "3px solid var(--leather-mid)",
+                boxShadow: "0 4px 20px rgba(42,19,4,0.55), inset 0 0 0 1px rgba(201,168,76,0.22)",
                 flexShrink: 0,
               }}>
               {perfil?.avatar_url
-                ? <img src={perfil.avatar_url} alt={perfil?.username}
-                    className="w-full h-full object-contain" />
-                : <User size={38} className="absolute inset-0 m-auto"
-                    style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
+                ? <img src={perfil.avatar_url} alt={perfil.username} className="w-full h-full object-cover" />
+                : (
+                  <div className="w-full h-full flex items-center justify-center rpg-bag-texture">
+                    <User size={36} style={{ color: "rgba(200,144,78,0.35)" }} />
+                  </div>
+                )}
               {/* Overlay hover */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ background: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                <span className="text-[7px] font-black uppercase tracking-widest"
-                  style={{ color: "var(--btn-text)" }}>Cambiar</span>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                style={{ background: "rgba(42,19,4,0.55)" }}>
+                <span style={{ fontFamily: "'Cinzel', serif", fontSize: "8px", color: "var(--metal-gold)", letterSpacing: "0.15em" }}>CAMBIAR</span>
               </div>
+              {/* Esquinas doradas */}
+              {["top-0 left-0", "top-0 right-0", "bottom-0 left-0", "bottom-0 right-0"].map(pos => (
+                <div key={pos} className={`absolute ${pos} w-3 h-3 pointer-events-none`}
+                  style={{ border: "1.5px solid var(--metal-gold)", opacity: 0.55,
+                    ...(pos.includes("right") && !pos.includes("bottom") ? { borderLeft: "none", borderBottom: "none" }
+                      : pos.includes("right") ? { borderLeft: "none", borderTop: "none" }
+                      : pos.includes("bottom") ? { borderRight: "none", borderTop: "none" }
+                      : { borderRight: "none", borderBottom: "none" }) }} />
+              ))}
             </button>
 
-            {/* Nombre + título + status */}
-            <div className="flex flex-col gap-1 pb-1">
+            {/* Info de aventurero */}
+            <div className="flex-1 min-w-0 pb-1">
               {perfil?.titulo && (
-                <div className="inline-flex w-fit items-center gap-1.5 px-2 py-0.5"
-                  style={{
-                    border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                    borderRadius: "2px",
-                    background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                  }}>
-                  <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }} />
-                  <span className="text-[7px] font-black uppercase tracking-[0.22em]"
-                    style={{ color: "color-mix(in srgb, var(--primary) 48%, transparent)" }}>
-                    {perfil.titulo}
-                  </span>
-                </div>
+                <p className="mb-1 rpg-buckle-before rpg-buckle-after"
+                  style={{ fontFamily: "'Cinzel', serif", fontSize: "9px", fontWeight: 600, color: "var(--metal-gold)", letterSpacing: "0.22em", textTransform: "uppercase" }}>
+                  {perfil.titulo}
+                </p>
               )}
-              <h1 className="font-serif italic leading-none capitalize"
-                style={{ fontSize: "clamp(1.7rem, 4vw, 2.6rem)", color: "var(--primary)", letterSpacing: "0.01em" }}>
-                {perfil?.username ?? "…"}
+              <h1 className="truncate capitalize" style={{ fontFamily: "'Cinzel', serif", fontSize: "1.6rem", fontWeight: 700, color: "var(--ink)", lineHeight: 1.1 }}>
+                {perfil?.username ?? "Aventurero"}
               </h1>
-              <p className="font-serif italic"
-                style={{ fontSize: "0.83rem", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                {perfil?.status ?? "Enciclopedia"}
-              </p>
+              {perfil?.status && (
+                <p className="mt-1.5 italic" style={{ fontFamily: "'IM Fell English', serif", fontSize: "12px", color: "var(--ink-faded)" }}>
+                  "{perfil.status}"
+                </p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* ══════════════════════════════════════
-            BODY — sidebar + content
-        ══════════════════════════════════════ */}
-        <div className="flex gap-6 items-start mt-6 px-4 md:px-8">
+        {/* ── LAYOUT: sidebar izquierdo + contenido principal ── */}
+        <div className="px-4 md:px-8 flex gap-6 flex-col lg:flex-row items-start animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
-          {/* ── LEFT SIDEBAR ── */}
-          <div className="w-full md:w-64 xl:w-72 shrink-0 md:sticky md:top-16 self-start flex flex-col gap-4 animate-in fade-in duration-500">
+          {/* ╔══════════════════════════════════
+              PANEL LATERAL — FICHA DEL AVENTURERO
+          ═══════════════════════════════════╗ */}
+          <aside className="w-full lg:w-56 xl:w-64 shrink-0 sticky top-24">
+            <div style={{
+              background: "var(--parchment)",
+              backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E\")",
+              border: "2px solid var(--leather-mid)",
+              borderRadius: "4px",
+              boxShadow: "var(--shadow-bag)",
+              overflow: "hidden",
+            }}>
 
-            {/* ── PANEL UNIFICADO: Stats + Bio + Favoritos ── */}
-            <div className="overflow-hidden"
-              style={{
-                background: "var(--white-custom)",
-                borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}>
+              {/* Cabecera ficha */}
+              <div className="flex items-center gap-2 px-4 py-3"
+                style={{ background: "var(--leather-dark)", borderBottom: "2px solid var(--leather-mid)" }}>
+                <BookOpen size={11} style={{ color: "var(--metal-gold)" }} />
+                <span style={{ fontFamily: "'Cinzel', serif", fontSize: "9px", fontWeight: 700, color: "var(--leather-cream)", letterSpacing: "0.28em", textTransform: "uppercase" }}>
+                  Ficha del viajero
+                </span>
+              </div>
 
-              {/* Stats HUD */}
-              <div className="px-5 pt-5 pb-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                  <p className="text-[7px] font-black uppercase tracking-[0.3em]"
-                    style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                    Registro
-                  </p>
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                </div>
+              {/* Barras de progreso — registro */}
+              <div className="px-4 py-4">
+                <p className="mb-3 rpg-buckle-before rpg-buckle-after text-center"
+                  style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", fontWeight: 700, color: "rgba(107,58,31,0.6)", letterSpacing: "0.28em", textTransform: "uppercase" }}>
+                  Registro
+                </p>
                 <div className="space-y-3.5">
                   {[
-                    { icon: <User size={10} />,  label: "Amigos",   count: misPersonajes.length, max: 20 },
-                    { icon: <Cat size={10} />,   label: "Criaturas", count: misCriaturas.length, max: 30 },
-                    { icon: <Sword size={10} />, label: "Objetos",   count: inventario.length + misItemsDesc.length, max: 50 },
+                    { icon: <User size={10} />,    label: "Amigos",    count: misPersonajes.length, max: 20 },
+                    { icon: <Cat size={10} />,     label: "Criaturas", count: misCriaturas.length,  max: 30 },
+                    { icon: <Sword size={10} />,   label: "Objetos",   count: inventario.length + misItemsDesc.length, max: 50 },
                   ].map(({ icon, label, count, max }) => (
                     <div key={label}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-1.5"
-                          style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                          {icon}
-                          <span className="text-[8px] font-black uppercase tracking-wider">{label}</span>
+                      <div className="flex items-center justify-between mb-1.5"
+                        style={{ color: "var(--leather-mid)" }}>
+                        <div className="flex items-center gap-1.5">{icon}
+                          <span style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase" }}>{label}</span>
                         </div>
-                        <span className="text-[13px] font-black tabular-nums" style={{ color: "var(--primary)" }}>
-                          {count}
-                        </span>
+                        <span className="tabular-nums" style={{ fontFamily: "'Cinzel', serif", fontSize: "12px", fontWeight: 700, color: "var(--ink)" }}>{count}</span>
                       </div>
                       <div className="flex gap-0.5">
                         {Array.from({ length: 10 }).map((_, i) => (
-                          <div key={i} className="flex-1 h-1 transition-all duration-700"
-                            style={{
-                              background: i < Math.round((count / max) * 10)
-                                ? "color-mix(in srgb, var(--primary) 55%, transparent)"
-                                : "color-mix(in srgb, var(--primary) 8%, transparent)",
-                              borderRadius: "1px",
-                            }} />
+                          <div key={i} className="flex-1 h-1.5 rounded-sm overflow-hidden"
+                            style={{ background: "rgba(107,58,31,0.12)" }}>
+                            {i < Math.round((count / max) * 10) && (
+                              <div className="rpg-stat-bar-fill w-full h-full" />
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -941,112 +917,79 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </div>
               </div>
 
-              {/* Divider */}
-              <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              <div className="rpg-divider" />
 
               {/* Bio / Sobre mí */}
-              <div>
-                <div className="flex items-center justify-between px-5 pt-4 pb-2">
-                  <div className="flex items-center gap-2">
-                    <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                    <p className="text-[8px] font-black uppercase tracking-[0.22em]"
-                      style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                      Sobre mí
-                    </p>
-                  </div>
+              <div className="px-4 py-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", fontWeight: 700, color: "rgba(107,58,31,0.6)", letterSpacing: "0.28em", textTransform: "uppercase" }}>
+                    Sobre mí
+                  </p>
                   {!editingDesc ? (
-                    <button
-                      onClick={() => { setDescDraft(perfil?.descripcion ?? ''); setEditingDesc(true); }}
-                      className="text-[7px] font-black uppercase tracking-wider px-2.5 py-1 transition-all hover:opacity-80"
+                    <button onClick={() => { setDescDraft(perfil?.descripcion ?? ''); setEditingDesc(true); }}
+                      className="transition-all hover:opacity-80"
                       style={{
-                        color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                        borderRadius: "2px",
-                        border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                        fontFamily: "'Cinzel', serif", fontSize: "7px", fontWeight: 700,
+                        color: "rgba(107,58,31,0.55)", letterSpacing: "0.12em", textTransform: "uppercase",
+                        border: "1px solid rgba(107,58,31,0.22)", borderRadius: "2px",
+                        padding: "3px 8px", background: "rgba(107,58,31,0.06)",
                       }}>
                       Editar
                     </button>
                   ) : (
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => setEditingDesc(false)}
-                        className="text-[7px] font-black uppercase tracking-wider px-2 py-1"
-                        style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                      <button onClick={() => setEditingDesc(false)} style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", color: "rgba(107,58,31,0.5)", letterSpacing: "0.1em" }}>
                         Cancelar
                       </button>
                       <button onClick={handleSaveDesc} disabled={savingDesc}
-                        className="text-[7px] font-black uppercase tracking-wider px-2.5 py-1 disabled:opacity-50 transition-opacity"
-                        style={{ background: "var(--primary)", color: "var(--btn-text)", borderRadius: "2px" }}>
+                        style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", fontWeight: 700, color: "var(--leather-cream)", background: "var(--leather-dark)", borderRadius: "2px", padding: "3px 8px", letterSpacing: "0.1em" }}>
                         {savingDesc ? "…" : "Guardar"}
                       </button>
                     </div>
                   )}
                 </div>
-
-                <div className="px-5 pb-5">
-                  {editingDesc ? (
-                    <textarea
-                      value={descDraft}
-                      onChange={e => setDescDraft(e.target.value)}
-                      autoFocus rows={4}
-                      placeholder="Escribe algo sobre ti…"
-                      className="w-full bg-transparent outline-none resize-none font-serif italic leading-relaxed"
-                      style={{ fontSize: "0.85rem", color: "var(--foreground)", caretColor: "var(--primary)" }}
-                    />
-                  ) : perfil?.descripcion ? (
-                    <p className="font-serif italic leading-relaxed"
-                      style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--foreground) 70%, transparent)", lineHeight: 1.65 }}>
-                      {perfil.descripcion}
-                    </p>
-                  ) : (
-                    <p className="font-serif italic"
-                      style={{ fontSize: "0.82rem", color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                      "Sin descripción aún… pulsa Editar."
-                    </p>
-                  )}
-                </div>
+                {editingDesc ? (
+                  <textarea value={descDraft} onChange={e => setDescDraft(e.target.value)} autoFocus rows={4}
+                    placeholder="Escribe algo sobre ti…"
+                    className="w-full bg-transparent outline-none resize-none"
+                    style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "0.85rem", color: "var(--ink)", caretColor: "var(--leather-mid)", lineHeight: 1.65 }} />
+                ) : perfil?.descripcion ? (
+                  <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "0.82rem", color: "var(--ink-faded)", lineHeight: 1.65 }}>
+                    {perfil.descripcion}
+                  </p>
+                ) : (
+                  <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "0.8rem", color: "rgba(107,58,31,0.35)" }}>
+                    "Sin descripción… pulsa Editar."
+                  </p>
+                )}
               </div>
 
-              {/* Divider */}
-              <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              <div className="rpg-divider" />
 
               {/* Favoritos */}
               <div className="grid grid-cols-2">
-                {/* Personaje favorito */}
-                <button
-                  onClick={() => setShowPersonajePicker(true)}
-                  className="text-left px-4 py-4 transition-colors group"
-                  style={{ borderRadius: 0 }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                >
-                  <div className="flex items-center gap-1 mb-2.5">
-                    <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
-                    <p className="text-[7px] font-black uppercase tracking-[0.18em]"
-                      style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
-                      Fav. personaje
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2.5">
+                {/* Personaje fav */}
+                <button onClick={() => setShowPersonajePicker(true)}
+                  className="text-left px-3 py-3.5 transition-colors group"
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(107,58,31,0.06)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+                  <p className="mb-2" style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", fontWeight: 700, color: "rgba(107,58,31,0.55)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                    ✦ Aliado
+                  </p>
+                  <div className="flex items-center gap-2">
                     {perfil?.personaje_favorito ? (
                       <>
-                        <div className="w-10 h-10 shrink-0 overflow-hidden"
-                          style={{
-                            borderRadius: "var(--radius-btn)",
-                            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                          }}>
+                        <div className="w-9 h-9 shrink-0 overflow-hidden" style={{ borderRadius: "3px", background: "rgba(107,58,31,0.08)", border: "1px solid rgba(107,58,31,0.2)" }}>
                           {perfil.personaje_favorito.img_url
                             ? <img src={perfil.personaje_favorito.img_url} alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" />
-                            : <User size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
+                            : <User size={14} className="m-auto mt-1.5" style={{ color: "rgba(107,58,31,0.3)" }} />}
                         </div>
-                        <p className="font-serif italic text-[11px] leading-tight capitalize"
-                          style={{ color: "var(--primary)" }}>
+                        <p className="text-[10px] leading-tight capitalize" style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "var(--ink)" }}>
                           {perfil.personaje_favorito.nombre}
                         </p>
                       </>
                     ) : (
-                      <p className="font-serif italic text-[9px]"
-                        style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>
+                      <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "9px", color: "rgba(107,58,31,0.3)" }}>
                         Ninguno…
                       </p>
                     )}
@@ -1054,44 +997,28 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </button>
 
                 {/* Mascota */}
-                <button
-                  onClick={() => setShowMascotaPicker(true)}
-                  className="text-left px-4 py-4 transition-colors group"
-                  style={{
-                    borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    borderRadius: 0,
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                >
-                  <div className="flex items-center gap-1 mb-2.5">
-                    <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
-                    <p className="text-[7px] font-black uppercase tracking-[0.18em]"
-                      style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
-                      Mascota
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2.5">
+                <button onClick={() => setShowMascotaPicker(true)}
+                  className="text-left px-3 py-3.5 transition-colors group"
+                  style={{ borderLeft: "1px solid rgba(107,58,31,0.12)" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(107,58,31,0.06)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+                  <p className="mb-2" style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", fontWeight: 700, color: "rgba(107,58,31,0.55)", letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                    ✦ Mascota
+                  </p>
+                  <div className="flex items-center gap-2">
                     {perfil?.mascota ? (
                       <>
-                        <div className="w-10 h-10 shrink-0 overflow-hidden"
-                          style={{
-                            borderRadius: "var(--radius-btn)",
-                            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                          }}>
+                        <div className="w-9 h-9 shrink-0 overflow-hidden" style={{ borderRadius: "3px", background: "rgba(107,58,31,0.08)", border: "1px solid rgba(107,58,31,0.2)" }}>
                           {perfil.mascota.imagen_url
                             ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
-                            : <Cat size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
+                            : <Cat size={14} className="m-auto mt-1.5" style={{ color: "rgba(107,58,31,0.3)" }} />}
                         </div>
-                        <p className="font-serif italic text-[11px] leading-tight capitalize"
-                          style={{ color: "var(--primary)" }}>
+                        <p className="text-[10px] leading-tight capitalize" style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", color: "var(--ink)" }}>
                           {perfil.mascota.nombre}
                         </p>
                       </>
                     ) : (
-                      <p className="font-serif italic text-[9px]"
-                        style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>
+                      <p style={{ fontFamily: "'IM Fell English', serif", fontStyle: "italic", fontSize: "9px", color: "rgba(107,58,31,0.3)" }}>
                         Ninguna…
                       </p>
                     )}
@@ -1100,400 +1027,198 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               </div>
             </div>
 
-            {/* Mobile explorers */}
+            {/* Exploradores (sidebar) */}
             {otrosPerfiles.length > 0 && (
-              <div className="lg:hidden">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                  <p className="text-[7px] font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
-                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                    <Users size={8} /> Exploradores
-                  </p>
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              <div className="mt-4 hidden lg:block">
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <div className="rpg-divider flex-1" />
+                  <span style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", fontWeight: 700, color: "rgba(107,58,31,0.45)", letterSpacing: "0.25em", textTransform: "uppercase" }}>
+                    Exploradores
+                  </span>
+                  <div className="rpg-divider flex-1" />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {otrosPerfiles.map(p => (
-                    <Link key={p.id} href={`/wiki/personal/${p.username}`}>
-                      <div className="flex items-center gap-2 px-3 py-2 transition-all hover:opacity-80"
-                        style={{
-                          background: "color-mix(in srgb, var(--primary) 4%, var(--white-custom))",
-                          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                          borderRadius: "2px",
-                        }}>
-                        <div className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center"
-                          style={{ borderRadius: "50%", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                          {p.avatar_url
-                            ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
-                            : <User size={9} style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
-                        </div>
-                        <span className="text-[9px] font-black uppercase tracking-wide capitalize" style={{ color: "var(--primary)" }}>{p.username}</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ── MAIN CONTENT: Collection grid + desktop sidebar ── */}
-          <div className="flex gap-6 flex-1 min-w-0 items-start">
-
-            {/* Grid area */}
-            <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-
-              {/* ── TABS — rediseñados, más llamativos ── */}
-              <div className="flex items-stretch gap-2 mb-4">
-                {tabs.map(t => {
-                  const isActive = tab === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setTab(t.id)}
-                      className="relative flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 px-2 transition-all duration-200 overflow-hidden"
-                      style={{
-                        background: isActive
-                          ? "var(--white-custom)"
-                          : "color-mix(in srgb, var(--primary) 2%, var(--white-custom))",
-                        color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                        border: isActive
-                          ? "1px solid color-mix(in srgb, var(--primary) 18%, transparent)"
-                          : "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                        borderRadius: "var(--radius-card)",
-                        boxShadow: isActive
-                          ? "0 2px 12px color-mix(in srgb, var(--primary) 8%, transparent)"
-                          : "none",
-                      }}>
-
-                      {/* Línea activa en la parte superior */}
-                      {isActive && (
-                        <div className="absolute top-0 left-4 right-4 h-0.5"
-                          style={{
-                            background: "var(--primary)",
-                            borderRadius: "0 0 2px 2px",
-                          }} />
-                      )}
-
-                      <t.icon size={14} />
-                      <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
-
-                      {/* Contador de entradas */}
-                      <div className="flex items-center gap-0.5 px-2 py-0.5 mt-0.5"
-                        style={{
-                          background: isActive
-                            ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                            : "color-mix(in srgb, var(--primary) 4%, transparent)",
-                          borderRadius: "2px",
-                        }}>
-                        <span className="text-[8px] font-black tabular-nums"
-                          style={{ color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                          {t.count}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Inventory panel */}
-              <div
-                style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  borderRadius: "var(--radius-card)",
-                  background: tab === "items"
-                    ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
-                    : tab === "criaturas"
-                    ? "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
-                    : "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
-                  transition: "background 0.25s ease",
-                  padding: "20px",
-                }}>
-                <AnimatePresence mode="wait">
-                  <MotionDiv key={tab}
-                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.16 }}
-                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
-
-                    {tab === "items" && (
-                      <>
-                        {inventario.map((item, i) => (
-                          <button
-                            key={`inv-${i}`}
-                            onClick={() => setModalEntidad({ tipo: "item_inv", data: item })}
-                            className="group relative overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5"
-                            style={{
-                              background: "var(--white-custom)",
-                              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                              borderRadius: "var(--radius-card)",
-                              boxShadow: "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)",
-                            }}
-                            onMouseEnter={e => {
-                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
-                              (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}
-                            onMouseLeave={e => {
-                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
-                              (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)";
-                            }}>
-                            {/* Imagen — zona grande con zoom on hover */}
-                            <div className="relative overflow-hidden w-full"
-                              style={{
-                                height: "120px",
-                                background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
-                                borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-                              }}>
-                              {item.items.imagen_url
-                                ? <img src={item.items.imagen_url} alt={item.items.nombre}
-                                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
-                                    style={{ objectPosition: "center" }} />
-                                : <Sword size={28} className="absolute inset-0 m-auto"
-                                    style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
-                            </div>
-                            {/* Info */}
-                            <div className="px-3 py-3">
-                              <p className="font-serif italic text-[12px] leading-tight capitalize truncate"
-                                style={{ color: "var(--primary)" }}>
-                                {item.items.nombre}
-                              </p>
-                              {item.items.categoria && (
-                                <p className="text-[8px] font-black uppercase tracking-wider mt-1 truncate"
-                                  style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
-                                  {item.items.categoria}
-                                </p>
-                              )}
-                            </div>
-                          </button>
-                        ))}
-                        {misItemsDesc.map((d, i) => (
-                          <button
-                            key={`desc-${i}`}
-                            onClick={() => setModalEntidad({ tipo: "item", data: d })}
-                            className="group relative overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5"
-                            style={{
-                              background: "var(--white-custom)",
-                              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                              borderRadius: "var(--radius-card)",
-                              boxShadow: "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)",
-                            }}
-                            onMouseEnter={e => {
-                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
-                              (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}
-                            onMouseLeave={e => {
-                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
-                              (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)";
-                            }}>
-                            <div className="relative overflow-hidden w-full"
-                              style={{
-                                height: "120px",
-                                background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
-                                borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-                              }}>
-                              {d.imagen_url
-                                ? <img src={d.imagen_url} alt={d.nombre}
-                                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
-                                    style={{ objectPosition: "center" }} />
-                                : <Sword size={28} className="absolute inset-0 m-auto"
-                                    style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
-                            </div>
-                            <div className="px-3 py-3">
-                              <p className="font-serif italic text-[12px] leading-tight capitalize truncate"
-                                style={{ color: "var(--primary)" }}>
-                                {d.nombre ?? "Objeto"}
-                              </p>
-                              {d.categoria && (
-                                <p className="text-[8px] font-black uppercase tracking-wider mt-1 truncate"
-                                  style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
-                                  {d.categoria}
-                                </p>
-                              )}
-                            </div>
-                          </button>
-                        ))}
-                        {inventario.length === 0 && misItemsDesc.length === 0 && <EmptyTab label="Sin items registrados aún" />}
-                      </>
-                    )}
-
-                    {tab === "criaturas" && (
-                      misCriaturas.length > 0
-                        ? misCriaturas.map((d, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setModalEntidad({ tipo: "criatura", data: d })}
-                            className="group relative overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5"
-                            style={{
-                              background: "var(--white-custom)",
-                              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                              borderRadius: "var(--radius-card)",
-                              boxShadow: "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)",
-                            }}
-                            onMouseEnter={e => {
-                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
-                              (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}
-                            onMouseLeave={e => {
-                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
-                              (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)";
-                            }}>
-                            <div className="relative overflow-hidden w-full"
-                              style={{
-                                height: "120px",
-                                background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
-                                borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-                              }}>
-                              {d.imagen_url
-                                ? <img src={d.imagen_url} alt={d.nombre}
-                                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
-                                    style={{ objectPosition: "center" }} />
-                                : <Cat size={28} className="absolute inset-0 m-auto"
-                                    style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
-                            </div>
-                            <div className="px-3 py-3">
-                              <p className="font-serif italic text-[12px] leading-tight capitalize truncate"
-                                style={{ color: "var(--primary)" }}>
-                                {d.nombre ?? "Criatura"}
-                              </p>
-                              {d.habitat && (
-                                <p className="text-[8px] font-black uppercase tracking-wider mt-1 truncate"
-                                  style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
-                                  {d.habitat}
-                                </p>
-                              )}
-                            </div>
-                          </button>
-                        ))
-                        : <EmptyTab label="Sin registros en el bestiario" />
-                    )}
-
-                    {tab === "personajes" && (
-                      misPersonajes.length > 0
-                        ? misPersonajes.map((d, i) => (
-                          <button
-                            key={i}
-                            onClick={() => handleOpenPersonajeModal(d)}
-                            className="group relative overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5"
-                            style={{
-                              background: "var(--white-custom)",
-                              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                              borderRadius: "var(--radius-card)",
-                              boxShadow: "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)",
-                            }}
-                            onMouseEnter={e => {
-                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
-                              (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}
-                            onMouseLeave={e => {
-                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
-                              (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)";
-                            }}>
-                            <div className="relative overflow-hidden w-full"
-                              style={{
-                                height: "120px",
-                                background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
-                                borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-                              }}>
-                              {d.imagen_url
-                                ? <img src={d.imagen_url} alt={d.nombre}
-                                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
-                                    style={{ objectPosition: "center" }} />
-                                : <User size={28} className="absolute inset-0 m-auto"
-                                    style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
-                            </div>
-                            <div className="px-3 py-3">
-                              <p className="font-serif italic text-[12px] leading-tight capitalize truncate"
-                                style={{ color: "var(--primary)" }}>
-                                {d.nombre ?? "Contacto"}
-                              </p>
-                              {(d.reino || d.especie) && (
-                                <p className="text-[8px] font-black uppercase tracking-wider mt-1 truncate"
-                                  style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
-                                  {d.reino ?? d.especie}
-                                </p>
-                              )}
-                            </div>
-                          </button>
-                        ))
-                        : <EmptyTab label="Sin registros en la agenda" />
-                    )}
-
-                  </MotionDiv>
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {/* Desktop sidebar - Exploradores */}
-            {otrosPerfiles.length > 0 && (
-              <aside className="hidden lg:flex flex-col gap-0 w-44 xl:w-52 shrink-0 sticky top-24 pt-0">
-
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                  <div className="flex items-center gap-1">
-                    <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
-                    <p className="text-[7px] font-black uppercase tracking-[0.3em]"
-                      style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                      Exploradores
-                    </p>
-                  </div>
-                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                </div>
-
-                <div className="overflow-hidden"
-                  style={{
-                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    borderRadius: "var(--radius-card)",
-                    background: "var(--white-custom)",
-                  }}>
+                <div style={{ border: "1.5px solid var(--leather-mid)", borderRadius: "4px", background: "var(--parchment)", overflow: "hidden", boxShadow: "var(--shadow-bag)" }}>
                   {otrosPerfiles.map((p, idx) => (
                     <Link key={p.id} href={`/wiki/personal/${p.username}`}>
-                      <MotionDiv whileHover={{ x: 2 }}
-                        className="flex items-center gap-2.5 px-3 py-3 cursor-pointer transition-colors"
-                        style={{
-                          borderBottom: idx < otrosPerfiles.length - 1
-                            ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
-                            : "none",
-                        }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)"; }}
+                      <MotionDiv whileHover={{ x: 3 }}
+                        className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-colors"
+                        style={{ borderBottom: idx < otrosPerfiles.length - 1 ? "1px solid rgba(107,58,31,0.1)" : "none" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(107,58,31,0.06)"; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
-
-                        <div className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center relative"
-                          style={{
-                            borderRadius: "2px",
-                            background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                          }}>
+                        <div className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center"
+                          style={{ borderRadius: "3px", background: "rgba(107,58,31,0.08)", border: "1px solid rgba(107,58,31,0.18)" }}>
                           {p.avatar_url
                             ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
-                            : <User size={11} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                            : <User size={11} style={{ color: "rgba(107,58,31,0.3)" }} />}
                         </div>
-
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-tight truncate capitalize"
-                            style={{ color: "var(--primary)" }}>{p.username}</p>
+                          <p className="text-[10px] uppercase tracking-tight truncate capitalize"
+                            style={{ fontFamily: "'Cinzel', serif", fontWeight: 600, color: "var(--ink)" }}>{p.username}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            {[
-                              { icon: <Sword size={6} />, n: p.items_count },
-                              { icon: <Cat size={6} />, n: p.criaturas_count },
-                              { icon: <User size={6} />, n: p.personajes_count }
-                            ].map(({ icon, n }, i) => (
-                              <span key={i} className="flex items-center gap-0.5 text-[7px] font-black tabular-nums"
-                                style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                            {[{ icon: <Sword size={6} />, n: p.items_count }, { icon: <Cat size={6} />, n: p.criaturas_count }, { icon: <User size={6} />, n: p.personajes_count }].map(({ icon, n }, i) => (
+                              <span key={i} className="flex items-center gap-0.5 tabular-nums"
+                                style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", fontWeight: 700, color: "rgba(107,58,31,0.4)" }}>
                                 {icon}{n}
                               </span>
                             ))}
                           </div>
                         </div>
-
-                        <span className="text-[8px] shrink-0"
-                          style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>›</span>
+                        <span style={{ fontSize: "10px", color: "rgba(107,58,31,0.35)" }}>›</span>
                       </MotionDiv>
                     </Link>
                   ))}
                 </div>
-              </aside>
+              </div>
+            )}
+          </aside>
+
+          {/* ╔══════════════════════════════════
+              CONTENIDO PRINCIPAL — LA MOCHILA
+          ═══════════════════════════════════╗ */}
+          <div className="flex-1 min-w-0">
+
+            {/* Exploradores mobile */}
+            {otrosPerfiles.length > 0 && (
+              <div className="lg:hidden mb-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="rpg-divider flex-1" />
+                  <span style={{ fontFamily: "'Cinzel', serif", fontSize: "7px", fontWeight: 700, color: "rgba(107,58,31,0.45)", letterSpacing: "0.25em" }}>
+                    <Users size={7} className="inline mr-1" />Exploradores
+                  </span>
+                  <div className="rpg-divider flex-1" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {otrosPerfiles.map(p => (
+                    <Link key={p.id} href={`/wiki/personal/${p.username}`}>
+                      <div className="flex items-center gap-2 px-2.5 py-1.5 transition-all hover:opacity-80"
+                        style={{ background: "var(--parchment)", border: "1.5px solid var(--leather-mid)", borderRadius: "3px", boxShadow: "0 2px 8px rgba(42,19,4,0.2)" }}>
+                        <div className="w-5 h-5 shrink-0 overflow-hidden flex items-center justify-center" style={{ borderRadius: "2px", background: "rgba(107,58,31,0.1)" }}>
+                          {p.avatar_url ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" /> : <User size={9} style={{ color: "rgba(107,58,31,0.3)" }} />}
+                        </div>
+                        <span className="text-[9px] uppercase tracking-wide capitalize" style={{ fontFamily: "'Cinzel', serif", fontWeight: 600, color: "var(--ink)" }}>{p.username}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             )}
 
+            {/* ── TABS — solapa de la mochila ── */}
+            <div className="flex items-end gap-1">
+              {tabs.map(t => (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  className={`rpg-tab-btn flex items-center gap-2`}
+                  style={tab === t.id ? {
+                    background: "var(--parchment)",
+                    color: "var(--ink)",
+                    borderColor: "rgba(200,144,78,0.55)",
+                    borderBottom: "1.5px solid var(--parchment)",
+                    opacity: 1, zIndex: 2,
+                  } : {}}>
+                  <t.icon size={11} />
+                  {t.label}
+                  <span className="tabular-nums"
+                    style={{
+                      fontFamily: "'Cinzel', serif", fontSize: "9px", fontWeight: 700,
+                      background: tab === t.id ? "rgba(107,58,31,0.12)" : "rgba(255,255,255,0.06)",
+                      color: tab === t.id ? "var(--ink)" : "var(--leather-cream)",
+                      borderRadius: "2px", padding: "1px 6px",
+                    }}>
+                    {t.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* ── PANEL DE INVENTARIO — pergamino ── */}
+            <div className="rpg-stitch-border"
+              style={{
+                border: "2px solid rgba(200,144,78,0.5)",
+                borderRadius: "0 6px 6px 6px",
+                background: "var(--parchment)",
+                backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E\")",
+                boxShadow: "var(--shadow-bag)",
+                padding: "20px",
+                minHeight: "320px",
+                position: "relative",
+                zIndex: 1,
+              }}>
+
+              {/* Decoración esquinas interiores */}
+              {["top-2 left-2", "top-2 right-2", "bottom-2 left-2", "bottom-2 right-2"].map(pos => (
+                <div key={pos} className={`absolute ${pos} w-4 h-4 pointer-events-none`}
+                  style={{ border: "1.5px solid rgba(201,168,76,0.35)",
+                    ...(pos.includes("right") && !pos.includes("bottom") ? { borderLeft: "none", borderBottom: "none" }
+                      : pos.includes("right") ? { borderLeft: "none", borderTop: "none" }
+                      : pos.includes("bottom") ? { borderRight: "none", borderTop: "none" }
+                      : { borderRight: "none", borderBottom: "none" }) }} />
+              ))}
+
+              <AnimatePresence mode="wait">
+                <MotionDiv key={tab}
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.16 }}
+                  className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3">
+
+                  {/* ── ITEMS ── */}
+                  {tab === "items" && (
+                    <>
+                      {inventario.map((item, i) => (
+                        <ItemSlot key={`inv-${i}`}
+                          imagen_url={item.items.imagen_url}
+                          nombre={item.items.nombre}
+                          subtitulo={item.items.categoria}
+                          icon={Sword}
+                          equipado={item.equipado}
+                          onClick={() => setModalEntidad({ tipo: "item_inv", data: item })} />
+                      ))}
+                      {misItemsDesc.map((d, i) => (
+                        <ItemSlot key={`desc-${i}`}
+                          imagen_url={d.imagen_url}
+                          nombre={d.nombre ?? "Objeto"}
+                          subtitulo={d.categoria}
+                          icon={Sword}
+                          onClick={() => setModalEntidad({ tipo: "item", data: d })} />
+                      ))}
+                      {inventario.length === 0 && misItemsDesc.length === 0 && (
+                        <EmptySlot label="La mochila está vacía…" />
+                      )}
+                    </>
+                  )}
+
+                  {/* ── CRIATURAS ── */}
+                  {tab === "criaturas" && (
+                    misCriaturas.length > 0
+                      ? misCriaturas.map((d, i) => (
+                          <ItemSlot key={i}
+                            imagen_url={d.imagen_url}
+                            nombre={d.nombre ?? "Criatura"}
+                            subtitulo={d.habitat}
+                            icon={Cat}
+                            onClick={() => setModalEntidad({ tipo: "criatura", data: d })} />
+                        ))
+                      : <EmptySlot label="Sin registros en el bestiario" />
+                  )}
+
+                  {/* ── PERSONAJES ── */}
+                  {tab === "personajes" && (
+                    misPersonajes.length > 0
+                      ? misPersonajes.map((d, i) => (
+                          <ItemSlot key={i}
+                            imagen_url={d.imagen_url}
+                            nombre={d.nombre ?? "Contacto"}
+                            subtitulo={d.reino ?? d.especie}
+                            icon={User}
+                            onClick={() => handleOpenPersonajeModal(d)} />
+                        ))
+                      : <EmptySlot label="Sin registros en la agenda" />
+                  )}
+
+                </MotionDiv>
+              </AnimatePresence>
+            </div>
           </div>
         </div>
-
       </div>
     </>
   );
