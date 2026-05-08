@@ -669,6 +669,17 @@ function PanelLateral({
         {/* En modo lista: mostrar solo capítulos (igual que esExtra) */}
         {showCapList ? (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 0, minHeight: 0 }}>
+            {/* Título del libro */}
+            {!loading && libroTitulo && (
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3, marginBottom: 4 }}>
+                  Libro
+                </p>
+                <p style={{ fontSize: 12, fontWeight: 800, color: "var(--primary)", opacity: 0.75, lineHeight: 1.3, fontStyle: "italic", letterSpacing: "-0.02em" }}>
+                  {libroTitulo}
+                </p>
+              </div>
+            )}
             {(listaCapitulos ?? []).map(cap => {
               const esActual = cap.id === capIdActual;
               return (
