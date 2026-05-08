@@ -469,6 +469,7 @@ function PanelLateral({
   const border = "1px solid color-mix(in srgb, var(--primary) 10%, transparent)";
   const narrador = segActualObj?.narrador ?? null;
   const imgUrl   = segActualObj ? segImgUrl(segActualObj) : null;
+  const [showCapList, setShowCapList] = useState(false);
 
   // ── Layout Extra: título + índice lista + botón leer ──
   if (esExtra) {
@@ -599,51 +600,50 @@ function PanelLateral({
         position: "relative",
       }}
     >
-      {/* ── Foto del narrador / reino — altura fija, no crece ── */}
-      <div
-        style={{
-          // Altura máxima del 40% del panel para que quede espacio debajo
-          flex: "0 0 auto",
-          maxHeight: "40%",
-          width: "100%",
-          overflow: "hidden",
-          position: "relative",
-        }}
-      >
-        {imgUrl ? (
-          <>
-            <img
-              src={imgUrl}
-              alt={narrador?.nombre ?? ""}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            />
-            {/* Degradado inferior sobre la foto */}
-            <div style={{
-              position: "absolute", inset: 0,
-              background: "linear-gradient(to bottom, transparent 40%, var(--bg-main) 100%)",
-              pointerEvents: "none",
-            }} />
-          </>
-        ) : (
-          /* Placeholder cuando no hay imagen */
-          <div style={{
+      {/* ── Foto del narrador / reino — oculta en modo lista ── */}
+      {!showCapList && (
+        <div
+          style={{
+            flex: "0 0 auto",
+            maxHeight: "40%",
             width: "100%",
-            height: 120,
-            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <span style={{ fontSize: 48, opacity: 0.08, fontFamily: "var(--font-serif, serif)", fontStyle: "italic" }}>
-              {narrador?.nombre?.charAt(0) ?? ""}
-            </span>
-          </div>
-        )}
-      </div>
+            overflow: "hidden",
+            position: "relative",
+          }}
+        >
+          {imgUrl ? (
+            <>
+              <img
+                src={imgUrl}
+                alt={narrador?.nombre ?? ""}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "linear-gradient(to bottom, transparent 40%, var(--bg-main) 100%)",
+                pointerEvents: "none",
+              }} />
+            </>
+          ) : (
+            <div style={{
+              width: "100%",
+              height: 120,
+              background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <span style={{ fontSize: 48, opacity: 0.08, fontFamily: "var(--font-serif, serif)", fontStyle: "italic" }}>
+                {narrador?.nombre?.charAt(0) ?? ""}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Metadatos — ocupa el resto, scrollea si hay mucho contenido ── */}
       <div
         style={{
           flex: 1,
-          minHeight: 0,            // ← clave: permite que flex-child haga scroll
+          minHeight: 0,
           overflowY: "auto",
           padding: "20px 24px 24px",
           display: "flex",
@@ -666,39 +666,73 @@ function PanelLateral({
           </div>
         )}
 
-        {/* Título del libro */}
-        {!loading && libroTitulo && (
-          <div>
-            <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3, marginBottom: 4 }}>
-              Libro
-            </p>
-            <p style={{ fontSize: 12, fontWeight: 800, color: "var(--primary)", opacity: 0.75, lineHeight: 1.3, fontStyle: "italic", letterSpacing: "-0.02em" }}>
-              {libroTitulo}
-            </p>
+        {/* En modo lista: mostrar solo capítulos (igual que esExtra) */}
+        {showCapList ? (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 0, minHeight: 0 }}>
+            {(listaCapitulos ?? []).map(cap => {
+              const esActual = cap.id === capIdActual;
+              return (
+                <button
+                  key={cap.id}
+                  onClick={() => onSelectCap?.(cap.id)}
+                  style={{
+                    display: "block", width: "100%", textAlign: "left",
+                    padding: "7px 10px", borderRadius: 6, border: "none",
+                    background: esActual ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                    cursor: "pointer", transition: "background 0.12s",
+                    color: esActual ? "var(--primary)" : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                    fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 700,
+                    textTransform: "uppercase", letterSpacing: "0.04em",
+                    lineHeight: 1.4,
+                  }}
+                  onMouseEnter={e => { if (!esActual) e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+                  onMouseLeave={e => { if (!esActual) e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ fontSize: 8, opacity: 0.4, marginRight: 6, fontVariantNumeric: "tabular-nums" }}>
+                    {String(cap.orden).padStart(2, "0")}
+                  </span>
+                  {cap.titulo_capitulo}
+                </button>
+              );
+            })}
           </div>
-        )}
+        ) : (
+          <>
+            {/* Título del libro */}
+            {!loading && libroTitulo && (
+              <div>
+                <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.3, marginBottom: 4 }}>
+                  Libro
+                </p>
+                <p style={{ fontSize: 12, fontWeight: 800, color: "var(--primary)", opacity: 0.75, lineHeight: 1.3, fontStyle: "italic", letterSpacing: "-0.02em" }}>
+                  {libroTitulo}
+                </p>
+              </div>
+            )}
 
-        {/* Narrador */}
-        {!loading && narrador && (
-          <div style={{ paddingTop: 14, borderTop: border }}>
-            <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 6 }}>
-              Narrador
-            </p>
-            <p style={{ fontSize: 13, fontWeight: 900, color: "var(--primary)", opacity: 0.8, textTransform: "uppercase", letterSpacing: "-0.02em", fontStyle: "italic" }}>
-              {narrador.nombre}
-            </p>
-          </div>
-        )}
+            {/* Narrador */}
+            {!loading && narrador && (
+              <div style={{ paddingTop: 14, borderTop: border }}>
+                <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary)", opacity: 0.25, marginBottom: 6 }}>
+                  Narrador
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 900, color: "var(--primary)", opacity: 0.8, textTransform: "uppercase", letterSpacing: "-0.02em", fontStyle: "italic" }}>
+                  {narrador.nombre}
+                </p>
+              </div>
+            )}
 
-        {/* Personajes que aparecen en los capítulos del segmento */}
-        {!loading && personajesIds.length > 0 && (
-          <PersonajesPanel ids={personajesIds} border={border} />
+            {/* Personajes que aparecen en los capítulos del segmento */}
+            {!loading && personajesIds.length > 0 && (
+              <PersonajesPanel ids={personajesIds} border={border} />
+            )}
+          </>
         )}
 
         {/* Acciones — pegadas al fondo gracias a marginTop: auto */}
         <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8, paddingTop: 16, borderTop: border }}>
           <button
-            onClick={onAbrirIndice}
+            onClick={() => setShowCapList(prev => !prev)}
             style={{
               display: "flex", alignItems: "center", gap: 8,
               padding: "9px 12px",
@@ -714,7 +748,7 @@ function PanelLateral({
             onMouseLeave={e => (e.currentTarget.style.opacity = "0.5")}
           >
             <List size={11} />
-            Índice
+            {showCapList ? "Info" : "Índice"}
           </button>
 
           <button
