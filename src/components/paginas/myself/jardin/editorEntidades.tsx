@@ -224,6 +224,17 @@ export default function EditorEntidades() {
   const { textos: mundoTextos, setTextos: setMundoTextos, save: saveMundo } = useMundoSecciones();
   const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
 
+  // Lista plana de nombres de todas las entidades — para el autocompletado [[wikilink]]
+  const allEntityNames = useMemo(() => [
+    ...allItems.personajes.map(e => e.nombre),
+    ...allItems.criaturas .map(e => e.nombre),
+    ...allItems.items     .map(e => e.nombre),
+    ...allItems.reinos    .map(e => e.nombre),
+    ...allItems.hechizos  .map(e => e.nombre),
+    ...allItems.dones     .map(e => e.nombre),
+    ...allItems.runas     .map(e => e.nombre),
+  ], [allItems]);
+
   // Persistir sesión
   useEffect(() => {
     try {
@@ -389,10 +400,10 @@ export default function EditorEntidades() {
             />
           ) : selected ? (
             <>
-              {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} />}
-              {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} />}
-              {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} />}
-              {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} />}
+              {tab === "personajes" && <EditorPersonaje key={selected.id} item={selected as Personaje} onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
+              {tab === "criaturas"  && <EditorCriatura  key={selected.id} item={selected as Criatura}  onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
+              {tab === "items"      && <EditorItem       key={selected.id} item={selected as Item}      onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
+              {tab === "reinos"     && <EditorReino      key={selected.id} item={selected as Reino}     onSaved={handleSaved} onDeleted={handleDeleted} entities={allEntityNames} />}
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-primary/15 select-none">

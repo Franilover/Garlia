@@ -160,9 +160,9 @@ type InnerTab = "info" | "criaturas";
 // ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
-  item, onSaved, onDeleted,
+  item, onSaved, onDeleted, entities = [],
 }: {
-  item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void;
+  item: Item; onSaved: (i: Item) => void; onDeleted: (id: string) => void; entities?: string[];
 }) {
   const [form,     setForm]     = useState<Item>(item);
   const [status,   setStatus]   = useState<SaveStatus>("idle");
@@ -301,6 +301,7 @@ export function EditorItem({
                     toolbar
                     defaultMode="edit"
                             onSnippetAction={onSnippetAction}
+                            entities={entities}
           />
                 </div>
               </div>

@@ -27,10 +27,10 @@ const TABS: { key: InnerTab; label: string; Icon: React.ElementType }[] = [
 
 // ─── Campo colapsable ─────────────────────────────────────────────────────────
 function CampoLore({
-  label, value, onChange, placeholder, rows = 5, icon: Icon,
+  label, value, onChange, placeholder, rows = 5, icon: Icon, entities = [],
 }: {
   label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; rows?: number; icon?: React.ElementType;
+  placeholder?: string; rows?: number; icon?: React.ElementType; entities?: string[];
 }) {
   const [open, setOpen] = useState(!!value);
   const { onSnippetAction } = useWikilink();
@@ -61,6 +61,7 @@ function CampoLore({
       {open && (
         <div className="px-4 pb-4 pt-1">
           <MarkdownEditor value={value} onChange={onChange} placeholder={placeholder} rows={rows} toolbar defaultMode="edit" onSnippetAction={onSnippetAction}
+          entities={entities}
 />
         </div>
       )}
@@ -70,12 +71,13 @@ function CampoLore({
 
 // ─── VarianteEditor ────────────────────────────────────────────────────────────
 function VarianteEditor({
-  variante, criaturaId, onSaved, onDeleted,
+  variante, criaturaId, onSaved, onDeleted, entities = [],
 }: {
   variante: CriaturaVariante;
   criaturaId: string;
   onSaved: (v: CriaturaVariante) => void;
   onDeleted: (id: string) => void;
+  entities?: string[];
 }) {
   const [form,     setForm]     = useState(variante);
   const [expanded, setExpanded] = useState(false);
@@ -159,6 +161,7 @@ function VarianteEditor({
                 <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">Descripción</label>
                 <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
                   rows={4} placeholder="Diferencias físicas, comportamiento particular…" toolbar defaultMode="edit"                   onSnippetAction={onSnippetAction}
+                  entities={entities}
                   />
               </div>
             </div>
@@ -188,9 +191,9 @@ function VarianteEditor({
 
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
-  item, onSaved, onDeleted,
+  item, onSaved, onDeleted, entities = [],
 }: {
-  item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void;
+  item: Criatura; onSaved: (c: Criatura) => void; onDeleted: (id: string) => void; entities?: string[];
 }) {
   const [form,   setForm]   = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -345,6 +348,7 @@ export function EditorCriatura({
                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Descripción</label>
                     <MarkdownEditor value={form.descripcion ?? ""} onChange={v => setForm(f => ({ ...f, descripcion: v }))}
                       placeholder="Aspecto físico general…" rows={5} toolbar defaultMode="edit"                       onSnippetAction={onSnippetAction}
+                      entities={entities}
                       />
                   </div>
                 </div>
@@ -374,7 +378,7 @@ export function EditorCriatura({
                       variante={v}
                       criaturaId={form.id}
                       onSaved={updated => setVariantes(prev => prev.map(x => x.id === updated.id ? updated : x))}
-                      onDeleted={id => setVariantes(prev => prev.filter(x => x.id !== id))}
+                      onDeleted={id => setVariantes(prev => prev.filter(x => x.id !== id))} entities={entities}
                     />
                   ))}
                 </div>

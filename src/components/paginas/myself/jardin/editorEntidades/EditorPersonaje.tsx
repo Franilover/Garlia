@@ -141,7 +141,7 @@ function useCriaturaVariantesPorNombre(nombreEspecie: string | null | undefined)
 
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 export function FormularioPersonaje({
-  form, setForm, status, onSave, onDelete, compacto = false,
+  form, setForm, status, onSave, onDelete, compacto = false, entities = [],
 }: {
   form: Personaje;
   setForm: React.Dispatch<React.SetStateAction<Personaje>>;
@@ -149,6 +149,7 @@ export function FormularioPersonaje({
   onSave: () => void;
   onDelete: () => void;
   compacto?: boolean;
+  entities?: string[];
 }) {
   const especies = useNombresDeTabla("criaturas");
   const reinos   = useNombresDeTabla("reinos");
@@ -362,6 +363,7 @@ export function FormularioPersonaje({
                           toolbar
                           defaultMode="edit"
                         onSnippetAction={onSnippetAction}
+                        entities={entities}
                         />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
@@ -374,6 +376,7 @@ export function FormularioPersonaje({
                           toolbar
                           defaultMode="edit"
                         onSnippetAction={onSnippetAction}
+                        entities={entities}
                         />
                       </div>
                     </div>
@@ -388,6 +391,7 @@ export function FormularioPersonaje({
                         toolbar
                         defaultMode="edit"
                       onSnippetAction={onSnippetAction}
+                      entities={entities}
                       />
                     </div>
                   )}
@@ -421,9 +425,9 @@ export function FormularioPersonaje({
 
 // ─── EditorPersonaje ──────────────────────────────────────────────────────────
 export function EditorPersonaje({
-  item, onSaved, onDeleted,
+  item, onSaved, onDeleted, entities = [],
 }: {
-  item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void;
+  item: Personaje; onSaved: (p: Personaje) => void; onDeleted: (id: string) => void; entities?: string[];
 }) {
   const [form,   setForm]   = useState<Personaje>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -461,7 +465,7 @@ export function EditorPersonaje({
   return (
     <>
       <ConfirmModal />
-      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} />
+      <FormularioPersonaje form={form} setForm={setForm} status={status} onSave={save} onDelete={del} entities={entities} />
     </>
   );
 }
