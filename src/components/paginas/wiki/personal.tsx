@@ -1346,9 +1346,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300"
-                                    style={{ objectPosition: "center", transform: "scale(2)" }}
-                                    onMouseEnter={e => { (e.currentTarget as HTMLImageElement).style.transform = "scale(2.3)"; }}
-                                    onMouseLeave={e => { (e.currentTarget as HTMLImageElement).style.transform = "scale(2)"; }} />
+                                    style={{ objectPosition: "center", transform: "scale(3)" }}
+                                    onMouseEnter={e => { (e.currentTarget as HTMLImageElement).style.transform = "scale(3.3)"; }}
+                                    onMouseLeave={e => { (e.currentTarget as HTMLImageElement).style.transform = "scale(3)"; }} />
                                 : <User size={22} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
                             </div>
                             <div className="px-1.5 py-1" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
