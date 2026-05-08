@@ -1326,34 +1326,36 @@ export function MarkdownEditor({
     const autoClosePairs: Record<string, string> = { '(': ')', '{': '}' };
 
     // ── Manejo especial de [ para soportar [[wikilinks]] ──────────────────
+    // IMPORTANTE: usar ta.value (DOM real) en vez de value (estado React),
+    // porque en keyDown el estado React aún no refleja el carácter anterior.
     if (e.key === '[') {
       e.preventDefault();
       const { selectionStart: s, selectionEnd: e2 } = ta;
-      const charBefore = value[s - 1];
-      const charAfter  = value[s];
+      const currentVal = ta.value;          // valor real del DOM en este momento
+      const charBefore = currentVal[s - 1];
+      const charAfter  = currentVal[s];
       const hasSelection = s !== e2;
 
       if (!hasSelection && charBefore === '[' && charAfter === ']') {
         // Estamos en [|] — segundo [: convertir a [[|]]
-        // Reemplazar el ] que sigue por []
-        const newVal = value.slice(0, s) + '[]' + value.slice(s + 1);
+        const newVal = currentVal.slice(0, s) + '[]' + currentVal.slice(s + 1);
         onChange(newVal);
         requestAnimationFrame(() => {
           ta.selectionStart = ta.selectionEnd = s + 1;
           ta.focus();
         });
       } else if (!hasSelection && charBefore === '[') {
-        // Segundo [ sin ] autocerrado (ej: usuario borró el ]): insertar []]
-        const newVal = value.slice(0, s) + '[]]' + value.slice(s);
+        // Segundo [ sin ] autocerrado: insertar []]
+        const newVal = currentVal.slice(0, s) + '[]]' + currentVal.slice(s);
         onChange(newVal);
         requestAnimationFrame(() => {
           ta.selectionStart = ta.selectionEnd = s + 1;
           ta.focus();
         });
       } else {
-        // Primer [ o hay selección: comportamiento normal de autocerrado
-        const sel = hasSelection ? value.slice(s, e2) : '';
-        const newVal = value.slice(0, s) + '[' + sel + ']' + value.slice(e2);
+        // Primer [ o hay selección: autocerrado normal
+        const sel = hasSelection ? currentVal.slice(s, e2) : '';
+        const newVal = currentVal.slice(0, s) + '[' + sel + ']' + currentVal.slice(e2);
         onChange(newVal);
         requestAnimationFrame(() => {
           ta.selectionStart = s + 1;
