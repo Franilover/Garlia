@@ -1167,7 +1167,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               </div>
 
               {/* Inventory panel */}
-              <div>
+              <div style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                borderRadius: "4px",
+                background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
+                padding: "16px",
+              }}>
                 <AnimatePresence mode="wait">
                   <MotionDiv key={tab}
                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
