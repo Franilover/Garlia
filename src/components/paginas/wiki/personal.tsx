@@ -885,7 +885,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         {/* ══════════════════════════════════════
             BODY — sidebar + content
         ══════════════════════════════════════ */}
-        <div className="flex gap-6 items-start mt-6 px-4 md:px-8">
+        <div className="flex flex-col md:flex-row gap-6 items-start mt-6 px-4 md:px-8">
 
           {/* ── LEFT SIDEBAR ── */}
           <div className="w-full md:w-64 xl:w-72 shrink-0 md:sticky md:top-16 self-start flex flex-col gap-4 animate-in fade-in duration-500">
