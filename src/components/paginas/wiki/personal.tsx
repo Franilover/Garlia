@@ -68,7 +68,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     async function cargarTodo() {
       setCargando(true);
       try {
-        
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
           console.warn("[Personal] Sin sesión activa:", userError?.message);
@@ -77,7 +76,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         }
         userIdRef.current = user.id;
 
-        
         const { data: perfilData, error: perfilError } = await supabase
           .from("perfiles")
           .select("username, status, rol, avatar_url, descripcion, titulo, personaje_favorito_id, mascota_id, personajes:personaje_favorito_id(id, nombre, img_url), mascota:mascota_id(id, nombre, imagen_url)")
@@ -98,8 +96,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           mascota:               (perfilData as any)?.mascota ?? null,
         });
 
-        
-        
         if (!datosProp?.inventario_usuario?.length) {
           const { data: invData, error: invError } = await supabase
             .from("inventario_usuario")
@@ -109,7 +105,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           if (invData)  setInventario(invData as unknown as ItemInventario[]);
         }
 
-        
         const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
           supabase
             .from("descubrimientos_items")
@@ -163,7 +158,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
         setDescubrimientos(planos);
 
-        
         const { data: perfilesData } = await supabase
           .from("perfiles")
           .select("id, username, status, avatar_url")
@@ -171,7 +165,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
           .order("username");
 
         if (perfilesData && perfilesData.length > 0) {
-          
           const counts = await Promise.all(perfilesData.map(async (p: any) => {
             const [i, c, pe] = await Promise.all([
               supabase.from("descubrimientos_items").select("id", { count: "exact", head: true }).eq("perfil_id", p.id),
@@ -195,13 +188,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     }
 
     cargarTodo();
-  }, []); 
+  }, []);
 
   const misPersonajes = descubrimientos.filter(d => d.tipo === "personaje");
   const misCriaturas  = descubrimientos.filter(d => d.tipo === "criatura");
   const misItemsDesc  = descubrimientos.filter(d => d.tipo === "item");
-
-  
   const personajesConImagen = misPersonajes.filter(d => d.imagen_url);
 
   const handleSelectAvatar = async (imgUrl: string) => {
@@ -273,9 +264,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
   };
 
   const tabs = [
-    { id: "personajes", label: "Agenda",     icon: User  },
-    { id: "criaturas",  label: "Bestiario",  icon: Cat   },
-    { id: "items",      label: "Inventario", icon: Sword },
+    { id: "personajes", label: "Agenda",     icon: User,  count: misPersonajes.length },
+    { id: "criaturas",  label: "Bestiario",  icon: Cat,   count: misCriaturas.length },
+    { id: "items",      label: "Inventario", icon: Sword, count: inventario.length + misItemsDesc.length },
   ] as const;
 
   if (cargando) return (
@@ -323,7 +314,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 overflow: "hidden",
               }}
             >
-              {/* Hero imagen — más alta, con gradiente elegante */}
+              {/* Hero imagen */}
               <div className="w-full shrink-0 overflow-hidden relative"
                 style={{
                   height: modalEntidad.data.imagen_url ? "220px" : "80px",
@@ -333,12 +324,9 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   <img src={modalEntidad.data.imagen_url} alt={modalEntidad.data.nombre}
                     className="w-full h-full object-contain transition-transform duration-700 hover:scale-105" />
                 )}
-                {/* Gradiente pronunciado hacia abajo para que el nombre flote sobre la imagen */}
                 <div className="absolute inset-0" style={{
                   background: "linear-gradient(to top, var(--white-custom) 0%, color-mix(in srgb, var(--white-custom) 30%, transparent) 45%, transparent 100%)"
                 }} />
-
-                {/* Botón cerrar flotante */}
                 <button
                   onClick={() => { setModalEntidad(null); setCancionesPersonaje([]); }}
                   className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all hover:scale-110"
@@ -351,8 +339,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   }}>
                   <X size={13} />
                 </button>
-
-                {/* Nombre superpuesto sobre el gradiente */}
                 {modalEntidad.data.imagen_url && (
                   <div className="absolute bottom-0 left-0 right-0 px-6 pb-4">
                     <h2 className="font-serif italic capitalize leading-tight"
@@ -389,10 +375,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 )}
               </div>
 
-              {/* Contenido scrollable */}
               <div className="overflow-y-auto flex-1 px-6 pb-6" style={{ paddingTop: "1.25rem" }}>
-
-                {/* Nombre y tags si NO hay imagen */}
                 {!modalEntidad.data.imagen_url && (
                   <div className="mb-4">
                     <h2 className="font-serif italic capitalize leading-tight mb-2"
@@ -425,16 +408,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     </div>
                   </div>
                 )}
-
-                {/* Descripción */}
                 {modalEntidad.data.descripcion && (
                   <p className="font-serif italic leading-relaxed mb-5"
                     style={{ fontSize: "0.88rem", color: "color-mix(in srgb, var(--foreground) 68%, transparent)", lineHeight: 1.7 }}>
                     {modalEntidad.data.descripcion}
                   </p>
                 )}
-
-                {/* Divisor canciones */}
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                   <div className="flex items-center gap-1.5">
@@ -446,8 +425,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </div>
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                 </div>
-
-                {/* Canciones */}
                 {cargandoCanciones ? (
                   <div className="flex items-center gap-2 py-5 justify-center">
                     <Loader2 size={13} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
@@ -512,14 +489,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     ))}
                   </div>
                 )}
-
               </div>
             </MotionDiv>
           </>
         )}
       </AnimatePresence>
 
-      {}
+      {/* Avatar picker */}
       <AnimatePresence>
         {showAvatarPicker && (
           <>
@@ -545,7 +521,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 flexDirection: "column",
               }}
             >
-              {}
               <div className="flex items-center justify-between px-5 py-4 shrink-0"
                 style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
                 <div>
@@ -563,8 +538,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   <X size={14} />
                 </button>
               </div>
-
-              {}
               <div className="overflow-y-auto flex-1 p-4">
                 {personajesConImagen.length === 0 ? (
                   <div className="py-12 text-center">
@@ -575,7 +548,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-3">
-                    {}
                     <button
                       onClick={() => handleSelectAvatar("")}
                       className="flex flex-col items-center gap-1.5 p-2 transition-all"
@@ -595,7 +567,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         Ninguna
                       </span>
                     </button>
-
                     {personajesConImagen.map((p, i) => {
                       const isSelected = perfil?.avatar_url === p.imagen_url;
                       return (
@@ -634,7 +605,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </div>
                 )}
               </div>
-
               {savingAvatar && (
                 <div className="flex items-center justify-center gap-2 py-3 shrink-0"
                   style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
@@ -650,7 +620,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         )}
       </AnimatePresence>
 
-      {}
+      {/* Personaje favorito picker */}
       <AnimatePresence>
         {showPersonajePicker && (
           <>
@@ -728,7 +698,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         )}
       </AnimatePresence>
 
-      {}
+      {/* Mascota picker */}
       <AnimatePresence>
         {showMascotaPicker && (
           <>
@@ -806,109 +776,135 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
         )}
       </AnimatePresence>
 
-      {}
+      {/* ══════════════════════════════════════
+          MAIN LAYOUT
+      ══════════════════════════════════════ */}
+      <div className="w-full max-w-7xl mx-auto pb-20">
 
-      {}
-      {}
-      <div className="w-full max-w-7xl mx-auto px-4 md:px-8 pb-20">
+        {/* ── HERO BANNER — avatar grande con zoom, nombre superpuesto ── */}
+        <div className="relative w-full overflow-hidden animate-in fade-in duration-700"
+          style={{
+            height: "clamp(220px, 30vw, 340px)",
+            background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
+          }}>
 
-        {/* ── HUD strip ── */}
-        <div className="flex items-center gap-4 py-6 px-2">
-          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-          <div className="flex items-center gap-2 px-4 py-1.5"
+          {/* Imagen de fondo: avatar con efecto zoom-center */}
+          {perfil?.avatar_url ? (
+            <img
+              src={perfil.avatar_url}
+              alt={perfil?.username}
+              className="absolute inset-0 w-full h-full transition-transform duration-[8000ms] ease-in-out hover:scale-105"
+              style={{ objectFit: "cover", objectPosition: "center top", filter: "blur(0px)" }}
+            />
+          ) : (
+            /* Sin avatar: patrón decorativo de fondo */
+            <div className="absolute inset-0 flex items-center justify-center"
+              style={{
+                background: `repeating-linear-gradient(
+                  45deg,
+                  color-mix(in srgb, var(--primary) 3%, transparent) 0px,
+                  color-mix(in srgb, var(--primary) 3%, transparent) 1px,
+                  transparent 1px,
+                  transparent 28px
+                )`,
+              }}>
+              <User size={72} style={{ color: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+            </div>
+          )}
+
+          {/* Gradiente oscuro en la parte inferior para el texto */}
+          <div className="absolute inset-0" style={{
+            background: "linear-gradient(to top, color-mix(in srgb, var(--bg-main) 90%, transparent) 0%, color-mix(in srgb, var(--bg-main) 40%, transparent) 40%, transparent 75%)"
+          }} />
+
+          {/* Botón cambiar avatar — flotante arriba a la derecha */}
+          <button
+            onClick={() => setShowAvatarPicker(true)}
+            className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-3 py-1.5 transition-all hover:opacity-90"
             style={{
+              background: "color-mix(in srgb, var(--white-custom) 80%, transparent)",
               border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+              borderRadius: "var(--radius-btn)",
+              backdropFilter: "blur(8px)",
+              color: "color-mix(in srgb, var(--primary) 65%, transparent)",
             }}>
-            <Star size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-            <span className="text-[8px] font-black uppercase tracking-[0.28em] tabular-nums select-none"
-              style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-              {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length} descubrimientos
-            </span>
-            <Star size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+            <User size={10} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Cambiar foto</span>
+          </button>
+
+          {/* Contenido inferior del banner: título + nombre + status */}
+          <div className="absolute bottom-0 left-0 right-0 px-6 md:px-10 pb-6 flex items-end justify-between gap-4">
+            <div className="flex flex-col gap-1.5">
+              {/* Título / clase */}
+              {perfil?.titulo && (
+                <div className="inline-flex w-fit items-center gap-1.5 px-2.5 py-1"
+                  style={{
+                    border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                    borderRadius: "2px",
+                    background: "color-mix(in srgb, var(--white-custom) 70%, transparent)",
+                    backdropFilter: "blur(6px)",
+                  }}>
+                  <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }} />
+                  <span className="text-[8px] font-black uppercase tracking-[0.22em]"
+                    style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                    {perfil.titulo}
+                  </span>
+                </div>
+              )}
+
+              {/* Username — grande y protagónico */}
+              <h1 className="font-serif italic leading-none capitalize drop-shadow-sm"
+                style={{ fontSize: "clamp(1.8rem, 5vw, 3rem)", color: "var(--primary)", letterSpacing: "0.01em" }}>
+                {perfil?.username ?? "…"}
+              </h1>
+
+              {/* Status */}
+              <p className="font-serif italic"
+                style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+                {perfil?.status ?? "Enciclopedia"}
+              </p>
+            </div>
+
+            {/* Total descubrimientos — badge esquina derecha */}
+            <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 mb-1"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
+                borderRadius: "2px",
+                background: "color-mix(in srgb, var(--white-custom) 70%, transparent)",
+                backdropFilter: "blur(8px)",
+              }}>
+              <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+              <span className="text-[9px] font-black uppercase tracking-[0.22em] tabular-nums"
+                style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                {inventario.length + misItemsDesc.length + misCriaturas.length + misPersonajes.length}
+              </span>
+              <span className="text-[7px] font-black uppercase tracking-[0.2em] hidden sm:inline"
+                style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
+                descubrimientos
+              </span>
+            </div>
           </div>
-          <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
         </div>
 
-        {}
+        {/* ══════════════════════════════════════
+            BODY — sidebar + content
+        ══════════════════════════════════════ */}
+        <div className="flex gap-6 items-start mt-6 px-4 md:px-8">
 
-        {}
-        <div className="flex flex-col md:flex-row gap-5 mb-6">
+          {/* ── LEFT SIDEBAR ── */}
+          <div className="w-full md:w-64 xl:w-72 shrink-0 md:sticky md:top-16 self-start flex flex-col gap-4 animate-in fade-in duration-500">
 
-          {/* ── LEFT: Character Sheet ── */}
-          <div className="w-full md:w-60 xl:w-68 shrink-0 md:sticky md:top-16 self-start animate-in fade-in duration-500">
-            <div className="mx-4 md:mx-0 relative overflow-hidden"
+            {/* ── PANEL UNIFICADO: Stats + Bio + Favoritos ── */}
+            <div className="overflow-hidden"
               style={{
                 background: "var(--white-custom)",
                 borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               }}>
 
-              {/* Avatar zone — redesigned: photo left + name/class right on desktop, stacked on mobile */}
-              <div className="relative overflow-hidden"
-                style={{
-                  background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
-                  borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                }}>
-
-                {/* Main layout: avatar + text side by side */}
-                <div className="flex items-end gap-0">
-
-                  {/* Avatar — tall, flush left */}
-                  <button onClick={() => setShowAvatarPicker(true)}
-                    className="group relative shrink-0 overflow-hidden transition-all duration-200"
-                    style={{
-                      width: 110, height: 130,
-                      background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
-                      borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    }}
-                    title="Cambiar imagen">
-                    {perfil?.avatar_url
-                      ? <img src={perfil.avatar_url} alt={perfil?.username} className="w-full h-full object-contain" />
-                      : <User size={40} className="m-auto mt-8" style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
-                    <div className="absolute inset-0 flex items-end justify-center pb-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ background: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                      <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--btn-text)" }}>Cambiar</span>
-                    </div>
-                  </button>
-
-                  {/* Name + class */}
-                  <div className="flex-1 min-w-0 px-4 pb-4 pt-5 flex flex-col justify-end gap-1">
-                    {/* Título / clase */}
-                    {perfil?.titulo && (
-                      <div className="inline-flex w-fit items-center gap-1 px-2 py-0.5 mb-1"
-                        style={{
-                          border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                          borderRadius: "2px",
-                          background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                        }}>
-                        <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                        <span className="text-[7px] font-black uppercase tracking-[0.2em]"
-                          style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                          {perfil.titulo}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Username — big */}
-                    <h1 className="font-serif italic leading-none capitalize"
-                      style={{ fontSize: "1.55rem", color: "var(--primary)", letterSpacing: "0.01em" }}>
-                      {perfil?.username ?? "…"}
-                    </h1>
-
-                    {/* Status */}
-                    <p className="font-serif italic text-[10px] mt-0.5"
-                      style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
-                      {perfil?.status ?? "Enciclopedia"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               {/* Stats HUD */}
-              <div className="px-4 py-4 space-y-3">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="px-5 pt-5 pb-4">
+                <div className="flex items-center gap-2 mb-4">
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                   <p className="text-[7px] font-black uppercase tracking-[0.3em]"
                     style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
@@ -916,132 +912,128 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </p>
                   <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
                 </div>
-                {[
-                  { icon: <User size={10} />,  label: "Amigos",   count: misPersonajes.length, max: 20 },
-                  { icon: <Cat size={10} />,   label: "Criaturas", count: misCriaturas.length, max: 30 },
-                  { icon: <Sword size={10} />, label: "Objetos",   count: inventario.length + misItemsDesc.length, max: 50 },
-                ].map(({ icon, label, count, max }) => (
-                  <div key={label}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5"
-                        style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                        {icon}
-                        <span className="text-[8px] font-black uppercase tracking-wider">{label}</span>
+                <div className="space-y-3.5">
+                  {[
+                    { icon: <User size={10} />,  label: "Amigos",   count: misPersonajes.length, max: 20 },
+                    { icon: <Cat size={10} />,   label: "Criaturas", count: misCriaturas.length, max: 30 },
+                    { icon: <Sword size={10} />, label: "Objetos",   count: inventario.length + misItemsDesc.length, max: 50 },
+                  ].map(({ icon, label, count, max }) => (
+                    <div key={label}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5"
+                          style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                          {icon}
+                          <span className="text-[8px] font-black uppercase tracking-wider">{label}</span>
+                        </div>
+                        <span className="text-[13px] font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                          {count}
+                        </span>
                       </div>
-                      <span className="text-[12px] font-black tabular-nums font-bold" style={{ color: "var(--primary)" }}>
-                        {count}
-                      </span>
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 10 }).map((_, i) => (
+                          <div key={i} className="flex-1 h-1 transition-all duration-700"
+                            style={{
+                              background: i < Math.round((count / max) * 10)
+                                ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+                                : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                              borderRadius: "1px",
+                            }} />
+                        ))}
+                      </div>
                     </div>
-                    {/* Segmented progress bar */}
-                    <div className="flex gap-0.5">
-                      {Array.from({ length: 10 }).map((_, i) => (
-                        <div key={i} className="flex-1 h-1 transition-all duration-700"
-                          style={{
-                            background: i < Math.round((count / max) * 10)
-                              ? "color-mix(in srgb, var(--primary) 55%, transparent)"
-                              : "color-mix(in srgb, var(--primary) 8%, transparent)",
-                            borderRadius: "1px",
-                          }} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* ── RIGHT: Bio + Favorites ── */}
-          <div className="flex-1 min-w-0 flex flex-col gap-4 mx-4 md:mx-0 md:self-stretch">
-
-            {/* Bio panel */}
-            <div className="relative overflow-hidden" style={{
-              background: "var(--white-custom)",
-              borderRadius: "var(--radius-card)",
-              border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-            }}>
-
-              {/* Panel header */}
-              <div className="flex items-center justify-between px-5 pt-4 pb-3"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                <div className="flex items-center gap-2">
-                  <Star size={9} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                  <p className="text-[9px] font-black uppercase tracking-[0.22em]"
-                    style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                    Sobre mí
-                  </p>
+                  ))}
                 </div>
-                {!editingDesc ? (
-                  <button
-                    onClick={() => { setDescDraft(perfil?.descripcion ?? ''); setEditingDesc(true); }}
-                    className="text-[8px] font-black uppercase tracking-wider px-3 py-1.5 transition-all hover:opacity-80"
-                    style={{
-                      color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                      borderRadius: "2px",
-                      border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                      background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                    }}>
-                    Editar
-                  </button>
-                ) : (
+              </div>
+
+              {/* Divider */}
+              <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+
+              {/* Bio / Sobre mí */}
+              <div>
+                <div className="flex items-center justify-between px-5 pt-4 pb-2">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setEditingDesc(false)}
-                      className="text-[8px] font-black uppercase tracking-wider px-2 py-1"
-                      style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                      Cancelar
-                    </button>
-                    <button onClick={handleSaveDesc} disabled={savingDesc}
-                      className="text-[8px] font-black uppercase tracking-wider px-3 py-1.5 disabled:opacity-50 transition-opacity"
-                      style={{ background: "var(--primary)", color: "var(--btn-text)", borderRadius: "2px" }}>
-                      {savingDesc ? "Guardando…" : "Guardar"}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="px-5 py-4">
-                {editingDesc ? (
-                  <textarea
-                    value={descDraft}
-                    onChange={e => setDescDraft(e.target.value)}
-                    autoFocus rows={4}
-                    placeholder="Escribe algo sobre ti…"
-                    className="w-full bg-transparent outline-none resize-none font-serif italic leading-relaxed"
-                    style={{ fontSize: "0.9rem", color: "var(--foreground)", caretColor: "var(--primary)" }}
-                  />
-                ) : perfil?.descripcion ? (
-                  <p className="font-serif italic leading-relaxed"
-                    style={{ fontSize: "0.9rem", color: "color-mix(in srgb, var(--foreground) 75%, transparent)" }}>
-                    {perfil.descripcion}
-                  </p>
-                ) : (
-                  <p className="font-serif italic"
-                    style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                    "Sin descripción aún… pulsa Editar."
-                  </p>
-                )}
-              </div>
-
-              {/* Favoritos inline */}
-              <div className="grid grid-cols-2"
-                style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-
-                {/* Personaje favorito — toda la celda es el botón */}
-                <button
-                  onClick={() => setShowPersonajePicker(true)}
-                  className="text-left px-5 py-4 transition-colors hover:bg-primary/5 group"
-                  style={{ borderRadius: 0 }}
-                >
-                  <div className="flex items-center gap-1.5 mb-3">
-                    <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
-                    <p className="text-[8px] font-black uppercase tracking-[0.2em]"
-                      style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                      Personaje Favorito
+                    <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                    <p className="text-[8px] font-black uppercase tracking-[0.22em]"
+                      style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                      Sobre mí
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  {!editingDesc ? (
+                    <button
+                      onClick={() => { setDescDraft(perfil?.descripcion ?? ''); setEditingDesc(true); }}
+                      className="text-[7px] font-black uppercase tracking-wider px-2.5 py-1 transition-all hover:opacity-80"
+                      style={{
+                        color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                        borderRadius: "2px",
+                        border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                      }}>
+                      Editar
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => setEditingDesc(false)}
+                        className="text-[7px] font-black uppercase tracking-wider px-2 py-1"
+                        style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                        Cancelar
+                      </button>
+                      <button onClick={handleSaveDesc} disabled={savingDesc}
+                        className="text-[7px] font-black uppercase tracking-wider px-2.5 py-1 disabled:opacity-50 transition-opacity"
+                        style={{ background: "var(--primary)", color: "var(--btn-text)", borderRadius: "2px" }}>
+                        {savingDesc ? "…" : "Guardar"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-5 pb-5">
+                  {editingDesc ? (
+                    <textarea
+                      value={descDraft}
+                      onChange={e => setDescDraft(e.target.value)}
+                      autoFocus rows={4}
+                      placeholder="Escribe algo sobre ti…"
+                      className="w-full bg-transparent outline-none resize-none font-serif italic leading-relaxed"
+                      style={{ fontSize: "0.85rem", color: "var(--foreground)", caretColor: "var(--primary)" }}
+                    />
+                  ) : perfil?.descripcion ? (
+                    <p className="font-serif italic leading-relaxed"
+                      style={{ fontSize: "0.85rem", color: "color-mix(in srgb, var(--foreground) 70%, transparent)", lineHeight: 1.65 }}>
+                      {perfil.descripcion}
+                    </p>
+                  ) : (
+                    <p className="font-serif italic"
+                      style={{ fontSize: "0.82rem", color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                      "Sin descripción aún… pulsa Editar."
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+
+              {/* Favoritos */}
+              <div className="grid grid-cols-2">
+                {/* Personaje favorito */}
+                <button
+                  onClick={() => setShowPersonajePicker(true)}
+                  className="text-left px-4 py-4 transition-colors group"
+                  style={{ borderRadius: 0 }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                >
+                  <div className="flex items-center gap-1 mb-2.5">
+                    <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+                    <p className="text-[7px] font-black uppercase tracking-[0.18em]"
+                      style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
+                      Fav. personaje
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2.5">
                     {perfil?.personaje_favorito ? (
                       <>
-                        <div className="w-11 h-11 shrink-0 overflow-hidden"
+                        <div className="w-10 h-10 shrink-0 overflow-hidden"
                           style={{
                             borderRadius: "var(--radius-btn)",
                             background: "color-mix(in srgb, var(--primary) 4%, transparent)",
@@ -1049,42 +1041,44 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           }}>
                           {perfil.personaje_favorito.img_url
                             ? <img src={perfil.personaje_favorito.img_url} alt={perfil.personaje_favorito.nombre} className="w-full h-full object-contain" />
-                            : <User size={18} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
+                            : <User size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
                         </div>
-                        <p className="font-serif italic text-[12px] leading-tight capitalize"
+                        <p className="font-serif italic text-[11px] leading-tight capitalize"
                           style={{ color: "var(--primary)" }}>
                           {perfil.personaje_favorito.nombre}
                         </p>
                       </>
                     ) : (
-                      <p className="font-serif italic text-[10px]"
-                        style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                        Ninguno elegido…
+                      <p className="font-serif italic text-[9px]"
+                        style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>
+                        Ninguno…
                       </p>
                     )}
                   </div>
                 </button>
 
-                {/* Mascota — toda la celda es el botón */}
+                {/* Mascota */}
                 <button
                   onClick={() => setShowMascotaPicker(true)}
-                  className="text-left px-5 py-4 transition-colors hover:bg-primary/5 group"
+                  className="text-left px-4 py-4 transition-colors group"
                   style={{
                     borderLeft: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                     borderRadius: 0,
                   }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                 >
-                  <div className="flex items-center gap-1.5 mb-3">
-                    <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
-                    <p className="text-[8px] font-black uppercase tracking-[0.2em]"
-                      style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                  <div className="flex items-center gap-1 mb-2.5">
+                    <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />
+                    <p className="text-[7px] font-black uppercase tracking-[0.18em]"
+                      style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
                       Mascota
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     {perfil?.mascota ? (
                       <>
-                        <div className="w-11 h-11 shrink-0 overflow-hidden"
+                        <div className="w-10 h-10 shrink-0 overflow-hidden"
                           style={{
                             borderRadius: "var(--radius-btn)",
                             background: "color-mix(in srgb, var(--primary) 4%, transparent)",
@@ -1092,22 +1086,21 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           }}>
                           {perfil.mascota.imagen_url
                             ? <img src={perfil.mascota.imagen_url} alt={perfil.mascota.nombre} className="w-full h-full object-contain" />
-                            : <Cat size={18} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
+                            : <Cat size={16} className="m-auto mt-1.5" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />}
                         </div>
-                        <p className="font-serif italic text-[12px] leading-tight capitalize"
+                        <p className="font-serif italic text-[11px] leading-tight capitalize"
                           style={{ color: "var(--primary)" }}>
                           {perfil.mascota.nombre}
                         </p>
                       </>
                     ) : (
-                      <p className="font-serif italic text-[10px]"
-                        style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                        Ninguna elegida…
+                      <p className="font-serif italic text-[9px]"
+                        style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>
+                        Ninguna…
                       </p>
                     )}
                   </div>
                 </button>
-
               </div>
             </div>
 
@@ -1144,223 +1137,365 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </div>
               </div>
             )}
-
           </div>
-        </div>
 
-        {/* ── Collection grid + sidebar ── */}
-        <div className="flex gap-6 items-start">
+          {/* ── MAIN CONTENT: Collection grid + desktop sidebar ── */}
+          <div className="flex gap-6 flex-1 min-w-0 items-start">
 
-          {/* Grid area — tinted background changes per active tab, like a game inventory */}
-          <div className="flex-1 min-w-0 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+            {/* Grid area */}
+            <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
-            {/* Mobile tabs — dentro del mismo contenedor que el panel para que el borde se fusione */}
-            <div className="flex md:hidden">
-              {tabs.map(t => {
-                const isActive = tab === t.id;
-                return (
-                  <button key={t.id} onClick={() => setTab(t.id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
-                    style={{
-                      background: isActive
-                        ? tab === "items"
-                          ? "color-mix(in srgb, var(--primary) 5%, var(--bg-main))"
-                          : tab === "criaturas"
-                          ? "color-mix(in srgb, var(--primary) 6%, var(--bg-main))"
-                          : "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
-                        : "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
-                      color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      borderBottom: isActive ? "1px solid transparent" : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                      borderRadius: "var(--radius-btn) var(--radius-btn) 0 0",
-                      marginBottom: isActive ? "-1px" : "0",
-                      zIndex: isActive ? 1 : 0,
-                      position: "relative",
-                    }}>
-                    {isActive && <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />}
-                    <t.icon size={11} />
-                    <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Desktop tabs */}
-            <div className="hidden md:flex items-center justify-between mb-0">
-              <div className="flex items-end gap-0"
-                style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+              {/* ── TABS — rediseñados, más llamativos ── */}
+              <div className="flex items-stretch gap-2 mb-4">
                 {tabs.map(t => {
                   const isActive = tab === t.id;
                   return (
-                    <button key={t.id} onClick={() => setTab(t.id)}
-                      className="relative flex items-center gap-2 px-5 py-2.5 transition-all duration-200"
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className="relative flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 px-2 transition-all duration-200 overflow-hidden"
                       style={{
-                        background: isActive ? "var(--white-custom)" : "transparent",
-                        color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                        borderTop: isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
-                        borderLeft: isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
-                        borderRight: isActive ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" : "1px solid transparent",
-                        borderBottom: isActive ? "1px solid var(--white-custom)" : "1px solid transparent",
-                        borderRadius: "4px 4px 0 0",
-                        marginBottom: isActive ? "-1px" : "0",
+                        background: isActive
+                          ? "var(--white-custom)"
+                          : "color-mix(in srgb, var(--primary) 2%, var(--white-custom))",
+                        color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                        border: isActive
+                          ? "1px solid color-mix(in srgb, var(--primary) 18%, transparent)"
+                          : "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                        borderRadius: "var(--radius-card)",
+                        boxShadow: isActive
+                          ? "0 2px 12px color-mix(in srgb, var(--primary) 8%, transparent)"
+                          : "none",
                       }}>
-                      {isActive && <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />}
-                      <t.icon size={11} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">{t.label}</span>
+
+                      {/* Línea activa en la parte superior */}
+                      {isActive && (
+                        <div className="absolute top-0 left-4 right-4 h-0.5"
+                          style={{
+                            background: "var(--primary)",
+                            borderRadius: "0 0 2px 2px",
+                          }} />
+                      )}
+
+                      <t.icon size={14} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
+
+                      {/* Contador de entradas */}
+                      <div className="flex items-center gap-0.5 px-2 py-0.5 mt-0.5"
+                        style={{
+                          background: isActive
+                            ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                            : "color-mix(in srgb, var(--primary) 4%, transparent)",
+                          borderRadius: "2px",
+                        }}>
+                        <span className="text-[8px] font-black tabular-nums"
+                          style={{ color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                          {t.count}
+                        </span>
+                      </div>
                     </button>
                   );
                 })}
               </div>
 
-              <div className="flex items-center gap-1.5 px-3 py-1.5"
-                style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  borderRadius: "2px",
-                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                }}>
-                <Star size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                <span className="text-[8px] font-black uppercase tracking-[0.22em] tabular-nums"
-                  style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
-                  {tab === "items" ? inventario.length + misItemsDesc.length : tab === "criaturas" ? misCriaturas.length : misPersonajes.length} entradas
-                </span>
-              </div>
-            </div>
-
-            {/* Inventory panel — background tinted per tab */}
-            <div
-              style={{
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                borderTop: "none",
-                borderRadius: "0 0 var(--radius-card) var(--radius-card)",
-                background: tab === "items"
-                  ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
-                  : tab === "criaturas"
-                  ? "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
-                  : "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
-                transition: "background 0.25s ease",
-                padding: "16px",
-              }}>
-              <AnimatePresence mode="wait">
-                <MotionDiv key={tab}
-                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.16 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-
-                  {tab === "items" && (
-                    <>
-                      {inventario.map((item, i) => (
-                        <EntidadCard key={`inv-${i}`} imagen={item.items.imagen_url} nombre={item.items.nombre}
-                          sub={item.items.categoria} icono={<Sword size={20} />}
-                          onClick={() => setModalEntidad({ tipo: "item_inv", data: item })} />
-                      ))}
-                      {misItemsDesc.map((d, i) => (
-                        <EntidadCard key={`desc-${i}`} imagen={d.imagen_url} nombre={d.nombre ?? "Objeto"}
-                          sub={d.categoria ?? "Item"} icono={<Sword size={20} />}
-                          onClick={() => setModalEntidad({ tipo: "item", data: d })} />
-                      ))}
-                      {inventario.length === 0 && misItemsDesc.length === 0 && <EmptyTab label="Sin items registrados aún" />}
-                    </>
-                  )}
-
-                  {tab === "criaturas" && (
-                    misCriaturas.length > 0
-                      ? misCriaturas.map((d, i) => (
-                        <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Criatura"}
-                          icono={<Cat size={20} />} onClick={() => setModalEntidad({ tipo: "criatura", data: d })} />
-                      ))
-                      : <EmptyTab label="Sin registros en el bestiario" />
-                  )}
-
-                  {tab === "personajes" && (
-                    misPersonajes.length > 0
-                      ? misPersonajes.map((d, i) => (
-                        <EntidadCard key={i} imagen={d.imagen_url} nombre={d.nombre ?? "Contacto"}
-                          icono={<User size={20} />} onClick={() => handleOpenPersonajeModal(d)} />
-                      ))
-                      : <EmptyTab label="Sin registros en la agenda" />
-                  )}
-
-                </MotionDiv>
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* Desktop sidebar - Exploradores */}
-          {otrosPerfiles.length > 0 && (
-            <aside className="hidden lg:flex flex-col gap-0 w-44 xl:w-52 shrink-0 sticky top-24 pt-4">
-
-              {/* Sidebar header */}
-              <div className="flex items-center gap-2 mb-3 px-1">
-                <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                <div className="flex items-center gap-1">
-                  <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
-                  <p className="text-[7px] font-black uppercase tracking-[0.3em]"
-                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                    Exploradores
-                  </p>
-                </div>
-                <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-              </div>
-
-              {/* Explorer cards — flush, divided by lines */}
-              <div className="overflow-hidden"
+              {/* Inventory panel */}
+              <div
                 style={{
                   border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                   borderRadius: "var(--radius-card)",
-                  background: "var(--white-custom)",
+                  background: tab === "items"
+                    ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
+                    : tab === "criaturas"
+                    ? "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
+                    : "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
+                  transition: "background 0.25s ease",
+                  padding: "20px",
                 }}>
-                {otrosPerfiles.map((p, idx) => (
-                  <Link key={p.id} href={`/wiki/personal/${p.username}`}>
-                    <MotionDiv whileHover={{ x: 2 }}
-                      className="flex items-center gap-2.5 px-3 py-3 cursor-pointer transition-colors"
-                      style={{
-                        borderBottom: idx < otrosPerfiles.length - 1
-                          ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
-                          : "none",
-                      }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+                <AnimatePresence mode="wait">
+                  <MotionDiv key={tab}
+                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.16 }}
+                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
-                      {/* Avatar */}
-                      <div className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center relative"
-                        style={{
-                          borderRadius: "2px",
-                          background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                        }}>
-                        {p.avatar_url
-                          ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
-                          : <User size={11} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
-                      </div>
+                    {tab === "items" && (
+                      <>
+                        {inventario.map((item, i) => (
+                          <button
+                            key={`inv-${i}`}
+                            onClick={() => setModalEntidad({ tipo: "item_inv", data: item })}
+                            className="group relative overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5"
+                            style={{
+                              background: "var(--white-custom)",
+                              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                              borderRadius: "var(--radius-card)",
+                              boxShadow: "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)",
+                            }}
+                            onMouseEnter={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)";
+                            }}
+                            onMouseLeave={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)";
+                            }}>
+                            {/* Imagen — zona grande con zoom on hover */}
+                            <div className="relative overflow-hidden w-full"
+                              style={{
+                                height: "120px",
+                                background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
+                                borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+                              }}>
+                              {item.items.imagen_url
+                                ? <img src={item.items.imagen_url} alt={item.items.nombre}
+                                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                                    style={{ objectPosition: "center" }} />
+                                : <Sword size={28} className="absolute inset-0 m-auto"
+                                    style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
+                            </div>
+                            {/* Info */}
+                            <div className="px-3 py-3">
+                              <p className="font-serif italic text-[12px] leading-tight capitalize truncate"
+                                style={{ color: "var(--primary)" }}>
+                                {item.items.nombre}
+                              </p>
+                              {item.items.categoria && (
+                                <p className="text-[8px] font-black uppercase tracking-wider mt-1 truncate"
+                                  style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
+                                  {item.items.categoria}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                        {misItemsDesc.map((d, i) => (
+                          <button
+                            key={`desc-${i}`}
+                            onClick={() => setModalEntidad({ tipo: "item", data: d })}
+                            className="group relative overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5"
+                            style={{
+                              background: "var(--white-custom)",
+                              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                              borderRadius: "var(--radius-card)",
+                              boxShadow: "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)",
+                            }}
+                            onMouseEnter={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)";
+                            }}
+                            onMouseLeave={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)";
+                            }}>
+                            <div className="relative overflow-hidden w-full"
+                              style={{
+                                height: "120px",
+                                background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
+                                borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+                              }}>
+                              {d.imagen_url
+                                ? <img src={d.imagen_url} alt={d.nombre}
+                                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                                    style={{ objectPosition: "center" }} />
+                                : <Sword size={28} className="absolute inset-0 m-auto"
+                                    style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
+                            </div>
+                            <div className="px-3 py-3">
+                              <p className="font-serif italic text-[12px] leading-tight capitalize truncate"
+                                style={{ color: "var(--primary)" }}>
+                                {d.nombre ?? "Objeto"}
+                              </p>
+                              {d.categoria && (
+                                <p className="text-[8px] font-black uppercase tracking-wider mt-1 truncate"
+                                  style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
+                                  {d.categoria}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                        {inventario.length === 0 && misItemsDesc.length === 0 && <EmptyTab label="Sin items registrados aún" />}
+                      </>
+                    )}
 
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black uppercase tracking-tight truncate capitalize"
-                          style={{ color: "var(--primary)" }}>{p.username}</p>
-                        {/* mini stat row */}
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {[
-                            { icon: <Sword size={6} />, n: p.items_count },
-                            { icon: <Cat size={6} />, n: p.criaturas_count },
-                            { icon: <User size={6} />, n: p.personajes_count }
-                          ].map(({ icon, n }, i) => (
-                            <span key={i} className="flex items-center gap-0.5 text-[7px] font-black tabular-nums"
-                              style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                              {icon}{n}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+                    {tab === "criaturas" && (
+                      misCriaturas.length > 0
+                        ? misCriaturas.map((d, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setModalEntidad({ tipo: "criatura", data: d })}
+                            className="group relative overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5"
+                            style={{
+                              background: "var(--white-custom)",
+                              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                              borderRadius: "var(--radius-card)",
+                              boxShadow: "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)",
+                            }}
+                            onMouseEnter={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)";
+                            }}
+                            onMouseLeave={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)";
+                            }}>
+                            <div className="relative overflow-hidden w-full"
+                              style={{
+                                height: "120px",
+                                background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
+                                borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+                              }}>
+                              {d.imagen_url
+                                ? <img src={d.imagen_url} alt={d.nombre}
+                                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                                    style={{ objectPosition: "center" }} />
+                                : <Cat size={28} className="absolute inset-0 m-auto"
+                                    style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
+                            </div>
+                            <div className="px-3 py-3">
+                              <p className="font-serif italic text-[12px] leading-tight capitalize truncate"
+                                style={{ color: "var(--primary)" }}>
+                                {d.nombre ?? "Criatura"}
+                              </p>
+                              {d.habitat && (
+                                <p className="text-[8px] font-black uppercase tracking-wider mt-1 truncate"
+                                  style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
+                                  {d.habitat}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                        ))
+                        : <EmptyTab label="Sin registros en el bestiario" />
+                    )}
 
-                      {/* Arrow indicator */}
-                      <span className="text-[8px] shrink-0"
-                        style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>›</span>
-                    </MotionDiv>
-                  </Link>
-                ))}
+                    {tab === "personajes" && (
+                      misPersonajes.length > 0
+                        ? misPersonajes.map((d, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleOpenPersonajeModal(d)}
+                            className="group relative overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5"
+                            style={{
+                              background: "var(--white-custom)",
+                              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                              borderRadius: "var(--radius-card)",
+                              boxShadow: "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)",
+                            }}
+                            onMouseEnter={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 22%, transparent)";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)";
+                            }}
+                            onMouseLeave={e => {
+                              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 10%, transparent)";
+                              (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 6px color-mix(in srgb, var(--primary) 5%, transparent)";
+                            }}>
+                            <div className="relative overflow-hidden w-full"
+                              style={{
+                                height: "120px",
+                                background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
+                                borderBottom: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+                              }}>
+                              {d.imagen_url
+                                ? <img src={d.imagen_url} alt={d.nombre}
+                                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                                    style={{ objectPosition: "center" }} />
+                                : <User size={28} className="absolute inset-0 m-auto"
+                                    style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />}
+                            </div>
+                            <div className="px-3 py-3">
+                              <p className="font-serif italic text-[12px] leading-tight capitalize truncate"
+                                style={{ color: "var(--primary)" }}>
+                                {d.nombre ?? "Contacto"}
+                              </p>
+                              {(d.reino || d.especie) && (
+                                <p className="text-[8px] font-black uppercase tracking-wider mt-1 truncate"
+                                  style={{ color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
+                                  {d.reino ?? d.especie}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                        ))
+                        : <EmptyTab label="Sin registros en la agenda" />
+                    )}
+
+                  </MotionDiv>
+                </AnimatePresence>
               </div>
-            </aside>
-          )}
+            </div>
 
+            {/* Desktop sidebar - Exploradores */}
+            {otrosPerfiles.length > 0 && (
+              <aside className="hidden lg:flex flex-col gap-0 w-44 xl:w-52 shrink-0 sticky top-24 pt-0">
+
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                  <div className="flex items-center gap-1">
+                    <Star size={7} style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }} />
+                    <p className="text-[7px] font-black uppercase tracking-[0.3em]"
+                      style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                      Exploradores
+                    </p>
+                  </div>
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                </div>
+
+                <div className="overflow-hidden"
+                  style={{
+                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    borderRadius: "var(--radius-card)",
+                    background: "var(--white-custom)",
+                  }}>
+                  {otrosPerfiles.map((p, idx) => (
+                    <Link key={p.id} href={`/wiki/personal/${p.username}`}>
+                      <MotionDiv whileHover={{ x: 2 }}
+                        className="flex items-center gap-2.5 px-3 py-3 cursor-pointer transition-colors"
+                        style={{
+                          borderBottom: idx < otrosPerfiles.length - 1
+                            ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
+                            : "none",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, transparent)"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+
+                        <div className="w-7 h-7 shrink-0 overflow-hidden flex items-center justify-center relative"
+                          style={{
+                            borderRadius: "2px",
+                            background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+                            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                          }}>
+                          {p.avatar_url
+                            ? <img src={p.avatar_url} alt={p.username} className="w-full h-full object-contain" />
+                            : <User size={11} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }} />}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-black uppercase tracking-tight truncate capitalize"
+                            style={{ color: "var(--primary)" }}>{p.username}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {[
+                              { icon: <Sword size={6} />, n: p.items_count },
+                              { icon: <Cat size={6} />, n: p.criaturas_count },
+                              { icon: <User size={6} />, n: p.personajes_count }
+                            ].map(({ icon, n }, i) => (
+                              <span key={i} className="flex items-center gap-0.5 text-[7px] font-black tabular-nums"
+                                style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                                {icon}{n}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <span className="text-[8px] shrink-0"
+                          style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>›</span>
+                      </MotionDiv>
+                    </Link>
+                  ))}
+                </div>
+              </aside>
+            )}
+
+          </div>
         </div>
 
       </div>
