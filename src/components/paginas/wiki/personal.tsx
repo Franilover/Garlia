@@ -1141,111 +1141,33 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             {/* Grid area */}
             <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
 
-              {/* ── TABS — Estilo mochila RPG ── */}
-              <div className="relative mb-0">
-                {/* Correa superior de la mochila */}
-                <div className="flex items-end gap-0" style={{ position: "relative", zIndex: 2 }}>
-                  {tabs.map((t, idx) => {
-                    const isActive = tab === t.id;
-                    const tabColors: Record<string, { bg: string; activeBg: string; accent: string; icon: string }> = {
-                      personajes: {
-                        bg: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
-                        activeBg: "var(--white-custom)",
-                        accent: "color-mix(in srgb, var(--primary) 70%, transparent)",
-                        icon: "color-mix(in srgb, var(--primary) 55%, transparent)",
-                      },
-                      criaturas: {
-                        bg: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
-                        activeBg: "var(--white-custom)",
-                        accent: "color-mix(in srgb, var(--primary) 70%, transparent)",
-                        icon: "color-mix(in srgb, var(--primary) 55%, transparent)",
-                      },
-                      items: {
-                        bg: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
-                        activeBg: "var(--white-custom)",
-                        accent: "color-mix(in srgb, var(--primary) 70%, transparent)",
-                        icon: "color-mix(in srgb, var(--primary) 55%, transparent)",
-                      },
-                    };
-                    const colors = tabColors[t.id];
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => setTab(t.id)}
-                        className="relative flex flex-col items-center justify-end gap-1 px-4 transition-all duration-200 overflow-hidden"
-                        style={{
-                          paddingTop: isActive ? "14px" : "10px",
-                          paddingBottom: isActive ? "14px" : "10px",
-                          minWidth: "80px",
-                          background: isActive ? colors.activeBg : colors.bg,
-                          color: isActive ? colors.accent : "color-mix(in srgb, var(--primary) 28%, transparent)",
-                          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                          borderBottom: isActive ? `1px solid ${colors.activeBg}` : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                          borderRadius: "6px 6px 0 0",
-                          marginRight: idx < tabs.length - 1 ? "-1px" : 0,
-                          zIndex: isActive ? 3 : 1,
-                          boxShadow: isActive
-                            ? "0 -3px 10px color-mix(in srgb, var(--primary) 8%, transparent), inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent)"
-                            : "none",
-                          transform: isActive ? "translateY(1px)" : "translateY(0)",
-                        }}>
-                        {/* Tachuelas decorativas */}
-                        <div className="absolute top-1.5 left-2 w-1 h-1 rounded-full"
-                          style={{ background: isActive ? "color-mix(in srgb, var(--primary) 18%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-                        <div className="absolute top-1.5 right-2 w-1 h-1 rounded-full"
-                          style={{ background: isActive ? "color-mix(in srgb, var(--primary) 18%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
-
-                        {/* Icono con badge de cantidad */}
-                        <div className="relative">
-                          <div className="p-1.5 rounded"
-                            style={{
-                              background: isActive
-                                ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                                : "color-mix(in srgb, var(--primary) 5%, transparent)",
-                              border: `1px solid ${isActive ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}`,
-                            }}>
-                            <t.icon size={14} />
-                          </div>
-                          {/* Badge contador */}
-                          {t.count > 0 && (
-                            <div className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center px-0.5"
-                              style={{
-                                background: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                                borderRadius: "3px",
-                                border: `1px solid ${isActive ? "color-mix(in srgb, var(--primary) 30%, transparent)" : "color-mix(in srgb, var(--primary) 15%, transparent)"}`,
-                              }}>
-                              <span className="text-[7px] font-black tabular-nums leading-none"
-                                style={{ color: isActive ? "var(--btn-text)" : "var(--white-custom)" }}>
-                                {t.count}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-[7px] font-black uppercase tracking-widest">{t.label}</span>
-                      </button>
-                    );
-                  })}
-                  {/* Espaciador que completa la línea */}
-                  <div className="flex-1 self-end" style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 12%, transparent)", marginBottom: 0 }} />
-                </div>
+              {/* ── TABS — Minimal horizontal ── */}
+              <div className="flex items-center gap-1 mb-4" style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                {tabs.map(t => {
+                  const isActive = tab === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setTab(t.id)}
+                      className="relative flex items-center gap-2 px-3 py-2.5 transition-all duration-150"
+                      style={{
+                        color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        borderBottom: isActive ? "1px solid var(--primary)" : "1px solid transparent",
+                        marginBottom: "-1px",
+                        background: "transparent",
+                      }}>
+                      <span className="text-[9px] font-black uppercase tracking-widest">{t.label}</span>
+                      <span className="text-[8px] tabular-nums"
+                        style={{ color: isActive ? "color-mix(in srgb, var(--primary) 45%, transparent)" : "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
+                        {t.count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Inventory panel — cuerpo de la mochila */}
-              <div
-                style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                  borderRadius: "0 6px 6px 6px",
-                  background: tab === "items"
-                    ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
-                    : tab === "criaturas"
-                    ? "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
-                    : "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
-                  transition: "background 0.25s ease",
-                  padding: "20px",
-                  position: "relative",
-                  zIndex: 2,
-                  boxShadow: "0 2px 16px color-mix(in srgb, var(--primary) 6%, transparent), inset 0 1px 0 color-mix(in srgb, var(--primary) 5%, transparent)",
-                }}>
+              {/* Inventory panel */}
+              <div>
                 <AnimatePresence mode="wait">
                   <MotionDiv key={tab}
                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
@@ -1278,15 +1200,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
                             }}>
-                            {/* Esquinas decorativas tipo slot RPG */}
-                            <div className="absolute top-0.5 left-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderLeft: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute top-0.5 right-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRight: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute bottom-0.5 left-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderLeft: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute bottom-0.5 right-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRight: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
                             {/* Imagen */}
                             <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
                               {item.items.imagen_url
@@ -1327,16 +1240,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>
-                            <div className="absolute top-0.5 left-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderLeft: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute top-0.5 right-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRight: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute bottom-0.5 left-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderLeft: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute bottom-0.5 right-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRight: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
@@ -1380,16 +1284,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>
-                            <div className="absolute top-0.5 left-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderLeft: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute top-0.5 right-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRight: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute bottom-0.5 left-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderLeft: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute bottom-0.5 right-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRight: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
@@ -1432,16 +1327,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 14%, transparent)";
                               (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 3%, var(--white-custom))";
                               (e.currentTarget as HTMLElement).style.boxShadow = "inset 0 1px 0 color-mix(in srgb, var(--primary) 6%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent)";
-                            }}>
-                            <div className="absolute top-0.5 left-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderLeft: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute top-0.5 right-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRight: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute bottom-0.5 left-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderLeft: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="absolute bottom-0.5 right-0.5 w-2 h-2 pointer-events-none"
-                              style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRight: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+                            }}>                            <div className="flex-1 relative overflow-hidden flex items-center justify-center p-2">
                               {d.imagen_url
                                 ? <img src={d.imagen_url} alt={d.nombre}
                                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
