@@ -1156,8 +1156,8 @@ export function MarkdownEditor({
   // ── Detect [[wikilink typing ──────────────────────────────────────────
   const detectWikilink = useCallback((newValue: string, cursorPos: number) => {
     const textBefore = newValue.slice(0, cursorPos);
-    // Match [[ seguido de texto sin ] (cursor puede estar antes de ]] o al final)
-    const match = textBefore.match(/\[\[([^\]]*)$/);
+    // Match [[ seguido de texto sin [[ ni ]] (el cursor está dentro del wikilink)
+    const match = textBefore.match(/\[\[([^\[\]]*)$/);
     if (match) {
       const query = match[1];
       const triggerStart = cursorPos - match[0].length;
@@ -1341,16 +1341,20 @@ export function MarkdownEditor({
         const newVal = currentVal.slice(0, s) + '[]]' + currentVal.slice(s + 1);
         onChange(newVal);
         requestAnimationFrame(() => {
-          ta.selectionStart = ta.selectionEnd = s + 1;
+          const cursorPos = s + 1;
+          ta.selectionStart = ta.selectionEnd = cursorPos;
           ta.focus();
+          detectWikilink(newVal, cursorPos);
         });
       } else if (!hasSelection && charBefore === '[') {
         // Segundo [ sin ] autocerrado: insertar []]
         const newVal = currentVal.slice(0, s) + '[]]' + currentVal.slice(s);
         onChange(newVal);
         requestAnimationFrame(() => {
-          ta.selectionStart = ta.selectionEnd = s + 1;
+          const cursorPos = s + 1;
+          ta.selectionStart = ta.selectionEnd = cursorPos;
           ta.focus();
+          detectWikilink(newVal, cursorPos);
         });
       } else {
         // Primer [ o hay selección: autocerrado normal
@@ -1361,6 +1365,7 @@ export function MarkdownEditor({
           ta.selectionStart = s + 1;
           ta.selectionEnd   = s + 1 + sel.length;
           ta.focus();
+          // No abrir wiki menu en el primer [ — esperar al segundo
         });
       }
       return;
@@ -1830,7 +1835,7 @@ export function MarkdownEditor({
           )}
 
               {/* ── Wikilink autocomplete menu ── */}
-              {wikiMenu.open && entities.length > 0 && filteredEntities.length > 0 && (
+              {wikiMenu.open && entities.length > 0 && (
                 <div
                   ref={wikiMenuRef}
                   style={{
@@ -1865,7 +1870,6 @@ export function MarkdownEditor({
                     borderBottom: "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 8%, transparent)",
                     background: "color-mix(in srgb, var(--color-primary, #7c6af7) 4%, transparent)",
                   }}>
-                    {/* [[ badge */}
                     <span style={{
                       fontSize: 9,
                       fontFamily: "var(--font-mono)",
@@ -1878,118 +1882,95 @@ export function MarkdownEditor({
                     }}>[[</span>
                     {wikiMenu.query ? (
                       <span style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        fontFamily: "var(--font-mono)",
-                        color: "var(--color-primary, #7c6af7)",
-                        flex: 1,
-                        minWidth: 0,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)",
+                        color: "var(--color-primary, #7c6af7)", flex: 1, minWidth: 0,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}>{wikiMenu.query}</span>
                     ) : (
                       <span style={{
-                        fontSize: 9,
-                        fontWeight: 900,
-                        letterSpacing: "0.2em",
+                        fontSize: 9, fontWeight: 900, letterSpacing: "0.2em",
                         textTransform: "uppercase",
                         color: "color-mix(in srgb, var(--color-primary, #7c6af7) 35%, transparent)",
                         flex: 1,
                       }}>Entidades</span>
                     )}
                     <span style={{
-                      fontSize: 8,
-                      fontFamily: "var(--font-mono)",
+                      fontSize: 8, fontFamily: "var(--font-mono)",
                       color: "color-mix(in srgb, var(--color-primary, #7c6af7) 30%, transparent)",
-                      letterSpacing: "0.05em",
                     }}>↑↓ Tab</span>
                   </div>
 
                   {/* Entity list */}
                   <div style={{ maxHeight: 240, overflowY: "auto", padding: "6px" }}>
-                    {filteredEntities.map((entity, idx) => {
-                      const isSelected = idx === wikiMenu.selectedIdx;
-                      // Initial letter avatar
-                      const initial = entity.trim()[0]?.toUpperCase() ?? "?";
-                      return (
-                        <button
-                          key={entity}
-                          type="button"
-                          onMouseEnter={() => setWikiMenu(m => ({ ...m, selectedIdx: idx }))}
-                          onClick={() => applyWikilink(entity)}
-                          style={{
-                            width: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 9,
-                            padding: "6px 8px",
-                            background: isSelected
-                              ? "color-mix(in srgb, var(--color-primary, #7c6af7) 12%, transparent)"
-                              : "transparent",
-                            border: isSelected
-                              ? "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 20%, transparent)"
-                              : "1px solid transparent",
-                            borderRadius: 12,
-                            cursor: "pointer",
-                            textAlign: "left",
-                            transition: "background 0.1s, border-color 0.1s",
-                          }}
-                        >
-                          {/* Avatar cuadrado con inicial */}
-                          <div style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 8,
-                            flexShrink: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background: isSelected
-                              ? "color-mix(in srgb, var(--color-primary, #7c6af7) 20%, transparent)"
-                              : "color-mix(in srgb, var(--color-primary, #7c6af7) 7%, transparent)",
-                            border: `1px solid color-mix(in srgb, var(--color-primary, #7c6af7) ${isSelected ? 25 : 10}%, transparent)`,
-                            fontSize: 11,
-                            fontWeight: 900,
-                            fontFamily: "var(--font-mono)",
-                            color: isSelected
-                              ? "var(--color-primary, #7c6af7)"
-                              : "color-mix(in srgb, var(--color-primary, #7c6af7) 40%, transparent)",
-                            transition: "background 0.1s, color 0.1s",
-                          }}>
-                            {initial}
-                          </div>
-
-                          {/* Nombre */}
-                          <span style={{
-                            flex: 1,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: isSelected
-                              ? "color-mix(in srgb, var(--foreground) 90%, transparent)"
-                              : "color-mix(in srgb, var(--foreground) 60%, transparent)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            transition: "color 0.1s",
-                          }}>{entity}</span>
-
-                          {/* Tag [[ ]] */}
-                          <span style={{
-                            flexShrink: 0,
-                            fontSize: 7,
-                            fontWeight: 900,
-                            fontFamily: "var(--font-mono)",
-                            letterSpacing: "0.1em",
-                            textTransform: "uppercase",
-                            padding: "2px 5px",
-                            borderRadius: 5,
-                            background: "color-mix(in srgb, var(--color-primary, #7c6af7) 8%, transparent)",
-                            color: "color-mix(in srgb, var(--color-primary, #7c6af7) 40%, transparent)",
-                          }}>wiki</span>
-                        </button>
-                      );
-                    })}
+                    {filteredEntities.length === 0 ? (
+                      <div style={{
+                        padding: "16px 12px", fontSize: 10, textAlign: "center",
+                        fontFamily: "var(--font-mono)", fontWeight: 700,
+                        letterSpacing: "0.1em", textTransform: "uppercase",
+                        color: "color-mix(in srgb, var(--color-primary, #7c6af7) 25%, transparent)",
+                      }}>
+                        Sin coincidencias
+                      </div>
+                    ) : (
+                      filteredEntities.map((entity, idx) => {
+                        const isSelected = idx === wikiMenu.selectedIdx;
+                        const initial = entity.trim()[0]?.toUpperCase() ?? "?";
+                        return (
+                          <button
+                            key={entity}
+                            type="button"
+                            onMouseEnter={() => setWikiMenu(m => ({ ...m, selectedIdx: idx }))}
+                            onClick={() => applyWikilink(entity)}
+                            style={{
+                              width: "100%", display: "flex", alignItems: "center", gap: 9,
+                              padding: "6px 8px",
+                              background: isSelected
+                                ? "color-mix(in srgb, var(--color-primary, #7c6af7) 12%, transparent)"
+                                : "transparent",
+                              border: isSelected
+                                ? "1px solid color-mix(in srgb, var(--color-primary, #7c6af7) 20%, transparent)"
+                                : "1px solid transparent",
+                              borderRadius: 12, cursor: "pointer", textAlign: "left",
+                              transition: "background 0.1s, border-color 0.1s",
+                            }}
+                          >
+                            {/* Avatar con inicial */}
+                            <div style={{
+                              width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              background: isSelected
+                                ? "color-mix(in srgb, var(--color-primary, #7c6af7) 20%, transparent)"
+                                : "color-mix(in srgb, var(--color-primary, #7c6af7) 7%, transparent)",
+                              border: `1px solid color-mix(in srgb, var(--color-primary, #7c6af7) ${isSelected ? 25 : 10}%, transparent)`,
+                              fontSize: 11, fontWeight: 900, fontFamily: "var(--font-mono)",
+                              color: isSelected
+                                ? "var(--color-primary, #7c6af7)"
+                                : "color-mix(in srgb, var(--color-primary, #7c6af7) 40%, transparent)",
+                              transition: "background 0.1s, color 0.1s",
+                            }}>
+                              {initial}
+                            </div>
+                            {/* Nombre */}
+                            <span style={{
+                              flex: 1, fontSize: 11, fontWeight: 700,
+                              color: isSelected
+                                ? "color-mix(in srgb, var(--foreground) 90%, transparent)"
+                                : "color-mix(in srgb, var(--foreground) 60%, transparent)",
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                              transition: "color 0.1s",
+                            }}>{entity}</span>
+                            {/* Tag */}
+                            <span style={{
+                              flexShrink: 0, fontSize: 7, fontWeight: 900,
+                              fontFamily: "var(--font-mono)", letterSpacing: "0.1em",
+                              textTransform: "uppercase", padding: "2px 5px", borderRadius: 5,
+                              background: "color-mix(in srgb, var(--color-primary, #7c6af7) 8%, transparent)",
+                              color: "color-mix(in srgb, var(--color-primary, #7c6af7) 40%, transparent)",
+                            }}>wiki</span>
+                          </button>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               )}
