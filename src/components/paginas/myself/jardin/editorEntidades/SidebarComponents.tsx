@@ -41,11 +41,20 @@ export type AllItems = {
   criaturas:  any[];
   items:      any[];
   reinos:     any[];
+  hechizos:   any[];
+  dones:      any[];
+  runas:      any[];
 };
 
 type SearchResult = {
   item: any;
   tab: Exclude<TabKey, "mundo">;
+};
+
+type MagicResult = {
+  item: any;
+  subTab: "hechizos" | "dones" | "runas";
+  label: string;
 };
 
 type TabNavResult = {
@@ -307,6 +316,7 @@ export function GlobalSearchBar({
   onNavigateTab,
   onSelectMundoSection,
   onSelectMundoSubTab,
+  onSelectMagic,
   onToggleOculto,
 }: {
   allItems: AllItems;
@@ -320,6 +330,7 @@ export function GlobalSearchBar({
   onNavigateTab?: (tab: Exclude<TabKey, "mundo">) => void;
   onSelectMundoSection: (s: MundoSectionKey) => void;
   onSelectMundoSubTab?: (section: MundoSectionKey, subTab: string) => void;
+  onSelectMagic?: (subTab: "hechizos" | "dones" | "runas", item: any) => void;
   onToggleOculto?: (id: string, oculto: boolean) => void;
 }) {
   const [query,       setQuery]       = useState("");
@@ -353,6 +364,21 @@ export function GlobalSearchBar({
       (allItems[tab] ?? [])
         .filter((i: any) => normalize(i.nombre ?? "").includes(q))
         .map(item => ({ item, tab }))
+    );
+  }, [allItems, query]);
+
+  const magicResults = useMemo((): MagicResult[] => {
+    const q = normalize(query.trim());
+    if (!q) return [];
+    const magic: { key: "hechizos" | "dones" | "runas"; label: string }[] = [
+      { key: "hechizos", label: "Hechizo" },
+      { key: "dones",    label: "Don"     },
+      { key: "runas",    label: "Runa"    },
+    ];
+    return magic.flatMap(({ key, label }) =>
+      (allItems[key] ?? [])
+        .filter((i: any) => normalize(i.nombre ?? "").includes(q))
+        .map(item => ({ item, subTab: key, label }))
     );
   }, [allItems, query]);
 
@@ -420,6 +446,12 @@ export function GlobalSearchBar({
     inputRef.current?.blur();
   }, [onSelectMundoSection, onSelectMundoSubTab, close]);
 
+  const handleMagic = useCallback((subTab: "hechizos" | "dones" | "runas", item: any) => {
+    onSelectMagic?.(subTab, item);
+    close();
+    inputRef.current?.blur();
+  }, [onSelectMagic, close]);
+
   useEffect(() => {
     if (!open) return;
     const onMouse = (e: MouseEvent) => {
@@ -472,7 +504,7 @@ export function GlobalSearchBar({
       ?? selectedItem?.nombre
       ?? (loadingAll ? "Cargando…" : `${totalCount} entidades`);
 
-  const totalResults = globalResults.length + mundoResults.length + tabNavResults.length + mundoSubTabResults.length + mundoNavResults.length;
+  const totalResults = globalResults.length + mundoResults.length + tabNavResults.length + mundoSubTabResults.length + mundoNavResults.length + magicResults.length;
 
   return (
     <div
@@ -720,6 +752,43 @@ export function GlobalSearchBar({
                           />
                         ))}
                       </div>
+                    )}
+                    {magicResults.length > 0 && (
+                      <>
+                        <div className="px-2 pt-3 pb-1">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-primary/25">Magia</p>
+                        </div>
+                        <div className="space-y-0.5 mb-1">
+                          {magicResults.map(({ item, subTab, label }) => (
+                            <button
+                              key={`${subTab}-${item.id}`}
+                              onMouseDown={() => handleMagic(subTab, item)}
+                              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 border border-transparent hover:bg-primary/6 hover:border-primary/10"
+                            >
+                              <div
+                                className="shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center"
+                                style={{
+                                  background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                                  borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                                }}
+                              >
+                                <span style={{ fontSize: 11 }}>
+                                  <span style={{ fontSize: 9, fontWeight: 900, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                                    {subTab === "hechizos" ? "HZ" : subTab === "dones" ? "DN" : "RN"}
+                                  </span>
+                                </span>
+                              </div>
+                              <span className="flex-1 text-[11px] font-bold text-primary/70 truncate">{item.nombre}</span>
+                              <span
+                                className="shrink-0 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                                style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}
+                              >
+                                {label}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     )}
                     {mundoResults.length > 0 && (
                       <>

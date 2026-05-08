@@ -9,6 +9,7 @@ import {
   TAB_CONFIG, MUNDO_SECTIONS,
   type TabKey, type MundoSectionKey,
   type Personaje, type Criatura, type Item, type Reino,
+  type Hechizo, type Don, type Runa,
 } from "./editorEntidades/types";
 import { useMundoSecciones } from "./editorEntidades/hooks";
 import { GlobalSearchBar, type AllItems } from "./editorEntidades/SidebarComponents";
@@ -47,6 +48,7 @@ async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
 function useAllEntidades() {
   const [allItems, setAllItems] = useState<AllItems>({
     personajes: [], criaturas: [], items: [], reinos: [],
+    hechizos: [], dones: [], runas: [],
   });
   const [loadingAll, setLoadingAll] = useState(true);
   const [isOffline,  setIsOffline]  = useState(false);
@@ -65,12 +67,13 @@ function useAllEntidades() {
       localI.length > 0 || localR.length > 0;
 
     if (hasLocal) {
-      setAllItems({
+      setAllItems(prev => ({
+        ...prev,
         personajes: localP,
         criaturas:  localC,
         items:      localI,
         reinos:     localR,
-      });
+      }));
       setLoadingAll(false);
     }
 
@@ -86,17 +89,23 @@ function useAllEntidades() {
 
     // 3. Fetch remoto y sincronizar Dexie
     try {
-      const [p, c, i, r] = await Promise.all([
+      const [p, c, i, r, h, d, ru] = await Promise.all([
         supabase.from("personajes").select("*").order("nombre"),
         supabase.from("criaturas") .select("*").order("nombre"),
         supabase.from("items")     .select("*").order("nombre"),
         supabase.from("reinos")    .select("*").order("nombre"),
+        supabase.from("hechizos")  .select("id, nombre, explicacion").order("nombre"),
+        supabase.from("dones")     .select("id, nombre, explicacion").order("nombre"),
+        supabase.from("runas")     .select("id, nombre, explicacion").order("nombre"),
       ]);
       const remote = {
         personajes: (p.data ?? []) as Personaje[],
         criaturas:  (c.data ?? []) as Criatura[],
         items:      (i.data ?? []) as Item[],
         reinos:     (r.data ?? []) as Reino[],
+        hechizos:   (h.data ?? []) as Hechizo[],
+        dones:      (d.data ?? []) as Don[],
+        runas:      (ru.data ?? []) as Runa[],
       };
       setAllItems(remote);
 
@@ -257,6 +266,25 @@ export default function EditorEntidades() {
         return;
       }
     }
+    // Buscar en hechizos, dones, runas → navegar a EditorMundo sección magia
+    const magicCollections: { subTab: string; items: any[] }[] = [
+      { subTab: "hechizos", items: allItems.hechizos },
+      { subTab: "dones",    items: allItems.dones    },
+      { subTab: "runas",    items: allItems.runas    },
+    ];
+    for (const { subTab, items } of magicCollections) {
+      const found =
+        items.find(i => norm(i.nombre) === t) ??
+        items.find(i => norm(i.nombre).startsWith(t)) ??
+        items.find(i => norm(i.nombre).includes(t));
+      if (found) {
+        setTab("mundo");
+        setSelectedId(null);
+        setMundoSection("magia");
+        setRequestedSubTab(subTab);
+        return;
+      }
+    }
   }, [allItems, handleSelect]);
 
   const handleCreated = (item: any, chosenTab?: Exclude<TabKey, "mundo">) => {
@@ -318,6 +346,12 @@ export default function EditorEntidades() {
             setTab("mundo");
             setSelectedId(null);
             setMundoSection(section);
+            setRequestedSubTab(subTab);
+          }}
+          onSelectMagic={(subTab, _item) => {
+            setTab("mundo");
+            setSelectedId(null);
+            setMundoSection("magia");
             setRequestedSubTab(subTab);
           }}
           onToggleOculto={handleToggleOcultoReino}

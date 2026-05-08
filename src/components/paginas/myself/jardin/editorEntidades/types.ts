@@ -118,3 +118,9 @@ export const MUNDO_SECTIONS = [
 export type MundoSectionKey = typeof MUNDO_SECTIONS[number]["key"];
 
 export const INPUT_CLS = "w-full bg-input-bg text-input-text border border-primary/15 rounded-xl px-3 py-2.5 text-xs font-medium outline-none focus:border-primary/40 placeholder:text-primary/25 transition-colors";
+// ─── Runas (exportada para uso global) ───────────────────────────────────────
+export type Runa = {
+  id: string;
+  nombre: string;
+  explicacion?: string;
+};
