@@ -1157,8 +1157,8 @@ export function MarkdownEditor({
   const detectWikilink = useCallback((newValue: string, cursorPos: number) => {
     if (!entities.length) return;
     const textBefore = newValue.slice(0, cursorPos);
-    // Match [[ followed by non-] characters (no closing yet)
-    const match = textBefore.match(/\[\[([^\][]*)$/);
+    // Match [[ seguido de texto sin ] (cursor puede estar antes de ]] o al final)
+    const match = textBefore.match(/\[\[([^\]]*)$/);
     if (match) {
       const query = match[1];
       const triggerStart = cursorPos - match[0].length;
@@ -1189,8 +1189,13 @@ export function MarkdownEditor({
   const applyWikilink = useCallback((entity: string) => {
     const ta = taRef.current;
     if (!ta) return;
+    const cursor = ta.selectionStart;
+    // Si justo después del cursor hay ]], consumirlos también para no duplicar
+    const afterCursor = value.slice(cursor);
+    const hasClosing = afterCursor.startsWith("]]");
+    const endPos = cursor + (hasClosing ? 2 : 0);
     const before = value.slice(0, wikiMenu.triggerStart);
-    const after = value.slice(ta.selectionStart);
+    const after = value.slice(endPos);
     const inserted = `[[${entity}]]`;
     const newVal = before + inserted + after;
     onChange(newVal);
@@ -1319,6 +1324,12 @@ export function MarkdownEditor({
 
     const autoClosePairs: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
     if (autoClosePairs[e.key]) {
+      // No auto-cerrar [ si el carácter anterior ya es [ (evita romper [[wikilinks]])
+      if (e.key === '[') {
+        const { selectionStart: s } = ta;
+        const charBefore = value[s - 1];
+        if (charBefore === '[') return; // dejar que el browser inserte [ normalmente
+      }
       e.preventDefault();
       wrapSelection(e.key, autoClosePairs[e.key]);
       return;
