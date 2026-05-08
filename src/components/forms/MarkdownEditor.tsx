@@ -1835,7 +1835,7 @@ export function MarkdownEditor({
           )}
 
               {/* ── Wikilink autocomplete menu ── */}
-              {wikiMenu.open && entities.length > 0 && (
+              {wikiMenu.open && (
                 <div
                   ref={wikiMenuRef}
                   style={{
@@ -1909,7 +1909,7 @@ export function MarkdownEditor({
                         letterSpacing: "0.1em", textTransform: "uppercase",
                         color: "color-mix(in srgb, var(--color-primary, #7c6af7) 25%, transparent)",
                       }}>
-                        Sin coincidencias
+                        {entities.length === 0 ? "No hay entidades cargadas" : "Sin coincidencias"}
                       </div>
                     ) : (
                       filteredEntities.map((entity, idx) => {
