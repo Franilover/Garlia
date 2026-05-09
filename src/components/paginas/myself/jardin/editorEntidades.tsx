@@ -35,12 +35,40 @@ async function dexieReadAll<T>(tabla: string): Promise<T[]> {
 
 async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   try {
-    if (!db || rows.length === 0) return;
+    if (!db) return;
     const table = (db as any)[tabla];
     if (!table) return;
-    await table.bulkPut(rows);
+    // Actualizar/insertar filas nuevas
+    if (rows.length > 0) await table.bulkPut(rows);
+    // Eliminar filas locales que ya no existen en remoto
+    const remoteIds = new Set(rows.map((r: any) => r.id));
+    const allLocal: any[] = await table.toArray();
+    const toDelete = allLocal.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    if (toDelete.length > 0) await table.bulkDelete(toDelete);
   } catch (e) {
-    console.warn(`[Dexie editorEntidades] bulkPut failed on '${tabla}':`, e);
+    console.warn(`[Dexie editorEntidades] write failed on '${tabla}':`, e);
+  }
+}
+
+async function dexieWriteOne(tabla: string, row: any): Promise<void> {
+  try {
+    if (!db) return;
+    const table = (db as any)[tabla];
+    if (!table) return;
+    await table.put(row);
+  } catch (e) {
+    console.warn(`[Dexie editorEntidades] put failed on '${tabla}':`, e);
+  }
+}
+
+async function dexieDeleteOne(tabla: string, id: string): Promise<void> {
+  try {
+    if (!db) return;
+    const table = (db as any)[tabla];
+    if (!table) return;
+    await table.delete(id);
+  } catch (e) {
+    console.warn(`[Dexie editorEntidades] delete failed on '${tabla}':`, e);
   }
 }
 
@@ -74,7 +102,7 @@ function useAllEntidades() {
         items:      localI,
         reinos:     localR,
       }));
-      setLoadingAll(false);
+      setLoadingAll(false); // mostrar datos locales de inmediato, sin bloquear UI
     }
 
     // 2. Si offline, quedarse con los datos locales
@@ -85,6 +113,7 @@ function useAllEntidades() {
     }
 
     setIsOffline(false);
+    // Solo mostrar loader si no tenemos datos locales para mostrar
     if (!hasLocal) setLoadingAll(true);
 
     // 3. Fetch remoto y sincronizar Dexie
@@ -304,17 +333,20 @@ export default function EditorEntidades() {
     const t = chosenTab ?? tab as Exclude<TabKey, "mundo">;
     setAllItems(prev => ({ ...prev, [t]: [item, ...prev[t as keyof typeof prev]] }));
     setSelectedId(item.id);
+    void dexieWriteOne(TAB_CONFIG[t].tabla, item);
   };
 
   const handleSaved = (item: any) => {
     const t = tab as Exclude<TabKey, "mundo">;
     setAllItems(prev => ({ ...prev, [t]: (prev[t as keyof typeof prev] as any[]).map(i => i.id === item.id ? item : i) }));
+    void dexieWriteOne(TAB_CONFIG[t].tabla, item);
   };
 
   const handleDeleted = (id: string) => {
     const t = tab as Exclude<TabKey, "mundo">;
     setAllItems(prev => ({ ...prev, [t]: (prev[t as keyof typeof prev] as any[]).filter(i => i.id !== id) }));
     setSelectedId(null);
+    void dexieDeleteOne(TAB_CONFIG[t].tabla, id);
   };
 
   const handleToggleOcultoReino = useCallback((id: string, oculto: boolean) => {

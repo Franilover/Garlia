@@ -5,7 +5,38 @@ import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { TAB_CONFIG, MUNDO_SECTIONS, type TabKey, type MundoSectionKey } from "./types";
+
+// ─── Dexie helpers ────────────────────────────────────────────────────────────
+async function dexiePut(tabla: string, row: any): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+}
+async function dexieDel(tabla: string, id: string): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+}
+async function dexieReadAll<T>(tabla: string): Promise<T[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
+  } catch { return []; }
+}
+async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    if (rows.length > 0) await t.bulkPut(rows);
+    const remoteIds = new Set(rows.map((r: any) => r.id));
+    const local: any[] = await t.toArray();
+    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    if (toDelete.length > 0) await t.bulkDelete(toDelete);
+  } catch {}
+}
+
+
 
 // Subtabs internos del módulo Magia
 type MundoSubTab = "magia" | "hechizos" | "dones" | "runas";
@@ -92,6 +123,7 @@ function EntidadCard({
     const nuevoOculto = !item.oculto;
     try {
       await supabase.from("reinos").update({ oculto: nuevoOculto }).eq("id", item.id);
+      void dexiePut("reinos", { ...item, oculto: nuevoOculto });
       onToggleOculto(item.id, nuevoOculto);
     } finally { setToggling(false); }
   };

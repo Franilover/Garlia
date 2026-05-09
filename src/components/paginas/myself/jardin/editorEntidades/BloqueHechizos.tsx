@@ -4,8 +4,39 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { createPortal } from "react-dom";
 import { X, Loader2, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { normalize } from "@/components/templates/EstudioTemplates";
 import { INPUT_CLS } from "./types";
+
+
+// ─── Dexie helpers ────────────────────────────────────────────────────────────
+async function dexiePut(tabla: string, row: any): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+}
+async function dexieDel(tabla: string, id: string): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+}
+async function dexieReadAll<T>(tabla: string): Promise<T[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
+  } catch { return []; }
+}
+async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    if (rows.length > 0) await t.bulkPut(rows);
+    const remoteIds = new Set(rows.map((r: any) => r.id));
+    const local: any[] = await t.toArray();
+    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    if (toDelete.length > 0) await t.bulkDelete(toDelete);
+  } catch {}
+}
+
 
 // ─── Types locales ─────────────────────────────────────────────────────────────
 type HechizoCatalogo = {
@@ -21,28 +52,56 @@ type Asignacion = {
 };
 
 // ─── Hook: catálogo completo de hechizos + sus asignaciones de criatura ────────
+const CACHE_TTL = 5 * 60 * 1000;
+
 function useCatalogo() {
   const [hechizos,    setHechizos]    = useState<HechizoCatalogo[]>([]);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
   const [loading, setLoading]          = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      supabase.from("hechizos").select("id, nombre").order("nombre"),
-      supabase
-        .from("hechizo_criaturas")
-        .select("hechizo_id, criatura_id, variante_id, criatura:criaturas!criatura_id(nombre)"),
-    ]).then(([hRes, aRes]) => {
-      setHechizos(hRes.data ?? []);
-      const rows = (aRes.data ?? []).map((r: any) => ({
+    let cancelled = false;
+    const run = async () => {
+      // 1. Dexie: hechizos
+      const localH = await dexieReadAll<HechizoCatalogo>("hechizos");
+      // 2. session_cache: asignaciones (tabla join sin tabla Dexie propia)
+      try {
+        if (db) {
+          const cached = await (db as any).session_cache?.get("hechizo_criaturas");
+          if (cached && Date.now() - cached.updated_at < CACHE_TTL && !cancelled) {
+            if (localH.length) setHechizos(localH);
+            setAsignaciones(cached.value);
+            if (localH.length) setLoading(false);
+          }
+        }
+      } catch {}
+
+      if (!navigator.onLine) { setLoading(false); return; }
+
+      const [hRes, aRes] = await Promise.all([
+        supabase.from("hechizos").select("id, nombre").order("nombre"),
+        supabase.from("hechizo_criaturas")
+          .select("hechizo_id, criatura_id, variante_id, criatura:criaturas!criatura_id(nombre)"),
+      ]);
+      if (cancelled) return;
+
+      const hechizosData = (hRes.data ?? []) as HechizoCatalogo[];
+      const rows: Asignacion[] = (aRes.data ?? []).map((r: any) => ({
         hechizo_id:      r.hechizo_id,
         criatura_id:     r.criatura_id,
         variante_id:     r.variante_id,
         criatura_nombre: (Array.isArray(r.criatura) ? r.criatura[0]?.nombre : r.criatura?.nombre) ?? "",
       }));
+      setHechizos(hechizosData);
       setAsignaciones(rows);
       setLoading(false);
-    });
+      await dexieWriteAll("hechizos", hechizosData);
+      try {
+        if (db) await (db as any).session_cache?.put({ key: "hechizo_criaturas", value: rows, updated_at: Date.now() });
+      } catch {}
+    };
+    run();
+    return () => { cancelled = true; };
   }, []);
 
   return { hechizos, asignaciones, loading };

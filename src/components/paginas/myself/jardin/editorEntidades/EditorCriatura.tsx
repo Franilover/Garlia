@@ -6,6 +6,7 @@ import {
   Dna, Brain, Wand2, GitBranch, Users, Package,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Criatura, type CriaturaVariante, type SaveStatus, INPUT_CLS } from "./types";
 import { useUniqueValues, useCriaturaVariantes, usePersonajesDeEspecie } from "./hooks";
@@ -16,6 +17,36 @@ import { PanelPersonajes } from "./PanelPersonajes";
 import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";
 import { BloqueDrops } from "./BloqueDrops";
+
+// ─── Dexie helpers ────────────────────────────────────────────────────────────
+async function dexiePut(tabla: string, row: any): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+}
+async function dexieDel(tabla: string, id: string): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+}
+async function dexieReadAll<T>(tabla: string): Promise<T[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
+  } catch { return []; }
+}
+async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    if (rows.length > 0) await t.bulkPut(rows);
+    const remoteIds = new Set(rows.map((r: any) => r.id));
+    const local: any[] = await t.toArray();
+    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    if (toDelete.length > 0) await t.bulkDelete(toDelete);
+  } catch {}
+}
+
+
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
 type InnerTab = "base" | "especie";
@@ -95,6 +126,7 @@ function VarianteEditor({
       if (error) throw error;
       setStatus("saved");
       onSaved(form);
+      void dexiePut("criatura_variantes", form);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -103,6 +135,7 @@ function VarianteEditor({
     const ok = await confirm({ message: `¿Eliminar la variante "${form.tipo}"?`, danger: true });
     if (!ok) return;
     await supabase.from("criatura_variantes").delete().eq("id", form.id);
+    void dexieDel("criatura_variantes", form.id);
     onDeleted(form.id);
   };
 
@@ -225,6 +258,7 @@ export function EditorCriatura({
       if (error) throw error;
       setStatus("saved");
       onSaved(form);
+      void dexiePut("criaturas", form);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -233,6 +267,7 @@ export function EditorCriatura({
     const ok = await confirm({ message: `¿Eliminar a "${form.nombre}"?`, danger: true });
     if (!ok) return;
     await supabase.from("criaturas").delete().eq("id", form.id);
+    void dexieDel("criaturas", form.id);
     onDeleted(form.id);
   };
 
@@ -240,7 +275,7 @@ export function EditorCriatura({
     if (!newVarianteTipo.trim()) return;
     const { data, error } = await supabase.from("criatura_variantes")
       .insert([{ criatura_id: form.id, tipo: newVarianteTipo.trim() }]).select().single();
-    if (!error && data) { setVariantes(prev => [...prev, data]); setAddingVariante(false); setNewVarianteTipo(""); }
+    if (!error && data) { setVariantes(prev => [...prev, data]); void dexiePut("criatura_variantes", data); setAddingVariante(false); setNewVarianteTipo(""); }
   };
 
   const { personajes, setPersonajes, loading: loadingPersonajes } = usePersonajesDeEspecie(form.nombre);

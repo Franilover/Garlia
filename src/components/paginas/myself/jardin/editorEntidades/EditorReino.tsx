@@ -6,12 +6,43 @@ import {
   Eye, EyeOff, Loader2, ChevronDown, Globe, Landmark, Coins, Mountain, Users, UserCircle2, ChevronRight, Image as ImageIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type Reino, type ReinoDetalle, type SaveStatus, INPUT_CLS } from "./types";
 import { useReinoDetalles, usePersonajesDelReino } from "./hooks";
 import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
+
+// ─── Dexie helpers ────────────────────────────────────────────────────────────
+async function dexiePut(tabla: string, row: any): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+}
+async function dexieDel(tabla: string, id: string): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+}
+async function dexieReadAll<T>(tabla: string): Promise<T[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
+  } catch { return []; }
+}
+async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    if (rows.length > 0) await t.bulkPut(rows);
+    const remoteIds = new Set(rows.map((r: any) => r.id));
+    const local: any[] = await t.toArray();
+    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    if (toDelete.length > 0) await t.bulkDelete(toDelete);
+  } catch {}
+}
+
+
 
 // ─── Tabs internas ─────────────────────────────────────────────────────────────
 type InnerTab = "mapa" | "lore" | "personajes";
@@ -234,6 +265,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
       }).eq("id", data.id);
       if (error) throw error;
       setStatus("saved"); onSaved(data);
+      void dexiePut("reino_detalles", data);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -283,6 +315,7 @@ function DetalleEditor({ detalle, onSaved, onDeleted, entities = [] }: {
               const ok = await confirm({ message: `¿Eliminar punto "${form.nombre}"?`, danger: true });
               if (!ok) return;
               await supabase.from("reino_detalles").delete().eq("id", form.id);
+              void dexieDel("reino_detalles", form.id);
               onDeleted(form.id);
             }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20">
               <Trash2 size={10} /> Eliminar
@@ -328,6 +361,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [] }: {
       }).eq("id", form.id);
       if (error) throw error;
       setStatus("saved"); onSaved(form);
+      void dexiePut("reinos", form);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -336,6 +370,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [] }: {
     const ok = await confirm({ message: `¿Eliminar el reino "${form.nombre}"?`, danger: true });
     if (!ok) return;
     await supabase.from("reinos").delete().eq("id", form.id);
+    void dexieDel("reinos", form.id);
     onDeleted(form.id);
   };
 
@@ -343,7 +378,7 @@ export function EditorReino({ item, onSaved, onDeleted, entities = [] }: {
     if (!newPointName.trim()) return;
     const { data, error } = await supabase.from("reino_detalles")
       .insert([{ reino_id: form.id, nombre: newPointName.trim(), coord_x: 50, coord_y: 50 }]).select().single();
-    if (!error && data) { setDetalles(prev => [...prev, data]); setAddingPoint(false); setNewPointName(""); }
+    if (!error && data) { setDetalles(prev => [...prev, data]); void dexiePut("reino_detalles", data); setAddingPoint(false); setNewPointName(""); }
   };
 
   const handleDetallesMapChange = async (updated: ReinoDetalle[]) => {

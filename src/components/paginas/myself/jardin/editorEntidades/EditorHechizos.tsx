@@ -5,10 +5,41 @@ import {
   Sparkles, Star, Plus, Trash2, Save, Loader2, Search, X, Bug, ChevronDown, Check,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { type SaveStatus } from "./types";
 import { SaveIndicator } from "./UIComponents";
 import { MarkdownEditor } from "../../../../forms/MarkdownEditor";
+
+// ─── Dexie helpers ────────────────────────────────────────────────────────────
+async function dexiePut(tabla: string, row: any): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+}
+async function dexieDel(tabla: string, id: string): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+}
+async function dexieReadAll<T>(tabla: string): Promise<T[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
+  } catch { return []; }
+}
+async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    if (rows.length > 0) await t.bulkPut(rows);
+    const remoteIds = new Set(rows.map((r: any) => r.id));
+    const local: any[] = await t.toArray();
+    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    if (toDelete.length > 0) await t.bulkDelete(toDelete);
+  } catch {}
+}
+
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type Hechizo = {
@@ -70,8 +101,18 @@ function useCriaturas() {
   const [criaturas, setCriaturas] = useState<CriaturaMin[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre")
-      .then(({ data }) => { setCriaturas(data ?? []); setLoading(false); });
+    let cancelled = false;
+    const run = async () => {
+      const local = await dexieReadAll<CriaturaMin>("criaturas");
+      if (local.length && !cancelled) { setCriaturas(local); setLoading(false); }
+      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+      const { data } = await supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre");
+      if (cancelled) return;
+      const result = (data ?? []) as CriaturaMin[];
+      setCriaturas(result); setLoading(false);
+      await dexieWriteAll("criaturas", result);
+    };
+    run(); return () => { cancelled = true; };
   }, []);
   return { criaturas, loading };
 }
@@ -81,9 +122,23 @@ function useCriaturaVariantes(criaturaId: string | null) {
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!criaturaId) { setVariantes([]); return; }
-    setLoading(true);
-    supabase.from("criatura_variantes").select("id, tipo").eq("criatura_id", criaturaId).order("tipo")
-      .then(({ data }) => { setVariantes(data ?? []); setLoading(false); });
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      try {
+        if (db) {
+          const local: any[] = await (db as any).criatura_variantes?.where("criatura_id").equals(criaturaId).toArray() ?? [];
+          if (local.length && !cancelled) { setVariantes(local); setLoading(false); if (!navigator.onLine) return; }
+        }
+      } catch {}
+      if (!navigator.onLine) { setLoading(false); return; }
+      const { data } = await supabase.from("criatura_variantes").select("id, tipo").eq("criatura_id", criaturaId).order("tipo");
+      if (cancelled) return;
+      const result = (data ?? []) as VarianteMin[];
+      setVariantes(result); setLoading(false);
+      try { if (db && result.length) await (db as any).criatura_variantes?.bulkPut(result); } catch {}
+    };
+    run(); return () => { cancelled = true; };
   }, [criaturaId]);
   return { variantes, loading };
 }
@@ -92,10 +147,15 @@ function useEntidadesMagicas(modo: Modo) {
   const [items, setItems] = useState<EntidadMagica[]>([]);
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase.from(CONFIG[modo].tabla).select("id, nombre, explicacion").order("nombre");
-    setItems(data ?? []);
-    setLoading(false);
+    const tabla = CONFIG[modo].tabla;
+    const local = await dexieReadAll<EntidadMagica>(tabla);
+    if (local.length) { setItems(local); setLoading(false); }
+    if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+    setLoading(!local.length);
+    const { data } = await supabase.from(tabla).select("id, nombre, explicacion").order("nombre");
+    const result = (data ?? []) as EntidadMagica[];
+    setItems(result); setLoading(false);
+    await dexieWriteAll(tabla, result);
   }, [modo]);
   useEffect(() => { load(); }, [load]);
   return { items, setItems, loading };
@@ -433,6 +493,7 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
       if (error) throw error;
       setStatus("saved");
       onSaved(form);
+      void dexiePut(cfg.tabla, form);
       setTimeout(() => setStatus("idle"), 2000);
     } catch { setStatus("error"); }
   };
@@ -441,6 +502,7 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
     const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
     if (!ok) return;
     await supabase.from(cfg.tabla).delete().eq("id", form.id);
+    void dexieDel(cfg.tabla, form.id);
     onDeleted(form.id);
   };
 

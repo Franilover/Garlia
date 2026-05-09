@@ -27,12 +27,39 @@ async function dexieRead<T>(tabla: string): Promise<T[]> {
 
 async function dexieWrite(tabla: string, rows: any[]): Promise<void> {
   try {
-    if (!db || rows.length === 0) return;
+    if (!db) return;
     const table = (db as any)[tabla];
     if (!table) return;
-    await table.bulkPut(rows);
+    if (rows.length > 0) await table.bulkPut(rows);
+    // Eliminar filas locales que ya no existen en remoto
+    const remoteIds = new Set(rows.map((r: any) => r.id));
+    const allLocal: any[] = await table.toArray();
+    const toDelete = allLocal.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    if (toDelete.length > 0) await table.bulkDelete(toDelete);
   } catch (e) {
-    console.warn(`[Dexie hooks] bulkPut failed on '${tabla}':`, e);
+    console.warn(`[Dexie hooks] write failed on '${tabla}':`, e);
+  }
+}
+
+async function dexieWriteOne(tabla: string, row: any): Promise<void> {
+  try {
+    if (!db) return;
+    const table = (db as any)[tabla];
+    if (!table) return;
+    await table.put(row);
+  } catch (e) {
+    console.warn(`[Dexie hooks] put failed on '${tabla}':`, e);
+  }
+}
+
+async function dexieDeleteOne(tabla: string, id: string): Promise<void> {
+  try {
+    if (!db) return;
+    const table = (db as any)[tabla];
+    if (!table) return;
+    await table.delete(id);
+  } catch (e) {
+    console.warn(`[Dexie hooks] delete failed on '${tabla}':`, e);
   }
 }
 

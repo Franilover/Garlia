@@ -6,6 +6,7 @@ import {
   ChevronDown, Mountain, ScrollText, Map, ChevronRight, FileText, Users, UserCircle2, Package,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { MUNDO_SECTIONS, type MundoSectionKey, type SaveStatus, type Reino, type Personaje } from "./types";
 import { SaveIndicator } from "./UIComponents";
@@ -15,6 +16,36 @@ import { EditorReino } from "./EditorReino";
 import { FormularioPersonaje } from "./EditorPersonaje";
 import { EditorCriatura } from "./EditorCriatura";
 import { EditorItem } from "./EditorItem";
+
+// ─── Dexie helpers ────────────────────────────────────────────────────────────
+async function dexiePut(tabla: string, row: any): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+}
+async function dexieDel(tabla: string, id: string): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+}
+async function dexieReadAll<T>(tabla: string): Promise<T[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
+  } catch { return []; }
+}
+async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    if (rows.length > 0) await t.bulkPut(rows);
+    const remoteIds = new Set(rows.map((r: any) => r.id));
+    const local: any[] = await t.toArray();
+    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    if (toDelete.length > 0) await t.bulkDelete(toDelete);
+  } catch {}
+}
+
+
 
 // ─── Types locales ────────────────────────────────────────────────────────────
 type EntidadMagica = {
@@ -45,10 +76,13 @@ function useReinos() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const local = await dexieReadAll<Reino>("reinos");
+    if (local.length) { setReinos(local); setLoading(false); }
+    if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
     const { data } = await supabase.from("reinos").select("*").order("nombre");
-    setReinos(data ?? []);
-    setLoading(false);
+    const result = (data ?? []) as Reino[];
+    setReinos(result); setLoading(false);
+    await dexieWriteAll("reinos", result);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -83,8 +117,18 @@ function useCriaturas() {
   const [criaturas, setCriaturas] = useState<CriaturaMin[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    supabase.from("criaturas").select("id, nombre, imagen_url, habitat").order("nombre")
-      .then(({ data }) => { setCriaturas(data ?? []); setLoading(false); });
+    let cancelled = false;
+    const run = async () => {
+      const local = await dexieReadAll<CriaturaMin>("criaturas");
+      if (local.length && !cancelled) { setCriaturas(local); setLoading(false); }
+      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+      const { data } = await supabase.from("criaturas").select("id, nombre, imagen_url, habitat").order("nombre");
+      if (cancelled) return;
+      const result = (data ?? []) as CriaturaMin[];
+      setCriaturas(result); setLoading(false);
+      await dexieWriteAll("criaturas", result);
+    };
+    run(); return () => { cancelled = true; };
   }, []);
   return { criaturas, setCriaturas, loading };
 }
@@ -95,8 +139,18 @@ function useObjetos() {
   const [objetos, setObjetos] = useState<ObjetoMin[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre")
-      .then(({ data }) => { setObjetos(data ?? []); setLoading(false); });
+    let cancelled = false;
+    const run = async () => {
+      const local = await dexieReadAll<ObjetoMin>("items");
+      if (local.length && !cancelled) { setObjetos(local); setLoading(false); }
+      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+      const { data } = await supabase.from("items").select("id, nombre, imagen_url, categoria").order("nombre");
+      if (cancelled) return;
+      const result = (data ?? []) as ObjetoMin[];
+      setObjetos(result); setLoading(false);
+      await dexieWriteAll("items", result);
+    };
+    run(); return () => { cancelled = true; };
   }, []);
   return { objetos, setObjetos, loading };
 }
@@ -106,8 +160,18 @@ function usePersonajesList() {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    supabase.from("personajes").select("*").order("nombre")
-      .then(({ data }) => { setPersonajes((data ?? []) as Personaje[]); setLoading(false); });
+    let cancelled = false;
+    const run = async () => {
+      const local = await dexieReadAll<Personaje>("personajes");
+      if (local.length && !cancelled) { setPersonajes(local); setLoading(false); }
+      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+      const { data } = await supabase.from("personajes").select("*").order("nombre");
+      if (cancelled) return;
+      const result = (data ?? []) as Personaje[];
+      setPersonajes(result); setLoading(false);
+      await dexieWriteAll("personajes", result);
+    };
+    run(); return () => { cancelled = true; };
   }, []);
   return { personajes, setPersonajes, loading };
 }
@@ -117,9 +181,23 @@ function useCriaturaVariantes(criaturaId: string | null) {
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!criaturaId) { setVariantes([]); return; }
-    setLoading(true);
-    supabase.from("criatura_variantes").select("id, tipo").eq("criatura_id", criaturaId).order("tipo")
-      .then(({ data }) => { setVariantes(data ?? []); setLoading(false); });
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      try {
+        if (db) {
+          const local: any[] = await (db as any).criatura_variantes?.where("criatura_id").equals(criaturaId).toArray() ?? [];
+          if (local.length && !cancelled) { setVariantes(local); setLoading(false); if (!navigator.onLine) return; }
+        }
+      } catch {}
+      if (!navigator.onLine) { setLoading(false); return; }
+      const { data } = await supabase.from("criatura_variantes").select("id, tipo").eq("criatura_id", criaturaId).order("tipo");
+      if (cancelled) return;
+      const result = (data ?? []) as VarianteMin[];
+      setVariantes(result); setLoading(false);
+      try { if (db && result.length) await (db as any).criatura_variantes?.bulkPut(result); } catch {}
+    };
+    run(); return () => { cancelled = true; };
   }, [criaturaId]);
   return { variantes, loading };
 }
@@ -128,13 +206,18 @@ function useEntidadesMagicas(tabla: string) {
   const [items, setItems] = useState<EntidadMagica[]>([]);
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
-    setLoading(true);
+    const local = await dexieReadAll<EntidadMagica>(tabla);
+    if (local.length) { setItems(local); setLoading(false); }
+    if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
     const { data } = await supabase
       .from(tabla)
       .select("*, criatura:criaturas!criatura_id(id, nombre, imagen_url)")
       .order("nombre");
-    setItems(data ?? []);
-    setLoading(false);
+    const result = (data ?? []) as EntidadMagica[];
+    setItems(result); setLoading(false);
+    // Persistir versión simplificada (sin join) para offline
+    const simple = result.map(({ criatura, variante, ...rest }: any) => rest);
+    await dexieWriteAll(tabla, simple);
   }, [tabla]);
   useEffect(() => { load(); }, [load]);
   return { items, setItems, loading };
@@ -144,13 +227,13 @@ function useRunas() {
   const [items, setItems] = useState<Runa[]>([]);
   const [loading, setLoading] = useState(true);
   const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("runas")
-      .select("id, nombre, explicacion")
-      .order("nombre");
-    setItems(data ?? []);
-    setLoading(false);
+    const local = await dexieReadAll<Runa>("runas");
+    if (local.length) { setItems(local); setLoading(false); }
+    if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+    const { data } = await supabase.from("runas").select("id, nombre, explicacion").order("nombre");
+    const result = (data ?? []) as Runa[];
+    setItems(result); setLoading(false);
+    await dexieWriteAll("runas", result);
   }, []);
   useEffect(() => { load(); }, [load]);
   return { items, setItems, loading };
@@ -325,6 +408,7 @@ function FormularioMagico({ item, modo, criaturas, loadingCriaturas, onSaved, on
     const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
     if (!ok) return;
     await supabase.from(cfg.tabla).delete().eq("id", form.id);
+    void dexieDel(cfg.tabla, form.id);
     onDeleted(form.id);
   };
 
@@ -434,6 +518,7 @@ function FormularioRuna({ item, onSaved, onDeleted }: {
     const ok = await confirm({ message: `¿Eliminar "${form.nombre}"?`, danger: true });
     if (!ok) return;
     await supabase.from("runas").delete().eq("id", form.id);
+    void dexieDel("runas", form.id);
     onDeleted(form.id);
   };
 
@@ -783,6 +868,7 @@ function PanelHistoria({
   const handleDeletePersonaje = async () => {
     if (!selectedPersonaje) return;
     await supabase.from("personajes").delete().eq("id", selectedPersonaje.id);
+    void dexieDel("personajes", selectedPersonaje.id);
     setPersonajes(prev => prev.filter(p => p.id !== selectedPersonaje.id));
     setSelectedPersonaje(null);
   };
@@ -1575,6 +1661,7 @@ function PanelListas({ initialSubTab, initialItemId }: { initialSubTab?: string;
   const handleDeletePersonaje = async () => {
     if (!selectedPersonaje) return;
     await supabase.from("personajes").delete().eq("id", selectedPersonaje.id);
+    void dexieDel("personajes", selectedPersonaje.id);
     setPersonajes(prev => prev.filter(p => p.id !== selectedPersonaje.id));
     setSelectedPersonaje(null);
   };

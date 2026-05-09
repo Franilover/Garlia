@@ -1,5 +1,35 @@
 "use client";
 
+
+// ─── Dexie helpers ────────────────────────────────────────────────────────────
+async function dexiePut(tabla: string, row: any): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.put(row); } catch {}
+}
+async function dexieDel(tabla: string, id: string): Promise<void> {
+  try { if (db) await (db as any)[tabla]?.delete(id); } catch {}
+}
+async function dexieReadAll<T>(tabla: string): Promise<T[]> {
+  try {
+    if (!db) return [];
+    const t = (db as any)[tabla];
+    if (!t) return [];
+    return ((await t.toArray()) as any[]).filter((r: any) => !r.deleted) as T[];
+  } catch { return []; }
+}
+async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
+  try {
+    if (!db) return;
+    const t = (db as any)[tabla];
+    if (!t) return;
+    if (rows.length > 0) await t.bulkPut(rows);
+    const remoteIds = new Set(rows.map((r: any) => r.id));
+    const local: any[] = await t.toArray();
+    const toDelete = local.map((r: any) => r.id).filter((id: string) => !remoteIds.has(id));
+    if (toDelete.length > 0) await t.bulkDelete(toDelete);
+  } catch {}
+}
+
+
 /**
  * BloqueDrops
  * -----------
@@ -23,6 +53,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Package, X, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
+import { db } from "@/lib/api/client/db";
 import { normalize } from "@/components/templates/EstudioTemplates";
 
 // ─── Tipos locales ────────────────────────────────────────────────────────────
@@ -47,11 +78,23 @@ function useItemsCatalogo() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from("items")
-      .select("id, nombre, imagen_url, categoria")
-      .order("nombre")
-      .then(({ data }) => { setItems(data ?? []); setLoading(false); });
+    let cancelled = false;
+    const run = async () => {
+      // 1. Dexie primero
+      const local = await dexieReadAll<ItemCatalogo>("items");
+      if (local.length > 0 && !cancelled) { setItems(local); setLoading(false); }
+      if (!navigator.onLine) { if (!local.length) setLoading(false); return; }
+      // 2. Remoto
+      const { data } = await supabase
+        .from("items").select("id, nombre, imagen_url, categoria").order("nombre");
+      if (cancelled) return;
+      const result = (data ?? []) as ItemCatalogo[];
+      setItems(result);
+      setLoading(false);
+      await dexieWriteAll("items", result);
+    };
+    run();
+    return () => { cancelled = true; };
   }, []);
 
   return { items, loading };
