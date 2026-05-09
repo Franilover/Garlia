@@ -17,6 +17,7 @@ import { useWikilink } from "../../../../forms/WikilinkContext";
 import SimpleImagePicker from "@/components/forms/SimpleImagePicker";
 import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";
+import { BloqueRelaciones } from "./BloqueRelaciones";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
@@ -448,6 +449,9 @@ export function FormularioPersonaje({
                       />
                     </div>
                   )}
+
+                  {/* Relaciones */}
+                  <BloqueRelaciones personajeId={form.id} />
 
                   {/* Capítulos narrados + Hechizos en fila */}
                   <div className="flex flex-col sm:flex-row gap-3">
