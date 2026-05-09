@@ -2,11 +2,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
-import { MotionDiv, MotionButton } from "@/components/ui/Motion";
 import {
-  X, Loader2, ArrowLeft, Save, Edit3, ImagePlus, Move,
-  CheckCircle2, AlertCircle, UserX, ZoomIn, ZoomOut, User,
-  BookOpen, BookMarked, Eye, EyeOff,
+  MotionDiv, MotionButton,
+} from "@/components/ui/Motion";
+import {
+  X, MapPin, Loader2, ChevronRight, ArrowLeft, House,
+  Save, Edit3, ImagePlus, Move, CheckCircle2, AlertCircle, UserX, ZoomIn, ZoomOut, User,
+  BookOpen, BookMarked,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
@@ -22,80 +24,23 @@ type EntidadModal =
   | { tipo: "item_inv";  data: any };
 type ToastType = "success" | "error";
 
-// ─── Shared styles (using CSS vars) ──────────────────────────────────────────
-const BORDER = "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)";
-const BORDER_ACCENT = "1px solid color-mix(in srgb, var(--accent) 20%, transparent)";
-const BG_SUBTLE = "color-mix(in srgb, var(--primary) 8%, transparent)";
-const BG_PANEL = "var(--white-custom)";
-const TEXT_MUTED = "color-mix(in srgb, var(--foreground) 45%, transparent)";
-const TEXT_DIM = "color-mix(in srgb, var(--foreground) 25%, transparent)";
-
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ message, type, onClose }: { message: string; type: ToastType; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-2 px-4 py-2.5 text-[11px] font-medium tracking-wide shadow-lg"
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 px-5 py-3 shadow-xl text-[11px] font-black uppercase tracking-wide"
       style={{
-        background: type === "success" ? "rgba(5,150,105,0.96)" : "rgba(185,28,28,0.96)",
-        color: "#fff",
-        border: `1px solid ${type === "success" ? "rgba(52,211,153,0.35)" : "rgba(248,113,113,0.35)"}`,
-        borderRadius: "2px",
+        clipPath: "polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)",
+        background: type === "success" ? "rgba(5,150,105,0.95)" : "rgba(185,28,28,0.95)",
+        color: "var(--btn-text, #fff)",
+        border: `1px solid ${type === "success" ? "rgba(52,211,153,0.4)" : "rgba(248,113,113,0.4)"}`,
       }}
     >
-      {type === "success" ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+      {type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
       {message}
     </MotionDiv>
-  );
-}
-
-// ─── Label de sección ─────────────────────────────────────────────────────────
-function SeccionLabel({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <span
-        className="text-[9px] font-semibold uppercase tracking-[0.2em] flex items-center gap-1.5"
-        style={{ color: TEXT_MUTED }}
-      >
-        {icon} {children}
-      </span>
-      <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--foreground) 8%, transparent)" }} />
-    </div>
-  );
-}
-
-// ─── Toggle de visibilidad ───────────────────────────────────────────────────
-function ToggleVisibilidad({
-  oculto, onToggle, label,
-}: { oculto: boolean; onToggle: () => void; label: string }) {
-  return (
-    <div
-      className="flex items-center justify-between px-3 py-2.5"
-      style={{ border: BORDER, borderRadius: "2px", background: BG_SUBTLE }}
-    >
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: TEXT_MUTED }}>
-          Visibilidad
-        </p>
-        <p className="text-[9px] mt-0.5" style={{ color: TEXT_DIM }}>
-          {oculto ? `${label} oculto para usuarios` : `${label} visible en el mapa`}
-        </p>
-      </div>
-      <button
-        onClick={onToggle}
-        className="flex items-center gap-1.5 px-2 py-1 text-[9px] font-medium uppercase tracking-wide transition-all"
-        style={{
-          border: oculto ? "1px solid color-mix(in srgb, var(--accent) 35%, transparent)" : BORDER,
-          color: oculto ? "var(--accent)" : TEXT_MUTED,
-          background: oculto ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
-          borderRadius: "2px",
-        }}
-      >
-        {oculto ? <EyeOff size={10} /> : <Eye size={10} />}
-        {oculto ? "Oculto" : "Visible"}
-      </button>
-    </div>
   );
 }
 
@@ -109,109 +54,105 @@ function PanelContenido({
   librosReino, capitulosReino,
 }: any) {
   const router = useRouter();
-
   if (editMode) {
     return (
       <div className="flex flex-col gap-4 flex-grow">
-        {/* Nombre */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[9px] font-semibold uppercase tracking-[0.15em]" style={{ color: TEXT_MUTED }}>
-            Nombre
-          </label>
+        <div className="flex flex-col gap-1">
+          <label className="text-[9px] font-bold uppercase tracking-widest ml-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Nombre</label>
           <input
             type="text"
             value={puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
             onChange={(e) => {
               if (puntoSeleccionado) {
                 setPuntoSeleccionado({ ...puntoSeleccionado, nombre: e.target.value });
-                setDetallesReino((prev: any[]) =>
-                  prev.map(p => p.id === puntoSeleccionado.id ? { ...p, nombre: e.target.value } : p)
-                );
+                setDetallesReino((prev: any[]) => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, nombre: e.target.value } : p));
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
-              } else {
-                setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
-              }
+              } else setReinoSeleccionado({ ...reinoSeleccionado, nombre: e.target.value });
             }}
-            className="input-brand font-semibold text-lg outline-none px-3 py-2.5"
-            style={{ borderRadius: "2px" }}
+            className="input-brand font-black uppercase text-xl outline-none px-4 py-3"
+            style={{ clipPath: "polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%)" }}
           />
         </div>
-
-        {/* Descripción */}
-        <div className="flex flex-col gap-1.5 flex-grow">
-          <label className="text-[9px] font-semibold uppercase tracking-[0.15em]" style={{ color: TEXT_MUTED }}>
-            Descripción / Lore
-          </label>
+        <div className="flex flex-col gap-1 flex-grow">
+          <label className="text-[9px] font-bold uppercase tracking-widest ml-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Descripción / Lore</label>
           <textarea
             value={puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
             onChange={(e) => {
               if (puntoSeleccionado) {
                 setPuntoSeleccionado({ ...puntoSeleccionado, descripcion: e.target.value });
-                setDetallesReino((prev: any[]) =>
-                  prev.map(p => p.id === puntoSeleccionado.id ? { ...p, descripcion: e.target.value } : p)
-                );
+                setDetallesReino((prev: any[]) => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, descripcion: e.target.value } : p));
                 setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
-              } else {
-                setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
-              }
+              } else setReinoSeleccionado({ ...reinoSeleccionado, descripcion: e.target.value });
             }}
-            className="input-brand text-sm leading-relaxed h-36 resize-none outline-none px-3 py-2.5"
-            style={{ borderRadius: "2px" }}
+            className="input-brand text-sm italic leading-relaxed h-36 resize-none outline-none px-4 py-3"
           />
         </div>
-
-        {/* Coordenadas */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[9px] font-semibold uppercase tracking-[0.15em] flex items-center gap-1" style={{ color: TEXT_MUTED }}>
+        <div className="flex flex-col gap-1">
+          <label className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
             <Move size={9} /> Coordenadas
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {([["X", puntoSeleccionado ? puntoSeleccionado.coord_x : reinoSeleccionado.coord_x],
-               ["Y", puntoSeleccionado ? puntoSeleccionado.coord_y : reinoSeleccionado.coord_y]] as [string, any][])
-              .map(([lbl, val]) => (
-              <div key={lbl} className="px-3 py-2 text-center"
-                style={{ border: BORDER, borderRadius: "2px", background: BG_SUBTLE }}>
-                <span className="block text-[8px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: TEXT_DIM }}>{lbl}</span>
-                <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{val}</span>
+            {[["X", puntoSeleccionado ? puntoSeleccionado.coord_x : reinoSeleccionado.coord_x],
+              ["Y", puntoSeleccionado ? puntoSeleccionado.coord_y : reinoSeleccionado.coord_y]].map(([label, val]) => (
+              <div key={label} className="p-3 text-center border"
+                style={{ background: "color-mix(in srgb, var(--bg-main) 70%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                <span className="block text-[8px] font-bold uppercase" style={{ color: "color-mix(in srgb, var(--foreground) 40%, transparent)" }}>{label}</span>
+                <span className="text-sm font-black" style={{ color: "var(--accent)" }}>{val}</span>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Visibilidad */}
         {!puntoSeleccionado && (
-          <ToggleVisibilidad
-            oculto={reinoSeleccionado.oculto}
-            onToggle={() => setReinoSeleccionado((r: any) => ({ ...r, oculto: !r.oculto }))}
-            label="Este reino"
-          />
+          <div className="flex items-center justify-between px-3 py-2.5 border"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", background: "color-mix(in srgb, var(--bg-main) 60%, transparent)" }}>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Visibilidad en el mapa</p>
+              <p className="text-[9px] mt-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 35%, transparent)" }}>
+                {reinoSeleccionado.oculto ? "Este reino no aparece para usuarios" : "Este reino es visible en el mapa"}
+              </p>
+            </div>
+            <button
+              onClick={() => setReinoSeleccionado((r: any) => ({ ...r, oculto: !r.oculto }))}
+              className={`relative w-10 h-5 rounded-full transition-all border ${reinoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-amber-400/15 border-amber-400/20"}`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${reinoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-amber-400/50"}`} />
+            </button>
+          </div>
         )}
         {puntoSeleccionado && (
-          <ToggleVisibilidad
-            oculto={puntoSeleccionado.oculto}
-            onToggle={() => {
-              const nuevoOculto = !puntoSeleccionado.oculto;
-              setPuntoSeleccionado((p: any) => ({ ...p, oculto: nuevoOculto }));
-              setDetallesReino((prev: any[]) =>
-                prev.map(p => p.id === puntoSeleccionado.id ? { ...p, oculto: nuevoOculto } : p)
-              );
-              setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
-            }}
-            label="Este punto"
-          />
+          <div className="flex items-center justify-between px-3 py-2.5 border"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)", background: "color-mix(in srgb, var(--bg-main) 60%, transparent)" }}>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>Visibilidad en el mapa</p>
+              <p className="text-[9px] mt-0.5" style={{ color: "color-mix(in srgb, var(--foreground) 35%, transparent)" }}>
+                {puntoSeleccionado.oculto ? "Este punto no aparece para usuarios" : "Este punto es visible en el mapa"}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                const nuevoOculto = !puntoSeleccionado.oculto;
+                setPuntoSeleccionado((p: any) => ({ ...p, oculto: nuevoOculto }));
+                setDetallesReino((prev: any[]) => prev.map(p => p.id === puntoSeleccionado.id ? { ...p, oculto: nuevoOculto } : p));
+                setModifiedDetalles((prev: Set<string>) => new Set(prev).add(puntoSeleccionado.id));
+              }}
+              className={`relative w-10 h-5 rounded-full transition-all border ${puntoSeleccionado.oculto ? "bg-orange-400/20 border-orange-400/40" : "bg-amber-400/15 border-amber-400/20"}`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all shadow-sm ${puntoSeleccionado.oculto ? "left-5 bg-orange-400" : "left-0.5 bg-amber-400/50"}`} />
+            </button>
+          </div>
         )}
-
-        {/* Imagen del mapa (solo reino) */}
         {!puntoSeleccionado && (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[9px] font-semibold uppercase tracking-[0.15em] flex items-center gap-1" style={{ color: TEXT_MUTED }}>
+          <div className="flex flex-col gap-1">
+            <label className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1"
+              style={{ color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
               <ImagePlus size={9} /> Imagen del Mapa
             </label>
             {reinoSeleccionado.mapa_url && (
-              <div className="relative w-full h-20 overflow-hidden mb-1" style={{ border: BORDER, borderRadius: "2px" }}>
+              <div className="relative w-full h-20 overflow-hidden border mb-1"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
                 <img src={reinoSeleccionado.mapa_url} alt="Mapa actual" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 flex items-end p-2" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.5), transparent)" }}>
-                  <span className="text-[8px] font-medium uppercase tracking-wider text-white/80">Imagen actual</span>
+                <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
+                  <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: "var(--accent)" }}>Imagen actual</span>
                 </div>
               </div>
             )}
@@ -219,8 +160,8 @@ function PanelContenido({
             <button
               onClick={() => imgInputRef.current?.click()}
               disabled={isUploadingImg}
-              className="w-full flex items-center justify-center gap-2 border-dashed text-[10px] font-medium py-3 transition-all disabled:opacity-50 uppercase tracking-wide"
-              style={{ border: "1px dashed color-mix(in srgb, var(--accent) 30%, transparent)", color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 5%, transparent)", borderRadius: "2px" }}
+              className="w-full flex items-center justify-center gap-2 border border-dashed text-[10px] font-black uppercase py-3 transition-all disabled:opacity-50"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--accent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
               {isUploadingImg
                 ? <><Loader2 size={12} className="animate-spin" /> Subiendo...</>
@@ -228,13 +169,11 @@ function PanelContenido({
             </button>
           </div>
         )}
-
-        {/* Guardar */}
         <button
           onClick={handleSaveChanges}
           disabled={isSaving}
-          className="btn-brand w-full justify-center text-[11px] uppercase tracking-wide py-3 mt-auto disabled:opacity-50 flex items-center gap-2"
-          style={{ borderRadius: "2px" }}
+          className="btn-brand w-full justify-center text-[11px] uppercase py-4 mt-auto disabled:opacity-50"
+          style={{ clipPath: "polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)" }}
         >
           {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
           Guardar cambios
@@ -243,38 +182,47 @@ function PanelContenido({
     );
   }
 
-  // ── Vista lectura ──────────────────────────────────────────────────────────
   return (
     <>
-      {/* Título */}
-      <div className="mb-6">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.2em] mb-2" style={{ color: TEXT_MUTED }}>
-          {puntoSeleccionado ? "Ubicación" : "Reino"}
-        </p>
-        <h2
-          className="font-bold text-2xl leading-tight"
-          style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)" }}
-        >
+      {/* Title with decorative line */}
+      <div className="relative mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
+          <div className="w-1.5 h-1.5 rotate-45" style={{ background: "var(--accent)" }} />
+          <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
+        </div>
+        <h2 className="font-black text-3xl uppercase tracking-[0.12em] leading-none text-center"
+          style={{ fontFamily: "'Cinzel', serif", color: "var(--foreground)", textShadow: "0 0 30px color-mix(in srgb, var(--accent) 30%, transparent)" }}>
           {puntoSeleccionado ? puntoSeleccionado.nombre : reinoSeleccionado.nombre}
         </h2>
-        <div className="mt-3 h-px w-12" style={{ background: "var(--accent)", opacity: 0.5 }} />
+        <div className="flex items-center gap-3 mt-2">
+          <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
+          <div className="w-1.5 h-1.5 rotate-45" style={{ background: "var(--accent)" }} />
+          <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, color-mix(in srgb, var(--accent) 40%, transparent))` }} />
+        </div>
       </div>
 
       <div className="space-y-6 flex-grow overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent/20">
-        {/* Lore */}
-        <div
-          className="px-4 py-4"
-          style={{ border: BORDER, borderLeft: `2px solid color-mix(in srgb, var(--accent) 40%, transparent)`, background: BG_SUBTLE, borderRadius: "2px" }}
-        >
-          <p className="text-sm italic leading-relaxed" style={{ color: TEXT_MUTED }}>
-            {puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}
+        {/* Lore text */}
+        <div className="relative p-5 border"
+          style={{ borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <div className="absolute top-0 left-0 w-3 h-3 border-t border-l" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+          <div className="absolute top-0 right-0 w-3 h-3 border-t border-r" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+          <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+          <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r" style={{ borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)" }} />
+          <p className="text-sm italic leading-relaxed" style={{ color: "color-mix(in srgb, var(--foreground) 70%, transparent)" }}>
+            &ldquo;{puntoSeleccionado ? puntoSeleccionado.descripcion : reinoSeleccionado.descripcion}&rdquo;
           </p>
         </div>
 
-        {/* Personajes */}
+        {/* Characters grid — 2 per row, no "ver" button */}
         {!puntoSeleccionado && personajesReino.length > 0 && (
           <div>
-            <SeccionLabel icon={<User size={9} />}>Habitantes conocidos</SeccionLabel>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+              <span className="text-[8px] font-black uppercase tracking-[0.3em]" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>Habitantes conocidos</span>
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {personajesReino.map((p: any) => {
                 const desbloqueado = personajesDesbloqueados.has(p.id);
@@ -282,39 +230,42 @@ function PanelContenido({
                   <button
                     key={p.id}
                     onClick={desbloqueado ? () => handlePersonajeClick(p) : undefined}
-                    className="flex items-center gap-2.5 p-2.5 w-full text-left transition-opacity group"
+                    className="flex items-center gap-2 p-2 w-full text-left transition-all group"
                     style={{
-                      background: desbloqueado ? BG_SUBTLE : "transparent",
-                      border: BORDER,
-                      opacity: desbloqueado ? 1 : 0.45,
+                      background: desbloqueado
+                        ? "color-mix(in srgb, var(--primary) 15%, transparent)"
+                        : "color-mix(in srgb, var(--bg-main) 50%, transparent)",
+                      border: `1px solid ${desbloqueado ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "color-mix(in srgb, var(--accent) 7%, transparent)"}`,
+                      opacity: desbloqueado ? 1 : 0.5,
                       cursor: desbloqueado ? "pointer" : "default",
-                      borderRadius: "2px",
                     }}
                   >
-                    {/* Avatar */}
+                    {/* Avatar — izquierda */}
                     <div
-                      className="shrink-0 w-9 h-9 overflow-hidden flex items-center justify-center"
+                      className="shrink-0 w-10 h-10 overflow-hidden flex items-center justify-center border"
                       style={{
-                        border: BORDER,
+                        borderColor: desbloqueado ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "color-mix(in srgb, var(--accent) 8%, transparent)",
                         background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
-                        filter: desbloqueado ? "none" : "grayscale(100%) blur(1.5px)",
-                        borderRadius: "2px",
+                        filter: desbloqueado ? "none" : "grayscale(100%) blur(2px)",
+                        clipPath: "polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)",
                       }}
                     >
                       {desbloqueado && p.img_url
                         ? <img src={p.img_url} alt={p.nombre} className="w-full h-full object-cover" />
-                        : <UserX size={14} style={{ color: TEXT_DIM }} />}
+                        : <UserX size={16} style={{ color: "color-mix(in srgb, var(--accent) 30%, transparent)" }} />}
                     </div>
-                    {/* Info */}
+                    {/* Nombre + especie — derecha */}
                     <div className="flex-1 min-w-0">
-                      <p
-                        className="text-[11px] font-semibold leading-tight truncate"
-                        style={{ color: desbloqueado ? "var(--foreground)" : TEXT_DIM }}
-                      >
+                      <p className="text-[11px] font-black uppercase leading-tight truncate"
+                        style={{
+                          color: desbloqueado ? "var(--foreground)" : "color-mix(in srgb, var(--accent) 30%, transparent)",
+                          textDecoration: desbloqueado ? "none" : "line-through",
+                          textDecorationColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
+                        }}>
                         {desbloqueado ? p.nombre : "???"}
                       </p>
                       {p.especie && (
-                        <p className="text-[9px] mt-0.5 truncate" style={{ color: TEXT_MUTED }}>
+                        <p className="text-[9px] font-medium mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 55%, transparent)" }}>
                           {desbloqueado ? p.especie : "Desconocido"}
                         </p>
                       )}
@@ -326,27 +277,37 @@ function PanelContenido({
           </div>
         )}
 
-        {/* Libros */}
+        {/* Books of this kingdom */}
         {!puntoSeleccionado && librosReino && librosReino.length > 0 && (
           <div>
-            <SeccionLabel icon={<BookOpen size={9} />}>Relatos de este reino</SeccionLabel>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+              <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                <BookOpen size={9} /> Relatos de este reino
+              </span>
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+            </div>
+            <div className="flex flex-col gap-2">
               {librosReino.map((libro: any) => (
                 <button
                   key={libro.id}
                   onClick={() => router.push(`/wiki/libros/${libro.id}`)}
-                  className="flex items-center gap-3 p-3 w-full text-left transition-opacity hover:opacity-75 active:scale-[0.99]"
-                  style={{ border: BORDER, background: BG_SUBTLE, borderRadius: "2px" }}
-                >
+                  className="flex items-center gap-3 p-3 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                    cursor: "pointer",
+                  }}>
                   {libro.portada_url && (
-                    <img src={libro.portada_url} alt={libro.titulo} className="w-9 h-11 object-cover shrink-0" style={{ borderRadius: "1px" }} />
+                    <img src={libro.portada_url} alt={libro.titulo} className="w-10 h-12 object-cover shrink-0"
+                      style={{ filter: "brightness(0.9)" }} />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-semibold leading-tight truncate" style={{ color: "var(--foreground)" }}>
+                    <p className="text-[11px] font-black uppercase leading-tight truncate" style={{ color: "var(--foreground)" }}>
                       {libro.titulo}
                     </p>
                     {libro.estado && (
-                      <p className="text-[9px] mt-0.5 uppercase tracking-wide" style={{ color: TEXT_MUTED }}>
+                      <p className="text-[8px] font-bold uppercase mt-0.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
                         {libro.estado}
                       </p>
                     )}
@@ -357,30 +318,37 @@ function PanelContenido({
           </div>
         )}
 
-        {/* Capítulos */}
+        {/* Chapters that take place in this kingdom */}
         {!puntoSeleccionado && capitulosReino && capitulosReino.length > 0 && (
           <div>
-            <SeccionLabel icon={<BookMarked size={9} />}>One shots</SeccionLabel>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+              <span className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }}>
+                <BookMarked size={9} /> One shots
+              </span>
+              <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)" }} />
+            </div>
             <div className="flex flex-col gap-1.5">
               {capitulosReino.map((cap: any) => (
                 <button
                   key={cap.id}
                   onClick={() => router.push(`/wiki/libros/${cap.libro_id}/leer/${cap.id}`)}
-                  className="flex items-center gap-3 px-3 py-2.5 w-full text-left transition-opacity hover:opacity-75 active:scale-[0.99]"
-                  style={{ border: BORDER, background: BG_SUBTLE, borderRadius: "2px" }}
-                >
-                  <span
-                    className="text-[9px] font-semibold tabular-nums shrink-0 w-5 text-center"
-                    style={{ color: "var(--accent)" }}
-                  >
+                  className="flex items-center gap-2 px-3 py-2.5 border w-full text-left transition-all hover:opacity-80 active:scale-[0.98]"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+                    cursor: "pointer",
+                  }}>
+                  <span className="text-[8px] font-black shrink-0 px-1.5 py-0.5"
+                    style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}>
                     {cap.orden}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                    <p className="text-[10px] font-black uppercase truncate" style={{ color: "var(--foreground)" }}>
                       {cap.titulo_capitulo}
                     </p>
                     {cap.libro_titulo && (
-                      <p className="text-[9px] mt-0.5 truncate" style={{ color: TEXT_MUTED }}>
+                      <p className="text-[8px] mt-0.5 truncate" style={{ color: "color-mix(in srgb, var(--accent) 50%, transparent)" }}>
                         {cap.libro_titulo}
                       </p>
                     )}
@@ -399,30 +367,31 @@ function PanelContenido({
 interface CanvasMapProps {
   imageSrc: string;
   markers: any[];
-  hiddenMarkers: any[];
+  hiddenMarkers: any[]; // markers that are hidden (fog covered)
   editMode: boolean;
   onMarkerClick: (marker: any) => void;
   onMapClick: (x: number, y: number) => void;
   selectedMarkerId?: string | null;
   tipo: "global" | "reino";
-  onOpenPanel?: () => void;
 }
 
-function CanvasMap({
-  imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, onMapClick,
-  selectedMarkerId, tipo, onOpenPanel,
-}: CanvasMapProps) {
+function CanvasMap({ imageSrc, markers, hiddenMarkers, editMode, onMarkerClick, onMapClick, selectedMarkerId, tipo, onOpenPanel }: CanvasMapProps & { onOpenPanel?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const animFrameRef = useRef<number>(0);
+  // Camera state
   const camRef = useRef({ x: 0, y: 0, scale: 1 });
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
+  // Pinch
   const lastPinchDist = useRef<number | null>(null);
+  // Pulse animation
   const pulseRef = useRef(0);
+  // Theme CSS vars read at draw time
   const cssColorsRef = useRef({ primary: "#888", accent: "#aaa", bg: "#0a0806", fg: "#fff" });
+  // Fog cache — rebuilt only when markers/size change, not every frame
   const fogCacheRef = useRef<{ canvas: OffscreenCanvas; deep: OffscreenCanvas; iw: number; ih: number; bg: string } | null>(null);
 
   useEffect(() => {
@@ -430,9 +399,9 @@ function CanvasMap({
       const s = getComputedStyle(document.documentElement);
       cssColorsRef.current = {
         primary: s.getPropertyValue("--primary").trim() || "#888",
-        accent:  s.getPropertyValue("--accent").trim()  || "#aaa",
-        bg:      s.getPropertyValue("--bg-main").trim() || "#0a0806",
-        fg:      s.getPropertyValue("--foreground").trim() || "#fff",
+        accent: s.getPropertyValue("--accent").trim() || "#aaa",
+        bg: s.getPropertyValue("--bg-main").trim() || "#0a0806",
+        fg: s.getPropertyValue("--foreground").trim() || "#fff",
       };
     };
     read();
@@ -459,7 +428,11 @@ function CanvasMap({
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = imageSrc;
-    img.onload = () => { imgRef.current = img; centerImage(); setImgLoaded(true); };
+    img.onload = () => {
+      imgRef.current = img;
+      centerImage();
+      setImgLoaded(true);
+    };
     img.onerror = () => {
       setTimeout(() => {
         const retry = new Image();
@@ -479,7 +452,9 @@ function CanvasMap({
       const prevH = canvas.height;
       canvas.width = container.clientWidth;
       canvas.height = container.clientHeight;
-      if (imgRef.current && (prevW !== canvas.width || prevH !== canvas.height)) centerImage();
+      if (imgRef.current && (prevW !== canvas.width || prevH !== canvas.height)) {
+        centerImage();
+      }
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -487,26 +462,36 @@ function CanvasMap({
     return () => ro.disconnect();
   }, [centerImage]);
 
-  // ── Render loop ──────────────────────────────────────────────────────────────
+  // ── Render loop with fog effect ──────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Cap to ~30fps on mobile to avoid lag and battery drain
     const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
     const FRAME_MS = isMobileDevice ? 34 : 16;
     let lastFrameTime = 0;
+
+    // Cache vignette so it's not rebuilt every frame
     let vignetteCanvas: OffscreenCanvas | null = null;
-    let vignetteW = 0, vignetteH = 0, vignetteBg = "";
+    let vignetteW = 0;
+    let vignetteH = 0;
+    let vignetteBg = "";
 
     const draw = (t: number) => {
-      if (t - lastFrameTime < FRAME_MS) { animFrameRef.current = requestAnimationFrame(draw); return; }
+      // Throttle frame rate on mobile
+      if (t - lastFrameTime < FRAME_MS) {
+        animFrameRef.current = requestAnimationFrame(draw);
+        return;
+      }
       lastFrameTime = t;
-      pulseRef.current = t;
 
+      pulseRef.current = t;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const { primary, accent, bg } = cssColorsRef.current;
+
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -516,40 +501,58 @@ function CanvasMap({
       if (img && imgLoaded) {
         const iw = img.width * scale;
         const ih = img.height * scale;
+
         ctx.save();
         ctx.translate(cx, cy);
+
+        // ── Draw base map ──────────────────────────────────────────────────
         ctx.drawImage(img, 0, 0, iw, ih);
-        ctx.fillStyle = "rgba(80,40,10,0.04)";
+
+        // Subtle aged overlay
+        ctx.fillStyle = "rgba(80, 40, 10, 0.06)";
         ctx.fillRect(0, 0, iw, ih);
 
-        // ── FOG OF WAR ─────────────────────────────────────────────────────
+        // ── FOG OF WAR — cached, rebuilt only when markers/bg changes ─────
         if (tipo === "global" && !editMode && hiddenMarkers.length > 0) {
           const cache = fogCacheRef.current;
           const FOG_W = Math.min(img.width, 1200);
           const FOG_H = Math.round(FOG_W * (img.height / img.width));
-          const needsRebuild = !cache || cache.iw !== FOG_W || cache.ih !== FOG_H || cache.bg !== bg;
+
+          const needsRebuild =
+            !cache ||
+            cache.iw !== FOG_W ||
+            cache.ih !== FOG_H ||
+            cache.bg !== bg;
 
           if (needsRebuild) {
             const maxDim = Math.max(FOG_W, FOG_H);
+            // Clear zone around the marker center (fully revealed)
             const clearRadius = maxDim * 0.10;
+            // Soft fade zone — where fog transitions to clear
             const fadeRadius  = maxDim * 0.22;
 
+            // ── Layer 1: main opaque fog with reveal holes ────────────────
             const fogCanvas = new OffscreenCanvas(FOG_W, FOG_H);
             const fogCtx = fogCanvas.getContext("2d")!;
+
+            // Start fully opaque — parse bg hex to get an rgb version
+            // bg is a hex like "#1a1a2e"; use it with full opacity
             fogCtx.fillStyle = bg;
             fogCtx.globalAlpha = 0.92;
             fogCtx.fillRect(0, 0, FOG_W, FOG_H);
             fogCtx.globalAlpha = 1;
+
+            // Punch holes around each visible marker with a smooth gradient
             fogCtx.globalCompositeOperation = "destination-out";
             for (const m of markers) {
               const mx = (m.coord_x / 100) * FOG_W;
               const my = (m.coord_y / 100) * FOG_H;
               const grad = fogCtx.createRadialGradient(mx, my, clearRadius * 0.2, mx, my, fadeRadius);
-              grad.addColorStop(0,    "rgba(0,0,0,1)");
-              grad.addColorStop(0.45, "rgba(0,0,0,0.98)");
-              grad.addColorStop(0.72, "rgba(0,0,0,0.7)");
-              grad.addColorStop(0.88, "rgba(0,0,0,0.25)");
-              grad.addColorStop(1,    "rgba(0,0,0,0)");
+              grad.addColorStop(0,    "rgba(0,0,0,1)");   // fully clear at center
+              grad.addColorStop(0.45, "rgba(0,0,0,0.98)"); // still very clear
+              grad.addColorStop(0.72, "rgba(0,0,0,0.7)");  // starting to fog
+              grad.addColorStop(0.88, "rgba(0,0,0,0.25)"); // mostly fogged
+              grad.addColorStop(1,    "rgba(0,0,0,0)");    // full fog
               fogCtx.fillStyle = grad;
               fogCtx.beginPath();
               fogCtx.arc(mx, my, fadeRadius, 0, Math.PI * 2);
@@ -557,6 +560,9 @@ function CanvasMap({
             }
             fogCtx.globalCompositeOperation = "source-over";
 
+            // ── Layer 2: semi-transparent overlay for depth ───────────────
+            // Adds a slight extra tint on top of the fogged zones so they
+            // feel heavier / more "sealed" without being pitch black.
             const deepCanvas = new OffscreenCanvas(FOG_W, FOG_H);
             const deepCtx = deepCanvas.getContext("2d")!;
             deepCtx.fillStyle = bg;
@@ -567,6 +573,7 @@ function CanvasMap({
             for (const m of markers) {
               const mx = (m.coord_x / 100) * FOG_W;
               const my = (m.coord_y / 100) * FOG_H;
+              // Slightly larger clear radius so the deep layer fully reveals the center
               const grad2 = deepCtx.createRadialGradient(mx, my, clearRadius * 0.5, mx, my, fadeRadius * 0.7);
               grad2.addColorStop(0,   "rgba(0,0,0,1)");
               grad2.addColorStop(0.6, "rgba(0,0,0,0.85)");
@@ -577,26 +584,34 @@ function CanvasMap({
               deepCtx.fill();
             }
             deepCtx.globalCompositeOperation = "source-over";
+
             fogCacheRef.current = { canvas: fogCanvas, deep: deepCanvas, iw: FOG_W, ih: FOG_H, bg };
           }
 
+          // Stamp cached fog layers
           const fc = fogCacheRef.current!;
           ctx.drawImage(fc.canvas, 0, 0, iw, ih);
           ctx.drawImage(fc.deep,   0, 0, iw, ih);
 
-          // Wisps animados en zonas de niebla
+          // ── Animated wisps — only in fogged regions ───────────────────
+          // We clip wisps away from marker centers so they never cover revealed areas
           const fogTime = t * 0.00025;
           const maxDim = Math.max(iw, ih);
           const clearR = maxDim * 0.10;
+
           ctx.save();
+          // Build a clipping region that excludes the revealed zones
           ctx.beginPath();
           ctx.rect(0, 0, iw, ih);
           for (const m of markers) {
             const mx = (m.coord_x / 100) * iw;
             const my = (m.coord_y / 100) * ih;
+            // Clip out a circle around each marker center (anticlockwise = subtract)
             ctx.arc(mx, my, clearR * 1.8, 0, Math.PI * 2, true);
           }
           ctx.clip("evenodd");
+
+          // Fewer wisps on mobile to save GPU
           const wispCount = isMobileDevice ? 2 : 5;
           ctx.globalAlpha = 0.07;
           for (let i = 0; i < wispCount; i++) {
@@ -615,142 +630,177 @@ function CanvasMap({
           ctx.restore();
         }
 
+        // No internal map vignette — edge fog handles blending instead
+
         ctx.restore();
 
-        // ── Marcadores visibles ────────────────────────────────────────────
+        // ── Draw visible markers ──────────────────────────────────────────
         for (const m of markers) {
           const mx = cx + (m.coord_x / 100) * (img.width * scale);
           const my = cy + (m.coord_y / 100) * (img.height * scale);
           const isSelected = m.id === selectedMarkerId;
-          const pulse = (Math.sin(t * 0.0018 + m.coord_x) + 1) / 2;
+          const pulse = (Math.sin(t * 0.002 + m.coord_x) + 1) / 2;
 
           ctx.save();
           ctx.translate(mx, my);
 
-          // Anillo exterior sutil — solo si seleccionado
+          // Subtle outer ring (small)
+          const ringR = 7 + pulse * 3;
+          ctx.beginPath();
+          ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+          ctx.strokeStyle = isSelected
+            ? `${accent}${Math.round(0.35 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`
+            : `${primary}${Math.round(0.2 * (1 - pulse) * 255).toString(16).padStart(2, "0")}`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+
+          // Very subtle glow (minimal radius, low opacity)
+          const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 5);
           if (isSelected) {
-            const ringR = 9 + pulse * 2;
-            ctx.beginPath();
-            ctx.arc(0, 0, ringR, 0, Math.PI * 2);
-            ctx.strokeStyle = `${accent}${Math.round(0.25 * 255).toString(16).padStart(2,"0")}`;
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            grd.addColorStop(0, `${accent}55`);
+            grd.addColorStop(1, `${accent}00`);
+          } else {
+            grd.addColorStop(0, `${primary}33`);
+            grd.addColorStop(1, `${primary}00`);
           }
-
-          // Pin circular — más limpio que el diamond
-          const r = isSelected ? 5.5 : 4.5;
           ctx.beginPath();
-          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.arc(0, 0, 5, 0, Math.PI * 2);
+          ctx.fillStyle = grd;
+          ctx.fill();
+
+          // Diamond marker
+          ctx.save();
+          ctx.rotate(Math.PI / 4);
+          const d = isSelected ? 6 : 5;
           ctx.fillStyle = isSelected ? accent : primary;
-          ctx.fill();
+          ctx.shadowColor = isSelected ? `${accent}99` : `${primary}44`;
+          ctx.shadowBlur = isSelected ? 4 : 2;
+          ctx.fillRect(-d, -d, d * 2, d * 2);
+          ctx.fillStyle = isSelected ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.25)";
+          ctx.shadowBlur = 0;
+          const di = d * 0.45;
+          ctx.fillRect(-di, -di, di * 2, di * 2);
+          ctx.restore();
 
-          // Punto interior blanco
-          ctx.beginPath();
-          ctx.arc(0, 0, r * 0.38, 0, Math.PI * 2);
-          ctx.fillStyle = isSelected ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.45)";
-          ctx.fill();
-
-          // Badge de admin en edit mode
           if (editMode) {
             ctx.beginPath();
-            ctx.arc(r + 2, -(r + 2), 3, 0, Math.PI * 2);
+            ctx.arc(6, -6, 3.5, 0, Math.PI * 2);
             ctx.fillStyle = accent;
             ctx.fill();
             if (m.oculto) {
               ctx.beginPath();
-              ctx.arc(-(r + 2), (r + 2), 3, 0, Math.PI * 2);
+              ctx.arc(-6, 6, 3.5, 0, Math.PI * 2);
               ctx.fillStyle = "#f97316";
               ctx.fill();
             }
           }
 
-          // Etiqueta
-          const fontSize = scale > 0.7 ? 10 : 9;
-          ctx.font = `500 ${fontSize}px 'Cinzel', serif`;
+          ctx.font = `bold ${scale > 0.7 ? 10 : 9}px 'Cinzel', serif`;
           ctx.textAlign = "center";
           const label = m.nombre;
           const metrics = ctx.measureText(label);
-          const lw = metrics.width + 14;
+          const lw = metrics.width + 12;
           const lh = 14;
-          const ly = -18;
-          // Fondo etiqueta
-          ctx.fillStyle = `${bg}e0`;
+          const ly = -20;
+          ctx.fillStyle = `${bg}d4`;
           ctx.beginPath();
           ctx.rect(-lw / 2, ly - lh / 2, lw, lh);
           ctx.fill();
-          // Borde etiqueta
-          ctx.strokeStyle = isSelected ? `${accent}60` : `${primary}40`;
-          ctx.lineWidth = 0.6;
+          ctx.strokeStyle = isSelected ? `${accent}80` : `${primary}59`;
+          ctx.lineWidth = 0.75;
           ctx.stroke();
-          // Texto
           ctx.fillStyle = isSelected ? accent : primary;
-          ctx.fillText(label, 0, ly + fontSize * 0.38);
+          ctx.fillText(label, 0, ly + 4);
 
           ctx.restore();
         }
 
-        // ── Marcadores ocultos (solo admin en editMode) ──────────────────
+        // ── Draw hidden markers (admin only, faded) ───────────────────────
         if (editMode) {
           for (const m of hiddenMarkers) {
             const mx = cx + (m.coord_x / 100) * (img.width * scale);
             const my = cy + (m.coord_y / 100) * (img.height * scale);
             ctx.save();
-            ctx.globalAlpha = 0.4;
+            ctx.globalAlpha = 0.35;
             ctx.translate(mx, my);
-            ctx.beginPath();
-            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.save();
+            ctx.rotate(Math.PI / 4);
             ctx.fillStyle = "#f97316";
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,255,255,0.7)";
-            ctx.fill();
-            ctx.font = `500 9px 'Cinzel', serif`;
+            ctx.shadowColor = "#f9731666";
+            ctx.shadowBlur = 6;
+            ctx.fillRect(-4, -4, 8, 8);
+            ctx.restore();
+            ctx.font = `bold 9px 'Cinzel', serif`;
             ctx.textAlign = "center";
             const label = m.nombre;
             const metrics = ctx.measureText(label);
             const lw = metrics.width + 12;
             ctx.fillStyle = `${bg}cc`;
-            ctx.fillRect(-lw / 2, -24, lw, 13);
+            ctx.beginPath();
+            ctx.rect(-lw / 2, -27, lw, 14);
+            ctx.fill();
             ctx.fillStyle = "#f97316";
-            ctx.fillText(label, 0, -14);
+            ctx.fillText(label, 0, -17);
             ctx.restore();
           }
         }
 
       } else {
-        // Loading shimmer
         const gr = ctx.createLinearGradient(0, 0, canvas.width, 0);
         const off = ((t * 0.001) % 1);
-        gr.addColorStop(Math.max(0, off - 0.1), `${primary}15`);
-        gr.addColorStop(off, `${accent}18`);
-        gr.addColorStop(Math.min(1, off + 0.1), `${primary}15`);
+        const { primary, accent } = cssColorsRef.current;
+        gr.addColorStop(Math.max(0, off - 0.1), `${primary}1a`);
+        gr.addColorStop(off, `${accent}20`);
+        gr.addColorStop(Math.min(1, off + 0.1), `${primary}1a`);
         ctx.fillStyle = gr;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      // ── Vignette de bordes ─────────────────────────────────────────────────
+      // ── Edge vignette — subtle fade at canvas borders ─────────────────
+      // Rebuild only when canvas size or bg color changes
       const { bg: bgNow } = cssColorsRef.current;
-      if (!vignetteCanvas || vignetteW !== canvas.width || vignetteH !== canvas.height || vignetteBg !== bgNow) {
+      if (
+        !vignetteCanvas ||
+        vignetteW !== canvas.width ||
+        vignetteH !== canvas.height ||
+        vignetteBg !== bgNow
+      ) {
         vignetteW = canvas.width;
         vignetteH = canvas.height;
         vignetteBg = bgNow;
         vignetteCanvas = new OffscreenCanvas(vignetteW, vignetteH);
         const vc = vignetteCanvas.getContext("2d")!;
+        // Smaller fade zones — 18% of each dimension instead of 45%
         const eT = vignetteH * 0.18;
         const eS = vignetteW * 0.18;
+
         const topFog = vc.createLinearGradient(0, 0, 0, eT);
-        topFog.addColorStop(0, `${bgNow}cc`); topFog.addColorStop(0.4, `${bgNow}55`); topFog.addColorStop(1, `${bgNow}00`);
-        vc.fillStyle = topFog; vc.fillRect(0, 0, vignetteW, eT);
+        topFog.addColorStop(0,   `${bgNow}cc`);
+        topFog.addColorStop(0.4, `${bgNow}55`);
+        topFog.addColorStop(1,   `${bgNow}00`);
+        vc.fillStyle = topFog;
+        vc.fillRect(0, 0, vignetteW, eT);
+
         const botFog = vc.createLinearGradient(0, vignetteH - eT, 0, vignetteH);
-        botFog.addColorStop(0, `${bgNow}00`); botFog.addColorStop(0.6, `${bgNow}55`); botFog.addColorStop(1, `${bgNow}cc`);
-        vc.fillStyle = botFog; vc.fillRect(0, vignetteH - eT, vignetteW, eT);
+        botFog.addColorStop(0,   `${bgNow}00`);
+        botFog.addColorStop(0.6, `${bgNow}55`);
+        botFog.addColorStop(1,   `${bgNow}cc`);
+        vc.fillStyle = botFog;
+        vc.fillRect(0, vignetteH - eT, vignetteW, eT);
+
         const leftFog = vc.createLinearGradient(0, 0, eS, 0);
-        leftFog.addColorStop(0, `${bgNow}cc`); leftFog.addColorStop(0.4, `${bgNow}44`); leftFog.addColorStop(1, `${bgNow}00`);
-        vc.fillStyle = leftFog; vc.fillRect(0, 0, eS, vignetteH);
+        leftFog.addColorStop(0,   `${bgNow}cc`);
+        leftFog.addColorStop(0.4, `${bgNow}44`);
+        leftFog.addColorStop(1,   `${bgNow}00`);
+        vc.fillStyle = leftFog;
+        vc.fillRect(0, 0, eS, vignetteH);
+
         const rightFog = vc.createLinearGradient(vignetteW - eS, 0, vignetteW, 0);
-        rightFog.addColorStop(0, `${bgNow}00`); rightFog.addColorStop(0.6, `${bgNow}44`); rightFog.addColorStop(1, `${bgNow}cc`);
-        vc.fillStyle = rightFog; vc.fillRect(vignetteW - eS, 0, eS, vignetteH);
+        rightFog.addColorStop(0,   `${bgNow}00`);
+        rightFog.addColorStop(0.6, `${bgNow}44`);
+        rightFog.addColorStop(1,   `${bgNow}cc`);
+        vc.fillStyle = rightFog;
+        vc.fillRect(vignetteW - eS, 0, eS, vignetteH);
       }
       ctx.drawImage(vignetteCanvas, 0, 0);
 
@@ -760,6 +810,7 @@ function CanvasMap({
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [imgLoaded, markers, hiddenMarkers, editMode, selectedMarkerId, tipo]);
 
+  // Invalidate fog cache when markers or edit mode changes
   useEffect(() => { fogCacheRef.current = null; }, [markers, editMode, tipo]);
 
   const hitTest = useCallback((clientX: number, clientY: number): any | null => {
@@ -774,7 +825,8 @@ function CanvasMap({
     for (const m of [...markers].reverse()) {
       const mx = cx + (m.coord_x / 100) * iw;
       const my = cy + (m.coord_y / 100) * ih;
-      if (Math.hypot(px - mx, py - my) < 16) return m;
+      const dist = Math.hypot(px - mx, py - my);
+      if (dist < 16) return m;
     }
     return null;
   }, [markers]);
@@ -783,11 +835,13 @@ function CanvasMap({
     const canvas = canvasRef.current;
     if (!canvas || !imgRef.current) return [0, 0];
     const rect = canvas.getBoundingClientRect();
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
     const { x: cx, y: cy, scale } = camRef.current;
     const iw = imgRef.current.width * scale;
     const ih = imgRef.current.height * scale;
-    const x = parseFloat(((clientX - rect.left - cx) / iw * 100).toFixed(2));
-    const y = parseFloat(((clientY - rect.top  - cy) / ih * 100).toFixed(2));
+    const x = parseFloat(((px - cx) / iw * 100).toFixed(2));
+    const y = parseFloat(((py - cy) / ih * 100).toFixed(2));
     return [x, y];
   }, []);
 
@@ -844,12 +898,19 @@ function CanvasMap({
     if (e.touches.length === 1) {
       e.preventDefault();
       isDragging.current = false;
-      dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, camX: camRef.current.x, camY: camRef.current.y };
+      dragStart.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        camX: camRef.current.x,
+        camY: camRef.current.y,
+      };
       lastPinchDist.current = null;
     } else if (e.touches.length === 2) {
       e.preventDefault();
       isDragging.current = false;
-      lastPinchDist.current = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist.current = Math.hypot(dx, dy);
     }
   }, []);
 
@@ -864,7 +925,9 @@ function CanvasMap({
         camRef.current.y = dragStart.current.camY + dy;
       }
     } else if (e.touches.length === 2 && lastPinchDist.current !== null) {
-      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
       const pivotX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const pivotY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -875,14 +938,19 @@ function CanvasMap({
 
   const touchEndHandler = useCallback((e: TouchEvent) => {
     if (e.touches.length === 1) {
-      dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, camX: camRef.current.x, camY: camRef.current.y };
+      dragStart.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        camX: camRef.current.x,
+        camY: camRef.current.y,
+      };
       isDragging.current = false;
       lastPinchDist.current = null;
       return;
     }
     if (!isDragging.current && e.changedTouches.length === 1 && e.touches.length === 0) {
-      const touch = e.changedTouches[0];
-      const hit = hitTest(touch.clientX, touch.clientY);
+      const t = e.changedTouches[0];
+      const hit = hitTest(t.clientX, t.clientY);
       if (hit) onMarkerClick(hit);
     }
     isDragging.current = false;
@@ -894,12 +962,12 @@ function CanvasMap({
     if (!canvas) return;
     const opts = { passive: false };
     canvas.addEventListener("touchstart", touchStartHandler, opts);
-    canvas.addEventListener("touchmove",  touchMoveHandler,  opts);
-    canvas.addEventListener("touchend",   touchEndHandler,   opts);
+    canvas.addEventListener("touchmove", touchMoveHandler, opts);
+    canvas.addEventListener("touchend", touchEndHandler, opts);
     return () => {
       canvas.removeEventListener("touchstart", touchStartHandler);
-      canvas.removeEventListener("touchmove",  touchMoveHandler);
-      canvas.removeEventListener("touchend",   touchEndHandler);
+      canvas.removeEventListener("touchmove", touchMoveHandler);
+      canvas.removeEventListener("touchend", touchEndHandler);
     };
   }, [touchStartHandler, touchMoveHandler, touchEndHandler]);
 
@@ -914,39 +982,34 @@ function CanvasMap({
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
       />
-
-      {/* Controles de zoom */}
-      <div className="absolute right-4 bottom-[calc(56px+1rem)] md:bottom-6 flex flex-col gap-1 z-10">
-        {([{ icon: <ZoomIn size={13} />, fn: () => zoom(1.25) },
-           { icon: <ZoomOut size={13} />, fn: () => zoom(0.8) }] as const).map((btn, i) => (
-          <button
-            key={i}
-            onClick={btn.fn}
-            className="w-8 h-8 flex items-center justify-center transition-opacity hover:opacity-100"
+      <div className="absolute right-4 bottom-[calc(56px+1rem)] md:bottom-6 flex flex-col gap-1.5 z-10">
+        {[
+          { icon: <ZoomIn size={14} />, fn: () => zoom(1.25) },
+          { icon: <ZoomOut size={14} />, fn: () => zoom(0.8) },
+        ].map((btn, i) => (
+          <button key={i} onClick={btn.fn}
+            className="w-9 h-9 flex items-center justify-center transition-colors border"
             style={{
-              background: "color-mix(in srgb, var(--bg-menu) 92%, transparent)",
-              border: BORDER,
+              background: "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
               color: "var(--accent)",
-              opacity: 0.8,
-              borderRadius: "2px",
-            }}
-          >
+              clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)",
+            }}>
             {btn.icon}
           </button>
         ))}
         {onOpenPanel && (
           <button
             onClick={onOpenPanel}
-            className="w-8 h-8 flex items-center justify-center transition-opacity hover:opacity-100 md:hidden mt-1"
+            className="w-9 h-9 flex items-center justify-center transition-all border md:hidden"
             style={{
-              background: "color-mix(in srgb, var(--primary) 80%, transparent)",
-              border: BORDER_ACCENT,
+              background: "color-mix(in srgb, var(--primary) 85%, transparent)",
+              borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
               color: "var(--btn-text, #fff)",
-              opacity: 0.9,
-              borderRadius: "2px",
-            }}
-          >
-            <User size={13} />
+              clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)",
+              boxShadow: "0 0 12px color-mix(in srgb, var(--accent) 25%, transparent)",
+            }}>
+            <User size={14} />
           </button>
         )}
       </div>
@@ -957,6 +1020,8 @@ function CanvasMap({
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function MapaInteractivo() {
   const isAdmin = useIsAdmin();
+
+  // reinos con caché Dexie automático — instantáneo en visitas posteriores
   const { data: reinos, setData: setReinos, loading } = useSupabaseData<any>("reinos");
 
   const [detallesReino, setDetallesReino] = useState<any[]>([]);
@@ -973,6 +1038,7 @@ export default function MapaInteractivo() {
   const [personajesReino, setPersonajesReino] = useState<any[]>([]);
   const [personajesDesbloqueados, setPersonajesDesbloqueados] = useState<Set<string>>(new Set());
   const [modalEntidad, setModalEntidad] = useState<EntidadModal | null>(null);
+  // Books & chapters
   const [librosReino, setLibrosReino] = useState<any[]>([]);
   const [capitulosReino, setCapitulosReino] = useState<any[]>([]);
 
@@ -986,6 +1052,7 @@ export default function MapaInteractivo() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // Solo descubrimientos — reinos ya lo maneja useSupabaseData
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
@@ -1001,6 +1068,8 @@ export default function MapaInteractivo() {
 
   const handleReinoClick = async (reino: any) => {
     if (editMode) { setReinoSeleccionado(reino); setPanelOpen(true); return; }
+
+    // Abrir el panel inmediatamente sin esperar las queries
     setReinoSeleccionado(reino);
     setPuntoSeleccionado(null);
     setVistaActual("reino");
@@ -1009,14 +1078,23 @@ export default function MapaInteractivo() {
     setLibrosReino([]);
     setCapitulosReino([]);
 
+    // Mostrar detalles desde Dexie si ya los tenemos cacheados
     try {
       if (db) {
-        const cached = await db.reino_detalles.where("reino_id").equals(reino.id).toArray();
-        if (cached.length > 0) setDetallesReino(cached.filter((d: any) => !d.deleted));
-        else setDetallesReino([]);
+        const cached = await db.reino_detalles
+          .where("reino_id").equals(reino.id)
+          .toArray();
+        if (cached.length > 0) {
+          setDetallesReino(cached.filter((d: any) => !d.deleted));
+        } else {
+          setDetallesReino([]);
+        }
       }
-    } catch { setDetallesReino([]); }
+    } catch {
+      setDetallesReino([]);
+    }
 
+    // Fetch en background — la UI ya está abierta
     const [detallesRes, personajesRes, librosRes, capitulosRes] = await Promise.all([
       supabase.from("reino_detalles").select("*").eq("reino_id", reino.id),
       supabase.from("personajes").select("id, nombre, img_url, especie, reino, sobre").eq("reino", reino.nombre),
@@ -1030,12 +1108,21 @@ export default function MapaInteractivo() {
 
     if (!detallesRes.error && detallesRes.data) {
       setDetallesReino(detallesRes.data);
-      try { if (db) await db.reino_detalles.bulkPut(detallesRes.data); } catch {}
+      // Guardar en Dexie para próxima visita
+      try {
+        if (db) await db.reino_detalles.bulkPut(detallesRes.data);
+      } catch {}
     }
+
     if (!personajesRes.error) setPersonajesReino(personajesRes.data ?? []);
     if (!librosRes.error) setLibrosReino(librosRes.data ?? []);
     if (!capitulosRes.error) {
-      setCapitulosReino((capitulosRes.data ?? []).map((c: any) => ({ ...c, libro_titulo: c.libros?.titulo ?? null })));
+      setCapitulosReino(
+        (capitulosRes.data ?? []).map((c: any) => ({
+          ...c,
+          libro_titulo: c.libros?.titulo ?? null,
+        }))
+      );
     }
   };
 
@@ -1134,6 +1221,7 @@ export default function MapaInteractivo() {
     setPanelOpen(false);
   };
 
+  // Visible markers (shown to users) vs hidden (fog-covered, shown only to admin)
   const visibleMarkers = vistaActual === "global"
     ? reinos.filter(r => !r.oculto)
     : detallesReino.filter(p => !p.oculto);
@@ -1141,6 +1229,9 @@ export default function MapaInteractivo() {
   const hiddenMarkers = vistaActual === "global"
     ? reinos.filter(r => r.oculto)
     : detallesReino.filter(p => p.oculto);
+
+  // What the canvas actually draws: all if admin in edit mode, otherwise only visible
+  const currentMarkers = editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers;
 
   const currentImage = vistaActual === "reino" && reinoSeleccionado?.mapa_url
     ? reinoSeleccionado.mapa_url
@@ -1155,97 +1246,94 @@ export default function MapaInteractivo() {
     librosReino, capitulosReino,
   };
 
-  // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center gap-4" style={{ background: "var(--bg-main)" }}>
-      <Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--accent) 60%, transparent)" }} />
-      <span className="text-[10px] font-medium uppercase tracking-[0.25em]" style={{ color: "color-mix(in srgb, var(--foreground) 35%, transparent)" }}>
-        Cargando cartografía...
+    <div className="fixed inset-0 flex flex-col items-center justify-center" style={{ background: "var(--bg-main)" }}>
+      <div className="relative">
+        <div className="w-8 h-8 rotate-45 animate-spin border" style={{ borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-2 h-2 rotate-45" style={{ background: "color-mix(in srgb, var(--accent) 60%, transparent)" }} />
+        </div>
+      </div>
+      <span className="text-[9px] font-black uppercase tracking-[0.3em] mt-4" style={{ color: "color-mix(in srgb, var(--accent) 40%, transparent)" }}>
+        Desplegando Cartografía...
       </span>
     </div>
   );
 
   return (
     <div className="fixed inset-0 flex overflow-hidden" style={{ background: "var(--bg-main)" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
-      {modalEntidad && <ModalDetalle entidad={modalEntidad} onClose={() => setModalEntidad(null)} />}
+      {modalEntidad && (
+        <ModalDetalle entidad={modalEntidad} onClose={() => setModalEntidad(null)} />
+      )}
 
       <AnimatePresence>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
-      {/* ── ÁREA DEL MAPA ── */}
-      <div className={`relative flex-1 transition-all duration-400 pb-14 md:pb-0`}>
+      {/* ── MAP AREA ── */}
+      <div className={`relative flex-1 transition-all duration-500 pb-14 md:pb-0 ${panelOpen && !isMobile ? "" : "w-full"}`}>
 
-        {/* Botones admin */}
         {isAdmin && (
           <div className="absolute top-4 right-4 z-[70] flex gap-2">
             <button
               onClick={() => setEditMode(!editMode)}
-              className="flex items-center gap-2 px-3 py-2 text-[10px] font-medium uppercase tracking-wide transition-all"
+              className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase transition-all border"
               style={{
-                background: editMode
-                  ? "rgba(220,38,38,0.9)"
-                  : "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
-                border: editMode
-                  ? "1px solid rgba(220,38,38,0.5)"
-                  : BORDER,
-                color: editMode ? "#fff" : "var(--accent)",
-                borderRadius: "2px",
+                background: editMode ? "rgba(220,38,38,0.9)" : "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
+                borderColor: editMode ? "#dc2626" : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                color: editMode ? "var(--btn-text, #fff)" : "var(--accent)",
+                clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
               }}
             >
-              {editMode ? <X size={13} /> : <Edit3 size={13} />}
-              {editMode ? "Cancelar" : "Editar mapa"}
+              {editMode ? <X size={14} /> : <Edit3 size={14} />}
+              {editMode ? "Cancelar" : "Editar Mapa"}
             </button>
             {editMode && (
-              <button
-                onClick={handleSaveChanges}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-3 py-2 text-[10px] font-medium uppercase tracking-wide disabled:opacity-50 transition-all"
-                style={{ background: "rgba(5,150,105,0.9)", color: "#fff", borderRadius: "2px", border: "1px solid rgba(52,211,153,0.3)" }}
-              >
-                {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              <button onClick={handleSaveChanges} disabled={isSaving}
+                className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase disabled:opacity-50 transition-all"
+                style={{
+                  background: "rgba(5,150,105,0.9)",
+                  color: "#fff",
+                  clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+                }}>
+                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Guardar
               </button>
             )}
           </div>
         )}
 
-        {/* Indicador de reposición en editMode */}
         <AnimatePresence>
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
-            <MotionDiv
-              initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
-              className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-medium uppercase tracking-wide px-3 py-2 flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-14"
-              style={{ background: "var(--accent)", color: "var(--bg-main)", borderRadius: "2px" }}
-            >
-              <Move size={11} /> Clickeá para mover el marcador
+            <MotionDiv initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+              className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-black uppercase px-4 py-2 shadow-lg flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16"
+              style={{
+                background: "var(--accent)",
+                color: "var(--bg-main)",
+                clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+              }}>
+              <Move size={12} /> Clickeá para mover el marcador
               {modifiedDetalles.size > 1 && (
-                <span className="px-1.5 py-0.5 text-[9px]" style={{ background: "rgba(0,0,0,0.15)", borderRadius: "2px" }}>
-                  {modifiedDetalles.size} pendientes
-                </span>
+                <span className="px-1.5 py-0.5 text-[9px]" style={{ background: "color-mix(in srgb, var(--bg-main) 20%, transparent)" }}>{modifiedDetalles.size} pendientes</span>
               )}
             </MotionDiv>
           )}
         </AnimatePresence>
 
-        {/* Botón volver al global */}
         <AnimatePresence>
           {vistaActual === "reino" && (
-            <MotionButton
-              initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
+            <MotionButton initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               onClick={volverAlGlobal}
-              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-3 py-2 text-[10px] font-medium uppercase tracking-wide transition-opacity hover:opacity-100"
+              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase transition-colors"
               style={{
-                background: "color-mix(in srgb, var(--bg-menu) 92%, transparent)",
-                border: BORDER,
+                background: "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
                 color: "var(--accent)",
-                opacity: 0.85,
-                borderRadius: "2px",
-              }}
-            >
-              <ArrowLeft size={13} /> Volver
+                clipPath: "polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)",
+              }}>
+              <ArrowLeft size={14} /> Volver
             </MotionButton>
           )}
         </AnimatePresence>
@@ -1270,83 +1358,72 @@ export default function MapaInteractivo() {
         />
       </div>
 
-      {/* ── PANEL LATERAL (desktop) ── */}
+      {/* ── SIDE PANEL (desktop) ── */}
       <AnimatePresence>
         {!isMobile && panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
           <MotionDiv
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 360, opacity: 1 }}
+            animate={{ width: 380, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
             className="relative overflow-hidden flex-shrink-0"
             style={{
-              background: BG_PANEL,
-              borderLeft: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-              boxShadow: "-12px 0 40px rgba(0,0,0,0.25)",
+              background: "var(--white-custom)",
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+              boxShadow: "-20px 0 60px rgba(0,0,0,0.4)",
             }}
           >
-            {/* Línea de acento superior */}
             <div className="absolute top-0 left-0 right-0 h-px"
-              style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 40%, transparent), transparent)" }} />
-
-            {/* Cerrar */}
+              style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 50%, transparent), transparent)" }} />
             <button
               onClick={() => setPanelOpen(false)}
-              className="absolute top-4 right-4 z-10 w-7 h-7 flex items-center justify-center transition-opacity hover:opacity-100"
+              className="absolute top-4 right-4 z-10 w-7 h-7 flex items-center justify-center transition-colors border"
               style={{
-                border: BORDER,
-                background: "color-mix(in srgb, var(--bg-main) 70%, transparent)",
-                color: TEXT_MUTED,
-                opacity: 0.7,
-                borderRadius: "2px",
+                background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
+                color: "color-mix(in srgb, var(--foreground) 50%, transparent)",
+                clipPath: "polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)",
               }}
             >
               <X size={12} />
             </button>
-
-            <div className="p-7 pt-10 flex flex-col gap-4 h-full overflow-y-auto">
+            <div className="p-8 pt-10 flex flex-col gap-4 h-full overflow-y-auto">
               <PanelContenido {...panelProps} />
             </div>
           </MotionDiv>
         )}
       </AnimatePresence>
 
-      {/* ── PANEL INFERIOR (mobile) ── */}
+      {/* ── BOTTOM PANEL (mobile) ── */}
       <AnimatePresence>
         {isMobile && panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
           <MotionDiv
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
             className="fixed left-0 right-0 z-[999] overflow-hidden"
             style={{
               bottom: "56px",
-              background: BG_PANEL,
-              borderTop: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
-              maxHeight: "62dvh",
-              boxShadow: "0 -8px 30px rgba(0,0,0,0.3)",
+              background: "var(--white-custom)",
+              borderTop: "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+              maxHeight: "60dvh",
+              boxShadow: "0 -20px 60px rgba(0,0,0,0.5)",
             }}
           >
-            {/* Línea de acento */}
             <div className="absolute top-0 left-0 right-0 h-px"
-              style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 45%, transparent), transparent)" }} />
-
-            {/* Handle */}
+              style={{ background: "linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 60%, transparent), transparent)" }} />
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-8 h-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--foreground) 18%, transparent)" }} />
+              <div className="w-10 h-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
             </div>
-
-            {/* Cerrar */}
             <button
               onClick={() => setPanelOpen(false)}
-              className="absolute top-3 right-4 w-7 h-7 flex items-center justify-center"
-              style={{ color: TEXT_MUTED }}
+              className="absolute top-3 right-4 w-7 h-7 flex items-center justify-center transition-colors"
+              style={{ color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}
             >
-              <X size={13} />
+              <X size={14} />
             </button>
-
-            <div className="px-6 pb-8 pt-2 overflow-y-auto flex flex-col gap-4" style={{ maxHeight: "calc(62dvh - 36px)" }}>
+            <div className="px-6 pb-8 pt-2 overflow-y-auto flex flex-col gap-4" style={{ maxHeight: "calc(65dvh - 40px)" }}>
               <PanelContenido {...panelProps} />
             </div>
           </MotionDiv>
