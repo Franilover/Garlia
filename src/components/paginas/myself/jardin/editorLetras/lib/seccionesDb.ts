@@ -61,7 +61,7 @@ export async function secUpdate(id: string, updates: Partial<Seccion>): Promise<
 
 export async function secCreate(datos: Omit<Seccion, "id">): Promise<Seccion> {
   if (!navigator.onLine) {
-    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const tmpId = crypto.randomUUID();
     const row = { ...datos, id: tmpId, status: "pending" };
     await dexieSecWrite([row]);
     await enqueueOperation(TABLA_SEC, "upsert", tmpId, row);
@@ -72,7 +72,7 @@ export async function secCreate(datos: Omit<Seccion, "id">): Promise<Seccion> {
     await dexieSecWrite([{ ...nueva, status: "synced" }]);
     return nueva as Seccion;
   } catch {
-    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const tmpId = crypto.randomUUID();
     const row = { ...datos, id: tmpId, status: "pending" };
     await dexieSecWrite([row]);
     await enqueueOperation(TABLA_SEC, "upsert", tmpId, row);
