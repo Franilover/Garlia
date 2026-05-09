@@ -1392,7 +1392,7 @@ export function MarkdownEditor({
     if ((e.ctrlKey || e.metaKey) && e.key === "i") { e.preventDefault(); wrapSelection("*", "*"); }
   };
 
-  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     if (mode !== "split" || !pvRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     if (scrollHeight > clientHeight) {
@@ -1425,10 +1425,8 @@ export function MarkdownEditor({
 
   const textareaStyle: React.CSSProperties = {
     minHeight: autoResize ? `${rows * 1.6}rem` : minH,
-    // Con autoResize: overflow hidden para que el scroll no aparezca mientras cabe.
-    // Si se define maxHeight, al superarlo el textarea activa scroll automáticamente
-    // gracias a overflowY "auto" condicionado abajo.
-    overflowY: autoResize && !maxHeight ? "hidden" : "auto",
+    // Eliminado el condicional que ocultaba el scroll
+    overflowY: "auto",
     ...(autoResize && maxHeight ? { maxHeight } : {}),
     color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
     fontFamily: "var(--font-mono)",
@@ -1684,13 +1682,21 @@ export function MarkdownEditor({
         >
           {/* Textarea de edición */}
           {(mode === "edit" || mode === "split") && (
-            <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
+            <div 
+              onScroll={handleScroll} 
+              style={{ 
+                flex: 1, 
+                position: "relative", 
+                display: "flex", 
+                flexDirection: "column", 
+                overflowY: "auto" 
+              }}
+            >
               <textarea
                 ref={taRef}
                 value={value}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                onScroll={handleScroll}
                 placeholder={placeholder}
                 className={textareaCls}
                 style={textareaStyle}
