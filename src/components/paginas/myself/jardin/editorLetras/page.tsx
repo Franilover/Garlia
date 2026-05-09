@@ -8,6 +8,8 @@ import {
 import { supabase } from "@/lib/api/client/supabase";
 import { normalize, unique } from "@/components/templates/EstudioTemplates";
 import { useLastOpenedId } from "@/hooks/useEditorShared";
+import { db } from "@/lib/api/client/db";
+import { enqueueOperation } from "@/hooks/data/useOfflineSync";
 
 import { useCanciones } from "./hooks/useCanciones";
 import { ESTADOS, ESTADO_COLOR, FILTROS_VACIOS } from "./constants";
@@ -442,7 +444,7 @@ const CancionCard = ({
   onClick: () => void;
   onEdit: (c: Cancion) => void;
   onDelete: (id: string) => void;
-  onToggleVisible: (id: string, visible: boolean) => void;
+  onToggleVisible: (id: string, visible: boolean) => void | Promise<void>;
 }) => {
   const [hovered, setHovered] = useState(false);
 
@@ -499,7 +501,7 @@ const CardActions = ({
   cancion: Cancion;
   onEdit: (c: Cancion) => void;
   onDelete: (id: string) => void;
-  onToggleVisible: (id: string, visible: boolean) => void;
+  onToggleVisible: (id: string, visible: boolean) => void | Promise<void>;
   isCardHovered: boolean;
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -512,12 +514,9 @@ const CardActions = ({
     if (toggling) return;
     setToggling(true);
     const nuevoVisible = !cancion.visible;
-    try {
-      await supabase.from("canciones").update({ visible: nuevoVisible }).eq("id", cancion.id);
-      onToggleVisible(cancion.id, nuevoVisible);
-    } finally {
-      setToggling(false);
-    }
+    // Llamamos al handler del padre que ya maneja offline
+    await onToggleVisible(cancion.id, nuevoVisible);
+    setToggling(false);
   };
 
   useEffect(() => {
@@ -749,16 +748,45 @@ export default function EstudioLetras() {
   };
 
   const handleCancionEliminada = async (id: string) => {
+    // Optimista: quitar de UI inmediatamente
+    setCanciones(prev => prev.filter(c => c.id !== id));
+    if (selectedId === id) setSelectedId(null);
+
+    if (!navigator.onLine) {
+      try { await (db as any)["canciones"]?.update(id, { deleted: true, status: "pending" }); } catch {}
+      await enqueueOperation("canciones", "delete", id);
+      return;
+    }
     try {
       await supabase.from("canciones").delete().eq("id", id);
-      setCanciones(prev => prev.filter(c => c.id !== id));
-      if (selectedId === id) setSelectedId(null);
-    } catch (e) { console.error(e); }
+      try { await (db as any)["canciones"]?.delete(id); } catch {}
+    } catch {
+      try { await (db as any)["canciones"]?.update(id, { deleted: true, status: "pending" }); } catch {}
+      await enqueueOperation("canciones", "delete", id);
+    }
   };
 
   const handleToggleVisible = useCallback((id: string, visible: boolean) => {
     setCanciones(prev => prev.map(c => c.id === id ? { ...c, visible } : c));
   }, [setCanciones]);
+
+  // handleToggleVisibleWrite: persiste el cambio con fallback offline
+  const handleToggleVisibleWrite = useCallback(async (id: string, visible: boolean) => {
+    handleToggleVisible(id, visible); // optimista
+    const payload = { visible };
+    if (!navigator.onLine) {
+      try { await (db as any)["canciones"]?.update(id, { ...payload, status: "pending" }); } catch {}
+      await enqueueOperation("canciones", "update", id, payload);
+      return;
+    }
+    try {
+      await supabase.from("canciones").update(payload).eq("id", id);
+      try { await (db as any)["canciones"]?.update(id, { ...payload, status: "synced" }); } catch {}
+    } catch {
+      try { await (db as any)["canciones"]?.update(id, { ...payload, status: "pending" }); } catch {}
+      await enqueueOperation("canciones", "update", id, payload);
+    }
+  }, [handleToggleVisible]);
 
   /* ── Vista editor ── */
   if (selectedId) {
@@ -1011,7 +1039,7 @@ export default function EstudioLetras() {
                   onClick={() => setSelectedId(c.id)}
                   onEdit={setEditandoCancion}
                   onDelete={handleCancionEliminada}
-                  onToggleVisible={handleToggleVisible}
+                  onToggleVisible={handleToggleVisibleWrite}
                 />
               ))}
             </div>
