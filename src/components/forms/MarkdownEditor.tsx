@@ -777,6 +777,8 @@ interface MarkdownEditorProps {
   entities?: (string | WikiEntity)[];
   /** Si true, el textarea crece con el contenido (ignora rows). Default: true */
   autoResize?: boolean;
+  /** Altura máxima del textarea en modo autoResize antes de activar scroll (ej: "60vh", "400px"). Sin límite por defecto. */
+  maxHeight?: string;
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -792,6 +794,7 @@ export function MarkdownEditor({
   onSnippetAction,
   entities = [],
   autoResize = true,
+  maxHeight,
 }: MarkdownEditorProps) {
   const [mode, setMode] = useState<ViewMode>(defaultMode);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -1422,7 +1425,11 @@ export function MarkdownEditor({
 
   const textareaStyle: React.CSSProperties = {
     minHeight: autoResize ? `${rows * 1.6}rem` : minH,
-    overflowY: autoResize ? "hidden" : "auto",
+    // Con autoResize: overflow hidden para que el scroll no aparezca mientras cabe.
+    // Si se define maxHeight, al superarlo el textarea activa scroll automáticamente
+    // gracias a overflowY "auto" condicionado abajo.
+    overflowY: autoResize && !maxHeight ? "hidden" : "auto",
+    ...(autoResize && maxHeight ? { maxHeight } : {}),
     color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
     fontFamily: "var(--font-mono)",
     fontSize: 13,
