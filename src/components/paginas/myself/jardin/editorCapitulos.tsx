@@ -166,7 +166,7 @@ async function capCreate(
     narrador_id: narradorId ?? null,
   };
   if (!navigator.onLine) {
-    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const tmpId = crypto.randomUUID();
     const row = { ...base, id: tmpId, status: "pending" as const };
     await dexieCapWrite([row]);
     await enqueueOperation(TABLA_CAPS, "upsert", tmpId, row);
@@ -178,7 +178,7 @@ async function capCreate(
     await dexieCapWrite([{ ...data, status: "synced" }]);
     return data as Capitulo;
   } catch {
-    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const tmpId = crypto.randomUUID();
     const row = { ...base, id: tmpId, status: "pending" as const };
     await dexieCapWrite([row]);
     await enqueueOperation(TABLA_CAPS, "upsert", tmpId, row);
