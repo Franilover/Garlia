@@ -19,6 +19,16 @@ import { BloqueHechizos } from "./BloqueHechizos";
 import { BloqueDones } from "./BloqueDones";
 import { BloqueRelaciones } from "./BloqueRelaciones";
 
+// ─── Variables de tema ────────────────────────────────────────────────────────
+
+const t = {
+  primary: "var(--primary)",
+  accent:  "var(--accent)",
+  bgMain:  "var(--bg-main)",
+  mix: (pct: number) => `color-mix(in srgb, var(--primary) ${pct}%, transparent)`,
+  mixAccent: (pct: number) => `color-mix(in srgb, var(--accent) ${pct}%, transparent)`,
+} as const;
+
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexiePut(tabla: string, row: any): Promise<void> {
   try { if (db) await (db as any)[tabla]?.put(row); } catch {}
@@ -73,7 +83,7 @@ function BloqueCapsNarrados({ personajeId }: { personajeId: string }) {
         <div key={cap.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/3 transition-colors">
           <div
             className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black"
-            style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}
+            style={{ background: t.mixAccent(12), color: t.accent }}
           >
             {cap.orden}
           </div>
@@ -130,11 +140,11 @@ function SeccionHechizos({ personajeId, especie, varianteId }: { personajeId: st
   return (
     <div
       className="rounded-xl overflow-hidden"
-      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      style={{ border: `1px solid ${t.mix(8)}` }}
     >
       <div
         className="flex items-center gap-2 px-3 py-2 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+        style={{ borderColor: t.mix(6), background: t.mix(3) }}
       >
         <Sparkles size={10} className="text-primary/40" />
         <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Hechizos</span>
@@ -221,8 +231,8 @@ export function FormularioPersonaje({
       <div
         className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
         style={{
-          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          borderColor: t.mix(8),
+          background: t.mix(3),
         }}
       >
         <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
@@ -262,7 +272,7 @@ export function FormularioPersonaje({
       {/* ── Inner tabs — solo íconos en compacto, label en full ────────────── */}
       <div
         className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
+        style={{ borderColor: t.mix(6) }}
       >
         {TABS.map(({ key, label, Icon }) => (
           <button
@@ -270,11 +280,11 @@ export function FormularioPersonaje({
             onClick={() => setTab(key)}
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all"
             style={tab === key ? {
-              background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color:       "var(--primary)",
-              border:      "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+              background: t.mix(12),
+              color:       t.primary,
+              border:      `1px solid ${t.mix(20)}`,
             } : {
-              color:  "color-mix(in srgb, var(--primary) 35%, transparent)",
+              color:  t.mix(35),
               border: "1px solid transparent",
             }}
           >
@@ -306,12 +316,12 @@ export function FormularioPersonaje({
                   {!compacto && (
                     <div
                       className="hidden sm:block rounded-xl overflow-hidden"
-                      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                      style={{ border: `1px solid ${t.mix(8)}` }}
                     >
                       {/* Label */}
                       <div
                         className="px-2 py-1 border-b"
-                        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
+                        style={{ borderColor: t.mix(8), background: t.mix(2) }}
                       >
                         <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">Cuerpo</span>
                       </div>
@@ -332,7 +342,7 @@ export function FormularioPersonaje({
                         {/* Overlay hover cubre todo */}
                         <label
                           className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                          style={{ background: "color-mix(in srgb, var(--bg-main) 70%, transparent)", backdropFilter: "blur(2px)" }}
+                          style={{ background: `color-mix(in srgb, ${t.bgMain} 70%, transparent)`, backdropFilter: "blur(2px)" }}
                         >
                           <Maximize2 size={14} className="text-primary/50" />
                           <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Cambiar</span>
@@ -364,12 +374,12 @@ export function FormularioPersonaje({
                               onClick={() => setForm(f => ({ ...f, variante_id: null }))}
                               className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
                               style={!form.variante_id ? {
-                                background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
-                                borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
-                                color:       "var(--primary)",
+                                background:  t.mix(10),
+                                borderColor: t.mix(25),
+                                color:       t.primary,
                               } : {
-                                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                                color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
+                                borderColor: t.mix(10),
+                                color:       t.mix(25),
                               }}
                             >
                               Todas
@@ -381,12 +391,12 @@ export function FormularioPersonaje({
                                 onClick={() => setForm(f => ({ ...f, variante_id: v.id }))}
                                 className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
                                 style={form.variante_id === v.id ? {
-                                  background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
-                                  borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
-                                  color:       "var(--primary)",
+                                  background:  t.mix(10),
+                                  borderColor: t.mix(25),
+                                  color:       t.primary,
                                 } : {
-                                  borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                                  color:       "color-mix(in srgb, var(--primary) 25%, transparent)",
+                                  borderColor: t.mix(10),
+                                  color:       t.mix(25),
                                 }}
                               >
                                 {v.tipo}
@@ -457,9 +467,9 @@ export function FormularioPersonaje({
                   <div className="flex flex-col sm:flex-row gap-3">
                     <div
                       className="flex-1 min-w-0 rounded-xl overflow-hidden"
-                      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                      style={{ border: `1px solid ${t.mix(8)}` }}
                     >
-                      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+                      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: t.mix(6), background: t.mix(3) }}>
                         <Mic2 size={10} className="text-primary/40" />
                         <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">Capítulos narrados</span>
                       </div>

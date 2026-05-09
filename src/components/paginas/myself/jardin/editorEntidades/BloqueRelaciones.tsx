@@ -5,6 +5,14 @@ import { Users, Plus, X, Loader2, UserCircle2, ChevronDown, Link2 } from "lucide
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 
+// ─── Variables de tema ────────────────────────────────────────────────────────
+
+const t = {
+  primary:      "var(--primary)",
+  bgMain:       "var(--bg-main)",
+  mix: (pct: number) => `color-mix(in srgb, var(--primary) ${pct}%, transparent)`,
+} as const;
+
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export interface Relacion {
@@ -102,15 +110,15 @@ function InputTipo({
         onFocus={() => setOpen(true)}
         placeholder="Ej: Amigo, Padre, Rival…"
         className="w-full bg-transparent text-[11px] font-bold text-primary outline-none placeholder:text-primary/20 border rounded-lg px-3 py-1.5 transition-all"
-        style={{ borderColor: open ? "color-mix(in srgb, var(--primary) 30%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+        style={{ borderColor: open ? t.mix(30) : t.mix(12) }}
       />
 
       {open && filtradas.length > 0 && (
         <div
           className="absolute z-[80] top-full left-0 mt-1 w-full rounded-xl shadow-xl overflow-hidden"
           style={{
-            background: "var(--bg-main)",
-            border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+            background: t.bgMain,
+            border: `1px solid ${t.mix(15)}`,
           }}
         >
           {filtradas.map(s => {
@@ -176,12 +184,12 @@ function SelectorPersonaje({
     <div
       className="absolute z-[70] top-full left-0 mt-1 w-full rounded-xl shadow-2xl overflow-hidden"
       style={{
-        background: "var(--bg-main)",
-        border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+        background: t.bgMain,
+        border: `1px solid ${t.mix(15)}`,
         maxHeight: 240,
       }}
     >
-      <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+      <div className="p-2 border-b" style={{ borderColor: t.mix(8) }}>
         <input
           autoFocus
           value={query}
@@ -275,8 +283,8 @@ function FormNuevaRelacion({
     <div
       className="rounded-xl p-3 space-y-2.5"
       style={{
-        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+        background: t.mix(3),
+        border: `1px solid ${t.mix(10)}`,
       }}
     >
       {/* Tipo libre con autocomplete */}
@@ -296,8 +304,8 @@ function FormNuevaRelacion({
                   borderColor: `color-mix(in srgb, ${colorParaTipo(s)} 40%, transparent)`,
                   color:        colorParaTipo(s),
                 } : {
-                  borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
+                  borderColor: t.mix(10),
+                  color:       t.mix(30),
                 }}
               >
                 {s}
@@ -316,9 +324,9 @@ function FormNuevaRelacion({
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-all"
             style={{
               borderColor: selectorOpen
-                ? "color-mix(in srgb, var(--primary) 30%, transparent)"
-                : "color-mix(in srgb, var(--primary) 12%, transparent)",
-              background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+                ? t.mix(30)
+                : t.mix(12),
+              background: t.mix(2),
             }}
           >
             {personajeSel ? (
@@ -353,7 +361,7 @@ function FormNuevaRelacion({
           onChange={e => setNota(e.target.value)}
           placeholder="Ej: se separaron en la guerra…"
           className="w-full bg-transparent text-[10px] font-medium text-primary outline-none placeholder:text-primary/20 border rounded-lg px-3 py-1.5 transition-all"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+          style={{ borderColor: t.mix(12) }}
         />
       </div>
 
@@ -400,8 +408,8 @@ function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string)
       className="group flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all"
       style={{ border: "1px solid transparent" }}
       onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.borderColor = "color-mix(in srgb, var(--primary) 8%, transparent)";
-        (e.currentTarget as HTMLDivElement).style.background  = "color-mix(in srgb, var(--primary) 3%, transparent)";
+        (e.currentTarget as HTMLDivElement).style.borderColor = t.mix(8);
+        (e.currentTarget as HTMLDivElement).style.background  = t.mix(3);
       }}
       onMouseLeave={e => {
         (e.currentTarget as HTMLDivElement).style.borderColor = "transparent";
@@ -522,13 +530,13 @@ export function BloqueRelaciones({ personajeId }: { personajeId: string }) {
   return (
     <div
       className="rounded-xl overflow-hidden"
-      style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      style={{ border: `1px solid ${t.mix(8)}` }}
     >
       <div
         className="flex items-center justify-between px-3 py-2 border-b"
         style={{
-          borderColor: "color-mix(in srgb, var(--primary) 6%, transparent)",
-          background:  "color-mix(in srgb, var(--primary) 3%, transparent)",
+          borderColor: t.mix(6),
+          background:  t.mix(3),
         }}
       >
         <div className="flex items-center gap-2">
@@ -537,7 +545,7 @@ export function BloqueRelaciones({ personajeId }: { personajeId: string }) {
           {!loading && relaciones.length > 0 && (
             <span
               className="text-[8px] font-black text-primary/30 px-1.5 py-0.5 rounded-full"
-              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              style={{ background: t.mix(8) }}
             >
               {relaciones.length}
             </span>
@@ -547,12 +555,12 @@ export function BloqueRelaciones({ personajeId }: { personajeId: string }) {
           onClick={() => setFormVisible(v => !v)}
           className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all"
           style={formVisible ? {
-            background:  "color-mix(in srgb, var(--primary) 10%, transparent)",
-            borderColor: "color-mix(in srgb, var(--primary) 25%, transparent)",
-            color:       "var(--primary)",
+            background:  t.mix(10),
+            borderColor: t.mix(25),
+            color:       t.primary,
           } : {
-            borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-            color:       "color-mix(in srgb, var(--primary) 35%, transparent)",
+            borderColor: t.mix(10),
+            color:       t.mix(35),
           }}
         >
           {formVisible ? <X size={9} /> : <Plus size={9} />}
