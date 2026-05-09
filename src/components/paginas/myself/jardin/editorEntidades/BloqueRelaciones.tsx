@@ -1,76 +1,138 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  Heart, Users, Sword, Crown, Baby, Star, Plus, X, Loader2,
-  UserCircle2, ChevronDown, Link2,
-} from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Users, Plus, X, Loader2, UserCircle2, ChevronDown, Link2 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-export type TipoRelacion =
-  | "padre" | "madre" | "hijo" | "hija"
-  | "hermano" | "hermana"
-  | "amigo" | "enemigo" | "aliado"
-  | "amante" | "pareja" | "esposo" | "esposa"
-  | "mentor" | "aprendiz"
-  | "rival" | "desconocido" | "otro";
-
 export interface Relacion {
   id: string;
-  personaje_id: string;          // el personaje "origen"
-  personaje_rel_id: string;      // el personaje "destino"
-  tipo: TipoRelacion;
+  personaje_id: string;
+  personaje_rel_id: string;
+  tipo: string;
   nota?: string | null;
-  // campos join (no se persisten, solo se usan para display)
+  // solo display, no se persisten
   rel_nombre?: string;
   rel_img_url?: string | null;
 }
 
-// ─── Catálogo de tipos ────────────────────────────────────────────────────────
+// ─── Color estable por string (hash simple) ───────────────────────────────────
 
-interface CatRelacion {
-  tipo: TipoRelacion;
-  label: string;
-  Icon: React.ElementType;
-  color: string; // CSS color hint para el badge
+function colorParaTipo(tipo: string): string {
+  let hash = 0;
+  for (let i = 0; i < tipo.length; i++) hash = tipo.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = Math.abs(hash) % 360;
+  return `oklch(65% 0.14 ${hue})`;
 }
-
-const TIPOS_RELACION: CatRelacion[] = [
-  { tipo: "padre",      label: "Padre",      Icon: Crown,   color: "oklch(70% 0.12 50)" },
-  { tipo: "madre",      label: "Madre",      Icon: Crown,   color: "oklch(70% 0.12 320)" },
-  { tipo: "hijo",       label: "Hijo",       Icon: Baby,    color: "oklch(65% 0.14 200)" },
-  { tipo: "hija",       label: "Hija",       Icon: Baby,    color: "oklch(65% 0.14 270)" },
-  { tipo: "hermano",    label: "Hermano",    Icon: Users,   color: "oklch(65% 0.1 150)" },
-  { tipo: "hermana",    label: "Hermana",    Icon: Users,   color: "oklch(65% 0.1 190)" },
-  { tipo: "amigo",      label: "Amigo/a",    Icon: Star,    color: "oklch(72% 0.15 95)" },
-  { tipo: "amante",     label: "Amante",     Icon: Heart,   color: "oklch(65% 0.2 10)" },
-  { tipo: "pareja",     label: "Pareja",     Icon: Heart,   color: "oklch(65% 0.18 350)" },
-  { tipo: "esposo",     label: "Esposo",     Icon: Heart,   color: "oklch(65% 0.15 340)" },
-  { tipo: "esposa",     label: "Esposa",     Icon: Heart,   color: "oklch(65% 0.15 330)" },
-  { tipo: "aliado",     label: "Aliado/a",   Icon: Link2,   color: "oklch(68% 0.12 170)" },
-  { tipo: "enemigo",    label: "Enemigo/a",  Icon: Sword,   color: "oklch(60% 0.2 25)" },
-  { tipo: "rival",      label: "Rival",      Icon: Sword,   color: "oklch(60% 0.15 40)" },
-  { tipo: "mentor",     label: "Mentor/a",   Icon: Star,    color: "oklch(68% 0.14 230)" },
-  { tipo: "aprendiz",   label: "Aprendiz",   Icon: Star,    color: "oklch(68% 0.12 250)" },
-  { tipo: "desconocido",label: "Desconocido",Icon: UserCircle2, color: "oklch(55% 0.04 240)" },
-  { tipo: "otro",       label: "Otro",       Icon: Link2,   color: "oklch(55% 0.04 240)" },
-];
-
-const catPorTipo = Object.fromEntries(TIPOS_RELACION.map(c => [c.tipo, c])) as Record<TipoRelacion, CatRelacion>;
 
 // ─── Helpers Dexie ────────────────────────────────────────────────────────────
 
-async function dexiePutRelacion(row: Relacion): Promise<void> {
-  try { if (db) await (db as any).relaciones_personaje?.put(row); } catch {}
+async function dexiePutRelacion(row: Omit<Relacion, "rel_nombre" | "rel_img_url">): Promise<void> {
+  try { if (db) await (db as any).relaciones?.put(row); } catch {}
 }
 async function dexieDelRelacion(id: string): Promise<void> {
-  try { if (db) await (db as any).relaciones_personaje?.delete(id); } catch {}
+  try { if (db) await (db as any).relaciones?.delete(id); } catch {}
 }
 
-// ─── Selector de personaje (búsqueda simple) ──────────────────────────────────
+// ─── Hook: tipos ya usados en toda la tabla ───────────────────────────────────
+
+function useTiposExistentes() {
+  const [tipos, setTipos] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Desde Dexie primero
+    (async () => {
+      try {
+        if (db) {
+          const all: any[] = await (db as any).relaciones?.toArray() ?? [];
+          const set = [...new Set<string>(all.map((r: any) => r.tipo).filter(Boolean))].sort();
+          if (set.length) setTipos(set);
+        }
+      } catch {}
+    })();
+
+    // Luego desde Supabase
+    if (!navigator.onLine) return;
+    supabase
+      .from("relaciones")
+      .select("tipo")
+      .then(({ data }) => {
+        if (!data) return;
+        const set = [...new Set<string>(data.map((r: any) => r.tipo).filter(Boolean))].sort();
+        setTipos(set);
+      });
+  }, []);
+
+  return tipos;
+}
+
+// ─── Input de tipo con autocomplete ──────────────────────────────────────────
+
+function InputTipo({
+  value,
+  onChange,
+  sugerencias,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  sugerencias: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const filtradas = sugerencias.filter(s =>
+    s.toLowerCase().includes(value.toLowerCase()) && s.toLowerCase() !== value.toLowerCase()
+  );
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        placeholder="Ej: Amigo, Padre, Rival…"
+        className="w-full bg-transparent text-[11px] font-bold text-primary outline-none placeholder:text-primary/20 border rounded-lg px-3 py-1.5 transition-all"
+        style={{ borderColor: open ? "color-mix(in srgb, var(--primary) 30%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+      />
+
+      {open && filtradas.length > 0 && (
+        <div
+          className="absolute z-[80] top-full left-0 mt-1 w-full rounded-xl shadow-xl overflow-hidden"
+          style={{
+            background: "var(--bg-main)",
+            border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          }}
+        >
+          {filtradas.map(s => {
+            const color = colorParaTipo(s);
+            return (
+              <button
+                key={s}
+                onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-primary/6 transition-colors text-left"
+              >
+                <span className="shrink-0 w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+                <span className="text-[11px] font-bold text-primary/70">{s}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Selector de personaje ────────────────────────────────────────────────────
 
 interface PersonajeMin { id: string; nombre: string; img_url?: string | null; }
 
@@ -83,9 +145,9 @@ function SelectorPersonaje({
   onSelect: (p: PersonajeMin) => void;
   onClose: () => void;
 }) {
-  const [query,    setQuery]    = useState("");
-  const [results,  setResults]  = useState<PersonajeMin[]>([]);
-  const [loading,  setLoading]  = useState(false);
+  const [query,   setQuery]   = useState("");
+  const [results, setResults] = useState<PersonajeMin[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const search = useCallback(async (q: string) => {
     setLoading(true);
@@ -154,47 +216,58 @@ function SelectorPersonaje({
   );
 }
 
-// ─── Formulario para añadir una relación ──────────────────────────────────────
+// ─── Formulario nueva relación ────────────────────────────────────────────────
 
 function FormNuevaRelacion({
   personajeId,
+  tiposExistentes,
   onAdded,
   onCancel,
 }: {
   personajeId: string;
+  tiposExistentes: string[];
   onAdded: (r: Relacion) => void;
   onCancel: () => void;
 }) {
-  const [tipo,          setTipo]          = useState<TipoRelacion>("amigo");
-  const [personajeSel,  setPersonajeSel]  = useState<PersonajeMin | null>(null);
-  const [nota,          setNota]          = useState("");
-  const [selectorOpen,  setSelectorOpen]  = useState(false);
-  const [saving,        setSaving]        = useState(false);
+  const [tipo,         setTipo]         = useState("");
+  const [personajeSel, setPersonajeSel] = useState<PersonajeMin | null>(null);
+  const [nota,         setNota]         = useState("");
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [error,        setError]        = useState("");
 
   const guardar = async () => {
-    if (!personajeSel) return;
+    if (!personajeSel) { setError("Selecciona un personaje"); return; }
+    if (!tipo.trim())  { setError("Escribe el tipo de relación"); return; }
+    setError("");
     setSaving(true);
     try {
       const row = {
         personaje_id:     personajeId,
         personaje_rel_id: personajeSel.id,
-        tipo,
+        tipo:             tipo.trim(),
         nota:             nota.trim() || null,
       };
-      const { data, error } = await supabase
-        .from("relaciones_personaje")
+      const { data, error: err } = await supabase
+        .from("relaciones")
         .insert(row)
         .select("id, personaje_id, personaje_rel_id, tipo, nota")
         .single();
-      if (error) throw error;
+      if (err) throw err;
       const nueva: Relacion = {
         ...(data as any),
         rel_nombre:  personajeSel.nombre,
         rel_img_url: personajeSel.img_url,
       };
-      void dexiePutRelacion(nueva);
+      void dexiePutRelacion({
+        id: nueva.id,
+        personaje_id: nueva.personaje_id,
+        personaje_rel_id: nueva.personaje_rel_id,
+        tipo: nueva.tipo,
+        nota: nueva.nota,
+      });
       onAdded(nueva);
-    } catch { /* TODO: toast */ }
+    } catch { setError("Error al guardar, intenta de nuevo"); }
     setSaving(false);
   };
 
@@ -206,32 +279,35 @@ function FormNuevaRelacion({
         border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
       }}
     >
-      {/* Selector de tipo */}
+      {/* Tipo libre con autocomplete */}
       <div className="space-y-1">
         <label className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30">Tipo de relación</label>
-        <div className="flex flex-wrap gap-1">
-          {TIPOS_RELACION.map(c => (
-            <button
-              key={c.tipo}
-              onClick={() => setTipo(c.tipo)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border transition-all"
-              style={tipo === c.tipo ? {
-                background:  `color-mix(in srgb, ${c.color} 15%, transparent)`,
-                borderColor: `color-mix(in srgb, ${c.color} 40%, transparent)`,
-                color:        c.color,
-              } : {
-                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
-              }}
-            >
-              <c.Icon size={8} />
-              {c.label}
-            </button>
-          ))}
-        </div>
+        <InputTipo value={tipo} onChange={setTipo} sugerencias={tiposExistentes} />
+        {/* Chips rápidos si hay pocos tipos */}
+        {tiposExistentes.length > 0 && tiposExistentes.length <= 12 && (
+          <div className="flex flex-wrap gap-1 pt-0.5">
+            {tiposExistentes.map(s => (
+              <button
+                key={s}
+                onMouseDown={e => { e.preventDefault(); setTipo(s); }}
+                className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all"
+                style={tipo === s ? {
+                  background:  `color-mix(in srgb, ${colorParaTipo(s)} 15%, transparent)`,
+                  borderColor: `color-mix(in srgb, ${colorParaTipo(s)} 40%, transparent)`,
+                  color:        colorParaTipo(s),
+                } : {
+                  borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  color:       "color-mix(in srgb, var(--primary) 30%, transparent)",
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Selector de personaje */}
+      {/* Selector personaje */}
       <div className="space-y-1">
         <label className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30">Personaje</label>
         <div className="relative">
@@ -269,7 +345,7 @@ function FormNuevaRelacion({
         </div>
       </div>
 
-      {/* Nota opcional */}
+      {/* Nota */}
       <div className="space-y-1">
         <label className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/30">Nota (opcional)</label>
         <input
@@ -281,7 +357,8 @@ function FormNuevaRelacion({
         />
       </div>
 
-      {/* Botones */}
+      {error && <p className="text-[9px] font-bold text-red-400">{error}</p>}
+
       <div className="flex items-center justify-end gap-2 pt-0.5">
         <button
           onClick={onCancel}
@@ -291,7 +368,7 @@ function FormNuevaRelacion({
         </button>
         <button
           onClick={guardar}
-          disabled={!personajeSel || saving}
+          disabled={saving}
           className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-primary text-btn-text shadow-md shadow-primary/20 disabled:opacity-40 hover:bg-primary/90 transition-all flex items-center gap-1"
         >
           {saving ? <Loader2 size={9} className="animate-spin" /> : <Plus size={9} />}
@@ -306,12 +383,13 @@ function FormNuevaRelacion({
 
 function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string) => void }) {
   const [deleting, setDeleting] = useState(false);
-  const cat = catPorTipo[rel.tipo] ?? catPorTipo["otro"];
+  const color = colorParaTipo(rel.tipo);
 
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await supabase.from("relaciones_personaje").delete().eq("id", rel.id);
+      const { error } = await supabase.from("relaciones").delete().eq("id", rel.id);
+      if (error) throw error;
       void dexieDelRelacion(rel.id);
       onDelete(rel.id);
     } catch { setDeleting(false); }
@@ -330,14 +408,12 @@ function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string)
         (e.currentTarget as HTMLDivElement).style.background  = "transparent";
       }}
     >
-      {/* Avatar del personaje relacionado */}
       <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/10 bg-primary/5 flex items-center justify-center">
         {rel.rel_img_url
           ? <img src={rel.rel_img_url} alt={rel.rel_nombre} className="w-full h-full object-cover" />
           : <UserCircle2 size={13} className="text-primary/20" />}
       </div>
 
-      {/* Nombre + tipo */}
       <div className="flex-1 min-w-0">
         <p className="text-[11px] font-bold text-primary/80 truncate">{rel.rel_nombre ?? "—"}</p>
         {rel.nota && (
@@ -345,20 +421,18 @@ function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string)
         )}
       </div>
 
-      {/* Badge tipo */}
       <span
         className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest"
         style={{
-          background:  `color-mix(in srgb, ${cat.color} 12%, transparent)`,
-          color:        cat.color,
-          border:      `1px solid color-mix(in srgb, ${cat.color} 25%, transparent)`,
+          background: `color-mix(in srgb, ${color} 12%, transparent)`,
+          color,
+          border:     `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
         }}
       >
-        <cat.Icon size={8} />
-        {cat.label}
+        <Link2 size={7} />
+        {rel.tipo}
       </span>
 
-      {/* Botón borrar */}
       <button
         onClick={handleDelete}
         disabled={deleting}
@@ -370,22 +444,23 @@ function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string)
   );
 }
 
-// ─── BloqueRelaciones (componente principal exportado) ────────────────────────
+// ─── BloqueRelaciones ─────────────────────────────────────────────────────────
 
 export function BloqueRelaciones({ personajeId }: { personajeId: string }) {
-  const [relaciones,   setRelaciones]   = useState<Relacion[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [formVisible,  setFormVisible]  = useState(false);
+  const [relaciones,  setRelaciones]  = useState<Relacion[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [formVisible, setFormVisible] = useState(false);
+  const tiposExistentes = useTiposExistentes();
 
   const cargar = useCallback(async () => {
     setLoading(true);
+
+    // 1. Dexie primero
     try {
-      // Dexie primero
       if (db) {
-        const local: any[] = await (db as any).relaciones_personaje
+        const local: any[] = await (db as any).relaciones
           ?.where("personaje_id").equals(personajeId).toArray() ?? [];
         if (local.length) {
-          // Enriquecer con nombres desde cache personajes
           const ids = local.map((r: any) => r.personaje_rel_id);
           const pjs: any[] = await (db as any).personajes
             ?.where("id").anyOf(ids).toArray() ?? [];
@@ -401,58 +476,54 @@ export function BloqueRelaciones({ personajeId }: { personajeId: string }) {
 
     if (!navigator.onLine) { setLoading(false); return; }
 
+    // 2. Supabase
     try {
-      // Supabase con join a personajes (tabla destino)
-      const { data } = await supabase
-        .from("relaciones_personaje")
+      const { data, error } = await supabase
+        .from("relaciones")
         .select(`
           id, personaje_id, personaje_rel_id, tipo, nota,
-          personaje_rel:personajes!relaciones_personaje_personaje_rel_id_fkey(nombre, img_url)
+          personaje_rel:personajes!relaciones_personaje_rel_id_fkey(nombre, img_url)
         `)
         .eq("personaje_id", personajeId)
         .order("tipo");
 
-      if (data) {
-        const enriquecidas: Relacion[] = (data as any[]).map(r => ({
-          id:               r.id,
-          personaje_id:     r.personaje_id,
-          personaje_rel_id: r.personaje_rel_id,
-          tipo:             r.tipo as TipoRelacion,
-          nota:             r.nota,
-          rel_nombre:       r.personaje_rel?.nombre  ?? "—",
-          rel_img_url:      r.personaje_rel?.img_url ?? null,
-        }));
-        setRelaciones(enriquecidas);
-        // Sync Dexie
-        try {
-          if (db) await (db as any).relaciones_personaje?.bulkPut(
-            enriquecidas.map(({ rel_nombre: _n, rel_img_url: _i, ...rest }) => rest)
-          );
-        } catch {}
-      }
+      if (error) throw error;
+
+      const enriquecidas: Relacion[] = (data as any[]).map(r => ({
+        id:               r.id,
+        personaje_id:     r.personaje_id,
+        personaje_rel_id: r.personaje_rel_id,
+        tipo:             r.tipo,
+        nota:             r.nota,
+        rel_nombre:       r.personaje_rel?.nombre  ?? "—",
+        rel_img_url:      r.personaje_rel?.img_url ?? null,
+      }));
+
+      setRelaciones(enriquecidas);
+
+      try {
+        if (db) await (db as any).relaciones?.bulkPut(
+          enriquecidas.map(({ rel_nombre: _n, rel_img_url: _i, ...rest }) => rest)
+        );
+      } catch {}
     } catch {}
+
     setLoading(false);
   }, [personajeId]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  const handleAdded   = (r: Relacion)  => { setRelaciones(prev => [...prev, r]); setFormVisible(false); };
-  const handleDeleted = (id: string)   => setRelaciones(prev => prev.filter(r => r.id !== id));
+  const handleAdded   = (r: Relacion) => { setRelaciones(prev => [...prev, r]); setFormVisible(false); };
+  const handleDeleted = (id: string)  => setRelaciones(prev => prev.filter(r => r.id !== id));
 
-  // Agrupar por tipo para visualización ordenada
-  const grupos = TIPOS_RELACION.reduce<Record<TipoRelacion, Relacion[]>>((acc, c) => {
-    acc[c.tipo] = relaciones.filter(r => r.tipo === c.tipo);
-    return acc;
-  }, {} as any);
-
-  const tiposConData = TIPOS_RELACION.filter(c => grupos[c.tipo].length > 0);
+  const tiposConData = [...new Set(relaciones.map(r => r.tipo))].sort();
+  const porTipo = (t: string) => relaciones.filter(r => r.tipo === t);
 
   return (
     <div
       className="rounded-xl overflow-hidden"
       style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
     >
-      {/* Header */}
       <div
         className="flex items-center justify-between px-3 py-2 border-b"
         style={{
@@ -489,18 +560,16 @@ export function BloqueRelaciones({ personajeId }: { personajeId: string }) {
         </button>
       </div>
 
-      {/* Cuerpo */}
       <div className="p-2 space-y-2">
-        {/* Formulario nueva relación */}
         {formVisible && (
           <FormNuevaRelacion
             personajeId={personajeId}
+            tiposExistentes={tiposExistentes}
             onAdded={handleAdded}
             onCancel={() => setFormVisible(false)}
           />
         )}
 
-        {/* Loading */}
         {loading ? (
           <div className="flex justify-center py-6">
             <Loader2 size={14} className="animate-spin text-primary/20" />
@@ -510,28 +579,27 @@ export function BloqueRelaciones({ personajeId }: { personajeId: string }) {
             Sin relaciones registradas
           </p>
         ) : (
-          /* Relaciones agrupadas por tipo */
           <div className="space-y-2">
-            {tiposConData.map(cat => (
-              <div key={cat.tipo}>
-                <div className="flex items-center gap-1.5 px-1 mb-1">
-                  <cat.Icon size={8} style={{ color: cat.color }} />
-                  <span
-                    className="text-[8px] font-black uppercase tracking-[0.25em]"
-                    style={{ color: `color-mix(in srgb, ${cat.color} 70%, var(--primary))` }}
-                  >
-                    {cat.label}
-                  </span>
-                  <div
-                    className="flex-1 h-px"
-                    style={{ background: `color-mix(in srgb, ${cat.color} 15%, transparent)` }}
-                  />
+            {tiposConData.map(tipo => {
+              const color = colorParaTipo(tipo);
+              return (
+                <div key={tipo}>
+                  <div className="flex items-center gap-1.5 px-1 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+                    <span
+                      className="text-[8px] font-black uppercase tracking-[0.25em]"
+                      style={{ color: `color-mix(in srgb, ${color} 80%, var(--primary))` }}
+                    >
+                      {tipo}
+                    </span>
+                    <div className="flex-1 h-px" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)` }} />
+                  </div>
+                  {porTipo(tipo).map(rel => (
+                    <FilaRelacion key={rel.id} rel={rel} onDelete={handleDeleted} />
+                  ))}
                 </div>
-                {grupos[cat.tipo].map(rel => (
-                  <FilaRelacion key={rel.id} rel={rel} onDelete={handleDeleted} />
-                ))}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
