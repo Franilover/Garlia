@@ -18,15 +18,6 @@ export interface Relacion {
   rel_img_url?: string | null;
 }
 
-// ─── Color estable por string (hash simple) ───────────────────────────────────
-
-function colorParaTipo(tipo: string): string {
-  let hash = 0;
-  for (let i = 0; i < tipo.length; i++) hash = tipo.charCodeAt(i) + ((hash << 5) - hash);
-  const hue = Math.abs(hash) % 360;
-  return `oklch(65% 0.14 ${hue})`;
-}
-
 // ─── Helpers Dexie ────────────────────────────────────────────────────────────
 
 async function dexiePutRelacion(row: Omit<Relacion, "rel_nombre" | "rel_img_url">): Promise<void> {
@@ -108,19 +99,16 @@ function InputTipo({
         <div
           className="absolute z-[80] top-full left-0 mt-1 w-full rounded-xl shadow-xl overflow-hidden bg-bg-main border border-primary/15"
         >
-          {filtradas.map(s => {
-            const color = colorParaTipo(s);
-            return (
+          {filtradas.map(s => (
               <button
                 key={s}
                 onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-primary/6 transition-colors text-left"
               >
-                <span className="shrink-0 w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+                <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-primary/30" />
                 <span className="text-[11px] font-bold text-primary/70">{s}</span>
               </button>
-            );
-          })}
+          ))}
         </div>
       )}
     </div>
@@ -277,12 +265,7 @@ function FormNuevaRelacion({
               <button
                 key={s}
                 onMouseDown={e => { e.preventDefault(); setTipo(s); }}
-                style={tipo === s ? {
-                  background:  `color-mix(in srgb, ${colorParaTipo(s)} 15%, transparent)`,
-                  borderColor: `color-mix(in srgb, ${colorParaTipo(s)} 40%, transparent)`,
-                  color:        colorParaTipo(s),
-                } : undefined}
-                className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all ${tipo === s ? "" : "border-primary/10 text-primary/30"}`}
+                className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border transition-all ${tipo === s ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/30"}`}
               >
                 {s}
               </button>
@@ -360,7 +343,6 @@ function FormNuevaRelacion({
 
 function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string) => void }) {
   const [deleting, setDeleting] = useState(false);
-  const color = colorParaTipo(rel.tipo);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -389,14 +371,7 @@ function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string)
         )}
       </div>
 
-      <span
-        className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest"
-        style={{
-          background: `color-mix(in srgb, ${color} 12%, transparent)`,
-          color,
-          border:     `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
-        }}
-      >
+      <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20">
         <Link2 size={7} />
         {rel.tipo}
       </span>
@@ -534,26 +509,20 @@ export function BloqueRelaciones({ personajeId }: { personajeId: string }) {
           </p>
         ) : (
           <div className="space-y-2">
-            {tiposConData.map(tipo => {
-              const color = colorParaTipo(tipo);
-              return (
+            {tiposConData.map(tipo => (
                 <div key={tipo}>
                   <div className="flex items-center gap-1.5 px-1 mb-1">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-                    <span
-                      className="text-[8px] font-black uppercase tracking-[0.25em]"
-                      style={{ color: `color-mix(in srgb, ${color} 80%, var(--primary))` }}
-                    >
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-primary/30" />
+                    <span className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/50">
                       {tipo}
                     </span>
-                    <div className="flex-1 h-px" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)` }} />
+                    <div className="flex-1 h-px bg-primary/10" />
                   </div>
                   {porTipo(tipo).map(rel => (
                     <FilaRelacion key={rel.id} rel={rel} onDelete={handleDeleted} />
                   ))}
                 </div>
-              );
-            })}
+              ))}
           </div>
         )}
       </div>
