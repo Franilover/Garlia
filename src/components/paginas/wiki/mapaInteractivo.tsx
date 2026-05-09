@@ -1247,7 +1247,7 @@ export default function MapaInteractivo() {
   };
 
   if (loading) return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center" style={{ background: "var(--bg-main)" }}>
+    <div className="fixed inset-0 md:left-[68px] flex flex-col items-center justify-center" style={{ background: "var(--bg-main)" }}>
       <div className="relative">
         <div className="w-8 h-8 rotate-45 animate-spin border" style={{ borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
         <div className="absolute inset-0 flex items-center justify-center">
@@ -1261,7 +1261,7 @@ export default function MapaInteractivo() {
   );
 
   return (
-    <div className="fixed inset-0 flex overflow-hidden" style={{ background: "var(--bg-main)" }}>
+    <div className="fixed inset-0 flex overflow-hidden md:left-[68px]" style={{ background: "var(--bg-main)" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
       {modalEntidad && (
