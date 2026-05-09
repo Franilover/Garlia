@@ -2,11 +2,7 @@
   "compilerOptions": {
     "removeComments": true,
     "target": "esnext",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -19,30 +15,19 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "baseUrl": ".",
+    "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
-
-      "@/components/*": ["src/components/*"],
-      "@/ui/*": ["src/components/ui/*"],
-      
+      "@/components/*": ["./src/components/*"],
+      "@/ui/*": ["./src/components/ui/*"],
       "@/features/*": ["./src/features/*"],
-      
       "@/providers/*": ["./src/providers/*"],
-
       "@/hooks/*": ["./src/hooks/*"],
-
       "@/lib/*": ["./src/lib/*"],
       "@/utils/*": ["./src/lib/utils/*"],
       "@/api/*": ["./src/lib/api/*"],
       "@/config/*": ["./src/lib/config/*"],
       "@/types/*": ["./src/lib/api/types/*"],
-
       "@/styles/*": ["./src/style/*"],
       "@/style/*": ["./src/style/*"]
     }
@@ -57,8 +42,5 @@
     ".next/dev/types/**/*.ts",
     "src/lib/api/client/db.js"
   ],
-  "exclude": [
-    "node_modules",
-    "supabase"
-  ]
+  "exclude": ["node_modules", "supabase"]
 }
