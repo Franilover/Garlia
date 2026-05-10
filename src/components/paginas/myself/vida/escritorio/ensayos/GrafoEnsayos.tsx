@@ -481,7 +481,7 @@ function GrafoD3({
             const transform = d3.zoomTransform(svgEl);
             const [sx, sy] = transform.apply([sel.x, sel.y]);
             onSelectNodo({
-              id: sel.id,
+              id: (sel as any).tipo === "tag-ensayo" ? (sel as any).ensayoId : sel.id,
               titulo: sel.titulo,
               x: rect.left + sx,
               y: rect.top + sy,
@@ -493,8 +493,27 @@ function GrafoD3({
 
     // Aplicar selección inicial si hay una
     sim.on("end", () => updateSelection(selectedRef.current));
-    // También actualizar al hacer zoom
-    zoomBehavior.on("zoom.sel", () => updateSelection(selectedRef.current));
+
+    // Al hacer zoom: actualizar selección visual Y reposicionar tooltip
+    const reposicionarTooltip = () => {
+      if (!selectedRef.current) return;
+      const sel = nodes.find((n: any) =>
+        n.id === selectedRef.current ||
+        (n.tipo === "tag-ensayo" && n.ensayoId === selectedRef.current)
+      );
+      if (sel && svgRef.current) {
+        const rect = svgRef.current.getBoundingClientRect();
+        const transform = d3.zoomTransform(svgRef.current);
+        const [sx, sy] = transform.apply([sel.x, sel.y]);
+        onSelectNodo({
+          id: (sel as any).tipo === "tag-ensayo" ? (sel as any).ensayoId : sel.id,
+          titulo: sel.titulo,
+          x: rect.left + sx,
+          y: rect.top + sy,
+        });
+      }
+    };
+    zoomBehavior.on("zoom.sel", () => { updateSelection(selectedRef.current); reposicionarTooltip(); });
 
     return () => { sim.stop(); };
   }, [datos, centroId, width, height, primary, bgMain]);
