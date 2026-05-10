@@ -436,6 +436,11 @@ export default function Ensayos() {
     setSidebarOpen(false);
   };
 
+  // Usado por el grafo: cambia la nota activa sin cerrar el panel del grafo
+  const handleEnsayoClickSinCerrar = useCallback((id: string) => {
+    setEnsayoActivo(id);
+  }, [setEnsayoActivo]);
+
   const ensayoActivo = ensayos.find((e: any) => e.id === ensayoActivoId) ?? null;
 
   // ─── Keep tag-pages content in sync ───────────────────────────────────────
@@ -565,7 +570,7 @@ export default function Ensayos() {
                     editMode={editMode}
                     onToggleEditMode={() => setEditMode(p => !p)}
                     onUpdateField={actualizarLocal}
-                    onSelectEnsayo={handleEnsayoClick}
+                    onSelectEnsayo={handleEnsayoClickSinCerrar}
                     onNavigateToPage={(name) => navigateToPage(name, false)}
                     entities={allWikilinkNames}
                   />
