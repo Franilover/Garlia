@@ -110,63 +110,72 @@ function MacroGrid({ kcal, proteinas, carbos, grasas }: { kcal: number; proteina
   );
 }
 
-// ─── RecetaDetalle ────────────────────────────────────────────────────────────
+// ─── RecetaDrawer — floating side panel ──────────────────────────────────────
 
-function RecetaDetalle({ receta }: { receta: Receta }) {
+function RecetaDrawer({ receta, onClose }: { receta: Receta; onClose: () => void }) {
   const ingredientesList = parseIngredientes(receta.ingredientes);
   const totales = calcTotales(ingredientesList);
   const catEmoji = CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️";
 
   return (
-    <div className="min-h-screen bg-bg-main pb-28 text-foreground">
-      <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
-        <div className="max-w-4xl mx-auto px-5 py-3 flex items-center justify-between">
-          <Link
-            href="/personal/salud/recetas"
-            className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
-          >
-            <ChevronLeft size={12} /> Recetas
-          </Link>
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/30">
-            {catEmoji} {receta.categoria}
-          </span>
+    <>
+      {/* Backdrop */}
+      <MotionDiv
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm"
+      />
+
+      {/* Drawer panel — slides from right on desktop, from bottom on mobile */}
+      <MotionDiv
+        initial={{ x: "100%", opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: "100%", opacity: 0 }}
+        transition={{ type: "spring", stiffness: 340, damping: 38 }}
+        className="fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[420px] bg-white-custom shadow-2xl flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Mobile drag handle */}
+        <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mx-auto mt-3 shrink-0" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-primary/8 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-bg-menu text-menu-text">
+              {catEmoji} {receta.categoria}
+            </span>
+          </div>
+          <BtnIcon variant="ghost" onClick={onClose} className="border-none bg-primary/8 text-primary/40">
+            <X size={16} />
+          </BtnIcon>
         </div>
-      </header>
 
-      <main className="max-w-4xl mx-auto px-5 pt-5 space-y-4">
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
 
-        {/* Hero block — compact, no image */}
-        <div className="card-main p-5 space-y-4">
+          {/* Hero */}
           <div>
-            <h1 className="text-2xl font-black uppercase tracking-tighter italic text-primary leading-tight">
+            <h2 className="text-2xl font-black uppercase italic tracking-tighter text-primary leading-tight">
               {receta.nombre}
-            </h1>
+            </h2>
             {receta.descripcion && (
-              <p className="text-[11px] text-primary/45 mt-1 leading-relaxed">{receta.descripcion}</p>
+              <p className="text-[11px] text-primary/45 mt-1.5 leading-relaxed">{receta.descripcion}</p>
             )}
-          </div>
-
-          {/* Meta row */}
-          <div className="flex items-center gap-4 pt-3 border-t border-primary/8">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/45">
-              <Clock size={12} className="text-primary/25" /> {receta.tiempo}
-            </div>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/45">
-              <ChefHat size={12} className="text-primary/25" /> {receta.dificultad}
-            </div>
-            <div className="ml-auto">
-              <MacroBar kcal={totales.kcal} proteinas={totales.proteinas} carbos={totales.carbos} grasas={totales.grasas} />
+            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-primary/8">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/45">
+                <Clock size={12} className="text-primary/25" /> {receta.tiempo}
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/45">
+                <ChefHat size={12} className="text-primary/25" /> {receta.dificultad}
+              </div>
             </div>
           </div>
 
-          {/* Macro chips */}
+          {/* Macros */}
           <MacroGrid kcal={totales.kcal} proteinas={totales.proteinas} carbos={totales.carbos} grasas={totales.grasas} />
-        </div>
 
-        {/* Two-column: Ingredientes + Preparación */}
-        <div className="grid md:grid-cols-2 gap-4">
           {/* Ingredientes */}
-          <div className="card-main p-5 space-y-3">
+          <div className="card-main p-4 space-y-2">
             <SectionTitle>Ingredientes</SectionTitle>
             <ul className="divide-y divide-primary/6">
               {ingredientesList.map((ing, i) => (
@@ -186,28 +195,30 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
           </div>
 
           {/* Preparación */}
-          <div className="card-main p-5 space-y-3">
-            <SectionTitle>Preparación</SectionTitle>
-            <ol className="space-y-3">
-              {receta.instrucciones?.map((paso, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="w-5 h-5 rounded-full bg-bg-menu text-menu-text text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
-                    {i + 1}
-                  </span>
-                  <p className="text-[11px] font-bold leading-relaxed text-primary/65 uppercase">{paso}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
+          {receta.instrucciones && receta.instrucciones.length > 0 && (
+            <div className="card-main p-4 space-y-3">
+              <SectionTitle>Preparación</SectionTitle>
+              <ol className="space-y-3">
+                {receta.instrucciones.map((paso, i) => (
+                  <li key={i} className="flex gap-3">
+                    <span className="w-5 h-5 rounded-full bg-bg-menu text-menu-text text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <p className="text-[11px] font-bold leading-relaxed text-primary/65 uppercase">{paso}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
-      </main>
-    </div>
+      </MotionDiv>
+    </>
   );
 }
 
 // ─── RecipeCard — compact row-style card ─────────────────────────────────────
 
-function RecipeCard({ receta, index }: { receta: Receta; index: number }) {
+function RecipeCard({ receta, index, onSelect }: { receta: Receta; index: number; onSelect: () => void }) {
   const catEmoji = CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️";
   const ingredientesList = parseIngredientes(receta.ingredientes);
   const totales = calcTotales(ingredientesList);
@@ -246,12 +257,12 @@ function RecipeCard({ receta, index }: { receta: Receta; index: number }) {
       {/* Macro bar */}
       <div className="flex items-center justify-between">
         <MacroBar kcal={totales.kcal} proteinas={totales.proteinas} carbos={totales.carbos} grasas={totales.grasas} />
-        <Link
-          href={`/personal/salud/recetas/${receta.id}`}
+        <button
+          onClick={onSelect}
           className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors group-hover:gap-1.5"
         >
           Ver <ChevronRight size={11} />
-        </Link>
+        </button>
       </div>
     </MotionDiv>
   );
@@ -595,32 +606,13 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
 // ─── RecetasPage ──────────────────────────────────────────────────────────────
 
-interface RecetasPageProps {
-  selectedRecipeId?: string;
-}
-
-const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
-  const [filter, setFilter]           = useState("");
-  const [catFilter, setCatFilter]     = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const RecetasPage = () => {
+  const [filter, setFilter]               = useState("");
+  const [catFilter, setCatFilter]         = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen]     = useState(false);
+  const [selectedReceta, setSelectedReceta] = useState<Receta | null>(null);
 
   const { data: recipes, loading } = useSupabaseData<Receta>("recetas");
-
-  // ── Detail view ─────────────────────────────────────────────────────────────
-  if (selectedRecipeId) {
-    const receta = recipes.find(r => String(r.id) === selectedRecipeId);
-    if (loading) return <Loading />;
-    if (!receta) return (
-      <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-3">
-        <Utensils className="text-primary/15" size={48} />
-        <p className="text-[11px] font-black uppercase tracking-widest text-primary/30">Receta no encontrada</p>
-        <Link href="/personal/cocina/recetas" className="text-[10px] font-black text-accent hover:text-primary transition-colors uppercase tracking-wide">
-          Volver a recetas
-        </Link>
-      </div>
-    );
-    return <RecetaDetalle receta={receta} />;
-  }
 
   // ── List view ────────────────────────────────────────────────────────────────
   const filteredRecipes = recipes.filter(r => {
@@ -766,7 +758,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                 </MotionDiv>
               ) : (
                 filteredRecipes.map((receta, i) => (
-                  <RecipeCard key={receta.id ?? i} receta={receta} index={i} />
+                  <RecipeCard key={receta.id ?? i} receta={receta} index={i} onSelect={() => setSelectedReceta(receta)} />
                 ))
               )}
             </AnimatePresence>
@@ -797,6 +789,16 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           <ModalAddReceta
             onClose={() => setIsModalOpen(false)}
             onSuccess={() => setIsModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Receta Drawer */}
+      <AnimatePresence>
+        {selectedReceta && (
+          <RecetaDrawer
+            receta={selectedReceta}
+            onClose={() => setSelectedReceta(null)}
           />
         )}
       </AnimatePresence>
