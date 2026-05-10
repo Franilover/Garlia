@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Users, Plus, X, Loader2, UserCircle2, ChevronDown, Link2 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
+import { GrafoRelaciones } from "./GrafoRelaciones";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -389,7 +390,7 @@ function FilaRelacion({ rel, onDelete }: { rel: Relacion; onDelete: (id: string)
 
 // ─── BloqueRelaciones ─────────────────────────────────────────────────────────
 
-export function BloqueRelaciones({ personajeId }: { personajeId: string }) {
+export function BloqueRelaciones({ personajeId, personajeNombre }: { personajeId: string; personajeNombre?: string }) {
   const [relaciones,  setRelaciones]  = useState<Relacion[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [formVisible, setFormVisible] = useState(false);
@@ -480,13 +481,18 @@ export function BloqueRelaciones({ personajeId }: { personajeId: string }) {
             </span>
           )}
         </div>
-        <button
-          onClick={() => setFormVisible(v => !v)}
-          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all ${formVisible ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/35"}`}
-        >
-          {formVisible ? <X size={9} /> : <Plus size={9} />}
-          {formVisible ? "Cerrar" : "Añadir"}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {!loading && relaciones.length > 0 && (
+            <GrafoRelaciones personajeId={personajeId} personajeNombre={personajeNombre} />
+          )}
+          <button
+            onClick={() => setFormVisible(v => !v)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all ${formVisible ? "bg-primary/10 border-primary/25 text-primary" : "border-primary/10 text-primary/35"}`}
+          >
+            {formVisible ? <X size={9} /> : <Plus size={9} />}
+            {formVisible ? "Cerrar" : "Añadir"}
+          </button>
+        </div>
       </div>
 
       <div className="p-2 space-y-2">
