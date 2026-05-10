@@ -15,6 +15,7 @@ import Editor from "@/components/paginas/myself/vida/escritorio/ensayos/editor";
 import { EmptyState } from "@/components/paginas/myself/vida/escritorio/ensayos/emptyState";
 import NewNoteModal from "@/components/paginas/myself/vida/escritorio/ensayos/newNoteModal";
 import EstudioLayout from "@/components/layout/EstudioLayout";
+import { GrafoEnsayos } from "@/components/paginas/myself/vida/escritorio/ensayos/GrafoEnsayos";
 
 export interface ZoteroSource {
   title: string;
@@ -511,13 +512,20 @@ export default function Ensayos() {
         >
           {/* Barra de estado de guardado */}
           <div
-            className="shrink-0 z-10 px-6 py-1.5 flex items-center justify-end"
+            className="shrink-0 z-10 px-6 py-1.5 flex items-center justify-between"
             style={{
               borderBottom: "1px solid color-mix(in srgb, var(--foreground) 4%, transparent)",
               background:   "color-mix(in srgb, var(--bg-menu) 20%, transparent)",
               minHeight:    28,
             }}
           >
+            {ensayoActivo && ensayoActivo.tags?.length > 0 ? (
+              <GrafoEnsayos
+                ensayo={ensayoActivo}
+                ensayos={ensayos}
+                onSelectEnsayo={handleEnsayoClickSinCerrar}
+              />
+            ) : <div />}
             <span
               ref={saveIndicatorRef}
               style={{
@@ -570,7 +578,6 @@ export default function Ensayos() {
                     editMode={editMode}
                     onToggleEditMode={() => setEditMode(p => !p)}
                     onUpdateField={actualizarLocal}
-                    onSelectEnsayo={handleEnsayoClickSinCerrar}
                     onNavigateToPage={(name) => navigateToPage(name, false)}
                     entities={allWikilinkNames}
                   />
