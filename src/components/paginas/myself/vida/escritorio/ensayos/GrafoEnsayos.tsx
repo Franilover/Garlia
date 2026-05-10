@@ -153,7 +153,6 @@ function GrafoD3({
   height,
   selectedId,
   onSelectNodo,
-  onOpenNodo,
 }: {
   datos: DatosGrafo;
   centroId: string;
@@ -161,7 +160,6 @@ function GrafoD3({
   height: number;
   selectedId: string | null;
   onSelectNodo: (info: TooltipInfo | null) => void;
-  onOpenNodo: (id: string) => void;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const primary = useCSSVar("--primary");
@@ -568,20 +566,27 @@ export function GrafoEnsayos({
     return () => obs.disconnect();
   }, [abierto]);
 
-  // Click en nodo → solo mostrar tooltip, NO cambiar el centro del grafo
+  // Ref para leer el tooltip sin stale closure dentro de botones
+  const tooltipRef = useRef<TooltipInfo | null>(null);
+
+  // Click en nodo → mostrar tooltip (no cambia el centro)
   const handleSelectNodo = useCallback((info: TooltipInfo | null) => {
+    tooltipRef.current = info;
     setTooltip(info);
   }, []);
 
-  // Botón "abrir" del tooltip → navegar al ensayo y cerrar
-  const handleOpenNodo = useCallback((id: string) => {
+  // Botón "abrir" → lee desde ref para evitar stale closure
+  const handleOpenNodo = useCallback(() => {
+    const id = tooltipRef.current?.id;
+    if (!id) return;
     onSelectEnsayo(id);
     setAbierto(false);
   }, [onSelectEnsayo]);
 
-  // Botón "enfocar" del tooltip → re-centrar el grafo en ese nodo
-  const handleEnfocarNodo = useCallback((id: string) => {
-    setTooltip(null);
+  // Botón "red" → re-centra el grafo; NO limpia el tooltip
+  const handleEnfocarNodo = useCallback(() => {
+    const id = tooltipRef.current?.id;
+    if (!id) return;
     setHistorial(prev => [...prev, id]);
   }, []);
 
@@ -720,7 +725,6 @@ export function GrafoEnsayos({
                     height={size.h}
                     selectedId={tooltip?.id ?? null}
                     onSelectNodo={handleSelectNodo}
-                    onOpenNodo={handleOpenNodo}
                   />
 
                   {/* ── Tooltip flotante con botones "abrir" y "enfocar" ── */}
@@ -749,7 +753,7 @@ export function GrafoEnsayos({
                           </span>
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => handleOpenNodo(tooltip.id)}
+                              onClick={handleOpenNodo}
                               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary/60 hover:bg-primary/20 hover:text-primary/90 border border-primary/15 transition-all"
                               style={{ fontFamily: "var(--font-mono)" }}
                               title="Abrir esta nota"
@@ -758,7 +762,7 @@ export function GrafoEnsayos({
                               abrir
                             </button>
                             <button
-                              onClick={() => handleEnfocarNodo(tooltip.id)}
+                              onClick={handleEnfocarNodo}
                               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-transparent text-primary/40 hover:bg-primary/8 hover:text-primary/70 border border-primary/10 transition-all"
                               style={{ fontFamily: "var(--font-mono)" }}
                               title="Ver sus conexiones en el grafo"
