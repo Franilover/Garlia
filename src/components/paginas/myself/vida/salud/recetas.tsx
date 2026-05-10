@@ -52,9 +52,11 @@ function parseIngredientes(raw: any): IngredienteReceta[] {
 }
 
 function parseInstrucciones(raw: any): string[] {
+  console.log("[parseInstrucciones] raw:", raw, typeof raw);
   try {
     if (Array.isArray(raw)) return raw as string[];
     if (typeof raw === "string") return JSON.parse(raw);
+    if (raw && typeof raw === "object") return Object.values(raw) as string[];
   } catch {}
   return [];
 }
