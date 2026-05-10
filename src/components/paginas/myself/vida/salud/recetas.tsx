@@ -1,29 +1,31 @@
 "use client";
-import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle, MotionImg } from "@/components/ui/Motion";
-import React, { useState, useMemo, useEffect } from "react";
+import { MotionDiv, MotionMain, MotionH1, MotionH2, MotionButton, MotionLi, MotionSpan, MotionP, MotionSection, MotionArticle } from "@/components/ui/Motion";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { Receta, NuevaReceta, IngredienteReceta } from "@/lib/types/personal/receta";
 import { Ingrediente } from "@/lib/types/personal/ingrediente";
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
-import { Btn, BtnIcon, Badge, Modal, InputLine, Textarea, Loading, EmptyState, BackBtn, Divider, PageHeader } from "@/components/ui";
+import { Btn, BtnIcon, Loading } from "@/components/ui";
 import { useToast } from "@/hooks/ui/useToast";
 import { ToastContainer } from "@/components/ui/ToastContainer";
-import { SectionTitle, FieldInput, MacroBadge } from "@/components/paginas/myself/vida/salud/ui/SaludUi";
+import { SectionTitle, FieldInput } from "@/components/paginas/myself/vida/salud/ui/SaludUi";
 import {
   Utensils, Clock, ChevronRight, Search, ChefHat, Flame,
-  Plus, X, ArrowLeft, Trash2, Activity, Save, ChevronLeft, Minus, Carrot,
+  Plus, X, ChevronLeft, Minus, Carrot, Save, Activity,
   Dumbbell, Wheat, Droplets,
 } from "lucide-react";
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
 const CATEGORIAS = [
-  { label: "General",    emoji: "🍽️" },
-  { label: "Desayunos",  emoji: "🥞" },
-  { label: "Almuerzos",  emoji: "🥗" },
-  { label: "Cenas",      emoji: "🌙" },
-  { label: "Postres",    emoji: "🍮" },
-  { label: "Snacks",     emoji: "🍿" },
+  { label: "General",   emoji: "🍽️" },
+  { label: "Desayunos", emoji: "🥞" },
+  { label: "Almuerzos", emoji: "🥗" },
+  { label: "Cenas",     emoji: "🌙" },
+  { label: "Postres",   emoji: "🍮" },
+  { label: "Snacks",    emoji: "🍿" },
 ];
 
 const DIFICULTADES = ["Fácil", "Media", "Difícil"];
@@ -37,6 +39,8 @@ const INITIAL_FORM = {
   instrucciones: [] as string[],
   descripcion: "",
 };
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function parseIngredientes(raw: any): IngredienteReceta[] {
   try {
@@ -59,110 +63,141 @@ function calcTotales(list: IngredienteReceta[]) {
   );
 }
 
+// ─── MacroBar — compact inline macro display ──────────────────────────────────
+
+function MacroBar({ kcal, proteinas, carbos, grasas }: { kcal: number; proteinas: number; carbos: number; grasas: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 text-[9px] font-black text-primary/40">
+        <Flame size={9} className="text-accent" />
+        <span>{kcal.toFixed(0)}</span>
+      </div>
+      <span className="text-primary/10">·</span>
+      <div className="flex items-center gap-1 text-[9px] font-black text-primary/35">
+        <span className="text-primary/25">P</span>{proteinas.toFixed(0)}g
+      </div>
+      <div className="flex items-center gap-1 text-[9px] font-black text-primary/35">
+        <span className="text-primary/25">C</span>{carbos.toFixed(0)}g
+      </div>
+      <div className="flex items-center gap-1 text-[9px] font-black text-primary/35">
+        <span className="text-primary/25">G</span>{grasas.toFixed(0)}g
+      </div>
+    </div>
+  );
+}
+
+// ─── MacroGrid — grid of 4 macro chips ───────────────────────────────────────
+
+function MacroGrid({ kcal, proteinas, carbos, grasas }: { kcal: number; proteinas: number; carbos: number; grasas: number }) {
+  const items = [
+    { label: "Kcal", value: kcal,      unit: "",  icon: <Flame size={10} className="text-accent" /> },
+    { label: "Prot", value: proteinas, unit: "g", icon: <Dumbbell size={10} className="text-blue-400" /> },
+    { label: "Carb", value: carbos,    unit: "g", icon: <Wheat size={10} className="text-amber-400" /> },
+    { label: "Gras", value: grasas,    unit: "g", icon: <Droplets size={10} className="text-emerald-400" /> },
+  ];
+  return (
+    <div className="grid grid-cols-4 gap-2">
+      {items.map(m => (
+        <div key={m.label} className="bg-bg-main border border-primary/8 rounded-(--radius-btn) py-2 text-center">
+          <div className="flex justify-center mb-0.5">{m.icon}</div>
+          <p className="text-[7px] font-black uppercase tracking-widest text-primary/25">{m.label}</p>
+          <p className="text-[11px] font-black text-primary">
+            {m.value.toFixed(0)}<span className="text-[8px] text-primary/25">{m.unit}</span>
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── RecetaDetalle ────────────────────────────────────────────────────────────
+
 function RecetaDetalle({ receta }: { receta: Receta }) {
   const ingredientesList = parseIngredientes(receta.ingredientes);
   const totales = calcTotales(ingredientesList);
+  const catEmoji = CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️";
 
   return (
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
-        <div className="max-w-4xl mx-auto px-5 py-4">
+        <div className="max-w-4xl mx-auto px-5 py-3 flex items-center justify-between">
           <Link
             href="/personal/salud/recetas"
             className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
           >
             <ChevronLeft size={12} /> Recetas
           </Link>
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary/30">
+            {catEmoji} {receta.categoria}
+          </span>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-5 pt-6 space-y-5">
-        {}
-        <div className="card-main overflow-hidden p-0 rounded-(--radius-card)">
-          <div className="h-56 bg-primary/5 relative">
-            {receta.imagen_url ? (
-              <img src={receta.imagen_url} className="w-full h-full object-cover" alt={receta.nombre} />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Flame size={64} className="text-primary/10" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
-            <span className="absolute top-4 left-4 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-menu-text">
-              {CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️"} {receta.categoria}
-            </span>
-          </div>
-          <div className="p-6">
+      <main className="max-w-4xl mx-auto px-5 pt-5 space-y-4">
+
+        {/* Hero block — compact, no image */}
+        <div className="card-main p-5 space-y-4">
+          <div>
             <h1 className="text-2xl font-black uppercase tracking-tighter italic text-primary leading-tight">
               {receta.nombre}
             </h1>
             {receta.descripcion && (
-              <p className="text-[11px] text-primary/50 mt-1">{receta.descripcion}</p>
+              <p className="text-[11px] text-primary/45 mt-1 leading-relaxed">{receta.descripcion}</p>
             )}
-            <div className="flex items-center gap-5 mt-4 pt-4 border-t border-primary/8">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/50">
-                <Clock size={13} className="text-primary/30" /> {receta.tiempo}
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/50">
-                <ChefHat size={13} className="text-primary/30" /> {receta.dificultad}
-              </div>
-              <div className="ml-auto flex items-center gap-1.5 rounded-(--radius-btn) bg-accent/20 border border-accent/25 px-3 py-1.5">
-                <Flame size={11} className="text-accent fill-accent/60 shrink-0" />
-                <span className="text-[10px] font-black tracking-widest uppercase text-primary/70">
-                  {totales.kcal.toFixed(0)} kcal
-                </span>
-              </div>
+          </div>
+
+          {/* Meta row */}
+          <div className="flex items-center gap-4 pt-3 border-t border-primary/8">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/45">
+              <Clock size={12} className="text-primary/25" /> {receta.tiempo}
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary/45">
+              <ChefHat size={12} className="text-primary/25" /> {receta.dificultad}
+            </div>
+            <div className="ml-auto">
+              <MacroBar kcal={totales.kcal} proteinas={totales.proteinas} carbos={totales.carbos} grasas={totales.grasas} />
             </div>
           </div>
+
+          {/* Macro chips */}
+          <MacroGrid kcal={totales.kcal} proteinas={totales.proteinas} carbos={totales.carbos} grasas={totales.grasas} />
         </div>
 
-        {}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Proteínas", value: totales.proteinas, unit: "g" },
-            { label: "Carbos",    value: totales.carbos,    unit: "g" },
-            { label: "Grasas",    value: totales.grasas,    unit: "g" },
-          ].map(m => (
-            <div key={m.label} className="card-main text-center py-4">
-              <p className="text-[8px] font-black uppercase tracking-widest text-primary/30 mb-1">{m.label}</p>
-              <p className="text-xl font-black text-primary italic">
-                {m.value.toFixed(1)}<span className="text-sm font-bold text-primary/30">{m.unit}</span>
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {}
+        {/* Two-column: Ingredientes + Preparación */}
         <div className="grid md:grid-cols-2 gap-4">
-          <div className="card-main space-y-3">
+          {/* Ingredientes */}
+          <div className="card-main p-5 space-y-3">
             <SectionTitle>Ingredientes</SectionTitle>
-            <ul className="space-y-2">
+            <ul className="divide-y divide-primary/6">
               {ingredientesList.map((ing, i) => (
-                <li key={i} className="flex items-center justify-between py-2 border-b border-primary/8 last:border-0">
-                  <span className="text-[11px] font-bold text-primary uppercase">{ing.nombre}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[9px] font-black text-primary/25 uppercase">
-                      P {parseFloat(String(ing.proteinas || 0)).toFixed(1)}g
+                <li key={i} className="flex items-center justify-between py-2.5 gap-3">
+                  <span className="text-[11px] font-bold text-primary uppercase leading-tight flex-1 min-w-0 truncate">
+                    {ing.nombre}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0 text-right">
+                    <span className="text-[9px] font-black text-primary/30">{ing.cantidad}</span>
+                    <span className="text-[8px] font-black text-primary/20">
+                      {parseFloat(String(ing.proteinas || 0)).toFixed(1)}g P
                     </span>
-                    <span className="text-[10px] font-black text-primary/50">{ing.cantidad}</span>
                   </div>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="card-main space-y-3">
+          {/* Preparación */}
+          <div className="card-main p-5 space-y-3">
             <SectionTitle>Preparación</SectionTitle>
-            <div className="space-y-3">
+            <ol className="space-y-3">
               {receta.instrucciones?.map((paso, i) => (
-                <div key={i} className="flex gap-3">
+                <li key={i} className="flex gap-3">
                   <span className="w-5 h-5 rounded-full bg-bg-menu text-menu-text text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
                     {i + 1}
                   </span>
-                  <p className="text-[11px] font-bold leading-relaxed text-primary/70 uppercase">{paso}</p>
-                </div>
+                  <p className="text-[11px] font-bold leading-relaxed text-primary/65 uppercase">{paso}</p>
+                </li>
               ))}
-            </div>
+            </ol>
           </div>
         </div>
       </main>
@@ -170,94 +205,66 @@ function RecetaDetalle({ receta }: { receta: Receta }) {
   );
 }
 
-function RecipeCard({
-  receta,
-  index,
-}: {
-  receta: Receta;
-  index: number;
-}) {
+// ─── RecipeCard — compact row-style card ─────────────────────────────────────
+
+function RecipeCard({ receta, index }: { receta: Receta; index: number }) {
   const catEmoji = CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️";
   const ingredientesList = parseIngredientes(receta.ingredientes);
   const totales = calcTotales(ingredientesList);
+  const ingCount = ingredientesList.length;
 
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0, transition: { delay: index * 0.03 } }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0, transition: { delay: index * 0.025 } }}
       layout
-      className="card-main overflow-hidden p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all group flex flex-col"
+      className="card-main p-4 hover:shadow-md hover:-translate-y-0.5 transition-all group"
     >
-      {}
-      <div className="h-44 bg-primary/5 relative overflow-hidden">
-        {receta.imagen_url ? (
-          <img
-            src={receta.imagen_url}
-            alt={receta.nombre}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Flame size={40} className="text-primary/15" />
+      {/* Top row: name + category badge */}
+      <div className="flex items-start gap-3 mb-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[13px] font-black uppercase italic tracking-tight text-primary leading-tight truncate">
+            {receta.nombre}
+          </h3>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-[9px] font-black text-primary/30 flex items-center gap-1">
+              <Clock size={9} />{receta.tiempo}
+            </span>
+            <span className="text-[9px] font-black text-primary/30 flex items-center gap-1">
+              <ChefHat size={9} />{receta.dificultad}
+            </span>
+            <span className="text-[9px] font-black text-primary/25">
+              {ingCount} ing.
+            </span>
           </div>
-        )}
-        <span className="absolute top-3 left-3 text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-bg-menu text-menu-text">
+        </div>
+        <span className="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-bg-menu text-menu-text shrink-0 whitespace-nowrap">
           {catEmoji} {receta.categoria}
         </span>
-        {}
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/30 backdrop-blur-sm rounded-(--radius-btn) px-2 py-1">
-          <Flame size={9} className="text-amber-300 fill-amber-300/60" />
-          <span className="text-[8px] font-black text-btn-text tracking-widest">{totales.kcal.toFixed(0)}</span>
-        </div>
       </div>
 
-      {}
-      <div className="p-5 space-y-3 flex flex-col flex-1">
-        <h3 className="text-[13px] font-black uppercase italic tracking-tight text-primary leading-tight">
-          {receta.nombre}
-        </h3>
-
-        <div className="flex items-center gap-3 text-[9px] font-bold text-primary/35 uppercase">
-          <span className="flex items-center gap-1"><Clock size={11} />{receta.tiempo}</span>
-          <span className="flex items-center gap-1"><ChefHat size={11} />{receta.dificultad}</span>
-        </div>
-
-        {}
-        <div className="grid grid-cols-3 gap-1">
-          {[
-            { label: "Prot", value: totales.proteinas, unit: "g" },
-            { label: "Carb", value: totales.carbos,    unit: "g" },
-            { label: "Gras", value: totales.grasas,    unit: "g" },
-          ].map(m => (
-            <div key={m.label} className="bg-bg-main rounded-(--radius-btn) py-1.5 text-center border border-primary/8">
-              <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
-              <p className="text-[10px] font-black text-primary">
-                {m.value.toFixed(0)}<span className="text-[7px] text-primary/25">{m.unit}</span>
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex-1" />
-
-        {}
-        <div className="flex gap-2">
-          <Link
-            href={`/personal/salud/recetas/${receta.id}`}
-            className="flex items-center justify-between flex-1 px-4 py-2.5 bg-bg-menu text-menu-text rounded-(--radius-btn) text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-all"
-          >
-            Ver receta <ChevronRight size={13} />
-          </Link>
-        </div>
+      {/* Macro bar */}
+      <div className="flex items-center justify-between">
+        <MacroBar kcal={totales.kcal} proteinas={totales.proteinas} carbos={totales.carbos} grasas={totales.grasas} />
+        <Link
+          href={`/personal/salud/recetas/${receta.id}`}
+          className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors group-hover:gap-1.5"
+        >
+          Ver <ChevronRight size={11} />
+        </Link>
       </div>
     </MotionDiv>
   );
 }
 
+// ─── PendingIng ───────────────────────────────────────────────────────────────
+
 interface PendingIng {
   base: Ingrediente;
   qty: number;
 }
+
+// ─── ModalAddReceta ───────────────────────────────────────────────────────────
 
 function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [isSaving, setIsSaving]     = useState(false);
@@ -340,255 +347,266 @@ function ModalAddReceta({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
   return (
     <>
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pb-16 sm:pb-6">
-      <MotionDiv
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-      />
-      <MotionDiv
-        initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 60, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 380, damping: 36 }}
-        className="relative w-full sm:max-w-2xl rounded-t-[40px] sm:rounded-(--radius-card) p-7 overflow-y-auto max-h-[92vh] bg-white-custom shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mx-auto mb-6" />
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 pb-16 sm:pb-6">
+        <MotionDiv
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
+        />
+        <MotionDiv
+          initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 60, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 380, damping: 36 }}
+          className="relative w-full sm:max-w-2xl rounded-t-[40px] sm:rounded-(--radius-card) p-6 overflow-y-auto max-h-[92vh] bg-white-custom shadow-2xl"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mx-auto mb-5" />
 
-        <div className="flex items-center justify-between mb-7">
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
-            Nueva <span className="text-primary/20">Receta</span>
-          </h2>
-          <BtnIcon variant="ghost" onClick={onClose} className="border-none bg-primary/8 text-primary/40"><X size={16} /></BtnIcon>
-        </div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
+              Nueva <span className="text-primary/20">Receta</span>
+            </h2>
+            <BtnIcon variant="ghost" onClick={onClose} className="border-none bg-primary/8 text-primary/40">
+              <X size={16} />
+            </BtnIcon>
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-7">
+          <form onSubmit={handleSubmit} className="space-y-6">
 
-          {}
-          <section className="space-y-4">
-            <SectionTitle>Información básica</SectionTitle>
-            <FieldInput label="Nombre del plato" required value={formData.nombre} onChange={v => setFormData(p => ({ ...p, nombre: v }))} placeholder="Tortilla, Ensalada…" />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">Categoría</label>
-                <select
-                  value={formData.categoria}
-                  onChange={e => setFormData(p => ({ ...p, categoria: e.target.value as any }))}
-                  className="input-brand text-[11px] font-bold appearance-none"
-                >
-                  {CATEGORIAS.map(c => <option key={c.label} value={c.label}>{c.emoji} {c.label}</option>)}
-                </select>
-              </div>
-              <FieldInput label="Tiempo" value={formData.tiempo} onChange={v => setFormData(p => ({ ...p, tiempo: v }))} placeholder="20 min" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">Dificultad</label>
-              <div className="flex gap-2">
-                {DIFICULTADES.map(d => (
-                  <button
-                    key={d} type="button"
-                    onClick={() => setFormData(p => ({ ...p, dificultad: d }))}
-                    className={`flex-1 py-2.5 rounded-(--radius-btn) text-[10px] font-black uppercase tracking-wide border transition-all ${
-                      formData.dificultad === d
-                        ? "bg-bg-menu text-menu-text border-bg-menu"
-                        : "bg-bg-main border-primary/15 text-primary/40 hover:border-primary/30"
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {}
-          <section className="space-y-4">
-            <SectionTitle>Ingredientes de la despensa</SectionTitle>
-
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30" size={14} />
-              <input
-                type="text"
-                placeholder="Buscar en mi despensa..."
-                value={searchIng}
-                onChange={e => setSearchIng(e.target.value)}
-                className="input-brand pl-10 text-[11px]"
+            {/* Información básica */}
+            <section className="space-y-3">
+              <SectionTitle>Información básica</SectionTitle>
+              <FieldInput
+                label="Nombre del plato" required
+                value={formData.nombre}
+                onChange={v => setFormData(p => ({ ...p, nombre: v }))}
+                placeholder="Tortilla, Ensalada…"
               />
-              <AnimatePresence>
-                {filteredDbIngredientes.length > 0 && (
-                  <MotionDiv
-                    initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                    className="absolute top-full left-0 w-full bg-white-custom border border-primary/10 rounded-(--radius-btn) mt-1.5 shadow-xl z-50 overflow-hidden"
+
+              {/* Categoría + Tiempo en la misma fila */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">Categoría</label>
+                  <select
+                    value={formData.categoria}
+                    onChange={e => setFormData(p => ({ ...p, categoria: e.target.value as any }))}
+                    className="input-brand text-[11px] font-bold appearance-none"
                   >
-                    {filteredDbIngredientes.map(ing => (
-                      <button
-                        key={ing.id} type="button"
-                        onClick={() => selectIngrediente(ing)}
-                        className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-bg-main transition-colors border-b border-primary/5 last:border-0"
-                      >
-                        <span className="text-[11px] font-bold uppercase text-primary">{ing.nombre}</span>
-                        <span className="text-[9px] font-black text-primary/30 flex items-center gap-1">
-                          {ing.proteinas}g P <Plus size={11} className="text-primary/40" />
-                        </span>
-                      </button>
-                    ))}
+                    {CATEGORIAS.map(c => <option key={c.label} value={c.label}>{c.emoji} {c.label}</option>)}
+                  </select>
+                </div>
+                <FieldInput
+                  label="Tiempo"
+                  value={formData.tiempo}
+                  onChange={v => setFormData(p => ({ ...p, tiempo: v }))}
+                  placeholder="20 min"
+                />
+              </div>
+
+              {/* Dificultad */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">Dificultad</label>
+                <div className="flex gap-2">
+                  {DIFICULTADES.map(d => (
+                    <button
+                      key={d} type="button"
+                      onClick={() => setFormData(p => ({ ...p, dificultad: d }))}
+                      className={`flex-1 py-2 rounded-(--radius-btn) text-[10px] font-black uppercase tracking-wide border transition-all ${
+                        formData.dificultad === d
+                          ? "bg-bg-menu text-menu-text border-bg-menu"
+                          : "bg-bg-main border-primary/15 text-primary/40 hover:border-primary/30"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Ingredientes */}
+            <section className="space-y-3">
+              <SectionTitle>Ingredientes de la despensa</SectionTitle>
+
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30" size={14} />
+                <input
+                  type="text"
+                  placeholder="Buscar en mi despensa..."
+                  value={searchIng}
+                  onChange={e => setSearchIng(e.target.value)}
+                  className="input-brand pl-10 text-[11px]"
+                />
+                <AnimatePresence>
+                  {filteredDbIngredientes.length > 0 && (
+                    <MotionDiv
+                      initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                      className="absolute top-full left-0 w-full bg-white-custom border border-primary/10 rounded-(--radius-btn) mt-1.5 shadow-xl z-50 overflow-hidden"
+                    >
+                      {filteredDbIngredientes.map(ing => (
+                        <button
+                          key={ing.id} type="button"
+                          onClick={() => selectIngrediente(ing)}
+                          className="w-full px-4 py-2.5 text-left flex items-center justify-between hover:bg-bg-main transition-colors border-b border-primary/5 last:border-0"
+                        >
+                          <span className="text-[11px] font-bold uppercase text-primary">{ing.nombre}</span>
+                          <span className="text-[9px] font-black text-primary/30 flex items-center gap-1">
+                            {ing.proteinas}g P <Plus size={10} className="text-primary/40" />
+                          </span>
+                        </button>
+                      ))}
+                    </MotionDiv>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Pending ingredient confirmation */}
+              <AnimatePresence>
+                {pendingIng && (
+                  <MotionDiv
+                    initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.18 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-accent/10 border border-accent/25 rounded-(--radius-btn) p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase text-primary">{pendingIng.base.nombre}</span>
+                        <span className="text-[9px] font-bold text-primary/40">{pendingIng.base.porcion_texto} / unidad</span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 shrink-0">Cantidad</span>
+                        <button type="button"
+                          onClick={() => setPendingIng(p => p && p.qty > 0.5 ? { ...p, qty: Math.round((p.qty - 0.5) * 10) / 10 } : p)}
+                          className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <input
+                          type="number" min="0.5" step="0.5"
+                          value={pendingIng.qty}
+                          onChange={e => setPendingIng(p => p ? { ...p, qty: Math.max(0.1, Number(e.target.value)) } : p)}
+                          className="w-16 text-center bg-white-custom border border-primary/10 rounded-(--radius-btn) py-1.5 text-[12px] font-black text-primary outline-none"
+                        />
+                        <button type="button"
+                          onClick={() => setPendingIng(p => p ? { ...p, qty: Math.round((p.qty + 0.5) * 10) / 10 } : p)}
+                          className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+
+                      {/* Macros preview of pending ingredient */}
+                      <MacroGrid
+                        kcal={pendingIng.base.kcal * pendingIng.qty}
+                        proteinas={pendingIng.base.proteinas * pendingIng.qty}
+                        carbos={pendingIng.base.carbohidratos * pendingIng.qty}
+                        grasas={pendingIng.base.grasas * pendingIng.qty}
+                      />
+
+                      <div className="flex gap-2 pt-1">
+                        <Btn type="button" variant="ghost" onClick={() => setPendingIng(null)} className="flex-1">Cancelar</Btn>
+                        <Btn type="button" onClick={confirmIngrediente} className="flex-1">✓ Añadir</Btn>
+                      </div>
+                    </div>
                   </MotionDiv>
                 )}
               </AnimatePresence>
-            </div>
 
-            <AnimatePresence>
-              {pendingIng && (
-                <MotionDiv
-                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.18 }}
-                  className="overflow-hidden"
-                >
-                  <div className="bg-accent/10 border border-accent/25 rounded-(--radius-btn) p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black uppercase text-primary">{pendingIng.base.nombre}</span>
-                      <span className="text-[9px] font-bold text-primary/40">{pendingIng.base.porcion_texto} / unidad</span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40 shrink-0">Cantidad</span>
-                      <button type="button"
-                        onClick={() => setPendingIng(p => p && p.qty > 0.5 ? { ...p, qty: Math.round((p.qty - 0.5) * 10) / 10 } : p)}
-                        className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <input
-                        type="number" min="0.5" step="0.5"
-                        value={pendingIng.qty}
-                        onChange={e => setPendingIng(p => p ? { ...p, qty: Math.max(0.1, Number(e.target.value)) } : p)}
-                        className="w-16 text-center bg-white-custom border border-primary/10 rounded-(--radius-btn) py-1.5 text-[12px] font-black text-primary outline-none"
+              {/* Ingredient list */}
+              {formData.ingredientes.length > 0 && (
+                <div className="space-y-1.5">
+                  {formData.ingredientes.map((ing, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-bg-main border border-primary/8 rounded-(--radius-btn) px-3 py-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[11px] font-black uppercase text-primary">{ing.nombre}</span>
+                        <span className="text-[9px] text-primary/30 ml-2">{ing.cantidad}</span>
+                      </div>
+                      <MacroBar
+                        kcal={ing.kcal}
+                        proteinas={ing.proteinas}
+                        carbos={parseFloat(String(ing.carbohidratos || 0))}
+                        grasas={ing.grasas}
                       />
-                      <button type="button"
-                        onClick={() => setPendingIng(p => p ? { ...p, qty: Math.round((p.qty + 0.5) * 10) / 10 } : p)}
-                        className="w-7 h-7 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
-                      >
-                        <Plus size={12} />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { label: "Kcal", value: pendingIng.base.kcal * pendingIng.qty,          unit: ""  },
-                        { label: "Prot", value: pendingIng.base.proteinas * pendingIng.qty,      unit: "g" },
-                        { label: "Carb", value: pendingIng.base.carbohidratos * pendingIng.qty,  unit: "g" },
-                        { label: "Gras", value: pendingIng.base.grasas * pendingIng.qty,         unit: "g" },
-                      ].map(m => (
-                        <div key={m.label} className="bg-white-custom border border-primary/8 rounded-(--radius-btn) py-1.5 text-center">
-                          <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
-                          <p className="text-[11px] font-black text-primary">
-                            {m.value.toFixed(0)}<span className="text-[8px] text-primary/25">{m.unit}</span>
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2 pt-1">
-                      <Btn type="button" variant="ghost" onClick={() => setPendingIng(null)} className="flex-1">Cancelar</Btn>
-                      <Btn type="button" onClick={confirmIngrediente} className="flex-1">✓ Añadir</Btn>
-                    </div>
-                  </div>
-                </MotionDiv>
-              )}
-            </AnimatePresence>
-
-            {formData.ingredientes.length > 0 && (
-              <div className="space-y-2">
-                {formData.ingredientes.map((ing, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-bg-main border border-primary/8 rounded-(--radius-btn) px-4 py-2.5">
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[11px] font-black uppercase text-primary">{ing.nombre}</span>
-                      <span className="text-[9px] text-primary/35 ml-2">{ing.cantidad}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[9px] font-black text-primary/25">{ing.kcal.toFixed(0)} kcal</span>
-                      <span className="text-[9px] font-black text-primary/25">{ing.proteinas.toFixed(1)}g P</span>
                       <button type="button" onClick={() => removeIngrediente(idx)}
-                        className="p-1 text-primary/20 hover:text-red-400 transition-colors ml-1"
+                        className="p-1 text-primary/20 hover:text-red-400 transition-colors ml-1 shrink-0"
                       >
                         <X size={13} />
                       </button>
                     </div>
-                  </div>
-                ))}
+                  ))}
 
-                <div className="grid grid-cols-4 gap-2 mt-1">
-                  {[
-                    { label: "Kcal", value: totalesPreview.kcal,     unit: ""  },
-                    { label: "Prot", value: totalesPreview.proteinas, unit: "g" },
-                    { label: "Carb", value: totalesPreview.carbos,    unit: "g" },
-                    { label: "Gras", value: totalesPreview.grasas,    unit: "g" },
-                  ].map(m => (
-                    <div key={m.label} className="bg-accent/10 border border-accent/20 rounded-(--radius-btn) py-2 text-center">
-                      <p className="text-[7px] font-black uppercase tracking-widest text-primary/30">{m.label}</p>
-                      <p className="text-[12px] font-black text-primary">
-                        {m.value.toFixed(0)}<span className="text-[8px] text-primary/30">{m.unit}</span>
-                      </p>
+                  {/* Totals row */}
+                  <div className="pt-1">
+                    <MacroGrid
+                      kcal={totalesPreview.kcal}
+                      proteinas={totalesPreview.proteinas}
+                      carbos={totalesPreview.carbos}
+                      grasas={totalesPreview.grasas}
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Pasos */}
+            <section className="space-y-3">
+              <SectionTitle>Pasos de preparación</SectionTitle>
+              <div className="flex gap-2">
+                <input
+                  className="input-brand flex-1 text-[11px]"
+                  value={nuevoPaso}
+                  onChange={e => setNuevoPaso(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addPaso(); }}}
+                  placeholder="Describe un paso…"
+                />
+                <BtnIcon type="button" onClick={addPaso} className="shrink-0 w-10 h-10"><Plus size={16} /></BtnIcon>
+              </div>
+              {formData.instrucciones.length > 0 && (
+                <div className="space-y-1.5">
+                  {formData.instrucciones.map((paso, idx) => (
+                    <div key={idx} className="flex items-start gap-3 bg-bg-main border border-primary/8 rounded-(--radius-btn) px-4 py-2.5">
+                      <span className="w-5 h-5 rounded-full bg-bg-menu text-menu-text text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <span className="text-[11px] font-bold text-primary/65 uppercase flex-1 leading-relaxed">{paso}</span>
+                      <button type="button"
+                        onClick={() => setFormData(p => ({ ...p, instrucciones: p.instrucciones.filter((_, i) => i !== idx) }))}
+                        className="text-primary/20 hover:text-red-400 transition-colors shrink-0"
+                      >
+                        <X size={13} />
+                      </button>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
 
-          {}
-          <section className="space-y-4">
-            <SectionTitle>Pasos de preparación</SectionTitle>
-            <div className="flex gap-2">
-              <input
-                className="input-brand flex-1 text-[11px]"
-                value={nuevoPaso}
-                onChange={e => setNuevoPaso(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addPaso(); }}}
-                placeholder="Describe un paso…"
-              />
-              <BtnIcon type="button" onClick={addPaso} className="shrink-0 w-10 h-10"><Plus size={16} /></BtnIcon>
-            </div>
-            {formData.instrucciones.length > 0 && (
-              <div className="space-y-2">
-                {formData.instrucciones.map((paso, idx) => (
-                  <div key={idx} className="flex items-start gap-3 bg-bg-main border border-primary/8 rounded-(--radius-btn) px-4 py-3">
-                    <span className="w-5 h-5 rounded-full bg-bg-menu text-menu-text text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <span className="text-[11px] font-bold text-primary/70 uppercase flex-1 leading-relaxed">{paso}</span>
-                    <button type="button"
-                      onClick={() => setFormData(p => ({ ...p, instrucciones: p.instrucciones.filter((_, i) => i !== idx) }))}
-                      className="text-primary/20 hover:text-red-400 transition-colors shrink-0"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <Btn type="submit" loading={isSaving} disabled={!formData.nombre.trim()} icon={<Save size={16} />} fullWidth size="lg">Guardar receta</Btn>
-        </form>
-      </MotionDiv>
-    </div>
-    <ToastContainer toasts={toasts} onDismiss={dismiss} />
+            <Btn type="submit" loading={isSaving} disabled={!formData.nombre.trim()} icon={<Save size={16} />} fullWidth size="lg">
+              Guardar receta
+            </Btn>
+          </form>
+        </MotionDiv>
+      </div>
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>
   );
 }
+
+// ─── RecetasPage ──────────────────────────────────────────────────────────────
 
 interface RecetasPageProps {
   selectedRecipeId?: string;
 }
 
 const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
-  const [filter, setFilter]               = useState("");
-  const [catFilter, setCatFilter]         = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen]     = useState(false);
+  const [filter, setFilter]           = useState("");
+  const [catFilter, setCatFilter]     = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: recipes, loading } = useSupabaseData<Receta>("recetas");
 
+  // ── Detail view ─────────────────────────────────────────────────────────────
   if (selectedRecipeId) {
     const receta = recipes.find(r => String(r.id) === selectedRecipeId);
     if (loading) return <Loading />;
@@ -604,6 +622,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
     return <RecetaDetalle receta={receta} />;
   }
 
+  // ── List view ────────────────────────────────────────────────────────────────
   const filteredRecipes = recipes.filter(r => {
     const matchesSearch =
       !filter ||
@@ -622,26 +641,27 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
   return (
     <div className="min-h-screen bg-bg-main pb-28 text-foreground">
 
-      {}
+      {/* Header */}
       <header className="sticky top-0 z-10 bg-bg-main/90 backdrop-blur-xl border-b border-primary/10">
-        <div className="max-w-7xl mx-auto px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="max-w-7xl mx-auto px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
             <Link
               href="/personal/cocina"
-              className="inline-flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
+              className="inline-flex items-center gap-1 mb-0.5 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
             >
               <ChevronLeft size={12} /> Cocina
             </Link>
-            <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none text-primary">
+            <h1 className="text-xl font-black uppercase tracking-tighter italic leading-none text-primary">
               Mis <span className="text-primary/20">Recetas</span>
             </h1>
           </div>
 
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30" size={14} />
+          {/* Search */}
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30" size={13} />
             <input
               placeholder="Buscar..."
-              className="input-brand pl-10 pr-9 text-[11px] py-2.5"
+              className="input-brand pl-9 pr-8 text-[11px] py-2"
               value={filter}
               onChange={e => setFilter(e.target.value)}
             />
@@ -652,36 +672,30 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
             )}
           </div>
 
+          {/* Actions (desktop) */}
           <div className="hidden sm:flex items-center gap-2">
-
-            {}
             <Link
               href="/personal/salud/ingredientes"
-              className="flex items-center gap-2 text-[11px] py-2.5 px-5 tracking-widest font-black uppercase rounded-(--radius-btn) border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
+              className="flex items-center gap-2 text-[11px] py-2 px-4 tracking-widest font-black uppercase rounded-(--radius-btn) border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
             >
-              <Carrot size={14} /> Ingredientes
+              <Carrot size={13} /> Ingredientes
             </Link>
-
-            {}
             <Btn onClick={() => setIsModalOpen(true)} icon={<Plus size={14} />} size="md">Añadir</Btn>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-5 pt-5 space-y-5">
-
-        {}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Category filters — sub-row */}
+        <div className="max-w-7xl mx-auto px-5 pb-3 flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setCatFilter(null)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-(--radius-btn) text-[10px] font-black uppercase tracking-wide transition-all border ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-(--radius-btn) text-[9px] font-black uppercase tracking-wide transition-all border ${
               catFilter === null
-                ? "bg-primary text-btn-text border-primary shadow-sm"
-                : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
+                ? "bg-primary text-btn-text border-primary"
+                : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30"
             }`}
           >
             Todas
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}>
+            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/35"}`}>
               {recipes.length}
             </span>
           </button>
@@ -694,14 +708,14 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
               <button
                 key={label}
                 onClick={() => setCatFilter(active ? null : label)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-(--radius-btn) text-[10px] font-black uppercase tracking-wide transition-all border ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-(--radius-btn) text-[9px] font-black uppercase tracking-wide transition-all border ${
                   active
-                    ? "bg-bg-menu text-menu-text border-bg-menu shadow-sm"
-                    : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
+                    ? "bg-bg-menu text-menu-text border-bg-menu"
+                    : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30"
                 }`}
               >
                 <span>{emoji}</span> {label}
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}>
+                <span className={`text-[8px] px-1 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/35"}`}>
                   {count}
                 </span>
               </button>
@@ -711,28 +725,29 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           {catFilter && (
             <button
               onClick={() => setCatFilter(null)}
-              className="flex items-center gap-1 px-3 py-1 rounded-(--radius-btn) text-[9px] font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-(--radius-btn) text-[9px] font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
             >
               <X size={10} /> Limpiar
             </button>
           )}
         </div>
+      </header>
 
-        {}
+      <main className="max-w-7xl mx-auto px-5 pt-4">
         {loading ? (
           <Loading fullScreen={false} />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-            {}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+            {/* Add new — compact card */}
             <MotionButton
               whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
               onClick={() => setIsModalOpen(true)}
-              className="border-(length:--border-width) border-dashed border-primary/15 rounded-(--radius-card) flex flex-col items-center justify-center p-8 bg-white-custom hover:bg-primary/5 transition-all group min-h-55"
+              className="border-(length:--border-width) border-dashed border-primary/15 rounded-(--radius-card) flex items-center justify-center gap-3 p-4 bg-white-custom hover:bg-primary/5 transition-all group min-h-[72px]"
             >
-              <div className="w-10 h-10 flex items-center justify-center bg-primary text-btn-text rounded-(--radius-btn) shadow-lg group-hover:scale-110 transition-transform">
-                <Plus size={18} />
+              <div className="w-8 h-8 flex items-center justify-center bg-primary text-btn-text rounded-(--radius-btn) shadow group-hover:scale-110 transition-transform">
+                <Plus size={15} />
               </div>
-              <span className="text-[9px] font-black uppercase mt-3 text-primary/35 tracking-widest group-hover:text-primary transition-colors">
+              <span className="text-[9px] font-black uppercase text-primary/30 tracking-widest group-hover:text-primary transition-colors">
                 Nueva receta
               </span>
             </MotionButton>
@@ -742,20 +757,16 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
                 <MotionDiv
                   key="empty"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="col-span-full flex flex-col items-center justify-center py-24 gap-2"
+                  className="col-span-full flex flex-col items-center justify-center py-16 gap-2"
                 >
-                  <Utensils className="text-primary/15" size={48} />
+                  <Utensils className="text-primary/15" size={40} />
                   <p className="text-[11px] font-black uppercase tracking-widest text-primary/25">
                     {filter || catFilter ? "Sin resultados" : "Sin recetas aún"}
                   </p>
                 </MotionDiv>
               ) : (
                 filteredRecipes.map((receta, i) => (
-                  <RecipeCard
-                    key={receta.id ?? i}
-                    receta={receta}
-                    index={i}
-                  />
+                  <RecipeCard key={receta.id ?? i} receta={receta} index={i} />
                 ))
               )}
             </AnimatePresence>
@@ -763,7 +774,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         )}
       </main>
 
-      {}
+      {/* FAB (mobile) */}
       <div className="sm:hidden fixed bottom-24 right-6 z-20 flex flex-col items-end gap-3">
         <Link
           href="/personal/salud/ingredientes"
@@ -780,7 +791,7 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
         </MotionButton>
       </div>
 
-      {}
+      {/* Modal */}
       <AnimatePresence>
         {isModalOpen && (
           <ModalAddReceta
@@ -789,9 +800,8 @@ const RecetasPage = ({ selectedRecipeId }: RecetasPageProps) => {
           />
         )}
       </AnimatePresence>
-
     </div>
   );
-}
+};
 
 export default RecetasPage;
