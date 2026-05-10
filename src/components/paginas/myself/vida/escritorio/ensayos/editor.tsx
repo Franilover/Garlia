@@ -6,7 +6,6 @@ import { AnimatePresence } from "framer-motion";
 import { CitePopup } from "./citePopup";
 import { MarkdownEditor, WikiEntity } from "@/components/forms/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
-import { GrafoEnsayos } from "@/components/paginas/myself/vida/escritorio/ensayos/GrafoEnsayos";
 
 interface EditorProps {
   ensayo: any;
@@ -15,7 +14,6 @@ interface EditorProps {
   editMode: boolean;
   onToggleEditMode: () => void;
   onUpdateField: (id: string, field: string, value: any) => void;
-  onSelectEnsayo: (id: string) => void;
   onNavigateToPage: (name: string) => void;
   entities?: WikiEntity[];
 }
@@ -29,7 +27,6 @@ export function Editor({
   editMode,
   onToggleEditMode,
   onUpdateField,
-  onSelectEnsayo,
   onNavigateToPage,
   entities = [] as WikiEntity[],
 }: EditorProps) {
@@ -246,13 +243,6 @@ export function Editor({
                   </span>
                 </>
               )}
-
-              {/* ── Grafo de relaciones por tag ── */}
-              <GrafoEnsayos
-                ensayo={{ ...ensayo, tags: parsedTags }}
-                ensayos={ensayos}
-                onSelectEnsayo={onSelectEnsayo}
-              />
 
               <div className="flex items-center gap-1.5">
                 <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
