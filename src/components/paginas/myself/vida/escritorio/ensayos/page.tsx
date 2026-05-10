@@ -576,7 +576,6 @@ export default function Ensayos() {
                     sources={sources}
                     editMode={editMode}
                     onToggleEditMode={() => setEditMode(p => !p)}
-                    onSelectEnsayo={handleEnsayoClickSinCerrar}
                     onUpdateField={actualizarLocal}
                     onNavigateToPage={(name) => navigateToPage(name, false)}
                     entities={allWikilinkNames}
