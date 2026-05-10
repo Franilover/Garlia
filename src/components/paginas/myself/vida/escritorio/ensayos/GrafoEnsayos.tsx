@@ -6,7 +6,7 @@ import * as d3 from "d3";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-type TipoNodo = "ensayo" | "tag";
+type TipoNodo = "ensayo" | "tag" | "tag-ensayo";
 
 interface NodoGrafo {
   id: string;
@@ -55,28 +55,53 @@ function construirGrafo(ensayos: any[], centroId: string): DatosGrafo {
     profundidad: 0,
   });
 
-  // Nodos de tags (profundidad 1): uno por cada tag del centro
+  // Mapa título normalizado → ensayo (para detectar colisiones tag↔ensayo)
+  const ensayoPorTitulo = new Map<string, any>();
+  for (const e of ensayos) {
+    if (e.id === centroId) continue;
+    const norm = (e.titulo || "").trim().toLowerCase();
+    if (norm) ensayoPorTitulo.set(norm, e);
+  }
+
+  // Set de ids de ensayos que ya están fusionados en profundidad 1
+  const fusionados = new Set<string>();
+
+  // Nodos de tags (profundidad 1): uno por tag del centro.
+  // Si la tag coincide con el título de otro ensayo → nodo "tag-ensayo" fusionado (clickeable)
   for (const tag of tagsCentro) {
     const tagId = `tag::${tag}`;
-    nodosMap.set(tagId, {
-      id: tagId,
-      tipo: "tag",
-      titulo: tag,
-      tags: [],
-      profundidad: 1,
-    });
-    // Enlace centro → tag
+    const solapado = ensayoPorTitulo.get(tag.trim().toLowerCase());
+
+    if (solapado) {
+      fusionados.add(solapado.id);
+      nodosMap.set(tagId, {
+        id: tagId,
+        tipo: "tag-ensayo" as TipoNodo,
+        titulo: solapado.titulo || tag,
+        tags: solapado.tags ?? [],
+        profundidad: 1,
+        ensayoId: solapado.id,
+      } as any);
+    } else {
+      nodosMap.set(tagId, {
+        id: tagId,
+        tipo: "tag",
+        titulo: tag,
+        tags: [],
+        profundidad: 1,
+      });
+    }
     enlaces.push({ source: centroId, target: tagId, tag });
   }
 
-  // Nodos de ensayos relacionados (profundidad 2): comparten al menos un tag con el centro
+  // Nodos de ensayos relacionados (profundidad 2)
   for (const e of ensayos) {
     if (e.id === centroId) continue;
+    if (fusionados.has(e.id)) continue; // ya representado en anillo 1
     const eTags: string[] = e.tags ?? [];
     const tagsComunes = eTags.filter(t => tagsCentro.includes(t));
     if (tagsComunes.length === 0) continue;
 
-    // Agregar el nodo ensayo si no existe
     if (!nodosMap.has(e.id)) {
       nodosMap.set(e.id, {
         id: e.id,
@@ -87,9 +112,11 @@ function construirGrafo(ensayos: any[], centroId: string): DatosGrafo {
       });
     }
 
-    // Enlace tag → ensayo (por cada tag compartido)
     for (const tag of tagsComunes) {
       const tagId = `tag::${tag}`;
+      const nodoTag = nodosMap.get(tagId) as any;
+      // No enlazar desde un nodo fusionado hacia el propio ensayo que representa
+      if (nodoTag && nodoTag.tipo === "tag-ensayo" && nodoTag.ensayoId === e.id) continue;
       enlaces.push({ source: tagId, target: e.id, tag });
     }
   }
@@ -250,7 +277,7 @@ function GrafoD3({
       .data(nodes)
       .join("g")
       .attr("class", "nodo")
-      .style("cursor", (d: any) => (d.profundidad === 0 || d.tipo === "tag") ? "default" : "pointer")
+      .style("cursor", (d: any) => (d.profundidad === 0 || (d.tipo === "tag" && d.tipo !== "tag-ensayo")) ? "default" : "pointer")
       .call(
         d3.drag<SVGGElement, any>()
           .on("start", (ev, d) => { if (!ev.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
@@ -262,17 +289,20 @@ function GrafoD3({
       )
       .on("click", (ev, d: any) => {
         ev.stopPropagation();
-        if (d.tipo !== "ensayo" || d.profundidad === 0) return;
+        // Ignorar: nodo centro o tag puro (sin ensayo asociado)
+        if (d.profundidad === 0) return;
+        if (d.tipo === "tag") return;
 
-        // Calcular posición en pantalla del nodo
+        // Para tag-ensayo usamos el ensayoId real; para ensayo normal usamos d.id
+        const idParaAbrir = d.tipo === "tag-ensayo" ? d.ensayoId : d.id;
+
         const svgEl = svgRef.current!;
         const rect = svgEl.getBoundingClientRect();
-        // Obtener transform actual del grupo g
         const transform = d3.zoomTransform(svgEl);
         const [sx, sy] = transform.apply([d.x, d.y]);
 
         onSelectNodo({
-          id: d.id,
+          id: idParaAbrir,
           titulo: d.titulo,
           x: rect.left + sx,
           y: rect.top + sy,
@@ -283,10 +313,11 @@ function GrafoD3({
     nodoEl.each(function(d: any) {
       const el = d3.select(this);
 
-      if (d.tipo === "tag") {
+      if (d.tipo === "tag" || d.tipo === "tag-ensayo") {
         const s = 14;
         const tagCol = hashColor(d.titulo, 0.8);
         const tagColBg = hashColor(d.titulo, 0.12);
+        const esFusion = d.tipo === "tag-ensayo";
 
         el.append("polygon")
           .attr("points", `0,${-(s+2)} ${s+2},0 0,${s+2} ${-(s+2)},0`)
@@ -295,22 +326,47 @@ function GrafoD3({
         el.append("polygon")
           .attr("class", "tag-shape")
           .attr("points", `0,${-s} ${s},0 0,${s} ${-s},0`)
-          .attr("fill", tagColBg).attr("stroke", tagCol)
-          .attr("stroke-width", 1.5).attr("filter", "url(#glow-tag)");
+          .attr("fill", esFusion ? hashColor(d.titulo, 0.22) : tagColBg)
+          .attr("stroke", tagCol)
+          .attr("stroke-width", esFusion ? 2 : 1.5)
+          .attr("stroke-dasharray", esFusion ? "none" : "none")
+          .attr("filter", "url(#glow-tag)");
+
+        // Icono de documento pequeño dentro del diamante si es fusion
+        if (esFusion) {
+          const fs = 5;
+          el.append("rect")
+            .attr("x", -fs * 0.65).attr("y", -fs * 0.85)
+            .attr("width", fs * 1.3).attr("height", fs * 1.7)
+            .attr("rx", 1).attr("fill", tagCol)
+            .attr("opacity", 0.55).attr("pointer-events", "none");
+          [0.2, -0.15].forEach(oy => {
+            el.append("line")
+              .attr("x1", -fs * 0.35).attr("y1", fs * oy)
+              .attr("x2", fs * 0.35).attr("y2", fs * oy)
+              .attr("stroke", tagColBg).attr("stroke-width", 0.8)
+              .attr("pointer-events", "none");
+          });
+        }
 
         el.append("text")
           .attr("text-anchor", "middle").attr("dy", "0.35em")
-          .attr("font-size", 7).attr("font-weight", "800").attr("letter-spacing", "0.08em")
+          .attr("font-size", esFusion ? 0 : 7) // ocultar texto interno si hay icono
+          .attr("font-weight", "800").attr("letter-spacing", "0.08em")
           .attr("fill", tagCol).attr("pointer-events", "none")
           .style("font-family", "var(--font-mono, monospace)")
-          .text(`#${d.titulo.length > 8 ? d.titulo.slice(0, 7) + "…" : d.titulo}`);
+          .text(esFusion ? "" : `#${d.titulo.length > 8 ? d.titulo.slice(0, 7) + "…" : d.titulo}`);
 
         el.append("text")
           .attr("text-anchor", "middle").attr("dy", s + 10)
-          .attr("font-size", 6.5).attr("font-weight", "700").attr("letter-spacing", "0.06em")
-          .attr("fill", tagCol).attr("fill-opacity", 0.7).attr("pointer-events", "none")
-          .style("font-family", "var(--font-mono, monospace)")
-          .text(d.titulo.length > 10 ? d.titulo.slice(0, 9) + "…" : d.titulo);
+          .attr("font-size", esFusion ? 7.5 : 6.5)
+          .attr("font-weight", esFusion ? "700" : "700")
+          .attr("letter-spacing", "0.06em")
+          .attr("fill", tagCol).attr("fill-opacity", esFusion ? 0.95 : 0.7)
+          .attr("pointer-events", "none")
+          .style("font-family", esFusion ? "var(--font-serif, serif)" : "var(--font-mono, monospace)")
+          .style("font-style", esFusion ? "italic" : "normal")
+          .text(d.titulo.length > 13 ? d.titulo.slice(0, 12) + "…" : d.titulo);
 
       } else {
         const r = d.profundidad === 0 ? 28 : 20;
@@ -372,14 +428,24 @@ function GrafoD3({
     // Función para actualizar estilos visuales según selección
     const updateSelection = (selId: string | null) => {
       nodoEl.each(function(d: any) {
-        if (d.tipo !== "ensayo" || d.profundidad === 0) return;
+        if (d.profundidad === 0) return;
         const el = d3.select(this);
-        const isSelected = d.id === selId;
-        el.select(".ensayo-circle")
-          .attr("stroke-width", isSelected ? 2.2 : 1.1)
-          .attr("stroke", isSelected ? primary : hashColor(d.tags[0] ?? "x", 0.55))
-          .attr("filter", isSelected ? "url(#glow-selected)" : "none")
-          .attr("stroke-opacity", isSelected ? 1 : 0.8);
+
+        if (d.tipo === "ensayo") {
+          const isSelected = d.id === selId;
+          el.select(".ensayo-circle")
+            .attr("stroke-width", isSelected ? 2.2 : 1.1)
+            .attr("stroke", isSelected ? primary : hashColor(d.tags[0] ?? "x", 0.55))
+            .attr("filter", isSelected ? "url(#glow-selected)" : "none")
+            .attr("stroke-opacity", isSelected ? 1 : 0.8);
+        }
+
+        if (d.tipo === "tag-ensayo") {
+          const isSelected = d.ensayoId === selId;
+          el.select(".tag-shape")
+            .attr("stroke-width", isSelected ? 2.8 : 2)
+            .attr("filter", isSelected ? "url(#glow-selected)" : "url(#glow-tag)");
+        }
       });
 
       // Resaltar/atenuar links según selección
@@ -388,7 +454,9 @@ function GrafoD3({
           if (!selId) return 1;
           const srcId = typeof d.source === "object" ? d.source.id : d.source;
           const tgtId = typeof d.target === "object" ? d.target.id : d.target;
-          return (srcId === selId || tgtId === selId) ? 1 : 0.15;
+          const srcEnsayoId = typeof d.source === "object" ? (d.source as any).ensayoId : undefined;
+          const tgtEnsayoId = typeof d.target === "object" ? (d.target as any).ensayoId : undefined;
+          return (srcId === selId || tgtId === selId || srcEnsayoId === selId || tgtEnsayoId === selId) ? 1 : 0.15;
         });
     };
 
@@ -402,7 +470,10 @@ function GrafoD3({
 
       // Actualizar tooltip position si hay uno seleccionado
       if (selectedRef.current) {
-        const sel = nodes.find((n: any) => n.id === selectedRef.current);
+        const sel = nodes.find((n: any) =>
+          n.id === selectedRef.current ||
+          (n.tipo === "tag-ensayo" && n.ensayoId === selectedRef.current)
+        );
         if (sel) {
           const svgEl = svgRef.current;
           if (svgEl) {
@@ -579,6 +650,12 @@ export function GrafoEnsayos({
                     <polygon points="0,-4 4,0 0,4 -4,0" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-primary/40" />
                   </svg>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">tags</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="-5 -5 10 10">
+                    <polygon points="0,-4 4,0 0,4 -4,0" fill="rgba(100,150,255,0.25)" stroke="rgba(100,150,255,0.8)" strokeWidth="1.5" />
+                  </svg>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">tag = ensayo</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full border border-dashed border-primary/20 bg-transparent" />
