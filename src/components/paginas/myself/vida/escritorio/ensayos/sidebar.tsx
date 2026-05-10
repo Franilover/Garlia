@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
-import { Hash, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2, ChevronRight, FileText } from "lucide-react";
+import { Hash, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
@@ -14,8 +14,6 @@ interface SidebarProps {
   sources: ZoteroSource[];
   zoteroConnected: boolean;
   onTagClick: (tag: string | null) => void;
-  /** Navigate to the note-page for a tag (opens or creates the note). */
-  onTagNavigate: (tag: string) => void;
   onEnsayoClick: (id: string) => void;
   onCrearEnsayo: () => void;
   onEliminarEnsayo: (id: string) => void;
@@ -35,7 +33,6 @@ export default function Sidebar({
   sources,
   zoteroConnected,
   onTagClick,
-  onTagNavigate,
   onEnsayoClick,
   onCrearEnsayo,
   onEliminarEnsayo,
@@ -46,9 +43,6 @@ export default function Sidebar({
 }: SidebarProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [zoteroExpanded, setZoteroExpanded] = useState(false);
-  // Track which tag is hovered to show the "→ page" button
-  const [hoveredTag, setHoveredTag] = useState<string | null>(null);
-
   const relatedTags = useMemo(() => {
     if (!tagActivo) return [];
     const ensayosConTag = ensayos.filter(e => e.tags?.includes(tagActivo));
@@ -60,10 +54,6 @@ export default function Sidebar({
     });
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
   }, [ensayos, tagActivo]);
-
-  // Check whether a note-page exists for a given tag name
-  const tagHasPage = (tag: string) =>
-    ensayos.some(e => e.titulo?.toLowerCase() === tag.toLowerCase());
 
   return (
     <aside
@@ -142,80 +132,31 @@ export default function Sidebar({
           </button>
           {todosLosTags.map(tag => {
             const isActive = tagActivo === tag;
-            const hasPage = tagHasPage(tag);
-            const isHovered = hoveredTag === tag;
             return (
-              <div
+              <button
                 key={tag}
-                className="relative flex items-center"
-                onMouseEnter={() => setHoveredTag(tag)}
-                onMouseLeave={() => setHoveredTag(null)}
-                style={{ gap: 0 }}
+                onClick={() => onTagClick(isActive ? null : tag)}
+                style={{
+                  fontSize: 10,
+                  padding: "2px 8px",
+                  borderRadius: 4,
+                  border: "1px solid",
+                  borderColor: isActive
+                    ? "color-mix(in srgb, var(--foreground) 35%, transparent)"
+                    : "color-mix(in srgb, var(--foreground) 10%, transparent)",
+                  background: isActive
+                    ? "color-mix(in srgb, var(--foreground) 8%, transparent)"
+                    : "transparent",
+                  color: isActive
+                    ? "color-mix(in srgb, var(--foreground) 90%, transparent)"
+                    : "color-mix(in srgb, var(--foreground) 30%, transparent)",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-mono)",
+                  transition: "all 0.1s",
+                }}
               >
-                {/* Filter button */}
-                <button
-                  onClick={() => onTagClick(isActive ? null : tag)}
-                  style={{
-                    fontSize: 10,
-                    padding: "2px 8px",
-                    borderRadius: hasPage && isHovered ? "4px 0 0 4px" : 4,
-                    border: "1px solid",
-                    borderColor: isActive
-                      ? "color-mix(in srgb, var(--foreground) 35%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 10%, transparent)",
-                    borderRight: hasPage && isHovered ? "none" : undefined,
-                    background: isActive
-                      ? "color-mix(in srgb, var(--foreground) 8%, transparent)"
-                      : "transparent",
-                    color: isActive
-                      ? "color-mix(in srgb, var(--foreground) 90%, transparent)"
-                      : "color-mix(in srgb, var(--foreground) 30%, transparent)",
-                    cursor: "pointer",
-                    fontFamily: "var(--font-mono)",
-                    transition: "all 0.1s",
-                  }}
-                >
-                  #{tag}
-                </button>
-
-                {/* Navigate-to-page button — appears on hover */}
-                <AnimatePresence>
-                  {isHovered && (
-                    <motion.button
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ duration: 0.1 }}
-                      onClick={() => onTagNavigate(tag)}
-                      title={hasPage ? `Abrir página "${tag}"` : `Crear página "${tag}"`}
-                      style={{
-                        fontSize: 9,
-                        padding: "2px 5px",
-                        borderRadius: "0 4px 4px 0",
-                        border: "1px solid",
-                        borderColor: hasPage
-                          ? "color-mix(in srgb, var(--foreground) 20%, transparent)"
-                          : "color-mix(in srgb, var(--accent) 25%, transparent)",
-                        background: hasPage
-                          ? "color-mix(in srgb, var(--foreground) 6%, transparent)"
-                          : "color-mix(in srgb, var(--accent) 8%, transparent)",
-                        color: hasPage
-                          ? "color-mix(in srgb, var(--foreground) 40%, transparent)"
-                          : "color-mix(in srgb, var(--accent) 60%, transparent)",
-                        cursor: "pointer",
-                        fontFamily: "var(--font-mono)",
-                        display: "flex",
-                        alignItems: "center",
-                        overflow: "hidden",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <FileText size={8} />
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-              </div>
+                #{tag}
+              </button>
             );
           })}
         </div>
