@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Loader2, PenTool, Search, X } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
+import { Loader2, PenTool, Search, X, Plus, FileText, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/ui/useToast";
@@ -10,11 +10,9 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { db } from "@/lib/api/client/db";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
-import Sidebar from "@/components/paginas/myself/vida/escritorio/ensayos/sidebar";
 import Editor from "@/components/paginas/myself/vida/escritorio/ensayos/editor";
 import { EmptyState } from "@/components/paginas/myself/vida/escritorio/ensayos/emptyState";
 import NewNoteModal from "@/components/paginas/myself/vida/escritorio/ensayos/newNoteModal";
-import EstudioLayout from "@/components/layout/EstudioLayout";
 import { GrafoEnsayos } from "@/components/paginas/myself/vida/escritorio/ensayos/GrafoEnsayos";
 
 export interface ZoteroSource {
@@ -89,7 +87,8 @@ export default function Ensayos() {
   const { confirm, ConfirmModal }  = useConfirm();
 
   const [editMode,          setEditMode]          = useState(true);
-  const [sidebarOpen,       setSidebarOpen]       = useState(false);
+  const [searchPanelOpen,   setSearchPanelOpen]   = useState(false);
+  const searchPanelRef = useRef<HTMLDivElement>(null);
   const [showNewNoteModal,  setShowNewNoteModal]  = useState(false);
 
   const [sources,           setSources]           = useState<ZoteroSource[]>([]);
@@ -258,13 +257,11 @@ export default function Ensayos() {
     );
     if (found) {
       setEnsayoActivo(found.id);
-      setSidebarOpen(false);
     } else if (isTag) {
       // Auto-create tag page silently
       const newId = await autoCreateTagPage(name.trim());
       if (newId) {
         setEnsayoActivo(newId);
-        setSidebarOpen(false);
       }
     } else {
       // Wikilink: pre-fill modal
@@ -301,9 +298,13 @@ export default function Ensayos() {
   }, []);
 
   useEffect(() => {
-    const handleResize = () => { if (window.innerWidth >= 1024) setSidebarOpen(false); };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchPanelRef.current && !searchPanelRef.current.contains(e.target as Node)) {
+        setSearchPanelOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const todosLosTags = useMemo(() => {
@@ -412,7 +413,6 @@ export default function Ensayos() {
       setEnsayoActivo(data.id);
       setEditMode(true);
       setShowNewNoteModal(false);
-      setSidebarOpen(false);
       setPendingNoteTitle(null);
     }
   };
@@ -434,7 +434,6 @@ export default function Ensayos() {
 
   const handleEnsayoClick = (id: string) => {
     setEnsayoActivo(id);
-    setSidebarOpen(false);
   };
 
   // Usado por el grafo: cambia la nota activa sin cerrar el panel del grafo
@@ -473,18 +472,7 @@ export default function Ensayos() {
 
 
 
-  const sidebarProps = {
-    ensayos, ensayosFiltrados, todosLosTags, tagActivo, ensayoActivoId,
-    searchTerm, sources, zoteroConnected,
-    onTagClick:        handleTagClick,
-    onTagNavigate:     handleTagNavigate,
-    onEnsayoClick:     handleEnsayoClick,
-    onCrearEnsayo:     () => setShowNewNoteModal(true),
-    onEliminarEnsayo:  eliminarEnsayo,
-    onSearchChange:    setSearchTerm,
-    onConnectZotero:   connectZotero,
-    onRefreshZotero:   refreshZotero,
-  };
+
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -499,161 +487,261 @@ export default function Ensayos() {
         }
       `}</style>
 
-      <div className="ensayos-root h-full">
-        <EstudioLayout
-          titulo=" Notas "
-          icono={<PenTool size={12} />}
-          colapsadoLabel="notas"
-          sidebarOpen={sidebarOpen}
-          onSidebarOpenChange={setSidebarOpen}
-          isOffline={isOffline}
-          footerLeft={`${ensayos.length} notas`}
-          sidebarContent={<Sidebar {...sidebarProps} embedded />}
+      <div className="ensayos-root h-full flex flex-col" style={{ background: "var(--bg-main)" }}>
+
+        {/* ── Barra superior ── */}
+        <div
+          className="shrink-0 z-20 px-4 flex items-center gap-3"
+          style={{
+            borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+            background:   "color-mix(in srgb, var(--bg-menu) 60%, transparent)",
+            backdropFilter: "blur(8px)",
+            minHeight: 36,
+          }}
         >
-          {/* Barra de estado de guardado */}
-          <div
-            className="shrink-0 z-10 px-4 py-1.5 flex items-center gap-3"
-            style={{
-              borderBottom: "1px solid color-mix(in srgb, var(--foreground) 4%, transparent)",
-              background:   "color-mix(in srgb, var(--bg-menu) 20%, transparent)",
-              minHeight:    28,
-            }}
-          >
-            {/* Izquierda: grafo */}
-            <div className="shrink-0">
-              {ensayoActivo ? (
-                <GrafoEnsayos
-                  ensayo={ensayoActivo}
-                  ensayos={ensayos}
-                  onSelectEnsayo={handleEnsayoClickSinCerrar}
-                />
-              ) : <div />}
-            </div>
-
-            {/* Centro: buscador */}
-            <div className="flex-1 flex justify-center">
-              <div className="relative" style={{ width: "min(320px, 100%)" }}>
-                <Search
-                  size={10}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}
-                />
-                <input
-                  type="text"
-                  placeholder="buscar notas..."
-                  value={searchTerm}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val.toLowerCase() === "add") {
-                      setSearchTerm("");
-                      setShowNewNoteModal(true);
-                    } else {
-                      setSearchTerm(val);
-                    }
-                  }}
-                  className="w-full outline-none"
-                  style={{
-                    background:   "color-mix(in srgb, var(--foreground) 4%, transparent)",
-                    border:       "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
-                    borderRadius: 5,
-                    padding:      "3px 24px 3px 24px",
-                    fontSize:     10,
-                    color:        "color-mix(in srgb, var(--foreground) 60%, transparent)",
-                    fontFamily:   "var(--font-mono)",
-                    transition:   "border-color 0.15s, background 0.15s",
-                  }}
-                  onFocus={e => {
-                    e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 15%, transparent)";
-                    e.currentTarget.style.background  = "color-mix(in srgb, var(--foreground) 6%, transparent)";
-                  }}
-                  onBlur={e => {
-                    e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 7%, transparent)";
-                    e.currentTarget.style.background  = "color-mix(in srgb, var(--foreground) 4%, transparent)";
-                  }}
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                    style={{
-                      background: "none",
-                      border:     "none",
-                      cursor:     "pointer",
-                      color:      "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                      display:    "flex",
-                      padding:    0,
-                    }}
-                  >
-                    <X size={9} />
-                  </button>
-                )}
+          {/* Grafo — izquierda */}
+          <div className="shrink-0">
+            {ensayoActivo ? (
+              <GrafoEnsayos
+                ensayo={ensayoActivo}
+                ensayos={ensayos}
+                onSelectEnsayo={handleEnsayoClickSinCerrar}
+              />
+            ) : (
+              <div className="flex items-center gap-1.5" style={{ opacity: 0.3 }}>
+                <PenTool size={10} style={{ color: "var(--foreground)" }} />
+                <span style={{ fontSize: 9, fontFamily: "var(--font-mono)", color: "var(--foreground)", textTransform: "uppercase", letterSpacing: "0.12em" }}>notas</span>
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* Derecha: indicador de guardado */}
-            <div className="shrink-0" style={{ minWidth: 60, textAlign: "right" }}>
-              <span
-                ref={saveIndicatorRef}
+          {/* Buscador + panel — centro */}
+          <div className="flex-1 flex justify-center">
+            <div className="relative" style={{ width: "min(400px, 100%)" }} ref={searchPanelRef}>
+              {/* Input */}
+              <Search
+                size={10}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: "color-mix(in srgb, var(--foreground) 22%, transparent)" }}
+              />
+              <input
+                type="text"
+                placeholder={`buscar entre ${ensayos.length} notas...`}
+                value={searchTerm}
+                onFocus={() => setSearchPanelOpen(true)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSearchTerm(val);
+                  setSearchPanelOpen(true);
+                }}
+                onKeyDown={e => {
+                  if (e.key === "Escape") { setSearchPanelOpen(false); setSearchTerm(""); (e.target as HTMLInputElement).blur(); }
+                  if (e.key === "Enter" && ensayosFiltrados.length > 0) {
+                    handleEnsayoClick(ensayosFiltrados[0].id);
+                    setSearchPanelOpen(false);
+                    setSearchTerm("");
+                  }
+                }}
+                className="w-full outline-none"
                 style={{
-                  fontSize:      9,
-                  fontFamily:    "var(--font-mono)",
-                  opacity:       0,
-                  transition:    "opacity 0.3s",
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
+                  background:   "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                  border:       "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                  borderRadius: searchPanelOpen ? "5px 5px 0 0" : 5,
+                  padding:      "4px 26px 4px 24px",
+                  fontSize:     10,
+                  color:        "color-mix(in srgb, var(--foreground) 70%, transparent)",
+                  fontFamily:   "var(--font-mono)",
+                  transition:   "border-radius 0.1s",
                 }}
               />
+              {searchTerm ? (
+                <button
+                  onClick={() => { setSearchTerm(""); setSearchPanelOpen(false); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb, var(--foreground) 22%, transparent)", display: "flex", padding: 0 }}
+                >
+                  <X size={9} />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setSearchPanelOpen(p => !p)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb, var(--foreground) 18%, transparent)", display: "flex", padding: 0 }}
+                >
+                  <Plus size={9} onClick={e => { e.stopPropagation(); setShowNewNoteModal(true); setSearchPanelOpen(false); }} />
+                </button>
+              )}
+
+              {/* Panel dropdown */}
+              <AnimatePresence>
+                {searchPanelOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.1 }}
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      background: "var(--bg-menu)",
+                      border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+                      borderTop: "none",
+                      borderRadius: "0 0 7px 7px",
+                      boxShadow: "0 12px 40px color-mix(in srgb, var(--bg-main) 40%, transparent)",
+                      zIndex: 50,
+                      maxHeight: 360,
+                      overflow: "hidden",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    {/* Tags */}
+                    {todosLosTags.length > 0 && (
+                      <div
+                        className="px-3 py-2 flex flex-wrap gap-1 shrink-0"
+                        style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)" }}
+                      >
+                        <button
+                          onClick={() => { setTagActivo(null); }}
+                          style={{
+                            fontSize: 9, padding: "1px 7px", borderRadius: 3,
+                            border: "1px solid",
+                            borderColor: !tagActivo ? "color-mix(in srgb, var(--foreground) 30%, transparent)" : "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                            background: !tagActivo ? "color-mix(in srgb, var(--foreground) 8%, transparent)" : "transparent",
+                            color: !tagActivo ? "color-mix(in srgb, var(--foreground) 80%, transparent)" : "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                            cursor: "pointer", fontFamily: "var(--font-mono)", transition: "all 0.1s",
+                          }}
+                        >all</button>
+                        {todosLosTags.map(tag => (
+                          <button
+                            key={tag}
+                            onClick={() => setTagActivo(tagActivo === tag ? null : tag)}
+                            style={{
+                              fontSize: 9, padding: "1px 7px", borderRadius: 3,
+                              border: "1px solid",
+                              borderColor: tagActivo === tag ? "color-mix(in srgb, var(--foreground) 30%, transparent)" : "color-mix(in srgb, var(--foreground) 8%, transparent)",
+                              background: tagActivo === tag ? "color-mix(in srgb, var(--foreground) 8%, transparent)" : "transparent",
+                              color: tagActivo === tag ? "color-mix(in srgb, var(--foreground) 80%, transparent)" : "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                              cursor: "pointer", fontFamily: "var(--font-mono)", transition: "all 0.1s",
+                            }}
+                          >#{tag}</button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Lista de notas */}
+                    <div style={{ overflowY: "auto", flex: 1 }}>
+                      {ensayosFiltrados.length === 0 ? (
+                        <div className="px-4 py-5 text-center">
+                          <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", fontFamily: "var(--font-mono)" }}>
+                            sin resultados
+                          </p>
+                        </div>
+                      ) : (
+                        ensayosFiltrados.map(ens => {
+                          const isActive = ens.id === ensayoActivoId;
+                          return (
+                            <div
+                              key={ens.id}
+                              className="group flex items-center gap-2 px-3 py-2 cursor-pointer relative"
+                              style={{
+                                background: isActive ? "color-mix(in srgb, var(--foreground) 5%, transparent)" : "transparent",
+                                borderLeft: `2px solid ${isActive ? "color-mix(in srgb, var(--foreground) 25%, transparent)" : "transparent"}`,
+                                transition: "background 0.08s",
+                              }}
+                              onClick={() => { handleEnsayoClick(ens.id); setSearchPanelOpen(false); setSearchTerm(""); }}
+                              onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 3%, transparent)"; }}
+                              onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                            >
+                              <FileText size={9} style={{ color: "color-mix(in srgb, var(--foreground) 18%, transparent)", flexShrink: 0 }} />
+                              <div className="flex-1 min-w-0">
+                                <p style={{ fontSize: 11, fontFamily: "var(--font-serif)", fontStyle: "italic", color: "color-mix(in srgb, var(--foreground) 70%, transparent)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {ens.titulo || "Sin título"}
+                                </p>
+                                <p style={{ fontSize: 8, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--foreground) 18%, transparent)" }}>
+                                  {new Date(ens.updated_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+                                  {ens.tags?.length > 0 && ` · ${ens.tags.slice(0, 2).map((t: string) => `#${t}`).join(" ")}`}
+                                </p>
+                              </div>
+                              <button
+                                className="opacity-0 group-hover:opacity-100"
+                                onClick={e => { e.stopPropagation(); eliminarEnsayo(ens.id); }}
+                                style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb, var(--accent) 50%, transparent)", padding: 2, flexShrink: 0, transition: "opacity 0.1s" }}
+                              >
+                                <Trash2 size={9} />
+                              </button>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    <div
+                      className="shrink-0 px-3 py-1.5 flex items-center justify-between"
+                      style={{ borderTop: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)", background: "color-mix(in srgb, var(--foreground) 2%, transparent)" }}
+                    >
+                      <span style={{ fontSize: 8, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", fontFamily: "var(--font-mono)" }}>
+                        {ensayosFiltrados.length} de {ensayos.length} notas · enter para abrir
+                      </span>
+                      <button
+                        onClick={() => { setShowNewNoteModal(true); setSearchPanelOpen(false); }}
+                        className="flex items-center gap-1"
+                        style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)", background: "color-mix(in srgb, var(--foreground) 5%, transparent)", color: "color-mix(in srgb, var(--foreground) 45%, transparent)", cursor: "pointer", fontFamily: "var(--font-mono)" }}
+                      >
+                        <Plus size={8} /> nueva nota
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
-          {/* Contenido principal */}
-          <main
-            className="relative flex-1 overflow-y-auto min-h-0"
-            style={{ background: "var(--editor-bg, var(--bg-main))" }}
-          >
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col gap-3 items-center">
-                  <Loader2
-                    size={16}
-                    style={{
-                      color:     "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                      animation: "spin 1s linear infinite",
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize:      10,
-                      fontFamily:    "var(--font-mono)",
-                      color:         "color-mix(in srgb, var(--foreground) 15%, transparent)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.15em",
-                    }}
-                  >
-                    cargando...
-                  </span>
-                </div>
+          {/* Indicador guardado — derecha */}
+          <div className="shrink-0" style={{ minWidth: 64, textAlign: "right" }}>
+            <span
+              ref={saveIndicatorRef}
+              style={{ fontSize: 9, fontFamily: "var(--font-mono)", opacity: 0, transition: "opacity 0.3s", letterSpacing: "0.1em", textTransform: "uppercase" }}
+            />
+          </div>
+        </div>
+
+        {/* ── Contenido principal ── */}
+        <main
+          className="relative flex-1 overflow-y-auto min-h-0"
+          style={{ background: "var(--editor-bg, var(--bg-main))" }}
+        >
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="flex flex-col gap-3 items-center">
+                <Loader2 size={16} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)", animation: "spin 1s linear infinite" }} />
+                <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "color-mix(in srgb, var(--foreground) 15%, transparent)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                  cargando...
+                </span>
               </div>
-            ) : (
-              <AnimatePresence>
-                {ensayoActivo ? (
-                  <Editor
-                    ensayo={ensayoActivo}
-                    ensayos={ensayos}
-                    sources={sources}
-                    editMode={editMode}
-                    onToggleEditMode={() => setEditMode(p => !p)}
-                    onUpdateField={actualizarLocal}
-                    onNavigateToPage={(name) => navigateToPage(name, false)}
-                    entities={allWikilinkNames}
-                  />
-                ) : (
-                  <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
-                )}
-              </AnimatePresence>
-            )}
-          </main>
-        </EstudioLayout>
+            </div>
+          ) : (
+            <AnimatePresence>
+              {ensayoActivo ? (
+                <Editor
+                  ensayo={ensayoActivo}
+                  ensayos={ensayos}
+                  sources={sources}
+                  editMode={editMode}
+                  onToggleEditMode={() => setEditMode(p => !p)}
+                  onUpdateField={actualizarLocal}
+                  onNavigateToPage={(name) => navigateToPage(name, false)}
+                  entities={allWikilinkNames}
+                />
+              ) : (
+                <EmptyState key="empty" onCrearEnsayo={() => setShowNewNoteModal(true)} />
+              )}
+            </AnimatePresence>
+          )}
+        </main>
       </div>
 
       <AnimatePresence>
