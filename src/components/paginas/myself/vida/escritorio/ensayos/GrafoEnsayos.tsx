@@ -549,13 +549,9 @@ export function GrafoEnsayos({
     return () => obs.disconnect();
   }, [abierto]);
 
-  // Click en nodo → seleccionarlo y re-enfocar el grafo en él
+  // Click en nodo → solo mostrar tooltip, NO cambiar el centro del grafo
   const handleSelectNodo = useCallback((info: TooltipInfo | null) => {
     setTooltip(info);
-    if (info) {
-      // Re-centrar el grafo en ese nodo
-      setHistorial(prev => [...prev, info.id]);
-    }
   }, []);
 
   // Botón "abrir" del tooltip → navegar al ensayo y cerrar
@@ -563,6 +559,12 @@ export function GrafoEnsayos({
     onSelectEnsayo(id);
     setAbierto(false);
   }, [onSelectEnsayo]);
+
+  // Botón "enfocar" del tooltip → re-centrar el grafo en ese nodo
+  const handleEnfocarNodo = useCallback((id: string) => {
+    setTooltip(null);
+    setHistorial(prev => [...prev, id]);
+  }, []);
 
   // Botón atrás
   const handleAtras = useCallback(() => {
@@ -702,7 +704,7 @@ export function GrafoEnsayos({
                     onOpenNodo={handleOpenNodo}
                   />
 
-                  {/* ── Tooltip flotante con botón "abrir" ── */}
+                  {/* ── Tooltip flotante con botones "abrir" y "enfocar" ── */}
                   {tooltip && (
                     <div
                       className="fixed z-[100] pointer-events-none"
@@ -726,14 +728,26 @@ export function GrafoEnsayos({
                           >
                             {tooltip.titulo}
                           </span>
-                          <button
-                            onClick={() => handleOpenNodo(tooltip.id)}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary/60 hover:bg-primary/20 hover:text-primary/90 border border-primary/15 transition-all"
-                            style={{ fontFamily: "var(--font-mono)" }}
-                          >
-                            <ExternalLink size={8} />
-                            abrir ensayo
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleOpenNodo(tooltip.id)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary/60 hover:bg-primary/20 hover:text-primary/90 border border-primary/15 transition-all"
+                              style={{ fontFamily: "var(--font-mono)" }}
+                              title="Abrir esta nota"
+                            >
+                              <ExternalLink size={8} />
+                              abrir
+                            </button>
+                            <button
+                              onClick={() => handleEnfocarNodo(tooltip.id)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-transparent text-primary/40 hover:bg-primary/8 hover:text-primary/70 border border-primary/10 transition-all"
+                              style={{ fontFamily: "var(--font-mono)" }}
+                              title="Ver sus conexiones en el grafo"
+                            >
+                              <Network size={8} />
+                              red
+                            </button>
+                          </div>
                         </div>
                         {/* Flecha apuntando al nodo */}
                         <svg width="12" height="7" viewBox="0 0 12 7" className="text-primary/20" style={{ marginTop: -1 }}>
