@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
-import { Hash, Trash2, BookOpen, Search, RefreshCw, Link, CheckCircle2, ChevronRight } from "lucide-react";
+import { Hash, Trash2, BookOpen, RefreshCw, Link, CheckCircle2, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
 
@@ -65,42 +65,6 @@ export default function Sidebar({
         fontFamily: "var(--font-mono)",
       }}
     >
-      {/* ── Search bar ── */}
-      <div
-        className="relative shrink-0 px-3 pt-3 pb-2"
-        style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)" }}
-      >
-        <Search
-          size={11}
-          className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)", marginTop: 4 }}
-        />
-        <input
-          type="text"
-          placeholder="/ buscar... · add"
-          value={searchTerm}
-          onChange={e => {
-            const val = e.target.value;
-            if (val.toLowerCase() === "add") {
-              onSearchChange("");
-              onCrearEnsayo();
-            } else {
-              onSearchChange(val);
-            }
-          }}
-          className="w-full outline-none"
-          style={{
-            background: "color-mix(in srgb, var(--foreground) 5%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
-            borderRadius: 6,
-            padding: "6px 10px 6px 28px",
-            fontSize: 11,
-            color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
-            fontFamily: "var(--font-mono)",
-          }}
-        />
-      </div>
-
       {/* ── Tags ── */}
       <div
         className="shrink-0 px-3 py-2"

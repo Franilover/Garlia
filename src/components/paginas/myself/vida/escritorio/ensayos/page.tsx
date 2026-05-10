@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Loader2, PenTool } from "lucide-react";
+import { Loader2, PenTool, Search, X } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
@@ -512,31 +512,98 @@ export default function Ensayos() {
         >
           {/* Barra de estado de guardado */}
           <div
-            className="shrink-0 z-10 px-6 py-1.5 flex items-center justify-between"
+            className="shrink-0 z-10 px-4 py-1.5 flex items-center gap-3"
             style={{
               borderBottom: "1px solid color-mix(in srgb, var(--foreground) 4%, transparent)",
               background:   "color-mix(in srgb, var(--bg-menu) 20%, transparent)",
               minHeight:    28,
             }}
           >
-            {ensayoActivo ? (
-              <GrafoEnsayos
-                ensayo={ensayoActivo}
-                ensayos={ensayos}
-                onSelectEnsayo={handleEnsayoClickSinCerrar}
+            {/* Izquierda: grafo */}
+            <div className="shrink-0">
+              {ensayoActivo ? (
+                <GrafoEnsayos
+                  ensayo={ensayoActivo}
+                  ensayos={ensayos}
+                  onSelectEnsayo={handleEnsayoClickSinCerrar}
+                />
+              ) : <div />}
+            </div>
+
+            {/* Centro: buscador */}
+            <div className="flex-1 flex justify-center">
+              <div className="relative" style={{ width: "min(320px, 100%)" }}>
+                <Search
+                  size={10}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)" }}
+                />
+                <input
+                  type="text"
+                  placeholder="buscar notas..."
+                  value={searchTerm}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val.toLowerCase() === "add") {
+                      setSearchTerm("");
+                      setShowNewNoteModal(true);
+                    } else {
+                      setSearchTerm(val);
+                    }
+                  }}
+                  className="w-full outline-none"
+                  style={{
+                    background:   "color-mix(in srgb, var(--foreground) 4%, transparent)",
+                    border:       "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
+                    borderRadius: 5,
+                    padding:      "3px 24px 3px 24px",
+                    fontSize:     10,
+                    color:        "color-mix(in srgb, var(--foreground) 60%, transparent)",
+                    fontFamily:   "var(--font-mono)",
+                    transition:   "border-color 0.15s, background 0.15s",
+                  }}
+                  onFocus={e => {
+                    e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 15%, transparent)";
+                    e.currentTarget.style.background  = "color-mix(in srgb, var(--foreground) 6%, transparent)";
+                  }}
+                  onBlur={e => {
+                    e.currentTarget.style.borderColor = "color-mix(in srgb, var(--foreground) 7%, transparent)";
+                    e.currentTarget.style.background  = "color-mix(in srgb, var(--foreground) 4%, transparent)";
+                  }}
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                    style={{
+                      background: "none",
+                      border:     "none",
+                      cursor:     "pointer",
+                      color:      "color-mix(in srgb, var(--foreground) 20%, transparent)",
+                      display:    "flex",
+                      padding:    0,
+                    }}
+                  >
+                    <X size={9} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Derecha: indicador de guardado */}
+            <div className="shrink-0" style={{ minWidth: 60, textAlign: "right" }}>
+              <span
+                ref={saveIndicatorRef}
+                style={{
+                  fontSize:      9,
+                  fontFamily:    "var(--font-mono)",
+                  opacity:       0,
+                  transition:    "opacity 0.3s",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                }}
               />
-            ) : <div />}
-            <span
-              ref={saveIndicatorRef}
-              style={{
-                fontSize:       9,
-                fontFamily:     "var(--font-mono)",
-                opacity:        0,
-                transition:     "opacity 0.3s",
-                letterSpacing:  "0.1em",
-                textTransform:  "uppercase",
-              }}
-            />
+            </div>
           </div>
 
           {/* Contenido principal */}
