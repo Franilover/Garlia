@@ -473,7 +473,7 @@ export const PaginaEjercicios = () => {
         <div className="flex flex-col lg:flex-row gap-6 items-start">
 
           {/* Columna izquierda — Plan semanal (fija en desktop) */}
-          <div className="w-full lg:w-80 xl:w-96 lg:sticky lg:top-6 shrink-0">
+          <div className="w-full lg:flex-1 lg:sticky lg:top-6">
             <PlanDiario />
           </div>
 
