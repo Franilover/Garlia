@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, Loader2, Network, FileText, ExternalLink, ChevronLeft } from "lucide-react";
+import { X, Loader2, Network, FileText, ChevronLeft } from "lucide-react";
 import * as d3 from "d3";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -26,14 +26,6 @@ interface DatosGrafo {
   nodos: NodoGrafo[];
   enlaces: EnlaceGrafo[];
   tagsCentro: string[];
-}
-
-// Posición del tooltip flotante (en coordenadas SVG → pantalla)
-interface TooltipInfo {
-  id: string;
-  titulo: string;
-  x: number; // px pantalla
-  y: number;
 }
 
 // ─── Construcción del grafo con tags como nodos intermedios ──────────────────
@@ -159,7 +151,7 @@ function GrafoD3({
   width: number;
   height: number;
   selectedId: string | null;
-  onSelectNodo: (info: TooltipInfo | null) => void;
+  onSelectNodo: (id: string | null) => void;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const primary = useCSSVar("--primary");
@@ -299,12 +291,7 @@ function GrafoD3({
         const transform = d3.zoomTransform(svgEl);
         const [sx, sy] = transform.apply([d.x, d.y]);
 
-        onSelectNodo({
-          id: idParaAbrir,
-          titulo: d.titulo,
-          x: rect.left + sx,
-          y: rect.top + sy,
-        });
+        onSelectNodo(idParaAbrir);
       });
 
     // ── Renderizado por tipo de nodo ──────────────────────────────────────────
@@ -466,52 +453,12 @@ function GrafoD3({
 
       nodoEl.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
 
-      // Actualizar tooltip position si hay uno seleccionado
-      if (selectedRef.current) {
-        const sel = nodes.find((n: any) =>
-          n.id === selectedRef.current ||
-          (n.tipo === "tag-ensayo" && n.ensayoId === selectedRef.current)
-        );
-        if (sel) {
-          const svgEl = svgRef.current;
-          if (svgEl) {
-            const rect = svgEl.getBoundingClientRect();
-            const transform = d3.zoomTransform(svgEl);
-            const [sx, sy] = transform.apply([sel.x, sel.y]);
-            onSelectNodo({
-              id: (sel as any).tipo === "tag-ensayo" ? (sel as any).ensayoId : sel.id,
-              titulo: sel.titulo,
-              x: rect.left + sx,
-              y: rect.top + sy,
-            });
-          }
-        }
-      }
     });
 
     // Aplicar selección inicial si hay una
     sim.on("end", () => updateSelection(selectedRef.current));
 
-    // Al hacer zoom: actualizar selección visual Y reposicionar tooltip
-    const reposicionarTooltip = () => {
-      if (!selectedRef.current) return;
-      const sel = nodes.find((n: any) =>
-        n.id === selectedRef.current ||
-        (n.tipo === "tag-ensayo" && n.ensayoId === selectedRef.current)
-      );
-      if (sel && svgRef.current) {
-        const rect = svgRef.current.getBoundingClientRect();
-        const transform = d3.zoomTransform(svgRef.current);
-        const [sx, sy] = transform.apply([sel.x, sel.y]);
-        onSelectNodo({
-          id: (sel as any).tipo === "tag-ensayo" ? (sel as any).ensayoId : sel.id,
-          titulo: sel.titulo,
-          x: rect.left + sx,
-          y: rect.top + sy,
-        });
-      }
-    };
-    zoomBehavior.on("zoom.sel", () => { updateSelection(selectedRef.current); reposicionarTooltip(); });
+    zoomBehavior.on("zoom.sel", () => updateSelection(selectedRef.current));
 
     return () => { sim.stop(); };
   }, [datos, centroId, width, height, primary, bgMain]);
@@ -539,15 +486,15 @@ export function GrafoEnsayos({
   const [historial, setHistorial]   = useState<string[]>([]);
   const centroActual                = historial[historial.length - 1] ?? ensayo.id;
 
-  // Nodo seleccionado (hover/click) con su posición en pantalla
-  const [tooltip, setTooltip]       = useState<TooltipInfo | null>(null);
+  // Id del nodo seleccionado (solo para resalte visual)
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const tags: string[] = ensayo.tags ?? [];
 
   // Reconstruir grafo cuando cambia el centro
   useEffect(() => {
     if (!abierto) return;
-    setTooltip(null);
+    setSelectedId(null);
     setDatos(construirGrafo(ensayos, centroActual));
   }, [abierto, centroActual, ensayos]);
 
@@ -566,33 +513,17 @@ export function GrafoEnsayos({
     return () => obs.disconnect();
   }, [abierto]);
 
-  // Ref para leer el tooltip sin stale closure dentro de botones
-  const tooltipRef = useRef<TooltipInfo | null>(null);
-
-  // Click en nodo → mostrar tooltip (no cambia el centro)
-  const handleSelectNodo = useCallback((info: TooltipInfo | null) => {
-    tooltipRef.current = info;
-    setTooltip(info);
-  }, []);
-
-  // Botón "abrir" → lee desde ref para evitar stale closure
-  const handleOpenNodo = useCallback(() => {
-    const id = tooltipRef.current?.id;
-    if (!id) return;
-    onSelectEnsayo(id);
-    setAbierto(false);
+  // Click en nodo → cambiar nota activa en el editor Y re-centrar grafo (sin cerrar el panel)
+  const handleSelectNodo = useCallback((id: string | null) => {
+    if (!id) { setSelectedId(null); return; }
+    setSelectedId(id);
+    onSelectEnsayo(id);           // cambia la nota en el editor
+    setHistorial(prev => [...prev, id]); // re-centra el grafo en ese nodo
   }, [onSelectEnsayo]);
-
-  // Botón "red" → re-centra el grafo; NO limpia el tooltip
-  const handleEnfocarNodo = useCallback(() => {
-    const id = tooltipRef.current?.id;
-    if (!id) return;
-    setHistorial(prev => [...prev, id]);
-  }, []);
 
   // Botón atrás
   const handleAtras = useCallback(() => {
-    setTooltip(null);
+    setSelectedId(null);
     setHistorial(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
   }, []);
 
@@ -699,7 +630,7 @@ export function GrafoEnsayos({
               ))}
 
               <div className="ml-auto" style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "color-mix(in srgb, var(--primary) 20%, transparent)", fontStyle: "italic" }}>
-                click para enfocar · scroll zoom · arrastrá nodos
+                click para abrir nota · scroll zoom · arrastrá nodos
               </div>
             </div>
 
@@ -723,62 +654,9 @@ export function GrafoEnsayos({
                     centroId={centroActual}
                     width={size.w}
                     height={size.h}
-                    selectedId={tooltip?.id ?? null}
+                    selectedId={selectedId}
                     onSelectNodo={handleSelectNodo}
                   />
-
-                  {/* ── Tooltip flotante con botones "abrir" y "enfocar" ── */}
-                  {tooltip && (
-                    <div
-                      className="fixed z-[100] pointer-events-none"
-                      style={{
-                        left: tooltip.x,
-                        top: tooltip.y,
-                        transform: "translate(-50%, calc(-100% - 32px))",
-                      }}
-                    >
-                      <div
-                        className="pointer-events-auto flex flex-col items-center gap-1"
-                        style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.18))" }}
-                      >
-                        {/* Tarjeta */}
-                        <div
-                          className="bg-bg-main border border-primary/20 rounded-xl px-3 py-2 flex flex-col items-center gap-1.5 min-w-[120px] max-w-[200px]"
-                        >
-                          <span
-                            style={{ fontFamily: "var(--font-serif)", fontStyle: "italic" }}
-                            className="text-[10px] text-primary/75 font-semibold text-center leading-snug"
-                          >
-                            {tooltip.titulo}
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={handleOpenNodo}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary/60 hover:bg-primary/20 hover:text-primary/90 border border-primary/15 transition-all"
-                              style={{ fontFamily: "var(--font-mono)" }}
-                              title="Abrir esta nota"
-                            >
-                              <ExternalLink size={8} />
-                              abrir
-                            </button>
-                            <button
-                              onClick={handleEnfocarNodo}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-transparent text-primary/40 hover:bg-primary/8 hover:text-primary/70 border border-primary/10 transition-all"
-                              style={{ fontFamily: "var(--font-mono)" }}
-                              title="Ver sus conexiones en el grafo"
-                            >
-                              <Network size={8} />
-                              red
-                            </button>
-                          </div>
-                        </div>
-                        {/* Flecha apuntando al nodo */}
-                        <svg width="12" height="7" viewBox="0 0 12 7" className="text-primary/20" style={{ marginTop: -1 }}>
-                          <polygon points="0,0 12,0 6,7" fill="currentColor" />
-                        </svg>
-                      </div>
-                    </div>
-                  )}
                 </>
               )}
             </div>
