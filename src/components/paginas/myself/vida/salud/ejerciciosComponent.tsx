@@ -469,27 +469,38 @@ export const PaginaEjercicios = () => {
   return (
     <>
       <AnimatePresence>{rutinaActiva && <EjecutarRutina rutina={rutinaActiva} onCerrar={() => setRutinaActiva(null)} />}</AnimatePresence>
-      <div className="max-w-4xl mx-auto space-y-8">
-        <PlanDiario />
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)] p-1.5 flex-wrap shadow-sm">
-            {TAGS.map(t => <Badge key={t} active={filtroTag === t} onClick={() => setFiltroTag(t)}>{t}</Badge>)}
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+
+          {/* Columna izquierda — Plan semanal (fija en desktop) */}
+          <div className="w-full lg:w-80 xl:w-96 lg:sticky lg:top-6 shrink-0">
+            <PlanDiario />
           </div>
-          <Btn className="ml-auto shrink-0" icon={<Plus size={14} />} onClick={() => setCreando(true)}>Nueva rutina</Btn>
+
+          {/* Columna derecha — Rutinas */}
+          <div className="flex-1 min-w-0 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-1.5 bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)] p-1.5 flex-wrap shadow-sm">
+                {TAGS.map(t => <Badge key={t} active={filtroTag === t} onClick={() => setFiltroTag(t)}>{t}</Badge>)}
+              </div>
+              <Btn className="ml-auto shrink-0" icon={<Plus size={14} />} onClick={() => setCreando(true)}>Nueva rutina</Btn>
+            </div>
+            <AnimatePresence>{creando && <FormNuevaRutina onGuardar={handleGuardar} onCancelar={() => setCreando(false)} guardando={guardando} />}</AnimatePresence>
+            {cargando ? <Loading text="Cargando rutinas..." fullScreen={false} /> : (
+              <div className="space-y-4">
+                <AnimatePresence mode="popLayout">
+                  {rutinasFiltradas.map(rutina => (
+                    <MotionDiv key={rutina.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}>
+                      <CardRutina rutina={rutina} onIniciar={() => setRutinaActiva(rutina)} onEliminar={() => handleEliminar(rutina.id)} expandida={expandida === rutina.id} onToggle={() => setExpandida(expandida === rutina.id ? null : rutina.id)} />
+                    </MotionDiv>
+                  ))}
+                </AnimatePresence>
+                {rutinasFiltradas.length === 0 && <EmptyState label={filtroTag === "Todas" ? "Aún no tienes rutinas" : `No hay rutinas de ${filtroTag}`} />}
+              </div>
+            )}
+          </div>
+
         </div>
-        <AnimatePresence>{creando && <FormNuevaRutina onGuardar={handleGuardar} onCancelar={() => setCreando(false)} guardando={guardando} />}</AnimatePresence>
-        {cargando ? <Loading text="Cargando rutinas..." fullScreen={false} /> : (
-          <div className="space-y-4">
-            <AnimatePresence mode="popLayout">
-              {rutinasFiltradas.map(rutina => (
-                <MotionDiv key={rutina.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}>
-                  <CardRutina rutina={rutina} onIniciar={() => setRutinaActiva(rutina)} onEliminar={() => handleEliminar(rutina.id)} expandida={expandida === rutina.id} onToggle={() => setExpandida(expandida === rutina.id ? null : rutina.id)} />
-                </MotionDiv>
-              ))}
-            </AnimatePresence>
-            {rutinasFiltradas.length === 0 && <EmptyState label={filtroTag === "Todas" ? "Aún no tienes rutinas" : `No hay rutinas de ${filtroTag}`} />}
-          </div>
-        )}
       </div>
     </>
   );
