@@ -51,6 +51,14 @@ function parseIngredientes(raw: any): IngredienteReceta[] {
   return [];
 }
 
+function parseInstrucciones(raw: any): string[] {
+  try {
+    if (Array.isArray(raw)) return raw as string[];
+    if (typeof raw === "string") return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
 function calcTotales(list: IngredienteReceta[]) {
   return list.reduce(
     (acc, ing) => ({
@@ -113,7 +121,8 @@ function MacroGrid({ kcal, proteinas, carbos, grasas }: { kcal: number; proteina
 // ─── RecetaDrawer — floating side panel ──────────────────────────────────────
 
 function RecetaDrawer({ receta, onClose }: { receta: Receta; onClose: () => void }) {
-  const ingredientesList = parseIngredientes(receta.ingredientes);
+  const ingredientesList  = parseIngredientes(receta.ingredientes);
+  const instruccionesList = parseInstrucciones(receta.instrucciones);
   const totales = calcTotales(ingredientesList);
   const catEmoji = CATEGORIAS.find(c => c.label === receta.categoria)?.emoji ?? "🍽️";
 
@@ -195,11 +204,11 @@ function RecetaDrawer({ receta, onClose }: { receta: Receta; onClose: () => void
           </div>
 
           {/* Preparación */}
-          {receta.instrucciones && receta.instrucciones.length > 0 && (
+          {instruccionesList.length > 0 && (
             <div className="card-main p-4 space-y-3">
               <SectionTitle>Preparación</SectionTitle>
               <ol className="space-y-3">
-                {receta.instrucciones.map((paso, i) => (
+                {instruccionesList.map((paso, i) => (
                   <li key={i} className="flex gap-3">
                     <span className="w-5 h-5 rounded-full bg-bg-menu text-menu-text text-[8px] font-black flex items-center justify-center shrink-0 mt-0.5">
                       {i + 1}
