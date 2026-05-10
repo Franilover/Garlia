@@ -1,8 +1,8 @@
 "use client";
 import { MotionDiv } from "@/components/ui/Motion";
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Save } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
+import { Save, Network, X, FileText } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { CitePopup } from "./citePopup";
 import { MarkdownEditor, WikiEntity } from "@/components/forms/MarkdownEditor";
 import { ZoteroSource } from "@/components/paginas/myself/vida/escritorio/ensayos/page";
@@ -19,6 +19,197 @@ interface EditorProps {
   entities?: WikiEntity[];
 }
 
+// ─── Panel de ensayos relacionados por tag ────────────────────────────────────
+
+function RelacionadosPanel({
+  ensayo,
+  ensayos,
+  onSelectEnsayo,
+  onClose,
+  anchorRef,
+}: {
+  ensayo: any;
+  ensayos: any[];
+  onSelectEnsayo: (id: string) => void;
+  onClose: () => void;
+  anchorRef: React.RefObject<HTMLButtonElement>;
+}) {
+  const tags: string[] = ensayo.tags ?? [];
+
+  // Agrupar otros ensayos por cuántos tags comparten, de más a menos
+  const relacionados = ensayos
+    .filter(e => e.id !== ensayo.id)
+    .map(e => {
+      const comunes = (e.tags ?? []).filter((t: string) => tags.includes(t)) as string[];
+      return { ...e, comunes };
+    })
+    .filter(e => e.comunes.length > 0)
+    .sort((a, b) => b.comunes.length - a.comunes.length);
+
+  const monoStyle: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      style={{
+        position: "absolute",
+        top: "calc(100% + 8px)",
+        right: 0,
+        zIndex: 200,
+        width: 280,
+        background: "var(--bg-menu, var(--bg-main))",
+        border: "1px solid color-mix(in srgb, var(--foreground) 10%, transparent)",
+        borderRadius: 10,
+        boxShadow: "0 12px 40px color-mix(in srgb, var(--foreground) 12%, transparent)",
+        overflow: "hidden",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "8px 12px",
+          borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)",
+          background: "color-mix(in srgb, var(--foreground) 2%, transparent)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Network size={10} style={{ color: "color-mix(in srgb, var(--foreground) 30%, transparent)" }} />
+          <span style={{ fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "color-mix(in srgb, var(--foreground) 30%, transparent)", ...monoStyle }}>
+            relacionados por tag
+          </span>
+          {relacionados.length > 0 && (
+            <span style={{ fontSize: 9, padding: "0 5px", borderRadius: 3, background: "color-mix(in srgb, var(--foreground) 8%, transparent)", color: "color-mix(in srgb, var(--foreground) 35%, transparent)", ...monoStyle }}>
+              {relacionados.length}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={onClose}
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", display: "flex" }}
+        >
+          <X size={11} />
+        </button>
+      </div>
+
+      {/* Tags activos del ensayo */}
+      <div style={{ padding: "6px 12px", borderBottom: "1px solid color-mix(in srgb, var(--foreground) 5%, transparent)", display: "flex", flexWrap: "wrap", gap: 4 }}>
+        {tags.map(tag => (
+          <span
+            key={tag}
+            style={{
+              fontSize: 9,
+              padding: "1px 6px",
+              borderRadius: 3,
+              border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+              background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+              color: "color-mix(in srgb, var(--accent) 70%, transparent)",
+              ...monoStyle,
+            }}
+          >
+            #{tag}
+          </span>
+        ))}
+      </div>
+
+      {/* Lista */}
+      <div style={{ maxHeight: 320, overflowY: "auto", scrollbarWidth: "none" }}>
+        {relacionados.length === 0 ? (
+          <div style={{ padding: "24px 12px", textAlign: "center" }}>
+            <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", fontStyle: "italic", ...monoStyle }}>
+              ningún otro ensayo comparte estos tags
+            </p>
+          </div>
+        ) : (
+          relacionados.map(e => (
+            <button
+              key={e.id}
+              onClick={() => { onSelectEnsayo(e.id); onClose(); }}
+              style={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: 4,
+                padding: "9px 12px",
+                background: "none",
+                border: "none",
+                borderBottom: "1px solid color-mix(in srgb, var(--foreground) 4%, transparent)",
+                cursor: "pointer",
+                textAlign: "left",
+                transition: "background 0.1s",
+              }}
+              onMouseEnter={el => (el.currentTarget.style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)")}
+              onMouseLeave={el => (el.currentTarget.style.background = "none")}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
+                <FileText size={10} style={{ color: "color-mix(in srgb, var(--foreground) 20%, transparent)", flexShrink: 0 }} />
+                <span style={{
+                  fontSize: 12,
+                  fontFamily: "var(--font-serif, serif)",
+                  fontStyle: "italic",
+                  color: "color-mix(in srgb, var(--foreground) 70%, transparent)",
+                  flex: 1,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}>
+                  {e.titulo || "Sin título"}
+                </span>
+                <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 18%, transparent)", flexShrink: 0, ...monoStyle }}>
+                  {new Date(e.updated_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+                </span>
+              </div>
+              {/* Tags compartidos */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 3, paddingLeft: 16 }}>
+                {e.comunes.map((tag: string) => (
+                  <span
+                    key={tag}
+                    style={{
+                      fontSize: 8,
+                      padding: "1px 5px",
+                      borderRadius: 3,
+                      background: "color-mix(in srgb, var(--foreground) 6%, transparent)",
+                      color: "color-mix(in srgb, var(--foreground) 35%, transparent)",
+                      ...monoStyle,
+                    }}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+                {/* Tags propios no compartidos, más tenues */}
+                {(e.tags ?? []).filter((t: string) => !tags.includes(t)).map((tag: string) => (
+                  <span
+                    key={tag}
+                    style={{
+                      fontSize: 8,
+                      padding: "1px 5px",
+                      borderRadius: 3,
+                      background: "transparent",
+                      color: "color-mix(in srgb, var(--foreground) 18%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--foreground) 8%, transparent)",
+                      ...monoStyle,
+                    }}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Editor principal ─────────────────────────────────────────────────────────
+
 export function Editor({
   ensayo,
   ensayos,
@@ -31,11 +222,13 @@ export function Editor({
   entities = [] as WikiEntity[],
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const relacionadosBtnRef = useRef<HTMLButtonElement>(null);
 
   const [localTitulo, setLocalTitulo] = useState<string>(ensayo.titulo || "");
   const [localContenido, setLocalContenido] = useState<string>(ensayo.contenido || "");
   const [tagInput, setTagInput] = useState<string>(ensayo.tags?.join(", ") || "");
   const [tagInputFocused, setTagInputFocused] = useState(false);
+  const [relacionadosOpen, setRelacionadosOpen] = useState(false);
 
   // Citation popup (@)
   const [citePopup, setCitePopup] = useState<{
@@ -49,7 +242,22 @@ export function Editor({
     setLocalTitulo(ensayo.titulo || "");
     setLocalContenido(ensayo.contenido || "");
     setTagInput(ensayo.tags?.join(", ") || "");
+    setRelacionadosOpen(false);
   }, [ensayo.id]);
+
+  // Cerrar panel relacionados al hacer click fuera
+  useEffect(() => {
+    if (!relacionadosOpen) return;
+    const handler = (e: MouseEvent) => {
+      const panel = document.getElementById("relacionados-panel");
+      const btn = relacionadosBtnRef.current;
+      if (panel && !panel.contains(e.target as Node) && btn && !btn.contains(e.target as Node)) {
+        setRelacionadosOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [relacionadosOpen]);
 
   const wordCount = localContenido.split(/\s+/).filter(Boolean).length || 0;
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
@@ -65,7 +273,6 @@ export function Editor({
     setLocalContenido(value);
     onUpdateField(ensayo.id, "contenido", value);
 
-    // ── @ cite popup ──
     if (!sources.length) return;
     const citeMatch = value.match(/@([\w\-.]*)$/);
     if (citeMatch) {
@@ -100,6 +307,12 @@ export function Editor({
     .map(t => t.trim().toLowerCase())
     .filter(Boolean);
 
+  // Cuántos ensayos relacionados hay (para badge)
+  const nRelacionados = ensayos.filter(e =>
+    e.id !== ensayo.id &&
+    (e.tags ?? []).some((t: string) => parsedTags.includes(t))
+  ).length;
+
   const monoStyle: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
   return (
@@ -113,10 +326,7 @@ export function Editor({
         className="flex flex-col flex-1 min-h-0"
       >
         {/* ── Title input ── */}
-        <div
-          className="shrink-0 px-8 pt-8 pb-4"
-          style={{ background: "transparent" }}
-        >
+        <div className="shrink-0 px-8 pt-8 pb-4" style={{ background: "transparent" }}>
           <input
             type="text"
             value={localTitulo}
@@ -136,12 +346,12 @@ export function Editor({
             placeholder="título..."
           />
 
-          {/* ── Meta row: tags left, stats + save right ── */}
+          {/* ── Meta row ── */}
           <div
             className="flex items-center mt-3"
             style={{ borderBottom: "1px solid color-mix(in srgb, var(--foreground) 6%, transparent)", paddingBottom: 16 }}
           >
-            {/* Tags — left side (click navigates to tag-page) */}
+            {/* Tags — left */}
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
               {!tagInputFocused && parsedTags.length > 0 ? (
                 <>
@@ -196,18 +406,14 @@ export function Editor({
                   type="text"
                   value={tagInput}
                   autoFocus={tagInputFocused}
-                  onChange={e => {
-                    setTagInput(e.target.value);
-                  }}
+                  onChange={e => setTagInput(e.target.value)}
                   onKeyDown={e => {
                     if (e.key === "Enter") {
                       const parsed = tagInput.split(",").map((t: string) => t.trim().toLowerCase()).filter((t: string) => t !== "");
                       onUpdateField(ensayo.id, "tags", parsed);
                       setTagInputFocused(false);
                     }
-                    if (e.key === "Escape") {
-                      setTagInputFocused(false);
-                    }
+                    if (e.key === "Escape") setTagInputFocused(false);
                   }}
                   onFocus={() => setTagInputFocused(true)}
                   onBlur={() => {
@@ -231,8 +437,8 @@ export function Editor({
               )}
             </div>
 
-            {/* Stats + save — right side */}
-            <div className="flex items-center gap-4 shrink-0">
+            {/* Stats + relacionados + save — right */}
+            <div className="flex items-center gap-4 shrink-0" style={{ position: "relative" }}>
               <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 20%, transparent)", ...monoStyle }}>
                 {wordCount} palabras
               </span>
@@ -251,12 +457,86 @@ export function Editor({
                   </span>
                 </>
               )}
+
+              {/* ── Botón relacionados ── */}
+              {parsedTags.length > 0 && (
+                <button
+                  ref={relacionadosBtnRef}
+                  onClick={() => setRelacionadosOpen(v => !v)}
+                  title="Ensayos con tags en común"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 9,
+                    padding: "3px 8px",
+                    borderRadius: 5,
+                    border: "1px solid",
+                    borderColor: relacionadosOpen
+                      ? "color-mix(in srgb, var(--foreground) 20%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 10%, transparent)",
+                    background: relacionadosOpen
+                      ? "color-mix(in srgb, var(--foreground) 6%, transparent)"
+                      : "transparent",
+                    color: relacionadosOpen
+                      ? "color-mix(in srgb, var(--foreground) 55%, transparent)"
+                      : "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                    ...monoStyle,
+                  }}
+                  onMouseEnter={e => {
+                    if (!relacionadosOpen) {
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 20%, transparent)";
+                      (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 50%, transparent)";
+                      (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--foreground) 4%, transparent)";
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!relacionadosOpen) {
+                      (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--foreground) 10%, transparent)";
+                      (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--foreground) 25%, transparent)";
+                      (e.currentTarget as HTMLElement).style.background = "transparent";
+                    }
+                  }}
+                >
+                  <Network size={9} />
+                  relacionados
+                  {nRelacionados > 0 && (
+                    <span style={{
+                      fontSize: 8,
+                      padding: "0 4px",
+                      borderRadius: 3,
+                      background: "color-mix(in srgb, var(--foreground) 10%, transparent)",
+                      color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
+                    }}>
+                      {nRelacionados}
+                    </span>
+                  )}
+                </button>
+              )}
+
               <div className="flex items-center gap-1.5">
                 <Save size={9} style={{ color: "color-mix(in srgb, var(--foreground) 15%, transparent)" }} />
                 <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--foreground) 15%, transparent)", ...monoStyle }}>
                   {new Date(ensayo.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
+
+              {/* Panel flotante */}
+              <AnimatePresence>
+                {relacionadosOpen && (
+                  <div id="relacionados-panel">
+                    <RelacionadosPanel
+                      ensayo={{ ...ensayo, tags: parsedTags }}
+                      ensayos={ensayos}
+                      onSelectEnsayo={onSelectEnsayo}
+                      onClose={() => setRelacionadosOpen(false)}
+                      anchorRef={relacionadosBtnRef}
+                    />
+                  </div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -278,7 +558,6 @@ export function Editor({
             }}
           />
 
-          {/* CitePopup (@) */}
           <AnimatePresence>
             {citePopup && sources.length > 0 && (
               <div style={{ position: "fixed", top: citePopup.position.top + 25, left: citePopup.position.left, zIndex: 9999 }}>
