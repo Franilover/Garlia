@@ -6,96 +6,88 @@ import * as d3 from "d3";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-interface NodoEnsayo {
+type TipoNodo = "ensayo" | "tag";
+
+interface NodoGrafo {
   id: string;
-  titulo: string;
-  tags: string[];
-  profundidad: 0 | 1 | 2; // 0 = centro, 1 = directos, 2 = secundarios
+  tipo: TipoNodo;
+  titulo: string;       // título del ensayo o nombre del tag
+  tags: string[];       // solo para ensayos
+  profundidad: 0 | 1 | 2; // 0 = centro, 1 = tags, 2 = ensayos relacionados
 }
 
-interface EnlaceTag {
+interface EnlaceGrafo {
   source: string;
   target: string;
-  tagsComunes: string[];
+  tag: string; // el tag que genera la conexión
 }
 
 interface DatosGrafo {
-  nodos: NodoEnsayo[];
-  enlaces: EnlaceTag[];
-  todosLosTags: string[]; // todos los tags que aparecen en el grafo
+  nodos: NodoGrafo[];
+  enlaces: EnlaceGrafo[];
+  tagsCentro: string[];
 }
 
-// ─── Construcción del grafo (2 niveles de profundidad) ───────────────────────
+// ─── Construcción del grafo con tags como nodos intermedios ──────────────────
 
 function construirGrafo(ensayos: any[], centroId: string): DatosGrafo {
   const centro = ensayos.find(e => e.id === centroId);
-  if (!centro) return { nodos: [], enlaces: [], todosLosTags: [] };
+  if (!centro) return { nodos: [], enlaces: [], tagsCentro: [] };
 
   const tagsCentro: string[] = centro.tags ?? [];
-  const nodosMap = new Map<string, NodoEnsayo>();
-  const enlacesMap = new Map<string, EnlaceTag>(); // key = "idA|idB" para deduplicar
-
-  const addEnlace = (a: string, b: string, comunes: string[]) => {
-    const key = [a, b].sort().join("|");
-    if (!enlacesMap.has(key)) {
-      enlacesMap.set(key, { source: a, target: b, tagsComunes: comunes });
-    }
-  };
+  const nodosMap = new Map<string, NodoGrafo>();
+  const enlaces: EnlaceGrafo[] = [];
 
   // Nodo centro (profundidad 0)
-  nodosMap.set(centroId, { id: centroId, titulo: centro.titulo || "Sin título", tags: tagsCentro, profundidad: 0 });
+  nodosMap.set(centroId, {
+    id: centroId,
+    tipo: "ensayo",
+    titulo: centro.titulo || "Sin título",
+    tags: tagsCentro,
+    profundidad: 0,
+  });
 
-  // Nivel 1: ensayos que comparten tag con el centro
-  const nivel1Ids = new Set<string>();
+  // Nodos de tags (profundidad 1): uno por cada tag del centro
+  for (const tag of tagsCentro) {
+    const tagId = `tag::${tag}`;
+    nodosMap.set(tagId, {
+      id: tagId,
+      tipo: "tag",
+      titulo: tag,
+      tags: [],
+      profundidad: 1,
+    });
+    // Enlace centro → tag
+    enlaces.push({ source: centroId, target: tagId, tag });
+  }
+
+  // Nodos de ensayos relacionados (profundidad 2): comparten al menos un tag con el centro
   for (const e of ensayos) {
     if (e.id === centroId) continue;
     const eTags: string[] = e.tags ?? [];
-    const comunes = eTags.filter(t => tagsCentro.includes(t));
-    if (comunes.length === 0) continue;
-    nivel1Ids.add(e.id);
-    nodosMap.set(e.id, { id: e.id, titulo: e.titulo || "Sin título", tags: eTags, profundidad: 1 });
-    addEnlace(centroId, e.id, comunes);
-  }
+    const tagsComunes = eTags.filter(t => tagsCentro.includes(t));
+    if (tagsComunes.length === 0) continue;
 
-  // Nivel 2: ensayos que comparten tag con algún nodo nivel 1 (pero no con el centro directamente)
-  for (const e of ensayos) {
-    if (e.id === centroId || nivel1Ids.has(e.id)) continue;
-    const eTags: string[] = e.tags ?? [];
-
-    for (const n1Id of nivel1Ids) {
-      const n1 = nodosMap.get(n1Id)!;
-      const comunes = eTags.filter(t => n1.tags.includes(t));
-      if (comunes.length === 0) continue;
-
-      if (!nodosMap.has(e.id)) {
-        nodosMap.set(e.id, { id: e.id, titulo: e.titulo || "Sin título", tags: eTags, profundidad: 2 });
-      }
-      addEnlace(n1Id, e.id, comunes);
+    // Agregar el nodo ensayo si no existe
+    if (!nodosMap.has(e.id)) {
+      nodosMap.set(e.id, {
+        id: e.id,
+        tipo: "ensayo",
+        titulo: e.titulo || "Sin título",
+        tags: eTags,
+        profundidad: 2,
+      });
     }
-  }
 
-  // Enlaces laterales entre nodos del mismo nivel o entre nivel 1 y nivel 2
-  const todosIds = [...nodosMap.keys()];
-  for (let i = 0; i < todosIds.length; i++) {
-    for (let j = i + 1; j < todosIds.length; j++) {
-      const a = nodosMap.get(todosIds[i])!;
-      const b = nodosMap.get(todosIds[j])!;
-      // Solo conectar si no es enlace centro→nivel1 (ya está) y comparten tags
-      if (a.profundidad === 0 || b.profundidad === 0) continue;
-      const comunes = a.tags.filter(t => b.tags.includes(t));
-      if (comunes.length > 0) addEnlace(a.id, b.id, comunes);
+    // Enlace tag → ensayo (por cada tag compartido)
+    for (const tag of tagsComunes) {
+      const tagId = `tag::${tag}`;
+      enlaces.push({ source: tagId, target: e.id, tag });
     }
   }
 
   const nodos = [...nodosMap.values()];
-  const enlaces = [...enlacesMap.values()];
-
-  // Recopilar todos los tags que aparecen en el grafo
-  const tagSet = new Set<string>();
-  nodos.forEach(n => n.tags.forEach(t => tagSet.add(t)));
-  const todosLosTags = [...tagSet].sort();
-
-  return { nodos, enlaces, todosLosTags };
+  return { nodos, enlaces, tagsCentro };
 }
 
 // ─── CSS var hook ─────────────────────────────────────────────────────────────
@@ -145,25 +137,24 @@ function GrafoD3({
     const W = width, H = height;
     const cx = W / 2, cy = H / 2;
 
-    // Radios por profundidad — el centro fijo, anillos concéntricos
-    const R = [0, Math.min(W, H) * 0.22, Math.min(W, H) * 0.42];
+    // Radios por profundidad
+    const R = [0, Math.min(W, H) * 0.22, Math.min(W, H) * 0.43];
 
-    // Posiciones iniciales en anillos
-    const nivel1 = datos.nodos.filter(n => n.profundidad === 1);
-    const nivel2 = datos.nodos.filter(n => n.profundidad === 2);
+    const nivel1 = datos.nodos.filter(n => n.profundidad === 1); // tags
+    const nivel2 = datos.nodos.filter(n => n.profundidad === 2); // ensayos relacionados
 
     const nodes = datos.nodos.map(n => {
       if (n.profundidad === 0) return { ...n, x: cx, y: cy, fx: cx, fy: cy };
 
       if (n.profundidad === 1) {
-        const i = nivel1.indexOf(n);
+        const i = nivel1.findIndex(x => x.id === n.id);
         const total = nivel1.length;
         const angle = (2 * Math.PI * i) / Math.max(total, 1) - Math.PI / 2;
         return { ...n, x: cx + R[1] * Math.cos(angle), y: cy + R[1] * Math.sin(angle) };
       }
 
       // profundidad 2
-      const i = nivel2.indexOf(n);
+      const i = nivel2.findIndex(x => x.id === n.id);
       const total = nivel2.length;
       const angle = (2 * Math.PI * i) / Math.max(total, 1) - Math.PI / 2 + (Math.PI / Math.max(total, 1));
       return { ...n, x: cx + R[2] * Math.cos(angle), y: cy + R[2] * Math.sin(angle) };
@@ -171,22 +162,24 @@ function GrafoD3({
 
     const links = datos.enlaces.map(e => ({ ...e })) as any[];
 
-    // Simulación — fuerzas distintas por profundidad para respetar los anillos
+    // Simulación
     const sim = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links)
         .id((d: any) => d.id)
         .distance((d: any) => {
           const sp = d.source.profundidad as number;
           const tp = d.target.profundidad as number;
-          if (sp === 0 || tp === 0) return R[1];             // centro → nivel1
-          if (Math.abs(sp - tp) === 1) return R[2] - R[1];  // nivel1 → nivel2
-          return 80;                                          // laterales
+          if (sp === 0 || tp === 0) return R[1];
+          return R[2] - R[1];
         })
-        .strength(0.5)
+        .strength(0.6)
       )
-      .force("charge", d3.forceManyBody().strength(-180))
-      .force("collision", d3.forceCollide((d: any) => d.profundidad === 0 ? 40 : 48))
-      // Fuerza radial: atrae cada nodo a su anillo
+      .force("charge", d3.forceManyBody().strength(-200))
+      .force("collision", d3.forceCollide((d: any) => {
+        if (d.profundidad === 0) return 38;
+        if (d.profundidad === 1) return 32; // tags un poco más espacio
+        return 44;
+      }))
       .force("radial", d3.forceRadial(
         (d: any) => R[d.profundidad as number] ?? R[2],
         cx, cy
@@ -211,7 +204,15 @@ function GrafoD3({
     merge.append("feMergeNode").attr("in", "blur");
     merge.append("feMergeNode").attr("in", "SourceGraphic");
 
-    // Anillos guía (decorativos, muy tenues)
+    // Glow tag (sutil, coloreado)
+    const glowTag = defs.append("filter").attr("id", "glow-tag")
+      .attr("x", "-80%").attr("y", "-80%").attr("width", "260%").attr("height", "260%");
+    glowTag.append("feGaussianBlur").attr("stdDeviation", "2.5").attr("result", "blur");
+    const mergeTag = glowTag.append("feMerge");
+    mergeTag.append("feMergeNode").attr("in", "blur");
+    mergeTag.append("feMergeNode").attr("in", "SourceGraphic");
+
+    // Anillos guía decorativos
     [1, 2].forEach(lvl => {
       g.append("circle")
         .attr("cx", cx).attr("cy", cy)
@@ -222,7 +223,7 @@ function GrafoD3({
         .attr("stroke-dasharray", "3 6");
     });
 
-    // ── Links — LÍNEAS RECTAS ──────────────────────────────────────────────────
+    // ── Links ─────────────────────────────────────────────────────────────────
     const linkG = g.append("g").attr("class", "links");
 
     const linkEl = linkG.selectAll("g.link")
@@ -230,34 +231,18 @@ function GrafoD3({
       .join("g")
       .attr("class", "link");
 
-    // Línea recta (sin curvas)
-    const linea = linkEl.append("line")
+    linkEl.append("line")
       .attr("stroke-width", (d: any) => {
-        const base = d.source.profundidad === 0 || d.target.profundidad === 0 ? 1.2 : 0.7;
-        return base + d.tagsComunes.length * 0.5;
+        const sp = d.source.profundidad ?? 0;
+        const tp = d.target.profundidad ?? 0;
+        return (sp === 0 || tp === 0) ? 1.4 : 0.9;
       })
-      .attr("stroke", (d: any) => hashColor(d.tagsComunes[0], 0.3))
+      .attr("stroke", (d: any) => hashColor(d.tag, 0.35))
       .attr("stroke-dasharray", (d: any) => {
-        // Líneas de nivel 2 son punteadas para diferenciar
-        if (d.source.profundidad === 2 || d.target.profundidad === 2) return "4 4";
-        return "none";
-      });
-
-    // Etiqueta del tag sobre la línea — solo para enlaces centro↔nivel1
-    const labelLinea = linkEl.append("text")
-      .attr("text-anchor", "middle")
-      .attr("dy", -4)
-      .attr("font-size", 7)
-      .attr("font-weight", "700")
-      .attr("letter-spacing", "0.05em")
-      .attr("fill", (d: any) => hashColor(d.tagsComunes[0], 0.55))
-      .attr("pointer-events", "none")
-      .attr("opacity", (d: any) =>
-        d.source.profundidad === 0 || d.target.profundidad === 0 ? 1 : 0.6
-      )
-      .text((d: any) => {
-        const tags = d.tagsComunes.slice(0, 2).map((t: string) => `#${t}`).join(" ");
-        return tags;
+        const sp = d.source.profundidad ?? 0;
+        const tp = d.target.profundidad ?? 0;
+        // Links de nivel 2 punteados
+        return (sp === 2 || tp === 2) ? "4 4" : "none";
       });
 
     // ── Nodos ─────────────────────────────────────────────────────────────────
@@ -267,7 +252,7 @@ function GrafoD3({
       .data(nodes)
       .join("g")
       .attr("class", "nodo")
-      .style("cursor", (d: any) => d.profundidad === 0 ? "default" : "pointer")
+      .style("cursor", (d: any) => (d.profundidad === 0 || d.tipo === "tag") ? "default" : "pointer")
       .call(
         d3.drag<SVGGElement, any>()
           .on("start", (ev, d) => { if (!ev.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
@@ -277,90 +262,136 @@ function GrafoD3({
             if (d.profundidad !== 0) { d.fx = null; d.fy = null; }
           })
       )
-      .on("click", (_ev, d: any) => { if (d.profundidad !== 0) onClickNodo(d.id); });
-
-    // Radio visual por profundidad
-    const rVis = (d: any) => d.profundidad === 0 ? 28 : d.profundidad === 1 ? 20 : 15;
-
-    // Sombra
-    nodoEl.append("circle")
-      .attr("r", (d: any) => rVis(d) + 3)
-      .attr("fill", primary)
-      .attr("opacity", 0.05)
-      .attr("transform", "translate(1,2)");
-
-    // Círculo fondo
-    nodoEl.append("circle")
-      .attr("r", rVis)
-      .attr("fill", bgMain || "#fff")
-      .attr("stroke", (d: any) => {
-        if (d.profundidad === 0) return primary;
-        return hashColor(d.tags[0] ?? "x", 0.55);
-      })
-      .attr("stroke-width", (d: any) => d.profundidad === 0 ? 1.8 : 1.1)
-      .attr("filter", (d: any) => d.profundidad === 0 ? "url(#glow-centro)" : "none");
-
-    // Ícono documento dentro del nodo
-    nodoEl.each(function(d: any) {
-      const el = d3.select(this);
-      const s = rVis(d) * 0.5;
-      el.append("rect")
-        .attr("x", -s * 0.65).attr("y", -s * 0.8)
-        .attr("width", s * 1.3).attr("height", s * 1.6)
-        .attr("rx", 1.5)
-        .attr("fill", primary)
-        .attr("opacity", d.profundidad === 0 ? 0.22 : 0.1);
-      [0.25, 0, 0.25].forEach((oy, i) => {
-        el.append("line")
-          .attr("x1", -s * 0.4).attr("y1", s * oy)
-          .attr("x2", i === 2 ? s * 0.1 : s * 0.4).attr("y2", s * oy)
-          .attr("stroke", primary)
-          .attr("stroke-width", 0.8)
-          .attr("stroke-opacity", d.profundidad === 0 ? 0.35 : 0.18);
+      .on("click", (_ev, d: any) => {
+        if (d.tipo === "ensayo" && d.profundidad !== 0) onClickNodo(d.id);
       });
-    });
 
-    // Puntos de color por tag debajo del círculo
+    // ── Renderizado por tipo de nodo ──────────────────────────────────────────
+
     nodoEl.each(function(d: any) {
       const el = d3.select(this);
-      const r = rVis(d);
-      const tags: string[] = d.tags.slice(0, 5);
-      tags.forEach((tag, i) => {
-        const x = (i - (tags.length - 1) / 2) * 5.5;
+
+      if (d.tipo === "tag") {
+        // Nodo tag: rombo coloreado
+        const s = 14; // mitad del lado del rombo
+        const tagCol = hashColor(d.titulo, 0.8);
+        const tagColBg = hashColor(d.titulo, 0.12);
+
+        // Sombra
+        el.append("polygon")
+          .attr("points", `0,${-(s+2)} ${s+2},0 0,${s+2} ${-(s+2)},0`)
+          .attr("fill", primary)
+          .attr("opacity", 0.06)
+          .attr("transform", "translate(1,2)");
+
+        // Fondo rombo
+        el.append("polygon")
+          .attr("points", `0,${-s} ${s},0 0,${s} ${-s},0`)
+          .attr("fill", tagColBg)
+          .attr("stroke", tagCol)
+          .attr("stroke-width", 1.5)
+          .attr("filter", "url(#glow-tag)");
+
+        // Label del tag
+        el.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", "0.35em")
+          .attr("font-size", 7)
+          .attr("font-weight", "800")
+          .attr("letter-spacing", "0.08em")
+          .attr("fill", tagCol)
+          .attr("pointer-events", "none")
+          .style("font-family", "var(--font-mono, monospace)")
+          .text(`#${d.titulo.length > 8 ? d.titulo.slice(0, 7) + "…" : d.titulo}`);
+
+        // Nombre debajo
+        el.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", s + 10)
+          .attr("font-size", 6.5)
+          .attr("font-weight", "700")
+          .attr("letter-spacing", "0.06em")
+          .attr("fill", tagCol)
+          .attr("fill-opacity", 0.7)
+          .attr("pointer-events", "none")
+          .style("font-family", "var(--font-mono, monospace)")
+          .text(d.titulo.length > 10 ? d.titulo.slice(0, 9) + "…" : d.titulo);
+
+      } else {
+        // Nodo ensayo (centro o relacionado)
+        const r = d.profundidad === 0 ? 28 : 20;
+        const isCentro = d.profundidad === 0;
+
+        // Sombra
         el.append("circle")
-          .attr("cx", x).attr("cy", r + 5)
-          .attr("r", 2)
-          .attr("fill", hashColor(tag, 0.75));
-      });
-    });
+          .attr("r", r + 3)
+          .attr("fill", primary)
+          .attr("opacity", 0.05)
+          .attr("transform", "translate(1,2)");
 
-    // Nombre
-    nodoEl.append("text")
-      .attr("text-anchor", "middle")
-      .attr("dy", (d: any) => rVis(d) + (d.tags.length > 0 ? 15 : 10))
-      .attr("font-size", (d: any) => d.profundidad === 0 ? 9 : d.profundidad === 1 ? 8 : 7)
-      .attr("font-weight", (d: any) => d.profundidad === 0 ? "800" : "600")
-      .attr("fill", primary)
-      .attr("fill-opacity", (d: any) => d.profundidad === 0 ? 0.9 : d.profundidad === 1 ? 0.6 : 0.45)
-      .attr("font-family", "var(--font-serif, serif)")
-      .attr("font-style", "italic")
-      .attr("pointer-events", "none")
-      .text((d: any) => {
-        const max = d.profundidad === 0 ? 20 : d.profundidad === 1 ? 16 : 13;
-        return d.titulo.length > max ? d.titulo.slice(0, max - 1) + "…" : d.titulo;
-      });
+        // Círculo fondo
+        el.append("circle")
+          .attr("r", r)
+          .attr("fill", bgMain || "#fff")
+          .attr("stroke", isCentro ? primary : hashColor(d.tags[0] ?? "x", 0.55))
+          .attr("stroke-width", isCentro ? 1.8 : 1.1)
+          .attr("filter", isCentro ? "url(#glow-centro)" : "none");
+
+        // Ícono documento
+        const s2 = r * 0.5;
+        el.append("rect")
+          .attr("x", -s2 * 0.65).attr("y", -s2 * 0.8)
+          .attr("width", s2 * 1.3).attr("height", s2 * 1.6)
+          .attr("rx", 1.5)
+          .attr("fill", primary)
+          .attr("opacity", isCentro ? 0.22 : 0.1);
+        [0.25, 0, -0.25].forEach(oy => {
+          el.append("line")
+            .attr("x1", -s2 * 0.4).attr("y1", s2 * oy)
+            .attr("x2", s2 * 0.4).attr("y2", s2 * oy)
+            .attr("stroke", primary)
+            .attr("stroke-width", 0.8)
+            .attr("stroke-opacity", isCentro ? 0.35 : 0.18);
+        });
+
+        // Puntos de tags (solo para el centro, muestra sus tags como dots de color)
+        if (isCentro) {
+          const tgs = d.tags.slice(0, 6);
+          tgs.forEach((tag: string, i: number) => {
+            const x = (i - (tgs.length - 1) / 2) * 5.5;
+            el.append("circle")
+              .attr("cx", x).attr("cy", r + 5)
+              .attr("r", 2)
+              .attr("fill", hashColor(tag, 0.75));
+          });
+        }
+
+        // Nombre del ensayo
+        el.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", r + (isCentro && d.tags.length > 0 ? 15 : 11))
+          .attr("font-size", isCentro ? 9 : 8)
+          .attr("font-weight", isCentro ? "800" : "600")
+          .attr("fill", primary)
+          .attr("fill-opacity", isCentro ? 0.9 : 0.6)
+          .attr("font-family", "var(--font-serif, serif)")
+          .attr("font-style", "italic")
+          .attr("pointer-events", "none")
+          .text(() => {
+            const max = isCentro ? 20 : 16;
+            return d.titulo.length > max ? d.titulo.slice(0, max - 1) + "…" : d.titulo;
+          });
+      }
+    });
 
     // ── Tick ──────────────────────────────────────────────────────────────────
+    const lineas = linkG.selectAll("line");
     sim.on("tick", () => {
-      linea
+      lineas
         .attr("x1", (d: any) => d.source.x)
         .attr("y1", (d: any) => d.source.y)
         .attr("x2", (d: any) => d.target.x)
         .attr("y2", (d: any) => d.target.y);
-
-      labelLinea
-        .attr("x", (d: any) => (d.source.x + d.target.x) / 2)
-        .attr("y", (d: any) => (d.source.y + d.target.y) / 2);
 
       nodoEl.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
     });
@@ -409,7 +440,7 @@ export function GrafoEnsayos({
     setAbierto(false);
   }, [onSelectEnsayo]);
 
-  // Contar relacionados directos e indirectos para el badge
+  // Contar ensayos relacionados para el badge
   const nRelacionados = ensayos.filter(e =>
     e.id !== ensayo.id &&
     (e.tags ?? []).some((t: string) => tags.includes(t))
@@ -467,24 +498,26 @@ export function GrafoEnsayos({
 
             {/* Leyenda */}
             <div className="shrink-0 flex items-center gap-4 px-4 py-2 border-b border-primary/[0.04] flex-wrap">
-              {/* Profundidades */}
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full border border-primary/40 bg-transparent" />
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">este ensayo</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full border border-primary/20 bg-transparent" />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">directos</span>
+                  {/* Rombo pequeño para los tags */}
+                  <svg width="10" height="10" viewBox="-5 -5 10 10">
+                    <polygon points="0,-4 4,0 0,4 -4,0" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-primary/40" />
+                  </svg>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">tags</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full border border-dashed border-primary/15 bg-transparent" />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">indirectos</span>
+                  <div className="w-2.5 h-2.5 rounded-full border border-dashed border-primary/20 bg-transparent" />
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">relacionados</span>
                 </div>
               </div>
 
-              {/* Tags presentes en el grafo */}
-              {datos && datos.todosLosTags.slice(0, 8).map(tag => (
+              {/* Tags del ensayo central con sus colores */}
+              {tags.slice(0, 8).map(tag => (
                 <div key={tag} className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full" style={{ background: hashColor(tag, 0.75) }} />
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 7 }} className="uppercase tracking-widest text-primary/30">
@@ -504,7 +537,7 @@ export function GrafoEnsayos({
                 <div className="flex items-center justify-center h-full">
                   <Loader2 size={18} className="animate-spin text-primary/20" />
                 </div>
-              ) : datos.nodos.length <= 1 ? (
+              ) : datos.nodos.filter(n => n.profundidad === 2).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <FileText size={28} className="text-primary/15" />
                   <p style={{ fontFamily: "var(--font-mono)" }} className="text-[9px] font-bold text-primary/20 uppercase tracking-widest italic">
