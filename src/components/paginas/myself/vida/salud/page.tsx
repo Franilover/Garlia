@@ -19,7 +19,7 @@ export default function SaludPage() {
             label: "Ejercicios",
             icon: Dumbbell,
             content: (
-              <main className="max-w-7xl mx-auto p-4 md:p-8 mt-6 pb-32">
+              <main className="w-full p-4 md:p-8 mt-6 pb-32">
                 <PaginaEjercicios />
               </main>
             ),
