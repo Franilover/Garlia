@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { X, Loader2, Network, FileText, ChevronLeft } from "lucide-react";
 import * as d3 from "d3";
 
@@ -555,22 +556,15 @@ export function GrafoEnsayos({
         )}
       </button>
 
-      {/* ── Modal ── */}
-      {abierto && (
+      {/* ── Modal (portal → escapa el backdrop-filter del padre) ── */}
+      {abierto && typeof document !== "undefined" && createPortal(
         <div
-          className="fixed inset-0 z-[90] bg-primary/10 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-primary/10 backdrop-blur-sm"
           onClick={() => setAbierto(false)}
         >
           <div
-            className="relative bg-bg-main rounded-2xl shadow-2xl border border-primary/15 flex flex-col overflow-hidden"
-            style={{
-              height: "min(90vh, 680px)",
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "min(calc(100vw - 2rem), 1024px)",
-            }}
+            className="relative w-full max-w-5xl bg-bg-main rounded-2xl shadow-2xl border border-primary/15 flex flex-col overflow-hidden"
+            style={{ height: "min(90vh, 680px)" }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -669,7 +663,7 @@ export function GrafoEnsayos({
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }
