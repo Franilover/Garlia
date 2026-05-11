@@ -558,12 +558,19 @@ export function GrafoEnsayos({
       {/* ── Modal ── */}
       {abierto && (
         <div
-          className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-primary/10 backdrop-blur-sm"
+          className="fixed inset-0 z-[90] bg-primary/10 backdrop-blur-sm"
           onClick={() => setAbierto(false)}
         >
           <div
-            className="relative w-full max-w-5xl bg-bg-main rounded-2xl shadow-2xl border border-primary/15 flex flex-col overflow-hidden"
-            style={{ height: "min(90vh, 680px)" }}
+            className="relative bg-bg-main rounded-2xl shadow-2xl border border-primary/15 flex flex-col overflow-hidden"
+            style={{
+              height: "min(90vh, 680px)",
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: "min(calc(100vw - 2rem), 1024px)",
+            }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
