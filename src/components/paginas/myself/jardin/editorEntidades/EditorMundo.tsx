@@ -1423,6 +1423,142 @@ function newEvent(): TimelineEvent {
   return { id: crypto.randomUUID(), year: "", title: "", description: "" };
 }
 
+// ── Fila de evento del mundo (mismo diseño que TimelineRow en LoreTab) ────────
+function MundoEventoRow({
+  evt,
+  idx,
+  total,
+  onUpdate,
+  onRemove,
+  onMove,
+}: {
+  evt: TimelineEvent;
+  idx: number;
+  total: number;
+  onUpdate: (patch: Partial<TimelineEvent>) => void;
+  onRemove: () => void;
+  onMove: (dir: -1 | 1) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const { onSnippetAction } = useWikilink();
+
+  const hasYear  = !!evt.year?.trim();
+  const hasTitle = !!evt.title?.trim();
+  const hasDesc  = !!evt.description?.trim();
+
+  return (
+    <div className="relative flex gap-0 group/row">
+      {/* Línea vertical */}
+      <div className="flex flex-col items-center" style={{ width: 28, flexShrink: 0 }}>
+        <div
+          className="relative z-10 mt-[22px] w-2 h-2 rounded-full shrink-0 transition-all"
+          style={{
+            background: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
+            boxShadow: hasYear ? "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)" : "none",
+          }}
+        />
+        {idx < total - 1 && (
+          <div className="flex-1 w-px mt-1" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", minHeight: 24 }} />
+        )}
+      </div>
+
+      {/* Tarjeta */}
+      <div
+        className="flex-1 mb-2.5 rounded-xl overflow-hidden transition-all"
+        style={{
+          border: `1px solid ${expanded ? "color-mix(in srgb, var(--primary) 22%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
+          background: expanded ? "color-mix(in srgb, var(--primary) 4%, transparent)" : "color-mix(in srgb, var(--primary) 2%, transparent)",
+        }}
+      >
+        {/* Cabecera clicable */}
+        <div className="flex items-stretch cursor-pointer select-none" onClick={() => setExpanded(x => !x)}>
+
+          {/* BLOQUE AÑO */}
+          <div
+            className="shrink-0 flex items-center justify-center border-r"
+            style={{
+              width: 70,
+              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+              background: hasYear ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <input
+              className="bg-transparent outline-none w-full text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-2 py-2.5"
+              value={evt.year}
+              onChange={e => onUpdate({ year: e.target.value })}
+              placeholder="Año"
+              style={{ color: hasYear ? "var(--primary)" : "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+            />
+          </div>
+
+          {/* BLOQUE TÍTULO */}
+          <div className="flex-1 flex items-center min-w-0 px-2.5 py-2 gap-2" onClick={e => e.stopPropagation()}>
+            <input
+              className="bg-transparent outline-none flex-1 min-w-0 text-[11px] font-bold placeholder:text-primary/20 transition-colors"
+              value={evt.title}
+              onChange={e => onUpdate({ title: e.target.value })}
+              placeholder="Nombre del evento…"
+              style={{ color: hasTitle ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            />
+            {hasDesc && !expanded && (
+              <span
+                className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md hidden sm:block"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                ver más
+              </span>
+            )}
+          </div>
+
+          {/* Controles orden — hover */}
+          <div className="shrink-0 flex flex-col justify-center gap-0 px-1 opacity-0 group-hover/row:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+            <button type="button" onClick={() => onMove(-1)} disabled={idx === 0}
+              className="p-0.5 rounded disabled:opacity-20" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              <ChevronDown size={8} style={{ transform: "rotate(180deg)" }} />
+            </button>
+            <button type="button" onClick={() => onMove(1)} disabled={idx === total - 1}
+              className="p-0.5 rounded disabled:opacity-20" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              <ChevronDown size={8} />
+            </button>
+          </div>
+
+          {/* Eliminar — hover */}
+          <div className="shrink-0 flex items-center px-1 opacity-0 group-hover/row:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+            <button type="button" onClick={onRemove}
+              className="p-1.5 rounded-lg transition-all"
+              style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--primary) 25%, transparent)")}>
+              <Trash2 size={9} />
+            </button>
+          </div>
+
+          {/* Chevron — siempre visible */}
+          <div className="shrink-0 flex items-center px-2.5 border-l" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            <ChevronDown size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }} />
+          </div>
+        </div>
+
+        {/* Panel expandible con MarkdownEditor */}
+        {expanded && (
+          <div className="px-3 pb-3 pt-3" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            <MarkdownEditor
+              value={evt.description}
+              onChange={v => onUpdate({ description: v })}
+              placeholder="Descripción del evento, consecuencias, personajes involucrados…"
+              rows={5}
+              toolbar
+              defaultMode="edit"
+              onSnippetAction={onSnippetAction}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Editor de eventos propios del mundo ──────────────────────────────────────
 function MundoEventoEditor({
   events,
@@ -1432,14 +1568,10 @@ function MundoEventoEditor({
   onChange: (events: TimelineEvent[]) => void;
 }) {
   const add = () => onChange([...events, newEvent()]);
-
-  const update = (id: string, patch: Partial<TimelineEvent>) =>
-    onChange(events.map((e) => (e.id === id ? { ...e, ...patch } : e)));
-
-  const remove = (id: string) => onChange(events.filter((e) => e.id !== id));
-
+  const update = (id: string, patch: Partial<TimelineEvent>) => onChange(events.map(e => e.id === id ? { ...e, ...patch } : e));
+  const remove = (id: string) => onChange(events.filter(e => e.id !== id));
   const move = (id: string, dir: -1 | 1) => {
-    const idx = events.findIndex((e) => e.id === id);
+    const idx = events.findIndex(e => e.id === id);
     if (idx < 0) return;
     const next = [...events];
     const swap = idx + dir;
@@ -1448,71 +1580,19 @@ function MundoEventoEditor({
     onChange(next);
   };
 
-  const inputCls = "bg-transparent outline-none w-full text-primary placeholder:text-primary/20 transition-colors";
-
   return (
     <div className="space-y-0">
       {events.map((evt, idx) => (
-        <div key={evt.id} className="relative flex gap-0 group/row">
-          {/* Línea vertical */}
-          <div className="flex flex-col items-center" style={{ width: 28, flexShrink: 0 }}>
-            <div
-              className="relative z-10 mt-5 w-2 h-2 rounded-full shrink-0 transition-all"
-              style={{
-                background: evt.year?.trim() ? "var(--primary)" : "color-mix(in srgb, var(--primary) 20%, transparent)",
-                boxShadow: evt.year?.trim() ? "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)" : "none",
-              }}
-            />
-            {idx < events.length - 1 && (
-              <div className="flex-1 w-px mt-1" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", minHeight: 24 }} />
-            )}
-          </div>
-
-          {/* Tarjeta */}
-          <div className="flex-1 mb-2.5 rounded-xl overflow-hidden transition-all"
-            style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
-            <div className="flex items-center gap-2 px-2.5 py-2">
-              {/* Controles orden */}
-              <div className="flex flex-col gap-0 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
-                <button type="button" onClick={() => move(evt.id, -1)} disabled={idx === 0}
-                  className="p-0.5 rounded disabled:opacity-20" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                  <ChevronDown size={8} style={{ transform: "rotate(180deg)" }} />
-                </button>
-                <button type="button" onClick={() => move(evt.id, 1)} disabled={idx === events.length - 1}
-                  className="p-0.5 rounded disabled:opacity-20" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                  <ChevronDown size={8} />
-                </button>
-              </div>
-              {/* Año */}
-              <div className="shrink-0 flex items-center px-2 py-1 rounded-lg"
-                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)", minWidth: 52, maxWidth: 88 }}>
-                <input className={inputCls + " text-[10px] font-black tracking-widest text-center"}
-                  value={evt.year} onChange={e => update(evt.id, { year: e.target.value })}
-                  placeholder="Año" style={{ color: "var(--primary)" }} />
-              </div>
-              {/* Título */}
-              <input className={inputCls + " text-[11px] font-bold flex-1"}
-                value={evt.title} onChange={e => update(evt.id, { title: e.target.value })}
-                placeholder="Nombre del evento…" />
-              {/* Eliminar */}
-              <button type="button" onClick={() => remove(evt.id)}
-                className="shrink-0 p-1.5 rounded-lg opacity-0 group-hover/row:opacity-100 transition-all"
-                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-                onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")}
-                onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--primary) 30%, transparent)")}>
-                <Trash2 size={9} />
-              </button>
-            </div>
-            {/* Descripción */}
-            <div className="px-2.5 pb-2.5 pt-0" style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }}>
-              <textarea className={inputCls + " resize-none text-[11px] leading-relaxed pt-2"}
-                rows={2} value={evt.description} onChange={e => update(evt.id, { description: e.target.value })}
-                placeholder="Descripción…" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }} />
-            </div>
-          </div>
-        </div>
+        <MundoEventoRow
+          key={evt.id}
+          evt={evt}
+          idx={idx}
+          total={events.length}
+          onUpdate={patch => update(evt.id, patch)}
+          onRemove={() => remove(evt.id)}
+          onMove={dir => move(evt.id, dir)}
+        />
       ))}
-
       <button type="button" onClick={add}
         className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all mt-1"
         style={{ border: "1px dashed color-mix(in srgb, var(--primary) 20%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
