@@ -14,7 +14,7 @@ interface NodoGrafo {
   tipo: TipoNodo;
   titulo: string;
   tags: string[];
-  profundidad: 0 | 1 | 2;
+  profundidad: 0 | 1 | 2 | 3;
 }
 
 interface EnlaceGrafo {
@@ -88,9 +88,10 @@ function construirGrafo(ensayos: any[], centroId: string): DatosGrafo {
   }
 
   // Nodos de ensayos relacionados (profundidad 2)
+  const ensayosProf2: string[] = [];
   for (const e of ensayos) {
     if (e.id === centroId) continue;
-    if (fusionados.has(e.id)) continue; // ya representado en anillo 1
+    if (fusionados.has(e.id)) continue;
     const eTags: string[] = e.tags ?? [];
     const tagsComunes = eTags.filter(t => tagsCentro.includes(t));
     if (tagsComunes.length === 0) continue;
@@ -103,14 +104,38 @@ function construirGrafo(ensayos: any[], centroId: string): DatosGrafo {
         tags: eTags,
         profundidad: 2,
       });
+      ensayosProf2.push(e.id);
     }
 
     for (const tag of tagsComunes) {
       const tagId = `tag::${tag}`;
       const nodoTag = nodosMap.get(tagId) as any;
-      // No enlazar desde un nodo fusionado hacia el propio ensayo que representa
       if (nodoTag && nodoTag.tipo === "tag-ensayo" && nodoTag.ensayoId === e.id) continue;
       enlaces.push({ source: tagId, target: e.id, tag });
+    }
+  }
+
+  // Nodos de tags de profundidad 3: tags exclusivos de ensayos de prof 2
+  const tagsYaMostrados = new Set([...tagsCentro.map(t => `tag::${t}`)]);
+  for (const ensayoId2 of ensayosProf2) {
+    const nodoEnsayo2 = nodosMap.get(ensayoId2) as any;
+    const eTags2: string[] = nodoEnsayo2?.tags ?? [];
+    const tagsNuevos = eTags2.filter(t => !tagsCentro.includes(t));
+    for (const tag of tagsNuevos.slice(0, 3)) {
+      const tagId3 = `tag3::${tag}`;
+      if (!nodosMap.has(tagId3) && !tagsYaMostrados.has(tagId3)) {
+        nodosMap.set(tagId3, {
+          id: tagId3,
+          tipo: "tag" as TipoNodo,
+          titulo: tag,
+          tags: [],
+          profundidad: 3,
+        });
+        tagsYaMostrados.add(tagId3);
+      }
+      if (nodosMap.has(tagId3)) {
+        enlaces.push({ source: ensayoId2, target: tagId3, tag });
+      }
     }
   }
 
@@ -171,10 +196,11 @@ function GrafoD3({
     const W = width, H = height;
     const cx = W / 2, cy = H / 2;
 
-    const R = [0, Math.min(W, H) * 0.22, Math.min(W, H) * 0.43];
+    const R = [0, Math.min(W, H) * 0.20, Math.min(W, H) * 0.37, Math.min(W, H) * 0.47];
 
     const nivel1 = datos.nodos.filter(n => n.profundidad === 1);
     const nivel2 = datos.nodos.filter(n => n.profundidad === 2);
+    const nivel3 = datos.nodos.filter(n => n.profundidad === 3);
 
     const nodes = datos.nodos.map(n => {
       if (n.profundidad === 0) return { ...n, x: cx, y: cy, fx: cx, fy: cy };
@@ -183,9 +209,15 @@ function GrafoD3({
         const angle = (2 * Math.PI * i) / Math.max(nivel1.length, 1) - Math.PI / 2;
         return { ...n, x: cx + R[1] * Math.cos(angle), y: cy + R[1] * Math.sin(angle) };
       }
-      const i = nivel2.findIndex(x => x.id === n.id);
-      const angle = (2 * Math.PI * i) / Math.max(nivel2.length, 1) - Math.PI / 2 + (Math.PI / Math.max(nivel2.length, 1));
-      return { ...n, x: cx + R[2] * Math.cos(angle), y: cy + R[2] * Math.sin(angle) };
+      if (n.profundidad === 2) {
+        const i = nivel2.findIndex(x => x.id === n.id);
+        const angle = (2 * Math.PI * i) / Math.max(nivel2.length, 1) - Math.PI / 2 + (Math.PI / Math.max(nivel2.length, 1));
+        return { ...n, x: cx + R[2] * Math.cos(angle), y: cy + R[2] * Math.sin(angle) };
+      }
+      // profundidad 3
+      const i = nivel3.findIndex(x => x.id === n.id);
+      const angle = (2 * Math.PI * i) / Math.max(nivel3.length, 1) - Math.PI / 2;
+      return { ...n, x: cx + R[3] * Math.cos(angle), y: cy + R[3] * Math.sin(angle) };
     }) as any[];
 
     const links = datos.enlaces.map(e => ({ ...e })) as any[];
@@ -197,14 +229,15 @@ function GrafoD3({
           const sp = d.source.profundidad as number;
           const tp = d.target.profundidad as number;
           if (sp === 0 || tp === 0) return R[1];
-          return R[2] - R[1];
+          if (sp === 1 || tp === 1) return R[2] - R[1];
+          return R[3] - R[2];
         })
         .strength(0.6)
       )
-      .force("charge", d3.forceManyBody().strength(-200))
-      .force("collision", d3.forceCollide((d: any) => d.profundidad === 0 ? 38 : d.profundidad === 1 ? 32 : 44))
+      .force("charge", d3.forceManyBody().strength(-180))
+      .force("collision", d3.forceCollide((d: any) => d.profundidad === 0 ? 38 : d.profundidad === 1 ? 30 : d.profundidad === 2 ? 40 : 28))
       .force("radial", d3.forceRadial(
-        (d: any) => R[d.profundidad as number] ?? R[2], cx, cy
+        (d: any) => R[d.profundidad as number] ?? R[3], cx, cy
       ).strength(0.55));
 
     // Zoom
@@ -245,7 +278,7 @@ function GrafoD3({
     mergeTag.append("feMergeNode").attr("in", "SourceGraphic");
 
     // Anillos guía decorativos
-    [1, 2].forEach(lvl => {
+    [1, 2, 3].forEach(lvl => {
       g.append("circle")
         .attr("cx", cx).attr("cy", cy).attr("r", R[lvl])
         .attr("fill", "none").attr("stroke", primary)
@@ -268,7 +301,7 @@ function GrafoD3({
       .data(nodes)
       .join("g")
       .attr("class", "nodo")
-      .style("cursor", (d: any) => (d.profundidad === 0 || (d.tipo === "tag" && d.tipo !== "tag-ensayo")) ? "default" : "pointer")
+      .style("cursor", (d: any) => (d.profundidad === 0 || d.tipo === "tag") ? "default" : "pointer")
       .call(
         d3.drag<SVGGElement, any>()
           .on("start", (ev, d) => { if (!ev.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
@@ -300,9 +333,11 @@ function GrafoD3({
       const el = d3.select(this);
 
       if (d.tipo === "tag" || d.tipo === "tag-ensayo") {
-        const s = 14;
-        const tagCol = hashColor(d.titulo, 0.8);
-        const tagColBg = hashColor(d.titulo, 0.12);
+        // profundidad 3 → tamaño reducido y más transparente
+        const isDeep = d.profundidad === 3;
+        const s = isDeep ? 9 : 14;
+        const tagCol = hashColor(d.titulo, isDeep ? 0.55 : 0.8);
+        const tagColBg = hashColor(d.titulo, isDeep ? 0.08 : 0.12);
         const esFusion = d.tipo === "tag-ensayo";
 
         el.append("polygon")
@@ -344,15 +379,15 @@ function GrafoD3({
           .text(esFusion ? "" : `#${d.titulo.length > 8 ? d.titulo.slice(0, 7) + "…" : d.titulo}`);
 
         el.append("text")
-          .attr("text-anchor", "middle").attr("dy", s + 10)
-          .attr("font-size", esFusion ? 7.5 : 6.5)
+          .attr("text-anchor", "middle").attr("dy", s + (isDeep ? 8 : 10))
+          .attr("font-size", esFusion ? 7.5 : isDeep ? 5.5 : 6.5)
           .attr("font-weight", esFusion ? "700" : "700")
           .attr("letter-spacing", "0.06em")
-          .attr("fill", tagCol).attr("fill-opacity", esFusion ? 0.95 : 0.7)
+          .attr("fill", tagCol).attr("fill-opacity", esFusion ? 0.95 : isDeep ? 0.5 : 0.7)
           .attr("pointer-events", "none")
           .style("font-family", esFusion ? "var(--font-serif, serif)" : "var(--font-mono, monospace)")
           .style("font-style", esFusion ? "italic" : "normal")
-          .text(d.titulo.length > 13 ? d.titulo.slice(0, 12) + "…" : d.titulo);
+          .text(d.titulo.length > (isDeep ? 9 : 13) ? d.titulo.slice(0, isDeep ? 8 : 12) + "…" : d.titulo);
 
       } else {
         const r = d.profundidad === 0 ? 28 : 20;
@@ -619,6 +654,12 @@ export function GrafoEnsayos({
                   <div className="w-2.5 h-2.5 rounded-full border border-dashed border-primary/20 bg-transparent" />
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/35">relacionados</span>
                 </div>
+                <div className="flex items-center gap-1.5">
+                  <svg width="8" height="8" viewBox="-4 -4 8 8">
+                    <polygon points="0,-3 3,0 0,3 -3,0" fill="none" stroke="currentColor" strokeWidth="1" className="text-primary/25" />
+                  </svg>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8 }} className="uppercase tracking-widest text-primary/25">tags de relacionados</span>
+                </div>
               </div>
 
               {tagsCentro.slice(0, 8).map(tag => (
@@ -641,7 +682,7 @@ export function GrafoEnsayos({
                 <div className="flex items-center justify-center h-full">
                   <Loader2 size={18} className="animate-spin text-primary/20" />
                 </div>
-              ) : datos.nodos.filter(n => n.profundidad === 2).length === 0 ? (
+              ) : datos.nodos.filter(n => n.profundidad === 2 || n.profundidad === 3).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <FileText size={28} className="text-primary/15" />
                   <p style={{ fontFamily: "var(--font-mono)" }} className="text-[9px] font-bold text-primary/20 uppercase tracking-widest italic">
