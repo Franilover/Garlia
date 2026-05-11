@@ -34,6 +34,12 @@ function decodeTimeline(raw: string | undefined): TimelineEvent[] {
 
 // ─── Componente de línea de tiempo ───────────────────────────────────────────
 
+/** Intenta parsear el año como número para ordenar (acepta negativos, texto, etc.) */
+function parseYear(year: string): number {
+  const n = parseFloat(year.replace(/[^0-9.\-]/g, ""));
+  return isNaN(n) ? Infinity : n;
+}
+
 function TimelineEditor({
   value,
   onChange,
@@ -55,15 +61,7 @@ function TimelineEditor({
 
   const remove = (id: string) => commit(events.filter((e) => e.id !== id));
 
-  const move = (id: string, dir: -1 | 1) => {
-    const idx = events.findIndex((e) => e.id === id);
-    if (idx < 0) return;
-    const next = [...events];
-    const swap = idx + dir;
-    if (swap < 0 || swap >= next.length) return;
-    [next[idx], next[swap]] = [next[swap], next[idx]];
-    commit(next);
-  };
+  const sorted = [...events].sort((a, b) => parseYear(a.year) - parseYear(b.year));
 
   return (
     <div className="flex flex-col gap-0 h-full">
@@ -102,15 +100,15 @@ function TimelineEditor({
           </div>
         )}
 
-        {events.map((evt, idx) => (
+        {sorted.map((evt, idx) => (
           <TimelineRow
             key={evt.id}
             event={evt}
             index={idx}
-            total={events.length}
+            total={sorted.length}
             onUpdate={(patch) => update(evt.id, patch)}
             onRemove={() => remove(evt.id)}
-            onMove={(dir) => move(evt.id, dir)}
+            onMove={() => {}}
           />
         ))}
       </div>
@@ -277,30 +275,7 @@ function TimelineRow({
             )}
           </div>
 
-          {/* Controles de orden — hover */}
-          <div
-            className="shrink-0 flex flex-col justify-center gap-0.5 px-1 opacity-0 group-hover/row:opacity-100 transition-opacity"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => onMove(-1)}
-              disabled={index === 0}
-              className="p-0.5 rounded disabled:opacity-20 transition-opacity"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-            >
-              <ChevronUp size={9} />
-            </button>
-            <button
-              type="button"
-              onClick={() => onMove(1)}
-              disabled={index === total - 1}
-              className="p-0.5 rounded disabled:opacity-20 transition-opacity"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-            >
-              <ChevronDown size={9} />
-            </button>
-          </div>
+          {/* Controles de orden — ocultos (el orden es automático por año) */}
 
           {/* Botón eliminar — hover */}
           <div

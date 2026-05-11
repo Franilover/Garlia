@@ -1511,17 +1511,7 @@ function MundoEventoRow({
             )}
           </div>
 
-          {/* Controles orden — hover */}
-          <div className="shrink-0 flex flex-col justify-center gap-0 px-1 opacity-0 group-hover/row:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-            <button type="button" onClick={() => onMove(-1)} disabled={idx === 0}
-              className="p-0.5 rounded disabled:opacity-20" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-              <ChevronDown size={8} style={{ transform: "rotate(180deg)" }} />
-            </button>
-            <button type="button" onClick={() => onMove(1)} disabled={idx === total - 1}
-              className="p-0.5 rounded disabled:opacity-20" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-              <ChevronDown size={8} />
-            </button>
-          </div>
+          {/* Controles orden — ocultos (el orden es automático por año) */}
 
           {/* Eliminar — hover */}
           <div className="shrink-0 flex items-center px-1 opacity-0 group-hover/row:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
@@ -1570,27 +1560,20 @@ function MundoEventoEditor({
   const add = () => onChange([...events, newEvent()]);
   const update = (id: string, patch: Partial<TimelineEvent>) => onChange(events.map(e => e.id === id ? { ...e, ...patch } : e));
   const remove = (id: string) => onChange(events.filter(e => e.id !== id));
-  const move = (id: string, dir: -1 | 1) => {
-    const idx = events.findIndex(e => e.id === id);
-    if (idx < 0) return;
-    const next = [...events];
-    const swap = idx + dir;
-    if (swap < 0 || swap >= next.length) return;
-    [next[idx], next[swap]] = [next[swap], next[idx]];
-    onChange(next);
-  };
+
+  const sorted = [...events].sort((a, b) => parseYear(a.year) - parseYear(b.year));
 
   return (
     <div className="space-y-0">
-      {events.map((evt, idx) => (
+      {sorted.map((evt, idx) => (
         <MundoEventoRow
           key={evt.id}
           evt={evt}
           idx={idx}
-          total={events.length}
+          total={sorted.length}
           onUpdate={patch => update(evt.id, patch)}
           onRemove={() => remove(evt.id)}
-          onMove={dir => move(evt.id, dir)}
+          onMove={() => {}}
         />
       ))}
       <button type="button" onClick={add}
