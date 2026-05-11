@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { MotionDiv } from "@/components/ui/Motion";
 import { X } from "lucide-react";
 
@@ -31,14 +32,16 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
 
   const monoStyle: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <>
       {/* Overlay */}
       <MotionDiv
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50"
+        className="fixed inset-0 z-[9999]"
         style={{ background: "color-mix(in srgb, var(--bg-main) 70%, transparent)", backdropFilter: "blur(6px)" }}
         onClick={onClose}
       />
@@ -49,7 +52,7 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.97, y: -8 }}
         transition={{ type: "spring", damping: 28, stiffness: 320 }}
-        className="fixed z-50"
+        className="fixed z-[9999]"
         style={{
           top: "30%",
           left: "50%",
@@ -159,6 +162,7 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
           </div>
         </div>
       </MotionDiv>
-    </>
+    </>,
+    document.body
   );
 }
