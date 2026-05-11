@@ -320,7 +320,7 @@ function TimelineRow({
               value={event.description}
               onChange={(v) => onUpdate({ description: v })}
               placeholder="Descripción del evento, consecuencias, personajes involucrados…"
-              rows={6}
+              rows={14}
               toolbar
               defaultMode="edit"
               onSnippetAction={onSnippetAction}
@@ -533,4 +533,4 @@ export function LoreTab({
       </div>
     </div>
   );
-}
+} 

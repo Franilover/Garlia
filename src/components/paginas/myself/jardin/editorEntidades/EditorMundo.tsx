@@ -1537,7 +1537,7 @@ function MundoEventoRow({
               value={evt.description}
               onChange={v => onUpdate({ description: v })}
               placeholder="Descripción del evento, consecuencias, personajes involucrados…"
-              rows={5}
+              rows={14}
               toolbar
               defaultMode="edit"
               onSnippetAction={onSnippetAction}
