@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { Globe, Mountain, Landmark, Users, Coins, Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { MarkdownEditor, WikiEntity } from "../../../../forms/MarkdownEditor";
 import { useWikilink } from "../../../../forms/WikilinkContext";
 import { type Reino } from "./types";
@@ -169,35 +169,34 @@ function TimelineRow({
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const { onSnippetAction } = useWikilink();
 
-  const inputCls =
-    "bg-transparent outline-none w-full text-primary placeholder:text-primary/20 transition-colors";
+  const hasYear  = !!event.year?.trim();
+  const hasTitle = !!event.title?.trim();
+  const hasDesc  = !!event.description?.trim();
 
   return (
     <div className="relative flex gap-0 group/row">
 
       {/* ── Línea vertical del timeline ──────────────────────────────────── */}
       <div className="flex flex-col items-center" style={{ width: 32, flexShrink: 0 }}>
-        {/* Nodo */}
         <div
-          className="relative z-10 mt-5 w-2.5 h-2.5 rounded-full shrink-0 transition-all"
+          className="relative z-10 mt-[22px] w-2.5 h-2.5 rounded-full shrink-0 transition-all"
           style={{
-            background: event.year?.trim()
+            background: hasYear
               ? "var(--primary)"
               : "color-mix(in srgb, var(--primary) 20%, transparent)",
-            boxShadow: event.year?.trim()
+            boxShadow: hasYear
               ? "0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent)"
               : "none",
           }}
         />
-        {/* Línea hacia abajo */}
         {index < total - 1 && (
           <div
             className="flex-1 w-px mt-1"
             style={{
-              background:
-                "color-mix(in srgb, var(--primary) 10%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 10%, transparent)",
               minHeight: 32,
             }}
           />
@@ -208,15 +207,81 @@ function TimelineRow({
       <div
         className="flex-1 mb-3 rounded-2xl overflow-hidden transition-all"
         style={{
-          border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+          border: `1px solid ${expanded
+            ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+            : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
+          background: expanded
+            ? "color-mix(in srgb, var(--primary) 4%, transparent)"
+            : "color-mix(in srgb, var(--primary) 2%, transparent)",
         }}
       >
-        {/* Cabecera: año + título */}
-        <div className="flex items-center gap-2 px-3 py-2.5">
 
-          {/* Controles de orden — aparecen al hover */}
-          <div className="flex flex-col gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
+        {/* ── Cabecera clicable ─────────────────────────────────────────── */}
+        <div
+          className="flex items-stretch cursor-pointer select-none"
+          onClick={() => setExpanded((x) => !x)}
+        >
+
+          {/* BLOQUE AÑO */}
+          <div
+            className="shrink-0 flex items-center justify-center border-r"
+            style={{
+              width: 76,
+              borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+              background: hasYear
+                ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                : "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              className="bg-transparent outline-none w-full text-[10px] font-black tracking-widest text-center placeholder:text-primary/20 px-2 py-3"
+              value={event.year}
+              onChange={(e) => onUpdate({ year: e.target.value })}
+              placeholder="Año"
+              style={{
+                color: hasYear
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 30%, transparent)",
+              }}
+            />
+          </div>
+
+          {/* BLOQUE TÍTULO */}
+          <div
+            className="flex-1 flex items-center min-w-0 px-3 py-2.5 gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              className="bg-transparent outline-none flex-1 min-w-0 text-[12px] font-bold placeholder:text-primary/20 transition-colors"
+              value={event.title}
+              onChange={(e) => onUpdate({ title: e.target.value })}
+              placeholder="Nombre del evento…"
+              style={{
+                color: hasTitle
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
+              }}
+            />
+            {/* Badge "detalle" cuando hay descripción y está cerrado */}
+            {hasDesc && !expanded && (
+              <span
+                className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md hidden sm:block"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                }}
+              >
+                ver más
+              </span>
+            )}
+          </div>
+
+          {/* Controles de orden — hover */}
+          <div
+            className="shrink-0 flex flex-col justify-center gap-0.5 px-1 opacity-0 group-hover/row:opacity-100 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               onClick={() => onMove(-1)}
@@ -237,80 +302,53 @@ function TimelineRow({
             </button>
           </div>
 
-          {/* Input: año */}
+          {/* Botón eliminar — hover */}
           <div
-            className="shrink-0 flex items-center px-2 py-1 rounded-lg text-[10px] font-black"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-              minWidth: 56,
-              maxWidth: 96,
-            }}
+            className="shrink-0 flex items-center px-1 opacity-0 group-hover/row:opacity-100 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
           >
-            <input
-              className={inputCls + " text-[10px] font-black tracking-widest text-center"}
-              value={event.year}
-              onChange={(e) => onUpdate({ year: e.target.value })}
-              placeholder="Año"
-              style={{ color: "var(--primary)" }}
-            />
+            <button
+              type="button"
+              onClick={onRemove}
+              className="p-1.5 rounded-lg transition-all"
+              style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "color-mix(in srgb, var(--primary) 25%, transparent)")}
+            >
+              <Trash2 size={10} />
+            </button>
           </div>
 
-          {/* Input: título */}
-          <input
-            className={inputCls + " text-[11px] font-bold flex-1"}
-            value={event.title}
-            onChange={(e) => onUpdate({ title: e.target.value })}
-            placeholder="Nombre del evento…"
-          />
-
-          {/* Botón eliminar */}
-          <button
-            type="button"
-            onClick={onRemove}
-            className="shrink-0 p-1.5 rounded-lg opacity-0 group-hover/row:opacity-100 transition-all"
-            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")
-            }
-            onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.color =
-                "color-mix(in srgb, var(--primary) 30%, transparent)")
-            }
-          >
-            <Trash2 size={10} />
-          </button>
-
-          {/* Toggle descripción */}
-          <button
-            type="button"
-            onClick={() => setExpanded((x) => !x)}
-            className="shrink-0 p-1.5 rounded-lg transition-colors"
-            style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+          {/* Chevron toggle — siempre visible */}
+          <div
+            className="shrink-0 flex items-center px-3 border-l"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
           >
             <ChevronDown
-              size={10}
+              size={11}
               style={{
+                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
                 transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s",
+                transition: "transform 0.2s ease",
               }}
             />
-          </button>
+          </div>
         </div>
 
-        {/* Descripción expandible */}
+        {/* ── Panel expandible con MarkdownEditor ──────────────────────── */}
         {expanded && (
           <div
-            className="px-3 pb-3 pt-0"
-            style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)" }}
+            className="px-3 pb-3 pt-3"
+            style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
           >
-            <textarea
-              className={inputCls + " resize-none text-[11px] leading-relaxed pt-2.5"}
-              rows={3}
+            <MarkdownEditor
               value={event.description}
-              onChange={(e) => onUpdate({ description: e.target.value })}
+              onChange={(v) => onUpdate({ description: v })}
               placeholder="Descripción del evento, consecuencias, personajes involucrados…"
-              style={{ color: "color-mix(in srgb, var(--primary) 75%, transparent)" }}
+              rows={6}
+              toolbar
+              defaultMode="edit"
+              onSnippetAction={onSnippetAction}
             />
           </div>
         )}
