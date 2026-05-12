@@ -39,8 +39,11 @@ function contar(linea: string, modo: CountMode) {
 
 // ── Componente ───────────────────────────────────────────────────────────────
 
-const LINE_H  = 1.625;
-const PAD_TOP = 12;
+// text-sm = 14px, line-height fijo en px para que el overlay coincida exactamente.
+// Ambos valores deben mantenerse sincronizados.
+const FONT_SIZE_PX = 14;
+const LINE_H_PX    = 22;   // line-height real del textarea (px)
+const PAD_TOP      = 12;   // py-3 = 12px — padding-top del textarea
 
 export const SeccionTextarea = ({
   sec, idioma, refIdioma, onSave,
@@ -168,8 +171,9 @@ export const SeccionTextarea = ({
           spellCheck={false}
           className={`w-full bg-bg-main/60 border rounded-xl px-4 py-3
                       text-sm text-primary font-mono resize-none outline-none
-                      transition-colors placeholder:text-primary/20 leading-relaxed
+                      transition-colors placeholder:text-primary/20
                       pr-16 ${borderClass}`}
+          style={{ fontSize: FONT_SIZE_PX, lineHeight: `${LINE_H_PX}px` }}
           placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
         />
 
@@ -201,7 +205,7 @@ export const SeccionTextarea = ({
               <div
                 key={idx}
                 className={`flex items-center justify-end pr-2.5 gap-0.5 ${color}`}
-                style={{ height: `${LINE_H}rem` }}
+                style={{ height: LINE_H_PX }}
               >
                 {!vacia && (
                   <>
