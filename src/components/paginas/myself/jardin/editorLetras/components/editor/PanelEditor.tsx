@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   Music, Info, Film, Loader2, RefreshCw, FileText,
   Eye, EyeOff, Columns2, Plus, Check, X, Layers,
@@ -24,7 +24,19 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const { cancion, setCancion, loading, isOffline: editorOffline, reload } = useCancionEditor(cancionId);
   const [idiomaA,       setIdiomaA]       = useState<IdiomaKey>("es");
   const [idiomaB,       setIdiomaB]       = useState<IdiomaKey>("en");
-  const [splitMode,     setSplitMode]     = useState(false);
+  // Split activo por defecto en pantallas anchas (≥ 768 px), desactivado en mobile
+  const SPLIT_BP = 768;
+  const [splitMode, setSplitMode] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= SPLIT_BP
+  );
+  useEffect(() => {
+    const onResize = () => {
+      const wide = window.innerWidth >= SPLIT_BP;
+      setSplitMode(wide);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const [addingOpen,    setAddingOpen]    = useState(false);
   const [addingName,    setAddingName]    = useState("");
   const [showLector,    setShowLector]    = useState(false);

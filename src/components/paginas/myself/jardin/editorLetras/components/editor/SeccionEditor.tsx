@@ -53,12 +53,29 @@ export const SeccionEditor = ({
           }} className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"><Trash2 size={12} /></button>
         </div>
       </div>
+
       <div className={`px-4 pb-4 ${splitMode ? "flex gap-3" : ""}`}>
-        <SeccionTextarea sec={sec} idioma={idiomaA} onSave={onSaveField} />
+        {/*
+          En split mode:
+          - columna izquierda (idiomaA) toma como referencia idiomaB
+          - columna derecha  (idiomaB) toma como referencia idiomaA
+          En modo simple no hay referencia automática.
+        */}
+        <SeccionTextarea
+          sec={sec}
+          idioma={idiomaA}
+          refIdioma={splitMode ? idiomaB : undefined}
+          onSave={onSaveField}
+        />
         {splitMode && (
           <>
             <div className="w-px bg-primary/10 shrink-0 self-stretch" />
-            <SeccionTextarea sec={sec} idioma={idiomaB} onSave={onSaveField} />
+            <SeccionTextarea
+              sec={sec}
+              idioma={idiomaB}
+              refIdioma={idiomaA}
+              onSave={onSaveField}
+            />
           </>
         )}
       </div>
