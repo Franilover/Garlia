@@ -8,39 +8,66 @@ const SYNC_TABLES: Record<string, {
   supabaseTable: string;
   excludeFields?: string[];
 }> = {
-  
-  notas:             { supabaseTable: "ensayos",           excludeFields: ["status", "deleted"] },
-  ensayos:           { supabaseTable: "ensayos",           excludeFields: ["status", "deleted"] },
-  secciones_cancion: { supabaseTable: "secciones_cancion", excludeFields: ["status", "deleted"] },
-  capitulos:         { supabaseTable: "capitulos",         excludeFields: ["status", "deleted"] },
-  
-  tareas:            { supabaseTable: "tareas",            excludeFields: ["status", "deleted"] },
-  eventos:           { supabaseTable: "eventos",           excludeFields: ["status", "deleted"] },
-  
-  rutinas:           { supabaseTable: "rutinas",           excludeFields: ["status", "deleted"] },
-  ejercicios_rutina: { supabaseTable: "ejercicios_rutina", excludeFields: ["status", "deleted"] },
-  
-  recetas:           { supabaseTable: "recetas",           excludeFields: ["status", "deleted"] },
-  ingredientes:      { supabaseTable: "ingredientes",      excludeFields: ["status", "deleted"] },
-  compras:           { supabaseTable: "compras",           excludeFields: ["status", "deleted"] },
-  
-  ropa:              { supabaseTable: "ropa",              excludeFields: ["status", "deleted"] },
-  ropa_outfits:      { supabaseTable: "ropa_outfits",      excludeFields: ["status", "deleted"] },
-  
-  
-  
-  diario_fotos:      { supabaseTable: "diario_fotos",      excludeFields: ["status", "deleted"] },
-  dibujos:           { supabaseTable: "dibujos",           excludeFields: ["status", "deleted"] },
-  
-  personajes:        { supabaseTable: "personajes",        excludeFields: ["status", "deleted"] },
-  criaturas:         { supabaseTable: "criaturas",         excludeFields: ["status", "deleted"] },
-  criatura_variantes:{ supabaseTable: "criatura_variantes",excludeFields: ["status", "deleted"] },
-  items:             { supabaseTable: "items",             excludeFields: ["status", "deleted"] },
-  reinos:            { supabaseTable: "reinos",            excludeFields: ["status", "deleted"] },
-  relaciones:        { supabaseTable: "relaciones",        excludeFields: ["status", "deleted"] },
+  notas:              { supabaseTable: "ensayos",            excludeFields: ["status", "deleted"] },
+  ensayos:            { supabaseTable: "ensayos",            excludeFields: ["status", "deleted"] },
+  secciones_cancion:  { supabaseTable: "secciones_cancion",  excludeFields: ["status", "deleted"] },
+  capitulos:          { supabaseTable: "capitulos",          excludeFields: ["status", "deleted"] },
+  tareas:             { supabaseTable: "tareas",             excludeFields: ["status", "deleted"] },
+  eventos:            { supabaseTable: "eventos",            excludeFields: ["status", "deleted"] },
+  rutinas:            { supabaseTable: "rutinas",            excludeFields: ["status", "deleted"] },
+  ejercicios_rutina:  { supabaseTable: "ejercicios_rutina",  excludeFields: ["status", "deleted"] },
+  recetas:            { supabaseTable: "recetas",            excludeFields: ["status", "deleted"] },
+  ingredientes:       { supabaseTable: "ingredientes",       excludeFields: ["status", "deleted"] },
+  compras:            { supabaseTable: "compras",            excludeFields: ["status", "deleted"] },
+  ropa:               { supabaseTable: "ropa",               excludeFields: ["status", "deleted"] },
+  ropa_outfits:       { supabaseTable: "ropa_outfits",       excludeFields: ["status", "deleted"] },
+  diario_fotos:       { supabaseTable: "diario_fotos",       excludeFields: ["status", "deleted"] },
+  dibujos:            { supabaseTable: "dibujos",            excludeFields: ["status", "deleted"] },
+  personajes:         { supabaseTable: "personajes",         excludeFields: ["status", "deleted"] },
+  criaturas:          { supabaseTable: "criaturas",          excludeFields: ["status", "deleted"] },
+  criatura_variantes: { supabaseTable: "criatura_variantes", excludeFields: ["status", "deleted"] },
+  items:              { supabaseTable: "items",              excludeFields: ["status", "deleted"] },
+  reinos:             { supabaseTable: "reinos",             excludeFields: ["status", "deleted"] },
+  relaciones:         { supabaseTable: "relaciones",         excludeFields: ["status", "deleted"] },
 };
 
 const MAX_RETRIES = 3;
+// Tiempo mínimo entre syncs para no saturar cuando el internet fluctúa
+const SYNC_DEBOUNCE_MS = 2_000;
+
+// ─── Callbacks globales para notificar a useSupabaseData que el sync terminó ──
+type SyncDoneCallback = () => void;
+const syncDoneCallbacks = new Set<SyncDoneCallback>();
+
+export function onSyncDone(cb: SyncDoneCallback): () => void {
+  syncDoneCallbacks.add(cb);
+  return () => syncDoneCallbacks.delete(cb);
+}
+
+function notifySyncDone() {
+  for (const cb of syncDoneCallbacks) {
+    try { cb(); } catch {}
+  }
+}
+
+// ─── Verificación real de conectividad (navigator.onLine miente) ──────────────
+export async function isReallyOnline(): Promise<boolean> {
+  if (!navigator.onLine) return false;
+  try {
+    // Ping liviano a Supabase — no necesita auth ni CORS especial
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4_000);
+    const res = await fetch("https://www.gstatic.com/generate_204", {
+      method: "HEAD",
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    clearTimeout(timeout);
+    return res.ok || res.status === 204;
+  } catch {
+    return false;
+  }
+}
 
 function cleanPayload(payload: any, exclude: string[] = []): any {
   const clean = { ...payload };
@@ -75,13 +102,22 @@ export async function dexieDelete(table: string, id: string | number): Promise<v
   }
 }
 
-export function useOfflineSync() {
-  const isSyncing = useRef(false);
+// ─── Estado global del sync (singleton) ──────────────────────────────────────
+let globalSyncPromise: Promise<void> | null = null;
+let lastSyncTime = 0;
 
-  const syncAll = async () => {
-    if (!navigator.onLine || isSyncing.current) return;
-    isSyncing.current = true;
+export async function runSync(): Promise<void> {
+  // Si ya hay un sync en curso, espera al mismo (no lances otro)
+  if (globalSyncPromise) return globalSyncPromise;
 
+  // Debounce: evita syncs consecutivos cuando el internet fluctúa rápido
+  const now = Date.now();
+  if (now - lastSyncTime < SYNC_DEBOUNCE_MS) return;
+
+  const online = await isReallyOnline();
+  if (!online) return;
+
+  globalSyncPromise = (async () => {
     try {
       const queue = await db.offline_queue.orderBy("timestamp").toArray();
       if (queue.length === 0) return;
@@ -140,18 +176,39 @@ export function useOfflineSync() {
           }
         }
       }
+
+      lastSyncTime = Date.now();
+      // Notifica a todos los useSupabaseData que pueden re-fetchear
+      notifySyncDone();
     } finally {
-      isSyncing.current = false;
+      globalSyncPromise = null;
     }
+  })();
+
+  return globalSyncPromise;
+}
+
+export function useOfflineSync() {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerSync = () => {
+    // Debounce en el listener: si el internet sube/baja rápido, espera 2s antes de sincronizar
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      runSync();
+    }, SYNC_DEBOUNCE_MS);
   };
 
   useEffect(() => {
-    syncAll();
-    window.addEventListener("online", syncAll);
-    return () => window.removeEventListener("online", syncAll);
+    runSync();
+    window.addEventListener("online", triggerSync);
+    return () => {
+      window.removeEventListener("online", triggerSync);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, []);
 
-  return { syncAll };
+  return { syncAll: runSync };
 }
 
 export async function enqueueOperation(

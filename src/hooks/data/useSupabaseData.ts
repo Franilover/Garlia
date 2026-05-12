@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/api/client/supabase";
 import { useDataCache } from "@/providers/DataProvider";
 import { db } from "@/lib/api/client/db";
-import { enqueueOperation } from "@/hooks/data/useOfflineSync";
+import { enqueueOperation, isReallyOnline, onSyncDone } from "@/hooks/data/useOfflineSync";
 
 import { personajesQueries }   from "@/lib/api/queries/wiki/personajes";
 import { criaturasQueries }    from "@/lib/api/queries/wiki/criaturas";
@@ -17,10 +17,8 @@ import { ropaQueries }         from "@/lib/api/queries/personal/ropa";
 import { cancionesQueries }    from "@/lib/api/queries/wiki/canciones";
 import { comprasQueries }      from "@/lib/api/queries/personal/cocina/carrito";
 
-// ─── uuid helper (no dep extra si ya existe crypto.randomUUID) ─────────────
 function generateUUID(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-  // Fallback para entornos sin crypto.randomUUID
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
@@ -100,12 +98,6 @@ async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
   }
 }
 
-/**
- * Sincroniza Dexie con la data remota:
- * - Inserta/actualiza los rows remotos marcados como "synced"
- * - Elimina de Dexie los rows que ya no existen en el servidor
- * - Respeta los rows con status "pending" (no los sobreescribe)
- */
 async function syncDexieWithRemote(tabla: string, remoteRows: any[]): Promise<void> {
   try {
     if (!db || !DEXIE_TABLES.has(tabla)) return;
@@ -118,14 +110,12 @@ async function syncDexieWithRemote(tabla: string, remoteRows: any[]): Promise<vo
     );
     const remoteIds = new Set(remoteRows.map((r: any) => String(r.id)));
 
-    // Rows remotos que no están pending → actualizar/insertar como synced
     const toUpsert = remoteRows
       .filter((r: any) => !pendingIds.has(String(r.id)))
       .map((r: any) => ({ ...r, status: "synced" }));
 
     if (toUpsert.length > 0) await table.bulkPut(toUpsert);
 
-    // Rows locales que no están en el servidor y tampoco son pending → eliminar
     const toDelete = localRows
       .filter((r: any) => !remoteIds.has(String(r.id)) && r.status !== "pending")
       .map((r: any) => r.id);
@@ -136,20 +126,15 @@ async function syncDexieWithRemote(tabla: string, remoteRows: any[]): Promise<vo
   }
 }
 
-/**
- * Mergea datos remotos con los pending locales.
- * Los pending siempre ganan sobre su contraparte remota.
- */
 function mergeWithPending<T>(remoteData: T[], localData: T[]): T[] {
   const pendingRows = localData.filter((r: any) => r.status === "pending");
   if (pendingRows.length === 0) return remoteData;
 
   const pendingIds = new Set(pendingRows.map((r: any) => String(r.id)));
-  const merged = [
+  return [
     ...pendingRows,
     ...remoteData.filter((r: any) => !pendingIds.has(String((r as any).id))),
-  ];
-  return merged as T[];
+  ] as T[];
 }
 
 export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOptions = {}) {
@@ -160,12 +145,14 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const [error,     setError]     = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
 
-  const isMounted       = useRef(true);
-  const retryCount      = useRef(0);
-  const pollingRef      = useRef<NodeJS.Timeout | null>(null);
-  const lastFetchRef    = useRef<number>(0);
-  const lastVisibleRef  = useRef<number>(Date.now());
-  const optionsKey      = JSON.stringify(opciones);
+  const isMounted      = useRef(true);
+  const retryCount     = useRef(0);
+  const pollingRef     = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchRef   = useRef<number>(0);
+  const lastVisibleRef = useRef<number>(Date.now());
+  // Ref al canal activo para poder re-suscribir cuando se recupera la conexión
+  const channelRef     = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const optionsKey     = JSON.stringify(opciones);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!isMounted.current) return;
@@ -183,7 +170,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       setLoading(true);
     }
 
-    if (!navigator.onLine) {
+    // FIX: verificar conectividad real, no solo navigator.onLine
+    const online = await isReallyOnline();
+    if (!online) {
       if (isMounted.current) {
         if (!hasLocalData) setLoading(false);
         setIsOffline(true);
@@ -233,14 +222,12 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       if (fetchErr) throw fetchErr;
 
       if (isMounted.current) {
-        // FIX: mergear con pending antes de setear estado y cache
         const merged = mergeWithPending<T>(finalData, localData);
         setData(merged);
         updateCache(tabla, merged);
         retryCount.current = 0;
         lastFetchRef.current = Date.now();
 
-        // FIX: sincronizar Dexie respetando pending y eliminando obsoletos
         await syncDexieWithRemote(tabla, finalData);
 
         setLoading(false);
@@ -276,7 +263,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
 
     if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
-      // FIX: siempre garantizar un id para poder encolar la operación
       const id = newData.id ?? generateUUID();
       const row = { ...newData, id, status: "pending" };
       await writeToDexie(tabla, [row]);
@@ -362,15 +348,16 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     }
   }, [tabla]);
 
-  // ─── Efectos ───────────────────────────────────────────────────────────────
+  // ─── Suscripción Realtime con recuperación de canal ────────────────────────
+  const subscribeChannel = useCallback(() => {
+    // Si ya hay un canal activo, no crear otro
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
-  useEffect(() => {
-    isMounted.current = true;
-    fetchData();
-
-    const channelName = `rt-${tabla}`;
     const channel = supabase
-      .channel(channelName)
+      .channel(`rt-${tabla}-${Date.now()}`) // nombre único para forzar canal nuevo
       .on("postgres_changes", { event: "*", schema: "public", table: tabla }, () => {
         fetchData(true);
       })
@@ -388,10 +375,37 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
         }
       });
 
-    const handleOnline = () => {
+    channelRef.current = channel;
+    return channel;
+  }, [tabla, fetchData]);
+
+  // ─── Efectos ───────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    isMounted.current = true;
+    fetchData();
+    subscribeChannel();
+
+    // FIX: cuando el sync de operaciones offline termina, re-fetchear
+    // para mostrar el estado real del servidor (no datos viejos de Dexie)
+    const unsubSyncDone = onSyncDone(() => {
+      if (isMounted.current) {
+        setTimeout(() => fetchData(true), 300);
+      }
+    });
+
+    const handleOnline = async () => {
       retryCount.current = 0;
-      fetchData(true);
-      supabase.realtime.connect();
+      // FIX: esperar verificación real antes de re-suscribir y fetchear
+      const online = await isReallyOnline();
+      if (!online || !isMounted.current) return;
+
+      // Re-suscribir canal (el anterior puede estar muerto)
+      subscribeChannel();
+      // Pequeño delay para que el sync de useOfflineSync termine primero
+      setTimeout(() => {
+        if (isMounted.current) fetchData(true);
+      }, 2_500);
     };
 
     const handleVisibility = () => {
@@ -402,7 +416,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
         if (timeSinceHidden > REVALIDATE_THROTTLE_MS || timeSinceLastFetch > REVALIDATE_THROTTLE_MS) {
           retryCount.current = 0;
-          supabase.realtime.connect();
+          // Re-suscribir canal al volver la pestaña (puede haber muerto mientras estaba oculta)
+          subscribeChannel();
           setTimeout(() => fetchData(true), 500);
         }
         lastVisibleRef.current = now;
@@ -416,21 +431,25 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     return () => {
       isMounted.current = false;
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
       window.removeEventListener("online", handleOnline);
       document.removeEventListener("visibilitychange", handleVisibility);
       if (pollingRef.current) clearInterval(pollingRef.current);
+      unsubSyncDone();
     };
-  }, [tabla, fetchData]);
+  }, [tabla, fetchData, subscribeChannel]);
 
   return {
-    data:    data || [],
+    data:     data || [],
     setData,
     loading,
     error,
     isOffline,
-    refetch: () => fetchData(true),
-    mutate:  () => fetchData(true),
+    refetch:  () => fetchData(true),
+    mutate:   () => fetchData(true),
     addRow,
     updateRow,
     deleteRow,
