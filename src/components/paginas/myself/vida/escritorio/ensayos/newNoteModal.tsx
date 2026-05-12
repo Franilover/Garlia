@@ -48,15 +48,14 @@ export default function NewNoteModal({ initialTitle, onConfirm, onClose }: NewNo
 
       {/* Modal */}
       <MotionDiv
-        initial={{ opacity: 0, scale: 0.97, y: -8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.97, y: -8 }}
+        initial={{ opacity: 0, scale: 0.97, y: -8, x: "-50%" }}
+        animate={{ opacity: 1, scale: 1, y: 0, x: "-50%" }}
+        exit={{ opacity: 0, scale: 0.97, y: -8, x: "-50%" }}
         transition={{ type: "spring", damping: 28, stiffness: 320 }}
         className="fixed z-[9999]"
         style={{
           top: "30%",
           left: "50%",
-          transform: "translateX(-50%)",
           width: "min(520px, calc(100vw - 32px))",
           background: "var(--bg-menu)",
           border: "1px solid color-mix(in srgb, var(--foreground) 12%, transparent)",
