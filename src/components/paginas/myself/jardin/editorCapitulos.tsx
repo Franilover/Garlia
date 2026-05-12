@@ -114,6 +114,8 @@ async function dexieCapWrite(rows: Capitulo[]): Promise<void> {
 }
 
 
+const SAVE_TIMEOUT_MS = 10_000;
+
 async function capUpdateContenido(id: string, contenido: string): Promise<void> {
   const existing = await dexieCapGet(id);
   if (!navigator.onLine) {
@@ -122,8 +124,13 @@ async function capUpdateContenido(id: string, contenido: string): Promise<void> 
     return;
   }
   try {
-    const res = await librosQueries.updateContenido(id, contenido);
-    if (res.error) throw res.error;
+    // FIX: timeout de 10s para que nunca quede colgado
+    const updatePromise = librosQueries.updateContenido(id, contenido);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("save timeout")), SAVE_TIMEOUT_MS)
+    );
+    const res = await Promise.race([updatePromise, timeoutPromise]) as any;
+    if (res?.error) throw res.error;
     if (existing) await dexieCapWrite([{ ...existing, contenido, status: "synced" }]);
   } catch {
     await dexieCapWrite([{ ...existing, id, contenido, status: "pending" } as Capitulo]);
@@ -140,7 +147,12 @@ async function capUpdateMeta(id: string, fields: Partial<Capitulo>): Promise<voi
     return;
   }
   try {
-    const { error } = await supabase.from(TABLA_CAPS).update(fields).eq("id", id);
+    // FIX: timeout de 10s para que nunca quede colgado
+    const updatePromise = supabase.from(TABLA_CAPS).update(fields).eq("id", id);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("save timeout")), SAVE_TIMEOUT_MS)
+    );
+    const { error } = await Promise.race([updatePromise, timeoutPromise]) as any;
     if (error) throw error;
     if (existing) await dexieCapWrite([{ ...existing, ...fields, status: "synced" }]);
   } catch {
@@ -1068,7 +1080,18 @@ const PanelEditor = ({
   const scrollRef        = useRef<HTMLDivElement>(null);
   const caretMirrorRef   = useRef<HTMLDivElement>(null);
   const mdInsertRef      = useRef<((text: string) => void) | null>(null);
+  // FIX: guard para no actualizar estado después de desmontar/cambiar capítulo
+  const isMountedRef     = useRef(true);
   const { confirm, ConfirmModal } = useConfirm();
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      // Limpiar el timer de guardado al desmontar (cambio de capítulo)
+      clearTimeout(timer.current);
+    };
+  }, []);
 
   const draft = useDraftRestore({
     key: `cap-draft-${capId}`,
@@ -1148,16 +1171,25 @@ const PanelEditor = ({
 
   const doSave = useCallback(async (val: string) => {
     clearTimeout(timer.current);
+    if (!isMountedRef.current) return; // guard: capítulo ya cambió
     setSaveStatus("saving");
     draft.save(val);
     try {
       await capUpdateContenido(capId, val);
+      if (!isMountedRef.current) return; // guard post-await
       setCap(prev => prev ? { ...prev, contenido: val } : prev);
       draft.clear();
       setSaveStatus(navigator.onLine ? "saved" : "pending");
-      if (navigator.onLine) setTimeout(() => setSaveStatus("idle"), 2500);
+      if (navigator.onLine) setTimeout(() => {
+        if (isMountedRef.current) setSaveStatus("idle");
+      }, 2500);
     } catch {
+      if (!isMountedRef.current) return; // guard post-await
       setSaveStatus("pending");
+      // FIX: auto-limpiar "pending/error" después de 5s para no quedar atascado
+      setTimeout(() => {
+        if (isMountedRef.current) setSaveStatus(s => s === "pending" ? "idle" : s);
+      }, 5000);
     }
   }, [capId, setCap, draft]);
 

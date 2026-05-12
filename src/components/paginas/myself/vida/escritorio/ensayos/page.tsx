@@ -121,6 +121,18 @@ export default function Ensayos() {
   const saveTimerRef       = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const saveIndicatorRef   = useRef<HTMLSpanElement | null>(null);
 
+  // ── FIX: guard para no tocar el DOM después de desmontar ──────────────────
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      // Limpiar TODOS los timers de guardado pendientes al desmontar
+      Object.values(saveTimerRef.current).forEach(clearTimeout);
+      saveTimerRef.current = {};
+    };
+  }, []);
+
   // ─── Zotero ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -212,13 +224,9 @@ export default function Ensayos() {
 
   // ─── Tag-as-page navigation ────────────────────────────────────────────────
 
-  /**
-   * Silently create a tag-page (no modal). Returns the new note id.
-   */
   const autoCreateTagPage = useCallback(async (tag: string): Promise<string | null> => {
     if (!user) return null;
     const now = new Date().toISOString();
-    // Build initial content listing linked notes
     const linkedNotes = ensayos
       .filter((e: any) => e.tags?.includes(tag) && e.titulo)
       .map((e: any) => `- [[${e.titulo}]]`)
@@ -245,11 +253,6 @@ export default function Ensayos() {
     return null;
   }, [user, ensayos, addRow, setEnsayos]);
 
-  /**
-   * Navigate to the note whose title matches `name` (case-insensitive).
-   * If it's a tag navigation and no note exists, auto-create the page silently.
-   * If it's a wikilink and no note exists, open NewNoteModal pre-filled.
-   */
   const navigateToPage = useCallback(async (name: string, isTag = false) => {
     const normalized = name.trim().toLowerCase();
     const found = ensayos.find(
@@ -258,21 +261,16 @@ export default function Ensayos() {
     if (found) {
       setEnsayoActivo(found.id);
     } else if (isTag) {
-      // Auto-create tag page silently
       const newId = await autoCreateTagPage(name.trim());
       if (newId) {
         setEnsayoActivo(newId);
       }
     } else {
-      // Wikilink: pre-fill modal
       setPendingNoteTitle(name.trim());
       setShowNewNoteModal(true);
     }
   }, [ensayos, autoCreateTagPage]);
 
-  /**
-   * Auto-create pages for any tags that don't have one yet.
-   */
   const autoCreateMissingTagPages = useCallback(async (tags: string[]) => {
     for (const tag of tags) {
       const exists = ensayos.some((e: any) => e.titulo?.toLowerCase() === tag.toLowerCase());
@@ -282,9 +280,6 @@ export default function Ensayos() {
     }
   }, [ensayos, autoCreateTagPage]);
 
-  /**
-   * Click a tag chip → navigate to the note-page for that tag (auto-creates if missing).
-   */
   const handleTagNavigate = useCallback((tag: string) => {
     navigateToPage(tag, true);
   }, [navigateToPage]);
@@ -313,13 +308,10 @@ export default function Ensayos() {
     return Array.from(set).sort();
   }, [ensayos]);
 
-  // Lista de entidades para el autocompletado [[wikilink]] del editor:
-  // títulos de ensayos + todas las tags, cada una con su tipo dinámico
   const allWikilinkNames = useMemo(() => {
     const seen = new Set<string>();
     const result: { name: string; type: string }[] = [];
 
-    // Tags primero (cada ensayo puede tener varias)
     todosLosTags.forEach(tag => {
       if (!seen.has(tag)) {
         seen.add(tag);
@@ -327,7 +319,6 @@ export default function Ensayos() {
       }
     });
 
-    // Títulos de ensayos — el tipo es la primera tag del ensayo, o "nota" si no tiene
     ensayos.forEach((e: any) => {
       const titulo = e.titulo?.trim();
       if (!titulo || seen.has(titulo)) return;
@@ -359,8 +350,12 @@ export default function Ensayos() {
     if (saveTimerRef.current[id]) clearTimeout(saveTimerRef.current[id]);
 
     saveTimerRef.current[id] = setTimeout(async () => {
+      // ── FIX 1: si el componente se desmontó, no hacer nada ────────────────
+      if (!isMountedRef.current) return;
+
       const batch = { ...(pendingUpdatesRef.current[id] || {}) };
       delete pendingUpdatesRef.current[id];
+      delete saveTimerRef.current[id];
 
       setSaveIndicator(saveIndicatorRef.current, "saving");
 
@@ -372,19 +367,40 @@ export default function Ensayos() {
       );
 
       try {
-        const { error } = await updateRow(id, payload);
+        // ── FIX 2: timeout propio de 10s para que nunca quede colgado ────────
+        const savePromise = updateRow(id, payload);
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("save timeout")), 10_000)
+        );
+
+        const { error } = await Promise.race([savePromise, timeoutPromise]) as any;
         if (error) throw error;
+
+        // ── FIX 3: guard post-await por si el usuario navegó mientras guardaba
+        if (!isMountedRef.current) return;
+
         setSaveIndicator(saveIndicatorRef.current, "saved");
-        setTimeout(() => setSaveIndicator(saveIndicatorRef.current, "idle"), 2000);
-      } catch {
+        setTimeout(() => {
+          if (isMountedRef.current) setSaveIndicator(saveIndicatorRef.current, "idle");
+        }, 2000);
+
+      } catch (err: any) {
+        if (!isMountedRef.current) return;
+
         setSaveIndicator(saveIndicatorRef.current, "error");
+
+        // ── FIX 4: auto-limpiar el error para no quedar atascado en "error" ──
+        setTimeout(() => {
+          if (isMountedRef.current) setSaveIndicator(saveIndicatorRef.current, "idle");
+        }, 4000);
+
+        console.warn("[scheduleSave] error al guardar:", err?.message ?? err);
       }
     }, 1500);
   }, [updateRow, setEnsayos]);
 
   const actualizarLocal = useCallback((id: string, field: string, value: any) => {
     scheduleSave(id, { [field]: value });
-    // Auto-create pages for any new tags
     if (field === "tags" && Array.isArray(value)) {
       autoCreateMissingTagPages(value);
     }
@@ -436,7 +452,6 @@ export default function Ensayos() {
     setEnsayoActivo(id);
   };
 
-  // Usado por el grafo: cambia la nota activa sin cerrar el panel del grafo
   const handleEnsayoClickSinCerrar = useCallback((id: string) => {
     setEnsayoActivo(id);
   }, [setEnsayoActivo]);
@@ -444,8 +459,6 @@ export default function Ensayos() {
   const ensayoActivo = ensayos.find((e: any) => e.id === ensayoActivoId) ?? null;
 
   // ─── Keep tag-pages content in sync ───────────────────────────────────────
-  // When ensayos change, refresh all tag-pages (notes whose title matches a tag)
-  // so they always list the current notes with that tag.
   useEffect(() => {
     if (!ensayos.length) return;
     const allTags = new Set<string>();
@@ -459,7 +472,6 @@ export default function Ensayos() {
         .map((e: any) => `- [[${e.titulo}]]`)
         .join("\n");
       const newContent = `# ${tag}\n\nNotas con esta etiqueta:\n\n${linkedNotes || "_ninguna aún_"}`;
-      // Only update if content has changed to avoid infinite loops
       if (tagPage.contenido !== newContent) {
         scheduleSave(tagPage.id, { contenido: newContent });
         setEnsayos((prev: any[]) =>
@@ -469,10 +481,6 @@ export default function Ensayos() {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ensayos.map((e: any) => `${e.id}:${e.tags?.join(",")}`).join("|")]);
-
-
-
-
 
   // ─── Render ────────────────────────────────────────────────────────────────
 

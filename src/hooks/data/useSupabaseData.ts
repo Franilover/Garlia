@@ -301,12 +301,18 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       return { data: row, error: null };
     }
     try {
-      const res = QUERIES_MAP[tabla]?.update
-        ? await QUERIES_MAP[tabla].update(id, updates)
-        : await supabase.from(tabla).update(updates).eq("id", id).select().single();
-      const updated = res?.data || res;
-      if (updated?.id) writeToDexie(tabla, [{ ...updated, status: "synced" }]);
-      return { data: updated, error: res?.error || null };
+      // ── FIX: timeout de 10s para que updateRow nunca quede colgado ──────────
+      const UPDATE_TIMEOUT_MS = 10_000;
+      const updatePromise = QUERIES_MAP[tabla]?.update
+        ? QUERIES_MAP[tabla].update(id, updates)
+        : supabase.from(tabla).update(updates).eq("id", id).select().single();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("update timeout")), UPDATE_TIMEOUT_MS)
+      );
+      const res = await Promise.race([updatePromise, timeoutPromise]);
+      const updated = (res as any)?.data || res;
+      if ((updated as any)?.id) writeToDexie(tabla, [{ ...(updated as any), status: "synced" }]);
+      return { data: updated, error: (res as any)?.error || null };
     } catch (err: any) {
       if (OFFLINE_WRITABLE.has(tabla)) {
         const existing = db ? await (db as any)[tabla]?.get(id) : null;
