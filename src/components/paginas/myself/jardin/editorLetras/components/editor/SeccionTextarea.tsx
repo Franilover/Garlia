@@ -44,7 +44,7 @@ function contar(linea: string, modo: CountMode) {
 // Si cambias los estilos del MarkdownEditor, actualiza estas constantes.
 const FONT_SIZE_PX = 13;
 const LINE_H_PX    = Math.round(FONT_SIZE_PX * 1.625); // ≈ 21px  (leading-relaxed)
-const PAD_TOP      = 16;                                // padding-top del textarea (px)
+const PAD_TOP      = 8;                                 // padding-top del textarea (px)
 
 // ── Overlay de contadores ────────────────────────────────────────────────────
 
@@ -201,7 +201,7 @@ export const SeccionTextarea = ({
                             "";
 
   return (
-    <div className="flex-1 min-w-0 space-y-1.5">
+    <div className="flex-1 min-w-0">
       {/* ── Banner de borrador local ── */}
       <DraftRestoreBanner
         draft={draft}
@@ -211,21 +211,23 @@ export const SeccionTextarea = ({
 
       {/* ── Banner sin conexión ── */}
       {st.mode === "pending" && !st.saving && (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-blue-400">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 mb-1 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-blue-400">
           <WifiOff size={10} />
           Guardado sin conexión — se sincronizará al reconectar
         </div>
       )}
 
-      {/* ── Indicadores de estado ── */}
-      <div className="flex justify-end">
-        <span className="flex items-center gap-1.5 pr-1">
-          {st.saving                           && <Loader2      size={11} className="animate-spin text-primary/30" />}
-          {st.saved                            && <CheckCircle2 size={11} className="text-emerald-400" />}
-          {st.mode === "pending" && !st.saving && <span className="w-2 h-2 rounded-full bg-blue-400" />}
-          {st.mode === "error"                 && <AlertCircle  size={11} className="text-red-400" />}
-        </span>
-      </div>
+      {/* ── Indicadores de estado — solo si hay algo que mostrar ── */}
+      {(st.saving || st.saved || st.mode === "pending" || st.mode === "error") && (
+        <div className="flex justify-end mb-0.5">
+          <span className="flex items-center gap-1.5 pr-1">
+            {st.saving                           && <Loader2      size={11} className="animate-spin text-primary/30" />}
+            {st.saved                            && <CheckCircle2 size={11} className="text-emerald-400" />}
+            {st.mode === "pending" && !st.saving && <span className="w-2 h-2 rounded-full bg-blue-400" />}
+            {st.mode === "error"                 && <AlertCircle  size={11} className="text-red-400" />}
+          </span>
+        </div>
+      )}
 
       {/* ── Editor markdown con overlay de contadores ── */}
       <div className={statusRingClass}>
