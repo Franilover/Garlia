@@ -461,17 +461,23 @@ export function ModalAcontecimiento({ onClose, onSaved }: {
       const newEvt = { id: crypto.randomUUID(), year: year.trim(), title: title.trim(), description: desc.trim() };
 
       if (scope === "global") {
-        // Fetch current mundo historia
-        const { data: mundoRow } = await supabase.from("mundo").select("id, historia").limit(1).single();
-        if (!mundoRow) throw new Error("No se encontró el registro de mundo");
+        // La historia del mundo vive en mundo_secciones, fila key="historia", campo contenido (JSON)
+        const { data: secRow } = await supabase
+          .from("mundo_secciones")
+          .select("contenido")
+          .eq("key", "historia")
+          .single();
         let events: any[] = [];
-        try { events = JSON.parse(mundoRow.historia ?? "[]"); } catch {}
+        try { events = JSON.parse(secRow?.contenido ?? "[]"); } catch {}
         if (!Array.isArray(events)) events = [];
         events.push(newEvt);
-        const { error: err } = await supabase.from("mundo").update({ historia: JSON.stringify(events) }).eq("id", mundoRow.id);
+        const { error: err } = await supabase
+          .from("mundo_secciones")
+          .update({ contenido: JSON.stringify(events), updated_at: new Date().toISOString() })
+          .eq("key", "historia");
         if (err) throw err;
       } else {
-        // Fetch current reino historia
+        // Historia del reino: tabla reinos, campo historia (JSON)
         const { data: reinoRow } = await supabase.from("reinos").select("id, historia").eq("id", reinoId).single();
         if (!reinoRow) throw new Error("No se encontró el reino");
         let events: any[] = [];
