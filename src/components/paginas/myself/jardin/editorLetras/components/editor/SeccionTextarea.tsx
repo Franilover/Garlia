@@ -237,7 +237,7 @@ export const SeccionTextarea = ({
           toolbar={false}
           mode={viewMode}
           autoResize
-          rows={3}
+          rows={1}
           renderOverlay={(val) => (
             <SyllableOverlay
               texto={val}

@@ -1446,8 +1446,7 @@ export function MarkdownEditor({
 
   const textareaStyle: React.CSSProperties = {
     minHeight: autoResize ? `${rows * 1.6}rem` : minH,
-    // Eliminado el condicional que ocultaba el scroll
-    overflowY: "auto",
+    overflowY: autoResize ? "hidden" : "auto",
     ...(autoResize && maxHeight ? { maxHeight } : {}),
     color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
     fontFamily: "var(--font-mono)",
