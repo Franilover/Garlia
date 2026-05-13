@@ -66,6 +66,7 @@ export const SeccionEditor = ({
           idioma={idiomaA}
           refIdioma={splitMode ? idiomaB : undefined}
           onSave={onSaveField}
+          nombreSeccion={nombre}
         />
         {splitMode && (
           <>
@@ -75,6 +76,7 @@ export const SeccionEditor = ({
               idioma={idiomaB}
               refIdioma={idiomaA}
               onSave={onSaveField}
+              nombreSeccion={nombre}
             />
           </>
         )}

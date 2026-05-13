@@ -779,6 +779,20 @@ interface MarkdownEditorProps {
   autoResize?: boolean;
   /** Altura máxima del textarea en modo autoResize antes de activar scroll (ej: "60vh", "400px"). Sin límite por defecto. */
   maxHeight?: string;
+  /**
+   * Overlay opcional que se renderiza ENCIMA del textarea (position:absolute, pointer-events:none).
+   * Recibe el valor actual del texto para que pueda calcular contadores por línea, etc.
+   * Se monta dentro del div position:relative que envuelve el <textarea>, por lo que
+   * las coordenadas top/right/etc. son relativas a ese contenedor.
+   */
+  renderOverlay?: (value: string) => React.ReactNode;
+  /**
+   * Título de sección opcional.
+   * - En modo edición: se muestra como línea de encabezado `# título` no editable
+   *   encima del textarea (decorativo, no forma parte del value).
+   * - En modo preview: se renderiza como `# título` encima del contenido markdown.
+   */
+  sectionTitle?: string;
 }
 
 // ── Componente ────────────────────────────────────────────────────────────────
@@ -795,6 +809,8 @@ export function MarkdownEditor({
   entities = [],
   autoResize = true,
   maxHeight,
+  renderOverlay,
+  sectionTitle,
 }: MarkdownEditorProps) {
   const [mode, setMode] = useState<ViewMode>(defaultMode);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -1498,7 +1514,7 @@ export function MarkdownEditor({
             <Search size={10} />
           </button>
 
-          {/* Mode toggles */}
+          {/* Mode toggles — solo Editar y Vista */}
           <div
             style={{
               display: "flex",
@@ -1509,17 +1525,17 @@ export function MarkdownEditor({
               overflow: "hidden",
             }}
           >
-          {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
-            const Icon = m === "edit" ? Edit3 : m === "preview" ? Eye : Columns;
+          {(["edit", "preview"] as ViewMode[]).map((m) => {
+            const Icon = m === "edit" ? Edit3 : Eye;
             const isActive = mode === m;
             return (
               <button
                 key={m}
                 type="button"
                 onClick={() => setMode(m)}
-                title={m}
-                className={m === "split" ? "hidden sm:flex" : "flex"}
+                title={m === "edit" ? "Editar" : "Vista previa"}
                 style={{
+                  display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   width: 26,
@@ -1692,6 +1708,26 @@ export function MarkdownEditor({
                 overflowY: "auto" 
               }}
             >
+              {/* ── Encabezado de sección decorativo (modo edición) ── */}
+              {sectionTitle && (
+                <div
+                  aria-hidden
+                  style={{
+                    padding: "12px 20px 0",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 13,
+                    lineHeight: "1.625",
+                    color: "color-mix(in srgb, var(--color-primary,#7c6af7) 55%, transparent)",
+                    letterSpacing: "0.04em",
+                    userSelect: "none",
+                    pointerEvents: "none",
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ opacity: 0.5, marginRight: 6 }}>#</span>
+                  {sectionTitle}
+                </div>
+              )}
               <textarea
                 ref={taRef}
                 value={value}
@@ -1702,6 +1738,24 @@ export function MarkdownEditor({
                 style={textareaStyle}
 
               />
+
+              {/* ── Overlay externo (ej: contadores de sílabas) ── */}
+              {renderOverlay && (
+                <div
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    pointerEvents: "none",
+                    overflow: "hidden",
+                  }}
+                >
+                  {renderOverlay(value)}
+                </div>
+              )}
 
               {/* ── Menú flotante de comandos ── */}
               {cmdMenu.open && (
@@ -2011,7 +2065,7 @@ export function MarkdownEditor({
           {/* Vista previa */}
           {(mode === "preview" || mode === "split") && (
             <MarkdownPreviewWithSnippets
-              value={value}
+              value={sectionTitle ? `# ${sectionTitle}\n\n${value}` : value}
               placeholder={placeholder}
               onSnippetAction={onSnippetAction}
               pvRef={pvRef}

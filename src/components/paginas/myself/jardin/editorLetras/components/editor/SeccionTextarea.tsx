@@ -5,6 +5,7 @@ import { Loader2, CheckCircle2, AlertCircle, WifiOff } from "lucide-react";
 import { DraftRestoreBanner, useDraftRestore } from "@/hooks/useEditorShared";
 import { dexieSecGet } from "../../lib/seccionesDb";
 import { IDIOMAS, IDLE_STATE } from "../../constants";
+import { MarkdownEditor } from "@/components/forms/MarkdownEditor";
 import type { Seccion, IdiomaKey, ColState } from "../../types";
 
 // ── Conteo ───────────────────────────────────────────────────────────────────
@@ -37,22 +38,97 @@ function contar(linea: string, modo: CountMode) {
   return modo === "vocales" ? contarVocales(linea) : contarSilabas(linea);
 }
 
-// ── Componente ───────────────────────────────────────────────────────────────
+// ── Constantes de layout ─────────────────────────────────────────────────────
+// Deben coincidir con los valores reales del textarea en MarkdownEditor:
+//   fontSize: 13px  ·  lineHeight: "relaxed" = ~1.625 → ~21px  ·  paddingTop: 16px
+// Si cambias los estilos del MarkdownEditor, actualiza estas constantes.
+const FONT_SIZE_PX = 13;
+const LINE_H_PX    = Math.round(FONT_SIZE_PX * 1.625); // ≈ 21px  (leading-relaxed)
+const PAD_TOP      = 16;                                // padding-top del textarea (px)
 
-// text-sm = 14px, line-height fijo en px para que el overlay coincida exactamente.
-// Ambos valores deben mantenerse sincronizados.
-const FONT_SIZE_PX = 14;
-const LINE_H_PX    = 22;   // line-height real del textarea (px)
-const PAD_TOP      = 12;   // py-3 = 12px — padding-top del textarea
+// ── Overlay de contadores ────────────────────────────────────────────────────
+
+/**
+ * Renderiza los contadores de sílabas/vocales por línea como un overlay
+ * encima del textarea del MarkdownEditor.
+ *
+ * Se pasa como `renderOverlay` al MarkdownEditor, que lo monta dentro del
+ * div position:relative que envuelve el textarea.
+ */
+function SyllableOverlay({
+  texto,
+  refLineas,
+  countMode,
+}: {
+  texto:     string;
+  refLineas: string[] | null;
+  countMode: CountMode;
+}) {
+  const lineas = texto.split("\n");
+
+  return (
+    <div
+      aria-hidden
+      className="absolute top-0 right-0 flex flex-col pointer-events-none select-none"
+      style={{ paddingTop: PAD_TOP }}
+    >
+      {lineas.map((linea, idx) => {
+        const miN  = contar(linea, countMode);
+        const refN = refLineas ? contar(refLineas[idx] ?? "", countMode) : null;
+        const vacia = linea.trim() === "";
+
+        let color = "";
+        if (!vacia) {
+          if (refN === null) {
+            color =
+              miN <= 6  ? "text-primary/30"
+            : miN <= 10 ? "text-amber-400/50"
+            :             "text-rose-400/50";
+          } else {
+            color = miN === refN ? "text-emerald-400/90" : "text-rose-400/90";
+          }
+        }
+
+        return (
+          <div
+            key={idx}
+            className={`flex items-center justify-end pr-2.5 gap-0.5 ${color}`}
+            style={{ height: LINE_H_PX }}
+          >
+            {!vacia && (
+              <>
+                <span className="text-[9px] font-black tabular-nums leading-none">
+                  {miN}
+                </span>
+                {refN !== null && (
+                  <>
+                    <span className="text-[8px] opacity-40 mx-px">/</span>
+                    <span className="text-[9px] font-black tabular-nums leading-none opacity-55">
+                      {refN}
+                    </span>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Componente principal ─────────────────────────────────────────────────────
 
 export const SeccionTextarea = ({
-  sec, idioma, refIdioma, onSave,
+  sec, idioma, refIdioma, onSave, nombreSeccion,
 }: {
-  sec:       Seccion;
-  idioma:    IdiomaKey;
+  sec:           Seccion;
+  idioma:        IdiomaKey;
   /** Idioma del panel opuesto en split mode. Si es undefined no hay comparación. */
-  refIdioma?: IdiomaKey;
-  onSave:    (id: string, updates: Partial<Seccion>) => Promise<void>;
+  refIdioma?:    IdiomaKey;
+  onSave:        (id: string, updates: Partial<Seccion>) => Promise<void>;
+  /** Nombre de la sección — se muestra como # encabezado en el editor y en la vista previa */
+  nombreSeccion?: string;
 }) => {
   const campo     = IDIOMAS.find(i => i.id === idioma)!.campo;
   const serverVal = (sec[campo] as string) || "";
@@ -65,6 +141,7 @@ export const SeccionTextarea = ({
   const draftKey = `sec-draft-${sec.id}-${idioma}`;
   const draft    = useDraftRestore({ key: draftKey, serverValue: serverVal, enabled: !!sec.id });
 
+  // ── Sincronizar con servidor / Dexie ────────────────────────────────────
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
     const loadLocal = async () => {
@@ -104,34 +181,37 @@ export const SeccionTextarea = ({
     }
   }, [sec.id, campo, onSave, draft]);
 
-  const onChange = (val: string) => {
+  const onChange = useCallback((val: string) => {
     setTexto(val);
     draft.save(val);
     setSt(s => ({ ...s, dirty: true, saved: false, mode: s.mode === "error" ? "idle" : s.mode, msg: null }));
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => doSave(val), 1500);
-  };
+  }, [doSave, draft]);
 
-  // Texto del idioma de referencia (columna opuesta)
+  // ── Texto de referencia (columna opuesta en split mode) ─────────────────
   const refCampo  = refIdioma ? IDIOMAS.find(i => i.id === refIdioma)?.campo : null;
   const refLineas = refCampo ? ((sec[refCampo] as string) || "").split("\n") : null;
 
-  const lineas = texto.split("\n");
-  const rows   = Math.max(3, lineas.length + 1);
-
-  const borderClass =
-    st.mode === "pending" ? "border-blue-500/40  focus:border-blue-500/60"  :
-    st.mode === "error"   ? "border-red-500/40   focus:border-red-500/60"   :
-    st.dirty              ? "border-amber-500/30 focus:border-amber-500/50" :
-                            "border-primary/10   focus:border-primary/30";
+  // ── Border según estado ──────────────────────────────────────────────────
+  // El MarkdownEditor usa su propio borde; lo sobreescribimos vía className
+  // en el div contenedor para indicar estado de guardado.
+  const statusRingClass =
+    st.mode === "pending" ? "ring-1 ring-blue-500/40"  :
+    st.mode === "error"   ? "ring-1 ring-red-500/40"   :
+    st.dirty              ? "ring-1 ring-amber-500/30" :
+                            "";
 
   return (
     <div className="flex-1 min-w-0 space-y-1.5">
+      {/* ── Banner de borrador local ── */}
       <DraftRestoreBanner
         draft={draft}
         onRestore={(v) => { setTexto(v); draft.dismiss(); }}
         label="Borrador local disponible"
       />
+
+      {/* ── Banner sin conexión ── */}
       {st.mode === "pending" && !st.saving && (
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-blue-400">
           <WifiOff size={10} />
@@ -139,96 +219,26 @@ export const SeccionTextarea = ({
         </div>
       )}
 
-      {/* Toggle sílabas / vocales */}
-      <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10 w-fit">
-        {(["silabas", "vocales"] as CountMode[]).map(m => (
-          <button
-            key={m}
-            onClick={() => setCountMode(m)}
-            className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${
-              countMode === m
-                ? "bg-primary text-bg-main"
-                : "text-primary/30 hover:text-primary/60"
-            }`}
-          >
-            {m === "silabas" ? "síl" : "voc"}
-          </button>
-        ))}
-      </div>
-
-      {/* Textarea + contadores */}
-      <div className="relative">
-        <textarea
-          value={texto}
-          onChange={e => onChange(e.target.value)}
-          onKeyDown={e => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-              e.preventDefault();
-              doSave(texto);
-            }
-          }}
-          rows={rows}
-          spellCheck={false}
-          className={`w-full bg-bg-main/60 border rounded-xl px-4 py-3
-                      text-sm text-primary font-mono resize-none outline-none
-                      transition-colors placeholder:text-primary/20
-                      pr-16 ${borderClass}`}
-          style={{ fontSize: FONT_SIZE_PX, lineHeight: `${LINE_H_PX}px` }}
-          placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
-        />
-
-        {/* Contadores por línea */}
-        <div
-          aria-hidden
-          className="absolute top-0 right-0 flex flex-col pointer-events-none select-none"
-          style={{ paddingTop: PAD_TOP }}
-        >
-          {lineas.map((linea, idx) => {
-            const miN   = contar(linea, countMode);
-            const refN  = refLineas ? contar(refLineas[idx] ?? "", countMode) : null;
-            const vacia = linea.trim() === "";
-
-            let color = "";
-            if (!vacia) {
-              if (refN === null) {
-                // Sin comparación: escala neutra por tamaño
-                color = miN <= 6  ? "text-primary/30"
-                      : miN <= 10 ? "text-amber-400/50"
-                      :             "text-rose-400/50";
-              } else {
-                // Con comparación: verde = coincide, rojo = no coincide
-                color = miN === refN ? "text-emerald-400/90" : "text-rose-400/90";
-              }
-            }
-
-            return (
-              <div
-                key={idx}
-                className={`flex items-center justify-end pr-2.5 gap-0.5 ${color}`}
-                style={{ height: LINE_H_PX }}
-              >
-                {!vacia && (
-                  <>
-                    <span className="text-[9px] font-black tabular-nums leading-none">
-                      {miN}
-                    </span>
-                    {refN !== null && (
-                      <>
-                        <span className="text-[8px] opacity-40 mx-px">/</span>
-                        <span className="text-[9px] font-black tabular-nums leading-none opacity-55">
-                          {refN}
-                        </span>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
+      {/* ── Toggle sílabas / vocales ── */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10 w-fit">
+          {(["silabas", "vocales"] as CountMode[]).map(m => (
+            <button
+              key={m}
+              onClick={() => setCountMode(m)}
+              className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${
+                countMode === m
+                  ? "bg-primary text-bg-main"
+                  : "text-primary/30 hover:text-primary/60"
+              }`}
+            >
+              {m === "silabas" ? "síl" : "voc"}
+            </button>
+          ))}
         </div>
 
-        {/* Indicadores de estado */}
-        <span className="absolute top-2 right-2 pointer-events-none flex flex-col items-end gap-1">
+        {/* Indicadores de estado flotantes (fuera del editor) */}
+        <span className="flex items-center gap-1.5 pr-1">
           {st.saving                           && <Loader2      size={11} className="animate-spin text-primary/30" />}
           {st.saved                            && <CheckCircle2 size={11} className="text-emerald-400" />}
           {st.mode === "pending" && !st.saving && <span className="w-2 h-2 rounded-full bg-blue-400" />}
@@ -236,6 +246,27 @@ export const SeccionTextarea = ({
         </span>
       </div>
 
+      {/* ── Editor markdown con overlay de contadores ── */}
+      <div className={`rounded-xl overflow-hidden ${statusRingClass}`}>
+        <MarkdownEditor
+          value={texto}
+          onChange={onChange}
+          placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
+          defaultMode="edit"
+          autoResize
+          rows={3}
+          sectionTitle={nombreSeccion}
+          renderOverlay={(val) => (
+            <SyllableOverlay
+              texto={val}
+              refLineas={refLineas}
+              countMode={countMode}
+            />
+          )}
+        />
+      </div>
+
+      {/* ── Mensaje de error ── */}
       {st.mode === "error" && st.msg && (
         <p className="text-[9px] font-black uppercase text-red-400/80 tracking-widest px-1">⚠ {st.msg}</p>
       )}
