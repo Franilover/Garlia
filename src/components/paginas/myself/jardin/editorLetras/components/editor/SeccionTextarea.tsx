@@ -252,7 +252,7 @@ export const SeccionTextarea = ({
           value={texto}
           onChange={onChange}
           placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
-          defaultMode="edit"
+          defaultMode="split"
           autoResize
           rows={3}
           sectionTitle={nombreSeccion}

@@ -1525,15 +1525,15 @@ export function MarkdownEditor({
               overflow: "hidden",
             }}
           >
-          {(["edit", "preview"] as ViewMode[]).map((m) => {
-            const Icon = m === "edit" ? Edit3 : Eye;
+          {(["edit", "split", "preview"] as ViewMode[]).map((m) => {
+            const Icon = m === "edit" ? Edit3 : m === "split" ? Columns : Eye;
             const isActive = mode === m;
             return (
               <button
                 key={m}
                 type="button"
                 onClick={() => setMode(m)}
-                title={m === "edit" ? "Editar" : "Vista previa"}
+                title={m === "edit" ? "Editar" : m === "split" ? "Split" : "Vista previa"}
                 style={{
                   display: "flex",
                   alignItems: "center",

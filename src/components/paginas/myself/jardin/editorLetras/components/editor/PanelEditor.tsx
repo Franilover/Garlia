@@ -446,7 +446,6 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
               <div className="border border-primary/10 rounded-xl bg-bg-main/50 overflow-hidden">
                 {secciones.map((sec, i) => (
                   <React.Fragment key={sec.id}>
-                    {i > 0 && <div className="h-px bg-primary/8 mx-4" />}
                     <SeccionEditor
                       sec={sec}
                       idiomaA={idiomaA}
