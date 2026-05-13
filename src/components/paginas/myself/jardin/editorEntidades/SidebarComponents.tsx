@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   Loader2, Eye, EyeOff, Plus, Search, X, SlidersHorizontal, Sparkles,
-  Wand2, ScrollText, FileText, Zap,
+  Wand2, ScrollText, FileText, Zap, Clock, Globe, Check,
 } from "lucide-react";
 import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
@@ -243,13 +243,14 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas" | "acontecimiento";
 
 const MAGIC_ADD_ITEMS: { key: MagicAddKey; label: string; Icon: React.ElementType; abbr: string }[] = [
-  { key: "hechizos", label: "Hechizo", Icon: Wand2,     abbr: "HZ" },
-  { key: "dones",    label: "Don",     Icon: Sparkles,   abbr: "DN" },
-  { key: "runas",    label: "Runa",    Icon: Zap,        abbr: "RN" },
-  { key: "notas",    label: "Nota",    Icon: FileText,   abbr: "NT" },
+  { key: "hechizos",      label: "Hechizo",       Icon: Wand2,     abbr: "HZ" },
+  { key: "dones",         label: "Don",            Icon: Sparkles,  abbr: "DN" },
+  { key: "runas",         label: "Runa",           Icon: Zap,       abbr: "RN" },
+  { key: "notas",         label: "Nota",           Icon: FileText,  abbr: "NT" },
+  { key: "acontecimiento",label: "Acontecimiento", Icon: Clock,     abbr: "AC" },
 ];
 
 function AddCommandMenu({
@@ -371,7 +372,7 @@ function AddCommandMenu({
           Magia &amp; Notas
         </p>
       </div>
-      <div className="p-2 grid grid-cols-2 gap-1">
+      <div className="p-2 grid grid-cols-1 gap-1">
         {MAGIC_ADD_ITEMS.map(({ key, label, Icon, abbr }) => {
           const hv = btnHover(true);
           return (
@@ -415,6 +416,228 @@ function AddCommandMenu({
           to   { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
+    </div>
+  );
+}
+
+// ─── ModalAcontecimiento ──────────────────────────────────────────────────────
+type ReinoMin = { id: string; nombre: string };
+
+export function ModalAcontecimiento({ onClose, onSaved }: {
+  onClose: () => void;
+  onSaved?: () => void;
+}) {
+  const [scope, setScope]       = useState<"global" | "reino">("global");
+  const [reinos, setReinos]     = useState<ReinoMin[]>([]);
+  const [reinoId, setReinoId]   = useState<string>("");
+  const [loadingR, setLoadingR] = useState(true);
+  const [year, setYear]         = useState("");
+  const [title, setTitle]       = useState("");
+  const [desc, setDesc]         = useState("");
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+
+  // Load reinos
+  useEffect(() => {
+    (async () => {
+      try {
+        const local = await dexieReadAll<ReinoMin>("reinos");
+        if (local.length) { setReinos(local); setLoadingR(false); }
+        if (!navigator.onLine) { if (!local.length) setLoadingR(false); return; }
+        const { data } = await supabase.from("reinos").select("id, nombre").order("nombre");
+        setReinos((data ?? []) as ReinoMin[]);
+      } finally { setLoadingR(false); }
+    })();
+  }, []);
+
+  const canSave = title.trim() && (scope === "global" || reinoId);
+
+  const handleSave = async () => {
+    if (!canSave || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const newEvt = { id: crypto.randomUUID(), year: year.trim(), title: title.trim(), description: desc.trim() };
+
+      if (scope === "global") {
+        // Fetch current mundo historia
+        const { data: mundoRow } = await supabase.from("mundo").select("id, historia").limit(1).single();
+        if (!mundoRow) throw new Error("No se encontró el registro de mundo");
+        let events: any[] = [];
+        try { events = JSON.parse(mundoRow.historia ?? "[]"); } catch {}
+        if (!Array.isArray(events)) events = [];
+        events.push(newEvt);
+        const { error: err } = await supabase.from("mundo").update({ historia: JSON.stringify(events) }).eq("id", mundoRow.id);
+        if (err) throw err;
+      } else {
+        // Fetch current reino historia
+        const { data: reinoRow } = await supabase.from("reinos").select("id, historia").eq("id", reinoId).single();
+        if (!reinoRow) throw new Error("No se encontró el reino");
+        let events: any[] = [];
+        try { events = JSON.parse((reinoRow as any).historia ?? "[]"); } catch {}
+        if (!Array.isArray(events)) events = [];
+        events.push(newEvt);
+        const { error: err } = await supabase.from("reinos").update({ historia: JSON.stringify(events) }).eq("id", reinoId);
+        if (err) throw err;
+      }
+
+      setSaved(true);
+      onSaved?.();
+      setTimeout(onClose, 900);
+    } catch (e: any) {
+      setError(e?.message ?? "Error al guardar");
+    } finally { setSaving(false); }
+  };
+
+  // Close on Escape
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", k);
+    return () => document.removeEventListener("keydown", k);
+  }, [onClose]);
+
+  const INPUT = "w-full px-3 py-2 rounded-xl text-xs font-medium text-primary bg-transparent border transition-all outline-none placeholder:text-primary/25 focus:border-primary/40 focus:bg-primary/3";
+  const borderNorm = "border-primary/15";
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)", backdropFilter: "blur(6px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+          <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)" }}>
+            <Clock size={12} className="text-primary/50" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">Añadir acontecimiento</p>
+          </div>
+          <button onClick={onClose} className="text-primary/25 hover:text-primary transition-colors"><X size={15} /></button>
+        </div>
+
+        <div className="p-4 space-y-3">
+          {/* Scope toggle */}
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Ámbito</label>
+            <div className="flex gap-1.5">
+              {(["global", "reino"] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setScope(s)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all"
+                  style={scope === s ? {
+                    background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    color: "var(--primary)",
+                  } : {
+                    borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  }}
+                >
+                  {s === "global" ? <Globe size={10} /> : <ScrollText size={10} />}
+                  {s === "global" ? "Global" : "Un reino"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reino selector */}
+          {scope === "reino" && (
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Reino</label>
+              {loadingR ? (
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <Loader2 size={11} className="animate-spin text-primary/20" />
+                  <span className="text-[10px] text-primary/30">Cargando reinos…</span>
+                </div>
+              ) : (
+                <select
+                  value={reinoId}
+                  onChange={e => setReinoId(e.target.value)}
+                  className={`${INPUT} ${borderNorm} cursor-pointer`}
+                  style={{ appearance: "none" }}
+                >
+                  <option value="">Seleccionar reino…</option>
+                  {reinos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                </select>
+              )}
+            </div>
+          )}
+
+          {/* Año/era */}
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Año / Era <span className="text-primary/20 normal-case tracking-normal font-medium">(opcional)</span></label>
+            <input
+              value={year}
+              onChange={e => setYear(e.target.value)}
+              placeholder="Año 342, Era del Fuego, Antes del Caos…"
+              className={`${INPUT} ${borderNorm}`}
+            />
+          </div>
+
+          {/* Título */}
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Título</label>
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="La Gran Batalla, Fundación del Imperio…"
+              className={`${INPUT} ${borderNorm}`}
+              onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
+            />
+          </div>
+
+          {/* Descripción */}
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Qué ocurrió <span className="text-primary/20 normal-case tracking-normal font-medium">(opcional)</span></label>
+            <textarea
+              value={desc}
+              onChange={e => setDesc(e.target.value)}
+              placeholder="Describe el acontecimiento, sus causas y consecuencias…"
+              rows={3}
+              className={`${INPUT} ${borderNorm} resize-none`}
+            />
+          </div>
+
+          {error && (
+            <p className="text-[10px] text-red-400 font-medium px-1">{error}</p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+          <button onClick={onClose}
+            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10">
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!canSave || saving}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
+            style={{
+              background: saved ? "color-mix(in srgb, #22c55e 80%, transparent)" : "var(--primary)",
+              color: "var(--btn-text, white)",
+            }}
+          >
+            {saving ? <Loader2 size={10} className="animate-spin" /> : saved ? <Check size={10} /> : <Clock size={10} />}
+            {saved ? "Guardado" : saving ? "Guardando…" : "Añadir"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
