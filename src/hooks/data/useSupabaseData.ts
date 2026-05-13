@@ -51,7 +51,7 @@ const DEXIE_TABLES = new Set([
 ]);
 
 const OFFLINE_WRITABLE = new Set([
-  "notas", "ensayos", "secciones_cancion", "capitulos",
+  "notas", "ensayos", "secciones_cancion", "capitulos", "libros",
   "tareas", "eventos",
   "rutinas", "ejercicios_rutina",
   "recetas", "ingredientes", "compras",
@@ -130,6 +130,13 @@ async function syncDexieWithRemote(tabla: string, remoteRows: any[]): Promise<vo
       .map((r: any) => ({ ...r, status: "synced" }));
 
     if (toUpsert.length > 0) await table.bulkPut(toUpsert);
+
+    // FIX: si el remote devuelve 0 filas pero teníamos datos locales,
+    // NO borramos — puede ser un fetch fallido que retornó [] en vez de error.
+    // Solo sincronizamos eliminaciones cuando el remote tiene al menos 1 fila
+    // o cuando no hay ninguna fila local synced (tabla genuinamente vacía).
+    const localSynced = localRows.filter((r: any) => r.status !== "pending");
+    if (remoteRows.length === 0 && localSynced.length > 0) return;
 
     const toDelete = localRows
       .filter((r: any) => !remoteIds.has(String(r.id)) && r.status !== "pending")

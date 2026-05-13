@@ -21,7 +21,7 @@ import {
 import { librosQueries } from "@/lib/api/queries/wiki/libros";
 import { db } from "@/lib/api/client/db";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-import { enqueueOperation } from "@/hooks/data/useOfflineSync";
+import { enqueueOperation, isReallyOnline } from "@/hooks/data/useOfflineSync";
 import EstudioLayout from "@/components/layout/EstudioLayout";
 import { BannerOffline, EmptyEstudio, ModalBase, SaveIndicator, CampoInput, BotonSubmit, normalize } from "@/components/templates/EstudioTemplates";
 import { SoundPicker } from "@/components/forms/SoundPicker";
@@ -118,7 +118,7 @@ const SAVE_TIMEOUT_MS = 10_000;
 
 async function capUpdateContenido(id: string, contenido: string): Promise<void> {
   const existing = await dexieCapGet(id);
-  if (!navigator.onLine) {
+  if (!(await isReallyOnline())) {
     await dexieCapWrite([{ ...existing, id, contenido, status: "pending" } as Capitulo]);
     await enqueueOperation(TABLA_CAPS, "update", id, { contenido });
     return;
@@ -141,7 +141,7 @@ async function capUpdateContenido(id: string, contenido: string): Promise<void> 
 
 async function capUpdateMeta(id: string, fields: Partial<Capitulo>): Promise<void> {
   const existing = await dexieCapGet(id);
-  if (!navigator.onLine) {
+  if (!(await isReallyOnline())) {
     await dexieCapWrite([{ ...existing, id, ...fields, status: "pending" } as Capitulo]);
     await enqueueOperation(TABLA_CAPS, "update", id, fields);
     return;
@@ -177,7 +177,7 @@ async function capCreate(
     fecha_publicacion: visibilidad === "programado" ? (fecha ?? null) : null,
     narrador_id: narradorId ?? null,
   };
-  if (!navigator.onLine) {
+  if (!(await isReallyOnline())) {
     const tmpId = crypto.randomUUID();
     const row = { ...base, id: tmpId, status: "pending" as const };
     await dexieCapWrite([row]);
@@ -200,7 +200,7 @@ async function capCreate(
 
 async function capDelete(id: string): Promise<void> {
   const existing = await dexieCapGet(id);
-  if (!navigator.onLine) {
+  if (!(await isReallyOnline())) {
     if (existing) await dexieCapWrite([{ ...existing, deleted: true, status: "pending" }]);
     await enqueueOperation(TABLA_CAPS, "delete", id);
     return;
@@ -242,7 +242,7 @@ function useCapitulos(libroId: string | null) {
       setLoading(true);
     }
 
-    if (!navigator.onLine) {
+    if (!(await isReallyOnline())) {
       setIsOffline(true);
       setLoading(false);
       return;
@@ -317,7 +317,7 @@ function useCapituloEditor(capId: string | null) {
       setLoading(true);
     }
 
-    if (!navigator.onLine) {
+    if (!(await isReallyOnline())) {
       setIsOffline(true);
       setLoading(false);
       return;
@@ -1219,8 +1219,9 @@ const PanelEditor = ({
       if (!isMountedRef.current) return; // guard post-await
       setCap(prev => prev ? { ...prev, contenido: val } : prev);
       draft.clear();
-      setSaveStatus(navigator.onLine ? "saved" : "pending");
-      if (navigator.onLine) setTimeout(() => {
+      const stillOnline = await isReallyOnline();
+      setSaveStatus(stillOnline ? "saved" : "pending");
+      if (stillOnline) setTimeout(() => {
         if (isMountedRef.current) setSaveStatus("idle");
       }, 2500);
     } catch {

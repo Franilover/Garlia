@@ -33,7 +33,6 @@ const SYNC_TABLES: Record<string, {
 };
 
 const MAX_RETRIES = 3;
-// FIX: reducido — el debounce doble (aquí + en el listener) sumaba 4s de delay
 const SYNC_DEBOUNCE_MS = 2_000;
 
 // ─── Callbacks globales para notificar a useSupabaseData que el sync terminó ──
@@ -51,22 +50,33 @@ function notifySyncDone() {
   }
 }
 
-// ─── Verificación real de conectividad (navigator.onLine miente) ──────────────
+// ─── Verificación real de conectividad ────────────────────────────────────────
+// mode: "no-cors" nunca lanza error CORS — solo falla con TypeError (sin red)
+// o AbortError (timeout). Así evitamos el problema de gstatic/CORS en Firefox.
 export async function isReallyOnline(): Promise<boolean> {
   if (!navigator.onLine) return false;
-  try {
+  return new Promise<boolean>((resolve) => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4_000);
-    const res = await fetch("https://www.gstatic.com/generate_204", {
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      resolve(false);
+    }, 4_000);
+
+    fetch("https://supabase.com/favicon.ico", {
       method: "HEAD",
-      signal: controller.signal,
+      mode: "no-cors",
       cache: "no-store",
-    });
-    clearTimeout(timeout);
-    return res.ok || res.status === 204;
-  } catch {
-    return false;
-  }
+      signal: controller.signal,
+    })
+      .then(() => { clearTimeout(timeoutId); resolve(true); })
+      .catch((e) => {
+        clearTimeout(timeoutId);
+        // AbortError = timeout, TypeError = sin red → offline
+        // Cualquier otro error (inesperado) → asumir online para no bloquear
+        const isNetErr = e?.name === "AbortError" || e instanceof TypeError;
+        resolve(!isNetErr);
+      });
+  });
 }
 
 function cleanPayload(payload: any, exclude: string[] = []): any {
@@ -107,16 +117,12 @@ let globalSyncPromise: Promise<void> | null = null;
 let lastSyncTime = 0;
 
 export async function runSync(): Promise<void> {
-  // Si ya hay un sync en curso, espera al mismo (no lances otro)
   if (globalSyncPromise) return globalSyncPromise;
 
-  // FIX: primero verificar conectividad real, luego el debounce.
-  // Antes el debounce bloqueaba el sync incluso cuando el internet acababa
-  // de volver y había pasado suficiente tiempo.
+  // Primero conectividad real, luego debounce
   const online = await isReallyOnline();
   if (!online) return;
 
-  // Debounce: evita syncs consecutivos cuando el internet fluctúa rápido
   const now = Date.now();
   if (now - lastSyncTime < SYNC_DEBOUNCE_MS) return;
 
@@ -145,7 +151,6 @@ export async function runSync(): Promise<void> {
               .from(config.supabaseTable)
               .delete()
               .eq("id", op.recordId));
-
             if (!error) {
               try { await (db as any)[op.table]?.delete(op.recordId); } catch {}
             }
@@ -197,8 +202,6 @@ export function useOfflineSync() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const triggerSync = () => {
-    // FIX: el debounce aquí ya no se duplica con el de runSync.
-    // Usamos un delay corto solo para agrupar eventos "online" rápidos del browser.
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       runSync();
