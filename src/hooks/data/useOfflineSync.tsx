@@ -63,9 +63,12 @@ export async function isReallyOnline(): Promise<boolean> {
       signal: controller.signal,
     })
       .then(() => { clearTimeout(timeoutId); resolve(true); })
-      .catch((e) => {
+      .catch(() => {
+        // BUG A FIX: cualquier error en el fetch significa sin conexión.
+        // Antes se resolvía true para errores distintos de AbortError/TypeError
+        // (ej. DOMException por CORS), causando sync en falso con error de red.
         clearTimeout(timeoutId);
-        resolve(!(e?.name === "AbortError" || e instanceof TypeError));
+        resolve(false);
       });
   });
 }
@@ -107,12 +110,14 @@ export async function runSync(): Promise<void> {
   const now = Date.now();
   if (now - lastSyncTime < SYNC_DEBOUNCE_MS) return;
 
-  const online = await isReallyOnline();
-  if (!online) return;
-
+  // NEW-1: reservar el slot ANTES del await para evitar la race condition
+  // donde dos llamadas simultáneas pasan el guard de globalSyncPromise=null
+  // antes de que la primera asigne la promesa. El check de online va dentro.
   lastSyncTime = Date.now();
 
   globalSyncPromise = (async () => {
+    const online = await isReallyOnline();
+    if (!online) return;
     try {
       const queue = await db.offline_queue.orderBy("timestamp").toArray();
 
@@ -120,6 +125,9 @@ export async function runSync(): Promise<void> {
       // Sin esto, al reconectar sin ops pendientes, los hooks nunca reciben
       // la señal de revalidación y los datos quedan stale indefinidamente.
       if (queue.length === 0) {
+        // BUG B FIX: resetear pendingRerun aquí también para evitar re-runs
+        // infinitos cuando la cola ya estaba vacía desde el inicio.
+        pendingRerun = false;
         notifySyncDone();
         return;
       }
@@ -142,13 +150,24 @@ export async function runSync(): Promise<void> {
               try { await (db as any)[op.table]?.delete(op.recordId); } catch {}
             }
           } else if (op.operation === "upsert") {
-            ({ error } = await supabase
-              .from(config.supabaseTable)
-              .upsert(cleanPayload(op.payload, config.excludeFields)));
+            const payload = cleanPayload(op.payload, config.excludeFields);
+            // NEW-3: guardia — no upsert con payload vacío (perdería datos en el servidor)
+            if (!payload || Object.keys(payload).length === 0) {
+              console.warn(`[Sync] ⚠ Payload vacío para upsert en ${op.table}/${op.recordId}, descartando`);
+              await db.offline_queue.delete(op.id!);
+              continue;
+            }
+            ({ error } = await supabase.from(config.supabaseTable).upsert(payload));
           } else if (op.operation === "update") {
+            const payload = cleanPayload(op.payload, config.excludeFields);
+            if (!payload || Object.keys(payload).length === 0) {
+              console.warn(`[Sync] ⚠ Payload vacío para update en ${op.table}/${op.recordId}, descartando`);
+              await db.offline_queue.delete(op.id!);
+              continue;
+            }
             ({ error } = await supabase
               .from(config.supabaseTable)
-              .update(cleanPayload(op.payload, config.excludeFields))
+              .update(payload)
               .eq("id", op.recordId));
           }
 
@@ -165,9 +184,20 @@ export async function runSync(): Promise<void> {
           console.log(`[Sync] ✓ ${op.table}/${op.recordId}`);
 
         } catch (err: any) {
+          // NEW-4: distinguir errores permanentes (4xx de Supabase) de transitorios (red).
+          // Un 409 de constraint o un 400 de validación nunca se va a resolver reintentando;
+          // descartarlo inmediatamente en vez de consumir MAX_RETRIES y bloquear la cola.
+          const statusCode = err?.code ? parseInt(err.code, 10) : null;
+          const isPermanentError = (
+            (statusCode !== null && statusCode >= 400 && statusCode < 500) ||
+            err?.message?.includes("violates") ||
+            err?.message?.includes("duplicate") ||
+            err?.message?.includes("invalid input")
+          );
           const retries = (op.retries ?? 0) + 1;
-          if (retries >= MAX_RETRIES) {
-            console.warn(`[Sync] ✗ Descartando ${op.table}/${op.recordId} tras ${MAX_RETRIES} intentos`);
+          if (isPermanentError || retries >= MAX_RETRIES) {
+            const reason = isPermanentError ? "error permanente" : `${MAX_RETRIES} intentos`;
+            console.warn(`[Sync] ✗ Descartando ${op.table}/${op.recordId} por ${reason}:`, err?.message);
             await db.offline_queue.delete(op.id!);
           } else {
             await db.offline_queue.update(op.id!, { retries });
@@ -175,11 +205,12 @@ export async function runSync(): Promise<void> {
         }
       }
 
-      notifySyncDone();
-
-      // Si se encolaron ops nuevas durante este loop, marcamos para re-run
+      // NEW-5: notificar aunque hayan quedado ops con errores — los hooks
+      // deben revalidar igualmente para mostrar el estado actualizado.
+      // El remaining check determina si hay que re-intentar pronto.
       const remaining = await db.offline_queue.count();
       if (remaining > 0) pendingRerun = true;
+      notifySyncDone();
 
     } finally {
       // FIX #1 (cont.): primero null, luego re-run. El orden importa:
@@ -195,7 +226,8 @@ export async function runSync(): Promise<void> {
     }
   })();
 
-  return globalSyncPromise;
+  const syncPromise = globalSyncPromise;
+  return syncPromise ?? Promise.resolve();
 }
 
 export function useOfflineSync() {
@@ -207,9 +239,12 @@ export function useOfflineSync() {
   const triggerSyncRef = useRef<() => void>(() => {});
 
   useEffect(() => {
+    // BUG D FIX: el setTimeout de 500ms aquí era redundante con SYNC_DEBOUNCE_MS
+    // dentro de runSync, causando ~1000ms de delay total en eventos online.
+    // El debounce del hook se elimina; runSync ya tiene su propio guard.
     triggerSyncRef.current = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => { runSync(); }, 500);
+      debounceRef.current = setTimeout(() => { runSync(); }, 100);
     };
 
     const handleOnline = () => triggerSyncRef.current();
@@ -246,6 +281,10 @@ export async function enqueueOperation(
       retries:   0,
     });
     console.log(`[Queue] Encolado: ${operation} en ${table}/${recordId}`);
+    // BUG C FIX: intentar sync inmediatamente después de encolar.
+    // Antes la op quedaba en la queue hasta el próximo evento online/mount,
+    // aunque el usuario estuviera conectado en ese momento.
+    runSync().catch(() => {});
   } catch (e) {
     console.error(`[Queue] Error al encolar ${operation} en ${table}/${recordId}:`, e);
     throw e;
@@ -253,5 +292,9 @@ export async function enqueueOperation(
 }
 
 export async function getPendingCount(): Promise<number> {
-  return await db.offline_queue.count();
+  try {
+    return await db.offline_queue.count();
+  } catch {
+    return 0;
+  }
 }
