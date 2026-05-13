@@ -1451,7 +1451,7 @@ export function MarkdownEditor({
     color: "color-mix(in srgb, var(--foreground) 80%, transparent)",
     fontFamily: "var(--font-mono)",
     fontSize: 13,
-    padding: "16px 20px",
+    padding: "16px 20px 20px",
   };
 
   const previewStyle: React.CSSProperties = {

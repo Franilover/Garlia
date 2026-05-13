@@ -459,7 +459,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
         {activeTab === "letras" && (
           <div className="px-4 sm:px-8 py-4 sm:py-5 space-y-4">
             {secciones.length > 0 && (
-              <div className="border border-primary/10 rounded-xl bg-bg-main/50 overflow-hidden">
+              <div className="border border-primary/10 rounded-xl bg-bg-main/50">
                 {secciones.map((sec, i) => (
                   <React.Fragment key={sec.id}>
                     <SeccionEditor
