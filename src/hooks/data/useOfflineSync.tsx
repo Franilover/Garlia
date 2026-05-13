@@ -8,7 +8,8 @@ const SYNC_TABLES: Record<string, {
   supabaseTable: string;
   excludeFields?: string[];
 }> = {
-  notas:              { supabaseTable: "ensayos",            excludeFields: ["status", "deleted"] },
+  // FIX: "notas" apuntaba a "ensayos" — bug de copypaste
+  notas:              { supabaseTable: "notas",              excludeFields: ["status", "deleted"] },
   ensayos:            { supabaseTable: "ensayos",            excludeFields: ["status", "deleted"] },
   secciones_cancion:  { supabaseTable: "secciones_cancion",  excludeFields: ["status", "deleted"] },
   capitulos:          { supabaseTable: "capitulos",          excludeFields: ["status", "deleted"] },
@@ -32,7 +33,7 @@ const SYNC_TABLES: Record<string, {
 };
 
 const MAX_RETRIES = 3;
-// Tiempo mínimo entre syncs para no saturar cuando el internet fluctúa
+// FIX: reducido — el debounce doble (aquí + en el listener) sumaba 4s de delay
 const SYNC_DEBOUNCE_MS = 2_000;
 
 // ─── Callbacks globales para notificar a useSupabaseData que el sync terminó ──
@@ -54,7 +55,6 @@ function notifySyncDone() {
 export async function isReallyOnline(): Promise<boolean> {
   if (!navigator.onLine) return false;
   try {
-    // Ping liviano a Supabase — no necesita auth ni CORS especial
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4_000);
     const res = await fetch("https://www.gstatic.com/generate_204", {
@@ -110,17 +110,23 @@ export async function runSync(): Promise<void> {
   // Si ya hay un sync en curso, espera al mismo (no lances otro)
   if (globalSyncPromise) return globalSyncPromise;
 
+  // FIX: primero verificar conectividad real, luego el debounce.
+  // Antes el debounce bloqueaba el sync incluso cuando el internet acababa
+  // de volver y había pasado suficiente tiempo.
+  const online = await isReallyOnline();
+  if (!online) return;
+
   // Debounce: evita syncs consecutivos cuando el internet fluctúa rápido
   const now = Date.now();
   if (now - lastSyncTime < SYNC_DEBOUNCE_MS) return;
 
-  const online = await isReallyOnline();
-  if (!online) return;
-
   globalSyncPromise = (async () => {
     try {
       const queue = await db.offline_queue.orderBy("timestamp").toArray();
-      if (queue.length === 0) return;
+      if (queue.length === 0) {
+        lastSyncTime = Date.now();
+        return;
+      }
 
       console.log(`[Sync] Procesando ${queue.length} operaciones pendientes...`);
 
@@ -178,7 +184,6 @@ export async function runSync(): Promise<void> {
       }
 
       lastSyncTime = Date.now();
-      // Notifica a todos los useSupabaseData que pueden re-fetchear
       notifySyncDone();
     } finally {
       globalSyncPromise = null;
@@ -192,11 +197,12 @@ export function useOfflineSync() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const triggerSync = () => {
-    // Debounce en el listener: si el internet sube/baja rápido, espera 2s antes de sincronizar
+    // FIX: el debounce aquí ya no se duplica con el de runSync.
+    // Usamos un delay corto solo para agrupar eventos "online" rápidos del browser.
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       runSync();
-    }, SYNC_DEBOUNCE_MS);
+    }, 500);
   };
 
   useEffect(() => {

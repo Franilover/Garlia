@@ -67,6 +67,21 @@ const NUMERIC_ID_TABLES = new Set([
 const FETCH_TIMEOUT_MS = 12_000;
 const REVALIDATE_THROTTLE_MS = 30_000;
 
+// FIX: helper para detectar errores de red de forma consistente en todo el hook,
+// incluyendo los casos donde el mensaje viene en diferentes formatos según el browser.
+function isNetworkError(err: any): boolean {
+  const msg: string = err?.message ?? "";
+  return (
+    msg.includes("fetch") ||
+    msg.includes("NetworkError") ||
+    msg.includes("Failed to fetch") ||
+    msg.includes("network") ||
+    msg.includes("timeout") ||
+    msg.includes("abort") ||
+    err?.name === "AbortError"
+  );
+}
+
 interface UseSupabaseOptions {
   select?: string;
   order?: { campo: string; asc?: boolean };
@@ -150,7 +165,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   const pollingRef     = useRef<NodeJS.Timeout | null>(null);
   const lastFetchRef   = useRef<number>(0);
   const lastVisibleRef = useRef<number>(Date.now());
-  // Ref al canal activo para poder re-suscribir cuando se recupera la conexión
   const channelRef     = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const optionsKey     = JSON.stringify(opciones);
 
@@ -170,7 +184,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       setLoading(true);
     }
 
-    // FIX: verificar conectividad real, no solo navigator.onLine
     const online = await isReallyOnline();
     if (!online) {
       if (isMounted.current) {
@@ -236,12 +249,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     } catch (err: any) {
       if (isMounted.current) {
         if (!hasLocalData) {
-          const isNetworkError =
-            err.message?.includes("fetch") ||
-            err.message?.includes("NetworkError") ||
-            err.message?.includes("Failed to fetch");
-
-          if (isNetworkError && retryCount.current < 5) {
+          if (isNetworkError(err) && retryCount.current < 5) {
             retryCount.current++;
             const delay = Math.min(2000 * Math.pow(2, retryCount.current - 1), 32_000);
             setTimeout(() => fetchData(true), delay);
@@ -258,11 +266,17 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   // ─── Mutaciones ────────────────────────────────────────────────────────────
 
   const addRow = useCallback(async (newData: any) => {
-    if (!navigator.onLine && NUMERIC_ID_TABLES.has(tabla)) {
-      return { data: null, error: "Esta tabla requiere conexión para crear registros." };
+    if (NUMERIC_ID_TABLES.has(tabla)) {
+      // Las tablas con ID numérico autoincremental siempre necesitan conexión
+      const online = await isReallyOnline();
+      if (!online) {
+        return { data: null, error: "Esta tabla requiere conexión para crear registros." };
+      }
     }
 
-    if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
+    // FIX: usar isReallyOnline en vez de navigator.onLine para el path offline
+    const online = await isReallyOnline();
+    if (!online && OFFLINE_WRITABLE.has(tabla)) {
       const id = newData.id ?? generateUUID();
       const row = { ...newData, id, status: "pending" };
       await writeToDexie(tabla, [row]);
@@ -279,6 +293,7 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       if (created?.id) writeToDexie(tabla, [{ ...created, status: "synced" }]);
       return { data: created, error: res?.error || null };
     } catch (err: any) {
+      // FIX: fallback offline cuando el request online falla por error de red
       if (OFFLINE_WRITABLE.has(tabla) && !NUMERIC_ID_TABLES.has(tabla)) {
         const id = newData.id ?? generateUUID();
         const row = { ...newData, id, status: "pending" };
@@ -292,7 +307,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   }, [tabla]);
 
   const updateRow = useCallback(async (id: string | number, updates: any) => {
-    if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
+    // FIX: usar isReallyOnline en vez de navigator.onLine
+    const online = await isReallyOnline();
+    if (!online && OFFLINE_WRITABLE.has(tabla)) {
       const existing = db ? await (db as any)[tabla]?.get(id) : null;
       const row = { ...existing, ...updates, id, status: "pending" };
       await writeToDexie(tabla, [row]);
@@ -300,8 +317,8 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       setData(prev => prev.map((r: any) => r.id === id ? row : r));
       return { data: row, error: null };
     }
+
     try {
-      // ── FIX: timeout de 10s para que updateRow nunca quede colgado ──────────
       const UPDATE_TIMEOUT_MS = 10_000;
       const updatePromise = QUERIES_MAP[tabla]?.update
         ? QUERIES_MAP[tabla].update(id, updates)
@@ -311,7 +328,16 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       );
       const res = await Promise.race([updatePromise, timeoutPromise]);
       const updated = (res as any)?.data || res;
-      if ((updated as any)?.id) writeToDexie(tabla, [{ ...(updated as any), status: "synced" }]);
+
+      // FIX: guardar en Dexie aunque el response no tenga .id explícito
+      // (algunos queries custom devuelven el objeto directamente sin wrapper)
+      const savedData = updated ?? { id, ...updates };
+      if (savedData?.id !== undefined) {
+        writeToDexie(tabla, [{ ...savedData, status: "synced" }]);
+        // FIX: actualizar estado React con el dato confirmado del servidor
+        setData(prev => prev.map((r: any) => r.id === id ? { ...r, ...savedData } : r));
+      }
+
       return { data: updated, error: (res as any)?.error || null };
     } catch (err: any) {
       if (OFFLINE_WRITABLE.has(tabla)) {
@@ -327,7 +353,9 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
   }, [tabla]);
 
   const deleteRow = useCallback(async (id: string | number) => {
-    if (!navigator.onLine && OFFLINE_WRITABLE.has(tabla)) {
+    // FIX: usar isReallyOnline en vez de navigator.onLine
+    const online = await isReallyOnline();
+    if (!online && OFFLINE_WRITABLE.has(tabla)) {
       const existing = db ? await (db as any)[tabla]?.get(id) : null;
       if (existing) {
         await writeToDexie(tabla, [{ ...existing, deleted: true, status: "pending" }]);
@@ -336,13 +364,21 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
       setData(prev => prev.filter((r: any) => r.id !== id));
       return { error: null };
     }
+
     try {
       const res = QUERIES_MAP[tabla]?.delete
         ? await QUERIES_MAP[tabla].delete(id)
         : await supabase.from(tabla).delete().eq("id", id);
-      try {
-        if (db && DEXIE_TABLES.has(tabla)) await (db as any)[tabla]?.delete(id);
-      } catch {}
+
+      // FIX: actualizar estado React inmediatamente después del delete exitoso,
+      // antes solo borraba en Supabase y Dexie pero la fila seguía visible en UI
+      if (!res?.error) {
+        setData(prev => prev.filter((r: any) => r.id !== id));
+        try {
+          if (db && DEXIE_TABLES.has(tabla)) await (db as any)[tabla]?.delete(id);
+        } catch {}
+      }
+
       return { error: res?.error || null };
     } catch (err: any) {
       if (OFFLINE_WRITABLE.has(tabla)) {
@@ -356,14 +392,13 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
   // ─── Suscripción Realtime con recuperación de canal ────────────────────────
   const subscribeChannel = useCallback(() => {
-    // Si ya hay un canal activo, no crear otro
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
     const channel = supabase
-      .channel(`rt-${tabla}-${Date.now()}`) // nombre único para forzar canal nuevo
+      .channel(`rt-${tabla}-${Date.now()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: tabla }, () => {
         fetchData(true);
       })
@@ -392,8 +427,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
     fetchData();
     subscribeChannel();
 
-    // FIX: cuando el sync de operaciones offline termina, re-fetchear
-    // para mostrar el estado real del servidor (no datos viejos de Dexie)
     const unsubSyncDone = onSyncDone(() => {
       if (isMounted.current) {
         setTimeout(() => fetchData(true), 300);
@@ -402,13 +435,10 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
     const handleOnline = async () => {
       retryCount.current = 0;
-      // FIX: esperar verificación real antes de re-suscribir y fetchear
       const online = await isReallyOnline();
       if (!online || !isMounted.current) return;
 
-      // Re-suscribir canal (el anterior puede estar muerto)
       subscribeChannel();
-      // Pequeño delay para que el sync de useOfflineSync termine primero
       setTimeout(() => {
         if (isMounted.current) fetchData(true);
       }, 2_500);
@@ -422,7 +452,6 @@ export function useSupabaseData<T = any>(tabla: string, opciones: UseSupabaseOpt
 
         if (timeSinceHidden > REVALIDATE_THROTTLE_MS || timeSinceLastFetch > REVALIDATE_THROTTLE_MS) {
           retryCount.current = 0;
-          // Re-suscribir canal al volver la pestaña (puede haber muerto mientras estaba oculta)
           subscribeChannel();
           setTimeout(() => fetchData(true), 500);
         }
