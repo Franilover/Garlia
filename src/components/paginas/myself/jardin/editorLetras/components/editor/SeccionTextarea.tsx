@@ -120,14 +120,13 @@ function SyllableOverlay({
 // ── Componente principal ─────────────────────────────────────────────────────
 
 export const SeccionTextarea = ({
-  sec, idioma, refIdioma, onSave, nombreSeccion, viewMode, countMode,
+  sec, idioma, refIdioma, onSave, nombreSeccion, countMode,
 }: {
   sec:           Seccion;
   idioma:        IdiomaKey;
   refIdioma?:    IdiomaKey;
   onSave:        (id: string, updates: Partial<Seccion>) => Promise<void>;
   nombreSeccion?: string;
-  viewMode:      "edit" | "preview";
   countMode:     "silabas" | "vocales";
 }) => {
   const campo     = IDIOMAS.find(i => i.id === idioma)!.campo;
@@ -235,7 +234,7 @@ export const SeccionTextarea = ({
           onChange={onChange}
           placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
           toolbar={false}
-          mode={viewMode}
+          mode="edit"
           autoResize
           rows={1}
           renderOverlay={(val) => (

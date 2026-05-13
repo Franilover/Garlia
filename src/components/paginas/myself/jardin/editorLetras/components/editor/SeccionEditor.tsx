@@ -7,7 +7,7 @@ import { SeccionTextarea } from "./SeccionTextarea";
 import type { Seccion, IdiomaKey } from "../../types";
 
 export const SeccionEditor = ({
-  sec, idiomaA, idiomaB, splitMode, viewMode, countMode,
+  sec, idiomaA, idiomaB, splitMode, countMode,
   onSaveField, onSaveNombre, onDelete, onDuplicate, onMoveUp, onMoveDown,
   isFirst, isLast,
 }: {
@@ -15,7 +15,6 @@ export const SeccionEditor = ({
   idiomaA: IdiomaKey;
   idiomaB: IdiomaKey;
   splitMode: boolean;
-  viewMode: "edit" | "preview";
   countMode: "silabas" | "vocales";
   onSaveField: (id: string, updates: Partial<Seccion>) => Promise<void>;
   onSaveNombre: (id: string, nombre: string) => Promise<void>;
@@ -69,7 +68,6 @@ export const SeccionEditor = ({
           refIdioma={splitMode ? idiomaB : undefined}
           onSave={onSaveField}
           nombreSeccion={nombre}
-          viewMode={viewMode}
           countMode={countMode}
         />
         {splitMode && (
@@ -81,7 +79,6 @@ export const SeccionEditor = ({
               refIdioma={idiomaA}
               onSave={onSaveField}
               nombreSeccion={nombre}
-              viewMode={viewMode}
               countMode={countMode}
             />
           </>

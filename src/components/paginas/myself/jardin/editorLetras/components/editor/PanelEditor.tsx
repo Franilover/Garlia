@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   Music, Info, Film, Loader2, RefreshCw, FileText,
   Eye, EyeOff, Columns2, Plus, Check, X, Layers,
-  MoreHorizontal, ChevronDown, Edit3,
+  MoreHorizontal, ChevronDown,
 } from "lucide-react";
 import { User, Mic2, PenLine, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,7 +40,6 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const [addingName,    setAddingName]    = useState("");
   const [showLector,    setShowLector]    = useState(false);
   const [activeTab,     setActiveTab]     = useState<EditorTab>("letras");
-  const [viewMode,      setViewMode]      = useState<"edit" | "preview">("edit");
   const [countMode,     setCountMode]     = useState<"silabas" | "vocales">("silabas");
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [headerExpanded,    setHeaderExpanded]     = useState(false);
@@ -345,15 +344,6 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                   {splitMode ? "÷" : "Split"}
                 </button>
 
-                {/* Botón toggle editar / preview global */}
-                <button
-                  onClick={() => setViewMode(v => v === "edit" ? "preview" : "edit")}
-                  title={viewMode === "edit" ? "Ver preview" : "Editar"}
-                  className="p-1.5 rounded-xl border border-primary/20 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0"
-                >
-                  {viewMode === "edit" ? <Eye size={12} /> : <Edit3 size={12} />}
-                </button>
-
                 {/* Toggle síl / voc global */}
                 <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-xl border border-primary/10 shrink-0">
                   {(["silabas", "vocales"] as const).map(m => (
@@ -477,7 +467,6 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                       idiomaA={idiomaA}
                       idiomaB={idiomaB}
                       splitMode={splitMode}
-                      viewMode={viewMode}
                       countMode={countMode}
                       onSaveField={handleSaveField}
                       onSaveNombre={handleSaveNombre}
