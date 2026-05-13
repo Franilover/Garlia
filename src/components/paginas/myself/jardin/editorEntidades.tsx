@@ -12,7 +12,7 @@ import {
   type Hechizo, type Don, type Runa,
 } from "./editorEntidades/types";
 import { useMundoSecciones } from "./editorEntidades/hooks";
-import { GlobalSearchBar, type AllItems } from "./editorEntidades/SidebarComponents";
+import { GlobalSearchBar, ModalAcontecimiento, type AllItems, type MagicAddKey } from "./editorEntidades/SidebarComponents";
 import { EditorPersonaje } from "./editorEntidades/EditorPersonaje";
 import { EditorCriatura }  from "./editorEntidades/EditorCriatura";
 import { EditorItem }      from "./editorEntidades/EditorItem";
@@ -246,6 +246,7 @@ export default function EditorEntidades() {
   const [tab,          setTab]          = useState<TabKey>(session.current.tab);
   const [selectedId,   setSelectedId]   = useState<string | null>(session.current.selectedId);
   const [showNueva,    setShowNueva]    = useState<Exclude<TabKey, "mundo"> | null>(null);
+  const [showAcontecimiento, setShowAcontecimiento] = useState(false);
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>(session.current.mundoSection);
   const [requestedSubTab, setRequestedSubTab] = useState<string | undefined>(session.current.mundoTab);
   const [requestedItemId, setRequestedItemId] = useState<string | undefined>(undefined);
@@ -377,6 +378,22 @@ export default function EditorEntidades() {
             setTab(chosenTab);
             setShowNueva(chosenTab as Exclude<TabKey, "mundo">);
           }}
+          onAddMagic={(key: MagicAddKey) => {
+            if (key === "acontecimiento") {
+              setShowAcontecimiento(true);
+            } else {
+              // Para hechizos, dones, runas, notas → navegar a EditorMundo sección magia/listas
+              setTab("mundo");
+              setSelectedId(null);
+              if (key === "notas") {
+                setMundoSection("historia");
+                setRequestedSubTab("historia");
+              } else {
+                setMundoSection("magia");
+                setRequestedSubTab(key);
+              }
+            }
+          }}
           onNavigateTab={(chosenTab) => {
             setTab(chosenTab);
             const first = allItems[chosenTab]?.[0];
@@ -456,6 +473,19 @@ export default function EditorEntidades() {
           tab={showNueva}
           onCreated={(item) => handleCreated(item, showNueva)}
           onClose={() => setShowNueva(null)}
+        />
+      )}
+
+      {/* Modal acontecimiento */}
+      {showAcontecimiento && (
+        <ModalAcontecimiento
+          onClose={() => setShowAcontecimiento(false)}
+          onSaved={() => {
+            // Si el usuario está en Historia, navegar ahí para que vea el evento nuevo
+            setTab("mundo");
+            setMundoSection("historia");
+            setRequestedSubTab("historia");
+          }}
         />
       )}
     </>
