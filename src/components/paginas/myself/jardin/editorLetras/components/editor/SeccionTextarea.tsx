@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, CheckCircle2, AlertCircle, WifiOff, Eye, Edit3 } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, WifiOff } from "lucide-react";
 import { DraftRestoreBanner, useDraftRestore } from "@/hooks/useEditorShared";
 import { dexieSecGet } from "../../lib/seccionesDb";
 import { IDIOMAS, IDLE_STATE } from "../../constants";
@@ -120,15 +120,14 @@ function SyllableOverlay({
 // ── Componente principal ─────────────────────────────────────────────────────
 
 export const SeccionTextarea = ({
-  sec, idioma, refIdioma, onSave, nombreSeccion,
+  sec, idioma, refIdioma, onSave, nombreSeccion, viewMode,
 }: {
   sec:           Seccion;
   idioma:        IdiomaKey;
-  /** Idioma del panel opuesto en split mode. Si es undefined no hay comparación. */
   refIdioma?:    IdiomaKey;
   onSave:        (id: string, updates: Partial<Seccion>) => Promise<void>;
-  /** Nombre de la sección — se muestra como # encabezado en el editor y en la vista previa */
   nombreSeccion?: string;
+  viewMode:      "edit" | "preview";
 }) => {
   const campo     = IDIOMAS.find(i => i.id === idioma)!.campo;
   const serverVal = (sec[campo] as string) || "";
@@ -136,7 +135,6 @@ export const SeccionTextarea = ({
   const [texto,     setTexto]     = useState(serverVal);
   const [st,        setSt]        = useState<ColState>(IDLE_STATE);
   const [countMode, setCountMode] = useState<CountMode>("silabas");
-  const [viewMode,  setViewMode]  = useState<"edit" | "preview">("edit");
 
   const timer    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftKey = `sec-draft-${sec.id}-${idioma}`;
@@ -220,36 +218,25 @@ export const SeccionTextarea = ({
         </div>
       )}
 
-      {/* ── Toggle sílabas / vocales + modo vista ── */}
+      {/* ── Toggle sílabas / vocales ── */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10 w-fit">
-            {(["silabas", "vocales"] as CountMode[]).map(m => (
-              <button
-                key={m}
-                onClick={() => setCountMode(m)}
-                className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${
-                  countMode === m
-                    ? "bg-primary text-bg-main"
-                    : "text-primary/30 hover:text-primary/60"
-                }`}
-              >
-                {m === "silabas" ? "síl" : "voc"}
-              </button>
-            ))}
-          </div>
-
-          {/* Botón toggle editar / vista */}
-          <button
-            onClick={() => setViewMode(v => v === "edit" ? "preview" : "edit")}
-            title={viewMode === "edit" ? "Ver preview" : "Editar"}
-            className="p-1 rounded-md text-primary/30 hover:text-primary/60 transition-all"
-          >
-            {viewMode === "edit" ? <Eye size={10} /> : <Edit3 size={10} />}
-          </button>
+        <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10 w-fit">
+          {(["silabas", "vocales"] as CountMode[]).map(m => (
+            <button
+              key={m}
+              onClick={() => setCountMode(m)}
+              className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${
+                countMode === m
+                  ? "bg-primary text-bg-main"
+                  : "text-primary/30 hover:text-primary/60"
+              }`}
+            >
+              {m === "silabas" ? "síl" : "voc"}
+            </button>
+          ))}
         </div>
 
-        {/* Indicadores de estado flotantes (fuera del editor) */}
+        {/* Indicadores de estado */}
         <span className="flex items-center gap-1.5 pr-1">
           {st.saving                           && <Loader2      size={11} className="animate-spin text-primary/30" />}
           {st.saved                            && <CheckCircle2 size={11} className="text-emerald-400" />}
