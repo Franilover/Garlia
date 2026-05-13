@@ -344,8 +344,20 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                   {splitMode ? "÷" : "Split"}
                 </button>
 
-                {/* Toggle síl / voc global */}
-                <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-xl border border-primary/10 shrink-0">
+                {/* Idioma B — solo en split */}
+                {splitMode && (
+                  <>
+                    <div className="w-px h-5 bg-primary/10 shrink-0" />
+                    <IdiomaTab value={idiomaB} onChange={changeIdiomaB} exclude={idiomaA} />
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Progreso + síl/voc — esquina derecha */}
+            {activeTab === "letras" && (
+              <div className="ml-auto flex items-center gap-2 shrink-0">
+                <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-xl border border-primary/10">
                   {(["silabas", "vocales"] as const).map(m => (
                     <button
                       key={m}
@@ -358,25 +370,13 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                     </button>
                   ))}
                 </div>
-
-                {/* Idioma B — solo en split */}
-                {splitMode && (
-                  <>
-                    <div className="w-px h-5 bg-primary/10 shrink-0" />
-                    <IdiomaTab value={idiomaB} onChange={changeIdiomaB} exclude={idiomaA} />
-                  </>
-                )}
-              </>
-            )}
-
-            {/* Progreso — empuja al final */}
-            {activeTab === "letras" && (
-              <div className="ml-auto flex items-center gap-2 text-[9px] font-black uppercase text-primary/30 tracking-widest shrink-0">
-                <span>{conLetra}/{secciones.length}</span>
-                <div className="w-16 h-1 rounded-full bg-primary/10 overflow-hidden">
-                  <div className="h-full rounded-full bg-primary/50 transition-all duration-500" style={{ width: `${pct}%` }} />
+                <div className="flex items-center gap-2 text-[9px] font-black uppercase text-primary/30 tracking-widest">
+                  <span>{conLetra}/{secciones.length}</span>
+                  <div className="w-16 h-1 rounded-full bg-primary/10 overflow-hidden">
+                    <div className="h-full rounded-full bg-primary/50 transition-all duration-500" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span>{pct}%</span>
                 </div>
-                <span>{pct}%</span>
               </div>
             )}
           </div>
