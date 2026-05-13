@@ -243,12 +243,13 @@ function MundoSectionCard({
 // ─── AddCommandMenu ───────────────────────────────────────────────────────────
 // Floating menu triggered when user types "add" and presses Enter
 
-export type MagicAddKey = "hechizos" | "runas" | "notas";
+export type MagicAddKey = "hechizos" | "dones" | "runas" | "notas";
 
 const MAGIC_ADD_ITEMS: { key: MagicAddKey; label: string; Icon: React.ElementType; abbr: string }[] = [
-  { key: "hechizos", label: "Hechizo",  Icon: Wand2,      abbr: "HZ" },
-  { key: "runas",    label: "Runa",     Icon: Zap,         abbr: "RN" },
-  { key: "notas",    label: "Nota",     Icon: FileText,    abbr: "NT" },
+  { key: "hechizos", label: "Hechizo", Icon: Wand2,     abbr: "HZ" },
+  { key: "dones",    label: "Don",     Icon: Sparkles,   abbr: "DN" },
+  { key: "runas",    label: "Runa",    Icon: Zap,        abbr: "RN" },
+  { key: "notas",    label: "Nota",    Icon: FileText,   abbr: "NT" },
 ];
 
 function AddCommandMenu({
@@ -370,14 +371,14 @@ function AddCommandMenu({
           Magia &amp; Notas
         </p>
       </div>
-      <div className="p-2 grid grid-cols-3 gap-1">
+      <div className="p-2 grid grid-cols-2 gap-1">
         {MAGIC_ADD_ITEMS.map(({ key, label, Icon, abbr }) => {
           const hv = btnHover(true);
           return (
             <button
               key={key}
               onClick={() => { onAddMagic?.(key); onClose(); }}
-              className="flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl text-center transition-all border border-dashed"
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all border border-dashed"
               style={{
                 borderColor: "color-mix(in srgb, var(--accent) 18%, transparent)",
                 color: "color-mix(in srgb, var(--accent) 45%, transparent)",
@@ -396,12 +397,13 @@ function AddCommandMenu({
               }}
             >
               <span
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
                 style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)" }}
               >
-                <Icon size={12} />
+                <Icon size={11} />
               </span>
-              <span className="text-[9px] font-black uppercase tracking-widest leading-none">{label}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+              <Plus size={8} className="ml-auto opacity-40" />
             </button>
           );
         })}
